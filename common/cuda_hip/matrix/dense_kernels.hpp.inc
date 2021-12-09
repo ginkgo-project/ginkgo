@@ -201,28 +201,27 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
         const auto slice_length = slice_lengths[slice];
         auto warp = group::tiled_partition<config::warp_size>(
             group::this_thread_block());
-        auto lane_prefix_mask =
-            (config::lane_mask_type(1) << warp.thread_rank()) - 1;
-        auto base_out_idx = slice_sets[slice];
+        const auto lane = warp.thread_rank();
+        const auto prefix_mask = (config::lane_mask_type{1} << lane) - 1;
+        const auto slice_end = slice_sets[slice + 1] * slice_size;
+        auto base_idx = slice_sets[slice] * slice_size + local_row;
         for (size_type i = 0; i < num_cols; i += config::warp_size) {
-            const auto col = i + warp.thread_rank();
-            const auto pred =
-                col < num_cols ? is_nonzero(source[stride * row + col]) : false;
+            const auto col = i + lane;
+            const auto val = checked_load(source + stride * row, col, num_cols,
+                                          zero<ValueType>());
+            const auto pred = is_nonzero(val);
             const auto mask = warp.ballot(pred);
-            const auto out_idx =
-                local_row +
-                (base_out_idx + popcnt(mask & lane_prefix_mask)) * slice_size;
+            const auto idx = base_idx + popcnt(mask & prefix_mask) * slice_size;
             if (pred) {
-                values[out_idx] = source[stride * row + col];
-                col_idxs[out_idx] = col;
+                values[idx] = val;
+                col_idxs[idx] = col;
             }
-            base_out_idx += popcnt(mask);
+            base_idx += popcnt(mask) * slice_size;
         }
-        for (size_type i = base_out_idx + warp.thread_rank(); i < slice_length;
-             i += config::warp_size) {
-            const auto out_idx = local_row + i * slice_size;
-            values[out_idx] = zero<ValueType>();
-            col_idxs[out_idx] = 0;
+        for (auto i = base_idx + lane * slice_size; i < slice_end;
+             i += config::warp_size * slice_size) {
+            values[i] = zero<ValueType>();
+            col_idxs[i] = 0;
         }
     }
 }
