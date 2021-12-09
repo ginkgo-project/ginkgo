@@ -71,28 +71,24 @@ namespace {
 
 template <typename ValueType, typename IndexType>
 void spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
-                 size_type b_stride, size_type c_stride,
-                 const size_type* __restrict__ slice_lengths,
+                 size_type b_stride, size_type c_stride, size_type slice_size,
                  const size_type* __restrict__ slice_sets,
                  const ValueType* __restrict__ a,
                  const IndexType* __restrict__ col,
                  const ValueType* __restrict__ b, ValueType* __restrict__ c,
                  sycl::nd_item<3> item_ct1)
 {
-    const auto slice_id = item_ct1.get_group(2);
-    const auto slice_size = item_ct1.get_local_range().get(2);
-    const auto row_in_slice = item_ct1.get_local_id(2);
-    const auto global_row =
-        static_cast<size_type>(slice_size) * slice_id + row_in_slice;
+    const auto row = thread::get_thread_id_flat(item_ct1);
+    const auto slice_id = row / slice_size;
+    const auto row_in_slice = row % slice_size;
     const auto column_id = item_ct1.get_group(1);
-    ValueType val = 0;
-    IndexType ind = 0;
-    if (global_row < num_rows && column_id < num_right_hand_sides) {
-        for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
-            ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
+    auto val = zero<ValueType>();
+    if (row < num_rows && column_id < num_right_hand_sides) {
+        for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
+            const auto ind = row_in_slice + i * slice_size;
             val += a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * c_stride + column_id] = val;
+        c[row * c_stride + column_id] = val;
     }
 }
 
@@ -102,7 +98,7 @@ GKO_ENABLE_DEFAULT_HOST(spmv_kernel, spmv_kernel);
 template <typename ValueType, typename IndexType>
 void advanced_spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
                           size_type b_stride, size_type c_stride,
-                          const size_type* __restrict__ slice_lengths,
+                          size_type slice_size,
                           const size_type* __restrict__ slice_sets,
                           const ValueType* __restrict__ alpha,
                           const ValueType* __restrict__ a,
@@ -111,21 +107,18 @@ void advanced_spmv_kernel(size_type num_rows, size_type num_right_hand_sides,
                           const ValueType* __restrict__ beta,
                           ValueType* __restrict__ c, sycl::nd_item<3> item_ct1)
 {
-    const auto slice_id = item_ct1.get_group(2);
-    const auto slice_size = item_ct1.get_local_range().get(2);
-    const auto row_in_slice = item_ct1.get_local_id(2);
-    const auto global_row =
-        static_cast<size_type>(slice_size) * slice_id + row_in_slice;
+    const auto row = thread::get_thread_id_flat(item_ct1);
+    const auto slice_id = row / slice_size;
+    const auto row_in_slice = row % slice_size;
     const auto column_id = item_ct1.get_group(1);
-    ValueType val = 0;
-    IndexType ind = 0;
-    if (global_row < num_rows && column_id < num_right_hand_sides) {
-        for (size_type i = 0; i < slice_lengths[slice_id]; i++) {
-            ind = row_in_slice + (slice_sets[slice_id] + i) * slice_size;
-            val += alpha[0] * a[ind] * b[col[ind] * b_stride + column_id];
+    auto val = zero<ValueType>();
+    if (row < num_rows && column_id < num_right_hand_sides) {
+        for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
+            const auto ind = row_in_slice + i * slice_size;
+            val += a[ind] * b[col[ind] * b_stride + column_id];
         }
-        c[global_row * c_stride + column_id] =
-            beta[0] * c[global_row * c_stride + column_id] + val;
+        c[row * c_stride + column_id] =
+            beta[0] * c[row * c_stride + column_id] + alpha[0] * val;
     }
 }
 
@@ -140,13 +133,13 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(matrix::default_slice_size);
-    const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
+    const dim3 blockSize(default_block_size);
+    const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 
     spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
                 b->get_size()[1], b->get_stride(), c->get_stride(),
-                a->get_const_slice_lengths(), a->get_const_slice_sets(),
+                a->get_slice_size(), a->get_const_slice_sets(),
                 a->get_const_values(), a->get_const_col_idxs(),
                 b->get_const_values(), c->get_values());
 }
@@ -162,17 +155,16 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    const dim3 blockSize(matrix::default_slice_size);
-    const dim3 gridSize(ceildiv(a->get_size()[0], matrix::default_slice_size),
+    const dim3 blockSize(default_block_size);
+    const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b->get_size()[1]);
 
-    advanced_spmv_kernel(gridSize, blockSize, 0, exec->get_queue(),
-                         a->get_size()[0], b->get_size()[1], b->get_stride(),
-                         c->get_stride(), a->get_const_slice_lengths(),
-                         a->get_const_slice_sets(), alpha->get_const_values(),
-                         a->get_const_values(), a->get_const_col_idxs(),
-                         b->get_const_values(), beta->get_const_values(),
-                         c->get_values());
+    advanced_spmv_kernel(
+        gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
+        b->get_size()[1], b->get_stride(), c->get_stride(), a->get_slice_size(),
+        a->get_const_slice_sets(), alpha->get_const_values(),
+        a->get_const_values(), a->get_const_col_idxs(), b->get_const_values(),
+        beta->get_const_values(), c->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
