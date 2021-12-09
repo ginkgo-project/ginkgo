@@ -606,17 +606,6 @@ TYPED_TEST(Sellp, MovesWithSliceSizeAndStrideFactorToCsr)
 }
 
 
-TYPED_TEST(Sellp, CountsNonzeros)
-{
-    gko::size_type nonzeros;
-
-    gko::kernels::reference::sellp::count_nonzeros(this->exec, this->mtx1.get(),
-                                                   &nonzeros);
-
-    ASSERT_EQ(nonzeros, 4);
-}
-
-
 TYPED_TEST(Sellp, ExtractsDiagonal)
 {
     using T = typename TestFixture::value_type;

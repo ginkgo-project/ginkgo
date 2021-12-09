@@ -317,53 +317,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const source,
-    size_type* const result)
-{
-    const auto num_rows = source->get_size()[0];
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const int bs = source->get_block_size();
-    IndexType max_nnz = 0;
-
-#pragma omp parallel for reduction(max : max_nnz)
-    for (size_type i = 0; i < num_rows; i++) {
-        const size_type ibrow = i / bs;
-        max_nnz =
-            std::max((row_ptrs[ibrow + 1] - row_ptrs[ibrow]) * bs, max_nnz);
-    }
-
-    *result = max_nnz;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const source,
-    Array<size_type>* const result)
-{
-    const auto row_ptrs = source->get_const_row_ptrs();
-    auto row_nnz_val = result->get_data();
-    const int bs = source->get_block_size();
-    assert(result->get_num_elems() == source->get_size()[0]);
-
-#pragma omp parallel for
-    for (size_type i = 0; i < result->get_num_elems(); i++) {
-        const size_type ibrow = i / bs;
-        row_nnz_val[i] = (row_ptrs[ibrow + 1] - row_ptrs[ibrow]) * bs;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType>* const to_check,

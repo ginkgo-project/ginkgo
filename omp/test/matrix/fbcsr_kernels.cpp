@@ -286,21 +286,6 @@ TEST_F(Fbcsr, ConjugateTransposeIsEquivalentToRef)
 }
 
 
-TEST_F(Fbcsr, CalculatesNonzerosPerRow)
-{
-    set_up_apply_data();
-    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
-    gko::Array<gko::size_type> drow_nnz(omp, dmtx->get_size()[0]);
-
-    gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(ref, mtx.get(),
-                                                               &row_nnz);
-    gko::kernels::omp::fbcsr::calculate_nonzeros_per_row(omp, dmtx.get(),
-                                                         &drow_nnz);
-
-    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
-}
-
-
 TEST_F(Fbcsr, RecognizeSortedMatrix)
 {
     set_up_apply_data();
@@ -399,23 +384,6 @@ TEST_F(Fbcsr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
     auto dabs_mtx = complex_dmtx->compute_absolute();
 
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
-}
-
-
-TEST_F(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
-{
-    auto mtx_ref = gko::test::generate_random_fbcsr<real_type>(
-        ref, num_brows, num_bcols, blk_sz, false, false, rand_engine);
-    auto rand_omp = Mtx::create(omp);
-    rand_omp->copy_from(gko::lend(mtx_ref));
-    gko::size_type ref_max_nnz{}, omp_max_nnz{};
-
-    gko::kernels::omp::fbcsr::calculate_max_nnz_per_row(
-        this->omp, rand_omp.get(), &omp_max_nnz);
-    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
-        this->ref, mtx_ref.get(), &ref_max_nnz);
-
-    ASSERT_EQ(ref_max_nnz, omp_max_nnz);
 }
 
 

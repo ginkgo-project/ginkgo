@@ -71,10 +71,6 @@ GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_in_dense, fbcsr::fill_in_dense);
 GKO_REGISTER_OPERATION(transpose, fbcsr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, fbcsr::conj_transpose);
-GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
-                       fbcsr::calculate_max_nnz_per_row);
-GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
-                       fbcsr::calculate_nonzeros_per_row);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        fbcsr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(sort_by_column_index, fbcsr::sort_by_column_index);
@@ -178,9 +174,14 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* const result) const
 {
     auto exec = this->get_executor();
-    result->resize(this->get_size(), this->get_num_stored_elements());
-    exec->run(fbcsr::make_convert_to_csr(
-        this, make_temporary_clone(exec, result).get()));
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_num_stored_elements());
+        tmp->values_.resize_and_reset(this->get_num_stored_elements());
+        tmp->set_size(this->get_size());
+        exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
+    }
     result->make_srow();
 }
 
@@ -197,17 +198,13 @@ template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType>* const result) const
 {
-    auto exec = this->get_executor();
-    auto tmp = SparsityCsr<ValueType, IndexType>::create(
-        exec,
+    result->set_size(
         gko::dim<2>{static_cast<size_type>(this->get_num_block_rows()),
-                    static_cast<size_type>(this->get_num_block_cols())},
-        this->get_num_stored_blocks());
-
-    tmp->col_idxs_ = this->col_idxs_;
-    tmp->row_ptrs_ = this->row_ptrs_;
-    tmp->value_ = Array<ValueType>(exec, {one<ValueType>()});
-    tmp->move_to(result);
+                    static_cast<size_type>(this->get_num_block_cols())});
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->value_ =
+        Array<ValueType>(result->get_executor(), {one<ValueType>()});
 }
 
 

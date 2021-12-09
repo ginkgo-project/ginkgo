@@ -50,13 +50,14 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
-
 template <typename ValueType>
 class Dense;
 
-
 template <typename ValueType, typename IndexType>
 class CooBuilder;
+
+template <typename ValueType, typename IndexType>
+class Hybrid;
 
 
 /**
@@ -90,6 +91,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
     friend class Coo<to_complex<ValueType>, IndexType>;
+    friend class Hybrid<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
@@ -335,6 +337,8 @@ protected:
         GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
         GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
     }
+
+    void resize(dim<2> new_size, size_type nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

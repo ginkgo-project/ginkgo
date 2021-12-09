@@ -51,6 +51,11 @@ namespace kernels {
     void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
                          const Array<int64>& row_ptrs, size_type* row_nnzs)
 
+#define GKO_DECLARE_HYBRID_COMPUTE_COO_ROW_PTRS_KERNEL                     \
+    void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec, \
+                              const Array<size_type>& row_nnz,             \
+                              size_type ell_lim, int64* coo_row_ptrs)
+
 #define GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void split_matrix_data(                                               \
         std::shared_ptr<const DefaultExecutor> exec,                      \
@@ -66,8 +71,10 @@ namespace kernels {
                         const IndexType* coo_row_ptrs,                      \
                         matrix::Csr<ValueType, IndexType>* result)
 
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
     GKO_DECLARE_HYBRID_COMPUTE_ROW_NNZ;                                \
+    GKO_DECLARE_HYBRID_COMPUTE_COO_ROW_PTRS_KERNEL;                    \
     template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_HYBRID_SPLIT_MATRIX_DATA_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                  \

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -54,6 +55,21 @@ namespace reference {
  * @ingroup hybrid
  */
 namespace hybrid {
+
+
+void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+                          const Array<size_type>& row_nnz, size_type ell_lim,
+                          int64* coo_row_ptrs)
+{
+    for (size_type row = 0; row < row_nnz.get_num_elems(); row++) {
+        if (row_nnz.get_const_data()[row] <= ell_lim) {
+            coo_row_ptrs[row] = 0;
+        } else {
+            coo_row_ptrs[row] = row_nnz.get_const_data()[row] - ell_lim;
+        }
+    }
+    components::prefix_sum(exec, coo_row_ptrs, row_nnz.get_num_elems() + 1);
+}
 
 
 void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
@@ -125,7 +141,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         // Ell part
         for (IndexType col = 0; col < max_nnz_per_row; col++) {
             const auto val = ell->val_at(row, col);
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 csr_val[csr_idx] = val;
                 csr_col_idxs[csr_idx] = ell->col_at(row, col);
                 csr_idx++;

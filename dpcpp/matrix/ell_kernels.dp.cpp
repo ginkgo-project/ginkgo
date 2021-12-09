@@ -298,107 +298,6 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 }  // namespace
-
-
-template <typename ValueType, typename IndexType>
-void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
-                       size_type stride, const ValueType* __restrict__ values,
-                       IndexType* __restrict__ result,
-                       sycl::nd_item<3> item_ct1)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto row_idx = thread::get_subwarp_id_flat<warp_size>(item_ct1);
-    auto warp_tile =
-        group::tiled_partition<warp_size>(group::this_thread_block(item_ct1));
-
-    if (row_idx < num_rows) {
-        IndexType part_result{};
-        for (auto i = warp_tile.thread_rank(); i < max_nnz_per_row;
-             i += warp_size) {
-            if (values[stride * i + row_idx] != zero<ValueType>()) {
-                part_result += 1;
-            }
-        }
-        result[row_idx] = ::gko::kernels::dpcpp::reduce(
-            warp_tile, part_result,
-            [](const size_type& a, const size_type& b) { return a + b; });
-    }
-}
-
-template <typename ValueType, typename IndexType>
-void count_nnz_per_row(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue* queue, size_type num_rows,
-                       size_type max_nnz_per_row, size_type stride,
-                       const ValueType* values, IndexType* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                count_nnz_per_row(num_rows, max_nnz_per_row, stride, values,
-                                  result, item_ct1);
-            });
-    });
-}
-
-#define GKO_ELL_COUNT_NNZ_PER_ROW(ValueType, IndexType)                    \
-    void count_nnz_per_row(dim3, dim3, size_type, sycl::queue*, size_type, \
-                           size_type, size_type, const ValueType*, IndexType*)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_ELL_COUNT_NNZ_PER_ROW);
-
-#undef GKO_ELL_COUNT_NNZ_PER_ROW
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_csr(size_type num_rows, size_type max_nnz_per_row,
-                 size_type stride, const ValueType* __restrict__ source_values,
-                 const IndexType* __restrict__ source_col_idxs,
-                 IndexType* __restrict__ result_row_ptrs,
-                 IndexType* __restrict__ result_col_idxs,
-                 ValueType* __restrict__ result_values,
-                 sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx < num_rows) {
-        auto write_to = result_row_ptrs[tidx];
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            const auto source_idx = tidx + stride * i;
-            if (source_values[source_idx] != zero<ValueType>()) {
-                result_values[write_to] = source_values[source_idx];
-                result_col_idxs[write_to] = source_col_idxs[source_idx];
-                write_to++;
-            }
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(size_type diag_size, size_type max_nnz_per_row,
-                      size_type orig_stride,
-                      const ValueType* __restrict__ orig_values,
-                      const IndexType* __restrict__ orig_col_idxs,
-                      ValueType* __restrict__ diag, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    const auto row = tidx % diag_size;
-    const auto col = tidx / diag_size;
-    const auto ell_ind = orig_stride * col + row;
-
-    if (col < max_nnz_per_row) {
-        if (orig_col_idxs[ell_ind] == row &&
-            orig_values[ell_ind] != zero<ValueType>()) {
-            diag[row] = orig_values[ell_ind];
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(extract_diagonal, extract_diagonal);
-
-
 }  // namespace kernel
 
 
@@ -577,30 +476,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
-    const auto orig_stride = orig->get_stride();
-    const auto diag_size = diag->get_size()[0];
-    const auto num_blocks =
-        ceildiv(diag_size * max_nnz_per_row, default_block_size);
-
-    const auto orig_values = orig->get_const_values();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
-    auto diag_values = diag->get_values();
-
-    kernel::extract_diagonal(
-        num_blocks, default_block_size, 0, exec->get_queue(), diag_size,
-        max_nnz_per_row, orig_stride, orig_values, orig_col_idxs, diag_values);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell

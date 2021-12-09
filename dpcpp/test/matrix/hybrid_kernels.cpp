@@ -212,19 +212,6 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Hybrid, CountNonzerosIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::size_type nonzeros;
-    gko::size_type dnonzeros;
-
-    gko::kernels::reference::hybrid::count_nonzeros(ref, mtx.get(), &nonzeros);
-    gko::kernels::dpcpp::hybrid::count_nonzeros(dpcpp, dmtx.get(), &dnonzeros);
-
-    ASSERT_EQ(nonzeros, dnonzeros);
-}
-
-
 TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
@@ -234,7 +221,7 @@ TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 
@@ -247,7 +234,7 @@ TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
     mtx->move_to(csr_mtx.get());
     dmtx->move_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 

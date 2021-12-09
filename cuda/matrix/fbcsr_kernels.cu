@@ -240,7 +240,16 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
+        source->get_const_row_ptrs(), source->get_const_col_idxs(),
+        as_cuda_type(source->get_const_values()), result->get_row_ptrs(),
+        result->get_col_idxs(), as_cuda_type(result->get_values()),
+        source->get_num_block_rows(), source->get_block_size());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
@@ -322,49 +331,6 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const source,
-    size_type* const result)
-{
-    const auto num_b_rows = source->get_num_block_rows();
-    const auto bs = source->get_block_size();
-
-    auto nnz_per_row = Array<size_type>(exec, num_b_rows);
-    auto block_results = Array<size_type>(exec, default_block_size);
-    auto d_result = Array<size_type>(exec, 1);
-
-    const auto grid_dim = ceildiv(num_b_rows, default_block_size);
-    csr_reuse::kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_b_rows, as_cuda_type(source->get_const_row_ptrs()),
-        nnz_per_row.get_data());
-
-    const auto n = ceildiv(num_b_rows, default_block_size);
-    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    csr_reuse::kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
-        num_b_rows, nnz_per_row.get_const_data(), block_results.get_data());
-
-    csr_reuse::kernel::reduce_max_nnz<<<1, default_block_size>>>(
-        reduce_dim, block_results.get_const_data(), d_result.get_data());
-
-    *result = bs * exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

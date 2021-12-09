@@ -124,6 +124,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::SparsityCsr<ValueType, IndexType>* input,
+                   matrix::Dense<ValueType>* output)
+{
+    auto row_ptrs = input->get_const_row_ptrs();
+    auto col_idxs = input->get_const_col_idxs();
+    auto val = input->get_const_value()[0];
+    const auto num_rows = input->get_size()[0];
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            auto col = col_idxs[k];
+            output->at(row, col) = val;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* matrix,

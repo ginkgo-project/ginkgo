@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -192,6 +193,16 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::resize(dim<2> new_size, size_type nnz)
+{
+    this->set_size(new_size);
+    this->row_idxs_.resize_and_reset(nnz);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->values_.resize_and_reset(nnz);
 }
 
 

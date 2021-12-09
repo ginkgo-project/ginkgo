@@ -169,10 +169,15 @@ template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int32>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
@@ -187,10 +192,15 @@ template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int64>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 

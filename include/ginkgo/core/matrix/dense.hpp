@@ -930,6 +930,24 @@ protected:
         return Dense::create(exec, size, stride);
     }
 
+    template <typename IndexType>
+    void convert_impl(Coo<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Csr<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Ell<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Hybrid<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Sellp<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
+
     /**
      * @copydoc scale(const LinOp *)
      *

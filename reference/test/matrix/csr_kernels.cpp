@@ -1013,25 +1013,12 @@ TYPED_TEST(Csr, CalculatesNonzerosPerRow)
 {
     gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
 
-    gko::kernels::reference::csr::calculate_nonzeros_per_row(
-        this->exec, this->mtx.get(), &row_nnz);
+    gko::kernels::reference::csr::count_nonzeros_per_row(
+        this->exec, this->mtx.get(), row_nnz.get_data());
 
     auto row_nnz_val = row_nnz.get_data();
     ASSERT_EQ(row_nnz_val[0], 3);
     ASSERT_EQ(row_nnz_val[1], 1);
-}
-
-
-TYPED_TEST(Csr, CalculatesTotalCols)
-{
-    gko::size_type total_cols;
-    gko::size_type stride_factor = gko::matrix::default_stride_factor;
-    gko::size_type slice_size = gko::matrix::default_slice_size;
-
-    gko::kernels::reference::csr::calculate_total_cols(
-        this->exec, this->mtx.get(), &total_cols, stride_factor, slice_size);
-
-    ASSERT_EQ(total_cols, 3);
 }
 
 

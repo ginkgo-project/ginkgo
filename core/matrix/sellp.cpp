@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -58,11 +59,12 @@ namespace {
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, sellp::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
-GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
+GKO_REGISTER_OPERATION(count_nonzeros_per_row, sellp::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, sellp::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -144,14 +146,22 @@ void Sellp<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(sellp::make_count_nonzeros(this, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_nonzeros, result->get_strategy());
-    exec->run(sellp::make_convert_to_csr(this, tmp.get()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto num_rows = this->get_size()[0];
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+        exec->run(sellp::make_count_nonzeros_per_row(
+            this, tmp->row_ptrs_.get_data()));
+        exec->run(
+            sellp::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+        const auto nnz = static_cast<size_type>(
+            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        tmp->col_idxs_.resize_and_reset(nnz);
+        tmp->values_.resize_and_reset(nnz);
+        tmp->set_size(this->get_size());
+        exec->run(sellp::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
@@ -214,7 +224,7 @@ void Sellp<ValueType, IndexType>::write(mat_data& data) const
                      i++) {
                     const auto val = tmp->val_at(
                         row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                    if (val != zero<ValueType>()) {
+                    if (is_nonzero(val)) {
                         const auto col =
                             tmp->col_at(row_in_slice,
                                         tmp->get_const_slice_sets()[slice], i);

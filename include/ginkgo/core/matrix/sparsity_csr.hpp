@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 
 
 namespace gko {
@@ -47,6 +48,10 @@ namespace matrix {
 
 template <typename ValueType, typename IndexType>
 class Csr;
+
+
+template <typename ValueType>
+class Dense;
 
 
 template <typename ValueType, typename IndexType>
@@ -75,12 +80,15 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class SparsityCsr
     : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
       public EnableCreateMethod<SparsityCsr<ValueType, IndexType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType>,
       public Transposable {
     friend class EnableCreateMethod<SparsityCsr>;
     friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
+    friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;
 
 public:
@@ -93,6 +101,14 @@ public:
     using transposed_type = SparsityCsr<IndexType, ValueType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
+
+    void convert_to(Csr<ValueType, IndexType>* result) const override;
+
+    void move_to(Csr<ValueType, IndexType>* result) override;
+
+    void convert_to(Dense<ValueType>* result) const override;
+
+    void move_to(Dense<ValueType>* result) override;
 
     void read(const mat_data& data) override;
 

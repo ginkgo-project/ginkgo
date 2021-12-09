@@ -40,24 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/iterator/transform_output_iterator.h>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-
-
 #include "common/unified/base/kernel_launch.hpp"
-#include "core/components/fill_array_kernels.hpp"
-#include "core/components/format_conversion_kernels.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/coo_kernels.hpp"
-#include "core/matrix/ell_kernels.hpp"
-#include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
-#include "cuda/components/atomic.cuh"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/format_conversion.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/segment_scan.cuh"
-#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -69,10 +53,6 @@ namespace cuda {
  * @ingroup hybrid
  */
 namespace hybrid {
-
-
-constexpr int default_block_size = 512;
-constexpr int warps_in_block = 4;
 
 
 #include "common/cuda_hip/matrix/hybrid_kernels.hpp.inc"

@@ -61,6 +61,11 @@ namespace kernels {
                        const matrix::Dense<ValueType>* beta,                \
                        matrix::Dense<ValueType>* c)
 
+#define GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)    \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,            \
+                       const matrix::SparsityCsr<ValueType, IndexType>* input, \
+                       matrix::Dense<ValueType>* output)
+
 #define GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, \
                                                             IndexType) \
     void fill_in_matrix_data(                                          \
@@ -104,6 +109,8 @@ namespace kernels {
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                          \

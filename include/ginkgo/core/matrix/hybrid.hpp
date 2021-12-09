@@ -736,6 +736,8 @@ protected:
           strategy_(std::move(strategy))
     {}
 
+    void resize(dim<2> new_size, size_type ell_row_nnz, size_type coo_nnz);
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,

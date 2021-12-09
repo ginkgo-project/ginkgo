@@ -560,7 +560,7 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
 }
 
 
@@ -574,7 +574,7 @@ TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 
@@ -582,37 +582,20 @@ TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    gko::Array<gko::size_type> nnz_per_row;
+    gko::Array<int> nnz_per_row;
     nnz_per_row.set_executor(ref);
     nnz_per_row.resize_and_reset(mtx->get_size()[0]);
 
-    gko::Array<gko::size_type> dnnz_per_row;
+    gko::Array<int> dnnz_per_row;
     dnnz_per_row.set_executor(dpcpp);
     dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
 
-    gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
-                                                             &nnz_per_row);
-    gko::kernels::dpcpp::ell::calculate_nonzeros_per_row(dpcpp, dmtx.get(),
-                                                         &dnnz_per_row);
+    gko::kernels::reference::ell::count_nonzeros_per_row(
+        ref, mtx.get(), nnz_per_row.get_data());
+    gko::kernels::dpcpp::ell::count_nonzeros_per_row(dpcpp, dmtx.get(),
+                                                     dnnz_per_row.get_data());
 
-    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
-    for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
-        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
-    }
-}
-
-
-TEST_F(Ell, CountNNZIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    gko::size_type nnz;
-    gko::size_type dnnz;
-
-    gko::kernels::reference::ell::count_nonzeros(ref, mtx.get(), &nnz);
-    gko::kernels::dpcpp::ell::count_nonzeros(dpcpp, dmtx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
+    GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);
 }
 
 

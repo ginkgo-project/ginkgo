@@ -318,24 +318,6 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
 }
 
 
-TYPED_TEST(Fbcsr, MaxNnzPerRowIsEquivalentToRefSortedBS3)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename Mtx::value_type;
-    using index_type = typename Mtx::index_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    gko::size_type ref_max_nnz{}, cuda_max_nnz{};
-
-    gko::kernels::cuda::fbcsr::calculate_max_nnz_per_row(
-        this->cuda, rand_cuda.get(), &cuda_max_nnz);
-    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
-        this->ref, this->rsorted_ref.get(), &ref_max_nnz);
-
-    ASSERT_EQ(ref_max_nnz, cuda_max_nnz);
-}
-
-
 TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;

@@ -46,7 +46,13 @@ template <typename ValueType>
 class Dense;
 
 template <typename ValueType, typename IndexType>
+class Coo;
+
+template <typename ValueType, typename IndexType>
 class Csr;
+
+template <typename ValueType, typename IndexType>
+class Hybrid;
 
 
 /**
@@ -81,8 +87,11 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
+    friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Ell<to_complex<ValueType>, IndexType>;
+    friend class Ell<next_precision<ValueType>, IndexType>;
+    friend class Hybrid<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Ell>::convert_to;
@@ -94,8 +103,6 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
-
-    friend class Ell<next_precision<ValueType>, IndexType>;
 
     void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;
@@ -342,6 +349,8 @@ protected:
         GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_,
                       col_idxs_.get_num_elems());
     }
+
+    void resize(dim<2> new_size, size_type max_row_nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

@@ -409,9 +409,9 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -429,9 +429,9 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -449,9 +449,9 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -469,9 +469,9 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -485,7 +485,7 @@ TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
     mtx->convert_to(sparsity_mtx.get());
     dmtx->convert_to(d_sparsity_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
 }
 
 
@@ -499,7 +499,7 @@ TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
     mtx->move_to(sparsity_mtx.get());
     dmtx->move_to(d_sparsity_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
 }
 
 
@@ -517,9 +517,9 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -537,9 +537,9 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -557,11 +557,9 @@ TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    // Test between `srmtx` and `somtx` may fail due to the OpenMP
-    // implementation not sorting the Coo matrix part.
-    // Therefore, it is not performed.
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -579,11 +577,9 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    // Test between `srmtx` and `somtx` may fail due to the OpenMP
-    // implementation not sorting the Coo matrix part.
-    // Therefore, it is not performed.
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -601,9 +597,9 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
     srmtx->convert_to(drmtx.get());
     somtx->convert_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -621,9 +617,9 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
     srmtx->move_to(drmtx.get());
     somtx->move_to(domtx.get());
 
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 1e-14);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
+    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
+    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
 }
 
 
@@ -647,44 +643,28 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     gko::Array<gko::size_type> dnnz_per_row(omp);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
-    gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
-                                                               &nnz_per_row);
-    gko::kernels::omp::dense::calculate_nonzeros_per_row(omp, dx.get(),
-                                                         &dnnz_per_row);
+    gko::kernels::reference::dense::count_nonzeros_per_row(
+        ref, x.get(), nnz_per_row.get_data());
+    gko::kernels::omp::dense::count_nonzeros_per_row(omp, dx.get(),
+                                                     dnnz_per_row.get_data());
 
     GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);
 }
 
 
-TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+TEST_F(Dense, ComputeMaxNNZPerRowIsEquivalentToRef)
 {
     std::size_t ref_max_nnz_per_row = 0;
     std::size_t omp_max_nnz_per_row = 0;
     auto rmtx = gen_mtx<Mtx>(100, 100, 1);
     auto omtx = gko::clone(omp, rmtx);
 
-    gko::kernels::reference::dense::calculate_max_nnz_per_row(
-        ref, rmtx.get(), &ref_max_nnz_per_row);
-    gko::kernels::omp::dense::calculate_max_nnz_per_row(omp, omtx.get(),
-                                                        &omp_max_nnz_per_row);
+    gko::kernels::reference::dense::compute_max_nnz_per_row(
+        ref, rmtx.get(), ref_max_nnz_per_row);
+    gko::kernels::omp::dense::compute_max_nnz_per_row(omp, omtx.get(),
+                                                      omp_max_nnz_per_row);
 
     ASSERT_EQ(ref_max_nnz_per_row, omp_max_nnz_per_row);
-}
-
-
-TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
-{
-    std::size_t ref_total_cols = 0;
-    std::size_t omp_total_cols = 0;
-    auto rmtx = gen_mtx<Mtx>(100, 100, 1);
-    auto omtx = gko::clone(omp, rmtx);
-
-    gko::kernels::reference::dense::calculate_total_cols(
-        ref, rmtx.get(), &ref_total_cols, 1, gko::matrix::default_slice_size);
-    gko::kernels::omp::dense::calculate_total_cols(
-        omp, omtx.get(), &omp_total_cols, 1, gko::matrix::default_slice_size);
-
-    ASSERT_EQ(ref_total_cols, omp_total_cols);
 }
 
 

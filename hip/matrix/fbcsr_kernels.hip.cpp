@@ -111,7 +111,17 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const HipExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::convert_to_csr), num_blocks, default_block_size,
+        0, 0, source->get_const_row_ptrs(), source->get_const_col_idxs(),
+        as_hip_type(source->get_const_values()), result->get_row_ptrs(),
+        result->get_col_idxs(), as_hip_type(result->get_values()),
+        source->get_num_block_rows(), source->get_block_size());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
@@ -134,26 +144,6 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const HipExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    size_type* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const HipExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

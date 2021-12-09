@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -58,6 +59,7 @@ GKO_REGISTER_OPERATION(count_num_diagonal_elements,
                        sparsity_csr::count_num_diagonal_elements);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sparsity_csr::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_dense, sparsity_csr::fill_in_dense);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        sparsity_csr::remove_diagonal_elements);
 GKO_REGISTER_OPERATION(sort_by_column_index,
@@ -95,6 +97,47 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                 dense_alpha, this, dense_b, dense_beta, dense_x));
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType>* result) const
+{
+    result->row_ptrs_ = this->row_ptrs_;
+    result->col_idxs_ = this->col_idxs_;
+    result->values_.resize_and_reset(this->get_num_nonzeros());
+    result->values_.fill(
+        this->get_executor()->copy_val_to_host(this->get_const_value()));
+    result->set_size(this->get_size());
+    result->make_srow();
+}
+
+
+template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::move_to(
+    Csr<ValueType, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::convert_to(
+    Dense<ValueType>* result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->resize(this->get_size());
+    tmp->fill(zero<ValueType>());
+    exec->run(sparsity_csr::make_fill_in_dense(this, tmp.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
+{
+    this->convert_to(result);
 }
 
 

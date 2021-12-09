@@ -231,7 +231,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto val = source->val_at(row, i);
             const auto col = source->col_at(row, i);
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 values[cur_ptr] = val;
                 col_idxs[cur_ptr] = col;
                 cur_ptr++;
@@ -257,8 +257,7 @@ void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type row = 0; row < num_rows; row++) {
         size_type nonzeros_in_this_row = 0;
         for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros_in_this_row +=
-                (source->val_at(row, i) != zero<ValueType>());
+            nonzeros_in_this_row += is_nonzero(source->val_at(row, i));
         }
         result[row] = nonzeros_in_this_row;
     }
