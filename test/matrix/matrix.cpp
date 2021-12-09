@@ -45,14 +45,292 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/matrix_data.hpp"
 #include "test/utils/executor.hpp"
 
 
-namespace {
+template <typename MtxType>
+struct SimpleMatrixTest {
+    using matrix_type = MtxType;
+
+    static bool preserves_zeros() { return true; }
+
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec->get_master(), size);
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>&) {}
+};
+
+struct DenseWithDefaultStride : SimpleMatrixTest<gko::matrix::Dense<double>> {
+    static bool preserves_zeros() { return false; }
+};
+
+struct DenseWithCustomStride : DenseWithDefaultStride {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, size[0] + 10);
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_EQ(mtx->get_stride(), mtx->get_size()[0] + 10);
+    }
+};
+
+struct Coo : SimpleMatrixTest<gko::matrix::Coo<double, int>> {};
+
+struct CsrWithDefaultStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {};
+
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
+
+
+struct CsrWithClassicalStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::classical>());
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
+            mtx->get_strategy().get()));
+    }
+};
+
+struct CsrWithMergePathStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::merge_path>());
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
+            mtx->get_strategy().get()));
+    }
+};
+
+struct CsrWithSparselibStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::sparselib>());
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
+            mtx->get_strategy().get()));
+    }
+};
+
+struct CsrWithLoadBalanceStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::load_balance>(
+                                       gko::EXEC_TYPE::create(0, exec)));
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
+            mtx->get_strategy().get()));
+    }
+};
+
+struct CsrWithAutomaticalStrategy
+    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::automatical>(
+                                       gko::EXEC_TYPE::create(0, exec)));
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
+            mtx->get_strategy().get()));
+    }
+};
+
+
+#endif
+
+
+struct Ell : SimpleMatrixTest<gko::matrix::Ell<double, int>> {};
+
+struct FbcsrBlocksize1 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
+    static bool preserves_zeros() { return false; }
+
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0, 1);
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_EQ(mtx->get_block_size(), 1);
+    }
+};
+
+struct FbcsrBlocksize2 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
+    static bool preserves_zeros() { return false; }
+
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0, 2);
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_EQ(mtx->get_block_size(), 2);
+    }
+};
+
+struct SellpDefaultParameters
+    : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_EQ(mtx->get_stride_factor(), 1);
+        ASSERT_EQ(mtx->get_slice_size(), 64);
+    }
+};
+
+struct Sellp32Factor2 : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 32, 2, 0);
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        ASSERT_EQ(mtx->get_stride_factor(), 2);
+        ASSERT_EQ(mtx->get_slice_size(), 32);
+    }
+};
+
+struct HybridDefaultStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {};
+
+struct HybridColumnLimitStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(
+            exec, size, 0, std::make_shared<matrix_type::column_limit>(10));
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        auto strategy = dynamic_cast<const matrix_type::column_limit*>(
+            mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+        ASSERT_EQ(strategy->get_num_columns(), 10);
+    }
+};
+
+struct HybridImbalanceLimitStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(
+            exec, size, 0, std::make_shared<matrix_type::imbalance_limit>(0.5));
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        auto strategy = dynamic_cast<const matrix_type::imbalance_limit*>(
+            mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+        ASSERT_EQ(strategy->get_percentage(), 0.5);
+    }
+};
+
+struct HybridImbalanceBoundedLimitStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(
+            exec, size, 0,
+            std::make_shared<matrix_type::imbalance_bounded_limit>(0.5, 0.01));
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        auto strategy =
+            dynamic_cast<const matrix_type::imbalance_bounded_limit*>(
+                mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+        ASSERT_EQ(strategy->get_percentage(), 0.5);
+        ASSERT_EQ(strategy->get_ratio(), 0.01);
+    }
+};
+
+struct HybridMinStorageStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(
+            exec, size, 0,
+            std::make_shared<matrix_type::minimal_storage_limit>());
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        auto strategy = dynamic_cast<const matrix_type::minimal_storage_limit*>(
+            mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+    }
+};
+
+struct HybridAutomaticStrategy
+    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    static std::unique_ptr<matrix_type> create(
+        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    {
+        return matrix_type::create(exec, size, 0,
+                                   std::make_shared<matrix_type::automatic>());
+    }
+
+    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    {
+        auto strategy = dynamic_cast<const matrix_type::automatic*>(
+            mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+    }
+};
 
 
 template <typename ObjectType>
@@ -64,20 +342,24 @@ struct test_pair {
               std::shared_ptr<const gko::Executor> exec)
         : ref{std::move(ref_obj)}, dev{gko::clone(exec, ref)}
     {}
+
+    test_pair(std::unique_ptr<ObjectType> ref_obj,
+              std::unique_ptr<ObjectType> dev_obj)
+        : ref{std::move(ref_obj)}, dev{std::move(dev_obj)}
+    {}
 };
 
 
 template <typename T>
 class Matrix : public ::testing::Test {
 protected:
-    using Mtx = T;
+    using Config = T;
+    using Mtx = typename T::matrix_type;
     using index_type = typename Mtx::index_type;
     using value_type = typename Mtx::value_type;
     using mixed_value_type = gko::next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using ComplexVec = gko::to_complex<Vec>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
-    using MixedComplexVec = gko::to_complex<MixedVec>;
 
     Matrix() : rand_engine(15) {}
 
@@ -94,20 +376,22 @@ protected:
         }
     }
 
-    template <typename MtxType = Mtx, typename DistType>
-    test_pair<MtxType> gen_mtx(int num_rows, int num_cols, DistType dist)
+    template <typename DistType>
+    gko::matrix_data<value_type, index_type> gen_mtx_data(int num_rows,
+                                                          int num_cols,
+                                                          DistType dist)
     {
-        return {gko::test::generate_random_matrix<MtxType>(
-                    num_rows, num_cols, dist,
-                    std::normal_distribution<>(0.0, 1.0), rand_engine, ref),
-                exec};
+        return gko::test::generate_random_matrix_data<value_type, index_type>(
+            num_rows, num_cols, dist, std::normal_distribution<>(0.0, 1.0),
+            rand_engine);
     }
 
-    template <typename MtxType = Mtx>
-    test_pair<MtxType> gen_mtx(int num_rows, int num_cols, int min_cols,
-                               int max_cols)
+    gko::matrix_data<value_type, index_type> gen_mtx_data(int num_rows,
+                                                          int num_cols,
+                                                          int min_cols,
+                                                          int max_cols)
     {
-        return gen_mtx<MtxType>(
+        return gen_mtx_data(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_cols, max_cols));
     }
@@ -157,8 +441,8 @@ protected:
 
     double mixed_tol() { return r_mixed<value_type, mixed_value_type>(); }
 
-    template <typename MtxType = Mtx, typename TestFunction>
-    void forall_matrix_scenarios(TestFunction fn)
+    template <typename TestFunction>
+    void forall_matrix_data_scenarios(TestFunction fn)
     {
         auto guarded_fn = [&](auto mtx) {
             try {
@@ -168,57 +452,79 @@ protected:
             }
         };
         {
-            SCOPED_TRACE("Uninitialized matrix (0x0)");
-            guarded_fn(test_pair<MtxType>{MtxType::create(ref), exec});
-        }
-        {
-            SCOPED_TRACE("Uninitialized matrix (0x1)");
-            guarded_fn(test_pair<MtxType>{
-                MtxType::create(ref, gko::dim<2>{0, 1}), exec});
-        }
-        {
-            SCOPED_TRACE("Uninitialized matrix (1x0)");
-            guarded_fn(test_pair<MtxType>{
-                MtxType::create(ref, gko::dim<2>{1, 0}), exec});
-        }
-        {
             SCOPED_TRACE("Zero matrix (0x0)");
-            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+            guarded_fn(gen_mtx_data(0, 0, 0, 0));
         }
         {
-            SCOPED_TRACE("Zero matrix (0x1)");
-            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+            SCOPED_TRACE("Zero matrix (0x2)");
+            guarded_fn(gen_mtx_data(0, 2, 0, 0));
         }
         {
-            SCOPED_TRACE("Zero matrix (1x0)");
-            guarded_fn(gen_mtx<MtxType>(0, 0, 0, 0));
+            SCOPED_TRACE("Zero matrix (2x0)");
+            guarded_fn(gen_mtx_data(2, 0, 0, 0));
         }
         {
             SCOPED_TRACE("Zero matrix (200x100)");
-            guarded_fn(gen_mtx<MtxType>(200, 100, 0, 0));
+            guarded_fn(gen_mtx_data(200, 100, 0, 0));
         }
         {
             SCOPED_TRACE("Sparse Matrix with some zeros rows (200x100)");
-            guarded_fn(gen_mtx<MtxType>(200, 100, 0, 50));
+            guarded_fn(gen_mtx_data(200, 100, 0, 50));
         }
         {
             SCOPED_TRACE("Sparse Matrix with fixed row nnz (200x100)");
-            guarded_fn(gen_mtx<MtxType>(200, 100, 50, 50));
+            guarded_fn(gen_mtx_data(200, 100, 50, 50));
         }
         {
             SCOPED_TRACE("Sparse Matrix with variable row nnz (200x100)");
-            guarded_fn(gen_mtx<MtxType>(200, 100, 10, 50));
+            guarded_fn(gen_mtx_data(200, 100, 10, 50));
         }
         {
             SCOPED_TRACE(
                 "Sparse Matrix with heavily imbalanced row nnz (200x100)");
-            guarded_fn(gen_mtx<MtxType>(
-                200, 100, std::binomial_distribution<>{100, 0.05}));
+            guarded_fn(gen_mtx_data(200, 100,
+                                    std::binomial_distribution<>{100, 0.05}));
         }
         {
             SCOPED_TRACE("Dense matrix (200x100)");
-            guarded_fn(gen_mtx<MtxType>(200, 100, 100, 100));
+            guarded_fn(gen_mtx_data(200, 100, 100, 100));
         }
+    }
+
+    template <typename TestFunction>
+    void forall_matrix_scenarios(TestFunction fn)
+    {
+        auto guarded_fn = [&](auto mtx) {
+            try {
+                T::check_property(mtx.ref);
+                T::check_property(mtx.dev);
+                fn(std::move(mtx));
+            } catch (std::exception& e) {
+                FAIL() << e.what();
+            }
+        };
+        {
+            SCOPED_TRACE("Uninitialized matrix (0x0)");
+            guarded_fn(test_pair<Mtx>{T::create(ref, gko::dim<2>{}),
+                                      T::create(exec, gko::dim<2>{})});
+        }
+        {
+            SCOPED_TRACE("Uninitialized matrix (0x2)");
+            guarded_fn(test_pair<Mtx>{T::create(ref, gko::dim<2>{0, 2}),
+                                      T::create(exec, gko::dim<2>{0, 2})});
+        }
+        {
+            SCOPED_TRACE("Uninitialized matrix (2x0)");
+            guarded_fn(test_pair<Mtx>{T::create(ref, gko::dim<2>{2, 0}),
+                                      T::create(exec, gko::dim<2>{2, 0})});
+        }
+        forall_matrix_data_scenarios([&](auto data) {
+            test_pair<Mtx> pair{T::create(ref, data.size),
+                                T::create(exec, data.size)};
+            pair.dev->read(data);
+            pair.ref->read(data);
+            guarded_fn(std::move(pair));
+        });
     }
 
     template <typename VecType = Vec, typename MtxType, typename TestFunction>
@@ -288,22 +594,25 @@ protected:
 };
 
 using MatrixTypes = ::testing::Types<
-    gko::matrix::Dense<double>, gko::matrix::Coo<double, int>,
-    gko::matrix::Csr<double, int>,
-    gko::matrix::Ell<double, int>  //,   gko::matrix::Sellp<double, int>,
-    // gko::matrix::Fbcsr<double, int>
-    >;
+    DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
+    // The strategies have issues with zero rows
+    /*
+    #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+        defined(GKO_COMPILING_DPCPP)
+        CsrWithClassicalStrategy, CsrWithMergePathStrategy,
+        CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
+        CsrWithAutomaticalStrategy,
+    #endif
+    */
+    Ell,
+    // Fbcsr is slightly broken
+    /*FbcsrBlocksize1, FbcsrBlocksize2,*/
+    SellpDefaultParameters, Sellp32Factor2, HybridDefaultStrategy,
+    HybridColumnLimitStrategy, HybridImbalanceLimitStrategy,
+    HybridImbalanceBoundedLimitStrategy, HybridMinStorageStrategy,
+    HybridAutomaticStrategy>;
 
-// TODO remove
-struct MatrixTypeNameGenerator {
-    template <typename T>
-    static std::string GetName(int i)
-    {
-        return gko::name_demangling::get_type_name(typeid(T));
-    }
-};
-
-TYPED_TEST_SUITE(Matrix, MatrixTypes, MatrixTypeNameGenerator);
+TYPED_TEST_SUITE(Matrix, MatrixTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, SpMVIsEquivalentToRef)
@@ -374,8 +683,9 @@ TYPED_TEST(Matrix, MixedAdvancedSpMVIsEquivalentToRef)
 
 TYPED_TEST(Matrix, ConvertToCsrIsEquivalentToRef)
 {
-    using Csr = gko::matrix::Csr<typename TypeParam::value_type,
-                                 typename TypeParam::index_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Csr =
+        gko::matrix::Csr<typename Mtx::value_type, typename Mtx::index_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
         auto ref_result = Csr::create(this->ref);
         auto dev_result = Csr::create(this->exec);
@@ -391,15 +701,20 @@ TYPED_TEST(Matrix, ConvertToCsrIsEquivalentToRef)
 
 TYPED_TEST(Matrix, ConvertFromCsrIsEquivalentToRef)
 {
-    using Csr = gko::matrix::Csr<typename TypeParam::value_type,
-                                 typename TypeParam::index_type>;
-    using Mtx = TypeParam;
-    this->template forall_matrix_scenarios<Csr>([&](auto mtx) {
-        auto ref_result = Mtx::create(this->ref);
-        auto dev_result = Mtx::create(this->exec);
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Csr =
+        gko::matrix::Csr<typename Mtx::value_type, typename Mtx::index_type>;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto ref_src = Csr::create(this->ref);
+        auto dev_src = Csr::create(this->exec);
+        ref_src->read(data);
+        dev_src->read(data);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
 
-        mtx.ref->convert_to(ref_result.get());
-        mtx.dev->convert_to(dev_result.get());
+        ref_src->convert_to(ref_result.get());
+        dev_src->convert_to(dev_result.get());
 
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
@@ -409,7 +724,8 @@ TYPED_TEST(Matrix, ConvertFromCsrIsEquivalentToRef)
 
 TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
 {
-    using Dense = gko::matrix::Dense<typename TypeParam::value_type>;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
         auto ref_result = Dense::create(this->ref);
         auto dev_result = Dense::create(this->exec);
@@ -424,14 +740,19 @@ TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
 
 TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
 {
-    using Dense = gko::matrix::Dense<typename TypeParam::value_type>;
-    using Mtx = TypeParam;
-    this->template forall_matrix_scenarios<Dense>([&](auto mtx) {
-        auto ref_result = Mtx::create(this->ref);
-        auto dev_result = Mtx::create(this->exec);
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    this->template forall_matrix_data_scenarios([&](auto data) {
+        auto ref_src = Dense::create(this->ref);
+        auto dev_src = Dense::create(this->exec);
+        ref_src->read(data);
+        dev_src->read(data);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
 
-        mtx.ref->convert_to(ref_result.get());
-        mtx.dev->convert_to(dev_result.get());
+        ref_src->convert_to(ref_result.get());
+        dev_src->convert_to(dev_result.get());
 
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
@@ -439,22 +760,23 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Matrix, WriteReadRoundtrip)
+TYPED_TEST(Matrix, ReadWriteRoundtrip)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename Mtx::value_type;
-    using index_type = typename Mtx::index_type;
-    this->forall_matrix_scenarios([&](auto mtx) {
-        auto new_mtx = Mtx::create(this->exec);
-        gko::matrix_data<value_type, index_type> data;
+    using TestConfig = typename TestFixture::Config;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto new_mtx = TestConfig::create(this->exec, data.size);
+        gko::matrix_data<value_type, index_type> out_data;
 
-        mtx.dev->write(data);
         new_mtx->read(data);
+        new_mtx->write(out_data);
 
-        GKO_ASSERT_MTX_NEAR(mtx.dev, new_mtx, 0.0);
-        GKO_ASSERT_MTX_EQ_SPARSITY(mtx.dev, new_mtx);
+        if (!TestConfig::preserves_zeros()) {
+            data.remove_zeros();
+            out_data.remove_zeros();
+        }
+        ASSERT_EQ(data.size, out_data.size);
+        ASSERT_EQ(data.nonzeros, out_data.nonzeros);
     });
 }
-
-
-}  //  namespace
