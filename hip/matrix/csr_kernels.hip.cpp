@@ -310,29 +310,16 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 return items_per_thread == compiled_info;
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        if (hipsparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
+    } else {
+        bool try_sparselib = (a->get_strategy()->get_name() == "sparselib" ||
+                              a->get_strategy()->get_name() == "cusparse");
+        try_sparselib = try_sparselib &&
+                        hipsparse::is_supported<ValueType, IndexType>::value;
+        try_sparselib =
+            try_sparselib && b->get_stride() == 1 && c->get_stride() == 1;
+        // rocSPARSE has issues with zero matrices
+        try_sparselib = try_sparselib && a->get_num_stored_elements() > 0;
+        if (try_sparselib) {
             auto handle = exec->get_hipsparse_handle();
             auto descr = hipsparse::create_mat_descr();
             {
@@ -341,9 +328,6 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 auto col_idxs = a->get_const_col_idxs();
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                if (b->get_stride() != 1 || c->get_stride() != 1) {
-                    GKO_NOT_IMPLEMENTED;
-                }
                 hipsparse::spmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                                 a->get_size()[0], a->get_size()[1],
                                 a->get_num_stored_elements(), &alpha, descr,
@@ -352,10 +336,30 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             }
             hipsparse::destroy(descr);
         } else {
-            GKO_NOT_IMPLEMENTED;
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = std::max<size_type>(
+                    a->get_num_stored_elements() /
+                        std::max<size_type>(a->get_size()[0], 1),
+                    1);
+            }
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
-    } else {
-        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -392,50 +396,6 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(nwarps);
         }
-    } else if (a->get_strategy()->get_name() == "sparselib" ||
-               a->get_strategy()->get_name() == "cusparse") {
-        if (hipsparse::is_supported<ValueType, IndexType>::value) {
-            // TODO: add implementation for int64 and multiple RHS
-            auto descr = hipsparse::create_mat_descr();
-
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-
-            if (b->get_stride() != 1 || c->get_stride() != 1)
-                GKO_NOT_IMPLEMENTED;
-
-            hipsparse::spmv(exec->get_hipsparse_handle(),
-                            HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
-                            a->get_size()[1], a->get_num_stored_elements(),
-                            alpha->get_const_values(), descr,
-                            a->get_const_values(), row_ptrs, col_idxs,
-                            b->get_const_values(), beta->get_const_values(),
-                            c->get_values());
-
-            hipsparse::destroy(descr);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
-    } else if (a->get_strategy()->get_name() == "classical") {
-        IndexType max_length_per_row = 0;
-        using Tcsr = matrix::Csr<ValueType, IndexType>;
-        if (auto strategy =
-                std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                    a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else if (auto strategy = std::dynamic_pointer_cast<
-                       const typename Tcsr::automatical>(a->get_strategy())) {
-            max_length_per_row = strategy->get_max_length_per_row();
-        } else {
-            GKO_NOT_SUPPORTED(a->get_strategy());
-        }
-        host_kernel::select_classical_spmv(
-            classical_kernels(),
-            [&max_length_per_row](int compiled_info) {
-                return max_length_per_row >= compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -447,7 +407,55 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
             beta);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        bool try_sparselib = (a->get_strategy()->get_name() == "sparselib" ||
+                              a->get_strategy()->get_name() == "cusparse");
+        try_sparselib = try_sparselib &&
+                        hipsparse::is_supported<ValueType, IndexType>::value;
+        try_sparselib =
+            try_sparselib && b->get_stride() == 1 && c->get_stride() == 1;
+        // rocSPARSE has issues with zero matrices
+        try_sparselib = try_sparselib && a->get_num_stored_elements() > 0;
+        if (try_sparselib) {
+            auto descr = hipsparse::create_mat_descr();
+
+            auto row_ptrs = a->get_const_row_ptrs();
+            auto col_idxs = a->get_const_col_idxs();
+
+            hipsparse::spmv(exec->get_hipsparse_handle(),
+                            HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                            a->get_size()[1], a->get_num_stored_elements(),
+                            alpha->get_const_values(), descr,
+                            a->get_const_values(), row_ptrs, col_idxs,
+                            b->get_const_values(), beta->get_const_values(),
+                            c->get_values());
+
+            hipsparse::destroy(descr);
+        } else {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = std::max<size_type>(
+                    a->get_num_stored_elements() /
+                        std::max<size_type>(a->get_size()[0], 1),
+                    1);
+            }
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                alpha, beta);
+        }
     }
 }
 
