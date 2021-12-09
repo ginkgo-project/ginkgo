@@ -256,12 +256,8 @@ void Csr<ValueType, IndexType>::convert_to(
     Sellp<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? default_stride_factor
-                                   : result->get_stride_factor();
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? default_slice_size
-                                : result->get_slice_size();
+    const auto stride_factor = result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
     const auto num_rows = this->get_size()[0];
     const auto num_slices = ceildiv(num_rows, slice_size);
     auto tmp = make_temporary_clone(exec, result);

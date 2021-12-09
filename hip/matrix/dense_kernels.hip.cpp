@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
@@ -267,12 +268,8 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
     auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
 
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? matrix::default_slice_size
-                                : result->get_slice_size();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? matrix::default_stride_factor
-                                   : result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
+    const auto stride_factor = result->get_stride_factor();
 
     auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {

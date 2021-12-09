@@ -672,12 +672,8 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
     auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
 
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? matrix::default_slice_size
-                                : result->get_slice_size();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? matrix::default_stride_factor
-                                   : result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
+    const auto stride_factor = result->get_stride_factor();
     const int slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
