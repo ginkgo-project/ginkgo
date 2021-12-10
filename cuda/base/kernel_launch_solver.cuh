@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include "cuda/components/thread_ids.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -63,7 +66,6 @@ void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
                        KernelArgs&&... args)
 {
     if (size[0] * size[1] > 0) {
-        gko::cuda::device_guard guard{exec->get_device_id()};
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         generic_kernel_2d_solver<<<num_blocks, block_size>>>(

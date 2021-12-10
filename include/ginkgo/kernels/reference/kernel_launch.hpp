@@ -31,16 +31,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_HPP_
-#error "This file can only be used from inside ginkgo/kernels/kernel_launch.hpp"
+#error \
+    "This file can only be used from inside common/unified/base/kernel_launch.hpp"
 #endif
-
-
-#include <ginkgo/core/synthesizer/implementation_selection.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace reference {
 
 
 namespace {
@@ -129,7 +127,9 @@ template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs&&... args)
 {
-    run_kernel_impl(exec, fn, size, map_to_device(args)...);
+    for (int64 i = 0; i < static_cast<int64>(size); i++) {
+        fn(i, map_to_device(args)...);
+    }
 }
 
 
@@ -141,6 +141,6 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 }
 
 
-}  // namespace omp
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/synthesizer/implementation_selection.hpp>
 
 
 #include "accessor/block_col_major.hpp"
@@ -52,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/block_sizes.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
 #include "omp/components/format_conversion.hpp"
 
 

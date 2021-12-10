@@ -36,10 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 #include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 

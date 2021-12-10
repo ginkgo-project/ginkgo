@@ -35,10 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/synthesizer/implementation_selection.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/preconditioner/jacobi_common.hpp"
 
 

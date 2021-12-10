@@ -31,14 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_HPP_
-#error \
-    "This file can only be used from inside common/unified/base/kernel_launch.hpp"
+#error "This file can only be used from inside ginkgo/kernels/kernel_launch.hpp"
 #endif
 
 
-#include "cuda/base/device_guard.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include <ginkgo/kernels/cuda/types.hpp>
 
 
 namespace gko {
@@ -53,7 +50,7 @@ template <typename KernelFunction, typename... KernelArgs>
 __global__ __launch_bounds__(default_block_size) void generic_kernel_1d(
     int64 size, KernelFunction fn, KernelArgs... args)
 {
-    auto tidx = thread::get_thread_id_flat<int64>();
+    auto tidx = threadIdx.x + static_cast<int64>(blockIdx.x) * blockDim.x;
     if (tidx >= size) {
         return;
     }
@@ -65,7 +62,7 @@ template <typename KernelFunction, typename... KernelArgs>
 __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
     int64 rows, int64 cols, KernelFunction fn, KernelArgs... args)
 {
-    auto tidx = thread::get_thread_id_flat<int64>();
+    auto tidx = threadIdx.x + static_cast<int64>(blockIdx.x) * blockDim.x;
     auto col = tidx % cols;
     auto row = tidx / cols;
     if (row >= rows) {
@@ -80,7 +77,6 @@ void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs&&... args)
 {
     if (size > 0) {
-        gko::cuda::device_guard guard{exec->get_device_id()};
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size, block_size);
         generic_kernel_1d<<<num_blocks, block_size>>>(
@@ -93,7 +89,6 @@ void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs&&... args)
 {
     if (size[0] * size[1] > 0) {
-        gko::cuda::device_guard guard{exec->get_device_id()};
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         generic_kernel_2d<<<num_blocks, block_size>>>(

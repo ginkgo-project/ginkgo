@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/hybrid_kernels.hpp"
 
 
-#include "common/unified/base/kernel_launch.hpp"
+#include <ginkgo/kernels/kernel_launch.hpp>
 
 
 namespace gko {

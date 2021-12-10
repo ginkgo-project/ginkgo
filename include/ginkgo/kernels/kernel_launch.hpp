@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GKO_DEVICE_NAMESPACE cuda
 #define GKO_KERNEL __device__
-#include "cuda/base/types.hpp"
+#include <ginkgo/kernels/cuda/types.hpp>
 
 
 namespace gko {
@@ -257,6 +257,42 @@ struct to_device_type_impl {
     static type map_to_device(T in) { return as_device_type(in); }
 };
 
+template <typename T>
+struct to_device_type_impl<std::shared_ptr<T>&> {
+    using type = typename to_device_type_impl<T*&>::type;
+    static type map_to_device(std::shared_ptr<T>& in)
+    {
+        return to_device_type_impl<T*&>::map_to_device(in.get());
+    }
+};
+
+template <typename T>
+struct to_device_type_impl<const std::shared_ptr<T>&> {
+    using type = typename to_device_type_impl<T*&>::type;
+    static type map_to_device(const std::shared_ptr<T>& in)
+    {
+        return to_device_type_impl<T*&>::map_to_device(in.get());
+    }
+};
+
+template <typename T>
+struct to_device_type_impl<std::unique_ptr<T>&> {
+    using type = typename to_device_type_impl<T*&>::type;
+    static type map_to_device(std::unique_ptr<T>& in)
+    {
+        return to_device_type_impl<T*&>::map_to_device(in.get());
+    }
+};
+
+template <typename T>
+struct to_device_type_impl<const std::unique_ptr<T>&> {
+    using type = typename to_device_type_impl<T*&>::type;
+    static type map_to_device(const std::unique_ptr<T>& in)
+    {
+        return to_device_type_impl<T*&>::map_to_device(in.get());
+    }
+};
+
 template <typename ValueType>
 struct to_device_type_impl<matrix::Dense<ValueType>*&> {
     using type = matrix_accessor<device_type<ValueType>>;
@@ -309,13 +345,17 @@ typename to_device_type_impl<T>::type map_to_device(T&& param)
 
 
 #if defined(GKO_COMPILING_CUDA)
-#include "cuda/base/kernel_launch.cuh"
+#include <ginkgo/kernels/cuda/kernel_launch.cuh>
 #elif defined(GKO_COMPILING_HIP)
-#include "hip/base/kernel_launch.hip.hpp"
+#include <ginkgo/kernels/hip/kernel_launch.hip.hpp>
 #elif defined(GKO_COMPILING_DPCPP)
-#include "dpcpp/base/kernel_launch.dp.hpp"
+#include <ginkgo/kernels/dpcpp/kernel_launch.dp.hpp>
 #elif defined(GKO_COMPILING_OMP)
-#include "omp/base/kernel_launch.hpp"
+#include <ginkgo/kernels/omp/kernel_launch.hpp>
+#elif defined(GKO_COMPILING_REFERENCE)
+#include <ginkgo/kernels/reference/kernel_launch.hpp>
+#else
+#error "Unknown backend"
 #endif
 
 

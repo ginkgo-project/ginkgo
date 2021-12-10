@@ -44,7 +44,7 @@ fi
 
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
-find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
+find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -not -path "./ginkgo/kernels/*" -print | \
         grep -v 'residual_norm_reduction.hpp' > "${HEADER_LIST}"
 
 if [ ${?} -ne 0 ]; then

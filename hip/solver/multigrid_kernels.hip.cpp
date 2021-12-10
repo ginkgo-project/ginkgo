@@ -40,10 +40,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 

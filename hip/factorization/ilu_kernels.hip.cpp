@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "hip/base/device_guard.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
 
@@ -58,9 +57,7 @@ template <typename ValueType, typename IndexType>
 void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Csr<ValueType, IndexType>* m)
 {
-    const auto id = exec->get_device_id();
     auto handle = exec->get_hipsparse_handle();
-    gko::hip::device_guard g{id};
     auto desc = hipsparse::create_mat_descr();
     auto info = hipsparse::create_ilu0_info();
 

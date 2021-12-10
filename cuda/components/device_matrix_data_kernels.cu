@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/tuple.h>
 
 
-#include "cuda/base/types.hpp"
+#include <ginkgo/kernels/cuda/types.hpp>
 
 
 namespace gko {

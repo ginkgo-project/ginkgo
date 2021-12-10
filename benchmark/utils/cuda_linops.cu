@@ -41,12 +41,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cusparse.h>
 
 
+#include <ginkgo/kernels/cuda/types.hpp>
+
+
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
-#include "cuda/base/types.hpp"
 
 
 class cusparse_csr {};

@@ -41,12 +41,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/types.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 

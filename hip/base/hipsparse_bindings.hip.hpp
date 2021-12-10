@@ -39,9 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-
-
-#include "hip/base/types.hip.hpp"
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 namespace gko {

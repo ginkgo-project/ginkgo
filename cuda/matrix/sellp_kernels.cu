@@ -38,12 +38,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/kernels/cuda/types.hpp>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
 

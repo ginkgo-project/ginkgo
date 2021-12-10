@@ -34,9 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/kernels/kernel_launch.hpp>
 
 
-#include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
 

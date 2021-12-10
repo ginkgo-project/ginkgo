@@ -37,8 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/kernels/cuda/types.hpp>
+
+
 #include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
 
 
 namespace gko {

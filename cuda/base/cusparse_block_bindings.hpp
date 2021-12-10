@@ -39,10 +39,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/kernels/cuda/types.hpp>
 
 
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/types.hpp"
 
 
 namespace gko {

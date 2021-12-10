@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_REDUCTION_HPP_
 
 
-#include "common/unified/base/kernel_launch.hpp"
+#include <ginkgo/kernels/kernel_launch.hpp>
 
 
 #if defined(GKO_COMPILING_CUDA)

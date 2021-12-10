@@ -36,9 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-#include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/device_guard.hpp"
-#include "cuda/base/types.hpp"
+#include <ginkgo/core/synthesizer/implementation_selection.hpp>
+#include <ginkgo/kernels/cuda/types.hpp>
+
+
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
@@ -144,7 +145,6 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
                           KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
-    gko::cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = default_block_size;
     const auto num_blocks = std::min<int64>(
         ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
@@ -175,7 +175,6 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
                           ValueType* result, dim<2> size, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
-    gko::cuda::device_guard guard{exec->get_device_id()};
     constexpr auto block_size = default_block_size;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -433,7 +432,6 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
     using subwarp_sizes =
         syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
-    gko::cuda::device_guard guard{exec->get_device_id()};
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto resources =
@@ -480,7 +478,6 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
     using subwarp_sizes =
         syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
-    gko::cuda::device_guard guard{exec->get_device_id()};
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto max_blocks = exec->get_num_warps() * config::warp_size *
