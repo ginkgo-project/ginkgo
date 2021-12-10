@@ -577,6 +577,76 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source, int bs,
+                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+                      Array<ValueType>& values)
+{
+    using entry = matrix_data_entry<ValueType, IndexType>;
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto num_block_rows = num_rows / bs;
+    const auto num_block_cols = num_cols / bs;
+    const auto in_row_ptrs = source->get_const_row_ptrs();
+    const auto in_cols = source->get_const_col_idxs();
+    const auto in_vals = source->get_const_values();
+    const auto nnz = source->get_num_stored_elements();
+    auto out_row_ptrs = row_ptrs.get_data();
+    Array<entry> entry_array{exec, nnz};
+    auto entries = entry_array.get_data();
+    for (IndexType row = 0; row < num_rows; row++) {
+        for (auto nz = in_row_ptrs[row]; nz < in_row_ptrs[row + 1]; nz++) {
+            entries[nz] = {row, in_cols[nz], in_vals[nz]};
+        }
+    }
+    auto to_block = [bs](entry a) {
+        return std::make_pair(a.row / bs, a.column / bs);
+    };
+    // sort by block in row-major order
+    std::sort(entries, entries + nnz,
+              [&](entry a, entry b) { return to_block(a) < to_block(b); });
+    // set row pointers by jumps in block row index
+    gko::vector<IndexType> col_idx_vec{{exec}};
+    gko::vector<ValueType> value_vec{{exec}};
+    int64 block_row = -1;
+    int64 block_col = -1;
+    for (size_type i = 0; i < nnz; i++) {
+        const auto entry = entries[i];
+        const auto new_block_row = entry.row / bs;
+        const auto new_block_col = entry.column / bs;
+        while (new_block_row > block_row) {
+            // we finished row block_row, so store its end pointer
+            out_row_ptrs[block_row + 1] = col_idx_vec.size();
+            block_col = -1;
+            ++block_row;
+        }
+        if (new_block_col != block_col) {
+            // we encountered a new column, so insert it with block storage
+            col_idx_vec.emplace_back(new_block_col);
+            value_vec.resize(value_vec.size() + bs * bs);
+            block_col = new_block_col;
+        }
+        const auto local_row = entry.row % bs;
+        const auto local_col = entry.column % bs;
+        value_vec[value_vec.size() - bs * bs + local_row + local_col * bs] =
+            entry.value;
+    }
+    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+        // we finished row block_row, so store its end pointer
+        out_row_ptrs[block_row + 1] = col_idx_vec.size();
+        ++block_row;
+    }
+    values.resize_and_reset(value_vec.size());
+    col_idxs.resize_and_reset(col_idx_vec.size());
+    std::copy(value_vec.begin(), value_vec.end(), values.get_data());
+    std::copy(col_idx_vec.begin(), col_idx_vec.end(), col_idxs.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
+
+
 template <typename ValueType, typename IndexType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType* row_ptrs,
                                const IndexType* col_idxs,

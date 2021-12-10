@@ -221,6 +221,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Fbcsr<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                                  const matrix::Dense<ValueType>* source,
+                                  int bs,
+                                  IndexType* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
                        const matrix::Dense<ValueType>* source,
                        const int64* coo_row_ptrs,

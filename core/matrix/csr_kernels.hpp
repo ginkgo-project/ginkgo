@@ -107,6 +107,13 @@ namespace kernels {
                         const matrix::Csr<ValueType, IndexType>* source, \
                         matrix::Ell<ValueType, IndexType>* result)
 
+#define GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType>* source, \
+                          int block_size, Array<IndexType>& row_ptrs,      \
+                          Array<IndexType>& col_idxs,                      \
+                          Array<ValueType>& values)
+
 #define GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType)      \
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,     \
                            const matrix::Csr<ValueType, IndexType>* source, \
@@ -221,6 +228,8 @@ namespace kernels {
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                      \

@@ -46,11 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "accessor/block_col_major.hpp"
+#include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -225,6 +228,53 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Fbcsr<ValueType, IndexType>* result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto bs = result->get_block_size();
+    const auto nzbs = result->get_num_stored_blocks();
+    const auto num_block_rows = num_rows / bs;
+    const auto num_block_cols = num_cols / bs;
+    acc::range<acc::block_col_major<ValueType, 3>> blocks(
+        std::array<size_type, 3>{nzbs, static_cast<size_type>(bs),
+                                 static_cast<size_type>(bs)},
+        result->get_values());
+    auto col_idxs = result->get_col_idxs();
+#pragma omp parallel for
+    for (size_type brow = 0; brow < num_block_rows; ++brow) {
+        auto block = result->get_const_row_ptrs()[brow];
+        for (size_type bcol = 0; bcol < num_block_cols; ++bcol) {
+            bool block_nz = false;
+            for (int lrow = 0; lrow < bs; ++lrow) {
+                for (int lcol = 0; lcol < bs; ++lcol) {
+                    const auto row = lrow + bs * brow;
+                    const auto col = lcol + bs * bcol;
+                    block_nz = block_nz || is_nonzero(source->at(row, col));
+                }
+            }
+            if (block_nz) {
+                col_idxs[block] = bcol;
+                for (int lrow = 0; lrow < bs; ++lrow) {
+                    for (int lcol = 0; lcol < bs; ++lcol) {
+                        const auto row = lrow + bs * brow;
+                        const auto col = lcol + bs * bcol;
+                        blocks(block, lrow, lcol) = source->at(row, col);
+                    }
+                }
+                block++;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
                        const matrix::Dense<ValueType>* source,
                        const int64* coo_row_ptrs,
@@ -373,6 +423,37 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                                  const matrix::Dense<ValueType>* source,
+                                  int bs, IndexType* result)
+{
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto num_block_rows = num_rows / bs;
+    const auto num_block_cols = num_cols / bs;
+#pragma omp parallel for
+    for (size_type brow = 0; brow < num_block_rows; ++brow) {
+        IndexType num_nonzero_blocks{};
+        for (size_type bcol = 0; bcol < num_block_cols; ++bcol) {
+            bool block_nz = false;
+            for (int lrow = 0; lrow < bs; ++lrow) {
+                for (int lcol = 0; lcol < bs; ++lcol) {
+                    const auto row = lrow + bs * brow;
+                    const auto col = lcol + bs * bcol;
+                    block_nz = block_nz || is_nonzero(source->at(row, col));
+                }
+            }
+            num_nonzero_blocks += block_nz ? 1 : 0;
+        }
+        result[brow] = num_nonzero_blocks;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
 
 }  // namespace dense

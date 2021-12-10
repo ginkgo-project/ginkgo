@@ -129,6 +129,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
+            public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
@@ -733,6 +734,10 @@ public:
     void convert_to(Ell<ValueType, IndexType>* result) const override;
 
     void move_to(Ell<ValueType, IndexType>* result) override;
+
+    void convert_to(Fbcsr<ValueType, IndexType>* result) const override;
+
+    void move_to(Fbcsr<ValueType, IndexType>* result) override;
 
     void convert_to(Hybrid<ValueType, IndexType>* result) const override;
 

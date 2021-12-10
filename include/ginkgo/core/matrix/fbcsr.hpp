@@ -138,6 +138,7 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
                   remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Fbcsr>;
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
+    friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class FbcsrBuilder<ValueType, IndexType>;

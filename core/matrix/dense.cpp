@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -82,6 +83,8 @@ GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(count_nonzeros_per_row, dense::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
+                       dense::count_nonzero_blocks_per_row);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
@@ -96,6 +99,7 @@ GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_fbcsr, dense::convert_to_fbcsr);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
@@ -451,6 +455,56 @@ void Dense<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Csr<ValueType, int64>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto bs = result->get_block_size();
+    const auto row_blocks = detail::get_num_blocks(bs, this->get_size()[0]);
+    const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
+    exec->run(dense::make_count_nonzero_blocks_per_row(this, bs,
+                                                       tmp->get_row_ptrs()));
+    exec->run(dense::make_prefix_sum(tmp->get_row_ptrs(), row_blocks + 1));
+    const auto nnz_blocks =
+        exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
+    tmp->col_idxs_.resize_and_reset(nnz_blocks);
+    tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
+    tmp->set_size(this->get_size());
+    exec->run(dense::make_convert_to_fbcsr(this, tmp.get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Fbcsr<ValueType, int32>* result) const
+{
+    this->convert_impl(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Fbcsr<ValueType, int32>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Fbcsr<ValueType, int64>* result) const
+{
+    this->convert_impl(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
 {
     this->convert_to(result);
 }

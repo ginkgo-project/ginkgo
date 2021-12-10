@@ -102,6 +102,8 @@ class Dense
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Ell<ValueType, int32>>,
       public ConvertibleTo<Ell<ValueType, int64>>,
+      public ConvertibleTo<Fbcsr<ValueType, int32>>,
+      public ConvertibleTo<Fbcsr<ValueType, int64>>,
       public ConvertibleTo<Hybrid<ValueType, int32>>,
       public ConvertibleTo<Hybrid<ValueType, int64>>,
       public ConvertibleTo<Sellp<ValueType, int32>>,
@@ -236,6 +238,14 @@ public:
     void convert_to(Ell<ValueType, int64>* result) const override;
 
     void move_to(Ell<ValueType, int64>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int32>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int32>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int64>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int64>* result) override;
 
     void convert_to(Hybrid<ValueType, int32>* result) const override;
 
@@ -938,6 +948,9 @@ protected:
 
     template <typename IndexType>
     void convert_impl(Ell<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Fbcsr<ValueType, IndexType>* result) const;
 
     template <typename IndexType>
     void convert_impl(Hybrid<ValueType, IndexType>* result) const;

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -77,6 +78,7 @@ GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_fbcsr, csr::convert_to_fbcsr);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
@@ -329,6 +331,29 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Fbcsr<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto bs = result->get_block_size();
+    const auto row_blocks = detail::get_num_blocks(bs, this->get_size()[0]);
+    const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
+    tmp->set_size(this->get_size());
+    exec->run(csr::make_convert_to_fbcsr(this, bs, tmp->row_ptrs_,
+                                         tmp->col_idxs_, tmp->values_));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
