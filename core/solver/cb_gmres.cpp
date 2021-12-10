@@ -110,6 +110,11 @@ struct to_posit_impl<half> {
     using type = posit16_2;
 };
 
+template <typename T>
+struct to_posit_impl<std::complex<T>> {
+    using type = complex_posit<typename to_posit_impl<T>::type>;
+};
+
 
 template <typename T>
 using to_posit = typename to_posit_impl<T>::type;
@@ -200,14 +205,18 @@ struct helper<std::complex<T>> {
         case cb_gmres::storage_precision::reduce1:
             callable(reduce_precision_skip_count<ValueType, skip_type, 1>{});
             break;
+        case cb_gmres::storage_precision::posit_reduce1:
+            callable(to_posit<reduce_precision_count<ValueType, 1>>{});
+            break;
         case cb_gmres::storage_precision::reduce2:
             callable(reduce_precision_skip_count<ValueType, skip_type, 2>{});
+            break;
+        case cb_gmres::storage_precision::posit_reduce2:
+            callable(to_posit<reduce_precision_count<ValueType, 2>>{});
             break;
         case cb_gmres::storage_precision::integer:
         case cb_gmres::storage_precision::ireduce1:
         case cb_gmres::storage_precision::ireduce2:
-        case cb_gmres::storage_precision::posit_reduce1:
-        case cb_gmres::storage_precision::posit_reduce2:
             GKO_NOT_SUPPORTED(st);
             break;
         default:

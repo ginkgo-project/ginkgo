@@ -71,6 +71,12 @@ namespace cb_gmres {
  *             a reduced ValueType.
  * - ireduce2: The storage precision is an integer of the same size as
  *             a twice reduced ValueType.
+ * - posit_reduce1: The storage type is a posit format with a reduced number of
+ *                  bits compared to ValueType. For example, ValueType == double
+ *                  -> storage precision == posit<32, 3>
+ * - posit_reduce2: Number of bits of the posit format is reduced an additional
+ *                  time (twice in total).  Example: ValueType == double
+ *                  -> storage precision == posit<16, 2>
  *
  * Precision reduction works as follows:
  * - double -> float -> half -> half -> ... (half is the lowest supported

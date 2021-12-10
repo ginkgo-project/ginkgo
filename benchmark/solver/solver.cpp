@@ -74,7 +74,8 @@ DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
               "Supported values are: bicgstab, bicg, cb_gmres_keep, "
               "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
-              "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, fcg, gmres, idr, "
+              "cb_gmres_ireduce1, cb_gmres_ireduce2, cb_gmres_posit_reduce1, "
+              "cb_gmres_posit_reduce2, cg, cgs, fcg, gmres, idr, "
               "lower_trs, upper_trs, overhead");
 
 DEFINE_uint32(
@@ -260,6 +261,10 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             s_prec = gko::solver::cb_gmres::storage_precision::ireduce1;
         } else if (spec == "ireduce2") {
             s_prec = gko::solver::cb_gmres::storage_precision::ireduce2;
+        } else if (spec == "posit_reduce1") {
+            s_prec = gko::solver::cb_gmres::storage_precision::posit_reduce1;
+        } else if (spec == "posit_reduce2") {
+            s_prec = gko::solver::cb_gmres::storage_precision::posit_reduce2;
         } else {
             throw std::range_error(
                 std::string(

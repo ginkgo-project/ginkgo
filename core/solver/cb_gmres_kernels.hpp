@@ -127,7 +127,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, std::complex<float>,          \
-                                              _const std::complex<float>>>))
+                                              _const std::complex<float>>>));  \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, std::complex<double>,         \
+                                              _const complex_posit32_3>>));    \
+    template _macro(                                                           \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, std::complex<double>,         \
+                                              _const complex_posit16_2>>));    \
+    template _macro(                                                           \
+        std::complex<float>,                                                   \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<3, std::complex<float>,          \
+                                              _const complex_posit16_2>>))
 
 #define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, )

@@ -186,7 +186,13 @@ using TestTypes =
                      std::tuple<std::complex<double>, st_r2>,
                      std::tuple<std::complex<float>, st_keep>,
                      std::tuple<double, ps_r1>, std::tuple<double, ps_r2>,
-                     std::tuple<float, ps_r1>, std::tuple<float, ps_r2>>;
+                     std::tuple<float, ps_r1>, std::tuple<float, ps_r2>,  //*,
+                     std::tuple<std::complex<double>, ps_r1>,
+                     std::tuple<std::complex<double>, ps_r2>,
+                     std::tuple<std::complex<float>, ps_r1>,
+                     std::tuple<std::complex<float>, ps_r2>
+                     //*/
+                     >;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
 

@@ -1,15 +1,17 @@
-#pragma once
-#include <algorithm>
+#ifndef GKO_CORE_BASE_POSIT_HPP_
+#define GKO_CORE_BASE_POSIT_HPP_
+
+
 #include <bitset>
 #include <cinttypes>
 #include <climits>  // for CHAR_BIT (number of bits in a byte)
 #include <cmath>
+#include <complex>
 #include <cstring>
 #include <iomanip>
 #include <ios>
 #include <iostream>
 #include <limits>
-#include <string>
 #include <tuple>
 #include <type_traits>
 
@@ -18,13 +20,12 @@
 #include <intrin.h>
 #endif
 
-#if defined(__CUDACC__) || defined(__HIPCC__)
-#define POSIT_ATTRIBUTES __host__ __device__
-#else
-#define POSIT_ATTRIBUTES
-#endif
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
+namespace gko {
 namespace detail {
 
 
@@ -49,6 +50,9 @@ struct ieee_details<double> {
 
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
+
+
+namespace device {
 
 
 __device__ double uint_to_ieee(std::uint64_t uint_value)
@@ -95,7 +99,13 @@ __device__ int countl_one(std::uint16_t val)
 }
 
 
-#else  // Host compilation
+}  // namespace device
+
+
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
+
+
+namespace host {
 
 
 #if defined(_MSC_VER)
@@ -173,7 +183,7 @@ int countl_one(std::uint16_t val)
 }
 
 
-#else  // Neither MSC for GNU for clang
+#else  // Neither MSC nor GNU nor clang
 
 
 template <typename T>
@@ -209,7 +219,35 @@ countl_one(T val)
 
 
 #endif  // End of default implementation
-#endif  // End of host section
+
+
+}  // namespace host
+
+
+template <typename T>
+GKO_ATTRIBUTES std::enable_if_t<
+    std::is_integral<T>::value && !std::is_signed<T>::value, int>
+countl_zero(T val)
+{
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return device::countl_zero(val);
+#else
+    return host::countl_zero(val);
+#endif
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES std::enable_if_t<
+    std::is_integral<T>::value && !std::is_signed<T>::value, int>
+countl_one(T val)
+{
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return device::countl_one(val);
+#else
+    return host::countl_one(val);
+#endif
+}
 
 
 template <typename T>
@@ -237,10 +275,10 @@ struct ieee_helper {
     static constexpr fp_uint_type significand_mask{
         (fp_uint_type{1} << significand_bits) - 1};
 
-    static POSIT_ATTRIBUTES fp_uint_type to_uint(const ieee_type fp_value)
+    static GKO_ATTRIBUTES fp_uint_type to_uint(const ieee_type fp_value)
     {
-#if defined(__CUDA_ARCH__)
-        return ieee_to_uint(fp_value);
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        return device::ieee_to_uint(fp_value);
 #else
         fp_uint_type ui{};
         std::memcpy(&ui, &fp_value, sizeof(fp_uint_type));
@@ -248,10 +286,10 @@ struct ieee_helper {
 #endif
     }
 
-    static POSIT_ATTRIBUTES ieee_type to_ieee(const fp_uint_type uint_value)
+    static GKO_ATTRIBUTES ieee_type to_ieee(const fp_uint_type uint_value)
     {
-#if defined(__CUDA_ARCH__)
-        return uint_to_ieee(uint_value);
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+        return device::uint_to_ieee(uint_value);
 #else
         ieee_type fp{};
         std::memcpy(&fp, &uint_value, sizeof(fp_uint_type));
@@ -372,7 +410,7 @@ public:
 
     constexpr bool get_sign() const { return memory & sign_mask_; }
 
-    POSIT_ATTRIBUTES dissection dissect() const
+    GKO_ATTRIBUTES dissection dissect() const
     {
         dissection dis{};
 
@@ -418,7 +456,7 @@ public:
     }
 
     template <typename IeeeType>
-    POSIT_ATTRIBUTES IeeeType to_ieee() const
+    GKO_ATTRIBUTES IeeeType to_ieee() const
     {
         using ieee_type = IeeeType;
         using ieee = detail::ieee_helper<ieee_type>;
@@ -489,7 +527,7 @@ public:
         return ieee::to_ieee(ui_val);
     }
 
-    POSIT_ATTRIBUTES void set_k_e(const int exponent, dissection& dis)
+    GKO_ATTRIBUTES void set_k_e(const int exponent, dissection& dis)
     {
         auto k_e = compute_k_e(exponent);
         dis.k = std::get<0>(k_e);
@@ -550,7 +588,7 @@ public:
     }
 
     template <typename T>
-    POSIT_ATTRIBUTES void from_ieee(T val)
+    GKO_ATTRIBUTES void from_ieee(T val)
     {
         using ieee_type = T;
         using ieee = detail::ieee_helper<ieee_type>;
@@ -654,12 +692,12 @@ public:
         return this->memory == other.memory;
     }
 
-    POSIT_ATTRIBUTES operator double() const
+    GKO_ATTRIBUTES operator double() const
     {
         return this->template to_ieee<double>();
     }
 
-    POSIT_ATTRIBUTES operator float() const
+    GKO_ATTRIBUTES operator float() const
     {
         return this->template to_ieee<float>();
     }
@@ -668,9 +706,9 @@ public:
 
     constexpr posit(uint_proxy_type val) : memory{val} {}
 
-    POSIT_ATTRIBUTES posit(double val) { this->from_ieee(val); }
+    GKO_ATTRIBUTES posit(double val) { this->from_ieee(val); }
 
-    POSIT_ATTRIBUTES posit(float val) { this->from_ieee(val); }
+    GKO_ATTRIBUTES posit(float val) { this->from_ieee(val); }
 
 
 private:
@@ -714,8 +752,8 @@ private:
     // right_shifts: number of right shifts to adopt the given input to
     // the OutputType. Can be negative to indicate left shift.
     template <typename OutputType, typename UintType>
-    static POSIT_ATTRIBUTES OutputType right_shift(const UintType input,
-                                                   const int right_shifts)
+    static GKO_ATTRIBUTES OutputType right_shift(const UintType input,
+                                                 const int right_shifts)
     {
         if (right_shifts > 0) {
             return static_cast<OutputType>(input >> (right_shifts));
@@ -724,8 +762,8 @@ private:
         }
     }
 
-    static POSIT_ATTRIBUTES void extract_regime(uint_proxy_type mem,
-                                                dissection& dis)
+    static GKO_ATTRIBUTES void extract_regime(uint_proxy_type mem,
+                                              dissection& dis)
     {
         // Count for the regime; Needs to be optimized!
         // Filling bits + sign bit are the leading non-regime bits
@@ -793,8 +831,51 @@ std::ostream& operator<<(std::ostream& out, const posit<NB, ES>& pos)
     return out;
 }
 
+
+template <typename PositType>
+struct complex_posit {
+public:
+    using posit_type = PositType;
+
+    static_assert(
+        std::is_same<posit_type,
+                     posit<posit_type::number_bits, posit_type::es>>::value,
+        "Typename must be a Posit type!");
+
+    constexpr complex_posit() = default;
+
+    template <template <typename> class Complex, typename T,
+              typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
+                                          std::is_floating_point<T>::value>>
+    GKO_ATTRIBUTES complex_posit(Complex<T> val)
+        : real{val.real()}, imag{val.imag()}
+    {}
+
+    template <template <typename> class Complex, typename T,
+              typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
+                                          std::is_floating_point<T>::value>>
+    GKO_ATTRIBUTES operator Complex<T>() const
+    {
+        return {static_cast<T>(real), static_cast<T>(imag)};
+    }
+
+    posit_type real;
+    posit_type imag;
+};
+
+
 // According to the POSIT standard at:
 // https://posithub.org/posit_standard4.12.pdf
 using posit16_2 = posit<16, 2>;
 using posit32_2 = posit<32, 2>;
 using posit32_3 = posit<32, 3>;
+
+using complex_posit16_2 = complex_posit<posit16_2>;
+using complex_posit32_2 = complex_posit<posit32_2>;
+using complex_posit32_3 = complex_posit<posit32_3>;
+
+
+}  // namespace gko
+
+
+#endif  // GKO_CORE_BASE_POSIT_HPP_
