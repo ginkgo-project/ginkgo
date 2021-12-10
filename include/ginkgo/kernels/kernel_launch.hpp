@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_COMMON_UNIFIED_BASE_KERNEL_LAUNCH_HPP_
 
 
+#include <memory>
 #include <type_traits>
 
 
@@ -84,7 +85,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 #define GKO_DEVICE_NAMESPACE hip
 #define GKO_KERNEL __device__
-#include "hip/base/types.hip.hpp"
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 namespace gko {
@@ -98,6 +99,7 @@ using device_type = typename detail::hip_type_impl<T>::type;
 template <typename T>
 device_type<T> as_device_type(T value)
 {
+    static_assert(sizeof(device_type<T>) == sizeof(T), "Mapping changes size");
     return as_hip_type(value);
 }
 
@@ -184,6 +186,78 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 
 
 }  // namespace omp
+}  // namespace kernels
+}  // namespace gko
+
+
+#elif defined(GKO_COMPILING_REFERENCE)
+
+#define GKO_DEVICE_NAMESPACE reference
+#define GKO_KERNEL
+
+
+namespace gko {
+namespace kernels {
+namespace reference {
+
+
+template <typename T>
+using device_type = T;
+
+template <typename T>
+device_type<T> as_device_type(T value)
+{
+    return value;
+}
+
+
+template <typename T>
+using unpack_member_type = T;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
+{
+    return value;
+}
+
+
+}  // namespace reference
+}  // namespace kernels
+}  // namespace gko
+
+
+#elif defined(GKO_COMPILING_STUB)
+
+
+#define GKO_KERNEL
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+
+
+template <typename T>
+using device_type = T;
+
+template <typename T>
+device_type<T> as_device_type(T value)
+{
+    return value;
+}
+
+
+template <typename T>
+using unpack_member_type = T;
+
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
+{
+    return value;
+}
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
 
@@ -354,8 +428,8 @@ typename to_device_type_impl<T>::type map_to_device(T&& param)
 #include <ginkgo/kernels/omp/kernel_launch.hpp>
 #elif defined(GKO_COMPILING_REFERENCE)
 #include <ginkgo/kernels/reference/kernel_launch.hpp>
-#else
-#error "Unknown backend"
+#elif defined(GKO_COMPILING_STUB)
+#include <ginkgo/kernels/stub/kernel_launch.hpp>
 #endif
 
 

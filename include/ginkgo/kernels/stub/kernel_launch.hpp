@@ -35,33 +35,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace GKO_DEVICE_NAMESPACE {
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const ReferenceExecutor> exec,
-                KernelFunction fn, size_type size, KernelArgs&&... args)
-{
-    for (int64 i = 0; i < static_cast<int64>(size); i++) {
-        fn(i, map_to_device(args)...);
-    }
-}
+void run_kernel(std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
+                size_type size, KernelArgs&&... args)
+    GKO_NOT_COMPILED(GKO_DEVICE_NAMESPACE);
 
 
 template <typename KernelFunction, typename... KernelArgs>
-void run_kernel(std::shared_ptr<const ReferenceExecutor> exec,
-                KernelFunction fn, dim<2> size, KernelArgs&&... args)
-{
-    for (int64 row = 0; row < static_cast<int64>(size[0]); row++) {
-        for (int64 col = 0; col < static_cast<int64>(size[1]); col++) {
-            fn(row, col, map_to_device(args)...);
-        }
-    }
-}
+void run_kernel(std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
+                dim<2> size, KernelArgs&&... args)
+    GKO_NOT_COMPILED(GKO_DEVICE_NAMESPACE);
 
 
-}  // namespace reference
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
