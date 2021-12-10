@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include <thrust/complex.h>
+#include <ginkgo/kernels/hip/types.hip.hpp>
 
 
 namespace gko {

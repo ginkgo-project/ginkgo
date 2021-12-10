@@ -252,6 +252,7 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 add_subdirectory(devices)        # Basic device functionalities. Always compiled.
 add_subdirectory(common)         # Import list of unified kernel source files
 if(GINKGO_BUILD_CUDA)
+    enable_language(CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 if (GINKGO_BUILD_REFERENCE)

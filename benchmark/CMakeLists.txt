@@ -96,7 +96,6 @@ endfunction(ginkgo_add_typed_benchmark_executables)
 
 
 if (GINKGO_BUILD_CUDA)
-    enable_language(CUDA)
     ginkgo_benchmark_cusparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)

@@ -87,6 +87,24 @@ to the non-linear part, which turns it into the Gross–Pitaevskii equation.
 #include <opencv2/videoio.hpp>
 
 
+#include <ginkgo/kernels/kernel_declaration.hpp>
+
+
+GKO_DECLARE_UNIFIED(
+    void linear_step(std::shared_ptr<const DefaultExecutor> exec, int n,
+                     double phase_scale,
+                     gko::matrix::Dense<std::complex<double>>* freq);
+    void nonlinear_step(std::shared_ptr<const DefaultExecutor> exec, int n,
+                        double nonlinear_scale, double potential_scale,
+                        double time_scale,
+                        const gko::matrix::Dense<double>* potential,
+                        gko::matrix::Dense<std::complex<double>>* ampl));
+
+
+GKO_REGISTER_UNIFIED_OPERATION(linear_step, linear_step);
+GKO_REGISTER_UNIFIED_OPERATION(nonlinear_step, nonlinear_step);
+
+
 // This function implements a simple Ginkgo-themed clamped color mapping for
 // values in the range [0,5].
 void set_val(unsigned char* data, double value)
@@ -189,24 +207,11 @@ int main(int argc, char* argv[])
         }
         // time step in linear part
         fft->apply(lend(amplitude), lend(frequency));
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                frequency->at(idx(i, j)) *=
-                    std::polar(1.0, -h2 * (i * i + j * j) * tau * time_scale);
-                // scale by FFT*iFFT normalization factor
-                frequency->at(idx(i, j)) *= 1.0 / n2;
-            }
-        }
+        exec->run(make_linear_step(n, h2 * tau * time_scale, lend(frequency)));
         ifft->apply(lend(frequency), lend(amplitude));
         // time step in non-linear part
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                amplitude->at(idx(i, j)) *= std::polar(
-                    1.0, -(nonlinear_scale *
-                               gko::squared_norm(amplitude->at(idx(i, j))) +
-                           potential_scale * potential->at(idx(i, j))) *
-                             tau * time_scale);
-            }
-        }
+        exec->run(make_nonlinear_step(n, nonlinear_scale, potential_scale,
+                                      tau * time_scale, lend(potential),
+                                      lend(amplitude)));
     }
 }
