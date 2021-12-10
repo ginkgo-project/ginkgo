@@ -52,7 +52,7 @@ void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto row_ptrs, auto row_nnzs) {
+        GKO_KERNEL(auto i, auto row_ptrs, auto row_nnzs) {
             row_nnzs[i] = row_ptrs[i + 1] - row_ptrs[i];
         },
         row_ptrs.get_num_elems() - 1, row_ptrs, row_nnzs);

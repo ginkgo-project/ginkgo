@@ -51,7 +51,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 Array<stopping_status>* stop_status)
 {
     run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
+        exec, GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
         stop_status->get_num_elems(), *stop_status);
 }
 

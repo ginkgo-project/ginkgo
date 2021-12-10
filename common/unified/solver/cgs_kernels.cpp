@@ -65,10 +65,9 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld, auto p,
-                      auto q, auto u, auto u_hat, auto v_hat, auto t,
-                      auto alpha, auto beta, auto gamma, auto prev_rho,
-                      auto rho, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld, auto p,
+                   auto q, auto u, auto u_hat, auto v_hat, auto t, auto alpha,
+                   auto beta, auto gamma, auto prev_rho, auto rho, auto stop) {
             if (row == 0) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = alpha[col] = beta[col] = gamma[col] =
@@ -99,8 +98,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto r, auto u, auto p, auto q,
-                      auto beta, auto rho, auto prev_rho, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto r, auto u, auto p, auto q,
+                   auto beta, auto rho, auto prev_rho, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto prev_rho_zero = prev_rho[col] == zero(prev_rho[col]);
                 auto tmp = prev_rho_zero ? beta[col] : rho[col] / prev_rho[col];
@@ -131,8 +130,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto u, auto v_hat, auto q, auto t,
-                      auto alpha, auto rho, auto gamma, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto u, auto v_hat, auto q, auto t,
+                   auto alpha, auto rho, auto gamma, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto gamma_is_zero = gamma[col] == zero(gamma[col]);
                 auto tmp = gamma_is_zero ? alpha[col] : rho[col] / gamma[col];
@@ -159,8 +158,8 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto t, auto u_hat, auto r, auto x,
-                      auto alpha, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto t, auto u_hat, auto r, auto x,
+                   auto alpha, auto stop) {
             if (!stop[col].has_stopped()) {
                 x(row, col) += alpha[col] * u_hat(row, col);
                 r(row, col) -= alpha[col] * t(row, col);

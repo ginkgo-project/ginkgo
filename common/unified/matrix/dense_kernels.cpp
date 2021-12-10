@@ -58,7 +58,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
+        GKO_KERNEL(auto row, auto col, auto input, auto output) {
             output(row, col) = input(row, col);
         },
         input->get_size(), input, output);
@@ -74,7 +74,7 @@ void fill(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto mat, auto value) {
+        GKO_KERNEL(auto row, auto col, auto mat, auto value) {
             mat(row, col) = value;
         },
         mat->get_size(), mat, value);
@@ -91,7 +91,7 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto data, auto output) {
+        GKO_KERNEL(auto i, auto data, auto output) {
             const auto entry = data[i];
             output(entry.row, entry.column) = unpack_member(entry.value);
         },
@@ -109,14 +109,14 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     if (alpha->get_size()[1] > 1) {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[col];
             },
             x->get_size(), alpha->get_const_values(), x);
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[0];
             },
             x->get_size(), alpha->get_const_values(), x);
@@ -134,14 +134,14 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
     if (alpha->get_size()[1] > 1) {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[col];
             },
             x->get_size(), alpha->get_const_values(), x);
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[0];
             },
             x->get_size(), alpha->get_const_values(), x);
@@ -160,14 +160,14 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     if (alpha->get_size()[1] > 1) {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[col] * x(row, col);
             },
             x->get_size(), alpha->get_const_values(), x, y);
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[0] * x(row, col);
             },
             x->get_size(), alpha->get_const_values(), x, y);
@@ -186,14 +186,14 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
     if (alpha->get_size()[1] > 1) {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) -= alpha[col] * x(row, col);
             },
             x->get_size(), alpha->get_const_values(), x, y);
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+            GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) -= alpha[0] * x(row, col);
             },
             x->get_size(), alpha->get_const_values(), x, y);
@@ -213,7 +213,7 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     const auto diag_values = x->get_const_values();
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
+        GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
             y(i, i) += alpha[0] * diag[i];
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
@@ -231,7 +231,7 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
     const auto diag_values = x->get_const_values();
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
+        GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
             y(i, i) -= alpha[0] * diag[i];
         },
         x->get_size()[0], alpha->get_const_values(), x->get_const_values(), y);
@@ -248,11 +248,11 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+        GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
+        GKO_KERNEL(auto a, auto b) { return a + b; },
+        GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
         x->get_size(), x, y);
 }
 
@@ -267,11 +267,11 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
+        GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
+        GKO_KERNEL(auto a, auto b) { return a + b; },
+        GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
         x->get_size(), x, y);
 }
 
@@ -285,9 +285,9 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
+        GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
+        GKO_KERNEL(auto a, auto b) { return a + b; },
+        GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
         result->get_values(), x->get_size(), x);
 }
 
@@ -299,9 +299,9 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::Dense<remove_complex<ValueType>>* result)
 {
     run_kernel_col_reduction(
-        exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, remove_complex<ValueType>{},
+        exec, GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
+        GKO_KERNEL(auto a, auto b) { return a + b; },
+        GKO_KERNEL(auto a) { return a; }, remove_complex<ValueType>{},
         result->get_values(), x->get_size(), x);
 }
 
@@ -316,7 +316,7 @@ void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, col) = orig(perm[row], perm[col]);
         },
         orig->get_size(), orig, *permutation_indices, permuted);
@@ -334,7 +334,7 @@ void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(perm[row], perm[col]) = orig(row, col);
         },
         orig->get_size(), orig, *permutation_indices, permuted);
@@ -352,7 +352,7 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
             gathered(row, col) = orig(rows[row], col);
         },
         dim<2>{row_indices->get_num_elems(), orig->get_size()[1]}, orig,
@@ -371,7 +371,7 @@ void column_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, col) = orig(row, perm[col]);
         },
         orig->get_size(), orig, *permutation_indices, column_permuted);
@@ -389,7 +389,7 @@ void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(perm[row], col) = orig(row, col);
         },
         orig->get_size(), orig, *permutation_indices, row_permuted);
@@ -407,7 +407,7 @@ void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+        GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
             permuted(row, perm[col]) = orig(row, col);
         },
         orig->get_size(), orig, *permutation_indices, column_permuted);
@@ -424,7 +424,7 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto orig, auto diag) { diag[i] = orig(i, i); },
+        GKO_KERNEL(auto i, auto orig, auto diag) { diag[i] = orig(i, i); },
         diag->get_size()[0], orig, diag->get_values());
 }
 
@@ -437,7 +437,7 @@ void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto source) {
+        GKO_KERNEL(auto row, auto col, auto source) {
             source(row, col) = abs(source(row, col));
         },
         source->get_size(), source);
@@ -453,7 +453,7 @@ void outplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto source, auto result) {
             result(row, col) = abs(source(row, col));
         },
         source->get_size(), source, result);
@@ -469,7 +469,7 @@ void make_complex(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto source, auto result) {
             result(row, col) = source(row, col);
         },
         source->get_size(), source, result);
@@ -485,7 +485,7 @@ void get_real(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto source, auto result) {
             result(row, col) = real(source(row, col));
         },
         source->get_size(), source, result);
@@ -501,7 +501,7 @@ void get_imag(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto source, auto result) {
             result(row, col) = imag(source(row, col));
         },
         source->get_size(), source, result);

@@ -59,7 +59,7 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto cols, auto values) {
+        GKO_KERNEL(auto i, auto nonzeros, auto cols, auto values) {
             cols[i] = nonzeros[i].column;
             values[i] = unpack_member(nonzeros[i].value);
         },
@@ -78,7 +78,7 @@ void invert_permutation(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tid, auto permutation, auto inv_permutation) {
+        GKO_KERNEL(auto tid, auto permutation, auto inv_permutation) {
             inv_permutation[permutation[tid]] = tid;
         },
         size, permutation_indices, inv_permutation);
@@ -98,10 +98,9 @@ void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
     auto size = std::max(num_rows, nnz);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros,
-                      auto permutation, auto in_row_ptrs, auto in_col_idxs,
-                      auto in_vals, auto out_row_ptrs, auto out_col_idxs,
-                      auto out_vals) {
+        GKO_KERNEL(auto tid, auto num_rows, auto num_nonzeros, auto permutation,
+                   auto in_row_ptrs, auto in_col_idxs, auto in_vals,
+                   auto out_row_ptrs, auto out_col_idxs, auto out_vals) {
             if (tid < num_nonzeros) {
                 out_col_idxs[tid] = permutation[in_col_idxs[tid]];
                 out_vals[tid] = in_vals[tid];
@@ -126,8 +125,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
            matrix::Csr<ValueType, IndexType>* x)
 {
     run_kernel(
-        exec,
-        [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
+        exec, GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
         x->get_num_stored_elements(), alpha->get_const_values(),
         x->get_values());
 }
@@ -141,8 +139,7 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
                matrix::Csr<ValueType, IndexType>* x)
 {
     run_kernel(
-        exec,
-        [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
+        exec, GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
         x->get_num_stored_elements(), alpha->get_const_values(),
         x->get_values());
 }

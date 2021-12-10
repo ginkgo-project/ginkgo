@@ -55,7 +55,7 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto cols) {
+        GKO_KERNEL(auto i, auto nonzeros, auto cols) {
             cols[i] = nonzeros[i].column;
         },
         nonzeros.get_num_elems(), nonzeros, output->get_col_idxs());

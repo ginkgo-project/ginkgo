@@ -61,9 +61,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
-                      auto q, auto t, auto prev_rho, auto rho, auto rho_t,
-                      auto stop) {
+        GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p, auto q,
+                   auto t, auto prev_rho, auto rho, auto rho_t, auto stop) {
             if (row == 0) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = rho_t[col] = one(prev_rho[col]);
@@ -90,8 +89,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho_t,
-                      auto prev_rho, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho_t,
+                   auto prev_rho, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto tmp = safe_divide(rho_t[col], prev_rho[col]);
                 p(row, col) = z(row, col) + tmp * p(row, col);
@@ -115,8 +114,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p,
-                      auto q, auto beta, auto rho, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p, auto q,
+                   auto beta, auto rho, auto stop) {
             if (!stop[col].has_stopped() && beta[col] != zero(beta[col])) {
                 auto tmp = rho[col] / beta[col];
                 auto prev_r = r(row, col);

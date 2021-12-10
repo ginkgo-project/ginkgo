@@ -47,9 +47,8 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
                 size_type n, ValueType val)
 {
     run_kernel(
-        exec,
-        [] GKO_KERNEL(auto idx, auto array, auto val) { array[idx] = val; }, n,
-        array, val);
+        exec, GKO_KERNEL(auto idx, auto array, auto val) { array[idx] = val; },
+        n, array, val);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
@@ -61,8 +60,7 @@ void fill_seq_array(std::shared_ptr<const DefaultExecutor> exec,
                     ValueType* array, size_type n)
 {
     run_kernel(
-        exec, [] GKO_KERNEL(auto idx, auto array) { array[idx] = idx; }, n,
-        array);
+        exec, GKO_KERNEL(auto idx, auto array) { array[idx] = idx; }, n, array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);

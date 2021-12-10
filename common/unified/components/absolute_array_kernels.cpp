@@ -47,9 +47,8 @@ void inplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
                             ValueType* data, size_type n)
 {
     run_kernel(
-        exec,
-        [] GKO_KERNEL(auto idx, auto data) { data[idx] = abs(data[idx]); }, n,
-        data);
+        exec, GKO_KERNEL(auto idx, auto data) { data[idx] = abs(data[idx]); },
+        n, data);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
@@ -62,8 +61,8 @@ void outplace_absolute_array(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = abs(in[idx]); },
-        n, in, out);
+        GKO_KERNEL(auto idx, auto in, auto out) { out[idx] = abs(in[idx]); }, n,
+        in, out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);

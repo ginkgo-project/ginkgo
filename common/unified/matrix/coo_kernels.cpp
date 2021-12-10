@@ -56,8 +56,7 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto rows, auto cols,
-                      auto values) {
+        GKO_KERNEL(auto i, auto nonzeros, auto rows, auto cols, auto values) {
             auto nonzero = nonzeros[i];
             rows[i] = nonzero.row;
             cols[i] = nonzero.column;
@@ -78,8 +77,8 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
-                      auto orig_col_idxs, auto diag) {
+        GKO_KERNEL(auto tidx, auto orig_values, auto orig_row_idxs,
+                   auto orig_col_idxs, auto diag) {
             if (orig_row_idxs[tidx] == orig_col_idxs[tidx]) {
                 diag[orig_row_idxs[tidx]] = orig_values[tidx];
             }

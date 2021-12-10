@@ -64,10 +64,9 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto rr, auto y,
-                      auto s, auto t, auto z, auto v, auto p, auto prev_rho,
-                      auto rho, auto alpha, auto beta, auto gamma, auto omega,
-                      auto stop) {
+        GKO_KERNEL(auto row, auto col, auto b, auto r, auto rr, auto y, auto s,
+                   auto t, auto z, auto v, auto p, auto prev_rho, auto rho,
+                   auto alpha, auto beta, auto gamma, auto omega, auto stop) {
             if (row == 0) {
                 rho[col] = prev_rho[col] = alpha[col] = beta[col] = gamma[col] =
                     omega[col] = one(rho[col]);
@@ -100,8 +99,8 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto r, auto p, auto v, auto rho,
-                      auto prev_rho, auto alpha, auto omega, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto r, auto p, auto v, auto rho,
+                   auto prev_rho, auto alpha, auto omega, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto tmp = safe_divide(rho[col], prev_rho[col]) *
                            safe_divide(alpha[col], omega[col]);
@@ -128,8 +127,8 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto r, auto s, auto v, auto rho,
-                      auto alpha, auto beta, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto r, auto s, auto v, auto rho,
+                   auto alpha, auto beta, auto stop) {
             if (!stop[col].has_stopped()) {
                 auto tmp = safe_divide(rho[col], beta[col]);
                 if (row == 0) {
@@ -157,9 +156,9 @@ void step_3(
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto s, auto t,
-                      auto y, auto z, auto alpha, auto beta, auto gamma,
-                      auto omega, auto stop) {
+        GKO_KERNEL(auto row, auto col, auto x, auto r, auto s, auto t, auto y,
+                   auto z, auto alpha, auto beta, auto gamma, auto omega,
+                   auto stop) {
             if (!stop[col].has_stopped()) {
                 auto tmp = safe_divide(gamma[col], beta[col]);
                 if (row == 0) {
@@ -186,8 +185,7 @@ void finalize(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto x, auto y, auto alpha,
-                      auto stop) {
+        GKO_KERNEL(auto row, auto col, auto x, auto y, auto alpha, auto stop) {
             if (stop[col].has_stopped() && !stop[col].is_finalized()) {
                 x(row, col) += alpha[col] * y(row, col);
                 stop[col].finalize();

@@ -56,8 +56,8 @@ void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows,
-                          auto nonzeros, auto row_ptrs) {
+            GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows, auto nonzeros,
+                       auto row_ptrs) {
                 auto begin_row = i == 0 ? size_type{} : nonzeros[i - 1].row;
                 auto end_row = i == num_nonzeros ? num_rows : nonzeros[i].row;
                 for (auto row = begin_row; row < end_row; row++) {
@@ -88,8 +88,8 @@ void build_row_ptrs_from_idxs(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto i, auto num_idxs, auto num_rows, auto row_idxs,
-                          auto row_ptrs) {
+            GKO_KERNEL(auto i, auto num_idxs, auto num_rows, auto row_idxs,
+                       auto row_ptrs) {
                 auto begin_row = i == 0 ? size_type{} : row_idxs[i - 1];
                 auto end_row = i == num_idxs ? num_rows : row_idxs[i];
                 for (auto row = begin_row; row < end_row; row++) {

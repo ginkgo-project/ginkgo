@@ -55,7 +55,7 @@ void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto elem, auto local_indices, auto validity_array) {
+        GKO_KERNEL(auto elem, auto local_indices, auto validity_array) {
             validity_array[elem] =
                 local_indices[elem] != invalid_index<IndexType>();
         },

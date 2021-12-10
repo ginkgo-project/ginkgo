@@ -56,7 +56,7 @@ void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
             result(row, col) = source(row, col) * diag[row];
         },
         b->get_size(), a->get_const_values(), b, c);
@@ -73,7 +73,7 @@ void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
+        GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
             result(row, col) = source(row, col) * diag[col];
         },
         b->get_size(), a->get_const_values(), b, c);
@@ -93,7 +93,7 @@ void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     c->copy_from(b);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto diag, auto result_values, auto col_idxs) {
+        GKO_KERNEL(auto tidx, auto diag, auto result_values, auto col_idxs) {
             result_values[tidx] *= diag[col_idxs[tidx]];
         },
         c->get_num_stored_elements(), a->get_const_values(), c->get_values(),
@@ -112,7 +112,7 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto data, auto output) {
+        GKO_KERNEL(auto i, auto data, auto output) {
             const auto entry = data[i];
             if (entry.row == entry.column) {
                 output[entry.row] = unpack_member(entry.value);
@@ -132,8 +132,8 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto size, auto diag_values, auto row_ptrs,
-                      auto col_idxs, auto csr_values) {
+        GKO_KERNEL(auto tidx, auto size, auto diag_values, auto row_ptrs,
+                   auto col_idxs, auto csr_values) {
             row_ptrs[tidx] = tidx;
             col_idxs[tidx] = tidx;
             csr_values[tidx] = diag_values[tidx];
@@ -157,7 +157,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto orig_values, auto trans_values) {
+        GKO_KERNEL(auto tidx, auto orig_values, auto trans_values) {
             trans_values[tidx] = conj(orig_values[tidx]);
         },
         orig->get_size()[0], orig->get_const_values(), trans->get_values());

@@ -58,11 +58,11 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
     Array<size_type> result{exec, 1};
     run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto row_ptrs) {
+        GKO_KERNEL(auto i, auto row_ptrs) {
             return row_ptrs[i + 1] - row_ptrs[i];
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
+        GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
         row_ptrs.get_num_elems() - 1, row_ptrs);
     max_nnz = exec->copy_val_to_host(result.get_const_data());
 }
@@ -78,8 +78,8 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto stride,
-                      auto num_cols, auto cols, auto values) {
+        GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto stride,
+                   auto num_cols, auto cols, auto values) {
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
             auto out_idx = row;

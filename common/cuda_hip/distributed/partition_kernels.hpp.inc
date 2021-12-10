@@ -43,9 +43,9 @@ void setup_sizes_ids_permutation(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto num_ranges, auto num_parts,
-                      auto range_offsets, auto range_parts, auto range_sizes,
-                      auto part_ids, auto permutation) {
+        GKO_KERNEL(auto i, auto num_ranges, auto num_parts, auto range_offsets,
+                   auto range_parts, auto range_sizes, auto part_ids,
+                   auto permutation) {
             if (i == 0) {
                 // set sentinel value at the end
                 part_ids[num_ranges] = num_parts;
@@ -69,9 +69,8 @@ void compute_part_sizes_and_starting_indices(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto grouped_starting_indices,
-                      auto grouped_part_ids, auto orig_idxs,
-                      auto starting_indices, auto part_sizes) {
+        GKO_KERNEL(auto i, auto grouped_starting_indices, auto grouped_part_ids,
+                   auto orig_idxs, auto starting_indices, auto part_sizes) {
             auto prev_part = i > 0 ? grouped_part_ids[i - 1]
                                    : invalid_index<comm_index_type>();
             auto cur_part = grouped_part_ids[i];

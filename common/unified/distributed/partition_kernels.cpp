@@ -54,13 +54,13 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
     Array<size_type> result{exec, 1};
     run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto mapping) {
+        GKO_KERNEL(auto i, auto mapping) {
             auto cur_part = mapping[i];
             auto prev_part = i == 0 ? comm_index_type{-1} : mapping[i - 1];
             return cur_part != prev_part ? 1 : 0;
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        GKO_KERNEL(auto a, auto b) { return a + b; },
+        GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
         mapping.get_num_elems(), mapping);
     num_ranges = exec->copy_val_to_host(result.get_const_data());
 }
@@ -74,7 +74,7 @@ void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto ranges, auto bounds, auto ids) {
+        GKO_KERNEL(auto i, auto ranges, auto bounds, auto ids) {
             if (i == 0) {
                 bounds[0] = 0;
             }
@@ -96,7 +96,7 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
     Array<size_type> range_starting_index{exec, mapping.get_num_elems() + 1};
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto mapping, auto range_starting_index) {
+        GKO_KERNEL(auto i, auto mapping, auto range_starting_index) {
             const auto prev_part =
                 i > 0 ? mapping[i - 1] : invalid_index<comm_index_type>();
             const auto cur_part = mapping[i];
@@ -107,9 +107,8 @@ void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
                            mapping.get_num_elems() + 1);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto size, auto mapping,
-                      auto range_starting_index, auto ranges,
-                      auto range_parts) {
+        GKO_KERNEL(auto i, auto size, auto mapping, auto range_starting_index,
+                   auto ranges, auto range_parts) {
             const auto prev_part =
                 i > 0 ? mapping[i - 1] : invalid_index<comm_index_type>();
             const auto cur_part =
@@ -139,7 +138,7 @@ void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
     const auto rest = global_size - (num_parts * size_per_part);
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto size_per_part, auto rest, auto ranges) {
+        GKO_KERNEL(auto i, auto size_per_part, auto rest, auto ranges) {
             ranges[i] = size_per_part + (i < rest ? 1 : 0);
         },
         ranges.get_num_elems() - 1, size_per_part, rest, ranges.get_data());
@@ -162,13 +161,13 @@ void has_ordered_parts(
     Array<uint32> result_uint32{exec, 1};
     run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, const auto part_ids) {
+        GKO_KERNEL(auto i, const auto part_ids) {
             return static_cast<uint32>(part_ids[i] < part_ids[i + 1]);
         },
-        [] GKO_KERNEL(const auto a, const auto b) {
+        GKO_KERNEL(const auto a, const auto b) {
             return static_cast<uint32>(a && b);
         },
-        [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
+        GKO_KERNEL(const auto a) { return a; }, uint32(1),
         result_uint32.get_data(), num_ranges - 1, part_ids);
     *result = static_cast<bool>(
         exec->copy_val_to_host(result_uint32.get_const_data()));

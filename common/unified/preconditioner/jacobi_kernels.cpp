@@ -54,7 +54,7 @@ void scalar_conj(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto elem, auto diag, auto conj_diag) {
+        GKO_KERNEL(auto elem, auto diag, auto conj_diag) {
             conj_diag[elem] = conj(diag[elem]);
         },
         diag.get_num_elems(), diag, conj_diag);
@@ -69,7 +69,7 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto elem, auto diag, auto inv_diag) {
+        GKO_KERNEL(auto elem, auto diag, auto inv_diag) {
             inv_diag[elem] = safe_divide(one(diag[elem]), diag[elem]);
         },
         diag.get_num_elems(), diag, inv_diag);
@@ -89,8 +89,8 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     if (alpha->get_size()[1] > 1) {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
-                          auto beta, auto x) {
+            GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
+                       auto beta, auto x) {
                 x(row, col) = beta[col] * x(row, col) +
                               alpha[col] * b(row, col) * diag[row];
             },
@@ -99,8 +99,8 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
-                          auto beta, auto x) {
+            GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
+                       auto beta, auto x) {
                 x(row, col) =
                     beta[0] * x(row, col) + alpha[0] * b(row, col) * diag[row];
             },
@@ -120,7 +120,7 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto b, auto x) {
+        GKO_KERNEL(auto row, auto col, auto diag, auto b, auto x) {
             x(row, col) = b(row, col) * diag[row];
         },
         x->get_size(), diag, b, x);
@@ -137,7 +137,7 @@ void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto diag, auto result) {
+        GKO_KERNEL(auto row, auto col, auto diag, auto result) {
             result(row, col) = zero(diag[row]);
             if (row == col) {
                 result(row, col) = diag[row];

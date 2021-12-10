@@ -62,8 +62,8 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
         static_cast<size_type>(ceildiv(num_rows, slice_size));
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto slice, auto local_row, auto row_ptrs,
-                      auto slice_size, auto stride_factor, auto num_rows) {
+        GKO_KERNEL(auto slice, auto local_row, auto row_ptrs, auto slice_size,
+                   auto stride_factor, auto num_rows) {
             const auto row = slice * slice_size + local_row;
             return row < num_rows
                        ? static_cast<size_type>(
@@ -72,8 +72,8 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                              stride_factor)
                        : size_type{};
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, slice_lengths, 1,
+        GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
+        GKO_KERNEL(auto a) { return a; }, size_type{}, slice_lengths, 1,
         gko::dim<2>{num_slices, slice_size}, row_ptrs, slice_size,
         stride_factor, num_rows);
     exec->copy(num_slices, slice_lengths, slice_sets);
@@ -89,8 +89,8 @@ void fill_in_matrix_data(
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto slice_size,
-                      auto slice_sets, auto cols, auto values) {
+        GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto slice_size,
+                   auto slice_sets, auto cols, auto values) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
             const auto slice = row / slice_size;

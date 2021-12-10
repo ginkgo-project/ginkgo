@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(GKO_COMPILING_CUDA)
 
 #define GKO_DEVICE_NAMESPACE cuda
-#define GKO_KERNEL __device__
+#define GKO_KERNEL [] __device__
 #include <ginkgo/kernels/cuda/types.hpp>
 
 
@@ -84,7 +84,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #elif defined(GKO_COMPILING_HIP)
 
 #define GKO_DEVICE_NAMESPACE hip
-#define GKO_KERNEL __device__
+#define GKO_KERNEL [] __device__
 #include <ginkgo/kernels/hip/types.hip.hpp>
 
 
@@ -122,7 +122,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #elif defined(GKO_COMPILING_DPCPP)
 
 #define GKO_DEVICE_NAMESPACE dpcpp
-#define GKO_KERNEL
+#define GKO_KERNEL []
 
 
 namespace gko {
@@ -157,7 +157,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #elif defined(GKO_COMPILING_OMP)
 
 #define GKO_DEVICE_NAMESPACE omp
-#define GKO_KERNEL
+#define GKO_KERNEL []
 
 
 namespace gko {
@@ -193,7 +193,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #elif defined(GKO_COMPILING_REFERENCE)
 
 #define GKO_DEVICE_NAMESPACE reference
-#define GKO_KERNEL
+#define GKO_KERNEL []
 
 
 namespace gko {
@@ -229,7 +229,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #elif defined(GKO_COMPILING_STUB)
 
 
-#define GKO_KERNEL
+#define GKO_KERNEL []
 
 
 namespace gko {
