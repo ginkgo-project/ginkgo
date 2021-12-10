@@ -519,7 +519,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    x->fill(nan<ValueType>());
+    dense::fill(exec, x, nan<ValueType>());
 
     Array<bool> nan_produced(exec, 1);
     Array<IndexType> atomic_counter(exec, 1);
