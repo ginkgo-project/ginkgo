@@ -148,6 +148,11 @@ namespace kernels {
                         const matrix::Dense<_type>* source,          \
                         matrix::Ell<_type, _prec>* other)
 
+#define GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(_type, _prec)        \
+    void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec, \
+                          const matrix::Dense<_type>* source,          \
+                          matrix::Fbcsr<_type, _prec>* other)
+
 #define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(_type, _prec)        \
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec, \
                            const matrix::Dense<_type>* source,          \
@@ -179,6 +184,11 @@ namespace kernels {
     void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec, \
                                 const matrix::Dense<_vtype>* source,         \
                                 _itype* result)
+
+#define GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(_vtype, _itype) \
+    void count_nonzero_blocks_per_row(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Dense<_vtype>* source, int block_size, _itype* result)
 
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T(_type) \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(_type, ::gko::size_type)
@@ -298,6 +308,8 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);        \
@@ -309,6 +321,9 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL(ValueType);                 \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType,        \
+                                                          IndexType);       \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_TRANSPOSE_KERNEL(ValueType);                          \
     template <typename ValueType>                                           \

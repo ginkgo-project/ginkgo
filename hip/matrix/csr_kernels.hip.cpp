@@ -722,6 +722,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source, int bs,
+                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+                      Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
