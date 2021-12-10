@@ -37,14 +37,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <omp.h>
 #include <ginkgo/ginkgo.hpp>
+#include <ginkgo/kernels/kernel_declaration.hpp>
 
 
 // A CUDA kernel implementing the stencil, which will be used if running on the
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
-template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
-                    const ValueType* b, ValueType* x);
+GKO_DECLARE_UNIFIED(template <typename ValueType> void stencil_kernel(
+    std::shared_ptr<const DefaultExecutor> exec, std::size_t size,
+    const ValueType* coefs, const ValueType* b, ValueType* x));
+
+// we need separate implementations depending on the executor, so we
+// create an operation which maps the call to the correct implementation
+GKO_REGISTER_UNIFIED_OPERATION(stencil_operation, stencil_kernel);
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
@@ -89,51 +94,9 @@ protected:
         // gko::as will throw an exception if its argument is not Dense.
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);
-
-        // we need separate implementations depending on the executor, so we
-        // create an operation which maps the call to the correct implementation
-        struct stencil_operation : gko::Operation {
-            stencil_operation(const coef_type& coefficients, const vec* b,
-                              vec* x)
-                : coefficients{coefficients}, b{b}, x{x}
-            {}
-
-            // OpenMP implementation
-            void run(std::shared_ptr<const gko::OmpExecutor>) const override
-            {
-                auto b_values = b->get_const_values();
-                auto x_values = x->get_values();
-#pragma omp parallel for
-                for (std::size_t i = 0; i < x->get_size()[0]; ++i) {
-                    auto coefs = coefficients.get_const_data();
-                    auto result = coefs[1] * b_values[i];
-                    if (i > 0) {
-                        result += coefs[0] * b_values[i - 1];
-                    }
-                    if (i < x->get_size()[0] - 1) {
-                        result += coefs[2] * b_values[i + 1];
-                    }
-                    x_values[i] = result;
-                }
-            }
-
-            // CUDA implementation
-            void run(std::shared_ptr<const gko::CudaExecutor>) const override
-            {
-                stencil_kernel(x->get_size()[0], coefficients.get_const_data(),
-                               b->get_const_values(), x->get_values());
-            }
-
-            // We do not provide an implementation for reference executor.
-            // If not provided, Ginkgo will use the implementation for the
-            // OpenMP executor when calling it in the reference executor.
-
-            const coef_type& coefficients;
-            const vec* b;
-            vec* x;
-        };
-        this->get_executor()->run(
-            stencil_operation(coefficients, dense_b, dense_x));
+        this->get_executor()->run(make_stencil_operation(
+            dense_b->get_size()[0], coefficients.get_const_data(),
+            dense_b->get_const_values(), dense_x->get_values()));
     }
 
     // There is also a version of the apply function which does the operation

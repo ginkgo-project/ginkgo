@@ -30,54 +30,44 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <cstdlib>
-
 #include <ginkgo/ginkgo.hpp>
 
 
-#define INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                     \
-    template _macro(double);
+#include <ginkgo/kernels/kernel_launch.hpp>
 
 
-#define STENCIL_KERNEL(_type)                                                 \
-    void stencil_kernel(std::size_t size, const _type* coefs, const _type* b, \
-                        _type* x);
+namespace GKO_DEVICE_NAMESPACE {
 
 
-namespace {
-
-
-// a parallel CUDA kernel that computes the application of a 3 point stencil
-template <typename ValueType>
-__global__ void stencil_kernel_impl(std::size_t size, const ValueType* coefs,
-                                    const ValueType* b, ValueType* x)
-{
-    const auto thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (thread_id >= size) {
-        return;
-    }
-    auto result = coefs[1] * b[thread_id];
-    if (thread_id > 0) {
-        result += coefs[0] * b[thread_id - 1];
-    }
-    if (thread_id < size - 1) {
-        result += coefs[2] * b[thread_id + 1];
-    }
-    x[thread_id] = result;
-}
-
-
-}  // namespace
+using namespace gko::kernels::GKO_DEVICE_NAMESPACE;
 
 
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
+void stencil_kernel(std::shared_ptr<const DefaultExecutor> exec,
+                    std::size_t size, const ValueType* coefs,
                     const ValueType* b, ValueType* x)
 {
-    constexpr int block_size = 512;
-    const auto grid_size = (size + block_size - 1) / block_size;
-    stencil_kernel_impl<<<grid_size, block_size>>>(size, coefs, b, x);
+    run_kernel(
+        exec,
+        GKO_KERNEL(auto i, auto coefs, auto b, auto x, auto size) {
+            auto result = coefs[1] * b[i];
+            if (i > 0) {
+                result += coefs[0] * b[i - 1];
+            }
+            if (i < size - 1) {
+                result += coefs[2] * b[i + 1];
+            }
+            x[i] = result;
+        },
+        size, coefs, b, x, size);
 }
 
-INSTANTIATE_FOR_EACH_VALUE_TYPE(STENCIL_KERNEL);
+template void stencil_kernel<double>(std::shared_ptr<const DefaultExecutor>,
+                                     std::size_t, const double*, const double*,
+                                     double*);
+template void stencil_kernel<float>(std::shared_ptr<const DefaultExecutor>,
+                                    std::size_t, const float*, const float*,
+                                    float*);
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
