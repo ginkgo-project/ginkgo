@@ -95,8 +95,7 @@ struct enable_reference_operators {
     constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE arithmetic_type
     to_arithmetic_type() const
     {
-        return static_cast<const Reference*>(this)
-            ->Reference::operator arithmetic_type();
+        return *static_cast<const Reference*>(this);
     }
 
 #define GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                 \

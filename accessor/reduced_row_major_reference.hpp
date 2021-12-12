@@ -55,7 +55,7 @@ namespace reference_class {
 
 /**
  * Reference class for a different storage than arithmetic type. The
- * conversion between both formats is done with a simple static_cast.
+ * conversion between both formats is done with an implicit cast.
  *
  * Copying this reference is disabled, but move construction is possible to
  * allow for an additional layer (like gko::acc::range).
@@ -96,33 +96,38 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr);
+        return *r_ptr;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(arithmetic_type val) &&
     {
         storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = static_cast<storage_type>(val);
+        *r_ptr = val;
         return val;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(const reduced_storage& ref) &&
     {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
+        std::move(*this) = ref.implicit_conversion();
+        return *this;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(reduced_storage&& ref) && noexcept
     {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
+        std::move(*this) = ref.implicit_conversion();
+        return *this;
     }
 
 private:
     storage_type* const GKO_ACC_RESTRICT ptr_;
+
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type implicit_conversion() const
+    {
+        return *this;
+    }
 };
 
 // Specialization for const storage_type to prevent `operator=`
@@ -154,7 +159,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr);
+        return *r_ptr;
     }
 
 private:
@@ -167,7 +172,8 @@ constexpr GKO_ACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
     const reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
-    return abs(static_cast<ArithmeticType>(ref));
+    auto implicit_cast = [](ArithmeticType val) { return val; };
+    return abs(implicit_cast(ref));
 }
 
 

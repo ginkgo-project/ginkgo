@@ -208,7 +208,7 @@ struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
  * 1. If a function `to_arithmetic_type()` is available, it will return the
  *    result of that function
  * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
- *    result of `static_cast<Ref::arithmetic_type>(ref)`
+ *    implicit cast from Ref -> `Ref::arithmetic_type`
  * 3. Otherwise, it will return `ref` itself.
  */
 template <typename Ref>
@@ -226,7 +226,7 @@ constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
     typename Ref::arithmetic_type>
 to_arithmetic_type(const Ref& ref)
 {
-    return static_cast<typename Ref::arithmetic_type>(ref);
+    return ref;
 }
 
 template <typename Ref>
