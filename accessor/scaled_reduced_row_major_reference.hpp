@@ -55,7 +55,7 @@ namespace reference_class {
 /**
  * Reference class for a different storage than arithmetic type with the
  * addition of a scaling factor. The conversion between both formats is done
- * with a static_cast to the ArithmeticType, followed by a multiplication
+ * with an implicit cast to the ArithmeticType, followed by a multiplication
  * of the scalar (when reading; for writing, the new value is divided by the
  * scalar before casting to the StorageType).
  *
@@ -97,34 +97,39 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
+        return (*r_ptr) * scalar_;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(arithmetic_type val) &&
     {
         storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = static_cast<storage_type>(val / scalar_);
+        *r_ptr = val / scalar_;
         return val;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(const scaled_reduced_storage& ref) &&
     {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
+        std::move(*this) = ref.implicit_conversion();
+        return *this;
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     operator=(scaled_reduced_storage&& ref) && noexcept
     {
-        std::move(*this) = static_cast<arithmetic_type>(ref);
-        return static_cast<arithmetic_type>(*this);
+        std::move(*this) = ref.implicit_conversion();
+        return *this;
     }
 
 private:
     storage_type* const GKO_ACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
+
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type implicit_conversion() const
+    {
+        return *this;
+    }
 };
 
 // Specialization for constant storage_type (no `operator=`)
@@ -157,7 +162,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return static_cast<arithmetic_type>(*r_ptr) * scalar_;
+        return (*r_ptr) * scalar_;
     }
 
 private:
@@ -171,7 +176,8 @@ constexpr remove_complex_t<ArithmeticType> abs(
     const scaled_reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
-    return abs(static_cast<ArithmeticType>(ref));
+    auto implicit_cast = [](ArithmeticType val) { return val; };
+    return abs(implicit_cast(ref));
 }
 
 
