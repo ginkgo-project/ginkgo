@@ -617,6 +617,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value and index types.
  */
 #define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(_macro) \
+    template _macro(bool, bool);                                       \
     template _macro(char, char);                                       \
     template _macro(int32, int32);                                     \
     template _macro(int64, int64);                                     \

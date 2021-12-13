@@ -299,6 +299,404 @@ TYPED_TEST(Matrix, ConvertToCsrScatteredRanges)
 }
 
 
+TYPED_TEST(Matrix, CanCreateSubmatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(this->mat_input, this->part);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+    gko::span row_spans[3] = {{0, 2}, {2}, {4}};
+    gko::span col_spans[3] = {{1}, {2, 4}, {4}};
+    auto rank = this->comm->rank();
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    I<I<value_type>> cmp_diag[3] = {{{1}, {3}}, {{5, 0}}, {{10}}};
+    I<I<value_type>> cmp_offdiag[3] = {{{0, 2}, {4, 0}}, {{6}}, {{}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(4, 4));
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                        cmp_diag[this->comm->rank()], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                        cmp_offdiag[this->comm->rank()], r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixWithEmptSpan)
+{
+    using value_type = typename TestFixture::value_type;
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(this->mat_input, this->part);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+    gko::span row_spans[3] = {{0, 0}, {2}, {4}};
+    gko::span col_spans[3] = {{0, 0}, {2, 4}, {4}};
+    auto rank = this->comm->rank();
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(2, 3));
+    if (rank == 0) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_local_diag()->get_size(),
+                                    gko::dim<2>(0, 0));
+        GKO_ASSERT_EQUAL_DIMENSIONS(
+            dist_sub_mat->get_local_offdiag()->get_size(), gko::dim<2>(0, 0));
+    } else {
+        I<I<value_type>> cmp_diag[3] = {{}, {{5, 0}}, {{10}}};
+        I<I<value_type>> cmp_offdiag[3] = {{}, {{6}}, {{}}};
+        GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                            cmp_diag[this->comm->rank()], r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                            cmp_offdiag[this->comm->rank()],
+                            r<value_type>::value);
+    }
+}
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperLeft)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::span col_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 8, 0, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    I<I<value_type>> cmp_diag[3] = {
+        {{1, 1}, {1, 1}}, {{2, 2}, {2, 2}}, {{3, 3}, {3, 3}}};
+    I<I<value_type>> cmp_offdiag[3] = {{{-2, 0, 0, -3}, {0, -2, -3, 0}},
+                                       {{0, -1, -33, 0}, {-1, 0, 0, -33}},
+                                       {{-11, -22, 0}, {-11, 0, -22}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(6, 6));
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                        cmp_diag[this->comm->rank()], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                        cmp_offdiag[this->comm->rank()], r<value_type>::value);
+}
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperLeftApply)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::span col_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 8, 0, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    gko::matrix_data<value_type, global_index_type> block_md{
+        {1, 1, -2, 0, 0, -3},  {1, 1, 0, -2, -3, 0},   {0, -1, 2, 2, -33, 0},
+        {-1, 0, 2, 2, 0, -33}, {-11, 0, -22, 0, 3, 3}, {-11, 0, 0, -22, 3, 3},
+    };
+    auto block_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 2, 4, 6}}));
+    auto ref_dist_sub_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    ref_dist_sub_mat->read_distributed(block_md, block_partition);
+    auto b = TestFixture::Vec::create(this->ref, this->comm);
+    b->read_distributed({{0}, {1}, {2}, {3}, {4}, {5}}, block_partition);
+    auto x = TestFixture::Vec::create(this->ref, this->comm, block_partition,
+                                      gko::dim<2>{6, 1}, gko::dim<2>{2, 1});
+    auto ref_x = gko::clone(x);
+
+    dist_sub_mat->apply(b.get(), x.get());
+    ref_dist_sub_mat->apply(b.get(), ref_x.get());
+
+    GKO_ASSERT_MTX_NEAR(x->get_local(), ref_x->get_local(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperRight)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 8, 0, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+    gko::span row_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::span col_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    auto rank = this->comm->rank();
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    I<I<value_type>> cmp_diag[3] = {{{0}, {4}}, {{0}, {5}}, {{6}, {0}}};
+    I<I<value_type>> cmp_offdiag[3] = {
+        {{0, -6}, {-5, 0}}, {{-4, -66}, {0, 0}}, {{-44, 0}, {0, -55}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(6, 3));
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                        cmp_diag[this->comm->rank()], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                        cmp_offdiag[this->comm->rank()], r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperRightApply)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::span col_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 8, 0, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    auto block_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 1, 2, 3}}));
+    auto block_col_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 2, 4, 6}}));
+    auto b = TestFixture::Vec::create(this->ref, this->comm);
+    b->read_distributed({{1}, {2}, {3}}, block_partition);
+    auto x = TestFixture::Vec::create(this->ref, this->comm, block_partition,
+                                      gko::dim<2>{6, 1}, gko::dim<2>{2, 1});
+
+    dist_sub_mat->apply(b.get(), x.get());
+
+    I<I<value_type>> cmp_x[3] = {
+        {{-18}, {-6}}, {{-4 - 3 * 66}, {5 * 2}}, {{-44 + 6 * 3}, {-55 * 2}}};
+    GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerLeft)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 0, 8, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+    gko::span row_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::span col_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    auto rank = this->comm->rank();
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    I<I<value_type>> cmp_diag[3] = {{{7, 0}}, {{0, 8}}, {{0, 9}}};
+    I<I<value_type>> cmp_offdiag[3] = {{{-7, -77}}, {{-8, -88}}, {{-99, -99}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(3, 6));
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                        cmp_diag[this->comm->rank()], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                        cmp_offdiag[this->comm->rank()], r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerLeftApply)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::span col_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 0, 8, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    auto block_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 2, 4, 6}}));
+    auto b = TestFixture::Vec::create(this->ref, this->comm);
+    b->read_distributed({{1}, {2}, {3}, {4}, {5}, {6}}, block_partition);
+    auto x = TestFixture::Vec::create(this->ref, this->comm, block_partition,
+                                      gko::dim<2>{3, 1}, gko::dim<2>{1, 1});
+
+    dist_sub_mat->apply(b.get(), x.get());
+
+    I<I<value_type>> cmp_x[3] = {{{-483}}, {{-424}}, {{-441}}};
+    GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerRight)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {17, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 0, 8, 19, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 23}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto csr_sub_mat = TestFixture::GMtx::create(this->ref);
+    gko::span row_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::span col_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    auto rank = this->comm->rank();
+
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+
+    I<I<value_type>> cmp_diag[3] = {{{17}}, {{19}}, {{23}}};
+    I<I<value_type>> cmp_offdiag[3] = {{{}}, {{}}, {{}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(dist_sub_mat->get_size(), gko::dim<2>(3, 3));
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_diag(),
+                        cmp_diag[this->comm->rank()], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(dist_sub_mat->get_local_offdiag(),
+                        cmp_offdiag[this->comm->rank()], r<value_type>::value);
+}
+
+
+TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerRightApply)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::span col_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {17, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 0, 8, 19, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 23}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    auto block_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 1, 2, 3}}));
+    auto b = TestFixture::Vec::create(this->ref, this->comm);
+    b->read_distributed({{1}, {2}, {3}}, block_partition);
+    auto x = TestFixture::Vec::create(this->ref, this->comm, block_partition,
+                                      gko::dim<2>{3, 1}, gko::dim<2>{1, 1});
+
+    dist_sub_mat->apply(b.get(), x.get());
+
+    I<I<value_type>> cmp_x[3] = {{{17}}, {{38}}, {{69}}};
+    GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
+                        r<value_type>::value);
+}
+
 }  // namespace
 
 // Calls a custom gtest main with MPI listeners. See gtest-mpi-listeners.hpp for

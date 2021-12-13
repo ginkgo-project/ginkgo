@@ -5,6 +5,7 @@ set(UNIFIED_SOURCES
     components/fill_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/reduce_array_kernels.cpp
+    distributed/matrix_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp

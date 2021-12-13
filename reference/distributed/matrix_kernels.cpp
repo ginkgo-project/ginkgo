@@ -39,6 +39,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 namespace gko {
+
+
+template <typename T>
+T* begin(Array<T>& container)
+{
+    return container.get_data();
+}
+
+template <typename T>
+const T* begin(const Array<T>& container)
+{
+    return container.get_const_data();
+}
+
+template <typename T>
+T* end(Array<T>& container)
+{
+    return container.get_data() + container.get_num_elems();
+}
+
+template <typename T>
+const T* end(const Array<T>& container)
+{
+    return container.get_const_data() + container.get_num_elems();
+}
+
+
 namespace kernels {
 namespace reference {
 namespace distributed_matrix {
@@ -279,6 +306,178 @@ void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMBINE_LOCAL_MTXS);
+
+
+template <typename ValueType, typename LocalIndexType>
+void compress_offdiag_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
+    Array<global_index_type>& col_map)
+{
+    auto& nonzeros = offdiag_data.nonzeros;
+    std::stable_sort(
+        begin(nonzeros), end(nonzeros),
+        [](const auto& a, const auto& b) { return a.column < b.column; });
+
+    size_type num_invalid_entries = std::count_if(
+        begin(nonzeros), end(nonzeros),
+        [](const auto& entry) { return entry.value == zero<ValueType>(); });
+    std::map<LocalIndexType, LocalIndexType> new_col_idx;
+    std::set<LocalIndexType> invalid_cols_set;
+    for (const auto& entry : nonzeros) {
+        if (entry.value == zero<ValueType>()) {
+            invalid_cols_set.emplace(entry.column);
+        } else {
+            new_col_idx.emplace(entry.column, new_col_idx.size());
+        }
+    }
+
+    // could prevent copy by sorting wrt entry.column
+    device_matrix_data<ValueType, LocalIndexType> tmp_offdiag_data{
+        exec, dim<2>{offdiag_data.size[0], new_col_idx.size()},
+        offdiag_data.nonzeros.get_num_elems() - num_invalid_entries};
+    Array<global_index_type> new_col_map{exec, tmp_offdiag_data.size[1]};
+    {
+        auto it = tmp_offdiag_data.nonzeros.get_data();
+        for (const auto& entry : nonzeros) {
+            auto find_it = new_col_idx.find(entry.column);
+            if (find_it != new_col_idx.end()) {
+                *it = {entry.row, find_it->second, entry.value};
+                new_col_map.get_data()[find_it->second] =
+                    col_map.get_data()[entry.column];
+                it++;
+            }
+        }
+    }
+
+    std::sort(begin(tmp_offdiag_data.nonzeros), end(tmp_offdiag_data.nonzeros),
+              [](const auto& a, const auto& b) {
+                  return std::tie(a.row, a.column) < std::tie(b.row, b.column);
+              });
+    offdiag_data = std::move(tmp_offdiag_data);
+    col_map = std::move(new_col_map);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPRESS_OFFDIAG_DATA);
+
+
+template <typename LocalIndexType>
+void check_indices_within_span(std::shared_ptr<const DefaultExecutor> exec,
+                               const Array<LocalIndexType>& indices,
+                               const Array<global_index_type>& to_global,
+                               gko::span valid_span,
+                               Array<bool>& index_is_valid)
+{
+    index_is_valid.resize_and_reset(indices.get_num_elems());
+    std::transform(begin(indices), end(indices), begin(index_is_valid),
+                   [&](const auto idx) {
+                       auto global_idx = to_global.get_const_data()[idx];
+                       return valid_span.begin <= global_idx &&
+                              global_idx < valid_span.end;
+                   });
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN);
+
+
+template <typename IndexType>
+void build_recv_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* col_idxs, size_type num_cols,
+                      const distributed::Partition<IndexType>* partition,
+                      const global_index_type* map,
+                      Array<comm_index_type>& recv_sizes,
+                      Array<comm_index_type>& recv_offsets,
+                      Array<IndexType>& recv_indices)
+{
+    auto range_bounds = partition->get_const_range_bounds();
+    auto range_parts = partition->get_const_part_ids();
+    auto range_starting_index = partition->get_range_ranks();
+    auto num_parts = partition->get_num_parts();
+    auto num_ranges = partition->get_num_ranges();
+    // zero recv_offsets values
+    recv_sizes.resize_and_reset(num_parts);
+    std::fill_n(recv_sizes.get_data(), num_parts, comm_index_type{});
+
+    // helpers for retrieving range info
+    auto find_range = [&](global_index_type idx) {
+        auto it = std::upper_bound(range_bounds + 1,
+                                   range_bounds + num_ranges + 1, idx);
+        return std::distance(range_bounds + 1, it);
+    };
+
+    auto to_local_range = [&](global_index_type range, global_index_type idx) {
+        return idx - range_bounds[range] + range_starting_index[range];
+    };
+
+    // needs to be sorted, to make sure that the recv_indices are also sorted
+    // part-wise
+    std::set<global_index_type> visited_columns;
+
+    for (size_type i = 0; i < num_cols; ++i) {
+        auto global_col = map[col_idxs[i]];
+        auto new_col = visited_columns.emplace(global_col).second;
+        if (new_col) {
+            auto range = find_range(global_col);
+            auto part_id = range_parts[range];
+            recv_sizes.get_data()[part_id]++;
+        }
+    }
+
+    recv_offsets.resize_and_reset(num_parts + 1);
+    exec->copy(num_parts, recv_sizes.get_const_data(), recv_offsets.get_data());
+    components::prefix_sum(exec, recv_offsets.get_data(), num_parts + 1);
+
+    recv_indices.resize_and_reset(recv_offsets.get_const_data()[num_parts]);
+    for (auto global_col : visited_columns) {
+        auto range = find_range(global_col);
+        auto part_id = range_parts[range];
+        auto remote_local_idx = to_local_range(range, global_col);
+        recv_indices.get_data()[recv_offsets.get_const_data()[part_id]] =
+            remote_local_idx;
+        recv_offsets.get_data()[part_id]++;
+    }
+    IndexType local_prev{};
+    for (size_type i = 0; i <= num_parts; i++) {
+        recv_offsets.get_data()[i] =
+            std::exchange(local_prev, recv_offsets.get_data()[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_RECV_SIZES);
+
+
+template <typename ValueType, typename IndexType>
+void zero_out_invalid_columns(std::shared_ptr<const DefaultExecutor> exec,
+                              const Array<bool>& column_index_is_valid,
+                              device_matrix_data<ValueType, IndexType>& data)
+{
+    std::transform(
+        begin(data.nonzeros), end(data.nonzeros), begin(data.nonzeros),
+        [&](const auto& entry) {
+            if (column_index_is_valid.get_const_data()[entry.column]) {
+                return entry;
+            } else {
+                return matrix_data_entry<ValueType, IndexType>{
+                    entry.row, entry.column, zero<ValueType>()};
+            }
+        });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ZERO_OUT_INVALID_COLUMNS);
+
+
+template <typename ValueType>
+void add_to_array(std::shared_ptr<const DefaultExecutor> exec,
+                  Array<ValueType>& array, const ValueType value)
+{
+    for (auto& v : array) {
+        v += value;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_ADD_TO_ARRAY);
 
 
 }  // namespace distributed_matrix

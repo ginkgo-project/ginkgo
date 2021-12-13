@@ -85,6 +85,28 @@ void combine_local_mtxs(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COMBINE_LOCAL_MTXS);
 
 
+template <typename IndexType>
+void build_recv_sizes(std::shared_ptr<const DefaultExecutor> exec,
+                      const IndexType* col_idxs, size_type num_cols,
+                      const distributed::Partition<IndexType>* partition,
+                      const global_index_type* map,
+                      Array<comm_index_type>& recv_sizes,
+                      Array<comm_index_type>& recv_offsets,
+                      Array<IndexType>& recv_indices) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_BUILD_RECV_SIZES);
+
+
+template <typename ValueType, typename LocalIndexType>
+void compress_offdiag_data(
+    std::shared_ptr<const DefaultExecutor> exec,
+    device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
+    Array<global_index_type>& col_map) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COMPRESS_OFFDIAG_DATA);
+
+
 }  // namespace distributed_matrix
 }  // namespace dpcpp
 }  // namespace kernels

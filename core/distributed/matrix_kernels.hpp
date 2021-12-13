@@ -78,18 +78,69 @@ namespace kernels {
         const matrix::Csr<ValueType, LocalIndexType>* local,      \
         matrix::Csr<ValueType, LocalIndexType>* result)
 
+#define GKO_DECLARE_CHECK_COLUMN_INDEX_EXISTS(IndexType)   \
+    void check_column_index_exists(                        \
+        std::shared_ptr<const DefaultExecutor> exec,       \
+        const IndexType* col_idxs, size_type num_elements, \
+        const global_index_type* map, Array<bool>& col_exists)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                           \
-    using global_index_type = distributed::global_index_type;  \
-    using comm_index_type = distributed::comm_index_type;      \
-    template <typename ValueType, typename LocalIndexType>     \
-    GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType); \
-    template <typename SourceType, typename TargetType>        \
-    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType);    \
-    template <typename ValueType, typename LocalIndexType>     \
-    GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType); \
-    template <typename ValueType, typename LocalIndexType>     \
-    GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType)
+#define GKO_DECLARE_BUILD_RECV_SIZES(IndexType)                           \
+    void build_recv_sizes(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const IndexType* col_idxs, size_type num_cols,                    \
+        const distributed::Partition<IndexType>* partition,               \
+        const global_index_type* map, Array<comm_index_type>& recv_sizes, \
+        Array<comm_index_type>& recv_offsets, Array<IndexType>& recv_indices)
+
+#define GKO_DECLARE_COMPRESS_OFFDIAG_DATA(ValueType, LocalIndexType) \
+    void compress_offdiag_data(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        device_matrix_data<ValueType, LocalIndexType>& offdiag_data, \
+        Array<global_index_type>& col_map)
+
+#define GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN(LocalIndexType)            \
+    void check_indices_within_span(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const Array<LocalIndexType>& indices,                            \
+        const Array<global_index_type>& to_global, gko::span valid_span, \
+        Array<bool>& index_is_valid)
+
+#define GKO_DECLARE_ZERO_OUT_INVALID_COLUMNS(ValueType, IndexType) \
+    void zero_out_invalid_columns(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,               \
+        const Array<bool>& column_index_is_valid,                  \
+        device_matrix_data<ValueType, IndexType>& data)
+
+// TODO: would be unnecessary if Dense<int> is possible
+#define GKO_DECLARE_ADD_TO_ARRAY(ValueType)                        \
+    void add_to_array(std::shared_ptr<const DefaultExecutor> exec, \
+                      Array<ValueType>& array, const ValueType value)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
+    using global_index_type = distributed::global_index_type;        \
+    using comm_index_type = distributed::comm_index_type;            \
+    template <typename ValueType, typename LocalIndexType>           \
+    GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType);       \
+    template <typename SourceType, typename TargetType>              \
+    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType);          \
+    template <typename ValueType, typename LocalIndexType>           \
+    GKO_DECLARE_MERGE_DIAG_OFFDIAG(ValueType, LocalIndexType);       \
+    template <typename ValueType, typename LocalIndexType>           \
+    GKO_DECLARE_COMBINE_LOCAL_MTXS(ValueType, LocalIndexType);       \
+    template <typename LocalIndexType>                               \
+    GKO_DECLARE_CHECK_COLUMN_INDEX_EXISTS(LocalIndexType);           \
+    template <typename LocalIndexType>                               \
+    GKO_DECLARE_BUILD_RECV_SIZES(LocalIndexType);                    \
+    template <typename ValueType, typename LocalIndexType>           \
+    GKO_DECLARE_COMPRESS_OFFDIAG_DATA(ValueType, LocalIndexType);    \
+    template <typename LocalIndexType>                               \
+    GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN(LocalIndexType);           \
+    template <typename ValueType, typename LocalIndexType>           \
+    GKO_DECLARE_ZERO_OUT_INVALID_COLUMNS(ValueType, LocalIndexType); \
+    template <typename ValueType>                                    \
+    GKO_DECLARE_ADD_TO_ARRAY(ValueType)
+
 
 namespace omp {
 namespace distributed_matrix {

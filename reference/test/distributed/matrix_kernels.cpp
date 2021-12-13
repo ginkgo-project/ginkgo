@@ -423,17 +423,23 @@ TYPED_TEST(Matrix, BuildColMapScattered)
 
 TYPED_TEST(Matrix, MergeLocalMatricesOffdiagRight)
 {
-    this->mat_diag->read({gko::dim<2>{2, 4},
-                          {
-                              {0, 0, 1},
-                              {1, 1, 3},
-                          }});
-    this->mat_offdiag->read({gko::dim<2>{2, 4}, {{0, 3, 2}, {1, 2, 4}}});
+    using local_entry = typename TestFixture::local_entry;
+    this->mat_diag->read(
+        {gko::dim<2>{2, 4}, gko::Array<local_entry>{this->ref, I<local_entry>{
+                                                                   {0, 0, 1},
+                                                                   {1, 1, 3},
+                                                               }}});
+    this->mat_offdiag->read(
+        {gko::dim<2>{2, 4},
+         gko::Array<local_entry>{this->ref,
+                                 I<local_entry>{{0, 3, 2}, {1, 2, 4}}}});
     this->mat_merged =
         TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
     auto result = TestFixture::GMtx::create(this->ref);
     result->read(
-        {gko::dim<2>{2, 4}, {{0, 0, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}});
+        {gko::dim<2>{2, 4},
+         {this->ref,
+          I<local_entry>{{0, 0, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}}}});
 
     gko::kernels::reference::distributed_matrix::merge_diag_offdiag(
         this->ref, this->mat_diag.get(), this->mat_offdiag.get(),
@@ -444,12 +450,16 @@ TYPED_TEST(Matrix, MergeLocalMatricesOffdiagRight)
 
 TYPED_TEST(Matrix, MergeLocalMatricesOffdiagLeft)
 {
-    this->mat_diag->read({gko::dim<2>{2, 4},
-                          {
-                              {0, 2, 1},
-                              {1, 3, 3},
-                          }});
-    this->mat_offdiag->read({gko::dim<2>{2, 4}, {{0, 0, 2}, {1, 1, 4}}});
+    using local_entry = typename TestFixture::local_entry;
+    this->mat_diag->read(
+        {gko::dim<2>{2, 4}, gko::Array<local_entry>{this->ref, I<local_entry>{
+                                                                   {0, 2, 1},
+                                                                   {1, 3, 3},
+                                                               }}});
+    this->mat_offdiag->read(
+        {gko::dim<2>{2, 4},
+         gko::Array<local_entry>{this->ref,
+                                 I<local_entry>{{0, 0, 2}, {1, 1, 4}}}});
     this->mat_merged =
         TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
     auto result = TestFixture::GMtx::create(this->ref);
@@ -465,12 +475,16 @@ TYPED_TEST(Matrix, MergeLocalMatricesOffdiagLeft)
 
 TYPED_TEST(Matrix, MergeLocalMatricesOffdiagBoth)
 {
-    this->mat_diag->read({gko::dim<2>{2, 4},
-                          {
-                              {0, 1, 1},
-                              {1, 2, 3},
-                          }});
-    this->mat_offdiag->read({gko::dim<2>{2, 4}, {{0, 3, 2}, {1, 0, 4}}});
+    using local_entry = typename TestFixture::local_entry;
+    this->mat_diag->read(
+        {gko::dim<2>{2, 4}, gko::Array<local_entry>{this->ref, I<local_entry>{
+                                                                   {0, 1, 1},
+                                                                   {1, 2, 3},
+                                                               }}});
+    this->mat_offdiag->read(
+        {gko::dim<2>{2, 4},
+         gko::Array<local_entry>{this->ref,
+                                 I<local_entry>{{0, 3, 2}, {1, 0, 4}}}});
     this->mat_merged =
         TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
     auto result = TestFixture::GMtx::create(this->ref);
@@ -486,8 +500,13 @@ TYPED_TEST(Matrix, MergeLocalMatricesOffdiagBoth)
 
 TYPED_TEST(Matrix, MergeLocalMatricesEmptyDiag)
 {
-    this->mat_diag->read({gko::dim<2>{2, 4}, {}});
-    this->mat_offdiag->read({gko::dim<2>{2, 4}, {{0, 3, 2}, {1, 2, 4}}});
+    using local_entry = typename TestFixture::local_entry;
+    this->mat_diag->read({gko::dim<2>{2, 4}, gko::Array<local_entry>{
+                                                 this->ref, I<local_entry>{}}});
+    this->mat_offdiag->read(
+        {gko::dim<2>{2, 4},
+         gko::Array<local_entry>{this->ref,
+                                 I<local_entry>{{0, 3, 2}, {1, 2, 4}}}});
     this->mat_merged =
         TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
 
@@ -500,12 +519,15 @@ TYPED_TEST(Matrix, MergeLocalMatricesEmptyDiag)
 
 TYPED_TEST(Matrix, MergeLocalMatricesEmptyOffdiag)
 {
-    this->mat_diag->read({gko::dim<2>{2, 4},
-                          {
-                              {0, 0, 1},
-                              {1, 1, 3},
-                          }});
-    this->mat_offdiag->read({gko::dim<2>{2, 4}, {}});
+    using local_entry = typename TestFixture::local_entry;
+    this->mat_diag->read(
+        {gko::dim<2>{2, 4}, gko::Array<local_entry>{this->ref, I<local_entry>{
+                                                                   {0, 0, 1},
+                                                                   {1, 1, 3},
+                                                               }}});
+    this->mat_offdiag->read(
+        {gko::dim<2>{2, 4},
+         gko::Array<local_entry>{this->ref, I<local_entry>{}}});
     this->mat_merged =
         TestFixture::GMtx::create(this->ref, gko::dim<2>{2, 4}, 4);
 
@@ -515,5 +537,275 @@ TYPED_TEST(Matrix, MergeLocalMatricesEmptyOffdiag)
 
     GKO_ASSERT_MTX_NEAR(this->mat_diag.get(), this->mat_merged.get(), 0);
 }
+
+
+TYPED_TEST(Matrix, CombineToGlobalDataAndFilterFull)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    using global_entry = typename TestFixture::global_entry;
+    gko::Array<global_index_type> map_row(this->ref, {11, 7});
+    gko::Array<global_index_type> map_col(this->ref, {0, 4, 8});
+    gko::device_matrix_data<value_type, global_index_type> result{this->ref};
+    gko::device_matrix_data<value_type, local_index_type> diag_md{
+        gko::dim<2>{2, 2},
+        gko::Array<local_entry>(
+            this->ref, I<local_entry>{{0, 0, 1}, {0, 1, 2}, {1, 0, 4}})};
+    gko::device_matrix_data<value_type, local_index_type> offdiag_md{
+        gko::dim<2>{2, 3},
+        gko::Array<local_entry>(
+            this->ref,
+            I<local_entry>{{0, 0, 11}, {0, 1, 22}, {0, 2, 33}, {1, 1, 44}})};
+    gko::device_matrix_data<value_type, global_index_type> merged_md{
+        gko::dim<2>{2, 5},
+        gko::Array<global_entry>(this->ref, I<global_entry>{{11, 11, 1},
+                                                            {11, 7, 2},
+                                                            {7, 11, 4},
+                                                            {11, 0, 11},
+                                                            {11, 4, 22},
+                                                            {11, 8, 33},
+                                                            {7, 4, 44}})};
+
+    gko::kernels::reference::distributed_matrix::
+        combine_to_global_data_and_filter(
+            this->ref, gko::dim<2>(12, 12), diag_md, offdiag_md,
+            map_row.get_const_data(), map_col.get_const_data(),
+            gko::span{0, 12}, gko::span{0, 12}, result);
+
+    GKO_ASSERT_ARRAY_EQ(result.nonzeros, merged_md.nonzeros);
+}
+
+
+TYPED_TEST(Matrix, CombineToGlobalDataAndFilter)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    using global_entry = typename TestFixture::global_entry;
+    gko::Array<global_index_type> map_row(this->ref, {11, 7});
+    gko::Array<global_index_type> map_col(this->ref, {0, 4, 8});
+    gko::device_matrix_data<value_type, global_index_type> result{this->ref};
+    gko::device_matrix_data<value_type, local_index_type> diag_md{
+        gko::dim<2>{2, 2},
+        gko::Array<local_entry>(
+            this->ref, I<local_entry>{{0, 0, 1}, {0, 1, 2}, {1, 0, 4}})};
+    gko::device_matrix_data<value_type, local_index_type> offdiag_md{
+        gko::dim<2>{2, 3},
+        gko::Array<local_entry>(
+            this->ref,
+            I<local_entry>{{0, 0, 11}, {0, 1, 22}, {0, 2, 33}, {1, 1, 44}})};
+    gko::device_matrix_data<value_type, global_index_type> merged_md{
+        gko::dim<2>{2, 5},
+        gko::Array<global_entry>(this->ref, I<global_entry>{{11, 11, 0},
+                                                            {11, 7, 0},
+                                                            {7, 6, 4},
+                                                            {11, 0, 0},
+                                                            {11, 4, 0},
+                                                            {11, 8, 0},
+                                                            {7, 4, 0}})};
+
+    gko::kernels::reference::distributed_matrix::
+        combine_to_global_data_and_filter(
+            this->ref, gko::dim<2>(12, 12), diag_md, offdiag_md,
+            map_row.get_const_data(), map_col.get_const_data(),
+            gko::span{0, 11}, gko::span{5, 12}, result);
+
+    GKO_ASSERT_ARRAY_EQ(result.nonzeros, merged_md.nonzeros);
+}
+
+
+TYPED_TEST(Matrix, CombineToGlobalDataDiagEmpty)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    using global_entry = typename TestFixture::global_entry;
+    gko::Array<global_index_type> map_row(this->ref, {11, 7});
+    gko::Array<global_index_type> map_col(this->ref, {0, 4, 8});
+    gko::device_matrix_data<value_type, global_index_type> result{this->ref};
+    gko::device_matrix_data<value_type, local_index_type> diag_md{
+        gko::dim<2>{2, 2}, gko::Array<local_entry>(this->ref)};
+    gko::device_matrix_data<value_type, local_index_type> offdiag_md{
+        gko::dim<2>{2, 3},
+        gko::Array<local_entry>(
+            this->ref,
+            I<local_entry>{{0, 0, 11}, {0, 1, 22}, {0, 2, 33}, {1, 1, 44}})};
+    gko::device_matrix_data<value_type, global_index_type> merged_md{
+        gko::dim<2>{2, 5},
+        gko::Array<global_entry>(
+            this->ref, I<global_entry>{
+                           {11, 0, 11}, {11, 4, 22}, {11, 8, 33}, {7, 4, 44}})};
+
+    gko::kernels::reference::distributed_matrix::
+        combine_to_global_data_and_filter(
+            this->ref, gko::dim<2>(12, 12), diag_md, offdiag_md,
+            map_row.get_const_data(), map_col.get_const_data(),
+            gko::span{0, 12}, gko::span{0, 12}, result);
+
+    GKO_ASSERT_ARRAY_EQ(result.nonzeros, merged_md.nonzeros);
+}
+
+
+TYPED_TEST(Matrix, CombineToGlobalDataOffDiagEmpty)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    using global_entry = typename TestFixture::global_entry;
+    gko::Array<global_index_type> map_row(this->ref, {11, 7});
+    gko::Array<global_index_type> map_col(this->ref, {0, 4, 8});
+    gko::device_matrix_data<value_type, global_index_type> result{this->ref};
+    gko::device_matrix_data<value_type, local_index_type> diag_md{
+        gko::dim<2>{2, 2},
+        gko::Array<local_entry>(
+            this->ref, I<local_entry>{{0, 0, 1}, {0, 1, 2}, {1, 0, 4}})};
+    gko::device_matrix_data<value_type, local_index_type> offdiag_md{
+        gko::dim<2>{2, 3}, gko::Array<local_entry>(this->ref)};
+    gko::device_matrix_data<value_type, global_index_type> merged_md{
+        gko::dim<2>{2, 5},
+        gko::Array<global_entry>(
+            this->ref, I<global_entry>{{11, 11, 1}, {11, 7, 2}, {7, 11, 4}})};
+
+    gko::kernels::reference::distributed_matrix::
+        combine_to_global_data_and_filter(
+            this->ref, gko::dim<2>(12, 12), diag_md, offdiag_md,
+            map_row.get_const_data(), map_col.get_const_data(),
+            gko::span{0, 12}, gko::span{0, 12}, result);
+
+    GKO_ASSERT_ARRAY_EQ(result.nonzeros, merged_md.nonzeros);
+}
+
+
+TYPED_TEST(Matrix, CompressOffdiagData)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    gko::device_matrix_data<value_type, local_index_type> offdiag_data{
+        gko::dim<2>{2, 8},
+        {this->ref, I<local_entry>{{0, 0, 1},
+                                   {1, 1, 2},
+                                   {0, 2, 0},
+                                   {1, 2, 0},
+                                   {1, 3, 0},
+                                   {0, 4, 6},
+                                   {0, 5, 0},
+                                   {0, 6, 8},
+                                   {1, 6, 9},
+                                   {1, 7, 10}}}};
+    gko::Array<local_entry> compressed_data{
+        this->ref,
+        I<local_entry>{
+            {0, 0, 1}, {1, 1, 2}, {0, 2, 6}, {0, 3, 8}, {1, 3, 9}, {1, 4, 10}}};
+    gko::Array<global_index_type> col_map{
+        this->ref, I<global_index_type>{0, 2, 4, 6, 8, 10, 12, 14}};
+    gko::Array<global_index_type> result_col_map{
+        this->ref, I<global_index_type>{0, 2, 8, 12, 14}};
+
+    gko::kernels::reference::distributed_matrix::compress_offdiag_data(
+        this->ref, offdiag_data, col_map);
+
+    GKO_ASSERT_ARRAY_EQ(offdiag_data.nonzeros, compressed_data);
+    GKO_ASSERT_ARRAY_EQ(col_map, result_col_map);
+}
+
+
+TYPED_TEST(Matrix, CompressOffdiagDataWithOffset)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    gko::device_matrix_data<value_type, local_index_type> offdiag_data{
+        gko::dim<2>{2, 8},
+        {this->ref, I<local_entry>{{0, 3, 1},
+                                   {1, 4, 2},
+                                   {0, 5, 0},
+                                   {1, 5, 0},
+                                   {1, 6, 0},
+                                   {0, 7, 6},
+                                   {0, 8, 0},
+                                   {0, 9, 8},
+                                   {1, 9, 9},
+                                   {1, 10, 10}}}};
+    gko::Array<local_entry> compressed_data{
+        this->ref,
+        I<local_entry>{
+            {0, 0, 1}, {1, 1, 2}, {0, 2, 6}, {0, 3, 8}, {1, 3, 9}, {1, 4, 10}}};
+    gko::Array<global_index_type> col_map{
+        this->ref, I<global_index_type>{-1, -1, -1, 0, 2, 4, 6, 8, 10, 12, 14}};
+    gko::Array<global_index_type> result_col_map{
+        this->ref, I<global_index_type>{0, 2, 8, 12, 14}};
+
+    gko::kernels::reference::distributed_matrix::compress_offdiag_data(
+        this->ref, offdiag_data, col_map);
+
+    GKO_ASSERT_ARRAY_EQ(offdiag_data.nonzeros, compressed_data);
+    GKO_ASSERT_ARRAY_EQ(col_map, result_col_map);
+}
+
+
+TYPED_TEST(Matrix, CompressOffdiagDataIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_entry = typename TestFixture::local_entry;
+    gko::device_matrix_data<value_type, local_index_type> offdiag_data{
+        gko::dim<2>{2, 8},
+        {this->ref,
+         I<local_entry>{{0, 0, 2}, {0, 3, 3}, {1, 1, -2}, {1, 2, -3}}}};
+    gko::Array<local_entry> compressed_data{
+        this->ref,
+        I<local_entry>{{0, 0, 2}, {0, 3, 3}, {1, 1, -2}, {1, 2, -3}}};
+    gko::Array<global_index_type> col_map{this->ref,
+                                          I<global_index_type>{0, 2, 4, 6}};
+    gko::Array<global_index_type> result_col_map{
+        this->ref, I<global_index_type>{0, 2, 4, 6}};
+
+    gko::kernels::reference::distributed_matrix::compress_offdiag_data(
+        this->ref, offdiag_data, col_map);
+
+    GKO_ASSERT_ARRAY_EQ(offdiag_data.nonzeros, compressed_data);
+    GKO_ASSERT_ARRAY_EQ(col_map, result_col_map);
+}
+
+
+TYPED_TEST(Matrix, CheckIndicesWithinSpan)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<local_index_type> indices{this->ref, {0, 1, 1, 4, 8, 17, 20}};
+    gko::Array<global_index_type> to_global{
+        this->ref,
+        {0, 1, 0, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 20}};
+    gko::span valid_span{1, 9};
+    gko::Array<bool> result_ref{this->ref,
+                                {false, true, true, true, true, false, false}};
+    gko::Array<bool> result{this->ref};
+
+    gko::kernels::reference::distributed_matrix::check_indices_within_span(
+        this->ref, indices, to_global, valid_span, result);
+
+    GKO_ASSERT_ARRAY_EQ(result, result_ref);
+}
+
+
+TYPED_TEST(Matrix, CheckIndicesWithinSpanWithGlobalMapping)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<local_index_type> indices{this->ref, {0, 1, 1, 4, 8, 17, 20}};
+    gko::Array<global_index_type> to_global{
+        this->ref,
+        {20, 17, 0, 0, 8, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}};
+    gko::span valid_span{1, 9};
+    gko::Array<bool> result_ref{this->ref,
+                                {false, false, false, true, true, true, false}};
+    gko::Array<bool> result{this->ref};
+
+    gko::kernels::reference::distributed_matrix::check_indices_within_span(
+        this->ref, indices, to_global, valid_span, result);
+
+    GKO_ASSERT_ARRAY_EQ(result, result_ref);
+}
+
 
 }  // namespace

@@ -58,7 +58,7 @@ class Matrix
       public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
       public ConvertibleTo<gko::matrix::Csr<ValueType, LocalIndexType>>,
       public DiagonalExtractable<ValueType>,
-               public DistributedBase {
+      public DistributedBase {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Repartitioner<LocalIndexType>;
@@ -108,6 +108,11 @@ public:
     {
         return partition_.get();
     }
+
+    // rows and columns have to be subspans of the diagonal matrix (in global
+    // indices)
+    std::unique_ptr<Matrix> create_submatrix(gko::span rows, gko::span columns);
+
 
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
