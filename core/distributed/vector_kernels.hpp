@@ -47,11 +47,11 @@ namespace kernels {
 #define GKO_DECLARE_BUILD_LOCAL(ValueType, LocalIndexType)                   \
     void build_local(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const Array<matrix_data_entry<ValueType, global_index_type>> &input, \
-        const distributed::Partition<LocalIndexType> *partition,             \
+        const Array<matrix_data_entry<ValueType, global_index_type>>& input, \
+        const distributed::Partition<LocalIndexType>* partition,             \
         comm_index_type local_part,                                          \
-        Array<matrix_data_entry<ValueType, LocalIndexType>> &local_data,     \
-        ValueType deduction_help)
+        Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,     \
+        Array<global_index_type>& local_to_global, ValueType deduction_help)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

@@ -210,6 +210,45 @@ TYPED_TEST(Vector, ConvertsToDenseScatteredPartition)
     }
 }
 
+
+TYPED_TEST(Vector, CanCreateSubmatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 1, 2},
+        {3, 4, 5},
+        {6, 7, 8},
+        {9, 10, 11},
+        {12, 13, 14},
+        {15, 16, 17},
+        {18, 19, 20},
+        {21, 22, 23},
+        {24, 25, 26}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, {this->ref, {0, 3, 6, 9}}));
+    gko::span rows[3] = {{0, 2}, {4, 6}, {7, 9}};
+    gko::span cols[3] = {{1, 3}, {0, 2}, {0, 2}};
+    auto dist_vec =
+        gko::distributed::Vector<value_type, local_index_type>::create(
+            this->ref, this->comm);
+    dist_vec->read_distributed(md, partition);
+    auto rank = this->comm->rank();
+
+    auto sub_dist_vec = dist_vec->create_submatrix(rows[rank], cols[rank]);
+
+    I<I<value_type>> cmp[3] = {
+        {{1, 2}, {4, 5}}, {{12, 13}, {15, 16}}, {{21, 22}, {24, 25}}};
+    GKO_ASSERT_EQUAL_DIMENSIONS(sub_dist_vec->get_size(), gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(sub_dist_vec->get_local(), cmp[rank],
+                        r<value_type>::value);
+}
+
+
 }  // namespace
 
 // Calls a custom gtest main with MPI listeners. See gtest-mpi-listeners.hpp for

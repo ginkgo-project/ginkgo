@@ -194,7 +194,8 @@ Vector<ValueType, LocalIndexType>::Vector(
     : EnableLinOp<Vector<ValueType, LocalIndexType>>{exec, global_size},
       DistributedBase{comm},
       partition_{std::move(partition)},
-      local_{exec, local_size, stride}
+      local_{exec, local_size, stride},
+      local_to_global_row{exec}
 {}
 
 
@@ -223,7 +224,8 @@ void Vector<ValueType, LocalIndexType>::read_distributed(
         exec, data.nonzeros.begin(), data.nonzeros.end()};
     Array<matrix_data_entry<ValueType, LocalIndexType>> local_data{exec};
     exec->run(vector::make_build_local(global_data, partition.get(), rank,
-                                       local_data, ValueType{}));
+                                       local_data, local_to_global_row,
+                                       ValueType{}));
     dim<2> local_size{local_rows, data.size[1]};
     dim<2> global_size{global_rows, data.size[1]};
     this->get_local()->read(local_data, local_size);
@@ -325,6 +327,31 @@ void Vector<ValueType, LocalIndexType>::validate_data() const
                                num_local_cols_max == this->get_size()[0]);
 }
 
+
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<LinOp> Vector<ValueType, LocalIndexType>::create_submatrix_impl(
+    const gko::span& rows, const gko::span& columns)
+{
+    auto exec = this->get_executor();
+
+    auto global_offset =
+        exec->copy_val_to_host(this->local_to_global_row.get_const_data());
+    gko::span local_rows{rows.begin - global_offset, rows.end - global_offset};
+
+    auto sub_vector = this->get_local()->create_submatrix(local_rows, columns);
+
+    auto num_global_rows = rows.length();
+    mpi::all_reduce(&num_global_rows, 1, mpi::op_type::sum,
+                    this->get_communicator());
+    auto sub = Vector<ValueType, LocalIndexType>::create(
+        exec, this->get_communicator(), this->partition_,
+        dim<2>{num_global_rows, columns.length()},
+        dim<2>{rows.length(), columns.length()});
+    sub->local_ = std::move(*sub_vector.get());
+    sub->local_to_global_row = Array<global_index_type>::view(
+        exec, rows.length(), local_to_global_row.get_data() + rows.begin);
+    return sub;
+}
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType, LocalIndexType) \
     class Vector<ValueType, LocalIndexType>

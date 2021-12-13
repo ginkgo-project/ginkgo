@@ -70,28 +70,37 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           mapping{ref},
           input{ref},
-          output{ref}
+          output{ref},
+          local_to_global{ref}
     {}
 
     void validate(
-        const gko::distributed::Partition<local_index_type> *partition,
+        const gko::distributed::Partition<local_index_type>* partition,
         std::initializer_list<global_entry> input_entries,
         std::initializer_list<std::initializer_list<local_entry>>
-            output_entries)
+            output_entries,
+        I<I<global_index_type>> mappings)
     {
         std::vector<gko::Array<local_entry>> ref_outputs;
+        std::vector<gko::Array<global_index_type>> ref_local_to_global;
 
         input = gko::Array<global_entry>{ref, input_entries};
         for (auto entry : output_entries) {
             ref_outputs.push_back(gko::Array<local_entry>{ref, entry});
         }
+        for (auto map : mappings) {
+            ref_local_to_global.push_back(
+                gko::Array<global_index_type>{ref, map});
+        }
 
         for (comm_index_type part = 0; part < partition->get_num_parts();
              ++part) {
             gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition, part, output, value_type{});
+                ref, input, partition, part, output, local_to_global,
+                value_type{});
 
             GKO_ASSERT_ARRAY_EQ(output, ref_outputs[part]);
+            GKO_ASSERT_ARRAY_EQ(local_to_global, ref_local_to_global[part]);
         }
     }
 
@@ -99,6 +108,7 @@ protected:
     gko::Array<comm_index_type> mapping;
     gko::Array<global_entry> input;
     gko::Array<local_entry> output;
+    gko::Array<global_index_type> local_to_global;
 };
 
 TYPED_TEST_SUITE(Vector, gko::test::ValueIndexTypes);
@@ -113,7 +123,8 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(partition.get(), {}, {{}, {}, {}});
+    this->validate(partition.get(), {}, {{}, {}, {}},
+                   {{-1, -1}, {-1, -1, -1}, {-1, -1, -1}});
 }
 
 
@@ -126,9 +137,9 @@ TYPED_TEST(Vector, BuildsLocalSmall)
         gko::distributed::Partition<local_index_type>::build_from_mapping(
             this->ref, this->mapping, num_parts);
 
-    this->validate(partition.get(),
-                   {{0, 0, 1}, {0, 1, 2}, {1, 0, 3}, {1, 1, 4}},
-                   {{{0, 0, 3}, {0, 1, 4}}, {{0, 0, 1}, {0, 1, 2}}});
+    this->validate(
+        partition.get(), {{0, 0, 1}, {0, 1, 2}, {1, 0, 3}, {1, 1, 4}},
+        {{{0, 0, 3}, {0, 1, 4}}, {{0, 0, 1}, {0, 1, 2}}}, {{1}, {0}});
 }
 
 
@@ -152,7 +163,8 @@ TYPED_TEST(Vector, BuildsLocal)
                     {5, 7, 8}},
                    {{{0, 4, 5}, {1, 5, 6}},
                     {{0, 0, 1}, {0, 1, 2}, {1, 7, 8}},
-                    {{0, 2, 3}, {0, 3, 4}, {1, 6, 7}}});
+                    {{0, 2, 3}, {0, 3, 4}, {1, 6, 7}}},
+                   {{2, 3}, {0, 5}, {1, 4}});
 }
 
 

@@ -54,7 +54,8 @@ class Vector
       public EnableAbsoluteComputation<
           remove_complex<Vector<ValueType, LocalIndexType>>>,
       public DistributedBase,
-      public ScalarProductComputable {
+      public ScalarProductComputable,
+      public EnableSubmatrixViewCreateable<Vector<ValueType, LocalIndexType>> {
     friend class EnableCreateMethod<Vector<ValueType, LocalIndexType>>;
     friend class EnablePolymorphicObject<Vector, LinOp>;
     friend class Vector<to_complex<ValueType>, LocalIndexType>;
@@ -177,9 +178,15 @@ protected:
     void apply_impl(const LinOp*, const LinOp*, const LinOp*,
                     LinOp*) const override;
 
+    // rows and columns have to be subspans of the diagonal matrix (in global
+    // indices), uses views internally
+    std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns) override;
+
 private:
     std::shared_ptr<const Partition<LocalIndexType>> partition_;
     local_mtx_type local_;
+    Array<global_index_type> local_to_global_row;
 };
 
 

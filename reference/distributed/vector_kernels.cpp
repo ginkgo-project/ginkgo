@@ -49,7 +49,7 @@ void build_local(
     const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
     Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
-    ValueType deduction_help)
+    Array<global_index_type>& local_to_global, ValueType deduction_help)
 {
     using range_index_type = global_index_type;
     using part_index_type = comm_index_type;
@@ -92,16 +92,15 @@ void build_local(
     };
 
     range_info row_range{};
-    size_type count{};
-    for (size_type i = 0; i < input.get_num_elems(); ++i) {
-        auto entry = input_data[i];
-        update_range(entry.row, row_range);
-        // skip non-local rows
-        if (row_range.part != local_part) {
-            continue;
-        }
-        count++;
-    }
+    size_type count = std::count_if(
+        input_data, input_data + input.get_num_elems(), [&](const auto& entry) {
+            auto range_idx = find_range(entry.row);
+            return range_parts[range_idx] == local_part;
+        });
+
+    local_to_global.resize_and_reset(partition->get_part_size(local_part));
+    std::fill_n(local_to_global.get_data(), local_to_global.get_num_elems(),
+                -1);
 
     local_data.resize_and_reset(count);
     size_type idx{};
@@ -112,11 +111,12 @@ void build_local(
         if (row_range.part != local_part) {
             continue;
         }
-        local_data.get_data()[idx] = {
-            // map global row idx to local row idx
-            static_cast<LocalIndexType>(entry.row - row_range.begin +
-                                        row_range.base_rank),
-            static_cast<LocalIndexType>(entry.column), entry.value};
+        local_data.get_data()[idx] = {// map global row idx to local row idx
+                                      map_to_local(entry.row, row_range),
+                                      static_cast<LocalIndexType>(entry.column),
+                                      entry.value};
+        local_to_global.get_data()[map_to_local(entry.row, row_range)] =
+            entry.row;
         idx++;
     }
 }
