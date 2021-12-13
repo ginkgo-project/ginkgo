@@ -40,13 +40,10 @@ namespace matrix {
 namespace {
 
 
-template <typename DenseType>
-std::unique_ptr<std::conditional_t<std::is_const_v<DenseType>,
-                                   const BlockMatrix, BlockMatrix>>
-dense_to_block(DenseType* v, const std::vector<size_type>& block_sizes)
+std::unique_ptr<BlockMatrix> block_vector_view(
+    LinOp* v, const std::vector<size_type>& block_sizes)
 {
-    using value_type = typename DenseType::value_type;
-    auto v_without_const = const_cast<std::remove_const_t<DenseType>*>(v);
+    auto v_submatrix = dynamic_cast<SubmatrixViewCreateable*>(v);
     std::vector<std::vector<std::shared_ptr<LinOp>>> blocks(block_sizes.size());
     std::vector<int32> block_offsets(block_sizes.size() + 1, 0);
     std::partial_sum(begin(block_sizes), end(block_sizes),
@@ -54,93 +51,18 @@ dense_to_block(DenseType* v, const std::vector<size_type>& block_sizes)
     for (size_t i = 0; i < block_sizes.size(); ++i) {
         gko::span rows(block_offsets[i], block_offsets[i + 1]);
         blocks[i] = std::vector<std::shared_ptr<LinOp>>{gko::share(
-            v_without_const->create_submatrix(rows, v->get_size()[1] - 1))};
+            v_submatrix->create_submatrix(rows, v->get_size()[1] - 1))};
     }
     return BlockMatrix::create(v->get_executor(), v->get_size(), blocks);
 }
 
-
-template <bool is_const, typename ValueType>
-using DenseType =
-    std::conditional_t<is_const, const gko::matrix::Dense<ValueType>,
-                       gko::matrix::Dense<ValueType>>;
-template <bool is_const>
-using BlockType = std::conditional_t<is_const, const gko::matrix::BlockMatrix,
-                                     gko::matrix::BlockMatrix>;
-
-template <bool is_const, typename ValueType, typename LocalIndexType>
-using DistributedVector =
-    std::conditional_t<is_const,
-                       const distributed::Vector<ValueType, LocalIndexType>,
-                       distributed::Vector<ValueType, LocalIndexType>>;
-
-
-template <typename TypeList, typename Base, typename Fn, typename ReturnType>
-std::enable_if_t<syn::length_v<TypeList> != 0, ReturnType> type_dispatch_impl(
-    Base&& b, Fn&& fn)
+std::unique_ptr<BlockMatrix, std::function<void(BlockMatrix*)>> block_vector(
+    LinOp* v, const std::vector<size_type>& block_sizes)
 {
-    using rt = decltype(fn(std::declval<syn::head_t<TypeList>*>()));
-    if (auto cast = dynamic_cast<syn::head_t<TypeList>*>(b)) {
-        return fn(cast);
+    if (auto p = dynamic_cast<BlockMatrix*>(v)) {
+        return {p, [](auto ptr) {}};
     } else {
-        return type_dispatch_impl<syn::tail_t<TypeList>, Base, Fn, ReturnType>(
-            std::forward<Base>(b), std::forward<Fn>(fn));
-    }
-}
-template <typename TypeList, typename Base, typename Fn, typename ReturnType>
-std::enable_if_t<syn::length_v<TypeList> == 0, ReturnType> type_dispatch_impl(
-    Base&& b, Fn&& fn)
-{
-    GKO_NOT_IMPLEMENTED;
-    return ReturnType{};
-}
-
-
-template <typename TypeList, typename Base, typename Fn>
-auto type_dispatch(Base&& b, Fn&& fn)
-{
-    static_assert(syn::length_v<TypeList> > 0);
-    using rt = decltype(fn(std::declval<syn::head_t<TypeList>*>()));
-    return type_dispatch_impl<TypeList, Base, Fn, rt>(std::forward<Base>(b),
-                                                      std::forward<Fn>(fn));
-}
-
-
-template <typename LinOpType>
-std::unique_ptr<std::conditional_t<std::is_const_v<LinOpType>,
-                                   const BlockMatrix, BlockMatrix>,
-                std::function<void(BlockType<std::is_const_v<LinOpType>>*)>>
-as_block_vector(LinOpType* v, const std::vector<size_type>& block_sizes)
-{
-    constexpr bool is_const = std::is_const_v<LinOpType>;
-    using DistributedBase =
-        std::conditional_t<is_const, const distributed::DistributedBase,
-                           distributed::DistributedBase>;
-    if (auto block_dense = dynamic_cast<BlockType<is_const>*>(v)) {
-        return std::unique_ptr<
-            BlockType<is_const>,
-            std::function<void(BlockType<std::is_const_v<LinOpType>>*)>>(
-            block_dense, [](BlockType<is_const>*) {});
-    } else if (dynamic_cast<DistributedBase*>(v)) {
-        return type_dispatch<syn::type_list<
-            DistributedVector<is_const, float, int32>,
-            DistributedVector<is_const, float, int64>,
-            DistributedVector<is_const, double, int32>,
-            DistributedVector<is_const, double, int64>,
-            DistributedVector<is_const, std::complex<float>, int32>,
-            DistributedVector<is_const, std::complex<float>, int64>,
-            DistributedVector<is_const, std::complex<double>, int32>,
-            DistributedVector<is_const, std::complex<double>, int64>>>(
-            v, [&](auto&& dist_vector) {
-                return dense_to_block(dist_vector->get_local(), block_sizes);
-            });
-    } else {
-        return type_dispatch<syn::type_list<
-            DenseType<is_const, float>, DenseType<is_const, double>,
-            DenseType<is_const, std::complex<float>>,
-            DenseType<is_const, std::complex<double>>>>(v, [&](auto&& dense) {
-            return dense_to_block(dense, block_sizes);
-        });
+        return block_vector_view(v, block_sizes);
     }
 }
 
@@ -150,8 +72,8 @@ as_block_vector(LinOpType* v, const std::vector<size_type>& block_sizes)
 
 void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
 {
-    auto block_b = as_block_vector(b, size_per_block_);
-    auto block_x = as_block_vector(x, size_per_block_);
+    auto block_b = block_vector(const_cast<LinOp*>(b), size_per_block_);
+    auto block_x = block_vector(x, size_per_block_);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
@@ -175,8 +97,8 @@ void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
 void BlockMatrix::apply_impl(const LinOp* alpha, const LinOp* b,
                              const LinOp* beta, LinOp* x) const
 {
-    auto block_b = as_block_vector(b, size_per_block_);
-    auto block_x = as_block_vector(x, size_per_block_);
+    auto block_b = block_vector(const_cast<LinOp*>(b), size_per_block_);
+    auto block_x = block_vector(x, size_per_block_);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
