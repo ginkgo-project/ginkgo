@@ -849,6 +849,8 @@ public:
     {
         return create_submatrix_impl(rows, columns);
     }
+
+protected:
     virtual std::unique_ptr<LinOp> create_submatrix_impl(
         const gko::span& rows, const gko::span& columns) const = 0;
 };
