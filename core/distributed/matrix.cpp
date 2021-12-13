@@ -616,9 +616,8 @@ Array<bool> communicate_invalid_columns(
 
 
 template <typename ValueType, typename LocalIndexType>
-std::unique_ptr<Matrix<ValueType, LocalIndexType>>
-Matrix<ValueType, LocalIndexType>::create_submatrix(gko::span rows,
-                                                    gko::span columns)
+std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
+    const gko::span& rows, const gko::span& columns) const
 {
     auto exec = this->get_executor();
 

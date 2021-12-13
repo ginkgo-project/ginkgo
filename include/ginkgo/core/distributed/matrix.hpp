@@ -58,7 +58,8 @@ class Matrix
       public EnableCreateMethod<Matrix<ValueType, LocalIndexType>>,
       public ConvertibleTo<gko::matrix::Csr<ValueType, LocalIndexType>>,
       public DiagonalExtractable<ValueType>,
-      public DistributedBase {
+      public DistributedBase,
+      public EnableSubmatrixCreateable<Matrix<ValueType, LocalIndexType>> {
     friend class EnableCreateMethod<Matrix>;
     friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Repartitioner<LocalIndexType>;
@@ -109,11 +110,6 @@ public:
         return partition_.get();
     }
 
-    // rows and columns have to be subspans of the diagonal matrix (in global
-    // indices)
-    std::unique_ptr<Matrix> create_submatrix(gko::span rows, gko::span columns);
-
-
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     std::shared_ptr<mpi::communicator> comm =
@@ -127,6 +123,11 @@ protected:
                     LinOp* x) const override;
 
     void write_local(matrix_data<ValueType, global_index_type>& data) const;
+
+    // rows and columns have to be subspans of the diagonal matrix (in global
+    // indices)
+    std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns) const override;
 
 private:
     std::vector<comm_index_type> send_offsets_;
