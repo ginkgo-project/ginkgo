@@ -142,7 +142,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public Transposable,
             public Permutable<IndexType>,
             public EnableAbsoluteComputation<
-                remove_complex<Csr<ValueType, IndexType>>> {
+                remove_complex<Csr<ValueType, IndexType>>>,
+            public EnableSubmatrixCreateable<Csr<ValueType, IndexType>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -779,9 +780,6 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const;
-
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
@@ -1174,6 +1172,9 @@ protected:
      *        instead of inv_scale(const LinOp *alpha).
      */
     virtual void inv_scale_impl(const LinOp* alpha);
+
+    std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& row_span, const gko::span& column_span) const override;
 
 private:
     Array<value_type> values_;

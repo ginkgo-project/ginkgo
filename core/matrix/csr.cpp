@@ -543,9 +543,8 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
-                                            const gko::span& column_span) const
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::create_submatrix_impl(
+    const gko::span& row_span, const gko::span& column_span) const
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();

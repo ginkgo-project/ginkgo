@@ -127,7 +127,8 @@ class Dense
       public Permutable<int32>,
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
-      public ScalarProductComputable {
+      public ScalarProductComputable,
+      public EnableSubmatrixViewCreateable<Dense<ValueType>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -152,6 +153,7 @@ class Dense
 public:
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
+    using EnableSubmatrixViewCreateable<Dense<ValueType>>::create_submatrix;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -776,19 +778,8 @@ public:
                                             const span& columns,
                                             const size_type stride)
     {
-        return this->create_submatrix_impl(rows, columns, stride);
-    }
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     */
-    std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns)
-    {
-        return create_submatrix(rows, columns, this->get_stride());
+        return as<Dense<ValueType>>(
+            this->create_submatrix_impl(rows, columns, stride));
     }
 
     /**
@@ -1015,6 +1006,7 @@ protected:
      */
     virtual void compute_norm1_impl(LinOp* result) const;
 
+
     /**
      * @copydoc create_submatrix(const span, const span, const size_type)
      *
@@ -1022,7 +1014,20 @@ protected:
      *        instead of create_submatrix(const span, const span, const
      *        size_type).
      */
-    virtual std::unique_ptr<Dense> create_submatrix_impl(const span& rows,
+    std::unique_ptr<LinOp> create_submatrix_impl(const span& rows,
+                                                 const span& columns) override
+    {
+        return this->create_submatrix_impl(rows, columns, this->get_stride());
+    }
+
+    /**
+     * @copydoc create_submatrix(const span, const span, const size_type)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of create_submatrix(const span, const span, const
+     *        size_type).
+     */
+    virtual std::unique_ptr<LinOp> create_submatrix_impl(const span& rows,
                                                          const span& columns,
                                                          const size_type stride)
     {

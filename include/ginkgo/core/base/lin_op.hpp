@@ -835,6 +835,51 @@ public:
     virtual void compute_norm2(LinOp* result) const = 0;
 };
 
+
+class SubmatrixCreateable {
+public:
+    /**
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     */
+    std::unique_ptr<LinOp> create_submatrix(const gko::span& rows,
+                                            const gko::span& columns) const
+    {
+        return create_submatrix_impl(rows, columns);
+    }
+    virtual std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns) const = 0;
+};
+
+
+template <typename ConcreteType>
+class EnableSubmatrixCreateable : public SubmatrixCreateable {
+public:
+    std::unique_ptr<ConcreteType> create_submatrix(
+        const gko::span& rows, const gko::span& columns) const
+    {
+        return as<ConcreteType>(create_submatrix_impl(rows, columns));
+    }
+};
+
+
+template <typename ConcreteType>
+class EnableSubmatrixViewCreateable {
+public:
+    std::unique_ptr<ConcreteType> create_submatrix(const gko::span& rows,
+                                                   const gko::span& columns)
+    {
+        return as<ConcreteType>(create_submatrix_impl(rows, columns));
+    }
+
+protected:
+    virtual std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns) = 0;
+};
+
+
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
  * of the majority of the LinOp and PolymorphicObject interface.
