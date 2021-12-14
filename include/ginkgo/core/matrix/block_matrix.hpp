@@ -48,15 +48,6 @@ class BlockMatrix : public EnableLinOp<BlockMatrix>,
     friend class EnablePolymorphicObject<BlockMatrix, LinOp>;
 
 public:
-    static std::unique_ptr<BlockMatrix> create(
-        std::shared_ptr<const Executor> exec, const dim<2> size,
-        const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks)
-    {
-        return std::unique_ptr<BlockMatrix>(
-            new BlockMatrix(exec, size, blocks));
-    }
-
-
     const std::vector<std::vector<std::shared_ptr<LinOp>>>& get_block()
     {
         return blocks_;
@@ -64,10 +55,7 @@ public:
 
     dim<2> get_block_size() const { return block_size_; }
 
-    const std::vector<size_type>& get_size_per_block() const
-    {
-        return size_per_block_;
-    }
+    const std::vector<span>& get_span_per_block() const { return spans_; }
 
 protected:
     explicit BlockMatrix(std::shared_ptr<const Executor> exec,
@@ -76,22 +64,15 @@ protected:
     {}
 
     BlockMatrix(std::shared_ptr<const Executor> exec, const dim<2> size,
-                const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks)
-        : EnableLinOp<BlockMatrix>(exec, size),
-          block_size_(blocks.size(), begin(blocks)->size()),
-          size_per_block_(blocks.size()),
-          blocks_(blocks.size())
-    {
-        for (size_t row = 0; row < blocks.size(); ++row) {
-            blocks_[row] = std::vector(begin(blocks)[row]);
-            if (!blocks[row].empty()) {
-                size_per_block_[row] = blocks[row][0]->get_size()[0];
-            } else {
-                size_per_block_[row] = 0;
-            }
-            GKO_ASSERT_EQ(block_size_[1], blocks_[row].size());
-        }
-    }
+                const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks);
+
+    BlockMatrix(std::shared_ptr<const Executor> exec,
+                SubmatrixCreateable* monolithic_matrix,
+                const std::vector<gko::span>& blocks);
+
+    BlockMatrix(std::shared_ptr<const Executor> exec,
+                SubmatrixViewCreateable* monolithic_matrix,
+                const std::vector<gko::span>& blocks);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -100,7 +81,7 @@ protected:
 
 private:
     dim<2> block_size_;
-    std::vector<size_type> size_per_block_;
+    std::vector<span> spans_;
     std::vector<std::vector<std::shared_ptr<LinOp>>> blocks_;
 };
 
