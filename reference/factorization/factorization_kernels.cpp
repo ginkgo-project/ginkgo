@@ -238,8 +238,8 @@ void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
         auto u_diag_idx = row_ptrs_u[row];
         col_idxs_l[l_diag_idx] = row;
         col_idxs_u[u_diag_idx] = row;
-        vals_l[l_diag_idx] = diag_val;
-        vals_u[u_diag_idx] = one<ValueType>();
+        vals_l[l_diag_idx] = one<ValueType>();
+        vals_u[u_diag_idx] = diag_val;
     }
 }
 

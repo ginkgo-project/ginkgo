@@ -87,19 +87,20 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
+    const auto mat_string = argc >= 3 ? argv[2] : "data/A.mtx";
     // Read data
-    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
-    auto host_b =
-        vec::create(exec->get_master(), gko::dim<2>{A->get_size()[0], 1});
-    for (auto i = 0; i < A->get_size()[0]; i++) {
+    auto A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
+    auto n = A->get_size()[0];
+    auto host_b = vec::create(exec->get_master(), gko::dim<2>{n, 1});
+    for (auto i = 0; i < n; i++) {
         host_b->at(i, 0) = 1.;
     }
-    auto b = vec::create(exec);
-    b->copy_from(host_b.get());
-    auto x = vec::create_with_config_of(b.get());
-    auto y = vec::create_with_config_of(b.get());
-    auto z = vec::create_with_config_of(b.get());
-
+    auto x = vec::create(exec);
+    x->copy_from(host_b.get());
+    auto b = vec::create_with_config_of(x.get());
+    auto y = vec::create_with_config_of(x.get());
+    auto z = vec::create_with_config_of(x.get());
+    A->apply(x.get(), b.get());
     // Generate LU factorization with GLU
     auto lu_fact =
         gko::factorization::Glu<ValueType, IndexType>::build().on(exec);
@@ -109,32 +110,68 @@ int main(int argc, char* argv[])
     auto l = lu->get_l_factor();
     auto u = lu->get_u_factor();
 
+    std::ofstream l_out{"L.mtx"};
+    gko::write(l_out, l.get(), gko::layout_type::coordinate);
+    std::ofstream u_out{"U.mtx"};
+    gko::write(u_out, u.get(), gko::layout_type::coordinate);
     // Apply diagonal scaling and row permutation according to preprocessing
     // done in GLU
-    lu->get_row_scaling()->apply(b.get(), y.get());
-    y->row_permute(lu->get_permutation().get(), z.get());
+    auto row_scal = lu->get_row_scaling();
+    auto rp = lu->get_permutation();
+    auto piv = lu->get_pivot();
+    if (lu->get_mc64_scale()) {
+        std::cout << "SCALE" << std::endl;
+        for (auto i = 0; i < n; i++) {
+            auto p = piv->get_const_data()[i];
+            z->at(i, 0) = b->at(rp->get_const_data()[p], 0) *
+                          row_scal->get_const_values()[p];
+        }
+    } else {
+        for (auto i = 0; i < n; n++) {
+            auto p = piv->get_const_data()[i];
+            z->at(i, 0) = b->at(rp->get_const_data()[p]);
+        }
+    }
+
+    std::ofstream out1{"x1.mtx"};
+    gko::write(out1, z.get());
 
     // Solve the triangular systems
     auto lower = lower_trs::build().on(exec)->generate(l);
     auto upper = upper_trs::build().on(exec)->generate(u);
     lower->apply(gko::lend(z), gko::lend(y));
+    std::ofstream out2{"x2.mtx"};
+    gko::write(out2, y.get());
     upper->apply(gko::lend(y), gko::lend(z));
 
+    std::ofstream out3{"x3.mtx"};
+    gko::write(out3, z.get());
     // Apply final scaling and permutation on solution vector
-    lu->get_col_scaling()->apply(z.get(), y.get());
-    y->row_permute(lu->get_inv_permutation().get(), x.get());
+    auto col_scal = lu->get_col_scaling();
+    auto cp = lu->get_inv_permutation();
+    if (lu->get_mc64_scale()) {
+        for (auto i = 0; i < n; i++) {
+            x->at(i, 0) = z->at(cp->get_const_data()[i]) *
+                          col_scal->get_const_values()[i];
+        }
+    } else {
+        for (auto i = 0; i < n; i++) {
+            x->at(i, 0) = z->at(cp->get_const_data()[i]);
+        }
+    }
 
     // Print solution
-    // std::cout << "Solution (x):\n";
-    // write(std::cout, gko::lend(x));
+    std::ofstream x_out{"x.mtx"};
+    write(x_out, gko::lend(x));
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({0.0}, exec);
-    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(gko::lend(res));
-
-    std::cout << "Residual norm sqrt(r^T r):\n";
+    // A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
+    // b->compute_norm2(gko::lend(res));
+    x->add_scaled(neg_one.get(), host_b.get());
+    x->compute_norm2(gko::lend(res));
+    std::cout << "Error norm sqrt(r^T r):\n";
     write(std::cout, gko::lend(res));
 }

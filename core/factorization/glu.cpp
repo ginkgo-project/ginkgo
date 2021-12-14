@@ -132,18 +132,22 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
     DumpA(nicslu, values, u_row_idxs, u_col_ptrs);
 
     // Store scalings and permutations to solve linear system later
-    auto rp = nicslu->row_perm;
+    mc64_scale_ = nicslu->cfgi[1];
+    auto rp = nicslu->col_perm;
     auto irp = nicslu->row_perm_inv;
-    auto cs = nicslu->col_scale_perm;
-    auto rs = nicslu->row_scale;
+    auto piv = nicslu->pivot;
+    auto rs = nicslu->col_scale_perm;
+    auto cs = nicslu->row_scale;
 
     Array<double> row_scaling_array{exec->get_master(), num_rows};
     Array<double> col_scaling_array{exec->get_master(), num_rows};
     index_array perm_array{exec->get_master(), num_rows};
     index_array inv_perm_array{exec->get_master(), num_rows};
+    index_array pivot_array{exec->get_master(), num_rows};
     for (auto i = 0; i < num_rows; i++) {
         perm_array.get_data()[i] = int(rp[i]);
         inv_perm_array.get_data()[i] = int(irp[i]);
+        pivot_array.get_data()[i] = int(piv[i]);
         row_scaling_array.get_data()[i] = rs[i];
         col_scaling_array.get_data()[i] = cs[i];
     }
@@ -151,6 +155,7 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
     permutation_ = std::make_shared<const index_array>(std::move(perm_array));
     inv_permutation_ =
         std::make_shared<const index_array>(std::move(inv_perm_array));
+    pivot_ = std::make_shared<const index_array>(std::move(pivot_array));
     row_scaling_ = gko::share(diag::create(exec->get_master(), num_rows,
                                            std::move(row_scaling_array)));
     col_scaling_ = gko::share(diag::create(exec->get_master(), num_rows,
@@ -165,29 +170,25 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
 
     // Numeric factorization on the GPU
     LUonDevice(A_sym, cout, cerr, false);
-
     // Convert unsigned indices back to int
     const auto res_nnz = A_sym.nnz;
-    int res_rows[num_rows + 1];
-    int res_cols[res_nnz];
+    Array<int> res_row_ptrs{exec->get_master(), num_rows + 1};
+    Array<int> res_col_idxs{exec->get_master(), res_nnz};
     for (auto i = 0; i < res_nnz; i++) {
-        res_cols[i] = int(A_sym.csr_c_idx[i]);
+        res_col_idxs.get_data()[i] = int(A_sym.sym_r_idx[i]);
         if (i <= num_rows) {
-            res_rows[i] = int(A_sym.csr_r_ptr[i]);
+            res_row_ptrs.get_data()[i] = int(A_sym.sym_c_ptr[i]);
         }
     }
     auto res_values =
         Array<double>::view(exec->get_master(), res_nnz, &A_sym.val[0]);
-    auto res_row_ptrs =
-        Array<int>::view(exec->get_master(), num_rows + 1, res_rows);
-    auto res_col_idxs = Array<int>::view(exec->get_master(), res_nnz, res_cols);
 
     // Put factorized matrix into ginkgo CSR
     auto host_result =
         matrix_type::create(exec->get_master(), local_system_matrix->get_size(),
                             res_values, res_col_idxs, res_row_ptrs);
     auto result = matrix_type::create(exec);
-    result->copy_from(host_result.get());
+    result->copy_from(host_result->transpose().get());
 
     // Separate L and U factors: nnz
     Array<int> l_row_ptrs{exec, num_rows + 1};

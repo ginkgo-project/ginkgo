@@ -105,6 +105,10 @@ public:
         return inv_permutation_;
     }
 
+    std::shared_ptr<const index_array> get_pivot() const { return pivot_; }
+
+    unsigned get_mc64_scale() const { return mc64_scale_; }
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
@@ -177,10 +181,12 @@ protected:
         const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting);
 
 private:
+    unsigned mc64_scale_;
     std::shared_ptr<diag> row_scaling_;
     std::shared_ptr<diag> col_scaling_;
     std::shared_ptr<const index_array> permutation_;
     std::shared_ptr<const index_array> inv_permutation_;
+    std::shared_ptr<const index_array> pivot_;
 };
 
 
