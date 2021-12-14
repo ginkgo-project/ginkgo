@@ -508,6 +508,15 @@ inline void scan(const void* send_buffer, void* recv_buffer, int count,
 }
 
 
+inline void exscan(const void* send_buffer, void* recv_buffer, int count,
+                   MPI_Datatype& reduce_type, MPI_Op operation,
+                   const MPI_Comm& comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Exscan(send_buffer, recv_buffer, count,
+                                        reduce_type, operation, comm));
+}
+
+
 }  // namespace bindings
 }  // namespace mpi
 }  // namespace gko

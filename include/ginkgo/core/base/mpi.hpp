@@ -471,6 +471,12 @@ void scan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
           std::shared_ptr<const communicator> comm = {});
 
 
+template <typename ReduceType>
+void exscan(const ReduceType* send_buffer, ReduceType* recv_buffer, int count,
+            op_type op_enum = op_type::sum,
+            std::shared_ptr<const communicator> comm = {});
+
+
 }  // namespace mpi
 }  // namespace gko
 
