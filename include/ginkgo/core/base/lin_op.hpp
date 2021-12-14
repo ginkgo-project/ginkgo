@@ -867,18 +867,28 @@ public:
 };
 
 
+class SubmatrixViewCreateable {
+public:
+    std::unique_ptr<LinOp> create_submatrix(const gko::span& rows,
+                                            const gko::span& columns)
+    {
+        return as<LinOp>(create_submatrix_impl(rows, columns));
+    }
+
+protected:
+    virtual std::unique_ptr<LinOp> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns) = 0;
+};
+
+
 template <typename ConcreteType>
-class EnableSubmatrixViewCreateable {
+class EnableSubmatrixViewCreateable : public SubmatrixViewCreateable {
 public:
     std::unique_ptr<ConcreteType> create_submatrix(const gko::span& rows,
                                                    const gko::span& columns)
     {
         return as<ConcreteType>(create_submatrix_impl(rows, columns));
     }
-
-protected:
-    virtual std::unique_ptr<LinOp> create_submatrix_impl(
-        const gko::span& rows, const gko::span& columns) = 0;
 };
 
 
