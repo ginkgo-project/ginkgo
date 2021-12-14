@@ -111,12 +111,12 @@ struct span {
     /**
      * Beginning of the span.
      */
-    const size_type begin;
+    size_type begin;
 
     /**
      * End of the span.
      */
-    const size_type end;
+    size_type end;
 };
 
 
