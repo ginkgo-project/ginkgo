@@ -55,7 +55,6 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(generate, lower_trs::generate);
-GKO_REGISTER_OPERATION(init_struct, lower_trs::init_struct);
 GKO_REGISTER_OPERATION(should_perform_transpose,
                        lower_trs::should_perform_transpose);
 GKO_REGISTER_OPERATION(solve, lower_trs::solve);
@@ -86,18 +85,10 @@ std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::init_trs_solve_struct()
-{
-    this->get_executor()->run(lower_trs::make_init_struct(this->solve_struct_));
-}
-
-
-template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
     this->get_executor()->run(lower_trs::make_generate(
-        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-        parameters_.num_rhs));
+        gko::lend(system_matrix_), this->solve_struct_, parameters_.num_rhs));
 }
 
 

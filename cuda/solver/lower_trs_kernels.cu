@@ -69,20 +69,16 @@ void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-void init_struct(std::shared_ptr<const CudaExecutor> exec,
-                 std::shared_ptr<solver::SolveStruct>& solve_struct)
-{
-    init_struct_kernel(exec, solve_struct);
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
-              solver::SolveStruct* solve_struct, const gko::size_type num_rhs)
+              std::shared_ptr<solver::SolveStruct>& solve_struct,
+              const gko::size_type num_rhs)
 {
-    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
-                                          false);
+    if (matrix->get_strategy()->get_name() == "sparselib") {
+        generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct,
+                                              num_rhs, false);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -96,8 +92,12 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
-    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                       trans_x, b, x);
+    if (matrix->get_strategy()->get_name() == "sparselib") {
+        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
+                                           trans_x, b, x);
+    } else {
+        sptrsv_naive_caching<false>(exec, matrix, b, x);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

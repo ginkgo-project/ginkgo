@@ -559,9 +559,9 @@ void spgemm_copy(cusparseHandle_t handle, const ValueType* alpha,
 
 inline size_type sparse_matrix_nnz(cusparseSpMatDescr_t descr)
 {
-    int64_t dummy1{};
-    int64_t dummy2{};
-    int64_t nnz{};
+    int64 dummy1{};
+    int64 dummy2{};
+    int64 nnz{};
     cusparseSpMatGetSize(descr, &dummy1, &dummy2, &nnz);
     return static_cast<size_type>(nnz);
 }
@@ -745,7 +745,20 @@ inline cusparseMatDescr_t create_mat_descr()
 {
     cusparseMatDescr_t descr{};
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSetMatDiagType(descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
     return descr;
+}
+
+
+inline void set_mat_fill_mode(cusparseMatDescr_t descr,
+                              cusparseFillMode_t fill_mode)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatFillMode(descr, fill_mode));
 }
 
 
@@ -790,7 +803,7 @@ inline void destroy(cusparseSpGEMMDescr_t info)
 
 
 template <typename ValueType>
-inline cusparseDnVecDescr_t create_dnvec(int64_t size, ValueType* values)
+inline cusparseDnVecDescr_t create_dnvec(int64 size, ValueType* values)
 {
     cusparseDnVecDescr_t descr{};
     constexpr auto value_type = cuda_data_type<ValueType>();
@@ -806,8 +819,26 @@ inline void destroy(cusparseDnVecDescr_t descr)
 }
 
 
+template <typename ValueType>
+inline cusparseDnMatDescr_t create_dnmat(int64 rows, int64 cols, int64 stride,
+                                         ValueType* values)
+{
+    cusparseDnMatDescr_t descr{};
+    constexpr auto value_type = cuda_data_type<ValueType>();
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnMat(
+        &descr, rows, cols, stride, values, value_type, CUSPARSE_ORDER_ROW));
+    return descr;
+}
+
+
+inline void destroy(cusparseDnMatDescr_t descr)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnMat(descr));
+}
+
+
 template <typename ValueType, typename IndexType>
-inline cusparseSpVecDescr_t create_spvec(int64_t size, int64_t nnz,
+inline cusparseSpVecDescr_t create_spvec(int64 size, int64 nnz,
                                          IndexType* indices, ValueType* values)
 {
     cusparseSpVecDescr_t descr{};
@@ -827,7 +858,7 @@ inline void destroy(cusparseSpVecDescr_t descr)
 
 
 template <typename IndexType, typename ValueType>
-inline cusparseSpMatDescr_t create_csr(int64_t rows, int64_t cols, int64_t nnz,
+inline cusparseSpMatDescr_t create_csr(int64 rows, int64 cols, int64 nnz,
                                        IndexType* csrRowOffsets,
                                        IndexType* csrColInd,
                                        ValueType* csrValues)
@@ -847,7 +878,37 @@ inline void destroy(cusparseSpMatDescr_t descr)
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(descr));
 }
 
-#endif
+
+#if (CUDA_VERSION >= 11030)
+
+
+template <typename AttribType>
+inline void set_attribute(cusparseSpMatDescr_t desc,
+                          cusparseSpMatAttribute_t attr, AttribType val)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSpMatSetAttribute(desc, attr, &val, sizeof(val)));
+}
+
+
+inline cusparseSpSMDescr_t create_spsm_descr()
+{
+    cusparseSpSMDescr_t desc{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpSM_createDescr(&desc));
+    return desc;
+}
+
+
+inline void destroy(cusparseSpSMDescr_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpSM_destroyDescr(info));
+}
+
+
+#endif  // CUDA_VERSION >= 11030
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
 
 
 inline csrsm2Info_t create_solve_info()
@@ -896,7 +957,7 @@ inline void destroy(csric02Info_t info)
     inline void buffer_size_ext(                                              \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
-        const ValueType* one, const cusparseMatDescr_t descr,                 \
+        ValueType one, const cusparseMatDescr_t descr,                        \
         const ValueType* csrVal, const int32* csrRowPtr,                      \
         const int32* csrColInd, const ValueType* rhs, int32 sol_size,         \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
@@ -904,7 +965,7 @@ inline void destroy(csric02Info_t info)
     {                                                                         \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
             CusparseName(handle, algo, trans1, trans2, m, n, nnz,             \
-                         as_culibs_type(one), descr, as_culibs_type(csrVal),  \
+                         as_culibs_type(&one), descr, as_culibs_type(csrVal), \
                          csrRowPtr, csrColInd, as_culibs_type(rhs), sol_size, \
                          factor_info, policy, factor_work_size));             \
     }                                                                         \
@@ -916,7 +977,7 @@ inline void destroy(csric02Info_t info)
     inline void buffer_size_ext(                                             \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        const ValueType* one, const cusparseMatDescr_t descr,                \
+        ValueType one, const cusparseMatDescr_t descr,                       \
         const ValueType* csrVal, const int64* csrRowPtr,                     \
         const int64* csrColInd, const ValueType* rhs, int64 sol_size,        \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
@@ -949,7 +1010,7 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
     inline void csrsm2_analysis(                                              \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
-        const ValueType* one, const cusparseMatDescr_t descr,                 \
+        ValueType one, const cusparseMatDescr_t descr,                        \
         const ValueType* csrVal, const int32* csrRowPtr,                      \
         const int32* csrColInd, const ValueType* rhs, int32 sol_size,         \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
@@ -957,7 +1018,7 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
     {                                                                         \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
             CusparseName(handle, algo, trans1, trans2, m, n, nnz,             \
-                         as_culibs_type(one), descr, as_culibs_type(csrVal),  \
+                         as_culibs_type(&one), descr, as_culibs_type(csrVal), \
                          csrRowPtr, csrColInd, as_culibs_type(rhs), sol_size, \
                          factor_info, policy, factor_work_vec));              \
     }                                                                         \
@@ -969,7 +1030,7 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
     inline void csrsm2_analysis(                                             \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        const ValueType* one, const cusparseMatDescr_t descr,                \
+        ValueType one, const cusparseMatDescr_t descr,                       \
         const ValueType* csrVal, const int64* csrRowPtr,                     \
         const int64* csrColInd, const ValueType* rhs, int64 sol_size,        \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
@@ -998,31 +1059,31 @@ GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS
 
 
-#define GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, CusparseName)            \
-    inline void csrsm2_solve(                                                \
-        cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
-        cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        const ValueType* one, const cusparseMatDescr_t descr,                \
-        const ValueType* csrVal, const int32* csrRowPtr,                     \
-        const int32* csrColInd, ValueType* rhs, int32 sol_stride,            \
-        csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
-        void* factor_work_vec)                                               \
-    {                                                                        \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
-            CusparseName(handle, algo, trans1, trans2, m, n, nnz,            \
-                         as_culibs_type(one), descr, as_culibs_type(csrVal), \
-                         csrRowPtr, csrColInd, as_culibs_type(rhs),          \
-                         sol_stride, factor_info, policy, factor_work_vec)); \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, CusparseName)             \
+    inline void csrsm2_solve(                                                 \
+        cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
+        cusparseOperation_t trans2, size_type m, size_type n, size_type nnz,  \
+        ValueType one, const cusparseMatDescr_t descr,                        \
+        const ValueType* csrVal, const int32* csrRowPtr,                      \
+        const int32* csrColInd, ValueType* rhs, int32 sol_stride,             \
+        csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
+        void* factor_work_vec)                                                \
+    {                                                                         \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
+            CusparseName(handle, algo, trans1, trans2, m, n, nnz,             \
+                         as_culibs_type(&one), descr, as_culibs_type(csrVal), \
+                         csrRowPtr, csrColInd, as_culibs_type(rhs),           \
+                         sol_stride, factor_info, policy, factor_work_vec));  \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
 #define GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, CusparseName)            \
     inline void csrsm2_solve(                                                \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,       \
         cusparseOperation_t trans2, size_type m, size_type n, size_type nnz, \
-        const ValueType* one, const cusparseMatDescr_t descr,                \
+        ValueType one, const cusparseMatDescr_t descr,                       \
         const ValueType* csrVal, const int64* csrRowPtr,                     \
         const int64* csrColInd, ValueType* rhs, int64 sol_stride,            \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
@@ -1045,6 +1106,54 @@ template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
+
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
+
+
+template <typename ValueType>
+size_type spsm_buffer_size(cusparseHandle_t handle, cusparseOperation_t op_a,
+                           cusparseOperation_t op_b, ValueType alpha,
+                           cusparseSpMatDescr_t descr_a,
+                           cusparseDnMatDescr_t descr_b,
+                           cusparseDnMatDescr_t descr_c, cusparseSpSMAlg_t algo,
+                           cusparseSpSMDescr_t spsm_descr)
+{
+    size_type work_size;
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpSM_bufferSize(
+        handle, op_a, op_b, &alpha, descr_a, descr_b, descr_c,
+        cuda_data_type<ValueType>(), algo, spsm_descr, &work_size));
+    return work_size;
+}
+
+
+template <typename ValueType>
+void spsm_analysis(cusparseHandle_t handle, cusparseOperation_t op_a,
+                   cusparseOperation_t op_b, ValueType alpha,
+                   cusparseSpMatDescr_t descr_a, cusparseDnMatDescr_t descr_b,
+                   cusparseDnMatDescr_t descr_c, cusparseSpSMAlg_t algo,
+                   cusparseSpSMDescr_t spsm_descr, void* work)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpSM_analysis(
+        handle, op_a, op_b, &alpha, descr_a, descr_b, descr_c,
+        cuda_data_type<ValueType>(), algo, spsm_descr, work));
+}
+
+
+template <typename ValueType>
+void spsm_solve(cusparseHandle_t handle, cusparseOperation_t op_a,
+                cusparseOperation_t op_b, ValueType alpha,
+                cusparseSpMatDescr_t descr_a, cusparseDnMatDescr_t descr_b,
+                cusparseDnMatDescr_t descr_c, cusparseSpSMAlg_t algo,
+                cusparseSpSMDescr_t spsm_descr)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpSM_solve(
+        handle, op_a, op_b, &alpha, descr_a, descr_b, descr_c,
+        cuda_data_type<ValueType>(), algo, spsm_descr));
+}
+
+
+#endif  // (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
 
 
 template <typename IndexType>
