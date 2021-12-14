@@ -163,6 +163,26 @@ void build_block_gathered_permute(
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE);
 
+
+template <typename LocalIndexType>
+void compute_global_offset(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    const comm_index_type part, global_index_type& offset)
+{
+    auto range_bounds = partition->get_const_range_bounds();
+    auto num_ranges = partition->get_num_ranges();
+    auto part_ids = partition->get_const_part_ids();
+    auto min_it = std::find(part_ids, part_ids + num_ranges, part);
+    auto range_id = std::distance(part_ids, min_it);
+    offset = range_id < num_ranges ? range_bounds[range_id]
+                                   : invalid_index<global_index_type>();
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_COMPUTE_GLOBAL_OFFSET);
+
+
 }  // namespace partition
 }  // namespace reference
 }  // namespace kernels

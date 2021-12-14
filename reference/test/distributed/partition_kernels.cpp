@@ -271,5 +271,46 @@ TYPED_TEST(Partition, BuildsRowPermuteScattered)
     GKO_ASSERT_ARRAY_EQ(result, permute);
 }
 
+TYPED_TEST(Partition, ComputeGlobalOffset)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<comm_index_type> mapping{
+        this->ref, {2, 2, 0, 1, 1, 2, 0, 0, 1, 0, 1, 1, 1, 2, 2, 0}};
+    constexpr comm_index_type num_parts = 3;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, mapping, num_parts);
+    global_index_type offsets[num_parts] = {};
+    global_index_type ref_offsets[num_parts] = {2, 3, 0};
+
+    for (auto i : {0, 1, 2}) {
+        gko::kernels::reference::partition::compute_global_offset(
+            this->ref, partition.get(), i, offsets[i]);
+
+        ASSERT_EQ(offsets[i], ref_offsets[i]);
+    }
+}
+
+TYPED_TEST(Partition, ComputeGlobalOffsetEmptyPartition)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<comm_index_type> mapping{
+        this->ref, {2, 2, 0, 1, 1, 2, 0, 0, 1, 0, 1, 1, 1, 2, 2, 0}};
+    constexpr comm_index_type num_parts = 4;
+    auto partition =
+        gko::distributed::Partition<local_index_type>::build_from_mapping(
+            this->ref, mapping, num_parts);
+    global_index_type offsets[num_parts] = {};
+    global_index_type ref_offsets[num_parts] = {
+        2, 3, 0, gko::invalid_index<global_index_type>()};
+
+    for (auto i : {0, 1, 2, 3}) {
+        gko::kernels::reference::partition::compute_global_offset(
+            this->ref, partition.get(), i, offsets[i]);
+
+        ASSERT_EQ(offsets[i], ref_offsets[i]);
+    }
+}
+
 
 }  // namespace

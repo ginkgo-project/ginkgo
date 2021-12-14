@@ -162,6 +162,17 @@ void is_ordered(std::shared_ptr<const DefaultExecutor> exec,
                 bool* result) GKO_NOT_IMPLEMENTED;
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 
+
+template <typename LocalIndexType>
+void compute_global_offset(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    const comm_index_type part, global_index_type& offset) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_COMPUTE_GLOBAL_OFFSET);
+
+
 }  // namespace partition
 }  // namespace omp
 }  // namespace kernels

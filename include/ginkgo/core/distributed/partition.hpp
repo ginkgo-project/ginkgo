@@ -182,6 +182,9 @@ public:
         return block_gather_permutation_;
     }
 
+
+    global_index_type get_global_offset(comm_index_type part) const;
+
     /**
      * Builds a partition from a given mapping global_index -> part_id.
      * @param exec  the Executor on which the partition should be built

@@ -75,21 +75,30 @@ namespace kernels {
         const distributed::Partition<LocalIndexType>* partition,           \
         Array<LocalIndexType>& permute)
 
+#define GKO_DECLARE_PARTITION_COMPUTE_GLOBAL_OFFSET(LocalIndexType) \
+    void compute_global_offset(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const distributed::Partition<LocalIndexType>* partition,    \
+        const comm_index_type part, global_index_type& offset)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    using global_index_type = distributed::global_index_type;    \
-    using comm_index_type = distributed::comm_index_type;        \
-    GKO_PARTITION_COUNT_RANGES;                                  \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType); \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);    \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType);           \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType);            \
-    template <typename LocalIndexType>                           \
-    GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE(LocalIndexType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    using global_index_type = distributed::global_index_type;           \
+    using comm_index_type = distributed::comm_index_type;               \
+    GKO_PARTITION_COUNT_RANGES;                                         \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_BUILD_FROM_CONTIGUOUS(LocalIndexType);        \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_BUILD_FROM_MAPPING(LocalIndexType);           \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_BUILD_RANKS(LocalIndexType);                  \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_IS_ORDERED(LocalIndexType);                   \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE(LocalIndexType); \
+    template <typename LocalIndexType>                                  \
+    GKO_DECLARE_PARTITION_COMPUTE_GLOBAL_OFFSET(LocalIndexType)
+
 
 namespace omp {
 namespace partition {

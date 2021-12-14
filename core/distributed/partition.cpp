@@ -56,6 +56,7 @@ GKO_REGISTER_OPERATION(build_ranks, partition::build_ranks);
 GKO_REGISTER_OPERATION(is_ordered, partition::is_ordered);
 GKO_REGISTER_OPERATION(build_block_gathered_permute,
                        partition::build_block_gathered_permute);
+GKO_REGISTER_OPERATION(compute_global_offset, partition::compute_global_offset);
 
 
 }  // namespace partition
@@ -224,6 +225,17 @@ void Partition<LocalIndexType>::validate_data() const
         "computed and stored part sizes must match",
         std::equal(partial_part_sizes.begin(), partial_part_sizes.end(),
                    host_part_size_ptr));
+}
+
+
+template <typename LocalIndexType>
+global_index_type Partition<LocalIndexType>::get_global_offset(
+    comm_index_type part) const
+{
+    global_index_type offset = -1;
+    auto exec = this->offsets_.get_executor();
+    exec->run(partition::make_compute_global_offset(this, part, offset));
+    return offset;
 }
 
 

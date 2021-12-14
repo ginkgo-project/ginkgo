@@ -88,6 +88,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_PARTITION_BUILD_BLOCK_GATHERED_PERMUTE);
 
 
+template <typename LocalIndexType>
+void compute_global_offset(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const distributed::Partition<LocalIndexType>* partition,
+    const comm_index_type part, global_index_type& offset) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_PARTITION_COMPUTE_GLOBAL_OFFSET);
+
+
 }  // namespace partition
 }  // namespace dpcpp
 }  // namespace kernels
