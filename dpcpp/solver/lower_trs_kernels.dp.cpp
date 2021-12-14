@@ -59,6 +59,13 @@ namespace dpcpp {
 namespace lower_trs {
 
 
+void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
+                              bool& do_transpose)
+{
+    do_transpose = false;
+}
+
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DpcppExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
