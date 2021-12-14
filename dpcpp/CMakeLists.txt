@@ -51,25 +51,67 @@ target_sources(ginkgo_dpcpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
 
+## Parse the subgroup and workgroup lists
+# 1. Sort from smallest element to the biggest
+insertionSortRecursive(GINKGO_DPCPP_SUBGROUPS)
+insertionSortRecursive(GINKGO_DPCPP_WORKGROUPS)
+# 2. Extract the two biggest elements
+list(GET GINKGO_DPCPP_SUBGROUPS -1 GINKGO_DPCPP_BIGGEST_SUBGROUP)
+list(GET GINKGO_DPCPP_WORKGROUPS -1 GINKGO_DPCPP_BIGGEST_WORKGROUP)
+# 3. Combine the two lists, also format the workgroup list
+set(GINKGO_DPCPP_1D_CFG "")
+set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "")
+foreach(workgroup ${GINKGO_DPCPP_WORKGROUPS})
+    foreach(subgroup ${GINKGO_DPCPP_SUBGROUPS})
+        if (GINKGO_DPCPP_1D_CFG STREQUAL "")
+            set(GINKGO_DPCPP_1D_CFG "KCFG_1D::encode(${workgroup}, ${subgroup})")
+        else()
+            set(GINKGO_DPCPP_1D_CFG "${GINKGO_DPCPP_1D_CFG}, KCFG_1D::encode(${workgroup}, ${subgroup})")
+        endif()
+    endforeach()
+    if (GINKGO_DPCPP_WORKGROUPS_FORMATTED STREQUAL "")
+        set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "BlockCfg::encode(${workgroup})")
+    else()
+        set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "BlockCfg::encode(${workgroup}), ${GINKGO_DPCPP_WORKGROUPS_FORMATTED}, ")
+    endif()
+endforeach()
+# 4. Reverse the subgroup list, replace ; to ,
+list(REVERSE GINKGO_DPCPP_SUBGROUPS)
+string(REPLACE ";" "," GINKGO_DPCPP_SUBGROUPS_FORMATTED "${GINKGO_DPCPP_SUBGROUPS}")
+
+## Now we can generate the DPC++ Configure file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp @ONLY)
+
+
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
+target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
+
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
-target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 target_compile_options(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_COMPILE_OPTIONS>)
 target_include_directories(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(ginkgo_dpcpp PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/core>)
+
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
-# When building ginkgo as a static library, we need to use dpcpp and per_kernel
-# link option when the program uses a dpcpp related function.
-if (BUILD_SHARED_LIBS)
-    target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_source)
-else ()
-    target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_source)
+
+if (NOT GINKGO_DPCPP_AOT_TARGETS STREQUAL "")
+    string(REPLACE ";" "," GINKGO_DPCPP_AOT_TARGETS_FORMATTED "${GINKGO_DPCPP_AOT_TARGETS}")
+    target_compile_options(ginkgo_dpcpp PRIVATE -fsycl-targets=${GINKGO_DPCPP_AOT_TARGETS_FORMATTED})
+else()
+    # When building ginkgo as a static library, we need to use dpcpp and per_source
+    # link option when the program uses a dpcpp related function.
+    if (BUILD_SHARED_LIBS)
+        target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_source)
+    else ()
+        target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_source)
+    endif()
 endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)

@@ -36,6 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
+
+
+#include "core/base/types.hpp"
 
 
 namespace gko {
@@ -52,7 +56,7 @@ struct config {
     /**
      * The number of threads within a Dpcpp subgroup.
      */
-    static constexpr uint32 warp_size = 16;
+    static constexpr uint32 warp_size = @GINKGO_DPCPP_BIGGEST_SUBGROUP@;
 
     /**
      * The bitmask of the entire warp.
@@ -68,8 +72,20 @@ struct config {
     /**
      * The default maximal number of threads allowed in DPCPP group
      */
-    static constexpr uint32 max_block_size = 256;
+    static constexpr uint32 max_block_size = @GINKGO_DPCPP_BIGGEST_WORKGROUP@;
 };
+
+
+using KCFG_1D = ConfigSet<11, 7>;
+constexpr auto kcfg_1d_list =
+    syn::value_list<std::uint32_t, @GINKGO_DPCPP_1D_CFG@>();
+constexpr auto subgroup_list = syn::value_list<std::uint32_t, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>();
+constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
+
+
+using BlockCfg = ConfigSet<11>;
+constexpr auto block_cfg_list =
+    ::gko::syn::value_list<std::uint32_t, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>();
 
 
 }  // namespace dpcpp

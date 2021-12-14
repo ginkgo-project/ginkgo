@@ -187,21 +187,19 @@ void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, size_type num_elements,
                       ValueType* elements, ValueType* block_sum)
 {
-    queue
-        ->submit([&](sycl::handler& cgh) {
-            sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
-                           sycl::access::mode::read_write,
-                           sycl::access::target::local>
-                prefix_helper_acc_ct1(cgh);
+    queue->submit([&](sycl::handler& cgh) {
+        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
+                       sycl::access::mode::read_write,
+                       sycl::access::target::local>
+            prefix_helper_acc_ct1(cgh);
 
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                    start_prefix_sum<block_size>(
-                        num_elements, elements, block_sum, item_ct1,
-                        *prefix_helper_acc_ct1.get_pointer());
-                });
-        })
-        .wait();
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             start_prefix_sum<block_size>(
+                                 num_elements, elements, block_sum, item_ct1,
+                                 *prefix_helper_acc_ct1.get_pointer());
+                         });
+    });
 }
 
 
@@ -241,15 +239,13 @@ void finalize_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          sycl::queue* queue, size_type num_elements,
                          ValueType* elements, const ValueType* block_sum)
 {
-    queue
-        ->submit([&](sycl::handler& cgh) {
-            cgh.parallel_for(
-                sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                    finalize_prefix_sum<block_size>(num_elements, elements,
-                                                    block_sum, item_ct1);
-                });
-        })
-        .wait();
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             finalize_prefix_sum<block_size>(
+                                 num_elements, elements, block_sum, item_ct1);
+                         });
+    });
 }
 
 

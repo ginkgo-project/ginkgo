@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/types.hpp"
+#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/prefix_sum.dp.hpp"
 
@@ -49,12 +50,6 @@ namespace kernels {
 namespace dpcpp {
 namespace components {
 
-
-using BlockCfg = ConfigSet<11>;
-
-constexpr auto block_cfg_list =
-    ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
-                           BlockCfg::encode(256), BlockCfg::encode(128)>();
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(start_prefix_sum_call, start_prefix_sum,

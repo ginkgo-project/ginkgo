@@ -70,20 +70,6 @@ namespace dpcpp {
 namespace dense {
 
 
-// Disable the 64 subgroup. CPU supports 64 now, but conj_transpose will
-// lead CL_OUT_OF_RESOURCES. TODO: investigate this issue.
-using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t,            // KCFG_1D::encode(512, 32),
-                                              // KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32)  //,
-                                              // KCFG_1D::encode(256, 16),
-                                              // KCFG_1D::encode(256, 8)
-                    >();
-// constexpr auto subgroup_list = syn::value_list<std::uint32_t, 32, 16, 8,
-// 4>();
-constexpr auto subgroup_list = syn::value_list<std::uint32_t, 32>();
-constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 constexpr int default_block_size = 256;
 
 

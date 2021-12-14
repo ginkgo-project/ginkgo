@@ -152,3 +152,46 @@ function(ginkgo_extract_dpcpp_version DPCPP_COMPILER GINKGO_DPCPP_VERSION)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver)
 endfunction()
+
+# From https://stackoverflow.com/questions/61106418/sorting-a-list-of-numbers-numerically-in-cmake
+# After CMake 3.18, this can be removed
+function(insertionSortRecursive sort_list)
+  # Get list length
+  list(LENGTH sort_list len)
+
+  # Base case, return.
+  if(${len} LESS_EQUAL 1)
+    return()
+  endif()
+
+  math(EXPR len_minus_one "${len} - 1")
+  # Recursively sort the sublist of size (len - 1).
+  insertionSortRecursive("${sort_list}" ${len_minus_one})
+  set(_sort_list ${sort_list})
+
+  # Get the last element in the sublist.
+  list(GET _sort_list ${len_minus_one} last_element)
+  # Define a counter for the sublist we will operate on.
+  math(EXPR sublist_counter "${len} - 2")
+  # Get the element at the counter index.
+  list(GET _sort_list ${sublist_counter} counter_element)
+
+  # Loop to move those elements greater than last_element up one position.
+  while((${sublist_counter} GREATER_EQUAL 0) AND (${counter_element} GREATER ${last_element}))
+    # Move elem at counter index up one position in list.
+    math(EXPR counter_plus_one "${sublist_counter} + 1")
+    list(REMOVE_AT _sort_list ${counter_plus_one})
+    list(INSERT _sort_list ${counter_plus_one} ${counter_element})
+    # Decrement the sublist counter.
+    math(EXPR sublist_counter "${sublist_counter} - 1")
+    # Get the element at the new counter value.
+    list(GET _sort_list ${sublist_counter} counter_element)
+  endwhile()
+
+  # Place the last element at the correct position.
+  math(EXPR counter_plus_one "${sublist_counter} + 1")
+  list(REMOVE_AT _sort_list ${counter_plus_one})
+  list(INSERT _sort_list ${counter_plus_one} ${last_element})
+  # Send the modified list back up to parent scope.
+  set(sort_list ${_sort_list} PARENT_SCOPE)
+endfunction()

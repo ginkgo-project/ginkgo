@@ -62,15 +62,7 @@ namespace dpcpp {
 
 
 constexpr int default_block_size = 256;
-using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t,            // KCFG_1D::encode(512, 64),
-                                              // KCFG_1D::encode(512, 32),
-                                              // KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32)  //, KCFG_1D::encode(256, 16),
-                                              // KCFG_1D::encode(256, 8)
-                    >();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+
 
 /**
  * @internal
@@ -219,7 +211,9 @@ void reduce_add_array(
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
+template <std::uint32_t cfg = KCFG_1D::encode(config::max_block_size,
+                                              config::warp_size),
+          typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, size_type size,
                       const ValueType* source, ValueType* result)
