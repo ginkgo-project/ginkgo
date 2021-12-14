@@ -51,7 +51,7 @@ namespace kernels {
         const distributed::Partition<LocalIndexType>* partition,             \
         comm_index_type local_part,                                          \
         Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,     \
-        Array<global_index_type>& local_to_global, ValueType deduction_help)
+        ValueType deduction_help)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

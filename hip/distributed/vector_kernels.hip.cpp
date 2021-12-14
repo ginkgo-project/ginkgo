@@ -49,7 +49,6 @@ void build_local(
     const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
     Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
-    Array<global_index_type>& local_to_global,
     ValueType deduction_help) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL);

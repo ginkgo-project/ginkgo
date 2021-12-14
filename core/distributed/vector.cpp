@@ -194,8 +194,7 @@ Vector<ValueType, LocalIndexType>::Vector(
     : EnableLinOp<Vector<ValueType, LocalIndexType>>{exec, global_size},
       DistributedBase{comm},
       partition_{std::move(partition)},
-      local_{exec, local_size, stride},
-      local_to_global_row{exec}
+      local_{exec, local_size, stride}
 {}
 
 
@@ -224,8 +223,7 @@ void Vector<ValueType, LocalIndexType>::read_distributed(
         exec, data.nonzeros.begin(), data.nonzeros.end()};
     Array<matrix_data_entry<ValueType, LocalIndexType>> local_data{exec};
     exec->run(vector::make_build_local(global_data, partition.get(), rank,
-                                       local_data, local_to_global_row,
-                                       ValueType{}));
+                                       local_data, ValueType{}));
     dim<2> local_size{local_rows, data.size[1]};
     dim<2> global_size{global_rows, data.size[1]};
     this->get_local()->read(local_data, local_size);
@@ -334,8 +332,8 @@ std::unique_ptr<LinOp> Vector<ValueType, LocalIndexType>::create_submatrix_impl(
 {
     auto exec = this->get_executor();
 
-    auto global_offset =
-        exec->copy_val_to_host(this->local_to_global_row.get_const_data());
+    auto global_offset = this->get_partition()->get_global_offset(
+        this->get_communicator()->rank());
     gko::span local_rows{rows.begin - global_offset, rows.end - global_offset};
 
     auto sub_vector = this->get_local()->create_submatrix(local_rows, columns);
@@ -348,8 +346,6 @@ std::unique_ptr<LinOp> Vector<ValueType, LocalIndexType>::create_submatrix_impl(
         dim<2>{num_global_rows, columns.length()},
         dim<2>{rows.length(), columns.length()});
     sub->local_ = std::move(*sub_vector.get());
-    sub->local_to_global_row = Array<global_index_type>::view(
-        exec, rows.length(), local_to_global_row.get_data() + rows.begin);
     return sub;
 }
 

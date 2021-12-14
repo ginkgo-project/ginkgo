@@ -52,7 +52,7 @@ void build_local(
     const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
     Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
-    Array<global_index_type>& local_to_global, ValueType deduction_help)
+    ValueType deduction_help)
 {
     using range_index_type = global_index_type;
     using part_index_type = comm_index_type;
@@ -137,8 +137,6 @@ void build_local(
                 // map global row idx to local row idx
                 map_to_local(entry.row, row_range),
                 static_cast<LocalIndexType>(entry.column), entry.value};
-            local_to_global.get_data()[map_to_local(entry.row, row_range)] =
-                entry.row;
             idx++;
         }
     }

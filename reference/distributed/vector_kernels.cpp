@@ -49,7 +49,7 @@ void build_local(
     const distributed::Partition<LocalIndexType>* partition,
     comm_index_type local_part,
     Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
-    Array<global_index_type>& local_to_global, ValueType deduction_help)
+    ValueType deduction_help)
 {
     using range_index_type = global_index_type;
     using part_index_type = comm_index_type;
@@ -98,10 +98,6 @@ void build_local(
             return range_parts[range_idx] == local_part;
         });
 
-    local_to_global.resize_and_reset(partition->get_part_size(local_part));
-    std::fill_n(local_to_global.get_data(), local_to_global.get_num_elems(),
-                -1);
-
     local_data.resize_and_reset(count);
     size_type idx{};
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
@@ -115,8 +111,6 @@ void build_local(
                                       map_to_local(entry.row, row_range),
                                       static_cast<LocalIndexType>(entry.column),
                                       entry.value};
-        local_to_global.get_data()[map_to_local(entry.row, row_range)] =
-            entry.row;
         idx++;
     }
 }

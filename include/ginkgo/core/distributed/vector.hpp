@@ -186,7 +186,6 @@ protected:
 private:
     std::shared_ptr<const Partition<LocalIndexType>> partition_;
     local_mtx_type local_;
-    Array<global_index_type> local_to_global_row;
 };
 
 
