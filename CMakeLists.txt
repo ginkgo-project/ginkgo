@@ -22,6 +22,7 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcmodel=large")
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()

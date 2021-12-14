@@ -55,10 +55,12 @@ namespace dpcpp {
 
 using KCFG_1D = ConfigSet<11, 7>;
 constexpr auto kcfg_1d_list_simple_reduction =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
-                    KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
-                    KCFG_1D::encode(256, 8)>();
+    syn::value_list<std::uint32_t,            // KCFG_1D::encode(512, 64),
+                                              // KCFG_1D::encode(512, 32),
+                                              // KCFG_1D::encode(512, 16),
+                    KCFG_1D::encode(256, 32)  //, KCFG_1D::encode(256, 16),
+                                              // KCFG_1D::encode(256, 8)
+                    >();
 
 
 template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
@@ -179,24 +181,30 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         Array<ValueType> partial{exec, static_cast<size_type>(num_workgroups)};
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
-                cgh, static_cast<int64>(size), num_workgroups, fn, op,
-                [](auto v) { return v; }, identity, partial.get_data(),
-                args...);
-        });
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
-                cgh, static_cast<int64>(num_workgroups), 1,
-                [](auto i, auto v) { return v[i]; }, op, finalize, identity,
-                result, partial.get_const_data());
-        });
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_1d<cfg>(
+                    cgh, static_cast<int64>(size), num_workgroups, fn, op,
+                    [](auto v) { return v; }, identity, partial.get_data(),
+                    args...);
+            })
+            .wait();
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_1d<cfg>(
+                    cgh, static_cast<int64>(num_workgroups), 1,
+                    [](auto i, auto v) { return v[i]; }, op, finalize, identity,
+                    result, partial.get_const_data());
+            })
+            .wait();
     } else {
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(cgh, static_cast<int64>(size),
-                                             num_workgroups, fn, op, finalize,
-                                             identity, result, args...);
-        });
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_1d<cfg>(
+                    cgh, static_cast<int64>(size), num_workgroups, fn, op,
+                    finalize, identity, result, args...);
+            })
+            .wait();
     }
 }
 
@@ -222,24 +230,30 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         Array<ValueType> partial{exec, static_cast<size_type>(num_workgroups)};
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_2d<cfg>(
-                cgh, rows, cols, num_workgroups, fn, op,
-                [](auto v) { return v; }, identity, partial.get_data(),
-                args...);
-        });
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
-                cgh, static_cast<int64>(num_workgroups), 1,
-                [](auto i, auto v) { return v[i]; }, op, finalize, identity,
-                result, partial.get_const_data());
-        });
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_2d<cfg>(
+                    cgh, rows, cols, num_workgroups, fn, op,
+                    [](auto v) { return v; }, identity, partial.get_data(),
+                    args...);
+            })
+            .wait();
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_1d<cfg>(
+                    cgh, static_cast<int64>(num_workgroups), 1,
+                    [](auto i, auto v) { return v[i]; }, op, finalize, identity,
+                    result, partial.get_const_data());
+            })
+            .wait();
     } else {
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_2d<cfg>(cgh, rows, cols, num_workgroups,
-                                             fn, op, finalize, identity, result,
-                                             args...);
-        });
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_2d<cfg>(
+                    cgh, rows, cols, num_workgroups, fn, op, finalize, identity,
+                    result, args...);
+            })
+            .wait();
     }
 }
 
@@ -520,16 +534,21 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
     } else {
         Array<ValueType> tmp_storage{exec,
                                      static_cast<size_type>(row_blocks * cols)};
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_col_reduction_2d_small<cfg, ssg_size>(
-                cgh, rows, cols, row_blocks, fn, op, [](auto v) { return v; },
-                identity, tmp_storage.get_data(), args...);
-        });
-        queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_finalize_2d(
-                cgh, cols, row_blocks, op, finalize, identity,
-                tmp_storage.get_const_data(), 1, result);
-        });
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_col_reduction_2d_small<cfg, ssg_size>(
+                    cgh, rows, cols, row_blocks, fn, op,
+                    [](auto v) { return v; }, identity, tmp_storage.get_data(),
+                    args...);
+            })
+            .wait();
+        queue
+            ->submit([&](sycl::handler& cgh) {
+                generic_kernel_reduction_finalize_2d(
+                    cgh, cols, row_blocks, op, finalize, identity,
+                    tmp_storage.get_const_data(), 1, result);
+            })
+            .wait();
     }
 }
 
@@ -549,29 +568,31 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     using subsubgroup_sizes =
-        syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
-                        std::min<int>(32, sg_size), sg_size>;
+        // syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
+        //                 std::min<int>(32, sg_size), sg_size>;
+        syn::value_list<int, 32>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto resources =
         exec->get_num_computing_units() * sg_size * oversubscription;
     auto queue = exec->get_queue();
-    if (rows * cols > resources && rows < cols) {
-        const auto col_blocks = ceildiv(rows * cols, resources);
-        Array<ValueType> partial{exec,
-                                 static_cast<size_type>(col_blocks * rows)};
-        generic_kernel_row_reduction_2d<cfg, sg_size>(
-            syn::value_list<int, sg_size>{}, exec, rows, cols, col_blocks, fn,
-            op, [](auto v) { return v; }, identity, partial.get_data(), 1,
-            args...);
-        queue->submit([&](sycl::handler& cgh) {
+    // if (rows * cols > resources && rows < cols) {
+    const auto col_blocks = ceildiv(rows * cols, resources);
+    Array<ValueType> partial{exec, static_cast<size_type>(col_blocks * rows)};
+    generic_kernel_row_reduction_2d<cfg, sg_size>(
+        syn::value_list<int, sg_size>{}, exec, rows, cols, col_blocks, fn, op,
+        [](auto v) { return v; }, identity, partial.get_data(), 1, args...);
+    queue->wait();
+    queue
+        ->submit([&](sycl::handler& cgh) {
             generic_kernel_reduction_finalize_2d(
                 cgh, rows, col_blocks, op, finalize, identity,
                 partial.get_const_data(), static_cast<int64>(result_stride),
                 result);
-        });
-    } else {
+        })
+        .wait();
+    /* } else {
         select_generic_kernel_row_reduction_2d(
             subsubgroup_sizes(),
             [cols](int compiled_ssg_size) {
@@ -581,7 +602,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int, cfg>(), syn::type_list<>(), exec, rows, cols,
             1, fn, op, finalize, identity, result,
             static_cast<int64>(result_stride), args...);
-    }
+    } */
 }
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(select_kernel_row_reduction_stage1,
@@ -600,14 +621,16 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     using subsubgroup_sizes =
-        syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
-                        std::min<int>(32, sg_size), sg_size>;
+        // syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
+        //                 std::min<int>(32, sg_size), sg_size>;
+        syn::value_list<int, 32>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto max_blocks =
         exec->get_num_computing_units() * sg_size * oversubscription / wg_size;
     if (cols <= sg_size) {
+        std::cout << "Running col reduction small\n";
         select_generic_col_reduction_small(
             subsubgroup_sizes(),
             [cols](int compiled_ssg_size) {
@@ -623,25 +646,31 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
             col_blocks);
         auto queue = exec->get_queue();
         if (row_blocks <= 1) {
+            std::cout << "Running 2d blocked\n";
             queue->submit([&](sycl::handler& cgh) {
                 generic_kernel_col_reduction_2d_blocked<cfg>(
                     cgh, rows, cols, 1, col_blocks, fn, op, finalize, identity,
                     result, args...);
             });
         } else {
+            std::cout << "Running 2d blocked/finalize\n";
             Array<ValueType> tmp_storage{
                 exec, static_cast<size_type>(row_blocks * cols)};
-            queue->submit([&](sycl::handler& cgh) {
-                generic_kernel_col_reduction_2d_blocked<cfg>(
-                    cgh, rows, cols, row_blocks, col_blocks, fn, op,
-                    [](auto v) { return v; }, identity, tmp_storage.get_data(),
-                    args...);
-            });
-            queue->submit([&](sycl::handler& cgh) {
-                generic_kernel_reduction_finalize_2d(
-                    cgh, cols, row_blocks, op, finalize, identity,
-                    tmp_storage.get_const_data(), 1, result);
-            });
+            queue
+                ->submit([&](sycl::handler& cgh) {
+                    generic_kernel_col_reduction_2d_blocked<cfg>(
+                        cgh, rows, cols, row_blocks, col_blocks, fn, op,
+                        [](auto v) { return v; }, identity,
+                        tmp_storage.get_data(), args...);
+                })
+                .wait();
+            queue
+                ->submit([&](sycl::handler& cgh) {
+                    generic_kernel_reduction_finalize_2d(
+                        cgh, cols, row_blocks, op, finalize, identity,
+                        tmp_storage.get_const_data(), 1, result);
+                })
+                .wait();
         }
     }
 }

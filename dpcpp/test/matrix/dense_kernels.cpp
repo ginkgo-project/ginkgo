@@ -199,7 +199,7 @@ TEST_F(Dense, SingleVectorDpcppComputeDotIsEquivalentToRef)
 
 TEST_F(Dense, MultipleVectorDpcppComputeDotIsEquivalentToRef)
 {
-    set_up_vector_data(20);
+    set_up_vector_data(2);
 
     x->compute_dot(y.get(), expected.get());
     dx->compute_dot(dy.get(), dresult.get());

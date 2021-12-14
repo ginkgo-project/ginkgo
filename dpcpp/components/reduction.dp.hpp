@@ -64,10 +64,12 @@ namespace dpcpp {
 constexpr int default_block_size = 256;
 using KCFG_1D = ConfigSet<11, 7>;
 constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
-                    KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
-                    KCFG_1D::encode(256, 8)>();
+    syn::value_list<std::uint32_t,            // KCFG_1D::encode(512, 64),
+                                              // KCFG_1D::encode(512, 32),
+                                              // KCFG_1D::encode(512, 16),
+                    KCFG_1D::encode(256, 32)  //, KCFG_1D::encode(256, 16),
+                                              // KCFG_1D::encode(256, 8)
+                    >();
 constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 
 /**
