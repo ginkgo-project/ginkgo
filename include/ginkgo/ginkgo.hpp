@@ -102,6 +102,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
+#include <ginkgo/core/matrix/zero.hpp>
 
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
