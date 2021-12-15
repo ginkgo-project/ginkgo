@@ -64,6 +64,7 @@ protected:
     BlockMatrix()
         : exec(gko::ReferenceExecutor::create()),
           size(5, 5),
+          spans{{0, 3}, {3, 5}},
           a_block(gko::share(
               gko::initialize<mtx>({{1, 2, 3}, {2, 3, 4}, {3, 4, 5}}, exec))),
           b_block(
@@ -72,19 +73,24 @@ protected:
               gko::share(gko::initialize<mtx>({{1, 2, 3}, {2, 3, 4}}, exec))),
           d_block(gko::share(gko::initialize<mtx>({{1, 2}, {2, 3}}, exec))),
           b_dense(gko::share(gko::initialize<vec>({1, 1, 1, 1, 1}, exec))),
-          x_dense(gko::share(gko::initialize<vec>({0, 0, 0, 0, 0}, exec))),
+          x_dense(gko::share(
+              gko::initialize<vec>({0.5, 0.5, 0.5, 0.5, 0.5}, exec))),
           y_dense(gko::share(gko::initialize<vec>({9, 14, 19, 9, 14}, exec))),
           b0_block(gko::share(gko::initialize<vec>({1, 1, 1}, exec))),
           b1_block(gko::share(gko::initialize<vec>({1, 1}, exec))),
-          x0_block(gko::share(gko::initialize<vec>({0, 0, 0}, exec))),
-          x1_block(gko::share(gko::initialize<vec>({0, 0}, exec))),
+          x0_block(gko::share(gko::initialize<vec>({0.5, 0.5, 0.5}, exec))),
+          x1_block(gko::share(gko::initialize<vec>({0.5, 0.5}, exec))),
           y0_block(gko::share(gko::initialize<vec>({9, 14, 19}, exec))),
-          y1_block(gko::share(gko::initialize<vec>({9, 14}, exec)))
+          y1_block(gko::share(gko::initialize<vec>({9, 14}, exec))),
+          alpha(gko::share(gko::initialize<vec>({2.2}, exec))),
+          beta(gko::share(gko::initialize<vec>({3.3}, exec)))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
 
     gko::dim<2> size;
+
+    std::vector<gko::span> spans;
 
     std::shared_ptr<mtx> a_block;
     std::shared_ptr<mtx> b_block;
@@ -100,6 +106,9 @@ protected:
     std::shared_ptr<vec> x1_block;
     std::shared_ptr<vec> y0_block;
     std::shared_ptr<vec> y1_block;
+
+    std::shared_ptr<vec> alpha;
+    std::shared_ptr<vec> beta;
 };
 
 
@@ -110,7 +119,9 @@ TYPED_TEST(BlockMatrix, KnowsBlockSize)
 {
     auto block_mtx = gko::matrix::BlockMatrix::create(
         this->exec, this->size,
-        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {this->a_block, this->b_block}, {this->c_block, this->d_block}},
+        this->spans);
 
     GKO_ASSERT_EQUAL_DIMENSIONS(block_mtx->get_block_size(), gko::dim<2>(2, 2));
 }
@@ -120,10 +131,12 @@ TYPED_TEST(BlockMatrix, KnowsSizePerBlock)
 {
     auto block_mtx = gko::matrix::BlockMatrix::create(
         this->exec, this->size,
-        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {this->a_block, this->b_block}, {this->c_block, this->d_block}},
+        this->spans);
 
-    ASSERT_EQ(block_mtx->get_size_per_block()[0], 3);
-    ASSERT_EQ(block_mtx->get_size_per_block()[1], 2);
+    ASSERT_EQ(block_mtx->get_span_per_block()[0], this->spans[0]);
+    ASSERT_EQ(block_mtx->get_span_per_block()[1], this->spans[1]);
 }
 
 
@@ -134,13 +147,24 @@ TYPED_TEST(BlockMatrix, AppliesToVector)
     using vec = typename TestFixture::vec;
     auto block_mtx = gko::matrix::BlockMatrix::create(
         this->exec, this->size,
-        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {this->a_block, this->b_block}, {this->c_block, this->d_block}},
+        this->spans);
     auto block_vec_b = gko::matrix::BlockMatrix::create(
-        this->exec, {5, 1}, {{this->b0_block}, {this->b1_block}});
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{{this->b0_block},
+                                                              {this->b1_block}},
+        this->spans);
     auto block_vec_x = gko::matrix::BlockMatrix::create(
-        this->exec, {5, 1}, {{this->x0_block}, {this->x1_block}});
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{{this->x0_block},
+                                                              {this->x1_block}},
+        this->spans);
     auto block_vec_y = gko::matrix::BlockMatrix::create(
-        this->exec, {5, 1}, {{this->y0_block}, {this->y1_block}});
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{{this->y0_block},
+                                                              {this->y1_block}},
+        this->spans);
 
     block_mtx->apply(block_vec_b.get(), block_vec_x.get());
 
@@ -153,6 +177,47 @@ TYPED_TEST(BlockMatrix, AppliesToVector)
 }
 
 
+TYPED_TEST(BlockMatrix, AppliesToVectorWithAlphaBeta)
+{
+    using value_type = typename TestFixture::value_type;
+    using mtx = typename TestFixture::mtx;
+    using vec = typename TestFixture::vec;
+    auto block_mtx = gko::matrix::BlockMatrix::create(
+        this->exec, this->size,
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {this->a_block, this->b_block}, {this->c_block, this->d_block}},
+        this->spans);
+    auto block_vec_b = gko::matrix::BlockMatrix::create(
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{{this->b0_block},
+                                                              {this->b1_block}},
+        this->spans);
+    auto block_vec_x = gko::matrix::BlockMatrix::create(
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{{this->x0_block},
+                                                              {this->x1_block}},
+        this->spans);
+    auto block_vec_y = gko::matrix::BlockMatrix::create(
+        this->exec, gko::dim<2>{5, 1},
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {gko::initialize<vec>(
+                {2.2 * 9 + 3.3 / 2, 2.2 * 14 + 3.3 / 2, 2.2 * 19 + 3.3 / 2},
+                this->exec)},
+            {gko::initialize<vec>({2.2 * 9 + 3.3 / 2, 2.2 * 14 + 3.3 / 2},
+                                  this->exec)}},
+        this->spans);
+
+    block_mtx->apply(this->alpha.get(), block_vec_b.get(), this->beta.get(),
+                     block_vec_x.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::as<vec>(block_vec_x->get_block()[0][0]),
+                        gko::as<vec>(block_vec_y->get_block()[0][0]),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<vec>(block_vec_x->get_block()[1][0]),
+                        gko::as<vec>(block_vec_y->get_block()[1][0]),
+                        r<value_type>::value);
+}
+
 TYPED_TEST(BlockMatrix, AppliesToDenseVector)
 {
     using value_type = typename TestFixture::value_type;
@@ -160,7 +225,9 @@ TYPED_TEST(BlockMatrix, AppliesToDenseVector)
     using vec = typename TestFixture::vec;
     auto block_mtx = gko::matrix::BlockMatrix::create(
         this->exec, this->size,
-        {{this->a_block, this->b_block}, {this->c_block, this->d_block}});
+        std::vector<std::vector<std::shared_ptr<gko::LinOp>>>{
+            {this->a_block, this->b_block}, {this->c_block, this->d_block}},
+        this->spans);
 
     block_mtx->apply(this->b_dense.get(), this->x_dense.get());
 

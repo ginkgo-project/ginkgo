@@ -63,16 +63,17 @@ protected:
         : EnableLinOp<BlockMatrix>(exec, size)
     {}
 
-    BlockMatrix(std::shared_ptr<const Executor> exec, const dim<2> size,
-                const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks);
+    BlockMatrix(std::shared_ptr<const Executor> exec, dim<2> size,
+                std::vector<std::vector<std::shared_ptr<LinOp>>> blocks,
+                std::vector<gko::span> block_spans);
 
     BlockMatrix(std::shared_ptr<const Executor> exec,
                 SubmatrixCreateable* monolithic_matrix,
-                const std::vector<gko::span>& blocks);
+                std::vector<gko::span> blocks);
 
     BlockMatrix(std::shared_ptr<const Executor> exec,
                 SubmatrixViewCreateable* monolithic_matrix,
-                const std::vector<gko::span>& blocks);
+                std::vector<gko::span> blocks);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

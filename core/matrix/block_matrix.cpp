@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/block_matrix.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <utility>
 
 namespace gko {
 namespace matrix {
@@ -40,8 +41,40 @@ namespace matrix {
 namespace {
 
 
-std::unique_ptr<BlockMatrix> block_vector_view(LinOp* v,
-                                               std::vector<span> block_sizes)
+template <typename ValueType, typename IndexType>
+std::unique_ptr<BlockMatrix> block_vector_view(
+    distributed::Vector<ValueType, IndexType>* v,
+    const std::vector<span>& block_sizes,
+    const std::vector<dim<2>>& global_sizes)
+{
+    auto exec = v->get_executor();
+
+    span columns{0, v->get_size()[1]};
+
+    std::vector<std::vector<std::shared_ptr<LinOp>>> sub_blocks;
+
+    auto global_offset =
+        v->get_partition()->get_global_offset(v->get_communicator()->rank());
+    for (size_type i = 0; i < block_sizes.size(); ++i) {
+        const auto& rows = block_sizes[i];
+        gko::span local_rows{rows.begin - global_offset,
+                             rows.end - global_offset};
+
+        auto sub_vector = v->get_local()->create_submatrix(local_rows, columns);
+
+        auto sub = gko::share(distributed::Vector<ValueType, IndexType>::create(
+            exec, v->get_communicator(), v->get_partition(), global_sizes[i],
+            dim<2>{rows.length(), columns.length()}));
+        *(sub->get_local()) = std::move(*sub_vector.get());
+        sub_blocks.emplace_back(1, std::move(sub));
+    }
+    return BlockMatrix::create(v->get_executor(), v->get_size(),
+                               std::move(sub_blocks), block_sizes);
+}
+
+
+std::unique_ptr<BlockMatrix> block_vector_view(
+    LinOp* v, const std::vector<span>& block_sizes)
 {
     auto v_submatrix = dynamic_cast<SubmatrixViewCreateable*>(v);
     std::vector<std::vector<std::shared_ptr<LinOp>>> sub_blocks;
@@ -49,14 +82,44 @@ std::unique_ptr<BlockMatrix> block_vector_view(LinOp* v,
         sub_blocks.emplace_back(
             1, v_submatrix->create_submatrix(rows, {0, v->get_size()[1]}));
     }
-    return BlockMatrix::create(v->get_executor(), v->get_size(), sub_blocks);
+    return BlockMatrix::create(v->get_executor(), v->get_size(),
+                               std::move(sub_blocks), block_sizes);
 }
 
+
 std::unique_ptr<BlockMatrix, std::function<void(BlockMatrix*)>> block_vector(
-    LinOp* v, const std::vector<span>& blocks)
+    LinOp* v, const std::vector<span>& blocks,
+    const std::vector<dim<2>>& global_sizes)
 {
     if (auto p = dynamic_cast<BlockMatrix*>(v)) {
         return {p, [](auto ptr) {}};
+    } else if (dynamic_cast<distributed::DistributedBase*>(v)) {
+        if (auto p = dynamic_cast<distributed::Vector<float, int32>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p =
+                       dynamic_cast<distributed::Vector<float, int64>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p =
+                       dynamic_cast<distributed::Vector<double, int32>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p =
+                       dynamic_cast<distributed::Vector<double, int64>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p = dynamic_cast<
+                       distributed::Vector<std::complex<float>, int32>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p = dynamic_cast<
+                       distributed::Vector<std::complex<float>, int64>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p = dynamic_cast<
+                       distributed::Vector<std::complex<double>, int32>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else if (auto p = dynamic_cast<
+                       distributed::Vector<std::complex<double>, int64>*>(v)) {
+            return block_vector_view(p, blocks, global_sizes);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
     } else if (dynamic_cast<SubmatrixViewCreateable*>(v)) {
         return block_vector_view(v, blocks);
     } else {
@@ -85,47 +148,43 @@ std::vector<std::vector<std::shared_ptr<LinOp>>> create_sub_blocks(
 
 BlockMatrix::BlockMatrix(
     std::shared_ptr<const Executor> exec, const dim<2> size,
-    const std::vector<std::vector<std::shared_ptr<LinOp>>>& blocks)
+    std::vector<std::vector<std::shared_ptr<LinOp>>> blocks,
+    std::vector<gko::span> block_spans)
     : EnableLinOp<BlockMatrix>(exec, size),
       block_size_(blocks.size(), begin(blocks)->size()),
-      spans_(),
-      blocks_(blocks.size())
-{
-    for (size_t row = 0; row < blocks.size(); ++row) {
-        blocks_[row] = std::vector<std::shared_ptr<LinOp>>(begin(blocks)[row]);
-        auto span_begin = row > 0 ? spans_[row - 1].end : 0;
-        auto span_size =
-            blocks[row].empty() ? 0 : blocks[row][0]->get_size()[0];
-        spans_.emplace_back(span_begin, span_begin + span_size);
-        GKO_ASSERT_EQ(block_size_[1], blocks_[row].size());
-    }
-}
+      spans_(std::move(block_spans)),
+      blocks_(std::move(blocks))
+{}
 
 
 BlockMatrix::BlockMatrix(std::shared_ptr<const Executor> exec,
                          SubmatrixCreateable* monolithic_op,
-                         const std::vector<gko::span>& blocks)
-    : EnableLinOp<BlockMatrix>(exec, as<LinOp>(monolithic_op)->get_size()),
-      block_size_(blocks.size(), blocks.size()),
-      spans_(blocks),
-      blocks_(create_sub_blocks(monolithic_op, spans_))
+                         std::vector<gko::span> blocks)
+    : BlockMatrix(std::move(exec),
+                  dynamic_cast<LinOp*>(monolithic_op)->get_size(),
+                  create_sub_blocks(monolithic_op, blocks), std::move(blocks))
 {}
 
 
 BlockMatrix::BlockMatrix(std::shared_ptr<const Executor> exec,
                          SubmatrixViewCreateable* monolithic_op,
-                         const std::vector<gko::span>& blocks)
-    : EnableLinOp<BlockMatrix>(exec, as<LinOp>(monolithic_op)->get_size()),
-      block_size_(blocks.size(), blocks.size()),
-      spans_(blocks),
-      blocks_(create_sub_blocks(monolithic_op, spans_))
+                         std::vector<gko::span> blocks)
+    : BlockMatrix(std::move(exec),
+                  dynamic_cast<LinOp*>(monolithic_op)->get_size(),
+                  create_sub_blocks(monolithic_op, blocks), std::move(blocks))
 {}
 
 
 void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
 {
-    auto block_b = block_vector(const_cast<LinOp*>(b), spans_);
-    auto block_x = block_vector(x, spans_);
+    std::vector<dim<2>> vector_sizes(blocks_.size());
+    for (size_t block_row = 0; block_row < block_size_[0]; ++block_row) {
+        vector_sizes[block_row] = {blocks_[block_row][0]->get_size()[0],
+                                   b->get_size()[1]};
+    }
+
+    auto block_b = block_vector(const_cast<LinOp*>(b), spans_, vector_sizes);
+    auto block_x = block_vector(x, spans_, vector_sizes);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
@@ -149,8 +208,14 @@ void BlockMatrix::apply_impl(const LinOp* b, LinOp* x) const
 void BlockMatrix::apply_impl(const LinOp* alpha, const LinOp* b,
                              const LinOp* beta, LinOp* x) const
 {
-    auto block_b = block_vector(const_cast<LinOp*>(b), spans_);
-    auto block_x = block_vector(x, spans_);
+    std::vector<dim<2>> vector_sizes(blocks_.size());
+    for (size_t block_row = 0; block_row < block_size_[0]; ++block_row) {
+        vector_sizes[block_row] = {blocks_[block_row][0]->get_size()[0],
+                                   b->get_size()[1]};
+    }
+
+    auto block_b = block_vector(const_cast<LinOp*>(b), spans_, vector_sizes);
+    auto block_x = block_vector(x, spans_, vector_sizes);
 
     auto one = gko::initialize<Dense<double>>({1}, this->get_executor());
     auto zero = gko::initialize<Dense<double>>({0}, this->get_executor());
