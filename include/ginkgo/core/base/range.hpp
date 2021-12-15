@@ -109,6 +109,24 @@ struct span {
     GKO_ATTRIBUTES constexpr size_type length() const { return end - begin; }
 
     /**
+     * A stream operator overload for span
+     *
+     * @param os  stream object
+     * @param x  span object
+     *
+     * @return a stream object appended with the span output
+     */
+    friend std::ostream& operator<<(std::ostream& os, const span& x)
+    {
+        os << "[";
+        os << x.begin;
+        os << ", ";
+        os << x.end;
+        os << "]";
+        return os;
+    }
+
+    /**
      * Beginning of the span.
      */
     size_type begin;
