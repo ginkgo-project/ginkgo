@@ -280,7 +280,6 @@ __global__
     }
 }
 
-
 /**
  * 'Scales' a dense matrix or set of vectors with a dense vector.
  * It is equivalent to multiplication by a diagonal matrix whose diagonal
@@ -288,18 +287,6 @@ __global__
  *
  * One thread is assigned to each entry.
  */
-template <typename ValueType>
-__device__ __forceinline__ void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& scale_vec,
-    const gko::batch_dense::BatchEntry<ValueType>& a)
-{
-    for (int iz = threadIdx.x; iz < a.num_rows * a.num_rhs; iz += blockDim.x) {
-        const int row = iz / a.num_rhs;
-        const int col = iz % a.num_rhs;
-        a.values[row * a.stride + col] *= scale_vec.values[row];
-    }
-}
-
 template <typename ValueType>
 __device__ __forceinline__ void batch_scale(const int num_rows,
                                             const size_type stride,
