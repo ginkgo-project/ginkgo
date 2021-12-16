@@ -1,5 +1,5 @@
-#ifndef GKO_CORE_BASE_POSIT_HPP_
-#define GKO_CORE_BASE_POSIT_HPP_
+#ifndef GKO_ACC_POSIT_HPP_
+#define GKO_ACC_POSIT_HPP_
 
 
 #include <bitset>
@@ -21,11 +21,14 @@
 #endif
 
 
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include "math.hpp"
+#include "utils.hpp"
 
 
 namespace gko {
+namespace acc {
+
+
 namespace detail {
 
 
@@ -225,7 +228,7 @@ countl_one(T val)
 
 
 template <typename T>
-GKO_ATTRIBUTES std::enable_if_t<
+GKO_ACC_ATTRIBUTES std::enable_if_t<
     std::is_integral<T>::value && !std::is_signed<T>::value, int>
 countl_zero(T val)
 {
@@ -238,7 +241,7 @@ countl_zero(T val)
 
 
 template <typename T>
-GKO_ATTRIBUTES std::enable_if_t<
+GKO_ACC_ATTRIBUTES std::enable_if_t<
     std::is_integral<T>::value && !std::is_signed<T>::value, int>
 countl_one(T val)
 {
@@ -275,7 +278,7 @@ struct ieee_helper {
     static constexpr fp_uint_type significand_mask{
         (fp_uint_type{1} << significand_bits) - 1};
 
-    static GKO_ATTRIBUTES fp_uint_type to_uint(const ieee_type fp_value)
+    static GKO_ACC_ATTRIBUTES fp_uint_type to_uint(const ieee_type fp_value)
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return device::ieee_to_uint(fp_value);
@@ -286,7 +289,7 @@ struct ieee_helper {
 #endif
     }
 
-    static GKO_ATTRIBUTES ieee_type to_ieee(const fp_uint_type uint_value)
+    static GKO_ACC_ATTRIBUTES ieee_type to_ieee(const fp_uint_type uint_value)
     {
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return device::uint_to_ieee(uint_value);
@@ -299,34 +302,34 @@ struct ieee_helper {
 };
 
 
-template <int number_bits, typename verify = void*>
+template <int number_bits, typename verify = void>
 struct best_int {
     static_assert(number_bits < 0, "Negative values not supported!");
-    static_assert(std::is_same<verify, void*>::value,
+    static_assert(std::is_same<verify, void>::value,
                   "Do not touch the verify parameter!");
 };
 
 template <int number_bits>
 struct best_int<number_bits,
-                std::enable_if_t<0 <= number_bits && number_bits <= 8>*> {
+                std::enable_if_t<0 <= number_bits && number_bits <= 8>> {
     using type = std::uint8_t;
 };
 
 template <int number_bits>
 struct best_int<number_bits,
-                std::enable_if_t<8 < number_bits && number_bits <= 16>*> {
+                std::enable_if_t<8 < number_bits && number_bits <= 16>> {
     using type = std::uint16_t;
 };
 
 template <int number_bits>
 struct best_int<number_bits,
-                std::enable_if_t<16 < number_bits && number_bits <= 32>*> {
+                std::enable_if_t<16 < number_bits && number_bits <= 32>> {
     using type = std::uint32_t;
 };
 
 template <int number_bits>
 struct best_int<number_bits,
-                std::enable_if_t<32 < number_bits && number_bits <= 64>*> {
+                std::enable_if_t<32 < number_bits && number_bits <= 64>> {
     using type = std::uint64_t;
 };
 
@@ -364,25 +367,63 @@ set_fill_bits(Uint input)
     return input | ~((Uint{1} << (number_bits - 1)) - 1);
 }
 
+template <int number_bits, int es>
+constexpr std::enable_if_t<
+    (std::uint64_t{1} << es) * (number_bits - 2) < sizeof(int) * 8 - 1, int>
+min_exp_supported()
+{
+    return -(int{1} << ((1 << es) * (number_bits - 2)));
+}
+
+
+template <int number_bits, int es>
+constexpr std::enable_if_t<
+    (std::uint64_t{1} << es) * (number_bits - 2) >= sizeof(int) * 8 - 1, int>
+min_exp_supported()
+{
+    return std::numeric_limits<int>::min();
+}
+
+
+template <int number_bits, int es>
+constexpr std::enable_if_t<
+    (std::uint64_t{1} << es) * (number_bits - 2) < sizeof(int) * 8 - 1, int>
+max_exp_supported()
+{
+    return int{1} << ((1 << es) * (number_bits - 2));
+}
+
+
+template <int number_bits, int es>
+constexpr std::enable_if_t<
+    (std::uint64_t{1} << es) * (number_bits - 2) >= sizeof(int) * 8 - 1, int>
+max_exp_supported()
+{
+    return std::numeric_limits<int>::max();
+}
+
 
 }  // namespace detail
 
 
-template <int NumberBits, int ES>
+// Potential performance optimization to skip rounding when converting
+// IEEE <-> Posit
+template <int NumberBits, int ES, bool WithRounding = false>
 struct posit {
 public:
     static_assert(0 < NumberBits, "Number of bits must be at least 1!");
     static_assert(NumberBits <= 64, "Number of bits must be 64 or lower!");
-    static_assert(0 <= ES, "ES must be at least 0!");
+    static_assert(0 <= ES && ES <= 3, "ES must be at least 0 and at most 3!");
     static_assert(ES < NumberBits, "ES must be lower than NumberBits!");
 
     // Maximum number of exponent bits
     static constexpr int es{ES};
     static constexpr int number_bits{NumberBits};
+    static constexpr bool with_rounding{WithRounding};
 
     using uint_proxy_type = detail::best_int_t<number_bits>;
     // log_2 of useed ( = 2^es) )
-    static constexpr int two_power_es{es == 0 ? 1 : (2 << (es - 1))};
+    static constexpr int two_power_es{1 << es};
     // Base value for the regime ( = 2^(2^es)) )
     static constexpr int useed{1 << two_power_es};
 
@@ -410,7 +451,7 @@ public:
 
     constexpr bool get_sign() const { return memory & sign_mask_; }
 
-    GKO_ATTRIBUTES dissection dissect() const
+    GKO_ACC_ATTRIBUTES dissection dissect() const
     {
         dissection dis{};
 
@@ -434,7 +475,7 @@ public:
             mem = twos_complement(mem);
         }
 
-        extract_regime(mem, dis);
+        extract_regime(mem, dis.k, dis.number_r_bits);
 
         // Extract exponent
         // `es` needs to be made into a temporary, so it does not need to be
@@ -456,11 +497,16 @@ public:
     }
 
     template <typename IeeeType>
-    GKO_ATTRIBUTES IeeeType to_ieee() const
+    GKO_ACC_ATTRIBUTES IeeeType to_ieee() const
     {
         using ieee_type = IeeeType;
         using ieee = detail::ieee_helper<ieee_type>;
         using fp_uint_type = typename ieee::fp_uint_type;
+
+        constexpr int smallest_ieee_exp =
+            -ieee::exponent_bias + 1 - ieee::significand_bits + 1;
+        constexpr bool denormal_range_supported{smallest_supported_exp_ <
+                                                smallest_ieee_exp};
 
         if (memory == 0) {
             return 0;
@@ -483,10 +529,9 @@ public:
         const int base_two_exp = dis.e + dis.k * two_power_es;
 
         // Check for underflow
-        if (base_two_exp <= -ieee::exponent_bias) {
+        if (denormal_range_supported && base_two_exp <= -ieee::exponent_bias) {
             // if denormals are not enough, set it to the smallest value > 0
-            if (base_two_exp <
-                -ieee::exponent_bias + 1 - ieee::significand_bits + 1) {
+            if (base_two_exp < smallest_ieee_exp) {
                 return dis.sign ? -std::numeric_limits<ieee_type>::denorm_min()
                                 : std::numeric_limits<ieee_type>::denorm_min();
             } else {
@@ -507,6 +552,10 @@ public:
                     dis.number_f_bits + 1 -
                         (ieee::significand_bits - additional_right_shifts));
             }
+        } else if (!denormal_range_supported &&
+                   base_two_exp <= -ieee::exponent_bias) {
+            return dis.sign ? -std::numeric_limits<ieee_type>::denorm_min()
+                            : std::numeric_limits<ieee_type>::denorm_min();
         } else if (base_two_exp > ieee::exponent_bias) {
             return dis.sign ? -std::numeric_limits<ieee_type>::max()
                             : std::numeric_limits<ieee_type>::max();
@@ -527,74 +576,78 @@ public:
         return ieee::to_ieee(ui_val);
     }
 
-    GKO_ATTRIBUTES void set_k_e(const int exponent, dissection& dis)
+    GKO_ACC_ATTRIBUTES int set_k_e(const int exponent)
     {
         auto k_e = compute_k_e(exponent);
-        dis.k = std::get<0>(k_e);
-        dis.e = std::get<1>(k_e);
+        auto k = std::get<0>(k_e);
+        auto e = std::get<1>(k_e);
 
         uint_proxy_type regime{};
+        int number_f_bits{};
         // Somewhat underflow, assign the lowest number
-        if (dis.k <= -(number_bits - 1)) {
-            dis.number_r_bits = number_bits - 1;
-            dis.k = -dis.number_r_bits;
-            dis.e = 0;
+        if (k <= -(number_bits - 1)) {
+            // number_r_bits = number_bits - 1;
+            // k = -dis.number_r_bits;
+            e = 0;
+
             // Smallest regime possible, therefore, regime is all 0s except the
             // least significand bit (otherwise, it would be the special case
             // memory == 0)
             regime = uint_proxy_type{1};
         }
         // Somewhat overflow, assign the highest number
-        else if (dis.k >= number_bits - 2) {
-            dis.number_r_bits = number_bits - 1;
-            dis.k = dis.number_r_bits - 1;
-            dis.e = 0;
+        else if (k >= number_bits - 2) {
+            // number_r_bits = number_bits - 1;
+            // k = number_r_bits - 1;
+            e = 0;
             // Largest regime possible, therefore, regime is all 1s
-            regime = (uint_proxy_type{1} << (dis.number_r_bits)) - 1;
+            regime = (uint_proxy_type{1} << (number_bits - 1)) - 1;
         } else {
-            if (dis.k < 0) {
-                dis.number_r_bits = -dis.k + 1;
-                regime = 1;
+            int number_r_bits;
+            if (k < 0) {
+                number_r_bits = -k + 1;
+                regime = uint_proxy_type{1}
+                         << (number_bits - 1 - number_r_bits);
             } else {
-                dis.number_r_bits = dis.k + 2;
-                regime = (uint_proxy_type{1} << (dis.number_r_bits)) - 2;
+                number_r_bits = k + 2;
+                regime = (uint_proxy_type{1} << (number_r_bits)) - 2;
+                regime <<= number_bits - 1 - number_r_bits;
             }
-            // Move the regime to the correct place
-            regime <<= number_bits - 1 - dis.number_r_bits;
+            // Ignore exponent bits for now
+            number_f_bits = number_bits - 1 - number_r_bits;
         }
         // Update memory with the regime
         this->memory |= regime;
 
         // Figure out how many bits the exponent has, clean it up and move
         // it to memory
-        dis.number_e_bits =
-            std::min(int{es}, number_bits - 1 - dis.number_r_bits);
-        dis.number_f_bits =
-            number_bits - 1 - dis.number_r_bits - dis.number_e_bits;
-        uint_proxy_type posit_exponent{static_cast<uint_proxy_type>(dis.e)};
-
-        // If we don't have all expnent bits, right shifts are needed
-        // Note: e and k, as well as the number of bits will not be properly
-        //       updated
-        if (dis.number_e_bits < es) {
-            this->memory |= posit_exponent >> (es - dis.number_e_bits);
-            if ((posit_exponent >> (es - dis.number_e_bits - 1)) & 1) {
-                // Round up
+        uint_proxy_type posit_exponent{static_cast<uint_proxy_type>(e)};
+        // If we don't have all expnent bits, right shifts are needed for
+        // rounding
+        if (number_f_bits - es < 0) {
+            this->memory |= posit_exponent >> (es - number_f_bits);
+            if (with_rounding &&
+                posit_exponent & (1 << (es - number_f_bits - 1))) {
                 this->memory += 1;
             }
+            number_f_bits = 0;
         } else {
-            this->memory |= posit_exponent << dis.number_f_bits;
+            number_f_bits -= es;
+            this->memory |= posit_exponent << (number_f_bits);
         }
+        return number_f_bits;
     }
 
     template <typename T>
-    GKO_ATTRIBUTES void from_ieee(T val)
+    GKO_ACC_ATTRIBUTES void from_ieee(T val)
     {
         using ieee_type = T;
         using ieee = detail::ieee_helper<ieee_type>;
         using fp_uint_type = typename ieee::fp_uint_type;
 
-        dissection dis;
+        constexpr bool denormal_range_supported{smallest_supported_exp_ <
+                                                -ieee::exponent_bias};
+
         this->memory = 0;  // reset memory
 
         // Check for NaN or infinity
@@ -609,20 +662,24 @@ public:
 
         const auto ui_val = ieee::to_uint(val);
 
-        const int exponent = static_cast<int>((ui_val & ieee::exponent_mask) >>
-                                              ieee::significand_bits) -
-                             ieee::exponent_bias;
+        int exponent = static_cast<int>((ui_val & ieee::exponent_mask) >>
+                                        ieee::significand_bits) -
+                       ieee::exponent_bias;
+        if (!denormal_range_supported && exponent < smallest_supported_exp_) {
+            this->memory = 1;
+        } else if (!denormal_range_supported &&
+                   exponent > biggest_supported_exp_) {
+            this->memory = sign_mask_ - 1;
+        }
         // Detect denormals
-        if (exponent == -ieee::exponent_bias) {
-            int exponent_correction{1};
+        else if (denormal_range_supported && exponent == -ieee::exponent_bias) {
+            fp_uint_type current_significand = ui_val & ieee::significand_mask;
+
             // TODO improve implementation
-            auto current_significand = ui_val & ieee::significand_mask;
-            while (!(current_significand &
-                     (fp_uint_type{1}
-                      << (ieee::significand_bits - exponent_correction))) &&
-                   exponent_correction < ieee::significand_bits) {
-                ++exponent_correction;
-            }
+            const int exponent_correction =
+                1 + detail::countl_zero(current_significand) -
+                (ieee::number_bits - ieee::significand_bits);
+            //*/
             // Remove the first `1` as it will be an implicit 1 in the POSIT
             // format
             current_significand = current_significand ^
@@ -630,21 +687,19 @@ public:
                                                        exponent_correction));
             // New exponent according to IEEE denormals uses bias
             // `exponent_bias - 1`
-            const auto new_exponent =
-                -ieee::exponent_bias + 1 - exponent_correction;
+            exponent = -ieee::exponent_bias + 1 - exponent_correction;
 
-            set_k_e(new_exponent, dis);
+            int number_f_bits = set_k_e(exponent);
 
             // Set fraction accordingly
             this->memory |= right_shift<uint_proxy_type>(
-                current_significand, ieee::significand_bits -
-                                         exponent_correction -
-                                         dis.number_f_bits);
+                current_significand,
+                ieee::significand_bits - exponent_correction - number_f_bits);
         } else {
-            set_k_e(exponent, dis);
+            int number_f_bits = set_k_e(exponent);
 
             const auto num_right_shifts =
-                ieee::significand_bits - dis.number_f_bits;
+                ieee::significand_bits - number_f_bits;
 
             this->memory |= right_shift<uint_proxy_type>(
                 ui_val & ieee::significand_mask, num_right_shifts);
@@ -653,7 +708,7 @@ public:
             // only applied at the very end)
 
             // If we right shift, we lose precision -> rounding
-            if (num_right_shifts > 0 && dis.number_f_bits > 0) {
+            if (with_rounding && num_right_shifts > 0 && number_f_bits > 0) {
                 // Rounding implementation (mostly) according to
                 // https://www.posithub.org/posit_standard4.12.pdf
                 auto cutoff =
@@ -692,12 +747,12 @@ public:
         return this->memory == other.memory;
     }
 
-    GKO_ATTRIBUTES operator double() const
+    GKO_ACC_ATTRIBUTES operator double() const
     {
         return this->template to_ieee<double>();
     }
 
-    GKO_ATTRIBUTES operator float() const
+    GKO_ACC_ATTRIBUTES operator float() const
     {
         return this->template to_ieee<float>();
     }
@@ -706,9 +761,9 @@ public:
 
     constexpr posit(uint_proxy_type val) : memory{val} {}
 
-    GKO_ATTRIBUTES posit(double val) { this->from_ieee(val); }
+    GKO_ACC_ATTRIBUTES posit(double val) { this->from_ieee(val); }
 
-    GKO_ATTRIBUTES posit(float val) { this->from_ieee(val); }
+    GKO_ACC_ATTRIBUTES posit(float val) { this->from_ieee(val); }
 
 
 private:
@@ -716,6 +771,10 @@ private:
                                                 << (number_bits - 1)};
     static constexpr uint_proxy_type msb_regime_mask_{uint_proxy_type{1}
                                                       << (number_bits - 2)};
+    static constexpr int smallest_supported_exp_ =
+        detail::min_exp_supported<number_bits, es>();
+    static constexpr int biggest_supported_exp_ =
+        detail::max_exp_supported<number_bits, es>();
 
     // TODO: Figure out what to do if e would be cut off and is larger than the
     //       number of bits (in practice, it needs to be shifted to the right
@@ -723,16 +782,14 @@ private:
     static constexpr std::tuple<int, int> compute_k_e(int base_two_exponent)
     {
         int k = base_two_exponent / two_power_es;
-        const int e = base_two_exponent % two_power_es;
+        int e = base_two_exponent % two_power_es;
         // Since the e exponent is only positive, we need to round
         // towards negative infinity when computing k
-        if (base_two_exponent < 0 &&
-            static_cast<bool>(base_two_exponent & (two_power_es - 1))) {
+        if (e < 0) {
             k = k - 1;
+            e += two_power_es;
         }
-        // TODO Fix negative number results for e (in case base_two_exponent is
-        // negative) properly
-        return {k, (e < 0 ? two_power_es + e : e)};
+        return {k, e};
     }
 
     // Compute the two's complement of a given number by using unary minus.
@@ -752,8 +809,8 @@ private:
     // right_shifts: number of right shifts to adopt the given input to
     // the OutputType. Can be negative to indicate left shift.
     template <typename OutputType, typename UintType>
-    static GKO_ATTRIBUTES OutputType right_shift(const UintType input,
-                                                 const int right_shifts)
+    static GKO_ACC_ATTRIBUTES OutputType right_shift(const UintType input,
+                                                     const int right_shifts)
     {
         if (right_shifts > 0) {
             return static_cast<OutputType>(input >> (right_shifts));
@@ -762,8 +819,9 @@ private:
         }
     }
 
-    static GKO_ATTRIBUTES void extract_regime(uint_proxy_type mem,
-                                              dissection& dis)
+    static inline GKO_ACC_ATTRIBUTES void extract_regime(uint_proxy_type mem,
+                                                         int& k,
+                                                         int& number_r_bits)
     {
         // Count for the regime; Needs to be optimized!
         // Filling bits + sign bit are the leading non-regime bits
@@ -776,16 +834,16 @@ private:
                 detail::countl_zero(static_cast<uint_proxy_type>(
                     detail::clear_fill_bits<number_bits>(mem))) -
                 leading_non_regime_bits;
-            dis.k = -(num_zeros);
-            dis.number_r_bits = std::min(num_zeros + 1, number_bits - 1);
+            k = -(num_zeros);
+            number_r_bits = std::min(num_zeros + 1, number_bits - 1);
         } else {
             // Additional cast necessary because of potential integer promotion
             const auto num_ones =
                 detail::countl_one(static_cast<uint_proxy_type>(
                     detail::set_fill_bits<number_bits>(mem) | sign_mask_)) -
                 leading_non_regime_bits;
-            dis.k = num_ones - 1;
-            dis.number_r_bits = std::min(num_ones + 1, number_bits - 1);
+            k = num_ones - 1;
+            number_r_bits = std::min(num_ones + 1, number_bits - 1);
         }
     }
 };
@@ -847,14 +905,13 @@ public:
     template <template <typename> class Complex, typename T,
               typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
                                           std::is_floating_point<T>::value>>
-    GKO_ATTRIBUTES complex_posit(Complex<T> val)
-        : real{val.real()}, imag{val.imag()}
+    complex_posit(Complex<T> val) : real{val.real()}, imag{val.imag()}
     {}
 
     template <template <typename> class Complex, typename T,
               typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
                                           std::is_floating_point<T>::value>>
-    GKO_ATTRIBUTES operator Complex<T>() const
+    GKO_ACC_ATTRIBUTES operator Complex<T>() const
     {
         return {static_cast<T>(real), static_cast<T>(imag)};
     }
@@ -875,7 +932,8 @@ using complex_posit32_2 = complex_posit<posit32_2>;
 using complex_posit32_3 = complex_posit<posit32_3>;
 
 
+}  // namespace acc
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_POSIT_HPP_
+#endif  // GKO_ACC_POSIT_HPP_

@@ -52,6 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_kernels.hpp"
 
 
+#include "accessor/posit.hpp"
+
+
 namespace gko {
 namespace solver {
 namespace cb_gmres {
@@ -97,22 +100,22 @@ struct to_posit_impl {};
 
 template <>
 struct to_posit_impl<double> {
-    using type = posit<64, 4>;
+    using type = acc::posit<64, 3>;
 };
 
 template <>
 struct to_posit_impl<float> {
-    using type = posit32_3;
+    using type = acc::posit32_3;
 };
 
 template <>
 struct to_posit_impl<half> {
-    using type = posit16_2;
+    using type = acc::posit16_2;
 };
 
 template <typename T>
 struct to_posit_impl<std::complex<T>> {
-    using type = complex_posit<typename to_posit_impl<T>::type>;
+    using type = acc::complex_posit<typename to_posit_impl<T>::type>;
 };
 
 

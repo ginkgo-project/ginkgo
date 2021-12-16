@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/kernel_declaration.hpp"
 
 
-#include "core/base/posit.hpp"
+#include "accessor/posit.hpp"
 
 
 // TODO Find way around using it!
@@ -81,15 +81,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, double, _const posit32_3>>)); \
+            acc::range<                                                        \
+                acc::reduced_row_major<3, double, _const acc::posit32_3>>));   \
     template _macro(                                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, double, _const posit16_2>>)); \
+            acc::range<                                                        \
+                acc::reduced_row_major<3, double, _const acc::posit16_2>>));   \
     template _macro(                                                           \
         float,                                                                 \
-        GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, float, _const posit16_2>>));  \
+        GKO_UNPACK(acc::range<                                                 \
+                   acc::reduced_row_major<3, float, _const acc::posit16_2>>)); \
     template _macro(double,                                                    \
                     GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
                                    3, double, _const int64, 0b101>>));         \
@@ -131,18 +133,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, std::complex<double>,         \
-                                              _const complex_posit32_3>>));    \
+            acc::range<acc::reduced_row_major<                                 \
+                3, std::complex<double>, _const acc::complex_posit32_3>>));    \
     template _macro(                                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, std::complex<double>,         \
-                                              _const complex_posit16_2>>));    \
+            acc::range<acc::reduced_row_major<                                 \
+                3, std::complex<double>, _const acc::complex_posit16_2>>));    \
     template _macro(                                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, std::complex<float>,          \
-                                              _const complex_posit16_2>>))
+            acc::range<acc::reduced_row_major<                                 \
+                3, std::complex<float>, _const acc::complex_posit16_2>>))
 
 #define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, )

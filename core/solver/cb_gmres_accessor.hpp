@@ -54,7 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/scaled_reduced_row_major.hpp"
 
 
-#include "core/base/posit.hpp"
+#include "accessor/posit.hpp"
 
 
 namespace gko {
@@ -153,10 +153,10 @@ private:
 };
 
 template <typename ValueType, int NumberBits, int ES>
-class Range3dHelper<ValueType, posit<NumberBits, ES>, false> {
+class Range3dHelper<ValueType, acc::posit<NumberBits, ES>, false> {
 public:
     using value_type = ValueType;
-    using storage_type = posit<NumberBits, ES>;
+    using storage_type = acc::posit<NumberBits, ES>;
     using Accessor = acc::reduced_row_major<3, value_type, storage_type>;
     using Range = acc::range<Accessor>;
 

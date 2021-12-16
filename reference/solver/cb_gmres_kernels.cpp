@@ -88,8 +88,8 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
         for (size_type k = 0; k < iter + 1; ++k) {
             hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                hessenberg_iter->at(k, i) +=
-                    next_krylov_basis->at(j, i) * conj(krylov_bases(k, j, i));
+                hessenberg_iter->at(k, i) += next_krylov_basis->at(j, i) *
+                                             acc::conj(krylov_bases(k, j, i));
             }
         }
         // for i in 1:iter
@@ -128,7 +128,7 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     buffer_iter->at(k, i) += next_krylov_basis->at(j, i) *
-                                             conj(krylov_bases(k, j, i));
+                                             acc::conj(krylov_bases(k, j, i));
                 }
             }
             // for i in 1:iter
@@ -138,7 +138,8 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType>* next_krylov_basis,
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * conj(krylov_bases(k, j, i));
+                        buffer_iter->at(k, i) *
+                        acc::conj(krylov_bases(k, j, i));
                 }
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
