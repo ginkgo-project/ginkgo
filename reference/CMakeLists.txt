@@ -25,6 +25,7 @@ target_sources(ginkgo_reference
     factorization/par_ilut_kernels.cpp
     matrix/batch_csr_kernels.cpp
     matrix/batch_dense_kernels.cpp
+    matrix/batch_diagonal_kernels.cpp
     matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
