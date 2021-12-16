@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
@@ -480,6 +481,7 @@ TYPED_TEST(BatchCsr, CanPreScaleSystem)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using Vec = typename TestFixture::Vec;
+    using Diag = gko::matrix::BatchDiagonal<value_type>;
     const size_t nbatch = 2;
     const int nrows = 3;
     const int nrhs = 2;
@@ -489,13 +491,13 @@ TYPED_TEST(BatchCsr, CanPreScaleSystem)
     mtx->get_col_idxs()[5] = 0;  // make unsymmetric
     mtx->get_values()[4] = -0.5;
     mtx->get_values()[nnz + 2] = -0.25;
-    auto left =
-        gko::batch_initialize<Vec>(nbatch, {-1.0, 3.0, 1.0}, this->exec);
-    left->at(1, 2, 0) = -2.0;
-    auto right =
-        gko::batch_initialize<Vec>(nbatch, {1.0, 2.0, -1.0}, this->exec);
-    right->at(1, 0, 0) = -0.5;
-    right->at(1, 2, 0) = 3.0;
+    auto left = gko::batch_diagonal_initialize<value_type>(
+        nbatch, {-1.0, 3.0, 1.0}, this->exec);
+    left->at(1, 2) = -2.0;
+    auto right = gko::batch_diagonal_initialize<value_type>(
+        nbatch, {1.0, 2.0, -1.0}, this->exec);
+    right->at(1, 0) = -0.5;
+    right->at(1, 2) = 3.0;
     auto ref_scaled_mtx = Mtx::create(this->exec);
     ref_scaled_mtx->copy_from(mtx.get());
     value_type* const refvals = ref_scaled_mtx->get_values();
@@ -525,7 +527,7 @@ TYPED_TEST(BatchCsr, CanPreScaleSystem)
     soln_b->at(1,2,0) = -4.0; soln_b->at(1,2,1) = 3.0;
     // clang-format on
 
-    gko::kernels::reference::batch_csr::pre_diag_scale_system(
+    gko::kernels::reference::batch_csr::pre_diag_transform_system(
         this->exec, left.get(), right.get(), mtx.get(), b.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(soln_b, b, 0.0);
