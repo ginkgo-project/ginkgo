@@ -70,7 +70,6 @@ GKO_REGISTER_OPERATION(convergence_compute_norm2,
                        batch_dense::convergence_compute_norm2);
 GKO_REGISTER_OPERATION(copy, batch_dense::copy);
 GKO_REGISTER_OPERATION(convergence_copy, batch_dense::convergence_copy);
-GKO_REGISTER_OPERATION(batch_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(convert_to_batch_csr, batch_dense::convert_to_batch_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, batch_dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
