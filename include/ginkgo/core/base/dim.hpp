@@ -298,7 +298,7 @@ struct batch_dim {
      *
      * @return  the size of the batch entry at the requested batch-index
      */
-    const dim<dimensionality, dimension_type> &at(
+    const dim<dimensionality, dimension_type>& at(
         const size_type batch_entry = 0) const
     {
         if (equal_sizes_) {
@@ -317,7 +317,7 @@ struct batch_dim {
      *
      * @return true if and only if all dimensions of both objects are equal.
      */
-    friend bool operator==(const batch_dim &x, const batch_dim &y)
+    friend bool operator==(const batch_dim& x, const batch_dim& y)
     {
         if (x.equal_sizes_ && y.equal_sizes_) {
             return x.num_batch_entries_ == y.num_batch_entries_ &&
@@ -336,9 +336,9 @@ struct batch_dim {
      *
      * @note  Use this constructor when uniform batches need to be stored.
      */
-    batch_dim(const size_type num_batch_entries = 0,
-              const dim<dimensionality, dimension_type> &common_size =
-                  dim<dimensionality, dimension_type>{})
+    explicit batch_dim(const size_type num_batch_entries = 0,
+                       const dim<dimensionality, dimension_type>& common_size =
+                           dim<dimensionality, dimension_type>{})
         : equal_sizes_(true),
           common_size_(common_size),
           num_batch_entries_(num_batch_entries),
@@ -354,7 +354,7 @@ struct batch_dim {
      * @note  Use this constructor when non-uniform batches need to be stored.
      */
     batch_dim(
-        const std::vector<dim<dimensionality, dimension_type>> &batch_sizes)
+        const std::vector<dim<dimensionality, dimension_type>>& batch_sizes)
         : equal_sizes_(false),
           common_size_(dim<dimensionality, dimension_type>{}),
           num_batch_entries_(batch_sizes.size()),
@@ -431,8 +431,8 @@ constexpr GKO_ATTRIBUTES GKO_INLINE dim<2, DimensionType> transpose(
  * @return `!(x == y)`
  */
 template <size_type Dimensionality, typename DimensionType>
-inline bool operator!=(const batch_dim<Dimensionality, DimensionType> &x,
-                       const batch_dim<Dimensionality, DimensionType> &y)
+inline bool operator!=(const batch_dim<Dimensionality, DimensionType>& x,
+                       const batch_dim<Dimensionality, DimensionType>& y)
 {
     return !(x == y);
 }
@@ -450,7 +450,7 @@ inline bool operator!=(const batch_dim<Dimensionality, DimensionType> &x,
  */
 template <typename DimensionType>
 inline batch_dim<2, DimensionType> transpose(
-    const batch_dim<2, DimensionType> &input)
+    const batch_dim<2, DimensionType>& input)
 {
     batch_dim<2, DimensionType> out{};
     if (input.stores_equal_sizes()) {
