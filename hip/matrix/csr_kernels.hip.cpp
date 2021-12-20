@@ -1043,6 +1043,26 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
+                         const matrix::Dense<ValueType>* const alpha,
+                         const matrix::Dense<ValueType>* const beta,
+                         matrix::Csr<ValueType, IndexType>* const mtx)
+{
+    const auto nrows = mtx->get_size()[0];
+    const auto nthreads = nrows * config::warp_size;
+    const auto nblocks = ceildiv(nthreads, default_block_size);
+    hipLaunchKernelGGL(kernel::add_scaled_identity, nblocks, default_block_size,
+                       0, 0, as_hip_type(alpha->get_const_values()),
+                       as_hip_type(beta->get_const_vaules()), nrows,
+                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                       as_hip_type(mtx->get_vaules()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace csr
 }  // namespace hip
 }  // namespace kernels

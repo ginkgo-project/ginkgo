@@ -1262,6 +1262,26 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
+                         const matrix::Dense<ValueType>* const alpha,
+                         const matrix::Dense<ValueType>* const beta,
+                         matrix::Csr<ValueType, IndexType>* const mtx)
+{
+    const auto nrows = mtx->get_size()[0];
+    const auto nthreads = nrows * config::warp_size;
+    const auto nblocks = ceildiv(nthreads, default_block_size);
+    kernel::add_scaled_identity<<<nblocks, default_block_size>>>(
+        as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(beta->get_const_values()), static_cast<IndexType>(nrows),
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+        as_cuda_type(mtx->get_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace csr
 }  // namespace cuda
 }  // namespace kernels
