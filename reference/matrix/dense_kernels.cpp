@@ -1035,6 +1035,27 @@ void get_imag(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
 
 
+template <typename ValueType, typename ScalarType>
+void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
+                         const matrix::Dense<ScalarType>* const alpha,
+                         const matrix::Dense<ScalarType>* const beta,
+                         matrix::Dense<ValueType>* const mtx)
+{
+    const auto dim = mtx->get_size();
+    for (size_type row = 0; row < dim[0]; row++) {
+        for (size_type col = 0; col < dim[1]; col++) {
+            mtx->at(row, col) = beta->get_const_values()[0] * mtx->at(row, col);
+            if (row == col) {
+                mtx->at(row, row) += alpha->get_const_values()[0];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace dense
 }  // namespace reference
 }  // namespace kernels

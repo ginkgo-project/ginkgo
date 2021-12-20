@@ -294,6 +294,12 @@ namespace kernels {
                   const matrix::Dense<_vtype>* source,         \
                   matrix::Dense<remove_complex<_vtype>>* result)
 
+#define GKO_DECLARE_ADD_SCALED_IDENTITY_KERNEL(_vtype, _scalar_type)      \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
+                             const matrix::Dense<_scalar_type>* alpha,    \
+                             const matrix::Dense<_scalar_type>* beta,     \
+                             matrix::Dense<_vtype>* mtx)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \
@@ -385,7 +391,9 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_GET_REAL_KERNEL(ValueType);                                 \
     template <typename ValueType>                                           \
-    GKO_DECLARE_GET_IMAG_KERNEL(ValueType)
+    GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                 \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);

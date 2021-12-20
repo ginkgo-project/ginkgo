@@ -3802,6 +3802,23 @@ TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
 }
 
 
+// TYPED_TEST(Dense, AddScaledIdentity)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using T = typename TestFixture::value_type;
+//     auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
+//     auto beta = gko::initialize<Mtx>({3.0}, this->exec);
+
+//     gko::kernels::reference::dense::add_scaled_identity(this->exec,
+//         alpha.get(), beta.get(), this->mtx2.get());
+
+//     ASSERT_EQ(this->mtx2->at(0, 0), T{1.0});
+//     ASSERT_EQ(this->mtx2->at(0, 1), T{-3.0});
+//     ASSERT_EQ(this->mtx2->at(1, 0), T{-6.0});
+//     ASSERT_EQ(this->mtx2->at(1, 1), T{4.0});
+// }
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
