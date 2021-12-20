@@ -98,12 +98,12 @@ namespace kernels {
         device_matrix_data<ValueType, LocalIndexType>& offdiag_data, \
         Array<global_index_type>& col_map)
 
-#define GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN(LocalIndexType)            \
-    void check_indices_within_span(                                      \
+#define GKO_DECLARE_MAP_LOCAL_COL_IDXS_TO_SPAN(LocalIndexType)           \
+    void map_local_col_idxs_to_span(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const Array<LocalIndexType>& indices,                            \
         const Array<global_index_type>& to_global, gko::span valid_span, \
-        Array<bool>& index_is_valid)
+        global_index_type new_offset, Array<global_index_type>& new_index_map)
 
 #define GKO_DECLARE_ZERO_OUT_INVALID_COLUMNS(ValueType, IndexType) \
     void zero_out_invalid_columns(                                 \
@@ -135,7 +135,7 @@ namespace kernels {
     template <typename ValueType, typename LocalIndexType>           \
     GKO_DECLARE_COMPRESS_OFFDIAG_DATA(ValueType, LocalIndexType);    \
     template <typename LocalIndexType>                               \
-    GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN(LocalIndexType);           \
+    GKO_DECLARE_MAP_LOCAL_COL_IDXS_TO_SPAN(LocalIndexType);          \
     template <typename ValueType, typename LocalIndexType>           \
     GKO_DECLARE_ZERO_OUT_INVALID_COLUMNS(ValueType, LocalIndexType); \
     template <typename ValueType>                                    \

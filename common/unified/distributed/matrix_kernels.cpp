@@ -54,27 +54,31 @@ namespace distributed_matrix {
 
 
 template <typename LocalIndexType>
-void check_indices_within_span(std::shared_ptr<const DefaultExecutor> exec,
-                               const Array<LocalIndexType>& indices,
-                               const Array<global_index_type>& to_global,
-                               gko::span valid_span,
-                               Array<bool>& index_is_valid)
+void map_local_col_idxs_to_span(std::shared_ptr<const DefaultExecutor> exec,
+                                const Array<LocalIndexType>& indices,
+                                const Array<global_index_type>& to_global,
+                                gko::span valid_span,
+                                global_index_type new_offset,
+                                Array<global_index_type>& new_index_map)
 {
     auto transform = [] GKO_KERNEL(const auto i, const auto* indices,
                                    const auto* to_global, const auto valid_span,
-                                   auto* index_is_valid) {
+                                   const auto new_offset, auto* new_index_map) {
         const auto idx = indices[i];
         auto global_idx = to_global[idx];
-        index_is_valid[i] =
-            valid_span.begin <= global_idx && global_idx < valid_span.end;
+        if (valid_span.begin <= global_idx && global_idx < valid_span.end) {
+            new_index_map[i] = new_offset + global_idx - valid_span.begin;
+        } else {
+            new_index_map[i] = invalid_index<global_index_type>();
+        }
     };
-    index_is_valid.resize_and_reset(indices.get_num_elems());
+    new_index_map.resize_and_reset(indices.get_num_elems());
     run_kernel(exec, transform, indices.get_num_elems(),
                indices.get_const_data(), to_global.get_const_data(), valid_span,
-               index_is_valid.get_data());
+               new_offset, new_index_map.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_MAP_LOCAL_COL_IDXS_TO_SPAN);
 
 
 template <typename ValueType, typename IndexType>

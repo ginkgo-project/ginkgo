@@ -639,12 +639,13 @@ TYPED_TEST(Matrix, CheckIndicesWithinSpan)
         this->ref,
         {0, 1, 0, 0, 4, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 20}};
     gko::span valid_span{1, 9};
-    gko::Array<bool> result_ref{this->ref,
-                                {false, true, true, true, true, false, false}};
-    gko::Array<bool> result{this->ref};
+    auto ii = gko::invalid_index<global_index_type>();
+    gko::Array<global_index_type> result_ref{
+        this->ref, I<global_index_type>{ii, 0, 0, 3, 7, ii, ii}};
+    gko::Array<global_index_type> result{this->ref};
 
-    gko::kernels::reference::distributed_matrix::check_indices_within_span(
-        this->ref, indices, to_global, valid_span, result);
+    gko::kernels::reference::distributed_matrix::map_local_col_idxs_to_span(
+        this->ref, indices, to_global, valid_span, 0, result);
 
     GKO_ASSERT_ARRAY_EQ(result, result_ref);
 }
@@ -658,14 +659,49 @@ TYPED_TEST(Matrix, CheckIndicesWithinSpanWithGlobalMapping)
         this->ref,
         {20, 17, 0, 0, 8, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0}};
     gko::span valid_span{1, 9};
-    gko::Array<bool> result_ref{this->ref,
-                                {false, false, false, true, true, true, false}};
-    gko::Array<bool> result{this->ref};
+    auto ii = gko::invalid_index<global_index_type>();
+    gko::Array<global_index_type> result_ref{
+        this->ref, I<global_index_type>{ii, ii, ii, 7, 3, 0, ii}};
+    gko::Array<global_index_type> result{this->ref};
 
-    gko::kernels::reference::distributed_matrix::check_indices_within_span(
-        this->ref, indices, to_global, valid_span, result);
+    gko::kernels::reference::distributed_matrix::map_local_col_idxs_to_span(
+        this->ref, indices, to_global, valid_span, 0, result);
 
     GKO_ASSERT_ARRAY_EQ(result, result_ref);
+}
+
+/*
+ * build_recv_sizes(std::shared_ptr<const DefaultExecutor> exec,
+const IndexType* col_idxs, size_type num_cols,
+const distributed::Partition<IndexType>* partition,
+const global_index_type* map,
+Array<comm_index_type>& recv_sizes,
+Array<comm_index_type>& recv_offsets,
+Array<IndexType>& recv_indices)
+ */
+
+TYPED_TEST(Matrix, BuildRecvSizes)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    gko::Array<local_index_type> col_idxs{this->ref, {0, 3, 1, 2}};
+    auto part =
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, {this->ref, {0, 2, 4, 6}});
+    gko::Array<global_index_type> map{this->ref, {2, 3, 4, 5}};
+    gko::Array<comm_index_type> recv_sizes{this->ref};
+    gko::Array<comm_index_type> recv_offsets{this->ref};
+    gko::Array<local_index_type> recv_indices{this->ref};
+    gko::Array<comm_index_type> ref_recv_sizes{this->ref, {0, 2, 2}};
+    gko::Array<comm_index_type> ref_recv_offsets{this->ref, {0, 0, 2, 4}};
+    gko::Array<local_index_type> ref_recv_indices{this->ref, {0, 1, 0, 1}};
+
+    gko::kernels::reference::distributed_matrix::build_recv_sizes(
+        this->ref, col_idxs.get_data(), col_idxs.get_num_elems(), part.get(),
+        map.get_data(), recv_sizes, recv_offsets, recv_indices);
+
+    GKO_ASSERT_ARRAY_EQ(recv_sizes, ref_recv_sizes);
+    GKO_ASSERT_ARRAY_EQ(recv_offsets, ref_recv_offsets);
+    GKO_ASSERT_ARRAY_EQ(recv_indices, ref_recv_indices);
 }
 
 

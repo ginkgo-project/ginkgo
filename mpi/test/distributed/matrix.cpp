@@ -169,6 +169,42 @@ protected:
         }
     }
 
+    void assert_eq_partition(const Partition* part, const Partition* ref)
+    {
+        auto exec = part->get_executor();
+        ASSERT_EQ(part->get_size(), ref->get_size());
+        ASSERT_EQ(part->get_num_parts(), ref->get_num_parts());
+        ASSERT_EQ(part->get_num_ranges(), ref->get_num_ranges());
+        GKO_ASSERT_ARRAY_EQ(
+            gko::Array<global_index_type>::view(
+                exec, part->get_num_ranges() + 1,
+                const_cast<global_index_type*>(part->get_const_range_bounds())),
+            gko::Array<global_index_type>::view(
+                exec, ref->get_num_ranges() + 1,
+                const_cast<global_index_type*>(ref->get_const_range_bounds())));
+        GKO_ASSERT_ARRAY_EQ(
+            gko::Array<local_index_type>::view(
+                exec, part->get_num_parts(),
+                const_cast<local_index_type*>(part->get_part_sizes())),
+            gko::Array<local_index_type>::view(
+                exec, ref->get_num_parts(),
+                const_cast<local_index_type*>(ref->get_part_sizes())));
+        GKO_ASSERT_ARRAY_EQ(
+            gko::Array<comm_index_type>::view(
+                exec, part->get_num_parts(),
+                const_cast<comm_index_type*>(part->get_const_part_ids())),
+            gko::Array<comm_index_type>::view(
+                exec, ref->get_num_parts(),
+                const_cast<comm_index_type*>(ref->get_const_part_ids())));
+        GKO_ASSERT_ARRAY_EQ(
+            gko::Array<local_index_type>::view(
+                exec, part->get_num_ranges(),
+                const_cast<local_index_type*>(part->get_range_ranks())),
+            gko::Array<local_index_type>::view(
+                exec, ref->get_num_ranges(),
+                const_cast<local_index_type*>(ref->get_range_ranks())));
+    }
+
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::mpi::communicator> comm;
@@ -441,6 +477,8 @@ TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperLeftApply)
 
     GKO_ASSERT_MTX_NEAR(x->get_local(), ref_x->get_local(),
                         r<value_type>::value);
+    this->assert_eq_partition(dist_sub_mat->get_partition(),
+                              ref_dist_sub_mat->get_partition());
 }
 
 
@@ -529,6 +567,8 @@ TYPED_TEST(Matrix, CanCreateSubmatrixLargeUpperRightApply)
         {{-18}, {-6}}, {{-4 - 3 * 66}, {5 * 2}}, {{-44 + 6 * 3}, {-55 * 2}}};
     GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
                         r<value_type>::value);
+    this->assert_eq_partition(dist_sub_mat->get_partition(),
+                              block_col_partition.get());
 }
 
 
@@ -602,16 +642,22 @@ TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerLeftApply)
     auto block_partition = gko::share(
         gko::distributed::Partition<local_index_type>::build_from_contiguous(
             this->ref, gko::Array<global_index_type>{this->ref, {0, 2, 4, 6}}));
+    auto block_row_partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 1, 2, 3}}));
     auto b = TestFixture::Vec::create(this->ref, this->comm);
     b->read_distributed({{1}, {2}, {3}, {4}, {5}, {6}}, block_partition);
-    auto x = TestFixture::Vec::create(this->ref, this->comm, block_partition,
-                                      gko::dim<2>{3, 1}, gko::dim<2>{1, 1});
+    auto x =
+        TestFixture::Vec::create(this->ref, this->comm, block_row_partition,
+                                 gko::dim<2>{3, 1}, gko::dim<2>{1, 1});
 
     dist_sub_mat->apply(b.get(), x.get());
 
     I<I<value_type>> cmp_x[3] = {{{-483}}, {{-424}}, {{-441}}};
     GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
                         r<value_type>::value);
+    this->assert_eq_partition(dist_sub_mat->get_partition(),
+                              block_row_partition.get());
 }
 
 
@@ -695,6 +741,93 @@ TYPED_TEST(Matrix, CanCreateSubmatrixLargeLowerRightApply)
     I<I<value_type>> cmp_x[3] = {{{17}}, {{38}}, {{69}}};
     GKO_ASSERT_MTX_NEAR(x->get_local(), cmp_x[this->comm->rank()],
                         r<value_type>::value);
+    this->assert_eq_partition(dist_sub_mat->get_partition(),
+                              block_partition.get());
+}
+
+
+TYPED_TEST(Matrix, CanGatherSubmatrixLargeUpperLeft)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::span col_spans[3] = {{1, 3}, {3, 5}, {6, 8}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {0, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 8, 0, 0, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 0}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    auto ref_gathered_sub_mat =
+        gko::initialize<typename TestFixture::GMtx>({{1, 1, -2, 0, 0, -3},
+                                                     {1, 1, 0, -2, -3, 0},
+                                                     {0, -1, 2, 2, -33, 0},
+                                                     {-1, 0, 2, 2, 0, -33},
+                                                     {-11, 0, -22, 0, 3, 3},
+                                                     {-11, 0, 0, -22, 3, 3}},
+                                                    this->ref);
+    auto gathered_sub_mat = TestFixture::GMtx::create(this->ref);
+
+    dist_sub_mat->convert_to(gathered_sub_mat.get());
+
+    if (gathered_sub_mat->get_size()) {
+        GKO_ASSERT_MTX_NEAR(gathered_sub_mat, ref_gathered_sub_mat,
+                            r<value_type>::value);
+    }
+}
+
+TYPED_TEST(Matrix, CanGatherSubmatrixLargeLowerRight)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    auto rank = this->comm->rank();
+    gko::span row_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::span col_spans[3] = {{0, 1}, {5, 6}, {8, 9}};
+    gko::matrix_data<value_type, global_index_type> md{
+        // clang-format off
+        {17, 7, 0, 0, -7, 0, 0, -77, 0},
+        {0, 1, 1, -2, 0, 0, 0, -3, -6},
+        {4, 1, 1, 0, -2, -5, -3, 0, 0},
+        {-4, 0, -1, 2, 2, 0, -33, 0, -66},
+        {0, -1, 0, 2, 2, 5, 0, -33, 0},
+        {0, 0, -8, 0, 8, 19, -88, 0, 0},
+        {-44, -11, 0, -22, 0, 0, 3, 3, 6},
+        {0, -11, 0, 0, -22, -55, 3, 3, 0},
+        {0, -99, 0, 0, -99, 0, 0, 9, 23}
+        // clang-format on
+    };
+    auto partition = gko::share(
+        gko::distributed::Partition<local_index_type>::build_from_contiguous(
+            this->ref, gko::Array<global_index_type>{this->ref, {0, 3, 6, 9}}));
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
+    dist_mat->read_distributed(md, partition);
+    auto dist_sub_mat =
+        dist_mat->create_submatrix(row_spans[rank], col_spans[rank]);
+    auto ref_gathered_sub_mat = gko::initialize<typename TestFixture::GMtx>(
+        {{17, 0, 0}, {0, 19, 0}, {0, 0, 23}}, this->ref);
+    auto gathered_sub_mat = TestFixture::GMtx::create(this->ref);
+
+    dist_sub_mat->convert_to(gathered_sub_mat.get());
+
+    if (gathered_sub_mat->get_size()) {
+        GKO_ASSERT_MTX_NEAR(gathered_sub_mat, ref_gathered_sub_mat,
+                            r<value_type>::value);
+    }
 }
 
 }  // namespace

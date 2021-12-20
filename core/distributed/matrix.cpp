@@ -58,8 +58,8 @@ GKO_REGISTER_OPERATION(check_column_index_exists,
 GKO_REGISTER_OPERATION(build_recv_sizes, distributed_matrix::build_recv_sizes);
 GKO_REGISTER_OPERATION(compress_offdiag_data,
                        distributed_matrix::compress_offdiag_data);
-GKO_REGISTER_OPERATION(check_indices_within_span,
-                       distributed_matrix::check_indices_within_span);
+GKO_REGISTER_OPERATION(map_local_col_idxs_to_span,
+                       distributed_matrix::map_local_col_idxs_to_span);
 GKO_REGISTER_OPERATION(zero_out_invalid_columns,
                        distributed_matrix::zero_out_invalid_columns);
 GKO_REGISTER_OPERATION(add_to_array, distributed_matrix::add_to_array);
@@ -568,7 +568,8 @@ auto create_submatrix_offdiag(
 
 
 gko::Array<global_index_type> update_diag_map(
-    const Array<global_index_type>& old_inner, gko::span rows)
+    const Array<global_index_type>& old_inner, gko::span rows,
+    std::shared_ptr<const mpi::communicator> comm)
 {
     auto exec = old_inner.get_executor();
     auto global_starting_row =
@@ -577,13 +578,24 @@ gko::Array<global_index_type> update_diag_map(
     exec->copy(rows.length(),
                old_inner.get_const_data() + rows.begin - global_starting_row,
                new_inner.get_data());
+
+    // TODO: this only works for compact partitions
+    auto local_size = rows.length();
+    auto local_offset = zero(local_size);
+    mpi::exscan(&local_size, &local_offset, 1, mpi::op_type::sum, comm);
+    exec->run(matrix::make_add_to_array(
+        new_inner,
+        -static_cast<global_index_type>(global_starting_row - local_offset +
+                                        rows.begin - global_starting_row)));
+
     return new_inner;
 }
 
 
 template <typename LocalIndexType>
-Array<bool> communicate_invalid_columns(
-    const Array<LocalIndexType>& send_indices, const gko::span valid_columns,
+Array<global_index_type> communicate_invalid_columns(
+    const Array<LocalIndexType>& send_indices,
+    const Partition<LocalIndexType>* col_part, const gko::span valid_columns,
     const Array<global_index_type>& to_global,
     const std::vector<comm_index_type>& send_offsets,
     const std::vector<comm_index_type>& send_sizes,
@@ -593,25 +605,56 @@ Array<bool> communicate_invalid_columns(
 {
     // invalidate entries outside of span
     auto exec = send_indices.get_executor();
-    gko::Array<bool> local_index_within_span{send_indices.get_executor(),
-                                             send_indices.get_num_elems()};
-    exec->run(matrix::make_check_indices_within_span(
-        send_indices, to_global, valid_columns, local_index_within_span));
 
-    gko::Array<bool> remote_index_within_span{
+    auto offset = col_part->get_global_offset(comm->rank());
+    gko::Array<global_index_type> local_col_map{send_indices.get_executor(),
+                                                send_indices.get_num_elems()};
+    exec->run(matrix::make_map_local_col_idxs_to_span(
+        send_indices, to_global, valid_columns, offset, local_col_map));
+
+    gko::Array<global_index_type> remote_col_map{
         exec, static_cast<size_type>(recv_offsets.back())};
-    if (exec != exec->get_master()) {
-        remote_index_within_span.set_executor(exec->get_master());
-        local_index_within_span.set_executor(exec->get_master());
-    }
-    mpi::all_to_all(local_index_within_span.get_data(), send_sizes.data(),
-                    send_offsets.data(), remote_index_within_span.get_data(),
+    mpi::all_to_all(local_col_map.get_data(), send_sizes.data(),
+                    send_offsets.data(), remote_col_map.get_data(),
                     recv_sizes.data(), recv_offsets.data(), 1, std::move(comm));
-    if (exec != exec->get_master()) {
-        remote_index_within_span.set_executor(exec);
-        local_index_within_span.set_executor(exec);
-    }
-    return remote_index_within_span;
+    return remote_col_map;
+}
+
+// TODO: only works for compact partitions
+template <typename IndexType>
+std::shared_ptr<Partition<IndexType>> build_sub_partition(
+    std::shared_ptr<const Partition<IndexType>> part, gko::span rows,
+    std::shared_ptr<const mpi::communicator> comm)
+{
+    auto exec = part->get_executor();
+
+    auto num_global_rows = rows.length();
+    mpi::all_reduce(&num_global_rows, 1, mpi::op_type::sum, comm);
+
+    auto local_size = static_cast<comm_index_type>(rows.length());
+    auto local_offset = zero(local_size);
+    mpi::exscan(&local_size, &local_offset, 1, mpi::op_type::sum, comm);
+
+    Array<comm_index_type> sub_mapping{exec, num_global_rows};
+    auto local_sub_mapping = Array<comm_index_type>::view(
+        exec, local_size, sub_mapping.get_data() + local_offset);
+    local_sub_mapping.fill(comm->rank());
+
+    std::vector<comm_index_type> recv_sizes(comm->size(), local_size);
+    std::vector<comm_index_type> recv_offsets(comm->size() + 1, 0);
+    mpi::all_gather(&local_size, 1, recv_sizes.data(), 1, comm);
+    std::partial_sum(recv_sizes.begin(), recv_sizes.end(),
+                     recv_offsets.begin() + 1);
+
+    Array<comm_index_type> local_sub_mapping_copy(
+        exec, local_sub_mapping.get_const_data(),
+        local_sub_mapping.get_const_data() + local_size);
+    mpi::all_gather(local_sub_mapping_copy.get_data(), local_size,
+                    sub_mapping.get_data(), recv_sizes.data(),
+                    recv_offsets.data(), comm);
+
+    return Partition<IndexType>::build_from_mapping(exec, sub_mapping,
+                                                    comm->size());
 }
 
 
@@ -620,6 +663,15 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
     const gko::span& rows, const gko::span& columns) const
 {
     auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+
+    if (!is_ordered(this->get_partition())) {
+        GKO_NOT_IMPLEMENTED;
+    }
+
+    auto sub_row_partition = build_sub_partition(this->partition_, rows, comm);
+    auto sub_col_partition =
+        build_sub_partition(this->partition_, columns, comm);
 
     // create the submatrix, by
     // 1. extracting the submatrices from the diag/off-diag matrices
@@ -639,20 +691,17 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
         create_submatrix_offdiag(this->get_local_offdiag(), rows,
                                  this->local_to_global_row.get_const_data());
 
-    auto col_is_valid = communicate_invalid_columns(
-        this->gather_idxs_, columns, this->local_to_global_row,
-        this->send_offsets_, this->send_sizes_, this->recv_offsets_,
-        this->recv_sizes_, this->get_communicator());
-
     // set entries from other processes to zero, if they are not in their span
     device_matrix_data<ValueType, LocalIndexType> md{exec};
     sub_offdiag->write(md);
     md.remove_zeros();
     // basically collect all idx s.t. col_id_valid[idx] = true
     // and then md[idx].value = 0
-    auto new_inner_map = update_diag_map(this->local_to_global_row, rows);
-    auto new_ghost_map = this->local_to_global_offdiag_col;
-    exec->run(matrix::make_zero_out_invalid_columns(col_is_valid, md));
+    auto new_inner_map = update_diag_map(this->local_to_global_row, rows, comm);
+    auto new_ghost_map = communicate_invalid_columns(
+        this->gather_idxs_, sub_col_partition.get(), columns,
+        this->local_to_global_row, this->send_offsets_, this->send_sizes_,
+        this->recv_offsets_, this->recv_sizes_, this->get_communicator());
     exec->run(matrix::make_compress_offdiag_data(md, new_ghost_map));
     sub_offdiag->read(md);
 
@@ -662,7 +711,7 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
     Array<LocalIndexType> recv_indices{exec};
     exec->run(matrix::make_build_recv_sizes(
         sub_offdiag->get_const_col_idxs(),
-        sub_offdiag->get_num_stored_elements(), this->get_partition(),
+        sub_offdiag->get_num_stored_elements(), sub_col_partition.get(),
         new_ghost_map.get_const_data(), recv_sizes_array, recv_offsets_array,
         recv_indices));
     std::vector<comm_index_type> recv_sizes(recv_sizes_array.get_num_elems());
@@ -678,8 +727,7 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
     // update send communication info
     std::vector<comm_index_type> send_sizes(recv_sizes.size());
     std::vector<comm_index_type> send_offsets(recv_sizes.size() + 1);
-    mpi::all_to_all(recv_sizes.data(), 1, send_sizes.data(), 1,
-                    this->get_communicator());
+    mpi::all_to_all(recv_sizes.data(), 1, send_sizes.data(), 1, comm);
     std::partial_sum(begin(send_sizes), end(send_sizes),
                      begin(send_offsets) + 1);
     Array<LocalIndexType> send_indices{
@@ -699,21 +747,20 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
     // re-map send_indicies
     // currently they are local w.r.t the full local matrix
     // need to constrain them to the column span
-    auto global_starting_row =
-        exec->copy_val_to_host(&local_to_global_row.get_const_data()[0]);
-    exec->run(matrix::make_add_to_array(
-        send_indices,
-        -static_cast<LocalIndexType>(columns.begin - global_starting_row)));
+    //    auto global_starting_row =
+    //        exec->copy_val_to_host(&local_to_global_row.get_const_data()[0]);
+    //    exec->run(matrix::make_add_to_array(
+    //        send_indices,
+    //        -static_cast<LocalIndexType>(columns.begin -
+    //        global_starting_row)));
 
     auto sub = Matrix<ValueType, LocalIndexType>::create(
         exec, this->get_communicator());
 
     auto num_global_rows = rows.length();
     auto num_global_cols = columns.length();
-    mpi::all_reduce(&num_global_rows, 1, mpi::op_type::sum,
-                    this->get_communicator());
-    mpi::all_reduce(&num_global_cols, 1, mpi::op_type::sum,
-                    this->get_communicator());
+    mpi::all_reduce(&num_global_rows, 1, mpi::op_type::sum, comm);
+    mpi::all_reduce(&num_global_cols, 1, mpi::op_type::sum, comm);
     sub->set_size(gko::dim<2>{num_global_rows, num_global_cols});
     sub->send_offsets_ = std::move(send_offsets);
     sub->send_sizes_ = std::move(send_sizes);
@@ -724,7 +771,7 @@ std::unique_ptr<LinOp> Matrix<ValueType, LocalIndexType>::create_submatrix_impl(
     sub->local_to_global_offdiag_col = std::move(new_ghost_map);
     sub->diag_mtx_ = std::move(*sub_diag.get());
     sub->offdiag_mtx_ = std::move(*sub_offdiag.get());
-    sub->partition_ = this->partition_;
+    sub->partition_ = std::move(sub_row_partition);
 
     return sub;
 }

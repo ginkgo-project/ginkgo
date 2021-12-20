@@ -531,6 +531,20 @@ void all_gather(const SendType* send_buffer, const int send_count,
 
 
 template <typename SendType, typename RecvType>
+void all_gather(const SendType* send_buffer, const int send_count,
+                RecvType* recv_buffer, const int* recv_counts,
+                const int* recv_offsets,
+                std::shared_ptr<const communicator> comm)
+{
+    auto send_type = helpers::get_mpi_type(send_buffer[0]);
+    auto recv_type = helpers::get_mpi_type(recv_buffer[0]);
+    bindings::all_gatherv(send_buffer, send_count, send_type, recv_buffer,
+                          recv_counts, recv_offsets, recv_type,
+                          comm ? comm->get() : communicator::get_comm_world());
+}
+
+
+template <typename SendType, typename RecvType>
 void scatter(const SendType* send_buffer, const int send_count,
              RecvType* recv_buffer, const int recv_count, int root_rank,
              std::shared_ptr<const communicator> comm)
@@ -747,6 +761,15 @@ GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GATHER2);
                     std::shared_ptr<const communicator> comm)
 
 GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHER);
+
+
+#define GKO_DECLARE_ALLGATHERV(SendType, RecvType)                     \
+    void all_gather(const SendType* send_buffer, const int send_count, \
+                    RecvType* recv_buffer, const int* recv_counts,     \
+                    const int* recv_offsets,                           \
+                    std::shared_ptr<const communicator> comm)
+
+GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ALLGATHERV);
 
 
 #define GKO_DECLARE_SCATTER1(SendType, RecvType)                             \

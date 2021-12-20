@@ -93,7 +93,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -114,6 +114,8 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     auto exec = this->get_executor();
 
+    // Todo: check vector types
+    // hessenberg, givens_* should stay local
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
@@ -256,6 +258,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // next_krylov = A * preconditioned_vector
         system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
 
+        // Todo: extract arnoldi process s.t. it uses global scalar product
         // final_iter_nums += 1 (unconverged)
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter(include)

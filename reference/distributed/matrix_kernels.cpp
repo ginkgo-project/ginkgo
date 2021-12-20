@@ -312,50 +312,61 @@ template <typename ValueType, typename LocalIndexType>
 void compress_offdiag_data(
     std::shared_ptr<const DefaultExecutor> exec,
     device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
-    Array<global_index_type>& col_map)
+    Array<global_index_type>& uncompressed_col_map)
 {
     auto& nonzeros = offdiag_data.nonzeros;
     std::stable_sort(
         begin(nonzeros), end(nonzeros),
         [](const auto& a, const auto& b) { return a.column < b.column; });
 
-    size_type num_invalid_entries = std::count_if(
-        begin(nonzeros), end(nonzeros),
-        [](const auto& entry) { return entry.value == zero<ValueType>(); });
-    std::map<LocalIndexType, LocalIndexType> new_col_idx;
-    std::set<LocalIndexType> invalid_cols_set;
+    auto col_is_valid = [&](const LocalIndexType idx) {
+        return uncompressed_col_map.get_data()[idx] !=
+               invalid_index<global_index_type>();
+    };
+
+    std::unordered_map<LocalIndexType, LocalIndexType> new_col_idx;
+    std::unordered_set<LocalIndexType> valid_global_cols;
     for (const auto& entry : nonzeros) {
-        if (entry.value == zero<ValueType>()) {
-            invalid_cols_set.emplace(entry.column);
-        } else {
+        if (col_is_valid(entry.column)) {
+            valid_global_cols.emplace(
+                uncompressed_col_map.get_data()[entry.column]);
             new_col_idx.emplace(entry.column, new_col_idx.size());
         }
     }
 
     // could prevent copy by sorting wrt entry.column
+    size_type num_invalid_entries = std::count_if(
+        begin(nonzeros), end(nonzeros),
+        [&](const auto& entry) { return !col_is_valid(entry.column); });
     device_matrix_data<ValueType, LocalIndexType> tmp_offdiag_data{
         exec, dim<2>{offdiag_data.size[0], new_col_idx.size()},
         offdiag_data.nonzeros.get_num_elems() - num_invalid_entries};
-    Array<global_index_type> new_col_map{exec, tmp_offdiag_data.size[1]};
+    Array<global_index_type> compressed_col_map{exec, tmp_offdiag_data.size[1]};
     {
+        // combination of copy_if and transform
         auto it = tmp_offdiag_data.nonzeros.get_data();
         for (const auto& entry : nonzeros) {
             auto find_it = new_col_idx.find(entry.column);
             if (find_it != new_col_idx.end()) {
                 *it = {entry.row, find_it->second, entry.value};
-                new_col_map.get_data()[find_it->second] =
-                    col_map.get_data()[entry.column];
                 it++;
             }
         }
     }
 
+    std::copy_if(begin(uncompressed_col_map), end(uncompressed_col_map),
+                 begin(compressed_col_map), [&](const auto idx) {
+                     return std::find(begin(valid_global_cols),
+                                      end(valid_global_cols),
+                                      idx) != end(valid_global_cols);
+                 });
     std::sort(begin(tmp_offdiag_data.nonzeros), end(tmp_offdiag_data.nonzeros),
               [](const auto& a, const auto& b) {
                   return std::tie(a.row, a.column) < std::tie(b.row, b.column);
               });
+
     offdiag_data = std::move(tmp_offdiag_data);
-    col_map = std::move(new_col_map);
+    uncompressed_col_map = std::move(compressed_col_map);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -363,22 +374,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename LocalIndexType>
-void check_indices_within_span(std::shared_ptr<const DefaultExecutor> exec,
-                               const Array<LocalIndexType>& indices,
-                               const Array<global_index_type>& to_global,
-                               gko::span valid_span,
-                               Array<bool>& index_is_valid)
+void map_local_col_idxs_to_span(std::shared_ptr<const DefaultExecutor> exec,
+                                const Array<LocalIndexType>& indices,
+                                const Array<global_index_type>& to_global,
+                                gko::span valid_span,
+                                global_index_type new_offset,
+                                Array<global_index_type>& new_index_map)
 {
-    index_is_valid.resize_and_reset(indices.get_num_elems());
-    std::transform(begin(indices), end(indices), begin(index_is_valid),
-                   [&](const auto idx) {
-                       auto global_idx = to_global.get_const_data()[idx];
-                       return valid_span.begin <= global_idx &&
-                              global_idx < valid_span.end;
-                   });
+    new_index_map.resize_and_reset(indices.get_num_elems());
+    std::transform(
+        begin(indices), end(indices), begin(new_index_map),
+        [&](const LocalIndexType idx) {
+            auto global_idx = to_global.get_const_data()[idx];
+            if (valid_span.begin <= global_idx && global_idx < valid_span.end) {
+                return static_cast<global_index_type>(new_offset + global_idx -
+                                                      valid_span.begin);
+            } else {
+                return invalid_index<global_index_type>();
+            }
+        });
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CHECK_INDICES_WITHIN_SPAN);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_MAP_LOCAL_COL_IDXS_TO_SPAN);
 
 
 template <typename IndexType>

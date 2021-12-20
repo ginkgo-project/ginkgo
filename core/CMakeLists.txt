@@ -24,9 +24,9 @@ target_sources(ginkgo
     log/convergence.cpp
     log/logger.cpp
     log/record.cpp
-  log/stream.cpp
-  matrix/block_matrix.cpp
-  matrix/coo.cpp
+    log/stream.cpp
+    matrix/block_matrix.cpp
+    matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
     matrix/diagonal.cpp

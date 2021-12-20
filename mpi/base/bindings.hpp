@@ -429,6 +429,17 @@ inline void all_gather(const void* send_buffer, const int send_count,
 }
 
 
+inline void all_gatherv(const void* send_buffer, const int send_count,
+                        MPI_Datatype& send_type, void* recv_buffer,
+                        const int* recv_counts, const int* recv_offsets,
+                        const MPI_Datatype& recv_type, const MPI_Comm& comm)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgatherv(send_buffer, send_count, send_type,
+                                            recv_buffer, recv_counts,
+                                            recv_offsets, recv_type, comm));
+}
+
+
 inline void scatter(const void* send_buffer, const int send_count,
                     MPI_Datatype& send_type, void* recv_buffer,
                     const int recv_count, MPI_Datatype& recv_type, int root,
