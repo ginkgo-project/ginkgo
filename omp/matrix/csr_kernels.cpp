@@ -968,6 +968,30 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
+                         const matrix::Dense<ValueType>* const alpha,
+                         const matrix::Dense<ValueType>* const beta,
+                         matrix::Csr<ValueType, IndexType>* const mtx)
+{
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto vals = mtx->get_values();
+#pragma omp parallel for
+    for (IndexType row = 0; row < nrows; row++) {
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            vals[iz] *= beta->get_const_values()[0];
+            if (row == mtx->get_const_col_idxs()[iz]) {
+                vals[iz] += alpha->get_const_values()[0];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace csr
 }  // namespace omp
 }  // namespace kernels

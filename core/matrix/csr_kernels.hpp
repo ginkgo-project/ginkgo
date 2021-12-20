@@ -195,6 +195,12 @@ namespace kernels {
                    const matrix::Dense<ValueType>* alpha,       \
                    matrix::Csr<ValueType, IndexType>* to_scale)
 
+#define GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)  \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
+                             const matrix::Dense<ValueType>* alpha,       \
+                             const matrix::Dense<ValueType>* beta,        \
+                             matrix::Csr<ValueType, IndexType>* mtx)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -244,7 +250,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
