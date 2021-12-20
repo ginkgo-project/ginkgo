@@ -39,8 +39,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
+
+
 namespace gko {
 namespace matrix {
+namespace identity {
+namespace {
+
+
+GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
+
+
+}  // anonymous namespace
+}  // namespace identity
 
 
 template <typename ValueType>
@@ -54,12 +66,27 @@ template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
-        },
-        alpha, b, beta, x);
+    if (auto bI = dynamic_cast<const Identity<ValueType>*>(b)) {
+        if (auto xd = dynamic_cast<Dense<ValueType>*>(x)) {
+            precision_dispatch_real_complex<ValueType>(
+                [this](auto dense_alpha, auto dense_beta, auto dense_x) {
+                    this->get_executor()->run(
+                        identity::make_add_scaled_identity(
+                            dense_alpha, dense_beta, dense_x));
+                },
+                alpha, beta, x);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                dense_x->scale(dense_beta);
+                dense_x->add_scaled(dense_alpha, dense_b);
+            },
+            alpha, b, beta, x);
+    }
 }
 
 
