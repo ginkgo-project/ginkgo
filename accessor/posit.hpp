@@ -451,7 +451,9 @@ public:
 
     constexpr bool get_sign() const { return memory & sign_mask_; }
 
-    GKO_ACC_ATTRIBUTES dissection dissect() const
+    // Only make this accessible from host to prevent the device from using it
+    // GKO_ACC_ATTRIBUTES
+    dissection dissect() const
     {
         dissection dis{};
 
@@ -477,21 +479,9 @@ public:
 
         extract_regime(mem, dis.k, dis.number_r_bits);
 
-        // Extract exponent
-        // `es` needs to be made into a temporary, so it does not need to be
-        // de-referenced
+        extract_exponent(mem, dis.number_r_bits, dis.e, dis.number_f_bits);
         dis.number_e_bits =
-            std::min(int{es}, number_bits - 1 - dis.number_r_bits);
-        auto exp =
-            mem >> (number_bits - 1 - dis.number_r_bits - dis.number_e_bits);
-        if (dis.number_e_bits > 0) {
-            dis.e = exp & ((uint_proxy_type{1} << dis.number_e_bits) - 1);
-            dis.e <<= es - dis.number_e_bits;
-        }
-
-        // Extract fraction
-        dis.number_f_bits =
-            number_bits - 1 - dis.number_r_bits - dis.number_e_bits;
+            number_bits - 1 - dis.number_r_bits - dis.number_f_bits;
 
         return dis;
     }
@@ -505,35 +495,46 @@ public:
 
         constexpr int smallest_ieee_exp =
             -ieee::exponent_bias + 1 - ieee::significand_bits + 1;
-        constexpr bool denormal_range_supported{smallest_supported_exp_ <
-                                                smallest_ieee_exp};
+        constexpr bool denormal_range_supported{smallest_supported_exp_ <=
+                                                -ieee::exponent_bias};
 
-        if (memory == 0) {
+        if (this->memory == 0) {
             return 0;
-        } else if (memory == sign_mask_) {
+        } else if (this->memory == sign_mask_) {
             return std::numeric_limits<ieee_type>::quiet_NaN();
         }
 
-        auto dis = this->dissect();
+        const auto sign = this->get_sign();
         fp_uint_type ui_val{};
         // Set sign bit
-        if (dis.sign) {
+        if (sign) {
             ui_val |= fp_uint_type{1} << (sizeof(fp_uint_type) * CHAR_BIT - 1);
         }
+        int number_f_bits;
+        int base_two_exp;
+        {
+            const auto mem =
+                (sign ? twos_complement(this->memory) : this->memory);
+            int k;
+            int e;
+            int number_r_bits;
+            extract_regime(mem, k, number_r_bits);
+            extract_exponent(mem, number_r_bits, e, number_f_bits);
+            // Compute Exponent
+            // Since useed = 2^(2^es) and the number is computed as
+            // sign * useed^k * 2^exp * fraction
+            // We can compute the base 2 exponent as:
+            // sign * 2^(exp + k * 2^es) * fraction
+            base_two_exp = e + k * two_power_es;
+        }
 
-        // Compute Exponent
-        // Since useed = 2^(2^es) and the number is computed as
-        // sign * useed^k * 2^exp * fraction
-        // We can compute the base 2 exponent as:
-        // sign * 2^(exp + k * 2^es) * fraction
-        const int base_two_exp = dis.e + dis.k * two_power_es;
 
         // Check for underflow
         if (denormal_range_supported && base_two_exp <= -ieee::exponent_bias) {
             // if denormals are not enough, set it to the smallest value > 0
             if (base_two_exp < smallest_ieee_exp) {
-                return dis.sign ? -std::numeric_limits<ieee_type>::denorm_min()
-                                : std::numeric_limits<ieee_type>::denorm_min();
+                return sign ? -std::numeric_limits<ieee_type>::denorm_min()
+                            : std::numeric_limits<ieee_type>::denorm_min();
             } else {
                 // denormal is enough: compute the additional shift of the
                 // significand
@@ -543,22 +544,22 @@ public:
                 // Make the implicit 1 in front of the fraction explicit
                 // Also, for negative numbers, take the two's complement
                 const auto posit_fraction =
-                    ((dis.sign ? twos_complement(this->memory) : this->memory) &
-                     ((uint_proxy_type{1} << dis.number_f_bits) - 1)) |
-                    (uint_proxy_type{1} << dis.number_f_bits);
+                    ((sign ? twos_complement(this->memory) : this->memory) &
+                     ((uint_proxy_type{1} << number_f_bits) - 1)) |
+                    (uint_proxy_type{1} << number_f_bits);
                 // Set the proper significand
                 ui_val |= right_shift<fp_uint_type>(
                     posit_fraction,
-                    dis.number_f_bits + 1 -
+                    number_f_bits + 1 -
                         (ieee::significand_bits - additional_right_shifts));
             }
         } else if (!denormal_range_supported &&
                    base_two_exp <= -ieee::exponent_bias) {
-            return dis.sign ? -std::numeric_limits<ieee_type>::denorm_min()
-                            : std::numeric_limits<ieee_type>::denorm_min();
+            return sign ? -std::numeric_limits<ieee_type>::denorm_min()
+                        : std::numeric_limits<ieee_type>::denorm_min();
         } else if (base_two_exp > ieee::exponent_bias) {
-            return dis.sign ? -std::numeric_limits<ieee_type>::max()
-                            : std::numeric_limits<ieee_type>::max();
+            return sign ? -std::numeric_limits<ieee_type>::max()
+                        : std::numeric_limits<ieee_type>::max();
         } else {
             const auto ieee_exp = base_two_exp + ieee::exponent_bias;
             ui_val |= static_cast<fp_uint_type>(ieee_exp)
@@ -566,10 +567,10 @@ public:
 
             // For negative numbers, take the two's complement
             const auto posit_fraction =
-                (dis.sign ? twos_complement(this->memory) : this->memory) &
-                ((uint_proxy_type{1} << dis.number_f_bits) - 1);
+                (sign ? twos_complement(this->memory) : this->memory) &
+                ((uint_proxy_type{1} << number_f_bits) - 1);
             ui_val |= right_shift<fp_uint_type>(
-                posit_fraction, dis.number_f_bits - ieee::significand_bits);
+                posit_fraction, number_f_bits - ieee::significand_bits);
         }
 
         // copy bits to IEEE value
@@ -578,9 +579,9 @@ public:
 
     GKO_ACC_ATTRIBUTES int set_k_e(const int exponent)
     {
-        auto k_e = compute_k_e(exponent);
-        auto k = std::get<0>(k_e);
-        auto e = std::get<1>(k_e);
+        int k;
+        int e;
+        compute_k_e(exponent, k, e);
 
         uint_proxy_type regime{};
         int number_f_bits{};
@@ -645,7 +646,7 @@ public:
         using ieee = detail::ieee_helper<ieee_type>;
         using fp_uint_type = typename ieee::fp_uint_type;
 
-        constexpr bool denormal_range_supported{smallest_supported_exp_ <
+        constexpr bool denormal_range_supported{smallest_supported_exp_ <=
                                                 -ieee::exponent_bias};
 
         this->memory = 0;  // reset memory
@@ -779,17 +780,16 @@ private:
     // TODO: Figure out what to do if e would be cut off and is larger than the
     //       number of bits (in practice, it needs to be shifted to the right
     //       since the missing bits are assumed to be zero)
-    static constexpr std::tuple<int, int> compute_k_e(int base_two_exponent)
+    static constexpr void compute_k_e(int base_two_exponent, int& k, int& e)
     {
-        int k = base_two_exponent / two_power_es;
-        int e = base_two_exponent % two_power_es;
+        k = base_two_exponent / two_power_es;
+        e = base_two_exponent % two_power_es;
         // Since the e exponent is only positive, we need to round
         // towards negative infinity when computing k
         if (e < 0) {
             k = k - 1;
             e += two_power_es;
         }
-        return {k, e};
     }
 
     // Compute the two's complement of a given number by using unary minus.
@@ -845,6 +845,19 @@ private:
             k = num_ones - 1;
             number_r_bits = std::min(num_ones + 1, number_bits - 1);
         }
+    }
+
+    static inline GKO_ACC_ATTRIBUTES void extract_exponent(
+        uint_proxy_type mem, const int number_r_bits, int& e,
+        int& number_f_bits)
+    {
+        const int number_e_bits = (number_r_bits + 1 + es <= number_bits
+                                       ? es
+                                       : number_bits - 1 - number_r_bits);
+        number_f_bits = number_bits - 1 - number_r_bits - number_e_bits;
+        mem >>= number_f_bits;
+        mem <<= es - number_e_bits;
+        e = static_cast<int>(mem & ((uint_proxy_type{1} << es) - 1));
     }
 };
 
@@ -903,13 +916,13 @@ public:
     constexpr complex_posit() = default;
 
     template <template <typename> class Complex, typename T,
-              typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
+              typename = std::enable_if_t<is_complex<Complex<T>>::value &&
                                           std::is_floating_point<T>::value>>
     complex_posit(Complex<T> val) : real{val.real()}, imag{val.imag()}
     {}
 
     template <template <typename> class Complex, typename T,
-              typename = std::enable_if_t<is_complex_s<Complex<T>>::value &&
+              typename = std::enable_if_t<is_complex<Complex<T>>::value &&
                                           std::is_floating_point<T>::value>>
     GKO_ACC_ATTRIBUTES operator Complex<T>() const
     {
