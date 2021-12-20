@@ -242,6 +242,16 @@ struct to_device_type_impl<matrix::Dense<ValueType>*&> {
     using type = matrix_accessor<device_type<ValueType>>;
     static type map_to_device(matrix::Dense<ValueType>* mtx)
     {
+        return to_device_type_impl<
+            matrix::Dense<ValueType>* const&>::map_to_device(mtx);
+    }
+};
+
+template <typename ValueType>
+struct to_device_type_impl<matrix::Dense<ValueType>* const&> {
+    using type = matrix_accessor<device_type<ValueType>>;
+    static type map_to_device(matrix::Dense<ValueType>* mtx)
+    {
         return {as_device_type(mtx->get_values()),
                 static_cast<int64>(mtx->get_stride())};
     }
