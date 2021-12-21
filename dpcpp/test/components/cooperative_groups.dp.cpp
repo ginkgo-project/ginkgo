@@ -60,11 +60,11 @@ namespace {
 
 
 using namespace gko::kernels::dpcpp;
-using KCfg = gko::ConfigSet<11, 7>;
+using KCFG_1D = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
-    ::gko::syn::value_list<std::uint32_t, KCfg::encode(64, 64),
-                           KCfg::encode(32, 32), KCfg::encode(16, 16),
-                           KCfg::encode(8, 8), KCfg::encode(4, 4)>();
+    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
+                           KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
+                           KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>();
 
 
 class CooperativeGroups : public testing::TestWithParam<unsigned int> {
@@ -90,7 +90,7 @@ protected:
         auto queue = dpcpp->get_queue();
         if (gko::kernels::dpcpp::validate(queue, subgroup_size,
                                           subgroup_size)) {
-            const auto cfg = KCfg::encode(subgroup_size, subgroup_size);
+            const auto cfg = KCFG_1D::encode(subgroup_size, subgroup_size);
             for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
@@ -117,10 +117,10 @@ protected:
 
 // kernel implementation
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
+__WG_BOUND__(KCFG_1D::decode<0>(config))
 void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -140,9 +140,10 @@ void cg_shuffle_host(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             cg_shuffle<config>(s, item_ct1);
-                         });
+                         [=](sycl::nd_item<3> item_ct1)
+                             KERNEL_SUBGROUP_SIZE(KCFG_1D::decode<1>(config)) {
+                                 cg_shuffle<config>(s, item_ct1);
+                             });
     });
 }
 
@@ -170,10 +171,10 @@ TEST_P(CooperativeGroups, Shuffle)
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
+__WG_BOUND__(KCFG_1D::decode<0>(config))
 void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -192,12 +193,12 @@ TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
+__WG_BOUND__(KCFG_1D::decode<0>(config))
 void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
-    auto group = group::tiled_partition<KCfg::decode<1>(config)>(
-        group::this_thread_block(item_ct1));
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
+    auto group =
+        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
 
     s[i] = group.any(true);
@@ -213,10 +214,10 @@ TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
+__WG_BOUND__(KCFG_1D::decode<0>(config))
 void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto active = gko::detail::mask<sg_size, config::lane_mask_type>();
