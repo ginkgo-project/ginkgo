@@ -277,7 +277,9 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorm2_kernel(num_rows, num_cols, next_krylov_basis,
                                   stride_next_krylov, norms, stop_status,
                                   item_ct1,
@@ -352,7 +354,9 @@ void multinorminf_without_stop_kernel(
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorminf_without_stop_kernel(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms, stride_norms, item_ct1,
@@ -453,7 +457,9 @@ void multinorm2_inf_kernel(
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multinorm2_inf_kernel<compute_inf>(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms1, norms2, stop_status, item_ct1,
@@ -543,7 +549,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(dot_dim)]] {
                 multidot_kernel<dot_dim>(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
@@ -623,7 +630,9 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 singledot_kernel<block_size>(
                     num_rows, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,

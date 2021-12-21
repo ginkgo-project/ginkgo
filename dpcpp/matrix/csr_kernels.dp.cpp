@@ -678,7 +678,9 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
                                                        row_ptrs, b, b_stride, c,
                                                        c_stride, item_ct1);
@@ -757,37 +759,6 @@ void calculate_nnz_per_row(size_type num_rows,
 }
 
 GKO_ENABLE_DEFAULT_HOST(calculate_nnz_per_row, calculate_nnz_per_row);
-
-
-void reduce_max_nnz(size_type size, const size_type* __restrict__ nnz_per_row,
-                    size_type* __restrict__ result, sycl::nd_item<3> item_ct1,
-                    size_type* block_max)
-{
-    reduce_array(
-        size, nnz_per_row, block_max, item_ct1,
-        [](const size_type& x, const size_type& y) { return max(x, y); });
-
-    if (item_ct1.get_local_id(2) == 0) {
-        result[item_ct1.get_group(2)] = block_max[0];
-    }
-}
-
-void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, size_type size,
-                    const size_type* nnz_per_row, size_type* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<size_type, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            block_max_acc_ct1(sycl::range<1>(default_block_size), cgh);
-
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             reduce_max_nnz(size, nnz_per_row, result, item_ct1,
-                                            block_max_acc_ct1.get_pointer());
-                         });
-    });
-}
 
 
 template <typename IndexType>
