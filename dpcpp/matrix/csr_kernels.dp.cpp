@@ -2187,7 +2187,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
-void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
+void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,
                          matrix::Csr<ValueType, IndexType>* const mtx)

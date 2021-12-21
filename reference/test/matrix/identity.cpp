@@ -251,11 +251,9 @@ TYPED_TEST(Identity, ScaleCsrAddIdentity)
     auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     auto beta = gko::initialize<Vec>({-1.0}, this->exec);
     auto identity = Id::create(this->exec, 3);
-    auto bd = gko::initialize<Vec>(
+    auto b = gko::initialize<Csr>(
         3, {I<T>{2.0, 0.0, -1.0}, I<T>{1.0, 0.0, 2.5}, I<T>{0.0, -1.0, 4.0}},
         this->exec);
-    auto b = Csr::create(this->exec);
-    bd->convert_to(b.get());
 
     identity->apply(alpha.get(), identity.get(), beta.get(), b.get());
 
