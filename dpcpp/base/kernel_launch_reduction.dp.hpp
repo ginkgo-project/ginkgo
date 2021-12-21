@@ -80,8 +80,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
-        range, [=
-    ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range, [=](sycl::nd_item<3> idx) KERNEL_SUBGROUP_SIZE(sg_size) {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -129,8 +128,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
-        range, [=
-    ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range, [=](sycl::nd_item<3> idx) KERNEL_SUBGROUP_SIZE(sg_size) {
             auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
@@ -310,38 +308,35 @@ void generic_kernel_row_reduction_2d(syn::value_list<int, ssg_size>,
     const auto num_workgroups = ceildiv(rows * col_blocks * ssg_size, wg_size);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            range, [=
-        ](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
-                const auto idx =
-                    thread::get_subwarp_id_flat<ssg_size, int64>(id);
-                const auto row = idx % rows;
-                const auto col_block = idx / rows;
-                auto partial = identity;
-                auto subgroup = group::tiled_partition<sg_size>(
-                    group::this_thread_block(id));
-                auto ssg_rank =
-                    static_cast<int64>(subgroup.thread_rank() % ssg_size);
-                if (col_block < col_blocks) {
-                    const auto cols_per_part =
-                        ceildiv(ceildiv(cols, ssg_size), col_blocks) * ssg_size;
-                    const auto begin = cols_per_part * col_block;
-                    const auto end = min(begin + cols_per_part, cols);
-                    for (auto col = begin + ssg_rank; col < end;
-                         col += ssg_size) {
-                        partial = op(partial, fn(row, col, args...));
-                    }
+        cgh.parallel_for(range, [=](sycl::nd_item<3> id) KERNEL_SUBGROUP_SIZE(
+                                    sg_size) {
+            const auto idx = thread::get_subwarp_id_flat<ssg_size, int64>(id);
+            const auto row = idx % rows;
+            const auto col_block = idx / rows;
+            auto partial = identity;
+            auto subgroup =
+                group::tiled_partition<sg_size>(group::this_thread_block(id));
+            auto ssg_rank =
+                static_cast<int64>(subgroup.thread_rank() % ssg_size);
+            if (col_block < col_blocks) {
+                const auto cols_per_part =
+                    ceildiv(ceildiv(cols, ssg_size), col_blocks) * ssg_size;
+                const auto begin = cols_per_part * col_block;
+                const auto end = min(begin + cols_per_part, cols);
+                for (auto col = begin + ssg_rank; col < end; col += ssg_size) {
+                    partial = op(partial, fn(row, col, args...));
                 }
+            }
 // since we do a sub-subgroup reduction, we can't use reduce
 #pragma unroll
-                for (int i = 1; i < ssg_size; i *= 2) {
-                    partial = op(partial, subgroup.shfl_xor(partial, i));
-                }
-                if (col_block < col_blocks && ssg_rank == 0) {
-                    result[(row + col_block * rows) * result_stride] =
-                        finalize(partial);
-                }
-            });
+            for (int i = 1; i < ssg_size; i *= 2) {
+                partial = op(partial, subgroup.shfl_xor(partial, i));
+            }
+            if (col_block < col_blocks && ssg_rank == 0) {
+                result[(row + col_block * rows) * result_stride] =
+                    finalize(partial);
+            }
+        });
     });
 }
 
@@ -367,60 +362,57 @@ void generic_kernel_col_reduction_2d_small(
                    sycl::access_mode::read_write, sycl::access::target::local>
         block_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
-    cgh.parallel_for(
-        range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
-            auto block_partial = &(*block_partial_acc.get_pointer())[0];
-            const auto ssg_id =
-                thread::get_subwarp_id_flat<ssg_size, int64>(id);
-            const auto local_sg_id = id.get_local_id(2) / sg_size;
-            const auto local_ssg_id = id.get_local_id(2) % sg_size / ssg_size;
-            const auto ssg_num =
-                thread::get_subwarp_num_flat<ssg_size, int64>(id);
-            const auto workgroup = group::this_thread_block(id);
-            const auto subgroup = group::tiled_partition<sg_size>(workgroup);
-            const auto sg_rank = subgroup.thread_rank();
-            const auto ssg_rank = sg_rank % ssg_size;
-            const auto col = static_cast<int64>(ssg_rank);
-            auto partial = identity;
-            // accumulate within a thread
-            if (col < cols) {
-                for (auto row = ssg_id; row < rows; row += ssg_num) {
-                    partial = op(partial, fn(row, col, args...));
-                }
+    cgh.parallel_for(range, [=](sycl::nd_item<3> id) KERNEL_SUBGROUP_SIZE(
+                                sg_size) {
+        auto block_partial = &(*block_partial_acc.get_pointer())[0];
+        const auto ssg_id = thread::get_subwarp_id_flat<ssg_size, int64>(id);
+        const auto local_sg_id = id.get_local_id(2) / sg_size;
+        const auto local_ssg_id = id.get_local_id(2) % sg_size / ssg_size;
+        const auto ssg_num = thread::get_subwarp_num_flat<ssg_size, int64>(id);
+        const auto workgroup = group::this_thread_block(id);
+        const auto subgroup = group::tiled_partition<sg_size>(workgroup);
+        const auto sg_rank = subgroup.thread_rank();
+        const auto ssg_rank = sg_rank % ssg_size;
+        const auto col = static_cast<int64>(ssg_rank);
+        auto partial = identity;
+        // accumulate within a thread
+        if (col < cols) {
+            for (auto row = ssg_id; row < rows; row += ssg_num) {
+                partial = op(partial, fn(row, col, args...));
             }
+        }
         // accumulate between all subsubgroups in the subgroup
+#pragma unroll
+        for (unsigned i = ssg_size; i < sg_size; i *= 2) {
+            partial = op(partial, subgroup.shfl_xor(partial, i));
+        }
+        // store the result to shared memory
+        if (local_ssg_id == 0) {
+            block_partial[local_sg_id * ssg_size + ssg_rank] = partial;
+        }
+        workgroup.sync();
+        // in a single thread: accumulate the results
+        if (local_sg_id == 0) {
+            partial = identity;
+            // accumulate the partial results within a thread
+            if (shared_storage >= sg_size) {
+#pragma unroll
+                for (int i = 0; i < shared_storage; i += sg_size) {
+                    partial = op(partial, block_partial[i + sg_rank]);
+                }
+            } else if (sg_rank < shared_storage) {
+                partial = op(partial, block_partial[sg_rank]);
+            }
+            // accumulate between all subsubgroups in the subgroup
 #pragma unroll
             for (unsigned i = ssg_size; i < sg_size; i *= 2) {
                 partial = op(partial, subgroup.shfl_xor(partial, i));
             }
-            // store the result to shared memory
-            if (local_ssg_id == 0) {
-                block_partial[local_sg_id * ssg_size + ssg_rank] = partial;
+            if (sg_rank < cols) {
+                result[sg_rank + id.get_group(2) * cols] = finalize(partial);
             }
-            workgroup.sync();
-            // in a single thread: accumulate the results
-            if (local_sg_id == 0) {
-                partial = identity;
-                // accumulate the partial results within a thread
-                if (shared_storage >= sg_size) {
-#pragma unroll
-                    for (int i = 0; i < shared_storage; i += sg_size) {
-                        partial = op(partial, block_partial[i + sg_rank]);
-                    }
-                } else if (sg_rank < shared_storage) {
-                    partial = op(partial, block_partial[sg_rank]);
-                }
-            // accumulate between all subsubgroups in the subgroup
-#pragma unroll
-                for (unsigned i = ssg_size; i < sg_size; i *= 2) {
-                    partial = op(partial, subgroup.shfl_xor(partial, i));
-                }
-                if (sg_rank < cols) {
-                    result[sg_rank + id.get_group(2) * cols] =
-                        finalize(partial);
-                }
-            }
-        });
+        }
+    });
 }
 
 
@@ -440,7 +432,7 @@ void generic_kernel_col_reduction_2d_blocked(
                    sycl::access_mode::read_write, sycl::access::target::local>
         block_partial_acc(cgh);
     cgh.parallel_for(
-        range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
+        range, [=](sycl::nd_item<3> id) KERNEL_SUBGROUP_SIZE(sg_size) {
             const auto sg_id = thread::get_subwarp_id_flat<sg_size, int64>(id);
             const auto sg_num =
                 thread::get_subwarp_num_flat<sg_size, int64>(id);

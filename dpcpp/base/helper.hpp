@@ -56,19 +56,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param name_  the name of the host function with config
  * @param kernel_  the kernel name
  */
-#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                           \
-    template <typename... InferredArgs>                                   \
-    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue, \
-               InferredArgs... args)                                      \
-    {                                                                     \
-        queue->submit([&](sycl::handler& cgh) {                           \
-            cgh.parallel_for(                                             \
-                sycl_nd_range(grid, block), [=                            \
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(     \
-                                                config::warp_size)]] {    \
-                    kernel_(args..., item_ct1);                           \
-                });                                                       \
-        });                                                               \
+#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                            \
+    template <typename... InferredArgs>                                    \
+    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,  \
+               InferredArgs... args)                                       \
+    {                                                                      \
+        queue->submit([&](sycl::handler& cgh) {                            \
+            cgh.parallel_for(sycl_nd_range(grid, block),                   \
+                             [=](sycl::nd_item<3> item_ct1)                \
+                                 KERNEL_SUBGROUP_SIZE(config::warp_size) { \
+                                     kernel_(args..., item_ct1);           \
+                                 });                                       \
+        });                                                                \
     }
 
 
@@ -80,19 +79,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param name_  the name of the host function with config
  * @param kernel_  the kernel name
  */
-#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                        \
-    template <std::uint32_t encoded, typename... InferredArgs>                \
-    inline void name_(dim3 grid, dim3 block, gko::size_type,                  \
-                      sycl::queue* queue, InferredArgs... args)               \
-    {                                                                         \
-        queue->submit([&](sycl::handler& cgh) {                               \
-            cgh.parallel_for(                                                 \
-                sycl_nd_range(grid, block), [=                                \
-            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(         \
-                                                KCfg::decode<1>(encoded))]] { \
-                    kernel_<encoded>(args..., item_ct1);                      \
-                });                                                           \
-        });                                                                   \
+#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                  \
+    template <std::uint32_t encoded, typename... InferredArgs>          \
+    inline void name_(dim3 grid, dim3 block, gko::size_type,            \
+                      sycl::queue* queue, InferredArgs... args)         \
+    {                                                                   \
+        queue->submit([&](sycl::handler& cgh) {                         \
+            cgh.parallel_for(                                           \
+                sycl_nd_range(grid, block),                             \
+                [=](sycl::nd_item<3> item_ct1)                          \
+                    KERNEL_SUBGROUP_SIZE(KCFG_1D::decode<1>(encoded)) { \
+                        kernel_<encoded>(args..., item_ct1);            \
+                    });                                                 \
+        });                                                             \
     }
 
 /**

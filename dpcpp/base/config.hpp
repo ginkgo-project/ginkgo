@@ -72,6 +72,13 @@ struct config {
 };
 
 
+#if SYCL_LANGUAGE_VERSION < 202000
+#define KERNEL_SUBGROUP_SIZE(val) [[intel::reqd_sub_group_size(val)]]
+#else
+#define KERNEL_SUBGROUP_SIZE(val) [[sycl::reqd_sub_group_size(val)]]
+#endif
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
