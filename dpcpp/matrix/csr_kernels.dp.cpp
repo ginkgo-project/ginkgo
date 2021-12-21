@@ -678,8 +678,9 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) KERNEL_SUBGROUP_SIZE(subgroup_size) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
                                                        row_ptrs, b, b_stride, c,
                                                        c_stride, item_ct1);
@@ -1201,9 +1202,10 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                     zero<ValueType>(), c->get_values());
             } else {
                 oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                    one<ValueType>(), mat_handle,
-                    const_cast<ValueType*>(b->get_const_values()),
+                    *exec->get_queue(), oneapi::mkl::layout::row_major,
+                    oneapi::mkl::transpose::nontrans,
+                    oneapi::mkl::transpose::nontrans, one<ValueType>(),
+                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
                     b->get_size()[1], b->get_stride(), zero<ValueType>(),
                     c->get_values(), c->get_stride());
             }
@@ -1266,7 +1268,9 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                     c->get_values());
             } else {
                 oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    *exec->get_queue(), oneapi::mkl::layout::row_major,
+                    oneapi::mkl::transpose::nontrans,
+                    oneapi::mkl::transpose::nontrans,
                     exec->copy_val_to_host(alpha->get_const_values()),
                     mat_handle, const_cast<ValueType*>(b->get_const_values()),
                     b->get_size()[1], b->get_stride(),

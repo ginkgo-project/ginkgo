@@ -204,9 +204,9 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             reduction_helper_array_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) KERNEL_SUBGROUP_SIZE(
-                default_dot_dim) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            default_dot_dim)]] {
                 multidot_kernel(
                     k, num_rows, num_cols, krylov_bases, next_krylov_basis,
                     stride_krylov, hessenberg_iter, stride_hessenberg,
@@ -319,15 +319,16 @@ void update_hessenberg_2_kernel(
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) KERNEL_SUBGROUP_SIZE(
-                             config::warp_size) {
-                             update_hessenberg_2_kernel<block_size>(
-                                 iter, num_rows, num_cols, next_krylov_basis,
-                                 stride_next_krylov, hessenberg_iter,
-                                 stride_hessenberg, stop_status, item_ct1,
-                                 *reduction_helper_array_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
+                update_hessenberg_2_kernel<block_size>(
+                    iter, num_rows, num_cols, next_krylov_basis,
+                    stride_next_krylov, hessenberg_iter, stride_hessenberg,
+                    stop_status, item_ct1,
+                    *reduction_helper_array_acc_ct1.get_pointer());
+            });
     });
 }
 
