@@ -139,7 +139,7 @@ TEST_F(Identity, ScaleDenseAddIdentity)
     id->apply(alpha.get(), id.get(), beta.get(), x.get());
     did->apply(dalpha.get(), did.get(), dbeta.get(), dx.get());
 
-    GKO_ASSERT_MTX_NEAR(x, dx, std::numeric_limits<vtype>::epsilon());
+    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
 }
 
 
