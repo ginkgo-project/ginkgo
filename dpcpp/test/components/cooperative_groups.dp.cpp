@@ -139,11 +139,12 @@ void cg_shuffle_host(dim3 grid, dim3 block,
                      bool* s)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             KERNEL_SUBGROUP_SIZE(KCFG_1D::decode<1>(config)) {
-                                 cg_shuffle<config>(s, item_ct1);
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1)
+                                            [[sycl::reqd_sub_group_size(
+                                                KCFG_1D::decode<1>(config))]] {
+                                                cg_shuffle<config>(s, item_ct1);
+                                            });
     });
 }
 

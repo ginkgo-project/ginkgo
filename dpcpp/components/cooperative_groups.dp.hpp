@@ -165,8 +165,8 @@ namespace detail {
  * This is a limited implementation of the DPCPP thread_block_tile.
  */
 template <unsigned Size>
-class thread_block_tile : public sycl::ONEAPI::sub_group {
-    using sub_group = sycl::ONEAPI::sub_group;
+class thread_block_tile : public sycl::sub_group {
+    using sub_group = sycl::sub_group;
     using id_type = sub_group::id_type;
     using mask_type = config::lane_mask_type;
 
@@ -236,9 +236,9 @@ public:
     __dpct_inline__ mask_type ballot(int predicate) const noexcept
     {
         // todo: change it when OneAPI update the mask related api
-        return sycl::ONEAPI::reduce(
+        return sycl::reduce_over_group(
             *this, (predicate != 0) ? mask_type(1) << data_.rank : mask_type(0),
-            sycl::ONEAPI::plus<mask_type>());
+            sycl::plus<mask_type>());
     }
 
     /**
@@ -247,7 +247,7 @@ public:
      */
     __dpct_inline__ bool any(int predicate) const noexcept
     {
-        return sycl::ONEAPI::any_of(*this, (predicate != 0));
+        return sycl::any_of_group(*this, (predicate != 0));
     }
 
     /**
@@ -256,7 +256,7 @@ public:
      */
     __dpct_inline__ bool all(int predicate) const noexcept
     {
-        return sycl::ONEAPI::all_of(*this, (predicate != 0));
+        return sycl::all_of_group(*this, (predicate != 0));
     }
 
 

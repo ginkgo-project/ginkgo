@@ -56,18 +56,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param name_  the name of the host function with config
  * @param kernel_  the kernel name
  */
-#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                            \
-    template <typename... InferredArgs>                                    \
-    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,  \
-               InferredArgs... args)                                       \
-    {                                                                      \
-        queue->submit([&](sycl::handler& cgh) {                            \
-            cgh.parallel_for(sycl_nd_range(grid, block),                   \
-                             [=](sycl::nd_item<3> item_ct1)                \
-                                 KERNEL_SUBGROUP_SIZE(config::warp_size) { \
-                                     kernel_(args..., item_ct1);           \
-                                 });                                       \
-        });                                                                \
+#define GKO_ENABLE_DEFAULT_HOST(name_, kernel_)                           \
+    template <typename... InferredArgs>                                   \
+    void name_(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue, \
+               InferredArgs... args)                                      \
+    {                                                                     \
+        queue->submit([&](sycl::handler& cgh) {                           \
+            cgh.parallel_for(                                             \
+                sycl_nd_range(grid, block), [=                            \
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(     \
+                                                config::warp_size)]] {    \
+                    kernel_(args..., item_ct1);                           \
+                });                                                       \
+        });                                                               \
     }
 
 
@@ -79,19 +80,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param name_  the name of the host function with config
  * @param kernel_  the kernel name
  */
-#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                  \
-    template <std::uint32_t encoded, typename... InferredArgs>          \
-    inline void name_(dim3 grid, dim3 block, gko::size_type,            \
-                      sycl::queue* queue, InferredArgs... args)         \
-    {                                                                   \
-        queue->submit([&](sycl::handler& cgh) {                         \
-            cgh.parallel_for(                                           \
-                sycl_nd_range(grid, block),                             \
-                [=](sycl::nd_item<3> item_ct1)                          \
-                    KERNEL_SUBGROUP_SIZE(KCFG_1D::decode<1>(encoded)) { \
-                        kernel_<encoded>(args..., item_ct1);            \
-                    });                                                 \
-        });                                                             \
+#define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                \
+    template <std::uint32_t encoded, typename... InferredArgs>        \
+    inline void name_(dim3 grid, dim3 block, gko::size_type,          \
+                      sycl::queue* queue, InferredArgs... args)       \
+    {                                                                 \
+        queue->submit([&](sycl::handler& cgh) {                       \
+            cgh.parallel_for(                                         \
+                sycl_nd_range(grid, block), [=                        \
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
+                                                KCFG_1D::decode<1>(   \
+                                                    encoded))]] {     \
+                    kernel_<encoded>(args..., item_ct1);              \
+                });                                                   \
+        });                                                           \
     }
 
 /**
@@ -122,9 +124,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 // __WG_BOUND__ gives the cuda-like launch bound in cuda ordering
-#define __WG_BOUND_1D__(x) [[intel::reqd_work_group_size(1, 1, x)]]
-#define __WG_BOUND_2D__(x, y) [[intel::reqd_work_group_size(1, y, x)]]
-#define __WG_BOUND_3D__(x, y, z) [[intel::reqd_work_group_size(z, y, x)]]
+#define __WG_BOUND_1D__(x) [[sycl::reqd_work_group_size(1, 1, x)]]
+#define __WG_BOUND_2D__(x, y) [[sycl::reqd_work_group_size(1, y, x)]]
+#define __WG_BOUND_3D__(x, y, z) [[sycl::reqd_work_group_size(z, y, x)]]
 #define WG_BOUND_OVERLOAD(_1, _2, _3, NAME, ...) NAME
 #define __WG_BOUND__(...)                                            \
     WG_BOUND_OVERLOAD(__VA_ARGS__, __WG_BOUND_3D__, __WG_BOUND_2D__, \
