@@ -1054,9 +1054,10 @@ void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     hipLaunchKernelGGL(kernel::add_scaled_identity, nblocks, default_block_size,
                        0, 0, as_hip_type(alpha->get_const_values()),
-                       as_hip_type(beta->get_const_vaules()), nrows,
-                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-                       as_hip_type(mtx->get_vaules()));
+                       as_hip_type(beta->get_const_values()),
+                       static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
+                       mtx->get_const_col_idxs(),
+                       as_hip_type(mtx->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
