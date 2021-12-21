@@ -57,7 +57,7 @@ namespace solver {
 template <typename ValueType = default_precision>
 class BatchDirect : public EnableBatchLinOp<BatchDirect<ValueType>>,
                     public BatchTransposable,
-                    public EnableBatchScaledSolver<ValueType> {
+                    public EnableBatchScaling {
     friend class EnableBatchLinOp<BatchDirect>;
     friend class EnablePolymorphicObject<BatchDirect, BatchLinOp>;
 
