@@ -94,16 +94,6 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
-    template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
-                                     int min_nnz_row)
-    {
-        return gko::test::generate_random_matrix<MtxType>(
-            num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-    }
-
     void set_up_apply_data()
     {
         id = Id::create(ref, 40);
@@ -115,7 +105,6 @@ protected:
         dx = gko::clone(exec, x);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
-        dsquare = gko::clone(exec, square);
     }
 
     template <typename ConvertedType, typename InputType>
@@ -133,18 +122,13 @@ protected:
 
     std::unique_ptr<Id> id;
     std::unique_ptr<Mtx> x;
-    std::unique_ptr<ComplexMtx> c_x;
-    std::unique_ptr<ComplexMtx> c_alpha;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> square;
     std::unique_ptr<Id> did;
     std::unique_ptr<Mtx> dx;
-    std::unique_ptr<ComplexMtx> dc_x;
-    std::unique_ptr<ComplexMtx> dc_alpha;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
-    std::unique_ptr<Mtx> dsquare;
 };
 
 

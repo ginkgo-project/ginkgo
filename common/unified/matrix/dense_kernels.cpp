@@ -626,7 +626,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_ADD_SCALED_IDENTITY_KERNEL);
+    GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace dense
