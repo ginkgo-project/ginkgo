@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 
 
@@ -66,6 +67,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
 {
     using value_type = typename ConcreteSolver::value_type;
     using Csr = matrix::BatchCsr<value_type>;
+    using Diag = matrix::BatchDiagonal<value_type>;
     using Vector = matrix::BatchDense<value_type>;
     using real_type = remove_complex<value_type>;
 
