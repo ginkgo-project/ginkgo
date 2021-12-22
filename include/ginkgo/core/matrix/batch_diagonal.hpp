@@ -51,6 +51,10 @@ namespace gko {
 namespace matrix {
 
 
+template <typename ValueType>
+class BatchDense;
+
+
 /**
  * BatchDiagonal is a batch matrix format which explicitly stores all values of
  * the matrix in each of the batches.
@@ -80,6 +84,7 @@ class BatchDiagonal
     friend class EnableCreateMethod<BatchDiagonal>;
     friend class EnablePolymorphicObject<BatchDiagonal, BatchLinOp>;
     friend class BatchDiagonal<to_complex<ValueType>>;
+    friend class BatchDense<ValueType>;
 
 public:
     using EnableBatchLinOp<BatchDiagonal>::convert_to;
