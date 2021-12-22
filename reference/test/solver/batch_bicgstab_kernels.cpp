@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
@@ -187,8 +188,12 @@ TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
     using BDense = typename TestFixture::BDense;
     using Solver = typename TestFixture::solver_type;
+    using value_type = typename TestFixture::value_type;
     auto left_scale = gko::batch_initialize<BDense>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
+    auto left_scaled =
+        gko::batch_initialize<gko::matrix::BatchDiagonal<value_type>>(
+            this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto right_scale = gko::batch_initialize<BDense>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
     auto factory = this->create_factory(this->exec, this->opts_1);
