@@ -47,40 +47,50 @@ namespace cons {
 
 template <typename ValueType, typename IndexType>
 void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, ValueType* data, ValueType val)
+                 const IndexSet<IndexType>& subset, ValueType* data,
+                 ValueType val)
 {
-    const auto* idxs = subset.get_const_data();
-    for (int i = 0; i < subset.get_num_elems(); ++i) {
-        data[idxs[i]] = val;
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type idx = subsets_begin[s]; idx < subsets_end[s]; ++idx) {
+            data[idx] = val;
+        }
     }
 }
 
 
 template <typename ValueType, typename IndexType>
 void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, const ValueType* src,
+                 const IndexSet<IndexType>& subset, const ValueType* src,
                  ValueType* dst)
 {
-    const auto* idxs = subset.get_const_data();
-    for (int i = 0; i < subset.get_num_elems(); ++i) {
-        dst[idxs[i]] = src[idxs[i]];
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type idx = subsets_begin[s]; idx < subsets_end[s]; ++idx) {
+            dst[idx] = src[idx];
+        }
     }
 }
 
 
 template <typename ValueType, typename IndexType>
 void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
-                   const Array<IndexType>& subset, const IndexType* row_ptrs,
+                   const IndexSet<IndexType>& subset, const IndexType* row_ptrs,
                    const IndexType* col_idxs, ValueType* values)
 {
-    const auto* map = subset.get_const_data();
-    for (IndexType i = 0; i < subset.get_num_elems(); ++i) {
-        const auto row = map[i];
-        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
-            if (col_idxs[idx] != row) {
-                values[idx] = gko::zero<ValueType>();
-            } else {
-                values[idx] = gko::one<ValueType>();
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type row = subsets_begin[s]; row < subsets_end[s]; ++row) {
+            for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1];
+                 ++idx) {
+                if (col_idxs[idx] != row) {
+                    values[idx] = gko::zero<ValueType>();
+                } else {
+                    values[idx] = gko::one<ValueType>();
+                }
             }
         }
     }

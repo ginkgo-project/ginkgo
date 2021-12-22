@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/constraints/constraints_handler.hpp>
 
 
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -61,7 +62,7 @@ namespace detail {
 template <typename ValueType, typename IndexType>
 std::shared_ptr<gko::matrix::Dense<ValueType>>
 zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
-                                   dim<2> size, const Array<IndexType>& idxs,
+                                   dim<2> size, const IndexSet<IndexType>& idxs,
                                    const matrix::Dense<ValueType>* values)
 {
     using Dense = matrix::Dense<ValueType>;
@@ -78,7 +79,7 @@ zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
 template <typename ValueType, typename IndexType>
 std::shared_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
-    const Array<IndexType>& idxs, std::shared_ptr<LinOp> op)
+    const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op)
 {
     auto exec = op->get_executor();
     if (auto* csr =
@@ -96,7 +97,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
-    const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+    const IndexSet<IndexType>& idxs, const gko::LinOp* op,
     const matrix::Dense<ValueType>* init_guess,
     const matrix::Dense<ValueType>* rhs)
 {
@@ -119,7 +120,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp>
 ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
-    const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+    const IndexSet<IndexType>& idxs, const gko::LinOp* op,
     const matrix::Dense<ValueType>* init_guess,
     const matrix::Dense<ValueType>* constrained_values)
 {
@@ -133,7 +134,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
 
 template <typename ValueType, typename IndexType>
 void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
-    const gko::Array<IndexType>& idxs,
+    const IndexSet<IndexType>& idxs,
     const matrix::Dense<ValueType>* constrained_values,
     const matrix::Dense<ValueType>* orig_init_guess,
     matrix::Dense<ValueType>* solution)
@@ -156,7 +157,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ZERO_ROWS_STRATEGY);
 
 template <typename ValueType, typename IndexType>
 ConstraintsHandler<ValueType, IndexType>::ConstraintsHandler(
-    Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+    IndexSet<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
     std::shared_ptr<const Dense> values,
     std::shared_ptr<const Dense> right_hand_side,
     std::shared_ptr<const Dense> initial_guess,
@@ -180,7 +181,7 @@ ConstraintsHandler<ValueType, IndexType>::ConstraintsHandler(
 
 template <typename ValueType, typename IndexType>
 ConstraintsHandler<ValueType, IndexType>::ConstraintsHandler(
-    Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+    IndexSet<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
     std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>> strategy)
     : idxs_(std::move(idxs)),
       orig_operator_(std::move(system_operator)),

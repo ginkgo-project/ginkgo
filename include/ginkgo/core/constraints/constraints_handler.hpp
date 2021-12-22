@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -58,7 +59,7 @@ namespace detail {
 template <typename ValueType, typename IndexType>
 std::shared_ptr<gko::matrix::Dense<ValueType>>
 zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
-                                   dim<2> size, const Array<IndexType>& idxs,
+                                   dim<2> size, const IndexSet<IndexType>& idxs,
                                    const matrix::Dense<ValueType>* values);
 
 
@@ -73,7 +74,7 @@ zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
  * - incorporating the constraints into the operator
  * - deriving a suitable right-hand-side
  * - deriving a suitable initial guess
- * - if necessary, update the solution. *
+ * - if necessary, update the solution.
  * Depending on the actual implementation, some of these methods might be
  * no-ops.
  *
@@ -99,7 +100,7 @@ public:
      * @return  An operator with constraints added.
      */
     virtual std::shared_ptr<LinOp> construct_operator(
-        const Array<IndexType>& idxs, std::shared_ptr<LinOp> op) = 0;
+        const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op) = 0;
 
     /**
      * Creates a new right-hand-side for the constrained system.
@@ -111,7 +112,7 @@ public:
      * @return  The right-hand-side for the constrained system.
      */
     virtual std::unique_ptr<LinOp> construct_right_hand_side(
-        const Array<IndexType>& idxs, const LinOp* op,
+        const IndexSet<IndexType>& idxs, const LinOp* op,
         const matrix::Dense<ValueType>* init_guess,
         const matrix::Dense<ValueType>* rhs) = 0;
 
@@ -125,7 +126,7 @@ public:
      * @return  A new initial guess for the constrained system.
      */
     virtual std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<IndexType>& idxs, const LinOp* op,
+        const IndexSet<IndexType>& idxs, const LinOp* op,
         const matrix::Dense<ValueType>* init_guess,
         const matrix::Dense<ValueType>* constrained_values) = 0;
 
@@ -140,7 +141,7 @@ public:
      * @param solution The solution to the constrained system.
      */
     virtual void correct_solution(
-        const Array<IndexType>& idxs,
+        const IndexSet<IndexType>& idxs,
         const matrix::Dense<ValueType>* constrained_values,
         const matrix::Dense<ValueType>* orig_init_guess,
         matrix::Dense<ValueType>* solution) = 0;
@@ -174,19 +175,19 @@ class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
 
 public:
     std::shared_ptr<LinOp> construct_operator(
-        const Array<IndexType>& idxs, std::shared_ptr<LinOp> op) override;
+        const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op) override;
 
     std::unique_ptr<LinOp> construct_right_hand_side(
-        const Array<IndexType>& idxs, const LinOp* op,
+        const IndexSet<IndexType>& idxs, const LinOp* op,
         const matrix::Dense<ValueType>* init_guess,
         const matrix::Dense<ValueType>* rhs) override;
 
     std::unique_ptr<LinOp> construct_initial_guess(
-        const Array<IndexType>& idxs, const LinOp* op,
+        const IndexSet<IndexType>& idxs, const LinOp* op,
         const matrix::Dense<ValueType>* init_guess,
         const matrix::Dense<ValueType>* constrained_values) override;
 
-    void correct_solution(const Array<IndexType>& idxs,
+    void correct_solution(const IndexSet<IndexType>& idxs,
                           const matrix::Dense<ValueType>* constrained_values,
                           const matrix::Dense<ValueType>* orig_init_guess,
                           matrix::Dense<ValueType>* solution) override;
@@ -266,7 +267,7 @@ public:
      * @param strategy  the implementation strategy of the constraints
      */
     ConstraintsHandler(
-        Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+        IndexSet<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
         std::shared_ptr<const Dense> values,
         std::shared_ptr<const Dense> right_hand_side,
         std::shared_ptr<const Dense> initial_guess = nullptr,
@@ -286,7 +287,7 @@ public:
      * @param strategy  the implementation strategy of the constraints
      */
     ConstraintsHandler(
-        Array<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
+        IndexSet<IndexType> idxs, std::shared_ptr<LinOp> system_operator,
         std::unique_ptr<ApplyConstraintsStrategy<ValueType, IndexType>>
             strategy =
                 std::make_unique<ZeroRowsStrategy<ValueType, IndexType>>());
@@ -367,7 +368,10 @@ public:
 
     LinOp* get_orig_operator() { return lend(orig_operator_); }
 
-    const Array<IndexType>* get_constrained_indices() const { return &idxs_; }
+    const IndexSet<IndexType>* get_constrained_indices() const
+    {
+        return &idxs_;
+    }
 
     const Dense* get_constrained_values() const { return lend(values_); }
 
@@ -390,7 +394,7 @@ private:
 
     void reconstruct_system_impl(bool force);
 
-    Array<IndexType> idxs_;
+    IndexSet<IndexType> idxs_;
 
     std::shared_ptr<LinOp> orig_operator_;
     std::shared_ptr<LinOp> cons_operator_;

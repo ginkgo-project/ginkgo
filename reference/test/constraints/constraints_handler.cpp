@@ -70,7 +70,7 @@ public:
           empty_values(gko::share(dense::create(ref))),
           empty_rhs(gko::share(dense::create(ref))),
           empty_init(gko::share(dense::create(ref))),
-          def_idxs(ref, {0, 2}),
+          def_idxs(ref, 4, {ref, {0, 2}}),
           def_mtx(gko::share(gko::initialize<mtx>(
               {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}},
               this->ref)))
@@ -80,13 +80,13 @@ public:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::constraints::ZeroRowsStrategy<value_type, index_type> strategy;
 
-    gko::Array<index_type> empty_idxs;
+    gko::IndexSet<index_type> empty_idxs;
     std::shared_ptr<mtx> empty_mtx;
     std::shared_ptr<dense> empty_values;
     std::shared_ptr<dense> empty_rhs;
     std::shared_ptr<dense> empty_init;
 
-    gko::Array<index_type> def_idxs;
+    gko::IndexSet<index_type> def_idxs;
     std::shared_ptr<mtx> def_mtx;
 };
 
@@ -120,7 +120,7 @@ TYPED_TEST(ZeroRowsStrategy, ConstructOperator)
         {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}}, this->ref));
     auto result = gko::initialize<mtx>(
         {{1, 0, 0, 0}, {0, 4, 0, 0}, {0, 0, 1, 0}, {7, 0, 0, 8}}, this->ref);
-    gko::Array<index_type> subset{this->ref, {0, 2}};
+    gko::IndexSet<index_type> subset{this->ref, 4, {this->ref, {0, 2}}};
 
     auto cons = this->strategy.construct_operator(subset, csr);
 
@@ -219,7 +219,7 @@ public:
     StrategyWithCounter(std::shared_ptr<apply_counter> c_) : c(std::move(c_)) {}
 
     std::shared_ptr<gko::LinOp> construct_operator(
-        const gko::Array<IndexType>& idxs,
+        const gko::IndexSet<IndexType>& idxs,
         std::shared_ptr<gko::LinOp> op) override
     {
         c->op++;
@@ -227,7 +227,7 @@ public:
             ValueType, IndexType>::construct_operator(idxs, op);
     }
     std::unique_ptr<gko::LinOp> construct_right_hand_side(
-        const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+        const gko::IndexSet<IndexType>& idxs, const gko::LinOp* op,
         const gko::matrix::Dense<ValueType>* init_guess,
         const gko::matrix::Dense<ValueType>* rhs) override
     {
@@ -237,7 +237,7 @@ public:
                                                              init_guess, rhs);
     }
     std::unique_ptr<gko::LinOp> construct_initial_guess(
-        const gko::Array<IndexType>& idxs, const gko::LinOp* op,
+        const gko::IndexSet<IndexType>& idxs, const gko::LinOp* op,
         const gko::matrix::Dense<ValueType>* init_guess,
         const gko::matrix::Dense<ValueType>* constrained_values) override
     {
@@ -247,7 +247,7 @@ public:
                                                            constrained_values);
     }
     void correct_solution(
-        const gko::Array<IndexType>& idxs,
+        const gko::IndexSet<IndexType>& idxs,
         const gko::matrix::Dense<ValueType>* constrained_values,
         const gko::matrix::Dense<ValueType>* orig_init_guess,
         gko::matrix::Dense<ValueType>* solution) override
@@ -282,7 +282,7 @@ public:
           empty_values(gko::share(dense::create(ref))),
           empty_rhs(gko::share(dense::create(ref))),
           empty_init(gko::share(dense::create(ref))),
-          def_idxs(ref, {0, 2}),
+          def_idxs(ref, 4, {ref, {0, 2}}),
           def_mtx(gko::share(gko::initialize<mtx>(
               {{1, 0, 2, 3}, {0, 4, 0, 0}, {0, 5, 6, 0}, {7, 0, 0, 8}},
               this->ref))),
@@ -293,7 +293,7 @@ public:
               this->empty_rhs, this->empty_init,
               std::make_unique<StrategyWithCounter<value_type, index_type>>(
                   counter)),
-          system_idxs(ref, {0, 3}),
+          system_idxs(ref, 4, {ref, {0, 3}}),
           system_mtx(gko::share(gko::initialize<mtx>(
               {{2, -1, 0, 0}, {-1, 2, -1, 0}, {0, -1, 2, -1}, {0, 0, -1, 2}},
               ref))),
@@ -310,16 +310,16 @@ public:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::constraints::ZeroRowsStrategy<value_type, index_type> strategy;
 
-    gko::Array<index_type> empty_idxs;
+    gko::IndexSet<index_type> empty_idxs;
     std::shared_ptr<mtx> empty_mtx;
     std::shared_ptr<dense> empty_values;
     std::shared_ptr<dense> empty_rhs;
     std::shared_ptr<dense> empty_init;
 
-    gko::Array<index_type> def_idxs;
+    gko::IndexSet<index_type> def_idxs;
     std::shared_ptr<mtx> def_mtx;
 
-    gko::Array<index_type> system_idxs;
+    gko::IndexSet<index_type> system_idxs;
     std::shared_ptr<mtx> system_mtx;
     std::shared_ptr<dense> system_values;
     std::shared_ptr<dense> system_rhs;
@@ -335,12 +335,40 @@ public:
 
 TYPED_TEST_SUITE(ConstrainedSystem, gko::test::ValueIndexTypes);
 
+template <typename IndexType>
+void assert_index_set_eq(const gko::IndexSet<IndexType>& a,
+                         const gko::IndexSet<IndexType>& b)
+{
+    auto exec = a.get_executor();
+    auto num_subsets = a.get_num_subsets();
+
+    ASSERT_EQ(num_subsets, b.get_num_subsets());
+    ASSERT_EQ(a.get_num_elems(), b.get_num_elems());
+    GKO_ASSERT_ARRAY_EQ(
+        gko::Array<IndexType>::view(
+            exec, num_subsets, const_cast<IndexType*>(a.get_subsets_begin())),
+        gko::Array<IndexType>::view(
+            exec, num_subsets, const_cast<IndexType*>(b.get_subsets_begin())));
+    GKO_ASSERT_ARRAY_EQ(
+        gko::Array<IndexType>::view(
+            exec, num_subsets, const_cast<IndexType*>(a.get_subsets_end())),
+        gko::Array<IndexType>::view(
+            exec, num_subsets, const_cast<IndexType*>(b.get_subsets_end())));
+    GKO_ASSERT_ARRAY_EQ(gko::Array<IndexType>::view(
+                            exec, num_subsets,
+                            const_cast<IndexType*>(a.get_superset_indices())),
+                        gko::Array<IndexType>::view(
+                            exec, num_subsets,
+                            const_cast<IndexType*>(b.get_superset_indices())));
+}
+
+
 TYPED_TEST(ConstrainedSystem, CanCreateWithIdxsMatrix)
 {
     using handler = typename TestFixture::handler;
     handler ch(this->empty_idxs, this->empty_mtx);
 
-    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    assert_index_set_eq(*ch.get_constrained_indices(), this->empty_idxs);
     ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
 }
 
@@ -351,7 +379,7 @@ TYPED_TEST(ConstrainedSystem, CanCreateWithFullSystem)
     handler ch(this->empty_idxs, this->empty_mtx, this->empty_values,
                this->empty_rhs, this->empty_init);
 
-    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    assert_index_set_eq(*ch.get_constrained_indices(), this->empty_idxs);
     ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
     ASSERT_EQ(ch.get_constrained_values(), this->empty_values.get());
     ASSERT_EQ(ch.get_orig_right_hand_side(), this->empty_rhs.get());
@@ -365,7 +393,7 @@ TYPED_TEST(ConstrainedSystem, CanCreateWithoutInitialGuess)
     handler ch(this->empty_idxs, this->empty_mtx, this->empty_values,
                this->empty_rhs);
 
-    GKO_ASSERT_ARRAY_EQ(*ch.get_constrained_indices(), this->empty_idxs);
+    assert_index_set_eq(*ch.get_constrained_indices(), this->empty_idxs);
     ASSERT_EQ(ch.get_orig_operator(), this->empty_mtx.get());
     ASSERT_EQ(ch.get_constrained_values(), this->empty_values.get());
     ASSERT_EQ(ch.get_orig_right_hand_side(), this->empty_rhs.get());

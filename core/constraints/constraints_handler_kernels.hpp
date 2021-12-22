@@ -44,21 +44,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CONS_FILL_SUBSET(ValueType, IndexType)            \
-    void fill_subset(std::shared_ptr<const DefaultExecutor> exec,     \
-                     const Array<IndexType>& subset, ValueType* data, \
+#define GKO_DECLARE_CONS_FILL_SUBSET(ValueType, IndexType)               \
+    void fill_subset(std::shared_ptr<const DefaultExecutor> exec,        \
+                     const IndexSet<IndexType>& subset, ValueType* data, \
                      ValueType val)
 
 
-#define GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType)                 \
-    void copy_subset(std::shared_ptr<const DefaultExecutor> exec,          \
-                     const Array<IndexType>& subset, const ValueType* src, \
+#define GKO_DECLARE_CONS_COPY_SUBSET(ValueType, IndexType)                    \
+    void copy_subset(std::shared_ptr<const DefaultExecutor> exec,             \
+                     const IndexSet<IndexType>& subset, const ValueType* src, \
                      ValueType* dst)
 
 
 #define GKO_DECLARE_CONS_SET_UNIT_ROWS(ValueType, IndexType)                 \
     void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,          \
-                       const Array<IndexType>& subset,                       \
+                       const IndexSet<IndexType>& subset,                    \
                        const IndexType* row_ptrs, const IndexType* col_idxs, \
                        ValueType* values)
 

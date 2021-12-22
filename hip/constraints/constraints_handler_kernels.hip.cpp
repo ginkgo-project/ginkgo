@@ -47,19 +47,19 @@ namespace cons {
 
 template <typename ValueType, typename IndexType>
 void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, ValueType* data,
+                 const IndexSet<IndexType>& subset, ValueType* data,
                  ValueType val) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& subset, const ValueType* src,
+                 const IndexSet<IndexType>& subset, const ValueType* src,
                  ValueType* dst) GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
-                   const Array<IndexType>& subset, const IndexType* row_ptrs,
+                   const IndexSet<IndexType>& subset, const IndexType* row_ptrs,
                    const IndexType* col_idxs,
                    ValueType* values) GKO_NOT_IMPLEMENTED;
 
