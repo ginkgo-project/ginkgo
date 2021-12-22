@@ -75,7 +75,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     const bool to_scale =
-        this->get_left_scaling_vector() && this->get_right_scaling_vector();
+        this->get_left_scaling_op() && this->get_right_scaling_op();
     const auto acsr = dynamic_cast<const Csr*>(system_matrix_.get());
     const BatchLinOp* a_scaled{};
     const Vector* b_scaled{};
@@ -90,8 +90,8 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
         exec->run(batch::make_pre_diag_scale_system(
-            as<const Vector>(this->get_left_scaling_vector()),
-            as<const Vector>(this->get_right_scaling_vector()),
+            as<const Vector>(this->get_left_scaling_op()),
+            as<const Vector>(this->get_right_scaling_op()),
             a_scaled_smart.get(), b_scaled_smart.get()));
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
@@ -119,7 +119,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
 
     if (to_scale) {
         exec->run(batch::make_vec_scale(
-            as<Vector>(this->get_right_scaling_vector()), dense_x));
+            as<Vector>(this->get_right_scaling_op()), dense_x));
     }
 }
 

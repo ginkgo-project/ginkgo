@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -941,6 +942,29 @@ TYPED_TEST(BatchDense, MovesEmptyMatrixToCsr)
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
     ASSERT_FALSE(res->get_num_batch_entries());
+}
+
+
+TYPED_TEST(BatchDense, ConvertsToBatchDiagonal)
+{
+    using BDense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using BDiag = gko::matrix::BatchDiagonal<T>;
+    auto vec = gko::batch_initialize<BDense>(
+        {I<T>({2.0, 3.0, -1.0}), I<T>({1.0, -2.0, 8.0})}, this->exec);
+    auto diag = BDiag::create(this->exec);
+
+    vec->convert_to(diag.get());
+
+    auto check_sz = gko::batch_dim<2>{2, gko::dim<2>{3}};
+    ASSERT_EQ(diag->get_size(), check_sz);
+    auto diag_vals = diag->get_const_values();
+    ASSERT_EQ(diag_vals[0], 2.0);
+    ASSERT_EQ(diag_vals[1], 3.0);
+    ASSERT_EQ(diag_vals[2], -1.0);
+    ASSERT_EQ(diag_vals[3], 1.0);
+    ASSERT_EQ(diag_vals[4], -2.0);
+    ASSERT_EQ(diag_vals[5], 8.0);
 }
 
 
