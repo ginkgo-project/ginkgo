@@ -84,7 +84,6 @@ class BatchDiagonal
     friend class EnableCreateMethod<BatchDiagonal>;
     friend class EnablePolymorphicObject<BatchDiagonal, BatchLinOp>;
     friend class BatchDiagonal<to_complex<ValueType>>;
-    friend class BatchDense<ValueType>;
 
 public:
     using EnableBatchLinOp<BatchDiagonal>::convert_to;
