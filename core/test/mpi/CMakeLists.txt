@@ -5,3 +5,4 @@ target_sources(gtest_mpi_main
 find_package(MPI REQUIRED)
 target_link_libraries(gtest_mpi_main PRIVATE GTest::GTest MPI::MPI_CXX)
 add_subdirectory(base)
+add_subdirectory(distributed)
