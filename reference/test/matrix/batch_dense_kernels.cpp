@@ -959,12 +959,12 @@ TYPED_TEST(BatchDense, ConvertsToBatchDiagonal)
     auto check_sz = gko::batch_dim<2>{2, gko::dim<2>{3}};
     ASSERT_EQ(diag->get_size(), check_sz);
     auto diag_vals = diag->get_const_values();
-    ASSERT_EQ(diag_vals[0], 2.0);
-    ASSERT_EQ(diag_vals[1], 3.0);
-    ASSERT_EQ(diag_vals[2], -1.0);
-    ASSERT_EQ(diag_vals[3], 1.0);
-    ASSERT_EQ(diag_vals[4], -2.0);
-    ASSERT_EQ(diag_vals[5], 8.0);
+    ASSERT_EQ(diag_vals[0], T{2.0});
+    ASSERT_EQ(diag_vals[1], T{3.0});
+    ASSERT_EQ(diag_vals[2], T{-1.0});
+    ASSERT_EQ(diag_vals[3], T{1.0});
+    ASSERT_EQ(diag_vals[4], T{-2.0});
+    ASSERT_EQ(diag_vals[5], T{8.0});
 }
 
 
