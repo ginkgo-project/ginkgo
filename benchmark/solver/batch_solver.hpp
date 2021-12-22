@@ -396,7 +396,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaledSolver<etype>*>(solver.get())
+                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));
             }
             solver->add_logger(logger);
@@ -446,7 +446,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaledSolver<etype>*>(solver.get())
+                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));
             }
             exec->remove_logger(gko::lend(gen_logger));
@@ -553,7 +553,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             auto solver =
                 generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
             if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaledSolver<etype>*>(solver.get())
+                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));
             }
             generate_timer->toc();

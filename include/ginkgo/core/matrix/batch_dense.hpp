@@ -90,8 +90,6 @@ class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
     friend class EnableCreateMethod<BatchDense>;
     friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
-    // friend class BatchCsr<ValueType, int32>;
-    // friend class BatchDiagonal<ValueType>;
 
 public:
     using EnableBatchLinOp<BatchDense>::convert_to;
