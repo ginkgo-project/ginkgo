@@ -259,10 +259,12 @@ void BatchDense<ValueType>::convert_to(
     if (this->get_stride().at(0) != 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    result->set_size(batch_dim<2>{batch_size.get_num_batch_entries(),
-                                  dim<2>(batch_size.at(0)[0])});
+    auto temp = BatchDiagonal<ValueType>::create(
+        exec, batch_dim<2>{batch_size.get_num_batch_entries(),
+                           dim<2>{batch_size.at(0)[0]}});
     exec->copy(this->get_num_stored_elements(), this->get_const_values(),
-               result->get_values());
+               temp->get_values());
+    result->copy_from(temp.get());
 }
 
 
@@ -281,9 +283,12 @@ void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
     if (this->get_stride().at(0) != 1) {
         GKO_NOT_IMPLEMENTED;
     }
-    result->set_size(batch_dim<2>{batch_size.get_num_batch_entries(),
-                                  dim<2>(batch_size.at(0)[0])});
-    result->values_ = std::move(this->values_);
+    auto temp = BatchDiagonal<ValueType>::create(
+        exec,
+        batch_dim<2>{batch_size.get_num_batch_entries(),
+                     dim<2>{batch_size.at(0)[0]}},
+        std::move(this->values_));
+    *result = std::move(*temp);
 }
 
 
