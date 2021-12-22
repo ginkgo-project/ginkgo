@@ -253,9 +253,7 @@ void BatchDense<ValueType>::convert_to(
     if (!batch_size.stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
-    if (batch_size.at(0)[1] != 1) {
-        GKO_NOT_IMPLEMENTED;  // actually what we mean is it's not supported
-    }
+    GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(this);
     if (this->get_stride().at(0) != 1) {
         GKO_NOT_IMPLEMENTED;
     }
@@ -277,9 +275,7 @@ void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
     if (!batch_size.stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
-    if (batch_size.at(0)[1] != 1) {
-        GKO_NOT_IMPLEMENTED;  // actually what we mean is it's not supported
-    }
+    GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(this);
     if (this->get_stride().at(0) != 1) {
         GKO_NOT_IMPLEMENTED;
     }

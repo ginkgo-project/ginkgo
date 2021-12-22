@@ -150,17 +150,17 @@ inline dim<2> get_size(const dim<2>& size) { return size; }
 
 
 template <typename T>
-inline batch_dim<2> get_batch_size(const T &op)
+inline batch_dim<2> get_batch_size(const T& op)
 {
     return op->get_size();
 }
 
 
-inline batch_dim<2> get_batch_size(const batch_dim<2> &size) { return size; }
+inline batch_dim<2> get_batch_size(const batch_dim<2>& size) { return size; }
 
 
-inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
-                                                 const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -183,8 +183,8 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
-                                                 const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2>& size1,
+                                                 const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -207,8 +207,8 @@ inline std::tuple<bool, int> compare_batch_outer(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
-                                                const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -231,8 +231,8 @@ inline std::tuple<bool, int> compare_batch_rows(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
-                                                const batch_dim<2> &size2)
+inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2>& size1,
+                                                const batch_dim<2>& size2)
 {
     if (size1.get_num_batch_entries() != size2.get_num_batch_entries()) {
         return std::tuple<bool, int>{false, -1};
@@ -255,7 +255,7 @@ inline std::tuple<bool, int> compare_batch_cols(const batch_dim<2> &size1,
 }
 
 
-inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
+inline std::tuple<bool, int> check_batch_square(const batch_dim<>& size)
 {
     if (size.stores_equal_sizes()) {
         if (size.at(0)[0] != size.at(0)[1]) {
@@ -275,7 +275,7 @@ inline std::tuple<bool, int> check_batch_square(const batch_dim<> &size)
 
 
 inline std::tuple<bool, int> check_batch_left_scalable(
-    const batch_dim<> &mat_size, const batch_dim<> &left_size)
+    const batch_dim<>& mat_size, const batch_dim<>& left_size)
 {
     if (mat_size.stores_equal_sizes() && left_size.stores_equal_sizes()) {
         if (mat_size.at(0)[0] == left_size.at(0)[0] &&
@@ -291,7 +291,7 @@ inline std::tuple<bool, int> check_batch_left_scalable(
 
 
 inline std::tuple<bool, int> check_batch_right_scalable(
-    const batch_dim<> &mat_size, const batch_dim<> &right_size)
+    const batch_dim<>& mat_size, const batch_dim<>& right_size)
 {
     if (mat_size.stores_equal_sizes() && right_size.stores_equal_sizes()) {
         if (mat_size.at(0)[1] == right_size.at(0)[0] &&
@@ -302,6 +302,27 @@ inline std::tuple<bool, int> check_batch_right_scalable(
         }
     } else {
         GKO_NOT_IMPLEMENTED;
+    }
+}
+
+
+inline std::tuple<bool, size_type> check_batch_single_column(
+    const batch_dim<2>& mat_size)
+{
+    if (mat_size.stores_equal_sizes()) {
+        if (mat_size.at(0)[1] == 1) {
+            return std::tuple<bool, size_type>{true, 0};
+        } else {
+            return std::tuple<bool, size_type>{false, 0};
+        }
+    } else {
+        for (size_type batch = 0; batch < mat_size.get_num_batch_entries();
+             batch++) {
+            if (mat_size.at(0)[1] != 1) {
+                return std::tuple<bool, size_type>{false, batch};
+            }
+        }
+        return std::tuple<bool, size_type>{true, 0};
     }
 }
 
@@ -1043,6 +1064,22 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
             ::gko::detail::get_batch_size(_right_op).at(bidx)[0],            \
             ::gko::detail::get_batch_size(_right_op).at(bidx)[1],            \
             "expected matching right scaling vector");                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(_opA)                             \
+    auto chk = ::gko::detail::check_batch_single_column(                     \
+        ::gko::detail::get_batch_size(_opA));                                \
+    if (!std::get<0>(chk)) {                                                 \
+        const int bidx = std::get<1>(chk);                                   \
+        throw ::gko::BadDimension(                                           \
+            __FILE__, __LINE__, __func__, #_opA,                             \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[0],                 \
+            ::gko::detail::get_batch_size(_opA).at(bidx)[1],                 \
+            "expected single vector");                                       \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
