@@ -42,14 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/constraints/constraints_handler_kernels.hpp"
+#include "core/constraints/utility_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 
 
 namespace {
 template <typename ValueIndexType>
-class ConsKernels : public ::testing::Test {
+class ConsUtilityKernels : public ::testing::Test {
 public:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -57,15 +57,15 @@ public:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using dense = gko::matrix::Dense<value_type>;
 
-    ConsKernels() : ref(gko::ReferenceExecutor::create()) {}
+    ConsUtilityKernels() : ref(gko::ReferenceExecutor::create()) {}
 
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(ConsKernels, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(ConsUtilityKernels, gko::test::ValueIndexTypes);
 
-TYPED_TEST(ConsKernels, FillSubsetEmpty)
+TYPED_TEST(ConsUtilityKernels, FillSubsetEmpty)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -80,7 +80,7 @@ TYPED_TEST(ConsKernels, FillSubsetEmpty)
     }
 }
 
-TYPED_TEST(ConsKernels, FillSubsetFull)
+TYPED_TEST(ConsUtilityKernels, FillSubsetFull)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -96,7 +96,7 @@ TYPED_TEST(ConsKernels, FillSubsetFull)
     }
 }
 
-TYPED_TEST(ConsKernels, FillSubset)
+TYPED_TEST(ConsUtilityKernels, FillSubset)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -115,7 +115,7 @@ TYPED_TEST(ConsKernels, FillSubset)
     GKO_ASSERT_MTX_NEAR(ones, result, 0);
 }
 
-TYPED_TEST(ConsKernels, CopySubsetEmpty)
+TYPED_TEST(ConsUtilityKernels, CopySubsetEmpty)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -134,7 +134,7 @@ TYPED_TEST(ConsKernels, CopySubsetEmpty)
     GKO_ASSERT_MTX_NEAR(dst, result, 0);
 }
 
-TYPED_TEST(ConsKernels, CopySubsetFull)
+TYPED_TEST(ConsUtilityKernels, CopySubsetFull)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -154,7 +154,7 @@ TYPED_TEST(ConsKernels, CopySubsetFull)
     GKO_ASSERT_MTX_NEAR(dst, result, 0);
 }
 
-TYPED_TEST(ConsKernels, CopySubset)
+TYPED_TEST(ConsUtilityKernels, CopySubset)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -175,7 +175,7 @@ TYPED_TEST(ConsKernels, CopySubset)
     GKO_ASSERT_MTX_NEAR(dst, result, 0);
 }
 
-TYPED_TEST(ConsKernels, SetUnitRowEmptySubset)
+TYPED_TEST(ConsUtilityKernels, SetUnitRowEmptySubset)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -192,7 +192,7 @@ TYPED_TEST(ConsKernels, SetUnitRowEmptySubset)
     GKO_ASSERT_MTX_NEAR(csr, result, 0);
 }
 
-TYPED_TEST(ConsKernels, SetUnitRowFullSubset)
+TYPED_TEST(ConsUtilityKernels, SetUnitRowFullSubset)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -211,7 +211,7 @@ TYPED_TEST(ConsKernels, SetUnitRowFullSubset)
     GKO_ASSERT_MTX_NEAR(csr, result, 0);
 }
 
-TYPED_TEST(ConsKernels, SetUnitRowSubset)
+TYPED_TEST(ConsUtilityKernels, SetUnitRowSubset)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;

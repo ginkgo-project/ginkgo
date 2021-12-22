@@ -70,6 +70,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 #include <ginkgo/core/constraints/constraints_handler.hpp>
+#include <ginkgo/core/constraints/zero_rows.hpp>
 
 #include <ginkgo/core/distributed/partition.hpp>
 

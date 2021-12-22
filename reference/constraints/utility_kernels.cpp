@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/constraints/constraints_handler_kernels.hpp"
+#include "core/constraints/utility_kernels.hpp"
 
 
 #include <memory>
@@ -41,27 +41,60 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace reference {
 namespace cons {
 
 
 template <typename ValueType, typename IndexType>
 void fill_subset(std::shared_ptr<const DefaultExecutor> exec,
                  const IndexSet<IndexType>& subset, ValueType* data,
-                 ValueType val) GKO_NOT_IMPLEMENTED;
+                 ValueType val)
+{
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type idx = subsets_begin[s]; idx < subsets_end[s]; ++idx) {
+            data[idx] = val;
+        }
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 void copy_subset(std::shared_ptr<const DefaultExecutor> exec,
                  const IndexSet<IndexType>& subset, const ValueType* src,
-                 ValueType* dst) GKO_NOT_IMPLEMENTED;
+                 ValueType* dst)
+{
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type idx = subsets_begin[s]; idx < subsets_end[s]; ++idx) {
+            dst[idx] = src[idx];
+        }
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
 void set_unit_rows(std::shared_ptr<const DefaultExecutor> exec,
                    const IndexSet<IndexType>& subset, const IndexType* row_ptrs,
-                   const IndexType* col_idxs,
-                   ValueType* values) GKO_NOT_IMPLEMENTED;
+                   const IndexType* col_idxs, ValueType* values)
+{
+    auto subsets_begin = subset.get_subsets_begin();
+    auto subsets_end = subset.get_subsets_end();
+    for (size_type s = 0; s < subset.get_num_subsets(); ++s) {
+        for (size_type row = subsets_begin[s]; row < subsets_end[s]; ++row) {
+            for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1];
+                 ++idx) {
+                if (col_idxs[idx] != row) {
+                    values[idx] = gko::zero<ValueType>();
+                } else {
+                    values[idx] = gko::one<ValueType>();
+                }
+            }
+        }
+    }
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
@@ -70,6 +103,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
 }  // namespace cons
-}  // namespace dpcpp
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko

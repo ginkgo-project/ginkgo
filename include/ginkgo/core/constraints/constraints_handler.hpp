@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/constraints/strategy.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 namespace gko {
@@ -66,136 +67,8 @@ zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
 }  // namespace detail
 
 
-/**
- * Interface for applying constraints to a linear system.
- *
- * This interface provides several methods that are necessary to construct the
- * individual parts of a linear system with constraints, namely:
- * - incorporating the constraints into the operator
- * - deriving a suitable right-hand-side
- * - deriving a suitable initial guess
- * - if necessary, update the solution.
- * Depending on the actual implementation, some of these methods might be
- * no-ops.
- *
- * A specialized implementation of constraints handling can be achieved by
- * deriving a class from this interface and passing it to the
- * ConstraintsHandler.
- *
- * @tparam ValueType The ValueType of the underlying operator and vectors
- * @tparam IndexType The IndexType of the underlying operator and vectors
- */
 template <typename ValueType, typename IndexType>
-class ApplyConstraintsStrategy
-    : public EnableCreateMethod<
-          ApplyConstraintsStrategy<ValueType, ValueType>> {
-public:
-    /**
-     * Incorporates the constraints into the operator.
-     *
-     * @note This might (but not necessarily) change the operator directly.
-     *
-     * @param idxs  The indices where the constraints are applied.
-     * @param op  The original operator.
-     * @return  An operator with constraints added.
-     */
-    virtual std::shared_ptr<LinOp> construct_operator(
-        const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op) = 0;
-
-    /**
-     * Creates a new right-hand-side for the constrained system.
-     *
-     * @param idxs  The indices where the constraints are applied.
-     * @param op  The original (unconstrained) operator.
-     * @param init_guess  The original initial guess of the system
-     * @param rhs  The original right-hand-side.
-     * @return  The right-hand-side for the constrained system.
-     */
-    virtual std::unique_ptr<LinOp> construct_right_hand_side(
-        const IndexSet<IndexType>& idxs, const LinOp* op,
-        const matrix::Dense<ValueType>* init_guess,
-        const matrix::Dense<ValueType>* rhs) = 0;
-
-    /**
-     * Creates a new initial guess for the constrained system.
-     *
-     * @param idxs  The indices where the constraints are applied.
-     * @param op  The original (unconstrained) operator.
-     * @param init_guess  The original initial guess of the system
-     * @param constrained_values  The values of the constrained indices.
-     * @return  A new initial guess for the constrained system.
-     */
-    virtual std::unique_ptr<LinOp> construct_initial_guess(
-        const IndexSet<IndexType>& idxs, const LinOp* op,
-        const matrix::Dense<ValueType>* init_guess,
-        const matrix::Dense<ValueType>* constrained_values) = 0;
-
-    /**
-     * If necessary, updates the solution to the constrained system to make it
-     * the solution of the original system.
-     *
-     * @param idxs  The indices where the constraints are applied.
-     * @param constrained_values  The values of the constrained indices.
-     * @param orig_init_guess The original (unconstrained) initial guess of the
-     * system
-     * @param solution The solution to the constrained system.
-     */
-    virtual void correct_solution(
-        const IndexSet<IndexType>& idxs,
-        const matrix::Dense<ValueType>* constrained_values,
-        const matrix::Dense<ValueType>* orig_init_guess,
-        matrix::Dense<ValueType>* solution) = 0;
-};
-
-
-/**
- * Applies constraints to a linear system, by zeroing-out rows.
- *
- * The rows of a matrix that correspond to constrained values are set to zero,
- * except the diagonal entry, which is set to 1. This directly changes the
- * values of the matrix, and the operator's symmetry is not maintained. However,
- * the operator is still symmetric (or self-adjoint) on a subspace, where the
- * constrained indices of vectors are set to zero, so that the constrained
- * operator can still be used in a CG method for example. Additionally, a new
- * right-hand-side in that subspace is created as `new_b = b - cons_A * x_0` and
- * the new initial guess is set to 0 for constrained indices. Lastly, the
- * constrained values are added to the solution of the system `cons_A * z =
- * new_b`.
- *
- * @note Current restrictions:
- * - can only be used with a single right-hand-side
- * - can only be used with `stride=1` vectors
- *
- * @tparam ValueType The ValueType of the underlying operator and vectors
- * @tparam IndexType The IndexType of the underlying operator and vectors
- */
-template <typename ValueType, typename IndexType>
-class ZeroRowsStrategy : public ApplyConstraintsStrategy<ValueType, IndexType> {
-    using Dense = matrix::Dense<ValueType>;
-
-public:
-    std::shared_ptr<LinOp> construct_operator(
-        const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op) override;
-
-    std::unique_ptr<LinOp> construct_right_hand_side(
-        const IndexSet<IndexType>& idxs, const LinOp* op,
-        const matrix::Dense<ValueType>* init_guess,
-        const matrix::Dense<ValueType>* rhs) override;
-
-    std::unique_ptr<LinOp> construct_initial_guess(
-        const IndexSet<IndexType>& idxs, const LinOp* op,
-        const matrix::Dense<ValueType>* init_guess,
-        const matrix::Dense<ValueType>* constrained_values) override;
-
-    void correct_solution(const IndexSet<IndexType>& idxs,
-                          const matrix::Dense<ValueType>* constrained_values,
-                          const matrix::Dense<ValueType>* orig_init_guess,
-                          matrix::Dense<ValueType>* solution) override;
-
-private:
-    std::unique_ptr<Dense> one;
-    std::unique_ptr<Dense> neg_one;
-};
+class ZeroRowsStrategy;
 
 
 /**

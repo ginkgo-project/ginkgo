@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/constraints/constraints_handler_kernels.hpp"
+#include "core/constraints/utility_kernels.hpp"
 
 
 namespace gko {
@@ -47,9 +47,7 @@ namespace cons {
 namespace {
 
 
-GKO_REGISTER_OPERATION(fill_subset, cons::fill_subset);
 GKO_REGISTER_OPERATION(copy_subset, cons::copy_subset);
-GKO_REGISTER_OPERATION(set_unit_rows, cons::set_unit_rows);
 
 
 }  // namespace
@@ -74,85 +72,6 @@ zero_guess_with_constrained_values(std::shared_ptr<const Executor> exec,
 
 
 }  // namespace detail
-
-
-template <typename ValueType, typename IndexType>
-std::shared_ptr<LinOp>
-ZeroRowsStrategy<ValueType, IndexType>::construct_operator(
-    const IndexSet<IndexType>& idxs, std::shared_ptr<LinOp> op)
-{
-    auto exec = op->get_executor();
-    if (auto* csr =
-            dynamic_cast<matrix::Csr<ValueType, IndexType>*>(op.get())) {
-        exec->run(cons::make_set_unit_rows(idxs, csr->get_const_row_ptrs(),
-                                           csr->get_const_col_idxs(),
-                                           csr->get_values()));
-        return op;
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp>
-ZeroRowsStrategy<ValueType, IndexType>::construct_right_hand_side(
-    const IndexSet<IndexType>& idxs, const gko::LinOp* op,
-    const matrix::Dense<ValueType>* init_guess,
-    const matrix::Dense<ValueType>* rhs)
-{
-    auto exec = rhs->get_executor();
-    if (!one) {
-        one = initialize<Dense>({gko::one<ValueType>()}, exec);
-    }
-    if (!neg_one) {
-        neg_one = initialize<Dense>({-gko::one<ValueType>()}, exec);
-    }
-
-    auto cons_rhs = gko::clone(rhs);
-    op->apply(neg_one.get(), init_guess, one.get(), cons_rhs.get());
-    exec->run(cons::make_fill_subset(idxs, cons_rhs.get()->get_values(),
-                                     gko::zero<ValueType>()));
-    return cons_rhs;
-}
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp>
-ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
-    const IndexSet<IndexType>& idxs, const gko::LinOp* op,
-    const matrix::Dense<ValueType>* init_guess,
-    const matrix::Dense<ValueType>* constrained_values)
-{
-    auto exec = init_guess->get_executor();
-    auto cons_init_guess = gko::clone(init_guess);
-    exec->run(cons::make_fill_subset(idxs, cons_init_guess.get()->get_values(),
-                                     gko::zero<ValueType>()));
-    return cons_init_guess;
-}
-
-
-template <typename ValueType, typename IndexType>
-void ZeroRowsStrategy<ValueType, IndexType>::correct_solution(
-    const IndexSet<IndexType>& idxs,
-    const matrix::Dense<ValueType>* constrained_values,
-    const matrix::Dense<ValueType>* orig_init_guess,
-    matrix::Dense<ValueType>* solution)
-{
-    auto exec = solution->get_executor();
-    if (!one) {
-        one = initialize<Dense>({gko::one<ValueType>()},
-                                solution->get_executor());
-    }
-    solution->add_scaled(one.get(), orig_init_guess);
-    exec->run(cons::make_copy_subset(
-        idxs, constrained_values->get_const_values(), solution->get_values()));
-}
-
-
-#define GKO_DECLARE_ZERO_ROWS_STRATEGY(ValueType, IndexType) \
-    class ZeroRowsStrategy<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ZERO_ROWS_STRATEGY);
 
 
 template <typename ValueType, typename IndexType>

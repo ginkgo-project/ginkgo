@@ -20,7 +20,7 @@ target_sources(ginkgo_dpcpp
     base/index_set_kernels.dp.cpp
     components/device_matrix_data_kernels.dp.cpp
     components/prefix_sum_kernels.dp.cpp
-    constraints/constraints_handler_kernels.dp.cpp
+    constraints/utility_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp

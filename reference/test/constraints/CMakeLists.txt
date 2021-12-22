@@ -1,2 +1,3 @@
 ginkgo_create_test(constraints_handler)
-ginkgo_create_test(constraints_handler_kernels)
+ginkgo_create_test(utility_kernels)
+ginkgo_create_test(zero_rows)

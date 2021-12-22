@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/constraints/constraints_handler_kernels.hpp"
+#include "core/constraints/utility_kernels.hpp"
 
 
 #include <memory>
@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace omp {
 namespace cons {
 
 
@@ -70,6 +70,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
 
 
 }  // namespace cons
-}  // namespace hip
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
