@@ -52,6 +52,10 @@ namespace gko {
 namespace matrix {
 
 
+template <typename ValueType>
+class BatchDiagonal;
+
+
 template <typename ValueType, typename IndexType>
 class BatchCsr;
 
@@ -77,6 +81,7 @@ class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
                    public EnableCreateMethod<BatchDense<ValueType>>,
                    public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
                    public ConvertibleTo<BatchCsr<ValueType, int32>>,
+                   public ConvertibleTo<BatchDiagonal<ValueType>>,
                    public BatchReadableFromMatrixData<ValueType, int32>,
                    public BatchReadableFromMatrixData<ValueType, int64>,
                    public BatchWritableToMatrixData<ValueType, int32>,
@@ -85,7 +90,8 @@ class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
     friend class EnableCreateMethod<BatchDense>;
     friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
-    friend class BatchCsr<ValueType, int32>;
+    // friend class BatchCsr<ValueType, int32>;
+    // friend class BatchDiagonal<ValueType>;
 
 public:
     using EnableBatchLinOp<BatchDense>::convert_to;
@@ -130,6 +136,10 @@ public:
     void convert_to(BatchCsr<ValueType, index_type>* result) const override;
 
     void move_to(BatchCsr<ValueType, index_type>* result) override;
+
+    void convert_to(BatchDiagonal<ValueType>* result) const override;
+
+    void move_to(BatchDiagonal<ValueType>* result) override;
 
     void read(const std::vector<mat_data>& data) override;
 
