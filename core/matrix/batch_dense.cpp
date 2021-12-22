@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -239,6 +240,50 @@ template <typename ValueType>
 void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::convert_to(
+    BatchDiagonal<ValueType>* const result) const
+{
+    auto exec = this->get_executor();
+
+    auto batch_size = this->get_size();
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    if (batch_size.at(0)[1] != 1) {
+        GKO_NOT_IMPLEMENTED;  // actually what we mean is it's not supported
+    }
+    if (this->get_stride().at(0) != 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    result->set_size(batch_dim<2>{batch_size.get_num_batch_entries(),
+                                  dim<2>(batch_size.at(0)[0])});
+    exec->copy(this->get_num_stored_elements(), this->get_const_values(),
+               result->get_values());
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
+{
+    auto exec = this->get_executor();
+
+    auto batch_size = this->get_size();
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    if (batch_size.at(0)[1] != 1) {
+        GKO_NOT_IMPLEMENTED;  // actually what we mean is it's not supported
+    }
+    if (this->get_stride().at(0) != 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    result->set_size(batch_dim<2>{batch_size.get_num_batch_entries(),
+                                  dim<2>(batch_size.at(0)[0])});
+    result->values_ = std::move(this->values_);
 }
 
 
