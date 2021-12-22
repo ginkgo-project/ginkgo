@@ -268,8 +268,8 @@ TYPED_TEST(BatchRich, CanSetScalingVectors)
     auto s_solver = gko::as<gko::EnableBatchScaling>(solver.get());
 
     ASSERT_TRUE(s_solver);
-    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
-    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
+    ASSERT_EQ(s_solver->get_left_scaling_op(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_op(), right_scale.get());
 }
 
 // TODO: Enable after BatchCsr::transpose is implemented.
