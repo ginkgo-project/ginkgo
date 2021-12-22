@@ -323,19 +323,23 @@ struct MultigridState {
         mg_level->get_restrict_op()->apply(r.get(), g.get());
         // next level
         e->fill(zero<VT>());
-        this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(), g.get(),
-                        e.get(), true, cycle == multigrid::cycle::v);
+        auto next_level_matrix =
+            (level + 1 < total_level)
+                ? multigrid->get_mg_level_list().at(level + 1)->get_fine_op()
+                : mg_level->get_coarse_op();
+        this->run_cycle(cycle, level + 1, next_level_matrix, g.get(), e.get(),
+                        true, cycle == multigrid::cycle::v);
         if (level < multigrid->get_mg_level_list().size() - 1) {
             // additional work for non-v_cycle
             // next level
             if (cycle == multigrid::cycle::f) {
                 // f_cycle call v_cycle in the second cycle
                 this->run_cycle(multigrid::cycle::v, level + 1,
-                                mg_level->get_coarse_op(), g.get(), e.get(),
-                                false, true);
+                                next_level_matrix, g.get(), e.get(), false,
+                                true);
             } else if (cycle == multigrid::cycle::w) {
-                this->run_cycle(cycle, level + 1, mg_level->get_coarse_op(),
-                                g.get(), e.get(), false, true);
+                this->run_cycle(cycle, level + 1, next_level_matrix, g.get(),
+                                e.get(), false, true);
             } else if ((cycle == multigrid::cycle::kfcg ||
                         cycle == multigrid::cycle::kgcr) &&
                        level % multigrid->get_parameters().kcycle_base == 0) {
@@ -560,7 +564,7 @@ void Multigrid::generate()
                         parameters_.smoother_relax);
                 }
             },
-            index, matrix);
+            index, mg_level->get_fine_op());
 
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
