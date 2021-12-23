@@ -42,12 +42,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/sub_matrix.hpp>
 
 
 namespace gko {
+
+
+#if GINKGO_BUILD_MPI
+
+
+namespace distributed {
+
+
+template <typename ValueType, typename LocalIndexType>
+class Vector;
+
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
+
+
+}  // namespace distributed
+
+
+#endif
+
+
 namespace matrix {
 
 
@@ -74,6 +97,9 @@ class Sellp;
 
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
+
+template <typename MatrixType>
+class SubMatrix;
 
 
 /**
@@ -111,6 +137,7 @@ class Dense
       public ConvertibleTo<SparsityCsr<ValueType, int32>>,
       public ConvertibleTo<SparsityCsr<ValueType, int64>>,
       public DiagonalExtractable<ValueType>,
+      public BlockApproximatable<Dense<ValueType>>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
@@ -137,6 +164,12 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
+#if GINKGO_BUILD_MPI
+    friend class distributed::Vector<ValueType, int32>;
+    friend class distributed::Vector<ValueType, int64>;
+    friend class distributed::Matrix<ValueType, int32>;
+    friend class distributed::Matrix<ValueType, int64>;
+#endif
 
 public:
     using ReadableFromMatrixData<ValueType, int32>::read;
@@ -154,6 +187,8 @@ public:
     using complex_type = to_complex<Dense>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
+    using const_row_major_range =
+        gko::range<gko::accessor::row_major<const ValueType, 2>>;
 
     /**
      * Creates a Dense matrix with the same size and stride as another Dense
@@ -366,6 +401,11 @@ public:
 
     std::unique_ptr<LinOp> row_permute(
         const Array<int64>* permutation_indices) const override;
+
+    std::vector<std::unique_ptr<SubMatrix<Dense>>> get_block_approx(
+        const Array<size_type>& block_sizes,
+        const Overlap<size_type>& block_overlaps = {},
+        const Array<size_type>& permutation = {}) const override;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
@@ -819,10 +859,11 @@ public:
      */
     std::unique_ptr<Dense> create_submatrix(const span& rows,
                                             const span& columns,
-                                            const size_type stride)
+                                            const size_type stride) const
     {
-        return this->create_submatrix_impl(rows, columns, stride);
+        return std::move(this->create_submatrix_impl(rows, columns, stride));
     }
+
 
     /**
      * Create a submatrix from the original matrix.
@@ -831,9 +872,9 @@ public:
      * @param columns  column span
      */
     std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns)
+                                            const span& columns) const
     {
-        return create_submatrix(rows, columns, this->get_stride());
+        return std::move(create_submatrix(rows, columns, this->get_stride()));
     }
 
     /**
@@ -905,6 +946,14 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(values)),
             stride});
     }
+
+    /*
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows     row span
+     * @param columns  column span
+     */
+    std::unique_ptr<const Dense> create_local_view() const;
 
 protected:
     /**
@@ -1099,14 +1148,34 @@ protected:
         auto range_result = range_this(rows, columns);
         // TODO: can result in HUGE padding - which will be copied with the
         // vector
-        return Dense::create(
+        return std::move(Dense::create(
             this->get_executor(),
             dim<2>{range_result.length(0), range_result.length(1)},
             Array<ValueType>::view(
                 this->get_executor(),
                 range_result.length(0) * range_this.length(1) - columns.begin,
                 range_result->data),
-            stride);
+            stride));
+    }
+
+
+    virtual std::unique_ptr<Dense> create_submatrix_impl(
+        const span& rows, const span& columns, const size_type stride) const
+    {
+        const_row_major_range range_this{
+            this->get_const_values(), this->get_size()[0], this->get_size()[1],
+            this->get_stride()};
+        const auto range_result = range_this(rows, columns);
+        // TODO: can result in HUGE padding - which will be copied with the
+        // vector
+        return std::move(Dense::create(
+            this->get_executor(),
+            dim<2>{range_result.length(0), range_result.length(1)},
+            Array<ValueType>::view(
+                this->get_executor(),
+                range_result.length(0) * range_this.length(1) - columns.begin,
+                const_cast<ValueType*>(range_result->data)),
+            stride));
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

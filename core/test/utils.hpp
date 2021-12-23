@@ -84,6 +84,8 @@ using RealValueTypes =
 
 
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
+using IndexAndSizeTypes =
+    ::testing::Types<gko::int32, gko::int64, gko::size_type>;
 
 
 using LocalGlobalIndexTypes =
@@ -142,6 +144,15 @@ using RealValueIndexTypes =
     ::testing::Types<
         std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
         std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+#endif
+
+
+using RealValueSingleIndexTypes =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<std::tuple<float, gko::int32>>;
+#else
+    ::testing::Types<std::tuple<float, gko::int32>,
+                     std::tuple<double, gko::int32>>;
 #endif
 
 

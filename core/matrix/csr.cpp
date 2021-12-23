@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -83,6 +84,7 @@ GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
                        csr::calculate_nonzeros_per_row_in_span);
+GKO_REGISTER_OPERATION(block_approx, csr::block_approx);
 GKO_REGISTER_OPERATION(compute_submatrix, csr::compute_submatrix);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
@@ -124,7 +126,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(
-                    csr::make_spmv(this, dense_b, dense_x));
+                    csr::make_spmv(this, dense_b, dense_x, OverlapMask{}));
             },
             b, x);
     }
@@ -157,7 +159,64 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
                    auto dense_x) {
                 this->get_executor()->run(csr::make_advanced_spmv(
-                    dense_alpha, this, dense_b, dense_beta, dense_x));
+                    dense_alpha, this, dense_b, dense_beta, dense_x,
+                    OverlapMask{}));
+            },
+            alpha, b, beta, x);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x,
+                                           const OverlapMask& write_mask) const
+{
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using TCsr = Csr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
+        auto x_csr = as<TCsr>(x);
+        this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, write_mask](auto dense_b, auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, dense_x, write_mask));
+            },
+            b, x);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                           const LinOp* beta, LinOp* x,
+                                           const OverlapMask& write_mask) const
+{
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using RealDense = Dense<remove_complex<ValueType>>;
+    using TCsr = Csr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
+        auto x_csr = as<TCsr>(x);
+        auto x_copy = x_csr->clone();
+        this->get_executor()->run(csr::make_advanced_spgemm(
+            as<Dense<ValueType>>(alpha), this, b_csr,
+            as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
+    } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
+        // if b is an identity matrix, we compute an SpGEAM
+        auto x_csr = as<TCsr>(x);
+        auto x_copy = x_csr->clone();
+        this->get_executor()->run(
+            csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
+                             as<Dense<ValueType>>(beta), lend(x_copy), x_csr));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, write_mask](auto dense_alpha, auto dense_b, auto dense_beta,
+                               auto dense_x) {
+                this->get_executor()->run(
+                    csr::make_advanced_spmv(dense_alpha, this, dense_b,
+                                            dense_beta, dense_x, write_mask));
             },
             alpha, b, beta, x);
     }
@@ -606,6 +665,142 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
                                           sub_mat.get()));
     sub_mat->make_srow();
     return sub_mat;
+}
+
+
+inline void assert_contiguous(const span& st_span,
+                              const std::vector<span>& spans, bool left)
+{
+    if (!left) {
+        if (st_span.end != spans[0].begin) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        if (st_span.begin != spans[spans.size() - 1].end) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+    for (auto i = 1; i < spans.size(); ++i) {
+        if (spans[i].begin != spans[i - 1].end) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+}
+
+
+inline std::tuple<gko::span, gko::span> compute_contiguous_range(
+    const gko::span& row_span, const gko::span& column_span,
+    const std::vector<gko::span>& left_overlaps,
+    const std::vector<gko::span>& right_overlaps)
+{
+    int oleft = 0;
+    int oright = 0;
+    if (left_overlaps.size() > 0) {
+        oleft = left_overlaps[left_overlaps.size() - 1].end -
+                left_overlaps[0].begin;
+        GKO_ASSERT(oleft > 0);
+        GKO_ASSERT(column_span.begin >= oleft);
+        GKO_ASSERT(row_span.begin >= oleft);
+    }
+    if (right_overlaps.size() > 0) {
+        oright = right_overlaps[right_overlaps.size() - 1].end -
+                 right_overlaps[0].begin;
+        GKO_ASSERT(oright > 0);
+    }
+
+    return std::make_tuple<gko::span, gko::span>(
+        gko::span(row_span.begin - oleft, row_span.end + oright),
+        gko::span(column_span.begin - oleft, column_span.end + oright));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_submatrix(
+    const gko::span& row_span, const gko::span& column_span,
+    const std::vector<gko::span>& left_overlaps,
+    const std::vector<gko::span>& right_overlaps) const
+{
+    using Mat = Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    if (left_overlaps.size() > 0) {
+        assert_contiguous(column_span, left_overlaps, true);
+    }
+    if (right_overlaps.size() > 0) {
+        assert_contiguous(column_span, right_overlaps, false);
+    }
+    auto submat_span = compute_contiguous_range(row_span, column_span,
+                                                left_overlaps, right_overlaps);
+    gko::span rspan =
+        span(std::get<0>(submat_span).begin, std::get<0>(submat_span).end);
+    gko::span cspan =
+        span(std::get<1>(submat_span).begin, std::get<1>(submat_span).end);
+    auto sub_mat_size = gko::dim<2>(rspan.length(), cspan.length());
+
+    Array<IndexType> row_ptrs(exec, rspan.length() + 1);
+    exec->run(csr::make_calculate_nonzeros_per_row_in_span(this, rspan, cspan,
+                                                           &row_ptrs));
+    exec->run(csr::make_prefix_sum(row_ptrs.get_data(), rspan.length() + 1));
+    auto sub_mat_nnz =
+        exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+    auto sub_mat = Mat::create(exec, sub_mat_size,
+                               std::move(Array<ValueType>(exec, sub_mat_nnz)),
+                               std::move(Array<IndexType>(exec, sub_mat_nnz)),
+                               std::move(row_ptrs), this->get_strategy());
+    exec->run(csr::make_compute_submatrix(this, rspan, cspan, sub_mat.get()));
+    sub_mat->make_srow();
+    return sub_mat;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
+Csr<ValueType, IndexType>::get_block_approx(
+    const Array<size_type>& block_sizes_in,
+    const Overlap<size_type>& block_overlaps,
+    const Array<size_type>& permutation) const
+{
+    auto exec = this->get_executor();
+    auto bsizes_in = Array<size_type>{exec->get_master()};
+    bsizes_in = block_sizes_in;
+    auto block_overlaps_in = Overlap<size_type>{exec->get_master()};
+    block_overlaps_in = block_overlaps;
+    auto num_blocks = block_sizes_in.get_num_elems();
+    std::vector<std::unique_ptr<SubMatrix<Csr<ValueType, IndexType>>>>
+        block_mtxs;
+    size_type offset = 0;
+    for (size_type b = 0; b < num_blocks; ++b) {
+        auto bsize = bsizes_in.get_const_data()[b];
+        auto mspan = gko::span{offset, offset + bsize};
+        if (block_overlaps_in.get_num_elems() > 0) {
+            auto unidir = block_overlaps_in.get_unidirectional_array()[b];
+            auto overlap = block_overlaps_in.get_overlaps()[b];
+            auto st_overlap = block_overlaps_in.get_overlap_at_start_array()[b];
+            auto overlap_spans = calculate_overlap_row_and_col_spans(
+                this->get_size(), mspan, mspan, unidir, overlap, st_overlap);
+            std::vector<gko::span> loverlap;
+            std::vector<gko::span> roverlap;
+            if (unidir) {
+                if (st_overlap) {
+                    loverlap.push_back(std::get<0>(overlap_spans)[0]);
+                } else {
+                    roverlap.push_back(std::get<0>(overlap_spans)[0]);
+                }
+            } else {
+                loverlap.push_back(std::get<0>(overlap_spans)[0]);
+                roverlap.push_back(std::get<0>(overlap_spans)[1]);
+            }
+            block_mtxs.emplace_back(
+                SubMatrix<Csr<ValueType, IndexType>>::create(
+                    exec, this, mspan, mspan, loverlap, roverlap));
+        } else {
+            block_mtxs.emplace_back(
+                SubMatrix<Csr<ValueType, IndexType>>::create(exec, this, mspan,
+                                                             mspan));
+        }
+        offset += bsize;
+    }
+    return block_mtxs;
 }
 
 

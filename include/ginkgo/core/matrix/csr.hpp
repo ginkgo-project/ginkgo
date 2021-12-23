@@ -35,11 +35,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/overlap.hpp>
+#include <ginkgo/core/matrix/sub_matrix.hpp>
 
 
 namespace gko {
+namespace distributed {
+
+
+template <typename ValueType, typename LocalIndexType>
+class Matrix;
+
+
+}
+
+
 namespace matrix {
 
 
@@ -133,6 +146,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+            public BlockApproximatable<Csr<ValueType, IndexType>>,
+            public SubMatrixExtractable<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
@@ -152,6 +167,9 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Fbcsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<to_complex<ValueType>, IndexType>;
+#if GKO_BUILD_MPI
+    friend class distributed::Matrix<ValueType, IndexType>;
+#endif
 
 public:
     using ReadableFromMatrixData<ValueType, IndexType>::read;
@@ -792,7 +810,18 @@ public:
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const;
+        const gko::span& row_span, const gko::span& column_span) const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span,
+        const std::vector<gko::span>& left_overlaps,
+        const std::vector<gko::span>& right_overlaps) const override;
+
+    std::vector<std::unique_ptr<SubMatrix<Csr>>> get_block_approx(
+        const Array<size_type>& num_blocks,
+        const Overlap<size_type>& block_overlaps = {},
+        const Array<size_type>& permutation = {}) const override;
+
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -1098,6 +1127,12 @@ protected:
               std::forward<RowPtrsArray>(row_ptrs),
               Csr::make_default_strategy(exec)}
     {}
+
+    void apply_impl(const LinOp* b, LinOp* x,
+                    const OverlapMask& write_mask) const override;
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x, const OverlapMask& write_mask) const override;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

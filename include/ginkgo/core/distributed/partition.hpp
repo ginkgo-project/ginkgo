@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace distributed {
 
+// TODO Fix this.
+using global_index_type = int64;
 
 /**
  * Represents a partition of a range of indices [0, size) into a disjoint set of

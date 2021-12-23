@@ -189,6 +189,19 @@ public:
 
 
 /**
+ * Return if GPU aware functionality is available
+ */
+static constexpr bool is_gpu_aware()
+{
+#if GKO_HAVE_GPU_AWARE_MPI
+    return true;
+#else
+    return false;
+#endif
+}
+
+
+/**
  * The status struct is a light wrapper around the MPI_Status struct.
  */
 struct status {
@@ -1499,7 +1512,7 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_HAVE_MPI
+#endif  // GINKGO_BUILD_MPI
 
 
 #endif  // GKO_PUBLIC_CORE_BASE_MPI_HPP_

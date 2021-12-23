@@ -65,6 +65,15 @@ protected:
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           // Richardson iteration, converges since
           // | relaxation_factor * lambda - 1 | < 1
+          mtx2(gko::initialize<Mtx>(
+              {
+                  {0.9, -1.0, 3.0, 1.5, 0.0},
+                  {0.0, 1.0, 3.0, 0.0, 1.5},
+                  {0.0, 0.0, 1.1, 1.5, 0.0},
+                  {0.0, 0.0, 0.0, 1.2, 1.5},
+                  {0.0, 0.0, 0.0, 0.0, 1.3},
+              },
+              exec)),
           ir_factory(
               Solver::build()
                   .with_criteria(
@@ -78,6 +87,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx2;
     std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
@@ -97,6 +107,21 @@ TYPED_TEST(Ir, KernelInitialize)
 
     ASSERT_EQ(stop.get_data()[0], non_stopped);
     ASSERT_EQ(stop.get_data()[1], non_stopped);
+}
+
+
+TYPED_TEST(Ir, SolvesSystemWithRestrictedApply)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx2);
+    auto b = gko::initialize<Mtx>({1.15, 5.75, -0.6, -2.55, -0.65}, this->exec);
+    auto x = gko::initialize<Mtx>({91.0, 0.0, 0.0, 0.0, 92.0}, this->exec);
+
+    solver->apply(b.get(), x.get(), gko::OverlapMask{gko::span(1, 4), true});
+
+    GKO_ASSERT_MTX_NEAR(x, l({91.0, 2.0, 1.5, -1.5, 92.0}),
+                        r<value_type>::value * 1e2);
 }
 
 

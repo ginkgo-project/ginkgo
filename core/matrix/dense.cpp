@@ -79,6 +79,8 @@ GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
+GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
@@ -115,6 +117,25 @@ GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 }  // anonymous namespace
 }  // namespace dense
+
+
+inline gko::dim<2> compute_block_size(size_type size_in, size_type overlap,
+                                      bool uni_directional)
+{
+    if (!uni_directional) {
+        return gko::dim<2>(size_in + (2 * overlap));
+    } else {
+        return gko::dim<2>(size_in + overlap);
+    }
+}
+
+
+template <typename ValueType>
+std::vector<std::unique_ptr<SubMatrix<Dense<ValueType>>>>
+Dense<ValueType>::get_block_approx(const Array<size_type>& block_sizes_in,
+                                   const Overlap<size_type>& block_overlaps_in,
+                                   const Array<size_type>& permutation) const
+    GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>

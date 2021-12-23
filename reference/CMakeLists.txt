@@ -18,6 +18,8 @@ target_sources(ginkgo_reference
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
+    matrix/block_approx_kernels.cpp
+    matrix/sub_matrix_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
@@ -31,14 +33,15 @@ target_sources(ginkgo_reference
     multigrid/amgx_pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    preconditioner/ras_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
+    solver/cb_gmres_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
-    solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
@@ -47,11 +50,22 @@ target_sources(ginkgo_reference
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp)
 
+if(GINKGO_BUILD_MPI)
+    target_sources(ginkgo_reference
+        PRIVATE
+    distributed/matrix_kernels.cpp
+    distributed/vector_kernels.cpp)
+endif()
+
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)
 target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_reference PRIVATE MPI::MPI_CXX)
+endif()
 
 if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_reference "")

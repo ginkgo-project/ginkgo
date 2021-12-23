@@ -693,6 +693,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each index type conversion compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro) \
+    template _macro(int32, int64);                        \
+    template _macro(int64, int32)
+
+
+/**
  * Instantiates a template for each normal type
  *
  * @param _macro  A macro which expands the template instantiation
@@ -704,6 +717,21 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
     template _macro(gko::size_type)
+
+
+/**
+ * Instantiates a template for each normal type
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_AND_BOOL(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);                \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);                \
+    template _macro(size_type);                                 \
+    template _macro(bool)
 
 
 /**

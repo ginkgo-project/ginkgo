@@ -377,6 +377,50 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, BlockApproxIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(231, 231, 25);
+    auto d_mat = Mtx::create(omp);
+    d_mat->copy_from(mat.get());
+    auto b_sizes = gko::Array<gko::size_type>(ref, {3, 2, 1, 5, 52, 74, 94});
+    auto d_b_sizes = gko::Array<gko::size_type>(omp);
+    d_b_sizes = b_sizes;
+
+    auto block_mtxs = mat->get_block_approx(b_sizes);
+    auto d_block_mtxs = d_mat->get_block_approx(d_b_sizes);
+    ASSERT_EQ(block_mtxs.size(), 7);
+    ASSERT_EQ(block_mtxs.size(), d_block_mtxs.size());
+    for (auto i = 0; i < block_mtxs.size(); ++i) {
+        GKO_ASSERT_MTX_NEAR(d_block_mtxs[i]->get_sub_matrix(),
+                            block_mtxs[i]->get_sub_matrix(), 0.0);
+    }
+}
+
+
+TEST_F(Csr, BlockApproxWithOverlapIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(231, 231, 25);
+    auto d_mat = Mtx::create(omp);
+    d_mat->copy_from(mat.get());
+    auto b_sizes = gko::Array<gko::size_type>(ref, {3, 52, 1, 5, 2, 74, 94});
+    auto ov_sizes =
+        gko::Overlap<gko::size_type>(ref, b_sizes.get_num_elems(), 2);
+    auto d_b_sizes = gko::Array<gko::size_type>(omp);
+    auto d_ov_sizes = gko::Overlap<gko::size_type>(omp);
+    d_b_sizes = b_sizes;
+    d_ov_sizes = ov_sizes;
+
+    auto block_mtxs = mat->get_block_approx(b_sizes, ov_sizes);
+    auto d_block_mtxs = d_mat->get_block_approx(d_b_sizes, d_ov_sizes);
+    ASSERT_EQ(block_mtxs.size(), 7);
+    ASSERT_EQ(block_mtxs.size(), d_block_mtxs.size());
+    for (auto i = 0; i < block_mtxs.size(); ++i) {
+        GKO_ASSERT_MTX_NEAR(d_block_mtxs[i]->get_sub_matrix(),
+                            block_mtxs[i]->get_sub_matrix(), 0.0);
+    }
+}
+
+
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
     set_up_apply_data();

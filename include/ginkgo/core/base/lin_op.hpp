@@ -40,12 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/overlap.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -60,7 +62,10 @@ template <typename ValueType>
 class Diagonal;
 
 
-}
+template <typename MatrixType>
+class SubMatrix;
+
+}  // namespace matrix
 
 
 /**
@@ -226,6 +231,92 @@ public:
     }
 
     /**
+     * Masked Applies a linear operator to a vector (or a sequence of
+     * vectors).
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     *
+     * @return this
+     */
+    LinOp* apply(const LinOp* b, LinOp* x, const OverlapMask& write_mask)
+    {
+        this->template log<log::Logger::linop_masked_apply_started>(this, b, x);
+        this->validate_masked_application_parameters(b, x, write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_apply_completed>(this, b,
+                                                                      x);
+        return this;
+    }
+
+    /**
+     * @copydoc apply(const LinOp *, LinOp *)
+     */
+    const LinOp* apply(const LinOp* b, LinOp* x,
+                       const OverlapMask& write_mask) const
+    {
+        this->template log<log::Logger::linop_masked_apply_started>(this, b, x);
+        this->validate_masked_application_parameters(b, x, write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_apply_completed>(this, b,
+                                                                      x);
+        return this;
+    }
+
+    /**
+     * Performs the operation x = alpha * op(b) + beta * x.
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     *
+     * @return this
+     */
+    LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                 LinOp* x, const OverlapMask& write_mask)
+    {
+        this->template log<log::Logger::linop_masked_advanced_apply_started>(
+            this, alpha, b, beta, x);
+        this->validate_masked_application_parameters(alpha, b, beta, x,
+                                                     write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_advanced_apply_completed>(
+            this, alpha, b, beta, x);
+        return this;
+    }
+
+    /**
+     * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
+     */
+    const LinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                       LinOp* x, const OverlapMask& write_mask) const
+    {
+        this->template log<log::Logger::linop_masked_advanced_apply_started>(
+            this, alpha, b, beta, x);
+        this->validate_masked_application_parameters(alpha, b, beta, x,
+                                                     write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_advanced_apply_completed>(
+            this, alpha, b, beta, x);
+        return this;
+    }
+
+    /**
      * Returns the size of the operator.
      *
      * @return size of the operator
@@ -240,6 +331,14 @@ public:
      *         an initial guess. Returns false otherwise.
      */
     virtual bool apply_uses_initial_guess() const { return false; }
+
+    void validate_data() const override
+    {
+        PolymorphicObject::validate_data();
+        if (get_size()[0] < 0 || get_size()[1] < 0) {
+            GKO_VALIDATION_ERROR("Negative LinOp dimensions");
+        }
+    }
 
 protected:
     /**
@@ -284,6 +383,32 @@ protected:
                             const LinOp* beta, LinOp* x) const = 0;
 
     /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, LinOp *).
+     *
+     * Performs the operation x = op(b), where op is this linear operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     */
+    virtual void apply_impl(const LinOp* b, LinOp* x,
+                            const OverlapMask& write_mask) const
+        GKO_NOT_IMPLEMENTED;
+
+    /**
+     * Implementers of LinOp should override this function instead
+     * of apply(const LinOp *, const LinOp *, const LinOp *, LinOp *).
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    virtual void apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        const OverlapMask& write_mask) const GKO_NOT_IMPLEMENTED;
+
+    /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
      * the wrong size.
      *
@@ -311,6 +436,39 @@ protected:
                                          const LinOp* x) const
     {
         this->validate_application_parameters(b, x);
+        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+    }
+
+    /**
+     * Throws a DimensionMismatch exception if the parameters to `apply` are of
+     * the wrong size.
+     *
+     * @param b  vector(s) on which the operator is applied
+     * @param x  output vector(s)
+     */
+    void validate_masked_application_parameters(
+        const LinOp* b, const LinOp* x, const OverlapMask& write_mask) const
+    {
+        GKO_ASSERT_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(this, x);
+        GKO_ASSERT_EQUAL_COLS(b, x);
+    }
+
+    /**
+     * Throws a DimensionMismatch exception if the parameters to `apply` are of
+     * the wrong size.
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     */
+    void validate_masked_application_parameters(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, const LinOp* x,
+        const OverlapMask& write_mask) const
+    {
+        this->validate_masked_application_parameters(b, x, write_mask);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
     }
@@ -584,6 +742,34 @@ public:
      */
     virtual void read(const matrix_data<ValueType, IndexType>& data) = 0;
 
+
+    /**
+     * Reads a matrix from a matrix_data structure stored in an Array.
+     * This function may provide better performance by avoiding memory movement.
+     *
+     * @param data  the matrix_data array
+     */
+    virtual void read(
+        const Array<typename matrix_data<ValueType, IndexType>::nonzero_type>&
+            data,
+        gko::dim<2> size)
+    {
+        matrix_data<ValueType, IndexType> stored_data;
+        stored_data.size = size;
+        stored_data.nonzeros.resize(data.get_num_elems());
+        if (data.get_executor()->get_master() == data.get_executor()) {
+            std::copy_n(data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        } else {
+            Array<typename matrix_data<ValueType, IndexType>::nonzero_type>
+                host_data{data.get_executor()->get_master()};
+            host_data = data;
+            std::copy_n(host_data.get_const_data(), data.get_num_elems(),
+                        stored_data.nonzeros.data());
+        }
+        this->read(stored_data);
+    }
+
     /**
      * Reads a matrix from a matrix_assembly_data structure.
      *
@@ -697,6 +883,44 @@ public:
      * @return linop  the linop of diagonal format
      */
     virtual std::unique_ptr<LinOp> extract_diagonal_linop() const = 0;
+};
+
+
+/**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ * extract_diagonal extracts the elements whose col and row index are the
+ * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteType>
+class BlockApproximatable {
+public:
+    virtual std::vector<std::unique_ptr<matrix::SubMatrix<ConcreteType>>>
+    get_block_approx(const Array<size_type>& block_sizes,
+                     const gko::Overlap<size_type>& block_overlaps = {},
+                     const Array<size_type>& permutation = {}) const = 0;
+};
+
+
+/**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ * extract_diagonal extracts the elements whose col and row index are the
+ * same and stores the result in a min(nrows, ncols) x 1 dense matrix.
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteType>
+class SubMatrixExtractable {
+public:
+    virtual std::unique_ptr<ConcreteType> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span) const = 0;
+
+
+    virtual std::unique_ptr<ConcreteType> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span,
+        const std::vector<gko::span>& left_overlaps,
+        const std::vector<gko::span>& right_overlaps) const = 0;
 };
 
 
@@ -867,6 +1091,67 @@ public:
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
+        return self();
+    }
+
+    const ConcreteLinOp* apply(const LinOp* b, LinOp* x,
+                               const OverlapMask& write_mask) const
+    {
+        this->template log<log::Logger::linop_masked_apply_started>(this, b, x);
+        this->validate_masked_application_parameters(b, x, write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_apply_completed>(this, b,
+                                                                      x);
+        return self();
+    }
+
+    ConcreteLinOp* apply(const LinOp* b, LinOp* x,
+                         const OverlapMask& write_mask)
+    {
+        this->template log<log::Logger::linop_masked_apply_started>(this, b, x);
+        this->validate_masked_application_parameters(b, x, write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_apply_completed>(this, b,
+                                                                      x);
+        return self();
+    }
+
+    const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x,
+                               const OverlapMask& write_mask) const
+    {
+        this->template log<log::Logger::linop_masked_advanced_apply_started>(
+            this, alpha, b, beta, x);
+        this->validate_masked_application_parameters(alpha, b, beta, x,
+                                                     write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_advanced_apply_completed>(
+            this, alpha, b, beta, x);
+        return self();
+    }
+
+    ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                         LinOp* x, const OverlapMask& write_mask)
+    {
+        this->template log<log::Logger::linop_masked_advanced_apply_started>(
+            this, alpha, b, beta, x);
+        this->validate_masked_application_parameters(alpha, b, beta, x,
+                                                     write_mask);
+        auto exec = this->get_executor();
+        this->apply_impl(make_temporary_clone(exec, alpha).get(),
+                         make_temporary_clone(exec, b).get(),
+                         make_temporary_clone(exec, beta).get(),
+                         make_temporary_clone(exec, x).get(), write_mask);
+        this->template log<log::Logger::linop_masked_advanced_apply_completed>(
             this, alpha, b, beta, x);
         return self();
     }

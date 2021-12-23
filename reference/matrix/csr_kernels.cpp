@@ -72,22 +72,42 @@ namespace csr {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
+          const OverlapMask write_mask)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
+    auto wspan = write_mask.write_idxs;
+    auto restrict = write_mask.restrict;
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
+        ValueType sum = zero<ValueType>();
+        if (restrict) {
+            if (wspan.in_span(row)) {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) = zero<ValueType>();
+                }
+            }
+        } else {
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                c->at(row, j) = zero<ValueType>();
+            }
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+            if (restrict) {
+                if (wspan.in_span(row)) {
+                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                        c->at(row, j) += val * b->at(col, j);
+                    }
+                }
+            } else {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += val * b->at(col, j);
+                }
             }
         }
     }
@@ -102,24 +122,42 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::Dense<ValueType>* c, const OverlapMask write_mask)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     auto vals = a->get_const_values();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
+    auto wspan = write_mask.write_idxs;
+    auto restrict = write_mask.restrict;
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
+        if (restrict) {
+            if (wspan.in_span(row)) {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) *= vbeta;
+                }
+            }
+        } else {
+            for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                c->at(row, j) *= vbeta;
+            }
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
             auto val = vals[k];
             auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+            if (restrict) {
+                if (wspan.in_span(row)) {
+                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                        c->at(row, j) += valpha * val * b->at(col, j);
+                    }
+                }
+            } else {
+                for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                    c->at(row, j) += valpha * val * b->at(col, j);
+                }
             }
         }
     }
@@ -621,6 +659,35 @@ void calculate_nonzeros_per_row_in_span(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void block_approx(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType>* source,
+                  matrix::Csr<ValueType, IndexType>* result,
+                  Array<size_type>* row_nnz, size_type block_offset)
+{
+    auto block_size = result->get_size()[0];
+    for (size_type row = 0; row < block_size; ++row) {
+        result->get_row_ptrs()[row] = row_nnz->get_data()[row];
+    }
+    components::prefix_sum(exec, result->get_row_ptrs(), block_size + 1);
+    size_type res_nnz = 0;
+    for (size_type nnz = 0; nnz < source->get_num_stored_elements(); ++nnz) {
+        if (nnz >= source->get_const_row_ptrs()[block_offset] &&
+            nnz < source->get_const_row_ptrs()[block_offset + block_size] &&
+            (source->get_const_col_idxs()[nnz] < (block_offset + block_size) &&
+             source->get_const_col_idxs()[nnz] >= block_offset)) {
+            result->get_col_idxs()[res_nnz] =
+                source->get_const_col_idxs()[nnz] - block_offset;
+            result->get_values()[res_nnz] = source->get_const_values()[nnz];
+            res_nnz++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

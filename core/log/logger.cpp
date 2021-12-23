@@ -66,6 +66,11 @@ constexpr Logger::mask_type Logger::linop_apply_completed_mask;
 constexpr Logger::mask_type Logger::linop_advanced_apply_started_mask;
 constexpr Logger::mask_type Logger::linop_advanced_apply_completed_mask;
 
+constexpr Logger::mask_type Logger::linop_masked_apply_started_mask;
+constexpr Logger::mask_type Logger::linop_masked_apply_completed_mask;
+constexpr Logger::mask_type Logger::linop_masked_advanced_apply_started_mask;
+constexpr Logger::mask_type Logger::linop_masked_advanced_apply_completed_mask;
+
 constexpr Logger::mask_type Logger::linop_factory_generate_started_mask;
 constexpr Logger::mask_type Logger::linop_factory_generate_completed_mask;
 

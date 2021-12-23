@@ -59,6 +59,8 @@ namespace jacobi {
 namespace {
 
 
+constexpr auto default_block_size = 512;
+
 // a total of 32 warps (1024 threads)
 constexpr int default_num_warps = 32;
 // with current architectures, at most 32 warps can be scheduled per SM (and

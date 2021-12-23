@@ -43,7 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
+#include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
@@ -51,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/block_approx_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -257,6 +260,8 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+GKO_STUB_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL);
@@ -490,6 +495,7 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_BLOCK_APPROX_KERNEL);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType)
@@ -601,6 +607,36 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace sellp
+
+
+namespace block_approx {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_BLOCK_APPROX_COMPUTE_BLOCK_PTRS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_APPROX_SPMV_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BLOCK_APPROX_ADVANCED_SPMV_KERNEL);
+
+
+}  // namespace block_approx
+
+
+namespace distributed_matrix {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
+
+
+}  // namespace distributed_matrix
+
+
+namespace distributed_vector {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL);
+
+
+}  // namespace distributed_vector
 
 
 namespace jacobi {

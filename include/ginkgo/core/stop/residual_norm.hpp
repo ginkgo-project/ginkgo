@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/distributed/base.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -106,6 +108,11 @@ protected:
           one_{gko::initialize<Vector>({1}, exec)},
           neg_one_{gko::initialize<Vector>({-1}, exec)}
     {
+#if GINKGO_BUILD_MPI
+        using DistributedComplexVector =
+            distributed::Vector<gko::to_complex<ValueType>>;
+        using DistributedVector = distributed::Vector<ValueType>;
+#endif
         switch (baseline_) {
         case mode::initial_resnorm: {
             if (args.initial_residual == nullptr) {
@@ -133,12 +140,30 @@ protected:
             } else {
                 this->starting_tau_ = NormVector::create(
                     exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector*>(args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
+#if GINKGO_BUILD_MPI
+                if (dynamic_cast<const distributed::DistributedBase*>(
+                        args.b.get())) {
+                    if (dynamic_cast<const DistributedComplexVector*>(
+                            args.b.get())) {
+                        auto dense_rhs = as<DistributedComplexVector>(args.b);
+                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                    } else {
+                        auto dense_rhs = as<DistributedVector>(args.b);
+                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                    }
+#else
+                bool is_distributed = false;
+                if (is_distributed) {
+#endif
                 } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
+                    if (dynamic_cast<const ComplexVector*>(
+                            args.initial_residual)) {
+                        auto dense_r = as<ComplexVector>(args.initial_residual);
+                        dense_r->compute_norm2(this->starting_tau_.get());
+                    } else {
+                        auto dense_r = as<Vector>(args.initial_residual);
+                        dense_r->compute_norm2(this->starting_tau_.get());
+                    }
                 }
             }
             break;
@@ -149,12 +174,29 @@ protected:
             }
             this->starting_tau_ =
                 NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector*>(args.b.get())) {
-                auto dense_rhs = as<ComplexVector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
+#if GINKGO_BUILD_MPI
+            if (dynamic_cast<const distributed::DistributedBase*>(
+                    args.b.get())) {
+                if (dynamic_cast<const DistributedComplexVector*>(
+                        args.b.get())) {
+                    auto dense_rhs = as<DistributedComplexVector>(args.b);
+                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                } else {
+                    auto dense_rhs = as<DistributedVector>(args.b);
+                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                }
+#else
+            bool is_distributed = false;
+            if (is_distributed) {
+#endif
             } else {
-                auto dense_rhs = as<Vector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
+                if (dynamic_cast<const ComplexVector*>(args.b.get())) {
+                    auto dense_rhs = as<ComplexVector>(args.b);
+                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                } else {
+                    auto dense_rhs = as<Vector>(args.b);
+                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                }
             }
             break;
         }

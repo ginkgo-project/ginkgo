@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
@@ -73,12 +74,32 @@ void Convergence<ValueType>::on_criterion_check_completed(
         if (residual_norm != nullptr) {
             this->residual_norm_.reset(residual_norm->clone().release());
         } else if (residual != nullptr) {
-            using Vector = matrix::Dense<ValueType>;
+#if GINKGO_BUILD_MPI
+            using DistributedVector = distributed::Vector<ValueType>;
+            if (dynamic_cast<const distributed::DistributedBase*>(residual)) {
+                using NormVector = matrix::Dense<remove_complex<ValueType>>;
+                this->residual_norm_ =
+                    NormVector::create(residual->get_executor(),
+                                       dim<2>{1, residual->get_size()[1]});
+                auto dense_r = as<DistributedVector>(residual);
+                dense_r->compute_norm2(this->residual_norm_.get());
+            } else {
+                using NormVector = matrix::Dense<remove_complex<ValueType>>;
+                using Vector = matrix::Dense<ValueType>;
+                this->residual_norm_ =
+                    NormVector::create(residual->get_executor(),
+                                       dim<2>{1, residual->get_size()[1]});
+                auto dense_r = as<Vector>(residual);
+                dense_r->compute_norm2(this->residual_norm_.get());
+            }
+#else
             using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            using Vector = matrix::Dense<ValueType>;
             this->residual_norm_ = NormVector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
             auto dense_r = as<Vector>(residual);
             dense_r->compute_norm2(this->residual_norm_.get());
+#endif
         }
     }
 }
