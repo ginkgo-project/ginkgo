@@ -213,28 +213,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const size_type block_size,
                     size_type* result) GKO_NOT_IMPLEMENTED;
-/*
-{
-
-}
-*/
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* source,
-                   matrix::Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-/*
-{
-
-}
-*/
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -242,32 +222,7 @@ void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
-/*
-{
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    auto stride = source->get_stride();
-
-    auto nnz_prefix_sum = array<size_type>(exec, num_rows);
-    calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
-
-    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
-
-    const size_type grid_dim = ceildiv(num_rows, default_block_size);
-
-    hipLaunchKernelGGL(kernel::fill_in_coo, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows, num_cols,
-                       stride, as_hip_type(nnz_prefix_sum.get_const_data()),
-                       as_hip_type(source->get_const_values()),
-                       as_hip_type(row_idxs), as_hip_type(col_idxs),
-                       as_hip_type(values));
-}
-*/
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL);
 

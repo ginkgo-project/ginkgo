@@ -114,7 +114,6 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
-    using size_type = gko::size_type;
 
     friend class Coo<next_precision<ValueType>, IndexType>;
 

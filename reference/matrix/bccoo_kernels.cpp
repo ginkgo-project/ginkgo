@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/base/unaligned_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/matrix/bccoo_helper.hpp"
 
 
 namespace gko {
@@ -63,7 +63,6 @@ namespace bccoo {
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
 {
-    // *block_size = 2;
     *block_size = 10;
 }
 
@@ -248,17 +247,6 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
-
-
-template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-                              const IndexType* idxs, size_type num_nonzeros,
-                              IndexType* ptrs,
-                              size_type length) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    convert_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
-//}
 
 
 template <typename ValueType, typename IndexType>

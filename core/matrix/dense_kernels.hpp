@@ -166,11 +166,6 @@ namespace kernels {
                         const matrix::Dense<_type>* source,          \
                         const size_type block_size, size_type* result)
 
-#define GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL(_type, _prec)        \
-    void copy_to_bccoo(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type>* source,          \
-                       matrix::Bccoo<_type, _prec>* result)
-
 #define GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL(_type, _prec)        \
     void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec, \
                           const matrix::Dense<_type>* source,          \
@@ -367,8 +362,6 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);              \
@@ -432,7 +425,6 @@ namespace kernels {
     GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                 \
     template <typename ValueType, typename ScalarType>                      \
     GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
-
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);
 

@@ -93,7 +93,6 @@ GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
 GKO_REGISTER_OPERATION(mem_size_bccoo, dense::mem_size_bccoo);
-GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
@@ -139,7 +138,10 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 /* */
 namespace bccoo {
+
+
 GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
 
 }  // namespace bccoo
 

@@ -52,8 +52,6 @@ namespace gko {
 template <typename T>
 void set_value_chunk(void* ptr, size_type start, T value)
 {
-    //    std::memcpy(static_cast<std::int8_t *>(ptr) + start, &value,
-    //    sizeof(T)); std::memcpy(ptr + start, &value, sizeof(T));
     std::memcpy(static_cast<unsigned char*>(ptr) + start, &value, sizeof(T));
 }
 
@@ -64,19 +62,15 @@ void set_value_chunk(void* ptr, size_type start, T value)
  * @return the value in the m-th byte of ptr, which is adjusting to T class.
  */
 template <typename T>
-// T get_value_chunk(const uint8 *ptr, size_type start)
 T get_value_chunk(const void* ptr, size_type start)
 {
     T val{};
-    //    std::memcpy(&val, ptr + start, sizeof(T));
-    //    std::memcpy(&val, static_cast<std::int8_t *>(ptr) + start, sizeof(T));
     std::memcpy(&val, static_cast<const unsigned char*>(ptr) + start,
                 sizeof(T));
     return val;
 }
 
-
-// inline void cnt_next_position(const uint8 ind, size_type &shf)
+/*
 inline void cnt_next_position(const size_type colRS, size_type& shf,
                               size_type& col)
 {
@@ -94,7 +88,6 @@ inline void cnt_next_position(const size_type colRS, size_type& shf,
 template <typename ValueType>
 inline void cnt_next_position_value(
     const size_type colRS, size_type& shf,
-    // inline void cnt_next_position_value(const int8 ind, size_type &shf,
     size_type& col, const ValueType val, size_type& nblk)
 {
     cnt_next_position(colRS, shf, col);
@@ -382,6 +375,7 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
     }
 }
 
+*/
 
 }  // namespace gko
 
