@@ -49,7 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "core/base/unaligned_access.hpp"
+#include "core/matrix/bccoo_helper.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -397,9 +398,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* source,
-                   matrix::Bccoo<ValueType, IndexType>* result)
+void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
 {
     size_type block_size = result->get_block_size();
     IndexType* rows_data = result->get_rows();
@@ -425,18 +426,6 @@ void copy_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COPY_TO_BCCOO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Dense<ValueType>* source,
-                      matrix::Bccoo<ValueType, IndexType>* result)
-{
-    copy_to_bccoo(exec, source, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

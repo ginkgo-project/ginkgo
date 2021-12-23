@@ -69,39 +69,7 @@ protected:
 
     Bccoo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
-        // clang-format off
-        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
-                                     {0.0, 5.0, 0.0}}, exec);
-				/* TODO 
-        // clang-format on
-        uns_mtx = gko::clone(exec, mtx);
-        auto cols = uns_mtx->get_col_idxs();
-        auto vals = uns_mtx->get_values();
-        std::swap(cols[0], cols[1]);
-        std::swap(vals[0], vals[1]);
-				*/
-    }
-
-    void assert_equal_to_mtx_in_csr_format(const Csr* m)
-    {
-				/* TODO 
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        auto r = m->get_const_row_ptrs();
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
-        EXPECT_EQ(r[0], 0);
-        EXPECT_EQ(r[1], 3);
-        EXPECT_EQ(r[2], 4);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{3.0});
-        EXPECT_EQ(v[2], value_type{2.0});
-        EXPECT_EQ(v[3], value_type{5.0});
-				*/
+        mtx = gko::initialize<Mtx>({{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -158,7 +126,7 @@ TYPED_TEST(Bccoo, ConvertsToCoo)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using Coo	= typename TestFixture::Coo;
+    using Coo = typename TestFixture::Coo;
 
     auto coo_mtx = Coo::create(this->mtx->get_executor());
     this->mtx->convert_to(coo_mtx.get());
@@ -188,7 +156,7 @@ TYPED_TEST(Bccoo, MovesToCoo)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    using Coo	= typename TestFixture::Coo;
+    using Coo = typename TestFixture::Coo;
 
     auto coo_mtx = Coo::create(this->mtx->get_executor());
     this->mtx->move_to(coo_mtx.get());
@@ -297,25 +265,6 @@ TYPED_TEST(Bccoo, ConvertsToDense)
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
 }
-
-
-// TYPED_TEST(Bccoo, ConvertsToDenseUnsorted)
-// GKO_NOT_IMPLEMENTED;
-////{
-//// TODO (script:bccoo): change the code imported from matrix/coo if needed
-////    using value_type = typename TestFixture::value_type;
-////    using index_type = typename TestFixture::index_type;
-////    using Dense = typename TestFixture::Vec;
-////    auto dense_mtx = Dense::create(this->mtx->get_executor());
-////
-////    this->uns_mtx->convert_to(dense_mtx.get());
-////
-////    // clang-format off
-////    GKO_ASSERT_MTX_NEAR(dense_mtx,
-////                    l({{1.0, 3.0, 2.0},
-////                       {0.0, 5.0, 0.0}}), 0.0);
-////    // clang-format on
-////}
 
 
 TYPED_TEST(Bccoo, MovesToDense)
@@ -489,20 +438,6 @@ TYPED_TEST(Bccoo, AppliesToMixedDenseVector)
 }
 
 
-// TYPED_TEST(Bccoo, AppliesToDenseVectorUnsorted)
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    using Vec = typename TestFixture::Vec;
-//    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
-//    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
-//
-//    this->uns_mtx->apply(x.get(), y.get());
-//
-//    GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
-//}
-
-
 TYPED_TEST(Bccoo, AppliesToDenseMatrix)
 {
     using Vec = typename TestFixture::Vec;
@@ -523,30 +458,6 @@ TYPED_TEST(Bccoo, AppliesToDenseMatrix)
                            { 5.0, -7.5}}), 0.0);
     // clang-format on
 }
-
-
-// TYPED_TEST(Bccoo, AppliesToDenseMatrixUnsorted)
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    using Vec = typename TestFixture::Vec;
-//    using T = typename TestFixture::value_type;
-//    // clang-format off
-//    auto x = gko::initialize<Vec>(
-//        {I<T>{2.0, 3.0},
-//         I<T>{1.0, -1.5},
-//         I<T>{4.0, 2.5}}, this->exec);
-//    // clang-format on
-//    auto y = Vec::create(this->exec, gko::dim<2>{2, 2});
-//
-//    this->uns_mtx->apply(x.get(), y.get());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(y,
-//                        l({{13.0,  3.5},
-//                           { 5.0, -7.5}}), 0.0);
-//    // clang-format on
-//}
 
 
 TYPED_TEST(Bccoo, AppliesLinearCombinationToDenseVector)

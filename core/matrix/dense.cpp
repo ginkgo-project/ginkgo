@@ -80,7 +80,6 @@ GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
 GKO_REGISTER_OPERATION(mem_size_bccoo, dense::mem_size_bccoo);
-GKO_REGISTER_OPERATION(copy_to_bccoo, dense::copy_to_bccoo);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        dense::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -115,7 +114,10 @@ GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 
 namespace bccoo {
+
+
 GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
 
 }  // namespace bccoo
 

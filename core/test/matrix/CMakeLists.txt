@@ -1,5 +1,4 @@
 ginkgo_create_test(bccoo)
-# ginkgo_create_test(bccoo_builder)
 ginkgo_create_test(coo)
 ginkgo_create_test(coo_builder)
 ginkgo_create_test(csr)
