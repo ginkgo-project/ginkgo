@@ -207,6 +207,13 @@ public:
         return exec_;
     }
 
+    virtual void validate_data() const
+    {
+        if (!exec_) {
+            GKO_VALIDATION_ERROR("Executor is nullptr");
+        }
+    }
+
 protected:
     // This method is defined as protected since a polymorphic object should not
     // be created using their constructor directly, but by creating an
@@ -644,6 +651,26 @@ public:
     static std::unique_ptr<ConcreteType> create(Args&&... args)
     {
         return std::unique_ptr<ConcreteType>(
+            new ConcreteType(std::forward<Args>(args)...));
+    }
+};
+
+
+/**
+ * This mixin implements a static `create()` method on `ConcreteType` that
+ * dynamically allocates the memory, uses the passed-in arguments to construct
+ * the object, and returns an std::unique_ptr to such an object.
+ *
+ * @tparam ConcreteObject  the concrete type for which `create()` is being
+ *                         implemented [CRTP parameter]
+ */
+template <typename ConcreteType>
+class EnableSharedCreateMethod {
+public:
+    template <typename... Args>
+    static std::shared_ptr<ConcreteType> create(Args &&... args)
+    {
+        return std::shared_ptr<ConcreteType>(
             new ConcreteType(std::forward<Args>(args)...));
     }
 };

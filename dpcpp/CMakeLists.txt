@@ -29,6 +29,7 @@ target_sources(ginkgo_dpcpp
     factorization/par_ict_kernels.dp.cpp
     factorization/par_ilu_kernels.dp.cpp
     factorization/par_ilut_kernels.dp.cpp
+    matrix/block_approx_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
     matrix/fbcsr_kernels.dp.cpp
@@ -40,6 +41,7 @@ target_sources(ginkgo_dpcpp
     matrix/sparsity_csr_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
+    preconditioner/ras_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
@@ -51,6 +53,13 @@ target_sources(ginkgo_dpcpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+
+if(GINKGO_BUILD_MPI)
+    target_sources(ginkgo_dpcpp
+        PRIVATE
+    distributed/matrix_kernels.dp.cpp
+    distributed/vector_kernels.dp.cpp)
+endif()
 
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
@@ -74,6 +83,12 @@ else ()
 endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
+
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_dpcpp PRIVATE MPI::MPI_CXX)
+endif()
+
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()

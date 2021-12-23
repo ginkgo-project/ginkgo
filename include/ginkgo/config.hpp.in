@@ -85,6 +85,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Is MPI available ? */
 // clang-format off
 #cmakedefine01 GINKGO_BUILD_MPI
+
+
+#define GKO_HAVE_GPU_AWARE_MPI @GINKGO_HAVE_GPU_AWARE_MPI@
 // clang-format on
 
 

@@ -52,8 +52,7 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
         array, val);
 }
 
-GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
+GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_AND_BOOL(GKO_DECLARE_FILL_ARRAY_KERNEL);
 
 
 template <typename ValueType>

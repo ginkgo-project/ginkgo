@@ -174,6 +174,7 @@ set(GINKGO_HIP_SOURCES
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_spgeam_kernel.hip.cpp
     factorization/par_ilut_sweep_kernel.hip.cpp
+    matrix/block_approx_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp
@@ -187,6 +188,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
+    preconditioner/ras_kernels.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp
@@ -198,6 +200,10 @@ set(GINKGO_HIP_SOURCES
     stop/residual_norm_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+
+if(GINKGO_BUILD_MPI)
+    list(APPEND GINKGO_HIP_SOURCES distributed/matrix_kernels.hip.cpp distributed/vector_kernels.hip.cpp)
+endif()
 
 if(hipfft_FOUND)
     list(APPEND GINKGO_HIP_SOURCES matrix/fft_kernels.hip.cpp)
@@ -303,6 +309,10 @@ target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
+endif()
+
+if(GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_hip PRIVATE MPI::MPI_CXX)
 endif()
 
 target_compile_options(ginkgo_hip PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)

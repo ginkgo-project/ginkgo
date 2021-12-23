@@ -89,6 +89,8 @@ target_sources(ginkgo_cuda
     factorization/par_ilut_select_kernel.cu
     factorization/par_ilut_spgeam_kernel.cu
     factorization/par_ilut_sweep_kernel.cu
+    matrix/block_approx_kernels.cu
+    matrix/sub_matrix_kernels.cu
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
@@ -103,6 +105,10 @@ target_sources(ginkgo_cuda
     preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu
     preconditioner/jacobi_simple_apply_kernel.cu
+    preconditioner/ras_advanced_apply_kernel.cu
+    preconditioner/ras_generate_kernel.cu
+    preconditioner/ras_kernels.cu
+    preconditioner/ras_simple_apply_kernel.cu
     reorder/rcm_kernels.cu
     solver/gmres_kernels.cu
     solver/cb_gmres_kernels.cu
@@ -114,6 +120,14 @@ target_sources(ginkgo_cuda
     stop/residual_norm_kernels.cu
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+
+if(GINKGO_BUILD_MPI)
+    target_sources(ginkgo_cuda
+        PRIVATE
+        distributed/matrix_kernels.cu
+        distributed/vector_kernels.cu)
+endif()
+
 # override the default language mapping for the common files, set them to CUDA
 foreach(source_file IN LISTS GKO_UNIFIED_COMMON_SOURCES)
     set_source_files_properties(${source_file} PROPERTIES LANGUAGE CUDA)
@@ -201,6 +215,11 @@ target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPA
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_device)
 target_compile_options(ginkgo_cuda
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_ARCH_FLAGS}>")
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_cuda PRIVATE MPI::MPI_CXX)
+endif()
+
 # we handle CUDA architecture flags for now, disable CMake handling
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     set_target_properties(ginkgo_cuda PROPERTIES CUDA_ARCHITECTURES OFF)

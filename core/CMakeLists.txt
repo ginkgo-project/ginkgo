@@ -24,6 +24,7 @@ target_sources(ginkgo
     log/logger.cpp
     log/record.cpp
     log/stream.cpp
+    matrix/block_approx.cpp
     matrix/coo.cpp
     matrix/csr.cpp
     matrix/dense.cpp
@@ -34,12 +35,14 @@ target_sources(ginkgo
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/permutation.cpp
+    matrix/row_gatherer.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    matrix/row_gatherer.cpp
+    matrix/sub_matrix.cpp
     multigrid/amgx_pgm.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    preconditioner/ras.cpp
     reorder/rcm.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
@@ -65,7 +68,11 @@ endif()
 
 if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
-        PRIVATE mpi/exception.cpp)
+        PRIVATE
+        mpi/exception.cpp
+        distributed/block_approx.cpp
+        distributed/matrix.cpp
+        distributed/vector.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)
@@ -93,6 +100,10 @@ endif()
 # here as well
 if (GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     list(APPEND GKO_RPATH_ADDITIONS "${HIP_PATH}/lib")
+endif()
+
+if(GINKGO_HAVE_MPI)
+    target_link_libraries(ginkgo PUBLIC MPI::MPI_CXX)
 endif()
 
 ginkgo_default_includes(ginkgo)

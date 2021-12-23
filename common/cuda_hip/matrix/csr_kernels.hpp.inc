@@ -602,6 +602,58 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 
 
 template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
+    size_type num_rows, const IndexType* __restrict__ row_ptrs,
+    size_type* __restrict__ nnz_per_row)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < num_rows) {
+        nnz_per_row[tidx] = row_ptrs[tidx + 1] - row_ptrs[tidx];
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void get_row_nnz_data(
+    const size_type num_rows, const size_type* __restrict__ nnz_per_row,
+    IndexType* __restrict__ row_ptrs)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < num_rows) {
+        row_ptrs[tidx] = nnz_per_row[tidx];
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void compute_block_idxs_and_vals(
+        const size_type block_size, const size_type num_nnz,
+        const size_type block_offset,
+        const IndexType* __restrict__ source_row_ptrs,
+        const IndexType* __restrict__ source_col_idxs,
+        const ValueType* __restrict__ source_values,
+        const IndexType* __restrict__ result_row_ptrs,
+        IndexType* __restrict__ result_col_idxs,
+        ValueType* __restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+    if (tidx < block_size) {
+        size_type res_nnz = result_row_ptrs[tidx];
+        for (size_type nnz = source_row_ptrs[block_offset + tidx];
+             nnz < source_row_ptrs[block_offset + tidx + 1]; ++nnz) {
+            if ((source_col_idxs[nnz] < (block_offset + block_size) &&
+                 source_col_idxs[nnz] >= block_offset)) {
+                result_col_idxs[res_nnz] = source_col_idxs[nnz] - block_offset;
+                result_values[res_nnz] = source_values[nnz];
+                res_nnz++;
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void check_unsorted(
     const IndexType* __restrict__ row_ptrs,
     const IndexType* __restrict__ col_idxs, IndexType num_rows, bool* flag)

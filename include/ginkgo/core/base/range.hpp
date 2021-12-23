@@ -95,6 +95,16 @@ struct span {
     {}
 
     /**
+     * Checks if a a value is in the span.
+     *
+     * @return true if and only if `val >= this->begin && this->end > val`
+     */
+    constexpr bool in_span(size_type val) const
+    {
+        return (val >= begin && end > val);
+    }
+
+    /**
      * Checks if a span is valid.
      *
      * @return true if and only if `this->begin < this->end`
@@ -159,6 +169,13 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span& first,
                                                     const span& second)
 {
     return !(first == second);
+}
+
+
+GKO_ATTRIBUTES GKO_INLINE constexpr span operator+(const span &first,
+                                                   const span &second)
+{
+    return gko::span{first.begin, second.end};
 }
 
 

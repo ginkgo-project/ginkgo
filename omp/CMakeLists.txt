@@ -15,6 +15,8 @@ target_sources(ginkgo_omp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
+    matrix/block_approx_kernels.cpp
+    matrix/sub_matrix_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
@@ -26,6 +28,7 @@ target_sources(ginkgo_omp
     matrix/sparsity_csr_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    preconditioner/ras_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/gmres_kernels.cpp
     solver/cb_gmres_kernels.cpp
@@ -37,6 +40,13 @@ target_sources(ginkgo_omp
     stop/residual_norm_kernels.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
+
+if(GINKGO_BUILD_MPI)
+    target_sources(ginkgo_omp
+        PRIVATE
+    distributed/matrix_kernels.cpp
+    distributed/vector_kernels.cpp)
+endif()
 
 ginkgo_compile_features(ginkgo_omp)
 target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
@@ -67,6 +77,10 @@ target_link_libraries(ginkgo_omp PRIVATE ginkgo_hip)
 # Need to link against ginkgo_dpcpp for the `raw_copy_to(DpcppExecutor ...)` method
 target_link_libraries(ginkgo_omp PRIVATE ginkgo_dpcpp)
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
+
+if (GINKGO_BUILD_MPI)
+    target_link_libraries(ginkgo_omp PRIVATE MPI::MPI_CXX)
+endif()
 
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
