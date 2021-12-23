@@ -111,21 +111,6 @@ protected:
         std::unique_ptr<Mtx> ref;
         std::unique_ptr<Mtx> omp;
     };
-    /*
-        matrix_pair gen_unsorted_mtx()
-        {
-            constexpr int min_nnz_per_row{2};
-            auto local_mtx_ref = Mtx::create(ref);
-            auto generated = gen_mtx(mtx_size[0], mtx_size[1], min_nnz_per_row);
-            local_mtx_ref->copy_from(generated.get());
-            gko::test::unsort_matrix(local_mtx_ref.get(), rand_engine);
-
-            auto local_mtx_omp = Mtx::create(omp);
-            local_mtx_omp->copy_from(local_mtx_ref.get());
-
-            return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
-        }
-    */
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
@@ -224,20 +209,6 @@ TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 }
 
 
-// TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
-// GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    set_up_apply_data(3);
-//    auto pair = gen_unsorted_mtx();
-//
-//    pair.ref->apply2(y.get(), expected.get());
-//    pair.omp->apply2(dy.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-
-
 TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
@@ -327,9 +298,7 @@ TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data();
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(omp);
@@ -337,7 +306,6 @@ TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    //		std::cout << "GKO_ASSERT_MTX_NEAR" << std::endl;
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
 }
 

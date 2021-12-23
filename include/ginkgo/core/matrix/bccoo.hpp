@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_MATRIX_BCCOO_HPP_
 
 
-#include <cstring>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
@@ -69,12 +66,12 @@ class BccooBuilder;
 */
 
 /**
- * BCCOO is a matrix format which only stores the nonzeros coeffficients
+ * BCCOO is a matrix format which only stores nonzero coeffficients
  * by blocks of consecutive elements.
  *
  * First the elements are sorted by row and column indexes, and, then,
- * only the pairs (column,value) is stored in the 1D array of bytes.
- * The column indexes could be stored as their value or as the difference
+ * only the pairs (column,value) are stored in a 1D array of bytes.
+ * The column indexes can be stored directly or as the difference
  * from the previous element in the same row.
  *
  * Two additional 1-D vectors complete the block structure. One of them
@@ -93,16 +90,6 @@ class BccooBuilder;
  * // Applying to Dense matrices computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
- *
- * // Applying to BCCOO matrices computes a SpGEMM product of two sparse
- * matrices A->apply(B, C)              // C = A*B A->apply(alpha, B, beta, C)
- * // C = alpha*A*B + beta*C
- *
- * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
- * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
- * ```
- * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
- * by column index, otherwise the algorithms will produce incorrect results.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -325,7 +312,7 @@ protected:
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
-          offsets_(exec, 0),  // 0 is more correct than 1
+          offsets_(exec, 0),
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0}
@@ -359,10 +346,6 @@ protected:
      * Creates a BCCOO matrix from already allocated (and initialized) rows
      * offsets and chunk arrays.
      *
-     * @tparam ChunkArray  type of `chunk` array
-     * @tparam OffIdxsArray  type of `offsets` array
-     * @tparam RowIdxArray  type of `rows` array
-     *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param chunk  array of matrix indexes and matrix values
@@ -380,8 +363,8 @@ protected:
      *       matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<uint8>&& chunk, array<IndexType>&& offsets,
-          array<IndexType>&& rows, size_type num_nonzeros, size_type block_size)
+          array<uint8> chunk, array<IndexType> offsets, array<IndexType> rows,
+          size_type num_nonzeros, size_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           chunk_{exec, std::move(chunk)},
           offsets_{exec, std::move(offsets)},
@@ -403,7 +386,7 @@ protected:
 
 private:
     array<index_type> rows_;
-    array<index_type> offsets_;  // To fix to int64 should be a better option
+    array<index_type> offsets_;
     array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;

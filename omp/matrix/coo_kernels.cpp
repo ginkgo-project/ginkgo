@@ -378,30 +378,6 @@ void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
                       const matrix::Coo<ValueType, IndexType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
-/*
-{
-    auto num_rows = result->get_size()[0];
-    const auto nnz = result->get_num_stored_elements();
-    const auto num_blocks = result->get_num_blocks();
-
-    const auto source_row_idxs = source->get_const_row_idxs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-    const auto source_values = source->get_const_values();
-
-    const auto result_block_size = result->get_block_size();
-    const auto result_rows = result->get_const_rows();
-    const auto result_offsets = result->get_const_offsets();
-
-    auto result_data = result->get_chunk();
-
-    fill_bccoo(exec, source, result_rows, result_offsets, result_data,
-               num_blocks, result_block_size);
-    //    fill_bccoo(exec, source_row_idxs, source_col_idxs, source_values,
-    //    num_rows,
-    //               result_rows, result_offsets, result_data, nnz, num_blocks,
-    //               result_block_size);
-}
-*/
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL);

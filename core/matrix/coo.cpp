@@ -147,56 +147,15 @@ void Coo<ValueType, IndexType>::move_to(
 }
 
 
-/*
-template <typename ValueType, typename IndexType>
-inline size_type mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
-                                const IndexType *row_idxs,
-                                const IndexType *col_idxs,
-                                const size_type num_rows,
-                                IndexType rows, IndexType offsets,
-                                const size_type block_size,
-                                                                                                                                size_type *mem_size) // GKO_NOT_IMPLEMENTED;
-
-{
-    size_type num_stored_elements = row_idxs.size();
-    size_type num_blocks = rows.size();
-    size_type p = 0;
-                offsets[0] = 0;
-    for (size_type b = 0; b < num_blocks; b++) {
-        size_type k = b * block_size;
-        size_type r = row_idxs[k];
-        size_type c = 0;
-                                rows[b] = r;
-        for (size_type l = 0; l < block_size && k < num_stored_elements; l++,
-k++) { if (row_idxs[k] != r) { // new row r = row_idxs[k]; c = 0; p++;
-            }
-            size_type d = col_idxs[k] - c;
-            if (d < 0x7d) {
-                p++;
-            } else if (d < 0xffff) {
-                p += 3;
-            } else {
-                p += 5;
-            }
-            c = col_idxs[k];
-        }
-                                offsets[b+1] = p;
-    }
-    return p;
-}
-*/
-
-
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
-    Bccoo<ValueType, IndexType>* result) const  // GKO_NOT_IMPLEMENTED;
-/* */
+    Bccoo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     auto num_stored_elements = this->get_num_stored_elements();
 
-    // const auto block_size = 1024;
     const size_type block_size = 1024;
+    // JIAE task
     //		const auto block_size = Bccoo<ValueType,
     // IndexType>::compute_block_size(
     // result->get_executor(), this.size(), num_stored_elements);
@@ -210,59 +169,30 @@ void Coo<ValueType, IndexType>::convert_to(
         exec->run(coo::make_mem_size_bccoo(this, rows.get_data(),
                                            offsets.get_data(), num_blocks,
                                            block_size, &mem_size));
-        /*
-                exec->run(coo::make_mem_size_bccoo(
-                    //			mem_size_bccoo(
-                    this->get_const_row_idxs(), this->get_const_col_idxs(),
-                    //				this->get_size()[0], rows,
-           offsets,
-                    // block_size, &mem_size);
-                    this->get_size()[0], rows.get_data(), offsets.get_data(),
-                    num_stored_elements, num_blocks, block_size, &mem_size));
-        */
     } else {
         auto host_coo = clone(exec->get_master(), this);
         exec->run(coo::make_mem_size_bccoo(host_coo.get(), rows.get_data(),
                                            offsets.get_data(), num_blocks,
                                            block_size, &mem_size));
-        /*
-                exec->run(coo::make_mem_size_bccoo(
-                    host_coo->get_const_row_idxs(),
-           host_coo->get_const_col_idxs(), host_coo->get_size()[0],
-           rows.get_data(), offsets.get_data(), num_stored_elements, num_blocks,
-           block_size, &mem_size));
-        */
     }
 
     array<uint8> data(exec, mem_size);
 
     auto tmp = Bccoo<ValueType, IndexType>::create(
-        //        exec, this->get_size(), data.get_data(), offsets, rows,
-        //        num_stored_elements,
         exec, this->get_size(), std::move(data), std::move(offsets),
         std::move(rows), num_stored_elements, block_size);
 
     exec->run(coo::make_convert_to_bccoo(this, tmp.get()));
     tmp->move_to(result);
 }
-/* */
+
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-/*
 {
-    auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    tmp->values_ = std::move(this->values_);
-    tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(this, tmp.get()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    this->convert_to(result);
 }
-*/
+
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(

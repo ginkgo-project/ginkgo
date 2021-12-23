@@ -42,8 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/base/unaligned_access.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/matrix/bccoo_helper.hpp"
 
 
 namespace gko {
@@ -61,10 +61,6 @@ namespace omp {
  */
 namespace bccoo {
 
-
-#define OPTION 1
-// If OPTION == 0, the products for each column is computed separately
-// Otherwise, the elements of the matrix are accessed only once
 
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
@@ -115,42 +111,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-#if OPTION == 0
-    auto num_cols = b->get_size()[1];
-    auto num_blks = a->get_num_blocks();
-
-    for (size_type j = 0; j < num_cols; j++) {
-        // Computation of chunk
-#pragma omp parallel for default(none), shared(a, b, c, j, num_blks)
-        for (size_type blk = 0; blk < num_blks; blk++) {
-            auto* rows_data = a->get_const_rows();
-            auto* offsets_data = a->get_const_offsets();
-            auto* chunk_data = a->get_const_chunk();
-            auto block_size = a->get_block_size();
-            size_type nblk = 0, col = 0;
-            size_type row = rows_data[blk], row_old = 0;
-            size_type shf = offsets_data[blk];
-            ValueType val, sum = zero<ValueType>();
-            while (shf < offsets_data[blk + 1]) {
-                row_old = row;
-                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-                if (row_old != row) {
-#pragma omp critical(bccoo_apply)
-                    {
-                        c->at(row_old, j) += sum;
-                        sum = zero<ValueType>();
-                    }
-                }
-                sum += val * b->at(col, j);
-            }
-#pragma omp critical(bccoo_apply)
-            {
-                c->at(row, j) += sum;
-            }
-        }
-    }
-#else
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
@@ -181,10 +141,9 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     {
                         for (size_type j = 0; j < num_cols; j++) {
                             // TODO: replace with
-                            // 			 OMP atomic_add (ValueType
-                            // &inout,
-                            // ValueType out); atomic_add(c->at(row_old, j),
-                            // sumV[j]);
+                            // 	 OMP atomic_add (ValueType &inout,
+                            //                   ValueType out);
+                            //   atomic_add(c->at(row_old, j), sumV[j]);
                             c->at(row_old, j) += sumV[j];
                             sumV[j] = zero<ValueType>();
                         }
@@ -198,15 +157,13 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
             {
                 for (size_type j = 0; j < num_cols; j++) {
                     // TODO: replace with
-                    // 			 OMP atomic_add (ValueType &inout,
-                    // 											 ValueType
-                    // out); atomic_add(c->at(row_old, j), sumV[j]);
+                    // 	 OMP atomic_add (ValueType &inout, ValueType out);
+                    //   atomic_add(c->at(row_old, j), sumV[j]);
                     c->at(row, j) += sumV[j];
                 }
             }
         }
     }
-#endif
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV2_KERNEL);
@@ -219,43 +176,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Dense<ValueType>* b,
                     matrix::Dense<ValueType>* c)
 {
-#if OPTION == 0
-    auto num_cols = b->get_size()[1];
-    auto num_blks = a->get_num_blocks();
-
-    for (size_type j = 0; j < num_cols; j++) {
-        // Computation of chunk
-#pragma omp parallel for default(none), shared(alpha, a, b, c, j, num_blks)
-        for (size_type blk = 0; blk < num_blks; blk++) {
-            auto* rows_data = a->get_const_rows();
-            auto* offsets_data = a->get_const_offsets();
-            auto* chunk_data = a->get_const_chunk();
-            auto block_size = a->get_block_size();
-            auto alpha_val = alpha->at(0, 0);
-            size_type nblk = 0, col = 0;
-            size_type row = rows_data[blk], row_old = 0;
-            size_type shf = offsets_data[blk];
-            ValueType val, sum = zero<ValueType>();
-            while (shf < offsets_data[blk + 1]) {
-                row_old = row;
-                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-                if (row_old != row) {
-#pragma omp critical(bccoo_apply)
-                    {
-                        c->at(row_old, j) += sum;
-                    }
-                    sum = zero<ValueType>();
-                }
-                sum += alpha_val * val * b->at(col, j);
-            }
-#pragma omp critical(bccoo_apply)
-            {
-                c->at(row, j) += sum;
-            }
-        }
-    }
-#else
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
@@ -288,10 +208,9 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     {
                         for (size_type j = 0; j < num_cols; j++) {
                             // TODO: replace with
-                            // 			 OMP atomic_add (ValueType
-                            // &inout,
-                            // ValueType out); atomic_add(c->at(row_old, j),
-                            // sumV[j]);
+                            // 	 OMP atomic_add (ValueType &inout,
+                            //                   ValueType out);
+                            //   atomic_add(c->at(row_old, j), sumV[j]);
                             c->at(row_old, j) += sumV[j];
                             sumV[j] = zero<ValueType>();
                         }
@@ -305,15 +224,13 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
             {
                 for (size_type j = 0; j < num_cols; j++) {
                     // TODO: replace with
-                    // 			 OMP atomic_add (ValueType &inout,
-                    // 											 ValueType
-                    // out); atomic_add(c->at(row_old, j), sumV[j]);
+                    // 	 OMP atomic_add (ValueType &inout, ValueType out);
+                    //   atomic_add(c->at(row_old, j), sumV[j]);
                     c->at(row, j) += sumV[j];
                 }
             }
         }
     }
-#endif
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
