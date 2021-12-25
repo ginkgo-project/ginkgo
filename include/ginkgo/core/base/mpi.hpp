@@ -41,11 +41,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #if GINKGO_BUILD_MPI
@@ -87,6 +89,35 @@ inline const T* in_place()
 {
     return reinterpret_cast<const T*>(MPI_IN_PLACE);
 }
+
+
+namespace detail {
+
+
+template <typename T>
+MPI_Datatype create_and_commit_type(T dummy, int count)
+{
+    MPI_Datatype new_type;
+    int block_lengths[1] = {count};
+    MPI_Aint disp[1] = {0};
+    MPI_Datatype old_type[1] = {type_impl<T>::get_type()};
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_create_struct(count, block_lengths, disp,
+                                                    old_type, &new_type));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&new_type));
+    return new_type;
+}
+
+
+template <typename T>
+void create_contiguous_type(T dummy, int count, MPI_Datatype* new_type)
+{
+    GKO_ASSERT_NO_MPI_ERRORS(
+        MPI_Type_contiguous(count, type_impl<T>::get_type(), new_type));
+    GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(new_type));
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -417,6 +448,62 @@ public:
     }
 
     /**
+     * Send (Blocking) Array from calling process to destination rank.
+     *
+     * @param send_array  the array to send
+     * @param destination_rank  the rank to send the data to
+     * @param send_tag  the tag for the send call
+     */
+    template <typename ValueType>
+    void send(const Array<ValueType>& send_array, const int destination_rank,
+              const int send_tag) const
+    {
+        send(send_array.get_const_data(), send_array.get_num_elems(),
+             destination_rank, send_tag);
+    }
+
+    /**
+     * Send (Blocking) Array from calling process to destination rank.
+     *
+     * @param send_array  the array to send
+     * @param destination_rank  the rank to send the data to
+     * @param send_tag  the tag for the send call
+     */
+    template <typename ValueType>
+    void send(const Array<ValueType>* send_array, const int send_count,
+              const int destination_rank, const int send_tag) const
+    {
+        MPI_Datatype new_type{};
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Type_contiguous(send_array[0].get_num_elems(),
+                                type_impl<ValueType>::get_type(), &new_type));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&new_type));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(send_array->get_const_data(),
+                                          send_count, new_type,
+                                          destination_rank, send_tag, get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_free(&new_type));
+    }
+
+    /**
+     * Send (Blocking) Array from calling process to destination rank.
+     *
+     * @param send_array  the array to send
+     * @param destination_rank  the rank to send the data to
+     * @param send_tag  the tag for the send call
+     */
+    template <typename ValueType, typename IndexType>
+    void send(const matrix::Csr<ValueType, IndexType>& send_mat,
+              const int destination_rank, const int send_tag) const
+    {
+        send(send_mat.get_const_values(), send_mat.get_num_stored_elements(),
+             destination_rank, send_tag + 1);
+        send(send_mat.get_const_col_idxs(), send_mat.get_num_stored_elements(),
+             destination_rank, send_tag + 2);
+        send(send_mat.get_const_row_ptrs(), send_mat.get_size()[0] + 1,
+             destination_rank, send_tag + 3);
+    }
+
+    /**
      * Send (Non-blocking, Immediate return) data from calling process to
      * destination rank.
      *
@@ -456,6 +543,82 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                      source_rank, recv_tag, this->get(), st.get()));
+        return st;
+    }
+
+    /**
+     * Receive data from source rank.
+     *
+     * @param recv_buffer  the buffer to send
+     * @param recv_count  the number of elements to send
+     * @param source_rank  the rank to send the data to
+     * @param recv_tag  the tag for the send call
+     *
+     * @return  the status of completion of this call
+     */
+    template <typename ValueType>
+    status recv(Array<ValueType>* recv_arr, const int recv_count,
+                const int source_rank, const int recv_tag) const
+    {
+        status st;
+        MPI_Datatype new_type{};
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Type_contiguous(recv_arr[0].get_num_elems(),
+                                type_impl<ValueType>::get_type(), &new_type));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&new_type));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Recv(recv_arr->get_data(), recv_count,
+                                          new_type, source_rank, recv_tag,
+                                          get(), st.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_free(&new_type));
+        return st;
+    }
+
+    /**
+     * Receive Array from source rank.
+     *
+     * @param recv_array  the Array to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
+     *
+     * @return  the status of completion of this call
+     *
+     * @note The executor of the recv_array has to match the array from which
+     *       data is being received. If not, the behaviour is undefined.
+     */
+    template <typename ValueType>
+    status recv(Array<ValueType>& recv_array, const int source_rank,
+                const int recv_tag) const
+    {
+        return recv(recv_array.get_data(), recv_array.get_num_elems(),
+                    source_rank, recv_tag);
+    }
+
+    /**
+     * Receive Array from source rank.
+     *
+     * @param recv_array  the Array to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
+     *
+     * @return  the status of completion of this call
+     *
+     * @note The executor of the recv_array has to match the array from which
+     *       data is being received. If not, the behaviour is undefined.
+     */
+    template <typename ValueType, typename IndexType>
+    std::vector<status> recv(matrix::Csr<ValueType, IndexType>& recv_mat,
+                             const int source_rank, const int recv_tag) const
+    {
+        std::vector<status> st;
+        st.emplace_back(recv(recv_mat.get_values(),
+                             recv_mat.get_num_stored_elements(), source_rank,
+                             recv_tag + 1));
+        st.emplace_back(recv(recv_mat.get_col_idxs(),
+                             recv_mat.get_num_stored_elements(), source_rank,
+                             recv_tag + 2));
+        st.emplace_back(recv(recv_mat.get_row_ptrs(),
+                             recv_mat.get_size()[0] + 1, source_rank,
+                             recv_tag + 3));
         return st;
     }
 
@@ -513,6 +676,34 @@ public:
             MPI_Ibcast(buffer, count, type_impl<BroadcastType>::get_type(),
                        root_rank, this->get(), req.get()));
         return req;
+    }
+
+    /**
+     * Broadcast array from calling process to all ranks in the communicator
+     *
+     * @param buffer  the buffer to broadcsat
+     * @param count  the number of elements to broadcast
+     * @param root_rank  the rank to broadcast from
+     */
+    template <typename BroadcastType>
+    void broadcast(Array<BroadcastType>& array, int root_rank) const
+    {
+        broadcast(array.get_data(), array.get_num_elems(), root_rank);
+    }
+
+    /**
+     * Broadcast array from calling process to all ranks in the communicator
+     *
+     * @param buffer  the buffer to broadcsat
+     * @param count  the number of elements to broadcast
+     * @param root_rank  the rank to broadcast from
+     */
+    template <typename ValueType, typename IndexType>
+    void broadcast(matrix::Csr<ValueType, IndexType>& mat, int root_rank) const
+    {
+        broadcast(mat.get_col_idxs(), mat.get_num_stored_elements(), root_rank);
+        broadcast(mat.get_values(), mat.get_num_stored_elements(), root_rank);
+        broadcast(mat.get_row_ptrs(), mat.get_size()[0] + 1, root_rank);
     }
 
     /**
@@ -883,6 +1074,23 @@ public:
     /**
      * (In-place, Non-blocking) Communicate data from all ranks to all other
      * ranks in place (MPI_Alltoall). See MPI documentation for more details.
+     *
+     * @param buffer  the buffer to send and the buffer receive
+     * @param recv_count  the number of elements to receive
+     * @param comm  the communicator
+     *
+     * @note This overload uses MPI_IN_PLACE and the source and destination
+     * buffers are the same.
+     */
+    template <typename ValueType>
+    void all_to_all(Array<ValueType>& recv_arr, const int count) const
+    {
+        all_to_all(recv_arr.get_data(), count);
+    }
+
+    /**
+     * Communicate data from all ranks to all other ranks in place
+     * (MPI_Alltoall). See MPI documentation for more details.
      *
      * @param buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
