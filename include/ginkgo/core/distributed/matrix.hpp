@@ -179,7 +179,7 @@ public:
 
     std::shared_ptr<LocalMtx> get_local_offdiag() { return offdiag_mtx_; }
 
-    std::vector<std::shared_ptr<LocalMtx>> get_local_offdiag_blocks()
+    std::vector<std::shared_ptr<LocalMtx>> get_local_offdiag_blocks() const
     {
         return offdiag_mtx_blocks_;
     }

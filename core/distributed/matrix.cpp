@@ -168,6 +168,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
+    this->update_matrix_blocks();
 }
 
 
@@ -263,19 +264,84 @@ template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
                                                    LinOp* x) const
 {
-    auto dense_b = as<GlobalVec>(b);
+    auto comm = this->get_communicator();
     auto exec = this->get_executor();
-    auto dense_x = as<GlobalVec>(x);
-    auto req = this->communicate(dense_b->get_local());
-    diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
-    req.wait();
-    auto use_host_buffer =
-        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
-    if (use_host_buffer) {
-        recv_buffer_->copy_from(host_recv_buffer_.get());
+    auto part = this->get_partition();
+    auto num_parts = static_cast<size_type>(part->get_num_parts());
+    auto global_size = part->get_size();
+    using GlobalMat = Matrix<ValueType, LocalIndexType>;
+    if (auto mat_b = dynamic_cast<const GlobalMat*>(b)) {
+        auto mat_x = dynamic_cast<GlobalMat*>(x);
+        // Pre-multiply (SpGEMM) local diagonal blocks and store in C
+        this->get_local_diag()->apply(mat_b->get_local_diag().get(),
+                                      mat_x->get_local_diag().get());
+        // Create submatrices from off-diagonal blocks.
+        const auto b_off_diag_blocks = mat_b->get_local_offdiag_blocks();
+        auto x_off_diag_blocks = mat_x->get_local_offdiag_blocks();
+        // Sizes of the local diagonal and off-diagonal blocks
+        std::vector<gko::dim<2>> local_sizes{};
+        for (auto i = 0; i < comm->size(); ++i) {
+            local_sizes.emplace_back(gko::dim<2>(
+                part->get_part_size(comm->rank()), part->get_part_size(i)));
+        }
+        GKO_ASSERT(b_off_diag_blocks.size() == comm->size() - 1);
+        GKO_ASSERT(x_off_diag_blocks.size() == comm->size() - 1);
+        std::vector<size_type> block_nnz{};
+        for (auto i = 0; i < comm->size(); ++i) {
+            if (i == comm->rank()) {
+                block_nnz.emplace_back(
+                    this->get_local_diag()->get_num_stored_elements());
+            } else {
+                block_nnz.emplace_back(
+                    b_off_diag_blocks[i]->get_num_stored_elements());
+            }
+        }
+        const auto num_blocks = comm->size() * comm->size();
+        std::vector<size_type> block_nnz_others{
+            static_cast<size_type>(num_blocks), 0};
+        std::vector<int> disp{comm->size(), 0};
+        for (auto i = 0; i < disp.size(); ++i) {
+            disp[i] = i * comm->size();
+        }
+        std::vector<int> recv_counts{num_blocks, num_blocks};
+        // Gather nnz counts of all blocks onto current rank
+        comm->gather_v(block_nnz.data(), comm->size(), block_nnz_others.data(),
+                       recv_counts.data(), disp.data(), comm->rank());
+        // Allocate/assign the sub matrices for the B matrix, which we receive.
+        // TODO Not sure if this can be const LocalMtx, probably need a
+        // const_cast for local_diag
+        std::vector<std::shared_ptr<const LocalMtx>> b_recv{
+            comm->size() * comm->size(), nullptr};
+        for (auto i = 0; i < comm->size(); ++i) {
+            for (auto j = 0; j < comm->size(); ++j) {
+                if (i == comm->rank()) {
+                    if (j == comm->rank()) {
+                        b_recv[i * comm->size() + j] = this->get_local_diag();
+                    } else {
+                        b_recv[i * comm->size() + j] = b_off_diag_blocks[j];
+                    }
+                } else {
+                    b_recv[i * comm->size() + j] = LocalMtx::create(
+                        exec,
+                        gko::dim<2>((local_sizes[i])[0], (local_sizes[j])[1]),
+                        block_nnz_others[i * comm->size() + j]);
+                }
+            }
+        }
+    } else {
+        auto dense_b = as<GlobalVec>(b);
+        auto dense_x = as<GlobalVec>(x);
+        auto req = this->communicate(dense_b->get_local());
+        diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
+        req.wait();
+        auto use_host_buffer =
+            exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+        if (use_host_buffer) {
+            recv_buffer_->copy_from(host_recv_buffer_.get());
+        }
+        offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
+                            dense_x->get_local());
     }
-    offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
-                        dense_x->get_local());
 }
 
 
