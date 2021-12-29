@@ -130,11 +130,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void transpose_scale_copy(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::BatchDense<ValueType>* const scaling_vec,
-    const matrix::BatchDense<ValueType>* const orig,
-    matrix::BatchDense<ValueType>* const scaled)
+void transpose_scale_copy(std::shared_ptr<const CudaExecutor> exec,
+                          const matrix::BatchDiagonal<ValueType>* const scaling,
+                          const matrix::BatchDense<ValueType>* const orig,
+                          matrix::BatchDense<ValueType>* const scaled)
 {
     const size_type nbatch = orig->get_num_batch_entries();
     const int nrows = static_cast<int>(scaled->get_size().at()[0]);
@@ -143,7 +142,7 @@ void transpose_scale_copy(
     const size_type scaled_stride = scaled->get_stride().at();
     transpose_scale_copy<<<nbatch, default_block_size>>>(
         nbatch, nrows, nrhs, orig_stride, scaled_stride,
-        as_cuda_type(scaling_vec->get_const_values()),
+        as_cuda_type(scaling->get_const_values()),
         as_cuda_type(orig->get_const_values()),
         as_cuda_type(scaled->get_values()));
 }
@@ -157,8 +156,8 @@ void pre_diag_scale_system_transpose(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::BatchDense<ValueType>* const a,
     const matrix::BatchDense<ValueType>* const b,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
+    const matrix::BatchDiagonal<ValueType>* const left_scale,
+    const matrix::BatchDiagonal<ValueType>* const right_scale,
     matrix::BatchDense<ValueType>* const a_scaled_t,
     matrix::BatchDense<ValueType>* const b_scaled_t)
 {
@@ -170,8 +169,8 @@ void pre_diag_scale_system_transpose(
     const size_type a_scaled_stride = a_scaled_t->get_stride().at();
     const size_type b_stride = b->get_stride().at();
     const size_type b_scaled_stride = b_scaled_t->get_stride().at();
-    const size_type left_scale_stride = left_scale->get_stride().at();
-    const size_type rght_scale_stride = right_scale->get_stride().at();
+    constexpr size_type left_scale_stride = 1;
+    constexpr size_type rght_scale_stride = 1;
     pre_diag_scale_system_transpose<<<nbatch, default_block_size>>>(
         nbatch, nrows, ncols, a_stride, as_cuda_type(a->get_const_values()),
         nrhs, b_stride, as_cuda_type(b->get_const_values()), left_scale_stride,
