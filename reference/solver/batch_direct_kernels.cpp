@@ -54,7 +54,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 template <typename ValueType>
 void transpose_scale_copy(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::BatchDense<ValueType>* const scaling_vec,
+    const matrix::BatchDiagonal<ValueType>* const scaling_vec,
     const matrix::BatchDense<ValueType>* const orig,
     matrix::BatchDense<ValueType>* const scaled)
 {
@@ -70,8 +70,8 @@ void pre_diag_scale_system_transpose(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::BatchDense<ValueType>* const a,
     const matrix::BatchDense<ValueType>* const b,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
+    const matrix::BatchDiagonal<ValueType>* const left_scale,
+    const matrix::BatchDiagonal<ValueType>* const right_scale,
     matrix::BatchDense<ValueType>* const a_scaled_t,
     matrix::BatchDense<ValueType>* const b_scaled_t)
 {
@@ -83,8 +83,8 @@ void pre_diag_scale_system_transpose(
     const size_type a_scaled_stride = a_scaled_t->get_stride().at();
     const size_type b_stride = b->get_stride().at();
     const size_type b_scaled_stride = b_scaled_t->get_stride().at();
-    const size_type left_scale_stride = left_scale->get_stride().at();
-    const size_type right_scale_stride = right_scale->get_stride().at();
+    constexpr size_type left_scale_stride = 1;
+    constexpr size_type right_scale_stride = 1;
     for (size_type ib = 0; ib < nbatch; ib++) {
         auto ai = gko::batch::batch_entry_ptr(a->get_const_values(), a_stride,
                                               nrows, ib);
