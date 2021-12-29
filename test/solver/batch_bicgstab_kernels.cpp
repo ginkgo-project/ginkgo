@@ -76,15 +76,6 @@ protected:
             gko::kernels::omp::batch_bicgstab::apply<value_type>(
                 execp, opts, mtx, b, x, logdata);
         };
-        scale_mat = [execp](const BDense* const left, const BDense* const right,
-                            Mtx* const mat, BDense* const b) {
-            gko::kernels::omp::batch_csr::pre_diag_scale_system<value_type>(
-                execp, left, right, mat, b);
-        };
-        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
-            gko::kernels::omp::batch_dense::batch_scale<value_type>(execp,
-                                                                    scale, mat);
-        };
     }
 
     void TearDown()
@@ -107,8 +98,6 @@ protected:
 
     std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
-    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     gko::test::LinSys<value_type> sys_1;
     gko::test::LinSys<value_type> sys_m;
@@ -161,9 +150,8 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->ompexec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    auto r_1 = gko::test::solve_poisson_uniform(this->ompexec, this->solve_fn,
+                                                this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
