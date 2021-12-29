@@ -56,6 +56,7 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::solver::BatchCg<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
     using Options = gko::kernels::batch_cg::BatchCgOptions<real_type>;
@@ -219,12 +220,12 @@ TYPED_TEST(BatchCg, CoreSolvesSystemJacobi)
 
 TYPED_TEST(BatchCg, UnitScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto left_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto right_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto factory = this->create_factory(this->ompexec, this->opts_1);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
@@ -237,11 +238,11 @@ TYPED_TEST(BatchCg, UnitScalingDoesNotChangeResult)
 
 TYPED_TEST(BatchCg, GeneralScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
+    auto left_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
+    auto right_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
     auto factory = this->create_factory(this->ompexec, this->opts_1);
 
