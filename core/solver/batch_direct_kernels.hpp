@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -51,10 +52,10 @@ namespace batch_direct {
                matrix::BatchDense<_type>* const b,          \
                gko::log::BatchLogData<_type>& logdata)
 
-#define GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(_type)                \
-    void transpose_scale_copy(std::shared_ptr<const DefaultExecutor> exec,  \
-                              const matrix::BatchDense<_type>* scaling_vec, \
-                              const matrix::BatchDense<_type>* orig,        \
+#define GKO_DECLARE_BATCH_DIRECT_TRANSPOSE_SCALE_COPY(_type)                   \
+    void transpose_scale_copy(std::shared_ptr<const DefaultExecutor> exec,     \
+                              const matrix::BatchDiagonal<_type>* scaling_vec, \
+                              const matrix::BatchDense<_type>* orig,           \
                               matrix::BatchDense<_type>* scaled)
 
 /**
@@ -77,8 +78,8 @@ namespace batch_direct {
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::BatchDense<_type>* a,                             \
         const matrix::BatchDense<_type>* b,                             \
-        const matrix::BatchDense<_type>* left_scale,                    \
-        const matrix::BatchDense<_type>* right_scale,                   \
+        const matrix::BatchDiagonal<_type>* left_scale,                 \
+        const matrix::BatchDiagonal<_type>* right_scale,                \
         matrix::BatchDense<_type>* a_scaled_t,                          \
         matrix::BatchDense<_type>* b_scaled_t)
 

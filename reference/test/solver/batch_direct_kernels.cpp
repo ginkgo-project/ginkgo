@@ -59,6 +59,7 @@ protected:
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using solver_type = gko::solver::BatchDirect<value_type>;
 
     BatchDirect() : exec(gko::ReferenceExecutor::create()) {}
@@ -72,31 +73,31 @@ protected:
     const int ncols = 5;
     const int nrhs = 2;
 
-    std::unique_ptr<BDense> left_scale;
-    std::unique_ptr<BDense> right_scale;
+    std::unique_ptr<BDiag> left_scale;
+    std::unique_ptr<BDiag> right_scale;
 
     void setup_ref_scaling_test()
     {
-        left_scale = BDense::create(
-            exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1)));
-        left_scale->at(0, 0, 0) = 2.0;
-        left_scale->at(0, 1, 0) = 3.0;
-        left_scale->at(0, 2, 0) = -1.0;
-        left_scale->at(1, 0, 0) = 1.0;
-        left_scale->at(1, 1, 0) = -2.0;
-        left_scale->at(1, 2, 0) = -4.0;
-        right_scale = BDense::create(
-            exec, gko::batch_dim<>(nbatch, gko::dim<2>(ncols, 1)));
-        right_scale->at(0, 0, 0) = 1.0;
-        right_scale->at(0, 1, 0) = 1.5;
-        right_scale->at(0, 2, 0) = -2.0;
-        right_scale->at(0, 3, 0) = 4.0;
-        right_scale->at(0, 4, 0) = 0.25;
-        right_scale->at(1, 0, 0) = 0.5;
-        right_scale->at(1, 1, 0) = -3.0;
-        right_scale->at(1, 2, 0) = -2.0;
-        right_scale->at(1, 3, 0) = 2.0;
-        right_scale->at(1, 4, 0) = -1.0;
+        left_scale = BDiag::create(
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows)));
+        left_scale->at(0, 0) = 2.0;
+        left_scale->at(0, 1) = 3.0;
+        left_scale->at(0, 2) = -1.0;
+        left_scale->at(1, 0) = 1.0;
+        left_scale->at(1, 1) = -2.0;
+        left_scale->at(1, 2) = -4.0;
+        right_scale = BDiag::create(
+            exec, gko::batch_dim<>(nbatch, gko::dim<2>(ncols, ncols)));
+        right_scale->at(0, 0) = 1.0;
+        right_scale->at(0, 1) = 1.5;
+        right_scale->at(0, 2) = -2.0;
+        right_scale->at(0, 3) = 4.0;
+        right_scale->at(0, 4) = 0.25;
+        right_scale->at(1, 0) = 0.5;
+        right_scale->at(1, 1) = -3.0;
+        right_scale->at(1, 2) = -2.0;
+        right_scale->at(1, 3) = 2.0;
+        right_scale->at(1, 4) = -1.0;
     }
 };
 
