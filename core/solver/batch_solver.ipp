@@ -89,10 +89,10 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     if (to_scale) {
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
-        exec->run(batch::make_pre_diag_scale_system(
-            as<const Vector>(this->get_left_scaling_op()),
-            as<const Vector>(this->get_right_scaling_op()),
-            a_scaled_smart.get(), b_scaled_smart.get()));
+        matrix::two_sided_batch_system_transform(exec,
+            as<const Diag>(this->get_left_scaling_op()),
+            as<const Diag>(this->get_right_scaling_op()),
+            a_scaled_smart.get(), b_scaled_smart.get());
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
     } else {
@@ -118,8 +118,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
         concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
 
     if (to_scale) {
-        exec->run(batch::make_vec_scale(
-            as<Vector>(this->get_right_scaling_op()), dense_x));
+        as<const Diag>(this->get_right_scaling_op())->apply(dense_x, dense_x);
     }
 }
 
