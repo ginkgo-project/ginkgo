@@ -130,18 +130,17 @@ LinSys<ValueType> get_poisson_problem(
 }
 
 
-template <typename ValueType, typename SolveFunction, typename PreScaleFunction,
-          typename VecScaleFunction, typename Options>
+template <typename ValueType, typename SolveFunction, typename Options>
 Result<ValueType> solve_poisson_uniform(
     std::shared_ptr<const Executor> d_exec, SolveFunction solve_function,
-    PreScaleFunction msf, VecScaleFunction vsf, const Options opts,
-    const LinSys<ValueType>& sys, const int nrhs,
-    const matrix::BatchDense<ValueType>* const left_scale = nullptr,
-    const matrix::BatchDense<ValueType>* const right_scale = nullptr)
+    const Options opts, const LinSys<ValueType>& sys, const int nrhs,
+    const matrix::BatchDiagonal<ValueType>* const left_scale = nullptr,
+    const matrix::BatchDiagonal<ValueType>* const right_scale = nullptr)
 {
     using real_type = remove_complex<ValueType>;
     using BDense = typename Result<ValueType>::BDense;
     using RBDense = typename Result<ValueType>::RBDense;
+    using BDiag = gko::matrix::BatchDiagonal<ValueType>;
     using Mtx = matrix::BatchCsr<ValueType, int>;
 
     const size_t nbatch = sys.mtx->get_num_batch_entries();
@@ -172,8 +171,8 @@ Result<ValueType> solve_poisson_uniform(
     mtx->copy_from(gko::lend(sys.mtx));
     b->copy_from(gko::lend(sys.b));
     x->copy_from(gko::lend(result.x));
-    auto d_left = BDense::create(d_exec);
-    auto d_right = BDense::create(d_exec);
+    auto d_left = BDiag::create(d_exec);
+    auto d_right = BDiag::create(d_exec);
     if (left_scale) {
         d_left->copy_from(left_scale);
     }
@@ -186,13 +185,14 @@ Result<ValueType> solve_poisson_uniform(
     auto b_sc = BDense::create(d_exec);
     b_sc->copy_from(b.get());
     if (left_scale) {
-        msf(d_left_ptr, d_right_ptr, mtx.get(), b_sc.get());
+        gko::matrix::two_sided_batch_system_transform(
+            d_exec, d_left_ptr, d_right_ptr, mtx.get(), b_sc.get());
     }
 
     solve_function(opts, mtx.get(), b_sc.get(), x.get(), logdata);
 
     if (left_scale) {
-        vsf(d_right_ptr, x.get());
+        d_right_ptr->apply(x.get(), x.get());
     }
 
     result.x->copy_from(gko::lend(x));
