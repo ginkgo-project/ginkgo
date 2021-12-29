@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
 
@@ -61,6 +62,7 @@ protected:
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using Options =
         gko::kernels::batch_bicgstab::BatchBicgstabOptions<real_type>;
     using LogData = gko::log::BatchLogData<value_type>;
@@ -225,12 +227,12 @@ TYPED_TEST(BatchBicgstab, CoreSolvesSystemJacobi)
 
 TYPED_TEST(BatchBicgstab, UnitScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto left_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto right_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto factory = this->create_factory(this->cuexec, this->opts_1);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
@@ -243,11 +245,11 @@ TYPED_TEST(BatchBicgstab, UnitScalingDoesNotChangeResult)
 
 TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
+    auto left_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
+    auto right_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
     auto factory = this->create_factory(this->cuexec, this->opts_1);
 
