@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -213,12 +214,13 @@ Result<ValueType> solve_poisson_uniform_core(
     std::shared_ptr<const Executor> d_exec,
     const typename SolverType::Factory* const factory,
     const LinSys<ValueType>& sys, const int nrhs,
-    const matrix::BatchDense<ValueType>* const left_scale = nullptr,
-    const matrix::BatchDense<ValueType>* const right_scale = nullptr)
+    const matrix::BatchDiagonal<ValueType>* const left_scale = nullptr,
+    const matrix::BatchDiagonal<ValueType>* const right_scale = nullptr)
 {
     using real_type = remove_complex<ValueType>;
     using BDense = typename Result<ValueType>::BDense;
     using RBDense = typename Result<ValueType>::RBDense;
+    using BDiag = gko::matrix::BatchDiagonal<ValueType>;
     using Mtx = matrix::BatchCsr<ValueType, int>;
 
     const size_t nbatch = sys.mtx->get_num_batch_entries();
@@ -249,8 +251,8 @@ Result<ValueType> solve_poisson_uniform_core(
 
     auto solver = factory->generate(mtx);
 
-    auto d_left = BDense::create(d_exec);
-    auto d_right = BDense::create(d_exec);
+    auto d_left = BDiag::create(d_exec);
+    auto d_right = BDiag::create(d_exec);
     const bool use_scaling = left_scale && right_scale;
     if (use_scaling) {
         if (!left_scale || !right_scale) {
@@ -293,6 +295,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     using RT = typename gko::remove_complex<T>;
     using Dense = gko::matrix::BatchDense<T>;
     using RDense = gko::matrix::BatchDense<RT>;
+    using BDiag = gko::matrix::BatchDiagonal<T>;
     using Mtx = MatrixType;
     using factory_type = typename SolverType::Factory;
     std::shared_ptr<const gko::ReferenceExecutor> refexec =
@@ -303,17 +306,18 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     mtx->copy_from(ref_mtx.get());
     auto solver = factory->generate(mtx);
     const auto s_vec_sz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1));
-    auto ref_left_scale = Dense::create(refexec, s_vec_sz);
-    auto ref_right_scale = Dense::create(refexec, s_vec_sz);
+    const auto mat_sz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
+    auto ref_left_scale = BDiag::create(refexec, mat_sz);
+    auto ref_right_scale = BDiag::create(refexec, mat_sz);
     for (size_t ib = 0; ib < nbatch; ib++) {
         for (int i = 0; i < nrows; i++) {
-            ref_left_scale->at(ib, i, 0) = 0.7071;
-            ref_right_scale->at(ib, i, 0) = 0.7071;
+            ref_left_scale->at(ib, i) = 0.7071;
+            ref_right_scale->at(ib, i) = 0.7071;
         }
     }
-    auto left_scale = Dense::create(exec, s_vec_sz);
+    auto left_scale = BDiag::create(exec, mat_sz);
     left_scale->copy_from(ref_left_scale.get());
-    auto right_scale = Dense::create(exec, s_vec_sz);
+    auto right_scale = BDiag::create(exec, mat_sz);
     right_scale->copy_from(ref_right_scale.get());
     if (use_scaling) {
         dynamic_cast<gko::EnableBatchScaling*>(solver.get())
@@ -384,8 +388,10 @@ void test_solve_iterations_with_scaling(
 {
     using value_type = typename SolverType::value_type;
     using BDense = gko::matrix::BatchDense<value_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using Mtx = typename gko::matrix::BatchCsr<value_type>;
     auto refexec = gko::ReferenceExecutor::create();
+    auto matsz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
     auto vecsz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1));
     auto xex = BDense::create(refexec, vecsz);
     auto b = BDense::create(refexec, vecsz);
@@ -403,8 +409,8 @@ void test_solve_iterations_with_scaling(
             }
         }
     }
-    auto left_scale = BDense::create(refexec, vecsz);
-    auto right_scale = BDense::create(refexec, vecsz);
+    auto left_scale = BDiag::create(refexec, matsz);
+    auto right_scale = BDiag::create(refexec, matsz);
     auto x = BDense::create(refexec, vecsz);
     auto x_s = BDense::create(refexec, vecsz);
     for (size_t ib = 0; ib < nbatch; ib++) {
@@ -412,8 +418,8 @@ void test_solve_iterations_with_scaling(
             xex->at(ib, i, 0) = 1.0;
             x->at(ib, i, 0) = 0.0;
             x_s->at(ib, i, 0) = 0.0;
-            left_scale->at(ib, i, 0) = std::sqrt(1.0 / (2.0 + i));
-            right_scale->at(ib, i, 0) = std::sqrt(1.0 / (2.0 + i));
+            left_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
+            right_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
         }
     }
     mtx->apply(xex.get(), b.get());
@@ -425,9 +431,9 @@ void test_solve_iterations_with_scaling(
     d_x_s->copy_from(x_s.get());
     auto d_b = BDense::create(exec);
     d_b->copy_from(b.get());
-    auto d_left_scale = BDense::create(exec);
+    auto d_left_scale = BDiag::create(exec);
     d_left_scale->copy_from(left_scale.get());
-    auto d_right_scale = BDense::create(exec);
+    auto d_right_scale = BDiag::create(exec);
     d_right_scale->copy_from(right_scale.get());
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> logger =
         gko::log::BatchConvergence<value_type>::create(exec);
