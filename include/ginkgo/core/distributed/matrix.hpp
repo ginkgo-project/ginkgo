@@ -80,14 +80,19 @@ public:
     using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
     using LocalAbsMtx =
         gko::matrix::Csr<remove_complex<value_type>, local_index_type>;
+    struct serialized_mtx {
+        Array<local_index_type> col_idxs;
+        Array<local_index_type> row_ptrs;
+        Array<value_type> values;
+    };
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
     {
         result->diag_mtx_->copy_from(this->diag_mtx_.get());
         result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-        for (auto i = 0; i < this->offdiag_mtx_blocks_.size(); ++i) {
-            result->offdiag_mtx_blocks_[i]->copy_from(
-                this->offdiag_mtx_blocks_[i].get());
+        for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
+            result->local_mtx_blocks_[i]->copy_from(
+                this->local_mtx_blocks_[i].get());
         }
         result->gather_idxs_ = this->gather_idxs_;
         result->send_offsets_ = this->send_offsets_;
@@ -179,9 +184,9 @@ public:
 
     std::shared_ptr<LocalMtx> get_local_offdiag() { return offdiag_mtx_; }
 
-    std::vector<std::shared_ptr<LocalMtx>> get_local_offdiag_blocks() const
+    std::vector<std::shared_ptr<LocalMtx>> get_local_mtx_blocks() const
     {
-        return offdiag_mtx_blocks_;
+        return local_mtx_blocks_;
     }
 
     std::shared_ptr<const LocalMtx> get_local_diag() const { return diag_mtx_; }
@@ -189,6 +194,11 @@ public:
     std::shared_ptr<const LocalMtx> get_local_offdiag() const
     {
         return offdiag_mtx_;
+    }
+
+    std::shared_ptr<serialized_mtx> get_serialized_mtx() const
+    {
+        return serialized_local_mtx_;
     }
 
     const Partition<local_index_type>* get_partition() const
@@ -214,6 +224,8 @@ protected:
 
     void update_matrix_blocks();
 
+    void serialize_matrix_blocks();
+
     mpi::request communicate(const LocalVec* local_b) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -236,7 +248,8 @@ private:
     mutable DenseCache<value_type> recv_buffer_;
     std::shared_ptr<LocalMtx> diag_mtx_;
     std::shared_ptr<LocalMtx> offdiag_mtx_;
-    std::vector<std::shared_ptr<LocalMtx>> offdiag_mtx_blocks_;
+    std::vector<std::shared_ptr<LocalMtx>> local_mtx_blocks_;
+    std::shared_ptr<serialized_mtx> serialized_local_mtx_;
     std::shared_ptr<const Partition<local_index_type>> partition_;
 };
 
