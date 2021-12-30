@@ -960,6 +960,27 @@ public:
     }
 
     /**
+     * Gather data onto all ranks from all ranks in the communicator.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     */
+    // template <typename ValueType, typename IndexType>
+    // void all_gather(
+    //     const std::vector<matrix::Csr<ValueType, IndexType>>& send_mat,
+    //     const int send_count,
+    //     std::vector<matrix::Csr<ValueType, IndexType>>& recv_buffer,
+    //     const int recv_count) const
+    // {
+    //     GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
+    //         send_buffer, send_count, type_impl<SendType>::get_type(),
+    //         recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+    //         get()));
+    // }
+
+    /**
      * Scatter data from root rank to all ranks in the communicator.
      *
      * @param send_buffer  the buffer to gather from
