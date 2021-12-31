@@ -319,6 +319,8 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
     auto global_size = part->get_size();
     using GlobalMat = Matrix<ValueType, LocalIndexType>;
     if (auto mat_b = dynamic_cast<const GlobalMat*>(b)) {
+        // TODO: Move these prepare steps to a separate public function callable
+        // by the user.
         auto mat_x = dynamic_cast<GlobalMat*>(x);
         // Pre-multiply (SpGEMM) local diagonal blocks and store in C
         this->get_local_diag()->apply(mat_b->get_local_diag().get(),
@@ -334,40 +336,83 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         }
         GKO_ASSERT(b_local_mtx_blocks.size() == comm->size());
         GKO_ASSERT(x_local_mtx_blocks.size() == comm->size());
-        std::vector<size_type> block_nnz{};
+        std::vector<size_type> local_block_nnz{};
         for (auto i = 0; i < comm->size(); ++i) {
-            block_nnz.emplace_back(
+            local_block_nnz.emplace_back(
                 b_local_mtx_blocks[i]->get_num_stored_elements());
         }
         const auto num_blocks = comm->size() * comm->size();
-        std::vector<size_type> block_nnz_others{
-            static_cast<size_type>(num_blocks), 0};
+        std::vector<size_type> b_block_nnz{static_cast<size_type>(num_blocks),
+                                           0};
         std::vector<int> disp{comm->size(), 0};
         for (auto i = 0; i < disp.size(); ++i) {
             disp[i] = i * comm->size();
         }
         std::vector<int> recv_counts{num_blocks, num_blocks};
         // Gather nnz counts of all blocks onto current rank
-        comm->gather_v(block_nnz.data(), comm->size(), block_nnz_others.data(),
+        comm->gather_v(local_block_nnz.data(), comm->size(), b_block_nnz.data(),
                        recv_counts.data(), disp.data(), comm->rank());
         // Allocate/assign the sub matrices for the B matrix, which we receive.
         // TODO Not sure if this can be const LocalMtx, probably need a
         // const_cast for local_diag
         std::vector<std::shared_ptr<const LocalMtx>> b_recv{
             static_cast<size_type>(comm->size() * comm->size()), nullptr};
+        std::vector<size_type> b_cumul_col_nnz(comm->size(), 0);
+        // Allocate the block b matrix.
         for (auto i = 0; i < comm->size(); ++i) {
             for (auto j = 0; j < comm->size(); ++j) {
-                if (i == comm->rank()) {
-                    b_recv[i * comm->size() + j] = b_local_mtx_blocks[j];
-                } else {
-                    b_recv[i * comm->size() + j] = LocalMtx::create(
-                        exec,
-                        gko::dim<2>((local_sizes[i])[0], (local_sizes[j])[1]),
-                        block_nnz_others[i * comm->size() + j]);
-                }
+                // if (i == comm->rank()) {
+                //     b_recv[i * comm->size() + j] = b_local_mtx_blocks[j];
+                // } else {
+                b_recv[i * comm->size() + j] = LocalMtx::create(
+                    exec, gko::dim<2>((local_sizes[i])[0], (local_sizes[j])[1]),
+                    b_block_nnz[i * comm->size() + j]);
+                // }
+                b_cumul_col_nnz[j] += b_block_nnz[i * comm->size() + j];
             }
         }
-
+        // The received data is also serialized, so allocate buffers to receive
+        // in which we later will need to de-serialize.
+        serialized_mtx serialized_b_mtx{exec};
+        auto total_b_nnz_count = std::accumulate(
+            b_block_nnz.data(), b_block_nnz.data() + num_blocks, size_type{0});
+        serialized_b_mtx.col_idxs =
+            Array<local_index_type>(exec, total_b_nnz_count);
+        serialized_b_mtx.values = Array<value_type>(exec, total_b_nnz_count);
+        serialized_b_mtx.row_ptrs = Array<local_index_type>(
+            exec, comm->size() * (this->get_size()[0] + comm->size()));
+        // TODO: Compute a prefix sum buffer later to make this loop parallel.
+        auto row_offset = 0;
+        auto nnz_offset = 0;
+        auto ser_recv_nnz_offset = 0;
+        auto ser_recv_col_offset = 0;
+        const auto ser_mtx = this->serialized_local_mtx_;
+        // Communicate the b matrix. The input we get is in a block column major
+        // format, so during de-serialization, we will need to fill that in
+        // correctly
+        for (auto i = 0; i < b_local_mtx_blocks.size(); ++i) {
+            auto local_nnz_count =
+                b_local_mtx_blocks[i]->get_num_stored_elements();
+            auto local_size = b_local_mtx_blocks[i]->get_size();
+            comm->all_gather(
+                ser_mtx->col_idxs.get_const_data() + nnz_offset,
+                local_nnz_count,
+                serialized_b_mtx.col_idxs.get_data() + ser_recv_nnz_offset,
+                local_nnz_count);
+            comm->all_gather(
+                ser_mtx->values.get_const_data() + nnz_offset, local_nnz_count,
+                serialized_b_mtx.values.get_data() + ser_recv_nnz_offset,
+                local_nnz_count);
+            comm->all_gather(
+                ser_mtx->col_idxs.get_const_data() + row_offset,
+                local_size[0] + 1,
+                serialized_b_mtx.row_ptrs.get_data() + ser_recv_col_offset,
+                local_size[0] + 1);
+            row_offset += local_size[0] + 1;
+            nnz_offset += local_nnz_count;
+            ser_recv_nnz_offset += b_cumul_col_nnz[i];
+            ser_recv_col_offset += this->get_size()[0] + comm->size();
+        }
     } else {
         auto dense_b = as<GlobalVec>(b);
         auto dense_x = as<GlobalVec>(x);

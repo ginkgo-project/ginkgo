@@ -125,12 +125,11 @@ int main(int argc, char* argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
-
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
 
     gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;
-    const auto num_rows = grid_dim * grid_dim * grid_dim;
     gko::size_type size = num_rows;
     A_data.size = {num_rows, num_rows};
     b_data.size = {num_rows, 1};

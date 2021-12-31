@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
-#include "core/solver/bicgstab_kernels.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/solver/bicgstab_kernels.hpp"
 
 
 namespace gko {
@@ -89,7 +89,7 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -101,8 +101,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 template <typename ValueType>
 template <typename VectorType>
-void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                           VectorType *dense_x) const
+void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                           VectorType* dense_x) const
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
@@ -248,8 +248,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x,
-                                     const OverlapMask &wmask) const
+void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x,
+                                     const OverlapMask& wmask) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this, wmask](auto dense_b, auto dense_x) {
@@ -261,9 +261,9 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x,
 
 template <typename ValueType>
 template <typename VectorType>
-void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
-                                           VectorType *dense_x,
-                                           const OverlapMask &wmask) const
+void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                           VectorType* dense_x,
+                                           const OverlapMask& wmask) const
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
@@ -313,7 +313,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
                           r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp *) {}),
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}),
         x_clone.get(), r.get());
     rr->copy_from(r.get());
 
@@ -402,9 +402,9 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType *dense_b,
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x,
-                                     const OverlapMask &wmask) const
+void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                     const LinOp* beta, LinOp* x,
+                                     const OverlapMask& wmask) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this, wmask](auto dense_alpha, auto dense_b, auto dense_beta,

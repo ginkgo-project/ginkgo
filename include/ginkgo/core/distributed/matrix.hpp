@@ -93,11 +93,15 @@ public:
     {
         result->diag_mtx_->copy_from(this->diag_mtx_.get());
         result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-        for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
-            result->local_mtx_blocks_[i]->copy_from(
-                this->local_mtx_blocks_[i].get());
+        // FIXME
+        if (result->local_mtx_blocks_.size() > 0) {
+            for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
+                result->local_mtx_blocks_[i]->copy_from(
+                    this->local_mtx_blocks_[i].get());
+            }
         }
         result->gather_idxs_ = this->gather_idxs_;
+        result->partition_ = this->partition_;
         result->send_offsets_ = this->send_offsets_;
         result->recv_offsets_ = this->recv_offsets_;
         result->recv_sizes_ = this->recv_sizes_;
