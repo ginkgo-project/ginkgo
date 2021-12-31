@@ -183,7 +183,6 @@ int main(int argc, char* argv[])
     auto partition = gko::share(
         part_type::build_from_contiguous(exec->get_master(), ranges_array));
 
-
     auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
     auto b_host = dist_vec::create(exec->get_master(), comm);
     auto x_host = dist_vec::create(exec->get_master(), comm);
@@ -198,12 +197,14 @@ int main(int argc, char* argv[])
     x->copy_from(x_host.get());
     ValueType t_init_end = MPI_Wtime();
 
+    x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A->apply(lend(minus_one), lend(x), lend(one), lend(b));
+    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
     auto initial_resnorm = gko::initialize<vec>({0.0}, exec->get_master());
-    b->compute_norm2(gko::lend(initial_resnorm));
-    b->copy_from(b_host.get());
+    b_host->compute_norm2(gko::lend(initial_resnorm));
+    b_host->copy_from(b.get());
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // auto block_A = block_approx::create(exec, A.get(), comm);
 
@@ -278,16 +279,18 @@ int main(int argc, char* argv[])
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(
-            exec, gko::log::Logger::criterion_check_completed_mask);
+            exec, exec->get_mem_space(),
+            gko::log::Logger::criterion_check_completed_mask);
     combined_stop->add_logger(logger);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_read_setup_end = MPI_Wtime();
 
-    auto Ainv = solver::build()
-                    // .with_generated_preconditioner(gko::share(ras_precond))
-                    .with_criteria(combined_stop)
-                    .on(exec)
-                    ->generate(A);
+    auto solver_gen =
+        solver::build()
+            // .with_generated_preconditioner(gko::share(ras_precond))
+            .with_criteria(combined_stop)
+            .on(exec);
+    auto Ainv = solver_gen->generate(A);
     Ainv->add_logger(logger);
     // std::ofstream filestream("my_file.txt");
     // Ainv->add_logger(gko::log::Stream<ValueType>::create(
