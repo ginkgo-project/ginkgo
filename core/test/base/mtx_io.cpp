@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -674,7 +675,7 @@ TYPED_TEST(RealDummyLinOpTest, ReadsLinOpFromStream)
 }
 
 
-TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStream)
+TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamArray)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -688,6 +689,98 @@ TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStream)
         "2.0\n"
         "0.0\n");
     auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
+        iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    write(oss, lend(lin_op), gko::layout_type::array);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array real general\n"
+              "2 3\n"
+              "1\n"
+              "0\n"
+              "3\n"
+              "5\n"
+              "2\n"
+              "0\n");
+}
+
+
+TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamCoordinate)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
+        iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    write(oss, lend(lin_op), gko::layout_type::coordinate);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
+              "2 3\n1 3 2\n2 1 0\n2 2 5\n2 3 0\n");
+}
+
+
+TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStreamDefault)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
+        iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    write(oss, lend(lin_op));
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate real general\n2 3 6\n1 1 1\n1 "
+              "2 3\n1 3 2\n2 1 0\n2 2 5\n2 3 0\n");
+}
+
+
+template <typename ValueIndexType>
+class DenseTest : public ::testing::Test {
+protected:
+    using value_type = typename std::tuple_element<0, ValueIndexType>::type;
+    using index_type = typename std::tuple_element<1, ValueIndexType>::type;
+};
+
+TYPED_TEST_SUITE(DenseTest, gko::test::RealValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(DenseTest, WritesToStreamDefault)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array real general\n"
+        "2 3\n"
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
+    auto lin_op = gko::read<gko::matrix::Dense<value_type>>(
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
@@ -748,7 +841,7 @@ TYPED_TEST(ComplexDummyLinOpTest, ReadsLinOpFromStream)
 }
 
 
-TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStream)
+TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStreamArray)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -765,7 +858,7 @@ TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStream)
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
-    write(oss, lend(lin_op));
+    write(oss, lend(lin_op), gko::layout_type::array);
 
     ASSERT_EQ(oss.str(),
               "%%MatrixMarket matrix array complex general\n"
