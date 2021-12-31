@@ -81,9 +81,12 @@ public:
     using LocalAbsMtx =
         gko::matrix::Csr<remove_complex<value_type>, local_index_type>;
     struct serialized_mtx {
-        Array<local_index_type> col_idxs;
-        Array<local_index_type> row_ptrs;
-        Array<value_type> values;
+        serialized_mtx(std::shared_ptr<const Executor> exec)
+            : col_idxs{exec}, row_ptrs{exec}, values{exec}
+        {}
+        Array<local_index_type> col_idxs{};
+        Array<local_index_type> row_ptrs{};
+        Array<value_type> values{};
     };
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
