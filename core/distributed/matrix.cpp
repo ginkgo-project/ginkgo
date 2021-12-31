@@ -65,7 +65,8 @@ Matrix<ValueType, LocalIndexType>::Matrix(
       one_scalar_{exec, dim<2>{1, 1}},
       diag_mtx_{LocalMtx::create(exec)},
       offdiag_mtx_{LocalMtx::create(exec)},
-      local_mtx_blocks_{}
+      local_mtx_blocks_{},
+      serialized_local_mtx_{std::make_shared<serialized_mtx>(exec)}
 {
     auto one_val = one<ValueType>();
     exec->copy_from(exec->get_master().get(), 1, &one_val,
@@ -169,6 +170,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
         gather_idxs_.set_executor(exec);
     }
     this->update_matrix_blocks();
+    this->serialize_matrix_blocks();
 }
 
 
@@ -330,8 +332,8 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
             local_sizes.emplace_back(gko::dim<2>(
                 part->get_part_size(comm->rank()), part->get_part_size(i)));
         }
-        GKO_ASSERT(b_local_mtx_blocks.size() == comm->size() - 1);
-        GKO_ASSERT(x_local_mtx_blocks.size() == comm->size() - 1);
+        GKO_ASSERT(b_local_mtx_blocks.size() == comm->size());
+        GKO_ASSERT(x_local_mtx_blocks.size() == comm->size());
         std::vector<size_type> block_nnz{};
         for (auto i = 0; i < comm->size(); ++i) {
             block_nnz.emplace_back(
@@ -352,7 +354,7 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         // TODO Not sure if this can be const LocalMtx, probably need a
         // const_cast for local_diag
         std::vector<std::shared_ptr<const LocalMtx>> b_recv{
-            comm->size() * comm->size(), nullptr};
+            static_cast<size_type>(comm->size() * comm->size()), nullptr};
         for (auto i = 0; i < comm->size(); ++i) {
             for (auto j = 0; j < comm->size(); ++j) {
                 if (i == comm->rank()) {
