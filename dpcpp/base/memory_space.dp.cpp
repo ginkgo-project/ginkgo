@@ -81,23 +81,29 @@ int DpcppMemorySpace::get_num_devices(std::string device_type)
 }
 
 
-void HostMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
-                                  size_type num_bytes, const void* src_ptr,
-                                  void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
+    const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    if (num_bytes > 0) {
-        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-    }
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        }
+    };
+    return std::async(std::launch::async, cpy_lambda);
 }
 
 
-void ReferenceMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
-                                       size_type num_bytes, const void* src_ptr,
-                                       void* dest_ptr) const
+std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
+    const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    if (num_bytes > 0) {
-        dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-    }
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        }
+    };
+    return std::async(std::launch::async, cpy_lambda);
 }
 
 
@@ -151,56 +157,68 @@ DpcppMemorySpace::DpcppMemorySpace(int device_id, std::string device_type)
 }
 
 
-void DpcppMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
-                                   size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const
+std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
+    const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    if (num_bytes > 0) {
-        // If the queue is different and is not cpu/host, the queue can not
-        // transfer the data to another queue (on the same device)
-        // Note. it could be changed when we ensure the behavior is expected.
-        auto queue = this->get_queue();
-        auto dest_queue = dest->get_queue();
-        auto device = queue->get_device();
-        auto dest_device = dest_queue->get_device();
-        if (((device.is_host() || device.is_cpu()) &&
-             (dest_device.is_host() || dest_device.is_cpu())) ||
-            (queue == dest_queue)) {
-            dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
-        } else {
-            // the memcpy only support host<->device or itself memcpy
-            GKO_NOT_SUPPORTED(dest);
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            // If the queue is different and is not cpu/host, the queue can not
+            // transfer the data to another queue (on the same device)
+            // Note. it could be changed when we ensure the behavior is
+            // expected.
+            auto queue = this->get_queue();
+            auto dest_queue = dest->get_queue();
+            auto device = queue->get_device();
+            auto dest_device = dest_queue->get_device();
+            if (((device.is_host() || device.is_cpu()) &&
+                 (dest_device.is_host() || dest_device.is_cpu())) ||
+                (queue == dest_queue)) {
+                dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+            } else {
+                // the memcpy only support host<->device or itself memcpy
+                GKO_NOT_SUPPORTED(dest);
+            }
         }
-    }
+    };
+    return std::async(std::launch::async, cpy_lambda);
 }
 
 
-void DpcppMemorySpace::raw_copy_to(const HostMemorySpace* dest,
-                                   size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const if (num_bytes > 0)
+std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
+    const HostMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        }
+    };
+    return std::async(std::launch::async, cpy_lambda);
 }
 
 
-void DpcppMemorySpace::raw_copy_to(const ReferenceMemorySpace* dest,
-                                   size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const if (num_bytes > 0)
+std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
+    const ReferenceMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            queue_->memcpy(dest_ptr, src_ptr, num_bytes).wait();
+        }
+    };
+    return std::async(std::launch::async, cpy_lambda);
 }
 
 
-void DpcppMemorySpace::raw_copy_to(const HipMemorySpace* dest,
-                                   size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const
-    GKO_NOT_SUPPORTED(this);
+std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
+    const HipMemorySpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
 
 
-void DpcppMemorySpace::raw_copy_to(const CudaUVMSpace* dest,
-                                   size_type num_bytes, const void* src_ptr,
-                                   void* dest_ptr) const
-    GKO_NOT_SUPPORTED(this);
+std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
+    const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
 
 
 bool DpcppMemorySpace::verify_memory_to(

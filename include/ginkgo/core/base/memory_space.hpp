@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/core/base/async_handle.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -144,36 +145,41 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const MemorySpace* src_mem_space, size_type num_elems,
-                   const T* src_ptr, T* dest_ptr) const
+    std::shared_ptr<AsyncHandle> copy_from(const MemorySpace* src_mem_space,
+                                           size_type num_elems,
+                                           const T* src_ptr, T* dest_ptr) const
     {
         this->template log<log::Logger::copy_started>(
             src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-        try {
-            this->raw_copy_from(src_mem_space, num_elems * sizeof(T), src_ptr,
-                                dest_ptr);
-        } catch (NotSupported&) {
-#if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
-            // Unoptimized copy. Try to go through the masters.
-            // output to log when verbose >= 1 and debug build
-            std::clog << "Not direct copy. Try to copy data from the masters."
-                      << std::endl;
-#endif
-            // TODO Find a nice way to fix this
-            // auto src_host = HostMemorySpace::create();
-            // if (num_elems > 0 &&
-            //     (dynamic_cast<HostMemorySpace>(src_mem_space) == nullptr)) {
-            //     auto* host_ptr = src_host->alloc<T>(num_elems);
-            //     src_host->copy_from<T>(src_mem_space, num_elems, src_ptr,
-            //                            host_ptr);
-            //     this->copy_from<T>(src_host, num_elems, host_ptr, dest_ptr);
-            //     src_host->free(host_ptr);
-            // }
-        }
-        this->template log<log::Logger::copy_completed>(
-            src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+        // try {
+        return this->raw_copy_from(src_mem_space, num_elems * sizeof(T),
+                                   src_ptr, dest_ptr);
+        // TODO Find a nice way to fix this
+        //         } catch (NotSupported&) {
+        // #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
+        //             // Unoptimized copy. Try to go through the masters.
+        //             // output to log when verbose >= 1 and debug build
+        //             std::clog << "Not direct copy. Try to copy data from the
+        //             masters."
+        //                       << std::endl;
+        // #endif
+        //             auto src_host = HostMemorySpace::create();
+        //             if (num_elems > 0 &&
+        //                 (dynamic_cast<HostMemorySpace>(src_mem_space) ==
+        //                 nullptr)) { auto* host_ptr =
+        //                 src_host->alloc<T>(num_elems);
+        //                 src_host->copy_from<T>(src_mem_space, num_elems,
+        //                 src_ptr,
+        //                                        host_ptr);
+        //                 this->copy_from<T>(src_host, num_elems, host_ptr,
+        //                 dest_ptr); src_host->free(host_ptr);
+        //             }
+        //         }
+        // TODO Find a nice way to fix this
+        // this->template log<log::Logger::copy_completed>(
+        //     src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
+        //     reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
     }
 
     /**
@@ -193,6 +199,16 @@ public:
      * Synchronize the operations launched on the mem_space with its master.
      */
     virtual void synchronize() const = 0;
+
+    std::shared_ptr<AsyncHandle> get_default_input_stream() const
+    {
+        return this->default_input_stream_;
+    }
+
+    std::shared_ptr<AsyncHandle> get_default_output_stream() const
+    {
+        return this->default_output_stream_;
+    }
 
 protected:
     /**
@@ -225,9 +241,9 @@ protected:
      * @param dest_ptr  pointer to an allocated block of memory where the data
      *                  will be copied to
      */
-    virtual void raw_copy_from(const MemorySpace* src_mem_space,
-                               size_type n_bytes, const void* src_ptr,
-                               void* dest_ptr) const = 0;
+    virtual std::shared_ptr<AsyncHandle> raw_copy_from(
+        const MemorySpace* src_mem_space, size_type n_bytes,
+        const void* src_ptr, void* dest_ptr) const = 0;
 
 /**
  * @internal
@@ -238,10 +254,10 @@ protected:
  *
  * @param _mem_space_type  the MemorySpace subclass
  */
-#define GKO_ENABLE_RAW_COPY_TO(_mem_space_type, ...)                 \
-    virtual void raw_copy_to(const _mem_space_type* dest_mem_space,  \
-                             size_type n_bytes, const void* src_ptr, \
-                             void* dest_ptr) const = 0
+#define GKO_ENABLE_RAW_COPY_TO(_mem_space_type, ...)              \
+    virtual std::shared_ptr<AsyncHandle> raw_copy_to(             \
+        const _mem_space_type* dest_mem_space, size_type n_bytes, \
+        const void* src_ptr, void* dest_ptr) const = 0
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_ENABLE_RAW_COPY_TO);
 
@@ -274,6 +290,9 @@ protected:
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_ENABLE_VERIFY_MEMORY_TO);
 
 #undef GKO_ENABLE_VERIFY_MEMORY_TO
+
+    std::shared_ptr<AsyncHandle> default_input_stream_;
+    std::shared_ptr<AsyncHandle> default_output_stream_;
 };
 
 
@@ -315,6 +334,7 @@ private:
     std::shared_ptr<const MemorySpace> mem_space_;
 };
 
+
 // a specialization for arrays
 template <typename T>
 class memory_space_deleter<T[]> {
@@ -345,10 +365,12 @@ class MemorySpaceBase : public MemorySpace {
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_DECLARE_MEMSPACE_FRIEND);
 
 public:
-    void raw_copy_from(const MemorySpace* src_mem_space, size_type n_bytes,
-                       const void* src_ptr, void* dest_ptr) const override
+    std::shared_ptr<AsyncHandle> raw_copy_from(const MemorySpace* src_mem_space,
+                                               size_type n_bytes,
+                                               const void* src_ptr,
+                                               void* dest_ptr) const override
     {
-        src_mem_space->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
+        return src_mem_space->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
 private:
@@ -369,10 +391,10 @@ private:
 }  // namespace detail
 
 
-#define GKO_OVERRIDE_RAW_COPY_TO(_memory_space_type, ...)                    \
-    void raw_copy_to(const _memory_space_type* dest_mem_space,               \
-                     size_type n_bytes, const void* src_ptr, void* dest_ptr) \
-        const override
+#define GKO_OVERRIDE_RAW_COPY_TO(_memory_space_type, ...)            \
+    std::shared_ptr<AsyncHandle> raw_copy_to(                        \
+        const _memory_space_type* dest_mem_space, size_type n_bytes, \
+        const void* src_ptr, void* dest_ptr) const override
 
 
 #define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \
@@ -400,7 +422,11 @@ public:
     void synchronize() const override;
 
 protected:
-    HostMemorySpace() = default;
+    HostMemorySpace()
+    {
+        this->default_input_stream_ = {};
+        this->default_output_stream_ = {};
+    }
 
     void* raw_alloc(size_type size) const override;
 
@@ -444,7 +470,11 @@ public:
     void synchronize() const override;
 
 protected:
-    ReferenceMemorySpace() = default;
+    ReferenceMemorySpace()
+    {
+        this->default_input_stream_ = {};
+        this->default_output_stream_ = {};
+    }
 
     void* raw_alloc(size_type size) const override;
 
@@ -498,12 +528,13 @@ public:
     void synchronize() const override;
 
 protected:
-    CudaMemorySpace() = default;
-
-    CudaMemorySpace(int device_id) : device_id_(device_id)
+    CudaMemorySpace()
     {
-        assert(device_id < max_devices);
+        this->default_input_stream_ = {};
+        this->default_output_stream_ = {};
     }
+
+    CudaMemorySpace(int device_id);
 
     void* raw_alloc(size_type size) const override;
 
@@ -561,12 +592,13 @@ public:
     void synchronize() const override;
 
 protected:
-    CudaUVMSpace() = default;
-
-    CudaUVMSpace(int device_id) : device_id_(device_id)
+    CudaUVMSpace()
     {
-        assert(device_id < max_devices);
+        this->default_input_stream_ = {};
+        this->default_output_stream_ = {};
     }
+
+    CudaUVMSpace(int device_id);
 
     void* raw_alloc(size_type size) const override;
 
@@ -624,12 +656,13 @@ public:
     void synchronize() const override;
 
 protected:
-    HipMemorySpace() = default;
-
-    HipMemorySpace(int device_id) : device_id_(device_id)
+    HipMemorySpace()
     {
-        assert(device_id < max_devices);
+        this->default_input_stream_ = {};
+        this->default_output_stream_ = {};
     }
+
+    HipMemorySpace(int device_id);
 
     void* raw_alloc(size_type size) const override;
 

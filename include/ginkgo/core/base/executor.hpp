@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/async_handle.hpp>
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -635,11 +637,12 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy_from(const Executor* exec, size_type num_elems, const T* src_ptr,
-                   T* dest_ptr) const
+    std::shared_ptr<AsyncHandle> copy_from(const Executor* exec,
+                                           size_type num_elems,
+                                           const T* src_ptr, T* dest_ptr) const
     {
-        this->get_mem_space()->copy_from(exec->get_mem_space().get(), num_elems,
-                                         src_ptr, dest_ptr);
+        return this->get_mem_space()->copy_from(exec->get_mem_space().get(),
+                                                num_elems, src_ptr, dest_ptr);
     }
 
     /**
@@ -654,10 +657,11 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    void copy(size_type num_elems, const T* src_ptr, T* dest_ptr) const
+    std::shared_ptr<AsyncHandle> copy(size_type num_elems, const T* src_ptr,
+                                      T* dest_ptr) const
     {
-        this->get_mem_space()->copy_from(this->get_mem_space().get(), num_elems,
-                                         src_ptr, dest_ptr);
+        return this->get_mem_space()->copy_from(this->get_mem_space().get(),
+                                                num_elems, src_ptr, dest_ptr);
     }
 
     /**
@@ -674,8 +678,10 @@ public:
     T copy_val_to_host(const T* ptr) const
     {
         T out{};
-        this->get_master()->get_mem_space()->copy_from(
-            this->get_mem_space().get(), 1, ptr, &out);
+        this->get_master()
+            ->get_mem_space()
+            ->copy_from(this->get_mem_space().get(), 1, ptr, &out)
+            ->wait();
         return out;
     }
 
@@ -928,6 +934,7 @@ public:
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
     }
+
 
 private:
     ConcreteExecutor* self() noexcept

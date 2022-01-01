@@ -87,6 +87,7 @@ TEST(ReferenceMemorySpace, CopiesData)
 
     // user code is run on the HOST, so local variables are in HOST memory
     host->copy_from(host.get(), num_elems, orig, copy);
+
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 

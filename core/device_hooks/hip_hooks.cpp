@@ -61,6 +61,9 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
+HipMemorySpace::HipMemorySpace(int device_id) : device_id_(device_id) {}
+
+
 void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
@@ -75,14 +78,15 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
         device_id, memory_space, std::move(master), device_reset));
 }
 
-void HostMemorySpace::raw_copy_to(const HipMemorySpace*, size_type num_bytes,
-                                  const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(const HipMemorySpace*,
+                                                          size_type num_bytes,
+                                                          const void* src_ptr,
+                                                          void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
-void ReferenceMemorySpace::raw_copy_to(const HipMemorySpace*,
-                                       size_type num_bytes, const void* src_ptr,
-                                       void* dest_ptr) const
-    GKO_NOT_COMPILED(hip);
+std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
+    const HipMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const GKO_NOT_COMPILED(hip);
 
 
 void HipMemorySpace::raw_free(void* ptr) const noexcept
@@ -97,33 +101,41 @@ void* HipMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
-                                 const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const HostMemorySpace*,
+                                                         size_type num_bytes,
+                                                         const void* src_ptr,
+                                                         void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
-                                 size_type num_bytes, const void* src_ptr,
-                                 void* dest_ptr) const GKO_NOT_COMPILED(hip);
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const CudaMemorySpace*, size_type num_bytes,
-                                 const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const CudaMemorySpace*,
+                                                         size_type num_bytes,
+                                                         const void* src_ptr,
+                                                         void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const CudaUVMSpace*, size_type num_bytes,
-                                 const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const CudaUVMSpace*,
+                                                         size_type num_bytes,
+                                                         const void* src_ptr,
+                                                         void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const DpcppMemorySpace*, size_type num_bytes,
-                                 const void* src_ptr, void* dest_ptr) const
-    GKO_NOT_COMPILED(hip);
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const DpcppMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const GKO_NOT_COMPILED(hip);
 
 
-void HipMemorySpace::raw_copy_to(const HipMemorySpace*, size_type num_bytes,
-                                 const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const HipMemorySpace*,
+                                                         size_type num_bytes,
+                                                         const void* src_ptr,
+                                                         void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 

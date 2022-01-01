@@ -59,26 +59,45 @@ void* HostMemorySpace::raw_alloc(size_type num_bytes) const
 }
 
 
-void HostMemorySpace::raw_copy_to(const HostMemorySpace*, size_type num_bytes,
-                                  const void* src_ptr, void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
+    const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    std::memcpy(dest_ptr, src_ptr, num_bytes);
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            std::memcpy(dest_ptr, src_ptr, num_bytes);
+        }
+    };
+    return HostAsyncHandle<void>::create(
+        std::async(std::launch::async, cpy_lambda));
 }
 
 
-void HostMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
-                                  size_type num_bytes, const void* src_ptr,
-                                  void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
+    const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    std::memcpy(dest_ptr, src_ptr, num_bytes);
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            std::memcpy(dest_ptr, src_ptr, num_bytes);
+        }
+    };
+    return HostAsyncHandle<void>::create(
+        std::async(std::launch::async, cpy_lambda));
 }
 
 
-void ReferenceMemorySpace::raw_copy_to(const HostMemorySpace*,
-                                       size_type num_bytes, const void* src_ptr,
-                                       void* dest_ptr) const
+std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
+    const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    std::memcpy(dest_ptr, src_ptr, num_bytes);
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            std::memcpy(dest_ptr, src_ptr, num_bytes);
+        }
+    };
+    return HostAsyncHandle<void>::create(
+        std::async(std::launch::async, cpy_lambda));
 }
 
 
@@ -100,11 +119,17 @@ void* ReferenceMemorySpace::raw_alloc(size_type num_bytes) const
 }
 
 
-void ReferenceMemorySpace::raw_copy_to(const ReferenceMemorySpace*,
-                                       size_type num_bytes, const void* src_ptr,
-                                       void* dest_ptr) const
+std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
+    const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr) const
 {
-    std::memcpy(dest_ptr, src_ptr, num_bytes);
+    auto cpy_lambda = [=]() {
+        if (num_bytes > 0) {
+            std::memcpy(dest_ptr, src_ptr, num_bytes);
+        }
+    };
+    return HostAsyncHandle<void>::create(
+        std::async(std::launch::async, cpy_lambda));
 }
 
 

@@ -154,6 +154,7 @@ if (NOT GINKGO_HIP_THRUST_PATH)
 endif()
 
 set(GINKGO_HIP_SOURCES
+    base/async_handle.hip.cpp
     base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp

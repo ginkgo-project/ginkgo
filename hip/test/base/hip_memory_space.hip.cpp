@@ -145,25 +145,39 @@ TEST_F(HipMemorySpace, CopiesDataFromHip)
 }
 
 
+__global__ void check_data2(const int* data)
+{
+    if (data[0] != 3 || data[1] != 8) {
+#if GINKGO_HIP_PLATFORM_HCC
+        asm("s_trap 0x02;");
+#else  // GINKGO_HIP_PLATFORM_NVCC
+        asm("trap;");
+#endif
+    }
+}
+
+
 TEST_F(HipMemorySpace, CopiesDataFromHipToHip)
 {
-    int copy[2];
+    int copy[2] = {1000, 2000};
     auto orig = hip->alloc<int>(2);
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
-    hip2->copy_from(hip.get(), 2, orig, copy_hip2);
+    hip2->copy_from(hip.get(), 2, orig, copy_hip2)->wait();
 
     // Check that the data is really on GPU2 and ensure we did not cheat
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    hipLaunchKernelGGL((check_data), dim3(1), dim3(1), 0, 0, copy_hip2);
-    GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
+    auto hand = as<gko::HipAsyncHandle>(hip2->get_default_input_stream());
+    hipLaunchKernelGGL((check_data2), dim3(1), dim3(1), 0, hand->get_handle(),
+                       copy_hip2);
+    hand->wait();
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(hip2.get(), 2, copy_hip2, copy);
+    omp->copy_from(hip2.get(), 2, copy_hip2, copy)->wait();
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    hip->free(copy_hip2);
+    hip2->free(copy_hip2);
     hip->free(orig);
 }
 

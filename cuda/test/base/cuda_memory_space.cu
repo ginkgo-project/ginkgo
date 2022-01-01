@@ -115,7 +115,8 @@ TEST_F(CudaMemorySpace, CopiesDataToCuda)
     int orig[] = {3, 8};
     auto* copy = cuda->alloc<int>(2);
 
-    cuda->copy_from(omp.get(), 2, orig, copy);
+    auto hand = cuda->copy_from(omp.get(), 2, orig, copy);
+    hand->wait();
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
@@ -135,7 +136,8 @@ TEST_F(CudaMemorySpace, CopiesDataFromCuda)
     auto orig = cuda->alloc<int>(2);
     init_data<<<1, 1>>>(orig);
 
-    omp->copy_from(cuda.get(), 2, orig, copy);
+    auto hand = omp->copy_from(cuda.get(), 2, orig, copy);
+    hand->wait();
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -199,7 +201,7 @@ TEST_F(CudaUVMSpace, UVMAllocatesAndFreesMemory)
 // TEST_F(CudaUVMSpace, UVMFailsWhenOverallocating)
 // {
 //     const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-//     int *ptr = nullptr;
+//     int* ptr = nullptr;
 
 //     ASSERT_THROW(
 //         {
