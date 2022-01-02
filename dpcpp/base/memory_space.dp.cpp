@@ -51,7 +51,7 @@ namespace gko {
 namespace detail {
 
 
-const std::vector<sycl::device> get_devices(std::string device_type)
+static const std::vector<sycl::device> get_devices(std::string device_type)
 {
     std::map<std::string, sycl::info::device_type> device_type_map{
         {"accelerator", sycl::info::device_type::accelerator},
@@ -98,6 +98,12 @@ void ReferenceMemorySpace::raw_copy_to(const DpcppMemorySpace* dest,
     if (num_bytes > 0) {
         dest->get_queue()->memcpy(dest_ptr, src_ptr, num_bytes).wait();
     }
+}
+
+
+void DpcppMemorySpace::synchronize() const
+{
+    this->get_queue()->wait_and_throw();
 }
 
 
@@ -206,6 +212,20 @@ void DpcppMemorySpace::raw_copy_to(const CudaUVMSpace* dest,
                                    size_type num_bytes, const void* src_ptr,
                                    void* dest_ptr) const
     GKO_NOT_SUPPORTED(this);
+
+
+void DpcppMemorySpace::raw_copy_to(const CudaMemorySpace* dest,
+                                   size_type num_bytes, const void* src_ptr,
+                                   void* dest_ptr) const
+    GKO_NOT_SUPPORTED(this);
+
+
+bool DpcppMemorySpace::verify_memory_to(
+    const ReferenceMemorySpace* dest_mem_space) const
+{
+    auto device = this->get_queue()->get_device();
+    return device.is_host() || device.is_cpu();
+}
 
 
 bool DpcppMemorySpace::verify_memory_to(

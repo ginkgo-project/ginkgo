@@ -163,6 +163,16 @@ bool DpcppMemorySpace::verify_memory_to(
            this->get_device_type() == "host";
 }
 
+
+bool DpcppMemorySpace::verify_memory_to(
+    const ReferenceMemorySpace* dest_mem_space) const
+{
+    // Dummy check
+    return this->get_device_type() == "cpu" ||
+           this->get_device_type() == "host";
+}
+
+
 bool DpcppMemorySpace::verify_memory_to(
     const DpcppMemorySpace* dest_mem_space) const
 {

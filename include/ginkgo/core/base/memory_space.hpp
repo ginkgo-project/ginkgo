@@ -717,13 +717,14 @@ protected:
         return src_mem_space->verify_memory_to(this);
     }
 
-    GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(ReferenceMemorySpace, false);
-
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaMemorySpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaUVMSpace, false);
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(HipMemorySpace, false);
+
+    bool verify_memory_to(
+        const ReferenceMemorySpace* dest_mem_space) const override;
 
     bool verify_memory_to(const HostMemorySpace* dest_mem_space) const override;
 

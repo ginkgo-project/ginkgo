@@ -51,7 +51,7 @@ namespace gko {
 namespace detail {
 
 
-const std::vector<sycl::device> get_devices(std::string device_type)
+static const std::vector<sycl::device> get_devices(std::string device_type)
 {
     std::map<std::string, sycl::info::device_type> device_type_map{
         {"accelerator", sycl::info::device_type::accelerator},
@@ -73,6 +73,15 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 {
     return std::shared_ptr<DpcppExecutor>(
         new DpcppExecutor(device_id, std::move(master), device_type));
+}
+
+
+std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master, std::string device_type)
+{
+    return std::shared_ptr<DpcppExecutor>(new DpcppExecutor(
+        device_id, std::move(mem_space), std::move(master), device_type));
 }
 
 
