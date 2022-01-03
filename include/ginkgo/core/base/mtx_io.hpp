@@ -119,6 +119,70 @@ inline std::unique_ptr<MatrixType> read(StreamType&& is, MatrixArgs&&... args)
 }
 
 
+namespace matrix {
+
+
+template <typename ValueType>
+class Dense;
+
+
+class Fft;
+
+
+class Fft2;
+
+
+class Fft3;
+
+
+}  // namespace matrix
+
+
+namespace detail {
+
+
+/**
+ * @internal
+ *
+ * Type traits to decide for a default gko::write output layout.
+ * It defaults to (sparse) coordinate storage, and has specializations
+ * for dense matrix types.
+ *
+ * @tparam MatrixType  the non cv-qualified matrix type.
+ */
+template <typename MatrixType>
+struct mtx_io_traits {
+    static constexpr auto default_layout = layout_type::coordinate;
+};
+
+
+template <typename ValueType>
+struct mtx_io_traits<gko::matrix::Dense<ValueType>> {
+    static constexpr auto default_layout = layout_type::array;
+};
+
+
+template <>
+struct mtx_io_traits<gko::matrix::Fft> {
+    static constexpr auto default_layout = layout_type::array;
+};
+
+
+template <>
+struct mtx_io_traits<gko::matrix::Fft2> {
+    static constexpr auto default_layout = layout_type::array;
+};
+
+
+template <>
+struct mtx_io_traits<gko::matrix::Fft3> {
+    static constexpr auto default_layout = layout_type::array;
+};
+
+
+}  // namespace detail
+
+
 /**
  * Reads a matrix stored in matrix market format from an input stream.
  *
@@ -131,8 +195,10 @@ inline std::unique_ptr<MatrixType> read(StreamType&& is, MatrixArgs&&... args)
  * @param layout  the layout used in the output
  */
 template <typename MatrixType, typename StreamType>
-inline void write(StreamType&& os, MatrixType* matrix,
-                  layout_type layout = layout_type::array)
+inline void write(
+    StreamType&& os, MatrixType* matrix,
+    layout_type layout =
+        detail::mtx_io_traits<std::remove_const_t<MatrixType>>::default_layout)
 {
     matrix_data<typename MatrixType::value_type,
                 typename MatrixType::index_type>
