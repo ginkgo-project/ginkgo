@@ -169,14 +169,12 @@ inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
     if (size1.stores_equal_sizes() && size2.stores_equal_sizes()) {
         if (size1.at(0)[1] != size2.at(0)[0]) {
             return std::tuple<bool, int>{false, 0};
-        } else {
-            return std::tuple<bool, int>{true, 0};
         }
-    }
-
-    for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
-        if (size1.at(i)[1] != size2.at(i)[0]) {
-            return std::tuple<bool, int>{false, i};
+    } else {
+        for (auto i = 0; i < size1.get_num_batch_entries(); ++i) {
+            if (size1.at(i)[1] != size2.at(i)[0]) {
+                return std::tuple<bool, int>{false, i};
+            }
         }
     }
     return std::tuple<bool, int>{true, 0};
