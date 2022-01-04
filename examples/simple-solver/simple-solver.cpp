@@ -214,7 +214,8 @@ int main(int argc, char* argv[])
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(
-            exec, gko::log::Logger::criterion_check_completed_mask);
+            exec, exec->get_mem_space(),
+            gko::log::Logger::criterion_check_completed_mask);
     combined_stop->add_logger(logger);
 
     exec->synchronize();

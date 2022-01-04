@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // Some shortcuts
     using ValueType = double;
@@ -132,7 +132,8 @@ int main(int argc, char *argv[])
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(
-            exec, gko::log::Logger::criterion_check_completed_mask);
+            exec, exec->get_mem_space(),
+            gko::log::Logger::criterion_check_completed_mask);
     combined_stop->add_logger(logger);
     b->copy_from(host_x.get());
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
