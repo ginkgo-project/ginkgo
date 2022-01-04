@@ -694,8 +694,6 @@ public:
          * BatchLinOp so that the following dynamic_cast is not needed.
          */
         if (auto blp = dynamic_cast<BatchLinOp*>(this)) {
-            // GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(blp, left_scale,
-            // right_scale);
             GKO_ASSERT_BATCH_CONFORMANT(left_scale, blp);
             GKO_ASSERT_BATCH_REVERSE_CONFORMANT(right_scale, blp);
         } else {
