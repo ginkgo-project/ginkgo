@@ -51,9 +51,9 @@ GKO_REGISTER_OPERATION(map_to_global_idxs,
 
 template <typename ValueType, typename LocalIndexType>
 Matrix<ValueType, LocalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const Executor> exec, const gko::dim<2>& size,
     std::shared_ptr<mpi::communicator> comm)
-    : EnableLinOp<Matrix<value_type, local_index_type>>{exec},
+    : EnableLinOp<Matrix<value_type, local_index_type>>{exec, size},
       DistributedBase{comm},
       send_offsets_(comm->size() + 1),
       send_sizes_(comm->size()),
@@ -72,6 +72,37 @@ Matrix<ValueType, LocalIndexType>::Matrix(
     exec->copy_from(exec->get_master().get(), 1, &one_val,
                     one_scalar_.get_values());
 }
+
+
+template <typename ValueType, typename LocalIndexType>
+Matrix<ValueType, LocalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, const gko::dim<2>& size,
+    std::shared_ptr<const Partition<LocalIndexType>> partition,
+    std::shared_ptr<mpi::communicator> comm)
+    : EnableLinOp<Matrix<value_type, local_index_type>>{exec, size},
+      DistributedBase{comm},
+      partition_{partition},
+      send_offsets_(comm->size() + 1),
+      send_sizes_(comm->size()),
+      recv_offsets_(comm->size() + 1),
+      recv_sizes_(comm->size()),
+      gather_idxs_{exec},
+      local_to_global_row{exec},
+      local_to_global_offdiag_col{exec},
+      one_scalar_{exec, dim<2>{1, 1}},
+      diag_mtx_{LocalMtx::create(
+          exec, gko::dim<2>(partition->get_part_size(comm->rank())))},
+      offdiag_mtx_{LocalMtx::create(
+          exec, gko::dim<2>(partition->get_part_size(comm->rank()),
+                            size[1] - partition->get_part_size(comm->rank())))},
+      local_mtx_blocks_{},
+      serialized_local_mtx_{std::make_shared<serialized_mtx>(exec)}
+{
+    auto one_val = one<ValueType>();
+    exec->copy_from(exec->get_master().get(), 1, &one_val,
+                    one_scalar_.get_values());
+}
+
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::copy_communication_data(
@@ -249,6 +280,36 @@ void Matrix<ValueType, LocalIndexType>::serialize_matrix_blocks()
 
 
 template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::de_serialize_matrix_blocks(
+    serialized_mtx& ser_mtx,
+    std::vector<std::shared_ptr<LocalMtx>>& mat_blocks) const
+{
+    const auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    const auto part = this->get_partition();
+    auto num_parts = static_cast<size_type>(part->get_num_parts());
+    auto global_size = part->get_size();
+    auto local_rank = comm->rank();
+    auto row_offset = 0;
+    auto nnz_offset = 0;
+    for (auto i = 0; i < mat_blocks.size(); ++i) {
+        auto local_nnz_count = mat_blocks[i]->get_num_stored_elements();
+        auto local_size = mat_blocks[i]->get_size();
+        exec->copy(
+            local_nnz_count, mat_blocks[i]->get_const_col_idxs(),
+            this->serialized_local_mtx_->col_idxs.get_data() + nnz_offset);
+        exec->copy(local_nnz_count, mat_blocks[i]->get_const_values(),
+                   this->serialized_local_mtx_->values.get_data() + nnz_offset);
+        exec->copy(
+            local_size[0] + 1, mat_blocks[i]->get_const_row_ptrs(),
+            this->serialized_local_mtx_->row_ptrs.get_data() + row_offset);
+        row_offset += local_size[0] + 1;
+        nnz_offset += local_nnz_count;
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 std::vector<
     std::shared_ptr<typename Matrix<ValueType, LocalIndexType>::LocalMtx>>
 Matrix<ValueType, LocalIndexType>::get_block_approx(
@@ -355,7 +416,9 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         // Allocate/assign the sub matrices for the B matrix, which we receive.
         // TODO Not sure if this can be const LocalMtx, probably need a
         // const_cast for local_diag
-        std::vector<std::shared_ptr<const LocalMtx>> b_recv{
+        // FIX: Due to serialization simplifications, this is now a non-const
+        // object.
+        std::vector<std::shared_ptr<LocalMtx>> b_recv{
             static_cast<size_type>(comm->size() * comm->size()), nullptr};
         std::vector<size_type> b_cumul_col_nnz(comm->size(), 0);
         // Allocate the block b matrix.
@@ -373,14 +436,12 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         }
         // The received data is also serialized, so allocate buffers to receive
         // in which we later will need to de-serialize.
-        serialized_mtx serialized_b_mtx{exec};
         auto total_b_nnz_count = std::accumulate(
             b_block_nnz.data(), b_block_nnz.data() + num_blocks, size_type{0});
-        serialized_b_mtx.col_idxs =
-            Array<local_index_type>(exec, total_b_nnz_count);
-        serialized_b_mtx.values = Array<value_type>(exec, total_b_nnz_count);
-        serialized_b_mtx.row_ptrs = Array<local_index_type>(
-            exec, comm->size() * (this->get_size()[0] + comm->size()));
+        serialized_mtx serialized_b_mtx{
+            exec, total_b_nnz_count,
+            static_cast<size_type>(comm->size() *
+                                   (this->get_size()[0] + comm->size()))};
         // TODO: Compute a prefix sum buffer later to make this loop parallel.
         auto row_offset = 0;
         auto nnz_offset = 0;
@@ -413,6 +474,7 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
             ser_recv_nnz_offset += b_cumul_col_nnz[i];
             ser_recv_col_offset += this->get_size()[0] + comm->size();
         }
+        de_serialize_matrix_blocks(serialized_b_mtx, b_recv);
     } else {
         auto dense_b = as<GlobalVec>(b);
         auto dense_x = as<GlobalVec>(x);
