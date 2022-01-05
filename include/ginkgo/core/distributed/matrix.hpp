@@ -84,9 +84,19 @@ public:
         serialized_mtx(std::shared_ptr<const Executor> exec)
             : col_idxs{exec}, row_ptrs{exec}, values{exec}
         {}
-        Array<local_index_type> col_idxs{};
-        Array<local_index_type> row_ptrs{};
-        Array<value_type> values{};
+        serialized_mtx(std::shared_ptr<const Executor> exec,
+                       size_type total_nnz, size_type total_rptr_size)
+            : total_nnz_count(total_nnz),
+              total_row_ptrs_size(total_rptr_size),
+              col_idxs{exec, total_nnz_count},
+              row_ptrs{exec, total_row_ptrs_size},
+              values{exec, total_nnz_count}
+        {}
+        Array<local_index_type> col_idxs;
+        Array<local_index_type> row_ptrs;
+        Array<value_type> values;
+        size_type total_nnz_count;
+        size_type total_row_ptrs_size;
     };
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
@@ -163,7 +173,8 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override
     {
         auto exec = this->get_executor();
-        auto abs_mtx = absolute_type::create(exec, this->get_communicator());
+        auto abs_mtx = absolute_type::create(exec, this->get_size(),
+                                             this->get_communicator());
         abs_mtx->set_send_offsets(this->send_offsets_);
         abs_mtx->set_send_sizes(this->send_sizes_);
         abs_mtx->set_recv_offsets(this->recv_offsets_);
@@ -222,7 +233,12 @@ public:
         const Array<size_type>& block_sizes) const;
 
 protected:
-    Matrix(std::shared_ptr<const Executor> exec,
+    Matrix(std::shared_ptr<const Executor> exec, const gko::dim<2>& size = {},
+           std::shared_ptr<mpi::communicator> comm =
+               std::make_shared<mpi::communicator>(MPI_COMM_WORLD));
+
+    Matrix(std::shared_ptr<const Executor> exec, const gko::dim<2>& size,
+           std::shared_ptr<const Partition<LocalIndexType>> partition,
            std::shared_ptr<mpi::communicator> comm =
                std::make_shared<mpi::communicator>(MPI_COMM_WORLD));
 
@@ -232,6 +248,10 @@ protected:
     void update_matrix_blocks();
 
     void serialize_matrix_blocks();
+
+    void de_serialize_matrix_blocks(
+        serialized_mtx& ser_mtx,
+        std::vector<std::shared_ptr<LocalMtx>>& output_mtxs) const;
 
     mpi::request communicate(const LocalVec* local_b) const;
 
