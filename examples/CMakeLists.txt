@@ -42,7 +42,7 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-spmv distributed-solver distributed-ras-ir)
+    list(APPEND EXAMPLES_LIST distributed-spmv distributed-spgemm distributed-solver distributed-ras-ir)
 endif()
 
 find_package(OpenCV QUIET)

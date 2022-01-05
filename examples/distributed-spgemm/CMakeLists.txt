@@ -1,0 +1,6 @@
+add_executable(distributed-spgemm distributed-spgemm.cpp)
+target_link_libraries(distributed-spgemm Ginkgo::ginkgo)
+configure_file(data/A.mtx data/A.mtx COPYONLY)
+configure_file(data/B_mat.mtx data/B_mat.mtx COPYONLY)
+configure_file(data/b.mtx data/b.mtx COPYONLY)
+configure_file(data/x.mtx data/x.mtx COPYONLY)
