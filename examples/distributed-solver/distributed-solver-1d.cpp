@@ -142,13 +142,14 @@ int main(int argc, char* argv[])
 
     ValueType t_init_end = MPI_Wtime();
 
-    auto A_host = gko::share(dist_mtx::create(exec->get_master(), comm));
+    auto A_host =
+        gko::share(dist_mtx::create(exec->get_master(), A_data.size, comm));
     auto x_host = dist_vec::create(exec->get_master(), comm);
     auto b_host = dist_vec::create(exec->get_master(), comm);
     A_host->read_distributed(A_data, partition);
     b_host->read_distributed(b_data, partition);
     x_host->read_distributed(x_data, partition);
-    auto A = gko::share(dist_mtx::create(exec, comm));
+    auto A = gko::share(dist_mtx::create(exec, A_data.size, comm));
     auto x = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
     A->copy_from(A_host.get());

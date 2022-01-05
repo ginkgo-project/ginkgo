@@ -68,16 +68,6 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    // @sect3{Where do you want to run your solver ?}
-    // The gko::Executor class is one of the cornerstones of Ginkgo. Currently,
-    // we have support for
-    // an gko::OmpExecutor, which uses OpenMP multi-threading in most of its
-    // kernels, a gko::ReferenceExecutor, a single threaded specialization of
-    // the OpenMP executor and a gko::CudaExecutor which runs the code on a
-    // NVIDIA GPU if available.
-    // @note With the help of C++, you see that you only ever need to change the
-    // executor and all the other functions/ routines within Ginkgo should
-    // automatically work and run on the executor with any other changes.
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -103,12 +93,10 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const auto comm = std::make_shared<gko::mpi::communicator>(MPI_COMM_WORLD);
 
-    std::ifstream a_stream{"data/A.mtx"};
-    std::ifstream x_stream{"data/x.mtx"};
-    std::ifstream b_stream{"data/b.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
-    auto x_data = gko::read_raw<ValueType, GlobalIndexType>(x_stream);
-    auto b_data = gko::read_raw<ValueType, GlobalIndexType>(b_stream);
+    std::ifstream A_stream{"data/A.mtx"};
+    std::ifstream B_stream{"data/B_mat.mtx"};
+    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(A_stream);
+    auto B_data = gko::read_raw<ValueType, GlobalIndexType>(B_stream);
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
@@ -120,17 +108,24 @@ int main(int argc, char* argv[])
     ranges_array.get_data()[comm->size()] = A_data.size[0];
     auto partition =
         gko::share(part_type::build_from_contiguous(exec, ranges_array));
-
     auto A = dist_mtx::create(exec, A_data.size, comm);
-    auto x = dist_vec::create(exec, comm);
-    auto b = dist_vec::create(exec, comm);
+    auto B = dist_mtx::create(exec, B_data.size, comm);
+    auto X = dist_mtx::create(exec, gko::dim<2>(A_data.size[0], B_data.size[1]),
+                              partition, comm);
+    auto x =
+        dist_vec::create(exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+                         gko::dim<2>(partition->get_part_size(comm->rank())));
+    auto b =
+        dist_vec::create(exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+                         gko::dim<2>(partition->get_part_size(comm->rank())));
     A->read_distributed(A_data, partition);
-    x->read_distributed(x_data, partition);
-    b->read_distributed(b_data, partition);
+    B->read_distributed(B_data, partition);
+
+    A->apply(lend(B), lend(X));
 
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A->apply(lend(one), lend(x), lend(minus_one), lend(b));
+    B->apply(lend(one), lend(x), lend(minus_one), lend(b));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
     b->compute_norm2(lend(result));
     std::cout << *result->get_values() << std::endl;
