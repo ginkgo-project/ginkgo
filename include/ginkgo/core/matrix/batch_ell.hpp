@@ -75,8 +75,7 @@ class BatchEll
       public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public BatchTransposable,
-      public EnableBatchScaling {
+      public BatchTransposable {
     friend class EnableCreateMethod<BatchEll>;
     friend class EnablePolymorphicObject<BatchEll, BatchLinOp>;
     friend class BatchEll<to_complex<ValueType>, IndexType>;
@@ -475,9 +474,6 @@ private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
-
-    void batch_scale_impl(const BatchLinOp* left_scale,
-                          const BatchLinOp* right_scale) override;
 
     size_type linearize_index(size_type batch_id, size_type row,
                               size_type col) const noexcept
