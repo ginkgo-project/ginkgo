@@ -418,17 +418,17 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
-                      destination_rank, send_tag, get(), req.get()));
+                      destination_rank, send_tag, this->get(), req.get()));
         return req;
     }
 
     /**
      * Receive data from source rank.
      *
-     * @param recv_buffer  the buffer to send
-     * @param recv_count  the number of elements to send
-     * @param source_rank  the rank to send the data to
-     * @param recv_tag  the tag for the send call
+     * @param recv_buffer  the buffer to receive
+     * @param recv_count  the number of elements to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
      *
      * @return  the status of completion of this call
      */
@@ -439,7 +439,7 @@ public:
         status st;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                     source_rank, recv_tag, get(), st.get()));
+                     source_rank, recv_tag, this->get(), st.get()));
         return st;
     }
 
@@ -447,12 +447,11 @@ public:
      * Receive (Non-blocking, Immediate return) data from source rank.
      *
      * @param recv_buffer  the buffer to send
-     * @param recv_count  the number of elements to send
-     * @param source_rank  the rank to send the data to
-     * @param recv_tag  the tag for the send call
-     * @param req  the request handle for the send call
+     * @param recv_count  the number of elements to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
      *
-     * @return  the request handle for the send call
+     * @return  the request handle for the recv call
      */
     template <typename RecvType>
     request i_recv(RecvType* recv_buffer, const int recv_count,
@@ -481,6 +480,26 @@ public:
     }
 
     /**
+     * (Non-blocking) Broadcast data from calling process to all ranks in the
+     * communicator
+     *
+     * @param buffer  the buffer to broadcsat
+     * @param count  the number of elements to broadcast
+     * @param root_rank  the rank to broadcast from
+     *
+     * @return  the request handle for the call
+     */
+    template <typename BroadcastType>
+    request i_broadcast(BroadcastType* buffer, int count, int root_rank) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Ibcast(buffer, count, type_impl<BroadcastType>::get_type(),
+                       root_rank, this->get(), req.get()));
+        return req;
+    }
+
+    /**
      * Reduce data into root from all calling processes on the same
      * communicator.
      *
@@ -499,8 +518,8 @@ public:
     }
 
     /**
-     * Reduce data into root from all calling processes on the same
-     * communicator.
+     * (Non-blocking) Reduce data into root from all calling processes on the
+     * same communicator.
      *
      * @param send_buffer  the buffer to reduce
      * @param recv_buffer  the reduced result
@@ -521,8 +540,8 @@ public:
     }
 
     /**
-     * Reduce data from all calling processes from all calling processes on same
-     * communicator.
+     * (In-place) Reduce data from all calling processes from all calling
+     * processes on same communicator.
      *
      * @param recv_buffer  the data to reduce and the reduced result
      * @param count  the number of elements to reduce
@@ -537,8 +556,8 @@ public:
     }
 
     /**
-     * Reduce data from all calling processes from all calling processes on same
-     * communicator.
+     * (In-place, non-blocking) Reduce data from all calling processes from all
+     * calling processes on same communicator.
      *
      * @param recv_buffer  the data to reduce and the reduced result
      * @param count  the number of elements to reduce
@@ -614,7 +633,32 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Gather(send_buffer, send_count, type_impl<SendType>::get_type(),
                        recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                       root_rank, get()));
+                       root_rank, this->get()));
+    }
+
+    /**
+     * (Non-blocking) Gather data onto the root rank from all ranks in the
+     * communicator.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param root_rank  the rank to gather into
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_gather(const SendType* send_buffer, const int send_count,
+                     RecvType* recv_buffer, const int recv_count,
+                     int root_rank) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Igather(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
+            this->get(), req.get()));
+        return req;
     }
 
     /**
@@ -640,6 +684,33 @@ public:
     }
 
     /**
+     * (Non-blocking) Gather data onto the root rank from all ranks in the
+     * communicator with offsets.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param displacements  the offsets for the buffer
+     * @param root_rank  the rank to gather into
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_gather_v(const SendType* send_buffer, const int send_count,
+                       RecvType* recv_buffer, const int* recv_counts,
+                       const int* displacements, int root_rank) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Igatherv(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_counts, displacements,
+            type_impl<RecvType>::get_type(), root_rank, this->get(),
+            req.get()));
+        return req;
+    }
+
+    /**
      * Gather data onto all ranks from all ranks in the communicator.
      *
      * @param send_buffer  the buffer to gather from
@@ -653,7 +724,31 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get()));
+    }
+
+    /**
+     * (Non-blocking) Gather data onto all ranks from all ranks in the
+     * communicator.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_all_gather(const SendType* send_buffer, const int send_count,
+                         RecvType* recv_buffer, const int recv_count) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallgather(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get(), req.get()));
+        return req;
     }
 
     /**
@@ -673,6 +768,30 @@ public:
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
             get()));
+    }
+
+    /**
+     * (Non-blocking) Scatter data from root rank to all ranks in the
+     * communicator.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_scatter(const SendType* send_buffer, const int send_count,
+                      RecvType* recv_buffer, const int recv_count,
+                      int root_rank) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatter(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
+            get(), req.get()));
+        return req;
     }
 
     /**
@@ -698,7 +817,33 @@ public:
     }
 
     /**
-     * Communicate data from all ranks to all other ranks in place
+     * (Non-blocking) Scatter data from root rank to all ranks in the
+     * communicator with offsets.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param displacements  the offsets for the buffer
+     * @param comm  the communicator
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_scatter_v(const SendType* send_buffer, const int* send_counts,
+                        const int* displacements, RecvType* recv_buffer,
+                        const int recv_count, int root_rank) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatterv(
+            send_buffer, send_counts, displacements,
+            type_impl<SendType>::get_type(), recv_buffer, recv_count,
+            type_impl<RecvType>::get_type(), root_rank, get(), req.get()));
+        return req;
+    }
+
+    /**
+     * (In-place) Communicate data from all ranks to all other ranks in place
      * (MPI_Alltoall). See MPI documentation for more details.
      *
      * @param buffer  the buffer to send and the buffer receive
@@ -717,8 +862,8 @@ public:
     }
 
     /**
-     * Communicate data from all ranks to all other ranks in place
-     * (MPI_Alltoall). See MPI documentation for more details.
+     * (In-place, Non-blocking) Communicate data from all ranks to all other
+     * ranks in place (MPI_Alltoall). See MPI documentation for more details.
      *
      * @param buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
@@ -759,8 +904,8 @@ public:
     }
 
     /**
-     * Communicate data from all ranks to all other ranks (MPI_Alltoall).
-     * See MPI documentation for more details.
+     * (Non-blocking) Communicate data from all ranks to all other ranks
+     * (MPI_Alltoall). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
