@@ -55,7 +55,6 @@ GKO_REGISTER_OPERATION(convert_to_dense, batch_csr::convert_to_dense);
 GKO_REGISTER_OPERATION(calculate_total_cols, batch_csr::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, batch_csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, batch_csr::conj_transpose);
-GKO_REGISTER_OPERATION(batch_scale, batch_csr::batch_scale);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        batch_csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -224,18 +223,6 @@ void BatchCsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
 template <typename ValueType, typename IndexType>
 bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
     GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void BatchCsr<ValueType, IndexType>::batch_scale_impl(
-    const BatchLinOp* const left_scale_op,
-    const BatchLinOp* const right_scale_op)
-{
-    auto exec = this->get_executor();
-    const auto left = as<const BatchDense<ValueType>>(left_scale_op);
-    const auto right = as<const BatchDense<ValueType>>(right_scale_op);
-    exec->run(batch_csr::make_batch_scale(left, right, this));
-}
 
 
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class BatchCsr<ValueType, int32>
