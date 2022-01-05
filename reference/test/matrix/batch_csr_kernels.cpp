@@ -430,7 +430,6 @@ TYPED_TEST(BatchCsr, MovesToPrecision)
                         ? gko::remove_complex<ValueType>{0}
                         : gko::remove_complex<ValueType>{r<OtherType>::value};
 
-    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
     this->mtx2->move_to(tmp.get());
     tmp->move_to(res.get());
 
@@ -438,40 +437,6 @@ TYPED_TEST(BatchCsr, MovesToPrecision)
     auto ures = res->unbatch();
     GKO_ASSERT_MTX_NEAR(umtx2[0].get(), ures[0].get(), residual);
     GKO_ASSERT_MTX_NEAR(umtx2[1].get(), ures[1].get(), residual);
-}
-
-
-TYPED_TEST(BatchCsr, CanBeBatchScaled)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Mtx = typename TestFixture::Mtx;
-    using Vec = typename TestFixture::Vec;
-    const size_t nbatch = 2;
-    const int nrows = 3;
-    const int nrhs_1 = 1;
-    auto mtx =
-        gko::test::create_poisson1d_batch<Mtx>(this->exec, nrows, nbatch);
-    auto left =
-        gko::batch_initialize<Vec>(nbatch, {-1.0, 3.0, 1.0}, this->exec);
-    auto right =
-        gko::batch_initialize<Vec>(nbatch, {1.0, 2.0, -1.0}, this->exec);
-    auto ref_scaled_mtx = Mtx::create(this->exec);
-    ref_scaled_mtx->copy_from(mtx.get());
-    value_type* const refvals = ref_scaled_mtx->get_values();
-    // clang-format off
-    refvals[0] = -2; refvals[1] = 2;
-    refvals[2] = -3; refvals[3] = 12; refvals[4] = 3;
-    refvals[5] = -2; refvals[6] = -2;
-    // clang-format on
-    for (int i = 0; i < 7; i++) {
-        refvals[i + 7] = refvals[i];
-    }
-
-    auto to_scale_mtx = gko::as<Mtx>(mtx->clone());
-    to_scale_mtx->batch_scale(left.get(), right.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, to_scale_mtx, 0.0);
 }
 
 
@@ -569,75 +534,6 @@ TYPED_TEST(BatchCsr, ConvertibleToBatchDense)
 
     GKO_ASSERT_BATCH_MTX_NEAR(test, ans, 0.0);
 }
-
-
-// TYPED_TEST(BatchCsr, SquareMtxIsTransposable)
-//{
-//    using BatchCsr = typename TestFixture::Mtx;
-//    // clang-format off
-//    auto mtx2 = gko::initialize<BatchCsr>(
-//                {{1.0, 3.0, 2.0},
-//                 {0.0, 5.0, 0.0},
-//                 {0.0, 1.5, 2.0}}, this->exec);
-//    // clang-format on
-//
-//    auto trans_as_batch_csr = gko::as<BatchCsr>(mtx2->transpose());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(trans_as_batch_csr,
-//                    l({{1.0, 0.0, 0.0},
-//                       {3.0, 5.0, 1.5},
-//                       {2.0, 0.0, 2.0}}), 0.0);
-//    // clang-format on
-//}
-
-
-// TYPED_TEST(BatchCsr, NonSquareMtxIsTransposable)
-//{
-//    using BatchCsr = typename TestFixture::Mtx;
-//    auto trans_as_batch_csr = gko::as<BatchCsr>(this->mtx->transpose());
-//
-//    // clang-format off
-//    GKO_ASSERT_MTX_NEAR(trans_as_batch_csr,
-//                    l({{1.0, 0.0},
-//                       {3.0, 5.0},
-//                       {2.0, 0.0}}), 0.0);
-//    // clang-format on
-//}
-
-
-// TYPED_TEST(BatchCsr, RecognizeSortedMatrix)
-//{
-//    ASSERT_TRUE(this->mtx->is_sorted_by_column_index());
-//    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
-//    ASSERT_TRUE(this->mtx3_sorted->is_sorted_by_column_index());
-//}
-
-
-// TYPED_TEST(BatchCsr, RecognizeUnsortedMatrix)
-//{
-//    ASSERT_FALSE(this->mtx3_unsorted->is_sorted_by_column_index());
-//}
-
-
-// TYPED_TEST(BatchCsr, SortSortedMatrix)
-//{
-//    auto matrix = this->mtx3_sorted->clone();
-//
-//    matrix->sort_by_column_index();
-//
-//    GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
-//}
-
-
-// TYPED_TEST(BatchCsr, SortUnsortedMatrix)
-//{
-//    auto matrix = this->mtx3_unsorted->clone();
-//
-//    matrix->sort_by_column_index();
-//
-//    GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
-//}
 
 
 }  // namespace
