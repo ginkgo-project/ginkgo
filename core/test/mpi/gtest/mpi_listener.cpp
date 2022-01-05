@@ -39,14 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *******************************************************************************/
 
-#include <mpi.h>
 #include <cassert>
 #include <sstream>
 #include <string>
 #include <vector>
 
-
 #include <gtest/gtest.h>
+
+#include <mpi.h>
 
 
 namespace GTestMPIListener {
