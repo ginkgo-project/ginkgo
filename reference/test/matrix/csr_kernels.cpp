@@ -1518,6 +1518,22 @@ TYPED_TEST(Csr, InvScalesData)
 }
 
 
+TYPED_TEST(Csr, ScaleCsrAddIdentityRectangular)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
+
+    b->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
+}
+
+
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
 protected:

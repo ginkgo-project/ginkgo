@@ -115,6 +115,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
 GKO_REGISTER_OPERATION(get_real, dense::get_real);
 GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
+GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 
 
 }  // anonymous namespace
@@ -1424,6 +1425,19 @@ void Dense<ValueType>::get_imag(
 
     exec->run(dense::make_get_imag(
         this, make_temporary_output_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_identity_impl(const LinOp* const a,
+                                                const LinOp* const b)
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(dense::make_add_scaled_identity(
+                dense_alpha, dense_beta, dense_x));
+        },
+        a, b, this);
 }
 
 

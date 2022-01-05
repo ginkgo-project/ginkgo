@@ -671,6 +671,26 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
                   "semi-colon warnings")
 
 
+/**
+ * Checks that the operator is a scalar, ie., has size 1x1.
+ *
+ * @param _op  Operator to be checked.
+ *
+ * @throw  BadDimension  if _op does not have size 1x1.
+ */
+#define GKO_ASSERT_IS_SCALAR(_op)                                            \
+    {                                                                        \
+        auto sz = gko::detail::get_size(_op);                                \
+        if (sz[0] != 1 || sz[1] != 1) {                                      \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      sz[0], sz[1], "expected scalar");      \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 }  // namespace gko
 
 

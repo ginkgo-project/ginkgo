@@ -39,25 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/factorization/factorization_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
-
-
 namespace gko {
 namespace matrix {
-namespace identity {
-namespace {
-
-
-GKO_REGISTER_OPERATION(dense_add_scaled_identity, dense::add_scaled_identity);
-GKO_REGISTER_OPERATION(csr_add_scaled_identity, csr::add_scaled_identity);
-GKO_REGISTER_OPERATION(csr_add_diagonal_elems,
-                       factorization::add_diagonal_elements);
-
-
-}  // anonymous namespace
-}  // namespace identity
 
 
 template <typename ValueType>
@@ -72,25 +55,8 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
     if (auto bI = dynamic_cast<const Identity<ValueType>*>(b)) {
-        GKO_ASSERT_IS_SQUARE_MATRIX(x);
-        if (auto xd = dynamic_cast<Dense<ValueType>*>(x)) {
-            precision_dispatch_real_complex<ValueType>(
-                [this](auto dense_alpha, auto dense_beta, auto dense_x) {
-                    this->get_executor()->run(
-                        identity::make_dense_add_scaled_identity(
-                            dense_alpha, dense_beta, dense_x));
-                },
-                alpha, beta, x);
-        } else if (auto xc = dynamic_cast<Csr<ValueType, int32>*>(x)) {
-            this->get_executor()->run(
-                identity::make_csr_add_diagonal_elems(xc, false));
-            this->get_executor()->run(identity::make_csr_add_scaled_identity(
-                as<Dense<ValueType>>(alpha), as<Dense<ValueType>>(beta), xc));
-        } else if (auto xc = dynamic_cast<Csr<ValueType, int64>*>(x)) {
-            this->get_executor()->run(
-                identity::make_csr_add_diagonal_elems(xc, false));
-            this->get_executor()->run(identity::make_csr_add_scaled_identity(
-                as<Dense<ValueType>>(alpha), as<Dense<ValueType>>(beta), xc));
+        if (auto xs = dynamic_cast<EnableScaledIdentityAddition*>(x)) {
+            xs->add_scaled_identity(alpha, beta);
         } else {
             GKO_NOT_IMPLEMENTED;
         }

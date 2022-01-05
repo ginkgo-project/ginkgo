@@ -139,7 +139,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public Transposable,
             public Permutable<IndexType>,
             public EnableAbsoluteComputation<
-                remove_complex<Csr<ValueType, IndexType>>> {
+                remove_complex<Csr<ValueType, IndexType>>>,
+            public EnableScaledIdentityAddition {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -1257,6 +1258,8 @@ private:
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
+
+    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 

@@ -60,7 +60,7 @@ template <typename ValueType>
 class Diagonal;
 
 
-}
+}  // namespace matrix
 
 
 /**
@@ -776,6 +776,31 @@ public:
      * @return a pointer to the new absolute object
      */
     virtual std::unique_ptr<absolute_type> compute_absolute() const = 0;
+};
+
+
+/**
+ * Mix-in that adds the operation M <- a I + b M for matrix M, identity
+ * operator I and scalars a and b, where M is the calling object.
+ */
+class EnableScaledIdentityAddition {
+public:
+    /**
+     * Scales this and adds another scalar times the identity to it.
+     *
+     * @param a  Scalar to multiply the identity operator by before adding.
+     * @param b  Scalar to multiply this before adding the scaled identity to
+     *   it.
+     */
+    void add_scaled_identity(const LinOp* const a, const LinOp* const b)
+    {
+        GKO_ASSERT_IS_SCALAR(a);
+        GKO_ASSERT_IS_SCALAR(b);
+        add_scaled_identity_impl(a, b);
+    }
+
+private:
+    virtual void add_scaled_identity_impl(const LinOp* a, const LinOp* b) = 0;
 };
 
 
