@@ -246,43 +246,11 @@ void BatchEll<ValueType, IndexType>::write(std::vector<mat_data>& data) const
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchEll<ValueType, IndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    auto trans_cpy =
-//        BatchEll::create(exec, gko::transpose(this->get_size()),
-//                    this->get_num_stored_elements(), this->get_strategy());
-//
-//    exec->run(batch_ell::make_transpose(this, trans_cpy.get()));
-//    trans_cpy->make_srow();
-//    return std::move(trans_cpy);
-//}
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchEll<ValueType, IndexType>::conj_transpose()
     const GKO_NOT_IMPLEMENTED;
-//{
-//    auto exec = this->get_executor();
-//    auto trans_cpy =
-//        BatchEll::create(exec, gko::transpose(this->get_size()),
-//                    this->get_num_stored_elements(), this->get_strategy());
-//
-//    exec->run(batch_ell::make_conj_transpose(this, trans_cpy.get()));
-//    trans_cpy->make_srow();
-//    return std::move(trans_cpy);
-//}
-
-
-template <typename ValueType, typename IndexType>
-void BatchEll<ValueType, IndexType>::batch_scale_impl(
-    const BatchLinOp* const left_scale_op,
-    const BatchLinOp* const right_scale_op)
-{
-    auto exec = this->get_executor();
-    const auto left = as<const BatchDense<ValueType>>(left_scale_op);
-    const auto right = as<const BatchDense<ValueType>>(right_scale_op);
-    exec->run(batch_ell::make_batch_scale(left, right, this));
-}
 
 
 #define GKO_DECLARE_BATCH_ELL_MATRIX(ValueType) class BatchEll<ValueType, int32>
