@@ -3802,6 +3802,22 @@ TYPED_TEST(Dense, MakeTemporaryConversionConstDoesntConvertBack)
 }
 
 
+TYPED_TEST(Dense, ScaleAddIdentityRectangular)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Mtx;
+    using MixedVec = typename TestFixture::MixedMtx;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
+
+    b->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:

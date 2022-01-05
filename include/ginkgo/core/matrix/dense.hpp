@@ -118,7 +118,8 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
+      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
+      public EnableScaledIdentityAddition {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -1161,6 +1162,8 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
+
+    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 

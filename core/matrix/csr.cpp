@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -105,6 +106,9 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 GKO_REGISTER_OPERATION(scale, csr::scale);
 GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
+GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
+GKO_REGISTER_OPERATION(add_diagonal_elems,
+                       factorization::add_diagonal_elements);
 
 
 }  // anonymous namespace
@@ -669,6 +673,16 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
     auto exec = this->get_executor();
     exec->run(csr::make_inv_scale(
         make_temporary_conversion<ValueType>(alpha).get(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
+                                                         const LinOp* const b)
+{
+    this->get_executor()->run(csr::make_add_diagonal_elems(this, false));
+    this->get_executor()->run(csr::make_add_scaled_identity(
+        as<Dense<ValueType>>(a), as<Dense<ValueType>>(b), this));
 }
 
 
