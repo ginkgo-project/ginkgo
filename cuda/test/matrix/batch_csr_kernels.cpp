@@ -226,26 +226,6 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 }
 
 
-TEST_F(BatchCsr, BatchScaleIsEquivalentToReference)
-{
-    set_up_apply_data();
-    const size_t batch_size = mtx_size.get_num_batch_entries();
-    const size_t nrows = mtx_size.at()[0];
-    const size_t ncols = mtx_size.at()[1];
-    auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);
-    auto ref_right_scale = gen_mtx<Vec>(batch_size, ncols, 1, 1);
-    auto d_left_scale = Vec::create(cuda);
-    d_left_scale->copy_from(ref_left_scale.get());
-    auto d_right_scale = Vec::create(cuda);
-    d_right_scale->copy_from(ref_right_scale.get());
-
-    mtx->batch_scale(ref_left_scale.get(), ref_right_scale.get());
-    dmtx->batch_scale(d_left_scale.get(), d_right_scale.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
-}
-
-
 TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
 {
     set_up_apply_data();
