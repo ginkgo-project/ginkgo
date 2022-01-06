@@ -95,7 +95,7 @@ template <typename ValueType>
 void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const mtx,
                                        const BatchLinOp* const b,
                                        BatchLinOp* const x,
-                                       BatchInfo& info) const
+                                       BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_idr::BatchIdrOptions<remove_complex<ValueType>> opts{
@@ -107,7 +107,7 @@ void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const mtx,
     auto exec = this->get_executor();
     exec->run(batch_idr::make_apply(
         opts, mtx, as<const Dense>(b), as<Dense>(x),
-        *as<log::BatchLogData<ValueType>>(info.logdata.get())));
+        *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
 
