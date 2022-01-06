@@ -87,7 +87,7 @@ template <typename ValueType>
 void BatchRichardson<ValueType>::solver_apply(const BatchLinOp* const mtx,
                                               const BatchLinOp* const b,
                                               BatchLinOp* const x,
-                                              BatchInfo& info) const
+                                              BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_rich::BatchRichardsonOptions<remove_complex<ValueType>>
@@ -97,7 +97,7 @@ void BatchRichardson<ValueType>::solver_apply(const BatchLinOp* const mtx,
     auto exec = this->get_executor();
     exec->run(batch_rich::make_apply(
         opts, mtx, as<const Dense>(b), as<Dense>(x),
-        *as<log::BatchLogData<ValueType>>(info.logdata.get())));
+        *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
 
