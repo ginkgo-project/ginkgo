@@ -56,8 +56,7 @@ GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 
 
 struct BatchInfo {
-    //gko::log::BatchLogData<ValueType> logdata;
-    void* logdata;
+    std::unique_ptr<gko::log::BatchLogDataBase> logdata;
 };
 
 
@@ -99,25 +98,22 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
         b_scaled = dense_b;
     }
 
-    // allocate logging arrays assuming uniform size batch
-    // GKO_ASSERT(dense_b->stores_equal_sizes());
-
     const size_type num_rhs = dense_b->get_size().at(0)[1];
     const size_type num_batches = dense_b->get_num_batch_entries();
     batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
 
-    log::BatchLogData<value_type> concrete_logdata;
-    concrete_logdata.res_norms =
-        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
-    concrete_logdata.iter_counts.set_executor(this->get_executor());
-    concrete_logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
     BatchInfo info;
-    info.logdata = &concrete_logdata;
+    info.logdata = std::move(std::make_unique<log::BatchLogData<value_type>>());
+    auto concrete_logdata = static_cast<log::BatchLogData<value_type>*>(info.logdata.get());
+    concrete_logdata->res_norms =
+        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
+    concrete_logdata->iter_counts.set_executor(this->get_executor());
+    concrete_logdata->iter_counts.resize_and_reset(num_rhs * num_batches);
 
     this->solver_apply(a_scaled, b_scaled, dense_x, info);
 
     this->template log<log::Logger::batch_solver_completed>(
-        concrete_logdata.iter_counts, concrete_logdata.res_norms.get());
+        concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
 
     if (to_scale) {
         exec->run(batch::make_vec_scale(
