@@ -63,19 +63,6 @@ public:
     }
 
 protected:
-    /**
-     * Calls the concrete solver on the given system (not necessarily on
-     * system_matrix_).
-     *
-     * @param mtx  Left-hand side matrix for the linear solve.
-     * @param b  Right-hand side vector.
-     * @param x  Solution vector and initial guess.
-     * @param info  Batch logging information. NOTE: This may change in the
-     *              future.
-     */
-    virtual void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* b,
-                              BatchLinOp* x, BatchInfo& info) const = 0;
-
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
     {}
@@ -96,6 +83,19 @@ protected:
 
 private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
+
+    /**
+     * Calls the concrete solver on the given system (not necessarily on
+     * system_matrix_).
+     *
+     * @param mtx  Left-hand side matrix for the linear solve.
+     * @param b  Right-hand side vector.
+     * @param x  Solution vector and initial guess.
+     * @param info  Batch logging information. NOTE: This may change in the
+     *              future.
+     */
+    virtual void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b,
+                              BatchLinOp* x, BatchInfo& info) const = 0;
 };
 
 

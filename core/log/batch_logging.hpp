@@ -52,22 +52,27 @@ enum class BatchLogType {
 };
 
 
-/**
- * Stores logging data for batch solver kernels.
- */
-template <typename ValueType>
-struct BatchLogData {
-    /**
-     * Stores residual norm values for every linear system in the batch
-     * for every right-hand side.
-     */
-    std::shared_ptr<matrix::BatchDense<remove_complex<ValueType>>> res_norms;
-
+struct BatchLogDataBase {
     /**
      * Stores convergence iteration counts for every matrix in the batch and
      * for every right-hand side.
      */
     Array<int> iter_counts;
+
+    virtual ~BatchLogDataBase() = default;
+};
+
+
+/**
+ * Stores logging data for batch solver kernels.
+ */
+template <typename ValueType>
+struct BatchLogData : public BatchLogDataBase {
+    /**
+     * Stores residual norm values for every linear system in the batch
+     * for every right-hand side.
+     */
+    std::shared_ptr<matrix::BatchDense<remove_complex<ValueType>>> res_norms;
 };
 
 
