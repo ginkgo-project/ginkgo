@@ -190,10 +190,22 @@ void CudaMemorySpace::synchronize() const GKO_NOT_COMPILED(cuda);
 
 void CudaUVMSpace::synchronize() const GKO_NOT_COMPILED(cuda);
 
+CudaAsyncHandle::CudaAsyncHandle(create_type c_type) {}
 
-void CudaExecutor::run(const Operation& op) const
+void CudaAsyncHandle::CudaAsyncHandle::get_result() GKO_NOT_IMPLEMENTED;
+
+void CudaAsyncHandle::CudaAsyncHandle::wait() GKO_NOT_IMPLEMENTED;
+
+void CudaAsyncHandle::CudaAsyncHandle::wait_for(
+    const std::chrono::duration<int>& time) GKO_NOT_IMPLEMENTED;
+
+void CudaAsyncHandle::CudaAsyncHandle::wait_until(
+    const std::chrono::time_point<std::chrono::steady_clock>& time)
+    GKO_NOT_IMPLEMENTED;
+
+std::shared_ptr<AsyncHandle> CudaExecutor::run(const Operation& op) const
 {
-    op.run(
+    return op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
 }
 

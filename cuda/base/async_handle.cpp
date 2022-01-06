@@ -50,25 +50,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-CudaAsyncHandle::CudaAsyncHandle()
+CudaAsyncHandle::CudaAsyncHandle(create_type c_type)
 {
-    this->handle_ = handle_manager<CUstream_st>(
-        kernels::cuda::stream::create(),
-        [](cudaStream_t stream) { kernels::cuda::stream::destroy(stream); });
+    if (c_type == create_type::non_blocking) {
+        this->handle_ = handle_manager<CUstream_st>(
+            kernels::cuda::stream::create_non_blocking(),
+            [](cudaStream_t stream) {
+                kernels::cuda::stream::destroy(stream);
+            });
+    } else if (c_type == create_type::default_blocking) {
+        this->handle_ = handle_manager<CUstream_st>(
+            kernels::cuda::stream::create_default_blocking(),
+            [](cudaStream_t stream) {
+                kernels::cuda::stream::destroy(stream);
+            });
+    } else if (c_type == create_type::legacy_blocking) {
+        this->handle_ = handle_manager<CUstream_st>(
+            cudaStreamLegacy,
+            [](cudaStream_t stream) { /* Don't delete the default stream*/ });
+    }
 }
 
-void CudaAsyncHandle::get_result() {}
+
+void CudaAsyncHandle::get_result() GKO_NOT_IMPLEMENTED;
+
 
 void CudaAsyncHandle::wait()
 {
     GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamSynchronize(this->get_handle()));
 }
 
-void CudaAsyncHandle::wait_for(const std::chrono::duration<int>& time) {}
+
+void CudaAsyncHandle::wait_for(const std::chrono::duration<int>& time)
+    GKO_NOT_IMPLEMENTED;
+
 
 void CudaAsyncHandle::wait_until(
     const std::chrono::time_point<std::chrono::steady_clock>& time)
-{}
+    GKO_NOT_IMPLEMENTED;
 
 
 }  // namespace gko

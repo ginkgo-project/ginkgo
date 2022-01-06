@@ -57,25 +57,40 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int& val) : value(val) {}
-    void run(std::shared_ptr<const gko::OmpExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::OmpExecutor>) const override
     {
-        value = 1;
+        auto l = [=]() { value = 1; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::CudaExecutor>) const override
     {
-        value = 2;
+        auto l = [=]() { value = 2; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::HipExecutor>) const override
     {
-        value = 3;
+        auto l = [=]() { value = 3; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::DpcppExecutor>) const override
     {
-        value = 4;
+        auto l = [=]() { value = 4; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
-        value = 5;
+        auto l = [=]() { value = 5; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
 
     int& value;
@@ -87,7 +102,8 @@ TEST(OmpExecutor, RunsCorrectOperation)
     int value = 0;
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(ExampleOperation(value));
+    auto hand = omp->run(ExampleOperation(value));
+    hand->wait();
 
     ASSERT_EQ(1, value);
 }

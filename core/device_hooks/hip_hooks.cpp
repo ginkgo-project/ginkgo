@@ -63,6 +63,19 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 
 HipMemorySpace::HipMemorySpace(int device_id) : device_id_(device_id) {}
 
+HipAsyncHandle::HipAsyncHandle(create_type c_type) {}
+
+void HipAsyncHandle::HipAsyncHandle::get_result() GKO_NOT_IMPLEMENTED;
+
+void HipAsyncHandle::HipAsyncHandle::wait() GKO_NOT_IMPLEMENTED;
+
+void HipAsyncHandle::HipAsyncHandle::wait_for(
+    const std::chrono::duration<int>& time) GKO_NOT_IMPLEMENTED;
+
+void HipAsyncHandle::HipAsyncHandle::wait_until(
+    const std::chrono::time_point<std::chrono::steady_clock>& time)
+    GKO_NOT_IMPLEMENTED;
+
 
 void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
 {
@@ -145,9 +158,9 @@ void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 void HipMemorySpace::synchronize() const GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::run(const Operation& op) const
+std::shared_ptr<AsyncHandle> HipExecutor::run(const Operation& op) const
 {
-    op.run(
+    return op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
 }
 

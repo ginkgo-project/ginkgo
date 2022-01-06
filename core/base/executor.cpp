@@ -41,25 +41,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void Operation::run(std::shared_ptr<const OmpExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
+std::shared_ptr<AsyncHandle> Operation::run(
+    std::shared_ptr<const OmpExecutor> executor) const GKO_NOT_IMPLEMENTED;
 
 
-void Operation::run(std::shared_ptr<const CudaExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
+std::shared_ptr<AsyncHandle> Operation::run(
+    std::shared_ptr<const CudaExecutor> executor) const GKO_NOT_IMPLEMENTED;
 
 
-void Operation::run(std::shared_ptr<const HipExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
+std::shared_ptr<AsyncHandle> Operation::run(
+    std::shared_ptr<const HipExecutor> executor) const GKO_NOT_IMPLEMENTED;
 
 
-void Operation::run(std::shared_ptr<const DpcppExecutor> executor) const
-    GKO_NOT_IMPLEMENTED;
+std::shared_ptr<AsyncHandle> Operation::run(
+    std::shared_ptr<const DpcppExecutor> executor) const GKO_NOT_IMPLEMENTED;
 
 
-void Operation::run(std::shared_ptr<const ReferenceExecutor> executor) const
+std::shared_ptr<AsyncHandle> Operation::run(
+    std::shared_ptr<const ReferenceExecutor> executor) const
 {
-    this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
+    return this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor));
 }
 
 

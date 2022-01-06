@@ -60,10 +60,18 @@ namespace hip {
 namespace stream {
 
 
-inline hipStream_t create()
+inline hipStream_t create_default_blocking()
 {
     hipStream_t stream;
-    // TODO: maybe provide an option to do have a default stream ?
+    GKO_ASSERT_NO_HIP_ERRORS(
+        hipStreamCreateWithFlags(&stream, hipStreamDefault));
+    return stream;
+}
+
+
+inline hipStream_t create_non_blocking()
+{
+    hipStream_t stream;
     GKO_ASSERT_NO_HIP_ERRORS(
         hipStreamCreateWithFlags(&stream, hipStreamNonBlocking));
     return stream;

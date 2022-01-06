@@ -264,14 +264,15 @@ class ExecutorBase;
 class Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
-    virtual void run(std::shared_ptr<const _type>) const
+    virtual std::shared_ptr<AsyncHandle> run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
 
 #undef GKO_DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
-    virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
+    virtual std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const ReferenceExecutor> executor) const;
 
     /**
      * Returns the operation's name.
@@ -317,29 +318,39 @@ public:
         return name.c_str();
     }
 
-    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const ReferenceExecutor> exec) const override
     {
-        op_(exec);
+        return HostAsyncHandle<void>::create(
+            std::async(std::launch::async, op_, (exec)));
     }
 
-    void run(std::shared_ptr<const OmpExecutor> exec) const override
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const OmpExecutor> exec) const override
     {
-        op_(exec);
+        return HostAsyncHandle<void>::create(
+            std::async(std::launch::async, op_, (exec)));
     }
 
-    void run(std::shared_ptr<const CudaExecutor> exec) const override
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const CudaExecutor> exec) const override
     {
-        op_(exec);
+        return HostAsyncHandle<void>::create(
+            std::async(std::launch::async, op_, (exec)));
     }
 
-    void run(std::shared_ptr<const HipExecutor> exec) const override
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const HipExecutor> exec) const override
     {
-        op_(exec);
+        return HostAsyncHandle<void>::create(
+            std::async(std::launch::async, op_, (exec)));
     }
 
-    void run(std::shared_ptr<const DpcppExecutor> exec) const override
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const DpcppExecutor> exec) const override
     {
-        op_(exec);
+        return HostAsyncHandle<void>::create(
+            std::async(std::launch::async, op_, (exec)));
     }
 
 private:
@@ -598,7 +609,7 @@ public:
      *
      * @param op  the operation to run
      */
-    virtual void run(const Operation& op) const = 0;
+    virtual std::shared_ptr<AsyncHandle> run(const Operation& op) const = 0;
 
     /**
      * Runs one of the passed in functors, depending on the Executor type.
@@ -616,12 +627,19 @@ public:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
-    void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
-             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
+    std::shared_ptr<AsyncHandle> run(const ClosureOmp& op_omp,
+                                     const ClosureCuda& op_cuda,
+                                     const ClosureHip& op_hip,
+                                     const ClosureDpcpp& op_dpcpp) const
     {
         LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
             op_omp, op_cuda, op_hip, op_dpcpp);
-        this->run(op);
+        return this->run(op);
+    }
+
+    std::shared_ptr<AsyncHandle> get_default_exec_stream() const
+    {
+        return this->default_exec_stream_;
     }
 
     /**
@@ -853,6 +871,8 @@ protected:
 
     exec_info exec_info_;
 
+    std::shared_ptr<AsyncHandle> default_exec_stream_;
+
 private:
     /**
      * The LambdaOperation class wraps four functor objects into an
@@ -890,24 +910,32 @@ private:
               op_dpcpp_(op_dpcpp)
         {}
 
-        void run(std::shared_ptr<const OmpExecutor>) const override
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const OmpExecutor>) const override
         {
-            op_omp_();
+            return HostAsyncHandle<void>::create(
+                std::async(std::launch::async, op_omp_));
         }
 
-        void run(std::shared_ptr<const CudaExecutor>) const override
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const CudaExecutor>) const override
         {
-            op_cuda_();
+            return HostAsyncHandle<void>::create(
+                std::async(std::launch::async, op_cuda_));
         }
 
-        void run(std::shared_ptr<const HipExecutor>) const override
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const HipExecutor>) const override
         {
-            op_hip_();
+            return HostAsyncHandle<void>::create(
+                std::async(std::launch::async, op_hip_));
         }
 
-        void run(std::shared_ptr<const DpcppExecutor>) const override
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const DpcppExecutor>) const override
         {
-            op_dpcpp_();
+            return HostAsyncHandle<void>::create(
+                std::async(std::launch::async, op_dpcpp_));
         }
 
     private:
@@ -928,11 +956,12 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
-    void run(const Operation& op) const override
+    std::shared_ptr<AsyncHandle> run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
-        op.run(self()->shared_from_this());
-        this->template log<log::Logger::operation_completed>(this, &op);
+        return op.run(self()->shared_from_this());
+        // FIXME
+        // this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 
@@ -1039,6 +1068,7 @@ protected:
         this->OmpExecutor::populate_exec_info(MachineTopology::get_instance());
 
         mem_space_instance_ = HostMemorySpace::create();
+        this->default_exec_stream_ = HostAsyncHandle<void>::create();
     }
 
     OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
@@ -1047,6 +1077,7 @@ protected:
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_HOST);
         }
+        this->default_exec_stream_ = HostAsyncHandle<void>::create();
     }
 
     void populate_exec_info(const MachineTopology* mach_topo) override;
@@ -1105,12 +1136,13 @@ public:
             new ReferenceExecutor(memory_space));
     }
 
-    void run(const Operation& op) const override
+    std::shared_ptr<AsyncHandle> run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
-        op.run(std::static_pointer_cast<const ReferenceExecutor>(
+        return op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
-        this->template log<log::Logger::operation_completed>(this, &op);
+        // FIXME
+        // this->template log<log::Logger::operation_completed>(this, &op);
     }
 
     std::shared_ptr<MemorySpace> get_mem_space() noexcept override
@@ -1129,6 +1161,7 @@ protected:
         mem_space_instance_ = ReferenceMemorySpace::create();
         this->ReferenceExecutor::populate_exec_info(
             MachineTopology::get_instance());
+        this->default_exec_stream_ = HostAsyncHandle<void>::create();
     }
 
     void populate_exec_info(const MachineTopology*) override
@@ -1144,6 +1177,7 @@ protected:
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_REF);
         }
+        this->default_exec_stream_ = HostAsyncHandle<void>::create();
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
@@ -1223,7 +1257,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
+    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1349,6 +1383,7 @@ protected:
         increase_num_execs(this->get_exec_info().device_id);
         this->init_handles();
         mem_space_instance_ = CudaMemorySpace::create(device_id);
+        this->default_exec_stream_ = CudaAsyncHandle::create();
     }
 
     CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
@@ -1375,6 +1410,7 @@ protected:
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_CUDA);
         }
+        this->default_exec_stream_ = CudaAsyncHandle::create();
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
@@ -1474,7 +1510,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
+    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1600,6 +1636,7 @@ protected:
         increase_num_execs(this->get_exec_info().device_id);
         this->init_handles();
         mem_space_instance_ = HipMemorySpace::create(device_id);
+        this->default_exec_stream_ = HipAsyncHandle::create();
     }
 
     HipExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
@@ -1626,6 +1663,7 @@ protected:
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_HIP);
         }
+        this->default_exec_stream_ = HipAsyncHandle::create();
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
@@ -1716,7 +1754,7 @@ public:
 
     void synchronize() const override;
 
-    void run(const Operation& op) const override;
+    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
@@ -1730,6 +1768,8 @@ public:
 
     ::cl::sycl::queue* get_queue() const
     {
+        // FIXME: Have a separate execution queue ? Will need to somehow keep
+        // both in sync then
         return dynamic_cast<DpcppMemorySpace*>(this->mem_space_instance_.get())
             ->get_queue();
     }

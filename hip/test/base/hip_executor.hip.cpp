@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 #include "common/cuda_hip/base/executor.hpp.inc"
+#include "hip/base/device_guard.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -60,29 +61,43 @@ class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int& val) : value(val) {}
 
-    void run(std::shared_ptr<const gko::OmpExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::OmpExecutor>) const override
     {
-        value = -1;
+        auto l = [=]() { value = -1; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::CudaExecutor>) const override
     {
-        value = -2;
+        auto l = [=]() { value = -2; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-
-    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::HipExecutor> exec) const override
     {
-        value = -3;
+        auto l = [=]() {
+            gko::hip::device_guard g(exec->get_device_id());
+            hipGetDevice(&value);
+        };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-
-    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::DpcppExecutor>) const override
     {
-        value = -4;
+        auto l = [=]() { value = -3; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
-
-    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    std::shared_ptr<gko::AsyncHandle> run(
+        std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
-        hipGetDevice(&value);
+        auto l = [=]() { value = -4; };
+        return gko::HostAsyncHandle<void>::create(
+            std::async(std::launch::async, l));
     }
 
     int& value;
@@ -164,7 +179,8 @@ TEST_F(HipExecutor, RunsOnProperDevice)
     int value = -1;
 
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    hip2->run(ExampleOperation(value));
+    auto hand = hip2->run(ExampleOperation(value));
+    hand->wait();
 
     ASSERT_EQ(value, hip2->get_device_id());
 }

@@ -50,11 +50,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-HipAsyncHandle::HipAsyncHandle()
+HipAsyncHandle::HipAsyncHandle(create_type c_type)
 {
-    this->handle_ = handle_manager<ihipStream_t>(
-        kernels::hip::stream::create(),
-        [](hipStream_t stream) { kernels::hip::stream::destroy(stream); });
+    if (c_type == create_type::non_blocking) {
+        this->handle_ = handle_manager<ihipStream_t>(
+            kernels::hip::stream::create_non_blocking(),
+            [](hipStream_t stream) { kernels::hip::stream::destroy(stream); });
+    } else if (c_type == create_type::default_blocking) {
+        this->handle_ = handle_manager<ihipStream_t>(
+            kernels::hip::stream::create_default_blocking(),
+            [](hipStream_t stream) { kernels::hip::stream::destroy(stream); });
+    } else if (c_type == create_type::legacy_blocking) {
+        GKO_NOT_SUPPORTED(c_type);
+    }
 }
 
 void HipAsyncHandle::get_result() {}

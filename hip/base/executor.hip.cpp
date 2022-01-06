@@ -111,13 +111,14 @@ void HipExecutor::synchronize() const
 }
 
 
-void HipExecutor::run(const Operation& op) const
+std::shared_ptr<AsyncHandle> HipExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
     hip::device_guard g(this->get_device_id());
-    op.run(
+    return op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
-    this->template log<log::Logger::operation_completed>(this, &op);
+    // FIXME
+    // this->template log<log::Logger::operation_completed>(this, &op);
 }
 
 

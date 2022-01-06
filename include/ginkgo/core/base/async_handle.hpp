@@ -202,9 +202,12 @@ class CudaAsyncHandle : public detail::AsyncHandleBase<CudaAsyncHandle>,
     friend class detail::AsyncHandleBase<CudaAsyncHandle>;
 
 public:
-    static std::shared_ptr<CudaAsyncHandle> create()
+    enum class create_type { non_blocking, legacy_blocking, default_blocking };
+
+    static std::shared_ptr<CudaAsyncHandle> create(
+        create_type c_type = create_type::legacy_blocking)
     {
-        return std::shared_ptr<CudaAsyncHandle>(new CudaAsyncHandle());
+        return std::shared_ptr<CudaAsyncHandle>(new CudaAsyncHandle(c_type));
     }
 
     static std::shared_ptr<CudaAsyncHandle> create(CUstream_st* handle)
@@ -228,7 +231,7 @@ public:
         GKO_NOT_IMPLEMENTED;
 
 protected:
-    CudaAsyncHandle();
+    CudaAsyncHandle(create_type c_type);
 
     CudaAsyncHandle(CUstream_st* input_handle)
         : handle_(std::move(input_handle))
@@ -246,9 +249,12 @@ class HipAsyncHandle : public detail::AsyncHandleBase<HipAsyncHandle>,
     friend class detail::AsyncHandleBase<HipAsyncHandle>;
 
 public:
-    static std::shared_ptr<HipAsyncHandle> create()
+    enum class create_type { non_blocking, legacy_blocking, default_blocking };
+
+    static std::shared_ptr<HipAsyncHandle> create(
+        create_type c_type = create_type::default_blocking)
     {
-        return std::shared_ptr<HipAsyncHandle>(new HipAsyncHandle());
+        return std::shared_ptr<HipAsyncHandle>(new HipAsyncHandle(c_type));
     }
 
     static std::shared_ptr<HipAsyncHandle> create(ihipStream_t* handle)
@@ -272,7 +278,7 @@ public:
         GKO_NOT_IMPLEMENTED;
 
 protected:
-    HipAsyncHandle();
+    HipAsyncHandle(create_type c_type);
 
     HipAsyncHandle(ihipStream_t* input_handle)
         : handle_(std::move(input_handle))

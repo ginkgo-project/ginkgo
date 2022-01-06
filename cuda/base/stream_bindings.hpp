@@ -60,10 +60,18 @@ namespace cuda {
 namespace stream {
 
 
-inline cudaStream_t create()
+inline cudaStream_t create_default_blocking()
 {
     cudaStream_t stream;
-    // TODO: maybe provide an option to do have a default stream ?
+    GKO_ASSERT_NO_CUDA_ERRORS(
+        cudaStreamCreateWithFlags(&stream, cudaStreamDefault));
+    return stream;
+}
+
+
+inline cudaStream_t create_non_blocking()
+{
+    cudaStream_t stream;
     GKO_ASSERT_NO_CUDA_ERRORS(
         cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
     return stream;
