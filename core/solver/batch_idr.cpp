@@ -93,7 +93,8 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
 
 template <typename ValueType>
 void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const mtx,
-                                       const BatchLinOp* b, BatchLinOp* x,
+                                       const BatchLinOp* const b,
+                                       BatchLinOp* const x,
                                        BatchInfo& info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
@@ -106,7 +107,7 @@ void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const mtx,
     auto exec = this->get_executor();
     exec->run(batch_idr::make_apply(
         opts, mtx, as<const Dense>(b), as<Dense>(x),
-        *static_cast<log::BatchLogData<ValueType>*>(info.logdata)));
+        *as<log::BatchLogData<ValueType>>(info.logdata.get())));
 }
 
 
