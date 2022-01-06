@@ -119,9 +119,6 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void solver_apply(const BatchLinOp* const mtx, const BatchLinOp* const b,
-                      BatchLinOp* const x, BatchInfo& info) const override;
-
     explicit BatchBicgstab(std::shared_ptr<const Executor> exec)
         : EnableBatchSolver<BatchBicgstab>(std::move(exec))
     {}
@@ -132,6 +129,10 @@ protected:
                                            std::move(system_matrix)),
           parameters_{factory->get_parameters()}
     {}
+
+private:
+    void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
+                      BatchInfo& info) const override;
 };
 
 
