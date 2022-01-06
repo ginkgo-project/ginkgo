@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,11 +91,10 @@ private:
      * @param mtx  Left-hand side matrix for the linear solve.
      * @param b  Right-hand side vector.
      * @param x  Solution vector and initial guess.
-     * @param info  Batch logging information. NOTE: This may change in the
-     *              future.
+     * @param info  Batch logging information.
      */
     virtual void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b,
-                              BatchLinOp* x, BatchInfo& info) const = 0;
+                              BatchLinOp* x, BatchInfo* const info) const = 0;
 };
 
 

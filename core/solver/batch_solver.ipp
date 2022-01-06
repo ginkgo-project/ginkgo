@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -110,7 +110,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     concrete_logdata->iter_counts.set_executor(this->get_executor());
     concrete_logdata->iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    this->solver_apply(a_scaled, b_scaled, dense_x, info);
+    this->solver_apply(a_scaled, b_scaled, dense_x, &info);
 
     this->template log<log::Logger::batch_solver_completed>(
         concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
