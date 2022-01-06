@@ -393,6 +393,7 @@ build/clang-cuda101/openmpi/gcc/cuda/release/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
     BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -554,6 +555,7 @@ build/amd/openmpi/clang/hip/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    MPI_AS_ROOT: "ON"
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
@@ -627,6 +629,7 @@ build/nocuda/openmpi/clang/omp/debug/static:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
+    MPI_AS_ROOT: "ON"
     BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
