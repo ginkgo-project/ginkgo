@@ -97,7 +97,7 @@ void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const mtx,
     auto exec = this->get_executor();
     exec->run(batch_gmres::make_apply(
         opts, mtx, as<const Dense>(b), as<Dense>(x),
-        *static_cast<log::BatchLogData<ValueType>*>(info.logdata)));
+        *as<log::BatchLogData<ValueType>>(info.logdata.get())));
 }
 
 
