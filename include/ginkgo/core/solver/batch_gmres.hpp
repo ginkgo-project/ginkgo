@@ -150,7 +150,7 @@ protected:
 
 private:
     void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
-                      BatchInfo& info) const override;
+                      BatchInfo* const info) const override;
 };
 
 
