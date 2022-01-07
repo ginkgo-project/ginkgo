@@ -10,10 +10,8 @@ if(GINKGO_BUILD_CUDA OR (GINKGO_BUILD_HIP AND
 endif()
 
 # For each external package, check if they are already available, otherwise use ours
-if(GINKGO_BUILD_TESTS)
-    if(NOT GTest_FOUND)
-        add_subdirectory(gtest)
-    endif()
+if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
+    add_subdirectory(gtest)
 endif()
 
 if(GINKGO_BUILD_HWLOC AND (NOT HWLOC_FOUND))
