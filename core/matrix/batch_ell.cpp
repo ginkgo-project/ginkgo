@@ -39,11 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-//#include <ginkgo/core/matrix/identity.hpp>
 
 
-#include "core/components/absolute_array.hpp"
-#include "core/components/fill_array.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
 
 
@@ -70,7 +67,6 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        batch_ell::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(convert_to_batch_dense,
                        batch_ell::convert_to_batch_dense);
-GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace batch_ell
