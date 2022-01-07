@@ -1297,7 +1297,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Put(origin_buffer, origin_count, type_impl<PutType>::get_type(),
                     target_rank, target_disp, target_count,
-                    type_impl<PutType>::get_type(), get_window()));
+                    type_impl<PutType>::get_type(), this->get_window()));
     }
 
     /**
@@ -1320,7 +1320,54 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rput(
             origin_buffer, origin_count, type_impl<PutType>::get_type(),
             target_rank, target_disp, target_count,
-            type_impl<PutType>::get_type(), get_window(), req.get()));
+            type_impl<PutType>::get_type(), this->get_window(), req.get()));
+        return req;
+    }
+
+    /**
+     * Accumulate data into the target window.
+     *
+     * @param origin_buffer  the buffer to send
+     * @param origin_count  the number of elements to put
+     * @param target_rank  the rank to put the data to
+     * @param target_disp  the displacement at the target window
+     * @param target_count  the request handle for the send call
+     * @param operation  the reduce operation. See @MPI_Op
+     */
+    template <typename PutType>
+    void accumulate(const PutType* origin_buffer, const int origin_count,
+                    const int target_rank, const unsigned int target_disp,
+                    const int target_count, MPI_Op operation) const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Accumulate(
+            origin_buffer, origin_count, type_impl<PutType>::get_type(),
+            target_rank, target_disp, target_count,
+            type_impl<PutType>::get_type(), operation, this->get_window()));
+    }
+
+    /**
+     * (Non-blocking) Accumulate data into the target window.
+     *
+     * @param origin_buffer  the buffer to send
+     * @param origin_count  the number of elements to put
+     * @param target_rank  the rank to put the data to
+     * @param target_disp  the displacement at the target window
+     * @param target_count  the request handle for the send call
+     * @param operation  the reduce operation. See @MPI_Op
+     *
+     * @return  the request handle for the send call
+     */
+    template <typename PutType>
+    request r_accumulate(const PutType* origin_buffer, const int origin_count,
+                         const int target_rank, const unsigned int target_disp,
+                         const int target_count, MPI_Op operation) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Raccumulate(
+            origin_buffer, origin_count, type_impl<PutType>::get_type(),
+            target_rank, target_disp, target_count,
+            type_impl<PutType>::get_type(), operation, this->get_window(),
+            req.get()));
         return req;
     }
 
@@ -1341,7 +1388,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Get(origin_buffer, origin_count, type_impl<GetType>::get_type(),
                     target_rank, target_disp, target_count,
-                    type_impl<GetType>::get_type(), get_window()));
+                    type_impl<GetType>::get_type(), this->get_window()));
     }
 
     /**
@@ -1364,8 +1411,83 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(
             origin_buffer, origin_count, type_impl<GetType>::get_type(),
             target_rank, target_disp, target_count,
-            type_impl<GetType>::get_type(), get_window(), req.get()));
+            type_impl<GetType>::get_type(), this->get_window(), req.get()));
         return req;
+    }
+
+    /**
+     * Get Accumulate data from the target window.
+     *
+     * @param origin_buffer  the buffer to send
+     * @param origin_count  the number of elements to get
+     * @param result_buffer  the buffer to receive the target data
+     * @param result_count  the number of elements to get
+     * @param target_rank  the rank to get the data from
+     * @param target_disp  the displacement at the target window
+     * @param target_count  the request handle for the send call
+     * @param operation  the reduce operation. See @MPI_Op
+     */
+    template <typename GetType>
+    void get_accumulate(GetType* origin_buffer, const int origin_count,
+                        GetType* result_buffer, const int result_count,
+                        const int target_rank, const unsigned int target_disp,
+                        const int target_count, MPI_Op operation) const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Get_accumulate(
+            origin_buffer, origin_count, type_impl<GetType>::get_type(),
+            result_buffer, result_count, type_impl<GetType>::get_type(),
+            target_rank, target_disp, target_count,
+            type_impl<GetType>::get_type(), operation, this->get_window()));
+    }
+
+    /**
+     * (Non-blocking) Get Accumulate data (with handle) from the target window.
+     *
+     * @param origin_buffer  the buffer to send
+     * @param origin_count  the number of elements to get
+     * @param result_buffer  the buffer to receive the target data
+     * @param result_count  the number of elements to get
+     * @param target_rank  the rank to get the data from
+     * @param target_disp  the displacement at the target window
+     * @param target_count  the request handle for the send call
+     * @param operation  the reduce operation. See @MPI_Op
+     *
+     * @return  the request handle for the send call
+     */
+    template <typename GetType>
+    request r_get_accumulate(GetType* origin_buffer, const int origin_count,
+                             GetType* result_buffer, const int result_count,
+                             const int target_rank,
+                             const unsigned int target_disp,
+                             const int target_count, MPI_Op operation) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget_accumulate(
+            origin_buffer, origin_count, type_impl<GetType>::get_type(),
+            result_buffer, result_count, type_impl<GetType>::get_type(),
+            target_rank, target_disp, target_count,
+            type_impl<GetType>::get_type(), operation, this->get_window(),
+            req.get()));
+        return req;
+    }
+
+    /**
+     * Fetch and operate on data from the target window (An optimized version of
+     * Get_accumulate).
+     *
+     * @param origin_buffer  the buffer to send
+     * @param target_rank  the rank to get the data from
+     * @param target_disp  the displacement at the target window
+     * @param operation  the reduce operation. See @MPI_Op
+     */
+    template <typename GetType>
+    void fetch_and_op(GetType* origin_buffer, GetType* result_buffer,
+                      const int target_rank, const unsigned int target_disp,
+                      MPI_Op operation) const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Fetch_and_op(
+            origin_buffer, result_buffer, type_impl<GetType>::get_type(),
+            target_rank, target_disp, operation, this->get_window()));
     }
 
 private:
