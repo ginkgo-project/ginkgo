@@ -299,6 +299,102 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
 }
 
 
+TYPED_TEST(MpiBindings, CanAccumulateValues)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+    } else if (my_rank == 1) {
+        data = std::vector<TypeParam>{5, 6, 7, 8};
+    } else if (my_rank == 2) {
+        data = std::vector<TypeParam>{9, 10, 11, 12};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+
+    {
+        auto win = window(data.data(), 4, comm);
+        if (my_rank == 0) {
+            win.lock_all();
+            for (auto rank = 0; rank < num_ranks; ++rank) {
+                if (rank != my_rank) {
+                    win.accumulate(data.data(), 4, rank, 0, 4, MPI_SUM);
+                }
+            }
+            win.unlock_all();
+        }
+    }
+
+    std::vector<TypeParam> ref;
+    if (my_rank == 0) {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        ASSERT_EQ(data, ref);
+    } else if (my_rank == 1) {
+        ref = std::vector<TypeParam>{6, 8, 10, 12};
+        ASSERT_EQ(data, ref);
+    } else if (my_rank == 2) {
+        ref = std::vector<TypeParam>{10, 12, 14, 16};
+        ASSERT_EQ(data, ref);
+    } else {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        ASSERT_EQ(data, ref);
+    }
+}
+
+
+TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+    } else if (my_rank == 1) {
+        data = std::vector<TypeParam>{5, 6, 7, 8};
+    } else if (my_rank == 2) {
+        data = std::vector<TypeParam>{9, 10, 11, 12};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+
+    gko::mpi::request req;
+    {
+        auto win = window(data.data(), 4, comm);
+        if (my_rank == 0) {
+            win.lock_all();
+            for (auto rank = 0; rank < num_ranks; ++rank) {
+                if (rank != my_rank) {
+                    req = win.r_accumulate(data.data(), 4, rank, 0, 4, MPI_SUM);
+                }
+            }
+            win.unlock_all();
+        }
+    }
+
+    req.wait();
+    std::vector<TypeParam> ref;
+    if (my_rank == 0) {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        ASSERT_EQ(data, ref);
+    } else if (my_rank == 1) {
+        ref = std::vector<TypeParam>{6, 8, 10, 12};
+        ASSERT_EQ(data, ref);
+    } else if (my_rank == 2) {
+        ref = std::vector<TypeParam>{10, 12, 14, 16};
+        ASSERT_EQ(data, ref);
+    } else {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        ASSERT_EQ(data, ref);
+    }
+}
+
+
 TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
@@ -315,11 +411,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
 
     if (my_rank != 0) {
         win.lock_all();
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                win.get(data.data(), 4, 0, 0, 4);
-            }
-        }
+        win.get(data.data(), 4, 0, 0, 4);
         win.unlock_all();
     }
 
@@ -345,15 +437,11 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetValuesWithLockAll)
 
     if (my_rank != 0) {
         win.lock_all();
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                req = win.r_get(data.data(), 4, 0, 0, 4);
-            }
-        }
-        req.wait();
+        req = win.r_get(data.data(), 4, 0, 0, 4);
         win.unlock_all();
     }
 
+    req.wait();
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
     ASSERT_EQ(data, ref);
 }
@@ -374,13 +462,9 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
     auto win = window(data.data(), 4, comm);
 
     if (my_rank != 0) {
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                win.lock(0, window::lock_type::exclusive);
-                win.get(data.data(), 4, 0, 0, 4);
-                win.unlock(0);
-            }
-        }
+        win.lock(0, window::lock_type::exclusive);
+        win.get(data.data(), 4, 0, 0, 4);
+        win.unlock(0);
     }
 
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
@@ -403,13 +487,9 @@ TYPED_TEST(MpiBindings, CanGetValuesWithSharedLock)
     auto win = window(data.data(), 4, comm);
 
     if (my_rank != 0) {
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                win.lock(0);
-                win.get(data.data(), 4, 0, 0, 4);
-                win.unlock(0);
-            }
-        }
+        win.lock(0);
+        win.get(data.data(), 4, 0, 0, 4);
+        win.unlock(0);
     }
 
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
@@ -433,16 +513,156 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
 
     win.fence();
     if (my_rank != 0) {
-        for (auto rank = 0; rank < num_ranks; ++rank) {
-            if (rank != my_rank) {
-                win.get(data.data(), 4, 0, 0, 4);
-            }
-        }
+        win.get(data.data(), 4, 0, 0, 4);
     }
     win.fence();
 
     auto ref = std::vector<TypeParam>{1, 2, 3, 4};
     ASSERT_EQ(data, ref);
+}
+
+
+TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    std::vector<TypeParam> target;
+    std::vector<TypeParam> result(4, 0);
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+        target = std::vector<TypeParam>{1, 2, 3, 4};
+    } else if (my_rank == 1) {
+        data = std::vector<TypeParam>{5, 6, 7, 8};
+        target = std::vector<TypeParam>{5, 6, 7, 8};
+    } else if (my_rank == 2) {
+        data = std::vector<TypeParam>{9, 10, 11, 12};
+        target = std::vector<TypeParam>{9, 10, 11, 12};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+        target = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+
+    {
+        auto win = window(target.data(), 4, comm);
+
+        if (my_rank == 2) {
+            win.lock_all();
+            win.get_accumulate(data.data(), 4, result.data(), 4, 0, 0, 4,
+                               MPI_SUM);
+            win.unlock_all();
+        }
+    }
+
+    std::vector<TypeParam> ref;
+    std::vector<TypeParam> ref2;
+    if (my_rank == 0) {
+        ref = std::vector<TypeParam>{10, 12, 14, 16};
+        EXPECT_EQ(target, ref);
+    } else if (my_rank == 2) {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        EXPECT_EQ(result, ref);
+    }
+}
+
+
+TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    std::vector<TypeParam> target;
+    std::vector<TypeParam> result(4, 0);
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+        target = std::vector<TypeParam>{1, 2, 3, 4};
+    } else if (my_rank == 1) {
+        data = std::vector<TypeParam>{5, 6, 7, 8};
+        target = std::vector<TypeParam>{5, 6, 7, 8};
+    } else if (my_rank == 2) {
+        data = std::vector<TypeParam>{9, 10, 11, 12};
+        target = std::vector<TypeParam>{9, 10, 11, 12};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+        target = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+    gko::mpi::request req;
+
+    {
+        auto win = window(target.data(), 4, comm);
+
+        if (my_rank == 2) {
+            win.lock_all();
+            req = win.r_get_accumulate(data.data(), 4, result.data(), 4, 0, 0,
+                                       4, MPI_SUM);
+            win.unlock_all();
+        }
+    }
+
+    req.wait();
+    std::vector<TypeParam> ref;
+    std::vector<TypeParam> ref2;
+    if (my_rank == 0) {
+        ref = std::vector<TypeParam>{10, 12, 14, 16};
+        ref2 = std::vector<TypeParam>{1, 2, 3, 4};
+        EXPECT_EQ(target, ref);
+        EXPECT_EQ(data, ref2);
+    } else if (my_rank == 2) {
+        ref = std::vector<TypeParam>{1, 2, 3, 4};
+        ref2 = std::vector<TypeParam>{9, 10, 11, 12};
+        EXPECT_EQ(result, ref);
+        EXPECT_EQ(target, ref2);
+        EXPECT_EQ(data, ref2);
+    }
+}
+
+
+TYPED_TEST(MpiBindings, CanFetchAndOperate)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    std::vector<TypeParam> target;
+    std::vector<TypeParam> result(4, 0);
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+        target = std::vector<TypeParam>{1, 2, 3, 4};
+    } else if (my_rank == 1) {
+        data = std::vector<TypeParam>{5, 6, 7, 8};
+        target = std::vector<TypeParam>{5, 6, 7, 8};
+    } else if (my_rank == 2) {
+        data = std::vector<TypeParam>{9, 10, 11, 12};
+        target = std::vector<TypeParam>{9, 10, 11, 12};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+        target = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+
+    {
+        auto win = window(target.data(), 4, comm);
+
+        if (my_rank == 2) {
+            win.lock_all();
+            win.fetch_and_op(data.data(), result.data(), 0, 1, MPI_SUM);
+            win.unlock_all();
+        }
+    }
+
+    std::vector<TypeParam> ref;
+    std::vector<TypeParam> ref2;
+    if (my_rank == 0) {
+        ref = std::vector<TypeParam>{1, 11, 3, 4};
+        EXPECT_EQ(target, ref);
+    } else if (my_rank == 2) {
+        ref = std::vector<TypeParam>{2, 0, 0, 0};
+        EXPECT_EQ(result, ref);
+    }
 }
 
 
