@@ -381,7 +381,10 @@ public:
      * This function is used to synchronize the ranks in the communicator.
      * Calls MPI_Barrier
      */
-    void synchronize() const { GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(get())); }
+    void synchronize() const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(this->get()));
+    }
 
     /**
      * Send (Blocking) data from calling process to destination rank.
@@ -395,9 +398,9 @@ public:
     void send(const SendType* send_buffer, const int send_count,
               const int destination_rank, const int send_tag) const
     {
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(send_buffer, send_count,
-                                          type_impl<SendType>::get_type(),
-                                          destination_rank, send_tag, get()));
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Send(send_buffer, send_count, type_impl<SendType>::get_type(),
+                     destination_rank, send_tag, this->get()));
     }
 
     /**
@@ -460,7 +463,7 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                      source_rank, recv_tag, get(), req.get()));
+                      source_rank, recv_tag, this->get(), req.get()));
         return req;
     }
 
@@ -476,7 +479,7 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Bcast(buffer, count,
                                            type_impl<BroadcastType>::get_type(),
-                                           root_rank, get()));
+                                           root_rank, this->get()));
     }
 
     /**
@@ -514,7 +517,7 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
                                             type_impl<ReduceType>::get_type(),
-                                            operation, root_rank, get()));
+                                            operation, root_rank, this->get()));
     }
 
     /**
@@ -535,7 +538,7 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, root_rank, get(), req.get()));
+            operation, root_rank, this->get(), req.get()));
         return req;
     }
 
@@ -550,9 +553,9 @@ public:
     template <typename ReduceType>
     void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation) const
     {
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Allreduce(in_place<ReduceType>(), recv_buffer, count,
-                          type_impl<ReduceType>::get_type(), operation, get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+            in_place<ReduceType>(), recv_buffer, count,
+            type_impl<ReduceType>::get_type(), operation, this->get()));
     }
 
     /**
@@ -570,9 +573,10 @@ public:
                          MPI_Op operation) const
     {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
-            in_place<ReduceType>(), recv_buffer, count,
-            type_impl<ReduceType>::get_type(), operation, get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Iallreduce(in_place<ReduceType>(), recv_buffer, count,
+                           type_impl<ReduceType>::get_type(), operation,
+                           this->get(), req.get()));
         return req;
     }
 
@@ -589,9 +593,9 @@ public:
     void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
                     int count, MPI_Op operation) const
     {
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Allreduce(send_buffer, recv_buffer, count,
-                          type_impl<ReduceType>::get_type(), operation, get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
+            send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
+            operation, this->get()));
     }
 
     /**
@@ -612,7 +616,7 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
-            operation, get(), req.get()));
+            operation, this->get(), req.get()));
         return req;
     }
 
@@ -680,7 +684,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Gatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_counts, displacements,
-            type_impl<RecvType>::get_type(), root_rank, get()));
+            type_impl<RecvType>::get_type(), root_rank, this->get()));
     }
 
     /**
@@ -767,7 +771,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
-            get()));
+            this->get()));
     }
 
     /**
@@ -790,7 +794,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
-            get(), req.get()));
+            this->get(), req.get()));
         return req;
     }
 
@@ -813,7 +817,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatterv(
             send_buffer, send_counts, displacements,
             type_impl<SendType>::get_type(), recv_buffer, recv_count,
-            type_impl<RecvType>::get_type(), root_rank, get()));
+            type_impl<RecvType>::get_type(), root_rank, this->get()));
     }
 
     /**
@@ -835,10 +839,11 @@ public:
                         const int recv_count, int root_rank) const
     {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatterv(
-            send_buffer, send_counts, displacements,
-            type_impl<SendType>::get_type(), recv_buffer, recv_count,
-            type_impl<RecvType>::get_type(), root_rank, get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Iscatterv(send_buffer, send_counts, displacements,
+                          type_impl<SendType>::get_type(), recv_buffer,
+                          recv_count, type_impl<RecvType>::get_type(),
+                          root_rank, this->get(), req.get()));
         return req;
     }
 
@@ -858,7 +863,8 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get()));
     }
 
     /**
@@ -880,8 +886,8 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(), get(),
-            req.get()));
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get(), req.get()));
         return req;
     }
 
@@ -900,7 +906,8 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(), get()));
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get()));
     }
 
     /**
@@ -921,8 +928,8 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(), get(),
-            req.get()));
+            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+            this->get(), req.get()));
         return req;
     }
 
@@ -946,7 +953,7 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
             send_buffer, send_counts, send_offsets,
             type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), get()));
+            recv_offsets, type_impl<RecvType>::get_type(), this->get()));
     }
 
     /**
@@ -972,7 +979,8 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
             send_buffer, send_counts, send_offsets,
             type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), get(), req.get()));
+            recv_offsets, type_impl<RecvType>::get_type(), this->get(),
+            req.get()));
         return req;
     }
 
@@ -991,7 +999,7 @@ public:
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
                                           type_impl<ScanType>::get_type(),
-                                          operation, get()));
+                                          operation, this->get()));
     }
 
     /**
@@ -1012,7 +1020,7 @@ public:
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscan(send_buffer, recv_buffer, count,
                                            type_impl<ScanType>::get_type(),
-                                           operation, get(), req.get()));
+                                           operation, this->get(), req.get()));
         return req;
     }
 
@@ -1034,7 +1042,7 @@ private:
         MPI_Comm local_comm;
         int rank;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(
-            get(), MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
+            this->get(), MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &rank));
         MPI_Comm_free(&local_comm);
         return rank;
@@ -1043,7 +1051,7 @@ private:
     int get_num_ranks() const
     {
         int size = 1;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(get(), &size));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_size(this->get(), &size));
         return size;
     }
 
@@ -1170,9 +1178,10 @@ public:
      * object.
      *
      * @param rank  the target rank.
+     * @param lock_t  the type of the lock: shared or exclusive
      * @param assert  the optimization level. 0 is always valid.
      */
-    void lock(int rank, int assert = 0, lock_type lock_t = lock_type::shared)
+    void lock(int rank, lock_type lock_t = lock_type::shared, int assert = 0)
     {
         if (lock_t == lock_type::shared) {
             GKO_ASSERT_NO_MPI_ERRORS(

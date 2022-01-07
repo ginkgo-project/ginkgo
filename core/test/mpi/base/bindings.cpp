@@ -171,7 +171,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
 }
 
 
-TYPED_TEST(MpiBindings, CanRPutValuesWithLockAll)
+TYPED_TEST(MpiBindings, CanNonBlockingPutValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
@@ -223,7 +223,40 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
         if (my_rank == 0) {
             for (auto rank = 0; rank < num_ranks; ++rank) {
                 if (rank != my_rank) {
-                    win.lock(rank, 0, window::lock_type::exclusive);
+                    win.lock(rank, window::lock_type::exclusive);
+                    win.put(data.data(), 4, rank, 0, 4);
+                    win.flush(0);
+                    win.unlock(rank);
+                }
+            }
+        }
+    }
+
+    auto ref = std::vector<TypeParam>{1, 2, 3, 4};
+    ASSERT_EQ(data, ref);
+}
+
+
+TYPED_TEST(MpiBindings, CanPutValuesWithSharedLock)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+
+    {
+        auto win = window(data.data(), 4, comm);
+        if (my_rank == 0) {
+            for (auto rank = 0; rank < num_ranks; ++rank) {
+                if (rank != my_rank) {
+                    win.lock(rank);
                     win.put(data.data(), 4, rank, 0, 4);
                     win.flush(0);
                     win.unlock(rank);
@@ -295,7 +328,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
 }
 
 
-TYPED_TEST(MpiBindings, CanRGetValuesWithLockAll)
+TYPED_TEST(MpiBindings, CanNonBlockingGetValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
@@ -343,7 +376,36 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
     if (my_rank != 0) {
         for (auto rank = 0; rank < num_ranks; ++rank) {
             if (rank != my_rank) {
-                win.lock(0, 0, window::lock_type::exclusive);
+                win.lock(0, window::lock_type::exclusive);
+                win.get(data.data(), 4, 0, 0, 4);
+                win.unlock(0);
+            }
+        }
+    }
+
+    auto ref = std::vector<TypeParam>{1, 2, 3, 4};
+    ASSERT_EQ(data, ref);
+}
+
+
+TYPED_TEST(MpiBindings, CanGetValuesWithSharedLock)
+{
+    using window = gko::mpi::window<TypeParam>;
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    if (my_rank == 0) {
+        data = std::vector<TypeParam>{1, 2, 3, 4};
+    } else {
+        data = std::vector<TypeParam>{0, 0, 0, 0};
+    }
+    auto win = window(data.data(), 4, comm);
+
+    if (my_rank != 0) {
+        for (auto rank = 0; rank < num_ranks; ++rank) {
+            if (rank != my_rank) {
+                win.lock(0);
                 win.get(data.data(), 4, 0, 0, 4);
                 win.unlock(0);
             }
@@ -421,7 +483,6 @@ TYPED_TEST(MpiBindings, CanNonBlockingBroadcastValues)
 
 TYPED_TEST(MpiBindings, CanReduceValues)
 {
-    using TypeParam = TypeParam;
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
@@ -450,7 +511,6 @@ TYPED_TEST(MpiBindings, CanReduceValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingReduceValues)
 {
-    using TypeParam = TypeParam;
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
