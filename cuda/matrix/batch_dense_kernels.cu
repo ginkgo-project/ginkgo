@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
