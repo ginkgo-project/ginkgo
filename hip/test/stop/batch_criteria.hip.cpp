@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@ namespace kernels {
 namespace hip {
 
 constexpr int default_block_size = 128;
+constexpr int default_reduce_block_size = 128;
 constexpr int sm_multiplier = 4;
 
 

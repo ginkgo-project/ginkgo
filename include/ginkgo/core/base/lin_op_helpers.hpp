@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -176,7 +176,7 @@ public:                                                                 \
  */
 #define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \
 public:                                                                      \
-    const _parameters_name##_type &get_##_parameters_name() const            \
+    const _parameters_name##_type& get_##_parameters_name() const            \
     {                                                                        \
         return _parameters_name##_;                                          \
     }                                                                        \
@@ -194,7 +194,7 @@ public:                                                                      \
                   std::move(exec))                                           \
         {}                                                                   \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
-                               const _parameters_name##_type &parameters)    \
+                               const _parameters_name##_type& parameters)    \
             : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
                                                _parameters_name##_type>(     \
                   std::move(exec), parameters)                               \
@@ -250,8 +250,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
@@ -303,8 +303,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         GKO_NOT_IMPLEMENTED;                                                 \
         return *this;                                                        \
@@ -317,8 +317,8 @@ public:                                                                      \
     mutable _name{_default};                                                 \
                                                                              \
     template <typename Arg>                                                  \
-    auto with_##_name(Arg &&_value)                                          \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Arg&& _value)                                          \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Arg>(_value)};                       \
@@ -332,8 +332,8 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
-        const->const std::decay_t<decltype(*this)> &                         \
+    auto with_##_name(Args&&... _value)                                      \
+        const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
