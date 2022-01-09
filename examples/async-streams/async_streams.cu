@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
-                    const ValueType* b, ValueType* x,
-                    std::shared_ptr<gko::AsyncHandle> handle);
+void sqrt_kernel(std::size_t size, ValueType* x,
+                 std::shared_ptr<gko::AsyncHandle> handle);
+
+
+// a parallel CUDA kernel that computes the application of a 3 point sqrt
+template <typename ValueType>
+__global__ void sqrt_kernel_impl(std::size_t size, ValueType* __restrict__ x)
+{
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    for (int i = tid; i < size; i += blockDim.x * gridDim.x) {
+        x[i] = sqrt(pow(3.14159, i));
+    }
+}
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
@@ -113,17 +123,27 @@ protected:
             auto handle = exec->get_default_exec_stream();
             auto handle2 = gko::CudaAsyncHandle::create(
                 gko::CudaAsyncHandle::create_type::non_blocking);
-            auto handle3 = gko::CudaAsyncHandle::create(
-                gko::CudaAsyncHandle::create_type::non_blocking);
-            for (auto i = 0; i < 100; ++i) {
-                stencil_kernel(x->get_size()[0], coefficients.get_const_data(),
-                               b->get_const_values(), x->get_values(), handle2);
-                stencil_kernel(x2->get_size()[0], coefficients.get_const_data(),
-                               b->get_const_values(), x2->get_values(),
-                               handle3);
+            constexpr int num_streams = 5;
+            std::vector<std::shared_ptr<gko::CudaAsyncHandle>> streams;
+            auto N = x->get_size()[0];
+            ValueType* data[num_streams];
+            for (int i = 0; i < num_streams; i++) {
+                streams.emplace_back(gko::CudaAsyncHandle::create(
+                    gko::CudaAsyncHandle::create_type::legacy_blocking));
+                // auto* data = exec->alloc<ValueType>(N);
+                cudaMalloc(&data[i], N * sizeof(ValueType));
+                // constexpr int block_size = 64;
+                // const auto grid_size =
+                //     (x->get_size()[0] + block_size - 1) / block_size;
+
+                // sqrt_kernel(x->get_size()[0], x->get_values(), handle2);
+                // sqrt_kernel(x2->get_size()[0], x2->get_values(), handle3);
+
+                sqrt_kernel_impl<<<1, 64, 0, streams[i]->get_handle()>>>(
+                    N, data[i]);
             }
-            handle2->wait();
-            handle3->wait();
+            // sqrt_kernel_impl<<<1, 1>>>(0, NULL);
+            //
             return handle;
         }
 

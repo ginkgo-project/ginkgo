@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2022, the Ginkgo authors
+Copyright (c) 2017-2021, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,33 +40,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(double);
 
 
-#define STENCIL_KERNEL(_type)                                                 \
-    void stencil_kernel(std::size_t size, const _type* coefs, const _type* b, \
-                        _type* x, std::shared_ptr<gko::AsyncHandle> handle);
+#define SQRT_KERNEL(_type)                       \
+    void sqrt_kernel(std::size_t size, _type* x, \
+                     std::shared_ptr<gko::AsyncHandle> handle);
 
 
 namespace {
 
 
-// a parallel CUDA kernel that computes the application of a 3 point stencil
+// a parallel CUDA kernel that computes the application of a 3 point sqrt
 template <typename ValueType>
-__global__ void stencil_kernel_impl(std::size_t size,
-                                    const ValueType* __restrict__ coefs,
-                                    const ValueType* __restrict__ b,
-                                    ValueType* __restrict__ x)
+__global__ void sqrt_kernel_impl(std::size_t size, ValueType* __restrict__ x)
 {
-    const auto thread_id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (thread_id >= size) {
-        return;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    for (int i = tid; i < size; i += blockDim.x * gridDim.x) {
+        x[i] = sqrt(pow(3.14159, i));
     }
-    auto result = coefs[1] * b[thread_id];
-    if (thread_id > 0) {
-        result += coefs[0] * b[thread_id - 1];
-    }
-    if (thread_id < size - 1) {
-        result += coefs[2] * b[thread_id + 1];
-    }
-    x[thread_id] = result;
 }
 
 
@@ -74,15 +63,14 @@ __global__ void stencil_kernel_impl(std::size_t size,
 
 
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
-                    const ValueType* b, ValueType* x,
-                    std::shared_ptr<gko::AsyncHandle> handle)
+void sqrt_kernel(std::size_t size, ValueType* x,
+                 std::shared_ptr<gko::AsyncHandle> handle)
 {
     constexpr int block_size = 64;
     const auto grid_size = (size + block_size - 1) / block_size;
-    stencil_kernel_impl<<<grid_size, block_size, 0,
-                          gko::as<gko::CudaAsyncHandle>(handle)
-                              ->get_handle()>>>(size, coefs, b, x);
+    sqrt_kernel_impl<<<grid_size, block_size, 0,
+                       gko::as<gko::CudaAsyncHandle>(handle)->get_handle()>>>(
+        size, x);
 }
 
-INSTANTIATE_FOR_EACH_VALUE_TYPE(STENCIL_KERNEL);
+INSTANTIATE_FOR_EACH_VALUE_TYPE(SQRT_KERNEL);
