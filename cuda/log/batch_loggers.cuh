@@ -34,9 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_LOG_BATCH_LOGGERS_CUH_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
+
 
 #include "common/cuda_hip/log/batch_logger.hpp.inc"
 
