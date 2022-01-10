@@ -382,7 +382,7 @@ build/cuda101/nompi/clang/all/release/static:
     CUDA_ARCH: 35
 
 # clang-cuda with cuda 10.1 and friends
-build/clang-cuda101/nompi/gcc/cuda/release/shared:
+build/clang-cuda101/openmpi/gcc/cuda/release/shared:
   <<: *default_build
   extends:
     - .quick_test_condition
@@ -392,6 +392,8 @@ build/clang-cuda101/nompi/gcc/cuda/release/shared:
     CUDA_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
     BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
@@ -465,7 +467,7 @@ build/cuda102/nompi/intel/cuda/debug/static:
     CUDA_ARCH: 35
 
 # cuda 11.0 and friends
-build/cuda110/nompi/gcc/cuda/debug/shared:
+build/cuda110/mvapich2/gcc/cuda/debug/shared:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -474,6 +476,7 @@ build/cuda110/nompi/gcc/cuda/debug/shared:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     CUDA_ARCH: 61
@@ -541,7 +544,7 @@ build/amd/nompi/gcc/hip/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/nompi/clang/hip/release/static:
+build/amd/openmpi/clang/hip/release/static:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
@@ -552,6 +555,8 @@ build/amd/nompi/clang/hip/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
@@ -614,7 +619,7 @@ build/nocuda/nompi/gcc/omp/release/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
 
-build/nocuda/nompi/clang/omp/debug/static:
+build/nocuda/openmpi/clang/omp/debug/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
@@ -624,6 +629,8 @@ build/nocuda/nompi/clang/omp/debug/static:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"

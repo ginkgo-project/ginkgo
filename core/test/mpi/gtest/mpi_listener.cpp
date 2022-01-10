@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *******************************************************************************/
 
-#include <mpi.h>
 #include <cassert>
+#include <mpi.h>
 #include <sstream>
 #include <string>
 #include <vector>
