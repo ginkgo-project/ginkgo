@@ -245,6 +245,8 @@ protected:
     void copy_communication_data(
         const Matrix<ValueType, LocalIndexType>* other);
 
+    void init_local_mtx_blocks();
+
     void update_matrix_blocks();
 
     void serialize_matrix_blocks();

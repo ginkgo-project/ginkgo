@@ -206,6 +206,37 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::init_local_mtx_blocks()
+{
+    const auto comm = this->get_communicator();
+    const auto part = this->get_partition();
+    auto num_parts = static_cast<size_type>(part->get_num_parts());
+    auto global_size = part->get_size();
+    auto local_rank = comm->rank();
+    std::vector<size_type> local_size;
+    for (auto i = 0; i < num_parts; ++i) {
+        local_size.emplace_back(static_cast<size_type>(part->get_part_size(i)));
+    }
+    size_type col_st = 0;
+    size_type col_end = 0;
+    for (auto i = 0; i < num_parts; ++i) {
+        if (i == local_rank) {
+            this->local_mtx_blocks_.emplace_back(this->diag_mtx_);
+        } else {
+            col_end += local_size[i];
+            auto offdiag_row_span = gko::span(0, local_size[local_rank]);
+            auto offdiag_col_span = gko::span(col_st, col_end);
+            this->local_mtx_blocks_.emplace_back(LocalMtx::create(
+                this->get_executor(), gko::dim<2>(offdiag_row_span.length(),
+                                                  offdiag_col_span.length())));
+
+            col_st += local_size[i];
+        }
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::update_matrix_blocks()
 {
     const auto comm = this->get_communicator();
@@ -281,7 +312,7 @@ void Matrix<ValueType, LocalIndexType>::serialize_matrix_blocks()
 
 template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::de_serialize_matrix_blocks(
-    serialized_mtx& ser_mtx,
+    serialized_mtx& serialized_mtx,
     std::vector<std::shared_ptr<LocalMtx>>& mat_blocks) const
 {
     const auto exec = this->get_executor();
@@ -295,14 +326,15 @@ void Matrix<ValueType, LocalIndexType>::de_serialize_matrix_blocks(
     for (auto i = 0; i < mat_blocks.size(); ++i) {
         auto local_nnz_count = mat_blocks[i]->get_num_stored_elements();
         auto local_size = mat_blocks[i]->get_size();
-        exec->copy(
-            local_nnz_count, mat_blocks[i]->get_const_col_idxs(),
-            this->serialized_local_mtx_->col_idxs.get_data() + nnz_offset);
-        exec->copy(local_nnz_count, mat_blocks[i]->get_const_values(),
-                   this->serialized_local_mtx_->values.get_data() + nnz_offset);
-        exec->copy(
-            local_size[0] + 1, mat_blocks[i]->get_const_row_ptrs(),
-            this->serialized_local_mtx_->row_ptrs.get_data() + row_offset);
+        exec->copy(local_nnz_count,
+                   serialized_mtx.col_idxs.get_const_data() + nnz_offset,
+                   mat_blocks[i]->get_col_idxs());
+        exec->copy(local_nnz_count,
+                   serialized_mtx.values.get_const_data() + nnz_offset,
+                   mat_blocks[i]->get_values());
+        exec->copy(local_size[0] + 1,
+                   serialized_mtx.row_ptrs.get_const_data() + row_offset,
+                   mat_blocks[i]->get_row_ptrs());
         row_offset += local_size[0] + 1;
         nnz_offset += local_nnz_count;
     }
@@ -383,11 +415,14 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         // TODO: Move these prepare steps to a separate public function callable
         // by the user.
         auto mat_x = dynamic_cast<GlobalMat*>(x);
-        // Pre-multiply (SpGEMM) local diagonal blocks and store in C
-        this->get_local_diag()->apply(mat_b->get_local_diag().get(),
-                                      mat_x->get_local_diag().get());
+        // FIXME Pre-multiply (SpGEMM) local diagonal blocks and store in C
+        // this->get_local_diag()->apply(mat_b->get_local_diag().get(),
+        //                               mat_x->get_local_diag().get());
         // Create submatrices from off-diagonal blocks.
+        std::cout << "Here " << __LINE__ << std::endl;
         const auto b_local_mtx_blocks = mat_b->get_local_mtx_blocks();
+        mat_x->init_local_mtx_blocks();
+        std::cout << "Here " << __LINE__ << std::endl;
         auto x_local_mtx_blocks = mat_x->get_local_mtx_blocks();
         // Sizes of the local diagonal and off-diagonal blocks
         std::vector<gko::dim<2>> local_sizes{};
@@ -395,13 +430,16 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
             local_sizes.emplace_back(gko::dim<2>(
                 part->get_part_size(comm->rank()), part->get_part_size(i)));
         }
+        std::cout << "Here " << __LINE__ << std::endl;
         GKO_ASSERT(b_local_mtx_blocks.size() == comm->size());
         GKO_ASSERT(x_local_mtx_blocks.size() == comm->size());
+        // GKO_ASSERT(comm->size() == 1024);
         std::vector<size_type> local_block_nnz{};
         for (auto i = 0; i < comm->size(); ++i) {
             local_block_nnz.emplace_back(
                 b_local_mtx_blocks[i]->get_num_stored_elements());
         }
+        std::cout << "Here " << __LINE__ << std::endl;
         const auto num_blocks = comm->size() * comm->size();
         std::vector<size_type> b_block_nnz{static_cast<size_type>(num_blocks),
                                            0};
@@ -410,38 +448,45 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
             disp[i] = i * comm->size();
         }
         std::vector<int> recv_counts{num_blocks, num_blocks};
+        std::cout << "Here " << __LINE__ << std::endl;
         // Gather nnz counts of all blocks onto current rank
-        comm->gather_v(local_block_nnz.data(), comm->size(), b_block_nnz.data(),
-                       recv_counts.data(), disp.data(), comm->rank());
+        comm->all_gather_v(local_block_nnz.data(), comm->size(),
+                           b_block_nnz.data(), recv_counts.data(), disp.data());
+        std::cout << "Here " << __LINE__ << std::endl;
         // Allocate/assign the sub matrices for the B matrix, which we receive.
         // TODO Not sure if this can be const LocalMtx, probably need a
         // const_cast for local_diag
         // FIX: Due to serialization simplifications, this is now a non-const
         // object.
+        // TODO: Memory optimizations possible by using existing local diagonal
+        // block, instead of creating a new object and copying the diag block.
         std::vector<std::shared_ptr<LocalMtx>> b_recv{
             static_cast<size_type>(comm->size() * comm->size()), nullptr};
+        std::cout << "Here " << __LINE__ << std::endl;
         std::vector<size_type> b_cumul_col_nnz(comm->size(), 0);
         // Allocate the block b matrix.
-        for (auto i = 0; i < comm->size(); ++i) {
-            for (auto j = 0; j < comm->size(); ++j) {
-                // if (i == comm->rank()) {
-                //     b_recv[i * comm->size() + j] = b_local_mtx_blocks[j];
-                // } else {
-                b_recv[i * comm->size() + j] = LocalMtx::create(
-                    exec, gko::dim<2>((local_sizes[i])[0], (local_sizes[j])[1]),
+        // Use column major for the blocks, because that makes it easier to loop
+        // through when doing the local SpGEMMs
+        std::cout << "Here " << __LINE__ << std::endl;
+        for (auto j = 0; j < comm->size(); ++j) {
+            for (auto i = 0; i < comm->size(); ++i) {
+                b_recv[i + comm->size() * j] = LocalMtx::create(
+                    exec, gko::dim<2>((local_sizes[j])[1], (local_sizes[i])[0]),
                     b_block_nnz[i * comm->size() + j]);
-                // }
                 b_cumul_col_nnz[j] += b_block_nnz[i * comm->size() + j];
             }
         }
+        std::cout << "Here " << __LINE__ << std::endl;
         // The received data is also serialized, so allocate buffers to receive
         // in which we later will need to de-serialize.
         auto total_b_nnz_count = std::accumulate(
             b_block_nnz.data(), b_block_nnz.data() + num_blocks, size_type{0});
+        std::cout << "Here " << __LINE__ << std::endl;
         serialized_mtx serialized_b_mtx{
             exec, total_b_nnz_count,
             static_cast<size_type>(comm->size() *
                                    (this->get_size()[0] + comm->size()))};
+        std::cout << "Here " << __LINE__ << std::endl;
         // TODO: Compute a prefix sum buffer later to make this loop parallel.
         auto row_offset = 0;
         auto nnz_offset = 0;
@@ -451,15 +496,18 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         // Communicate the b matrix. The input we get is in a block column major
         // format, so during de-serialization, we will need to fill that in
         // correctly
+        std::cout << "Here " << __LINE__ << std::endl;
         for (auto i = 0; i < b_local_mtx_blocks.size(); ++i) {
             auto local_nnz_count =
                 b_local_mtx_blocks[i]->get_num_stored_elements();
             auto local_size = b_local_mtx_blocks[i]->get_size();
+            std::cout << "Here " << __LINE__ << std::endl;
             comm->all_gather(
                 ser_mtx->col_idxs.get_const_data() + nnz_offset,
                 local_nnz_count,
                 serialized_b_mtx.col_idxs.get_data() + ser_recv_nnz_offset,
                 local_nnz_count);
+            std::cout << "Here " << __LINE__ << std::endl;
             comm->all_gather(
                 ser_mtx->values.get_const_data() + nnz_offset, local_nnz_count,
                 serialized_b_mtx.values.get_data() + ser_recv_nnz_offset,
@@ -469,12 +517,30 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
                 local_size[0] + 1,
                 serialized_b_mtx.row_ptrs.get_data() + ser_recv_col_offset,
                 local_size[0] + 1);
+            std::cout << "Here " << __LINE__ << std::endl;
             row_offset += local_size[0] + 1;
             nnz_offset += local_nnz_count;
             ser_recv_nnz_offset += b_cumul_col_nnz[i];
             ser_recv_col_offset += this->get_size()[0] + comm->size();
         }
+        std::cout << "Here " << __LINE__ << std::endl;
         de_serialize_matrix_blocks(serialized_b_mtx, b_recv);
+        std::cout << "Here " << __LINE__ << std::endl;
+        auto one = gko::initialize<LocalVec>({1.0}, exec);
+        // for (auto i = 0; i < comm->size(); ++i) {
+        //     for (auto j = 0; j < comm->size(); ++j) {
+        //         if (i == 0) {
+        //             this->local_mtx_blocks_[i]->apply(
+        //                 b_recv[i * comm->size() + j].get(),
+        //                 x_local_mtx_blocks[j].get());
+        //         } else {
+        //             this->local_mtx_blocks_[i]->apply(
+        //                 one.get(), b_recv[i * comm->size() + j].get(),
+        //                 one.get(), x_local_mtx_blocks[j].get());
+        //         }
+        //     }
+        // }
+        std::cout << "Here " << __LINE__ << std::endl;
     } else {
         auto dense_b = as<GlobalVec>(b);
         auto dense_x = as<GlobalVec>(x);
@@ -489,6 +555,7 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
         offdiag_mtx_->apply(&one_scalar_, recv_buffer_.get(), &one_scalar_,
                             dense_x->get_local());
     }
+    std::cout << "Here " << __LINE__ << std::endl;
 }
 
 
