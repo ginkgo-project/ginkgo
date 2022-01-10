@@ -78,6 +78,9 @@ class AsyncHandleBase;
 }  // namespace detail
 
 
+class Operation;
+
+
 class AsyncHandle {
     template <typename T>
     friend class detail::AsyncHandleBase;
@@ -101,6 +104,8 @@ public:
         const std::chrono::time_point<std::chrono::steady_clock>& time) = 0;
 
     virtual std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) = 0;
+
+    virtual std::shared_ptr<AsyncHandle> run(const Operation& op) = 0;
 };
 
 
@@ -129,6 +134,11 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
     {
         return self()->then(handle);
+    }
+
+    std::shared_ptr<AsyncHandle> run(const Operation& op) override
+    {
+        return self()->run(op);
     }
 
 private:
@@ -185,6 +195,9 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;
 
+    std::shared_ptr<AsyncHandle> run(const Operation& op) override
+        GKO_NOT_IMPLEMENTED;
+
 protected:
     HostAsyncHandle() : handle_() {}
 
@@ -228,6 +241,9 @@ public:
                         time) override;
 
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
+        GKO_NOT_IMPLEMENTED;
+
+    std::shared_ptr<AsyncHandle> run(const Operation& op) override
         GKO_NOT_IMPLEMENTED;
 
 protected:
@@ -275,6 +291,9 @@ public:
                         time) override;
 
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
+        GKO_NOT_IMPLEMENTED;
+
+    std::shared_ptr<AsyncHandle> run(const Operation& op) override
         GKO_NOT_IMPLEMENTED;
 
 protected:

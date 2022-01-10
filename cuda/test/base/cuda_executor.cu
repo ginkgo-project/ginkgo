@@ -49,10 +49,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+__global__ void init_data(int* data)
+{
+    data[0] = 10;
+    data[1] = 70;
+}
+
+__global__ void init_data2(int* data)
+{
+    data[0] += 1;
+    data[1] += 2;
+}
+
 
 class ExampleOperation : public gko::Operation {
 public:
-    explicit ExampleOperation(int& val) : value(val) {}
+    explicit ExampleOperation(int& val, int* data) : value(val), data_(data) {}
+
     std::shared_ptr<gko::AsyncHandle> run(
         std::shared_ptr<const gko::OmpExecutor>) const override
     {
@@ -60,13 +73,23 @@ public:
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
+
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::CudaExecutor>) const override
+        std::shared_ptr<const gko::CudaExecutor> exec) const override
     {
-        auto l = [=]() { cudaGetDevice(&value); };
-        return gko::HostAsyncHandle<void>::create(
-            std::async(std::launch::async, l));
+        auto handle = gko::CudaAsyncHandle::create(
+            gko::CudaAsyncHandle::create_type::non_blocking);
+        auto def_handle =
+            gko::as<gko::CudaAsyncHandle>(exec->get_default_exec_stream());
+        auto* data = exec->get_mem_space()->alloc<int>(2);
+        init_data<<<1, 1, 0, handle->get_handle()>>>(data);
+        init_data2<<<1, 1, 0, def_handle->get_handle()>>>(data);
+        cudaGetDevice(&value);
+        auto handle2 = exec->get_master()->get_mem_space()->copy_from(
+            exec->get_mem_space().get(), 2, data, &data_[0]);
+        return handle2;
     }
+
     std::shared_ptr<gko::AsyncHandle> run(
         std::shared_ptr<const gko::HipExecutor>) const override
     {
@@ -74,6 +97,7 @@ public:
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
+
     std::shared_ptr<gko::AsyncHandle> run(
         std::shared_ptr<const gko::DpcppExecutor>) const override
     {
@@ -81,6 +105,7 @@ public:
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
+
     std::shared_ptr<gko::AsyncHandle> run(
         std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
@@ -90,6 +115,7 @@ public:
     }
 
     int& value;
+    int* data_;
 };
 
 
@@ -127,88 +153,91 @@ protected:
 };
 
 
-TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
-{
-    auto cuda = gko::CudaExecutor::create(0, omp);
-    auto cuda2 = gko::CudaExecutor::create(0, omp);
+// TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
+// {
+//     auto cuda = gko::CudaExecutor::create(0, omp);
+//     auto cuda2 = gko::CudaExecutor::create(0, omp);
 
-    // We want automatic deinitialization to not create any error
-}
-
-
-TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
-{
-    int count = 0;
-    cudaGetDeviceCount(&count);
-
-    auto num_devices = gko::CudaExecutor::get_num_devices();
-
-    ASSERT_EQ(count, num_devices);
-}
+//     // We want automatic deinitialization to not create any error
+// }
 
 
-/* Properly checks if it works only when multiple GPUs exist */
-TEST_F(CudaExecutor, PreservesDeviceSettings)
-{
-    auto previous_device = gko::CudaExecutor::get_num_devices() - 1;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
-    auto orig = cuda->get_mem_space()->alloc<int>(2);
-    int current_device;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
-    ASSERT_EQ(current_device, previous_device);
+// TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
+// {
+//     int count = 0;
+//     cudaGetDeviceCount(&count);
 
-    cuda->get_mem_space()->free(orig);
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
-    ASSERT_EQ(current_device, previous_device);
-}
+//     auto num_devices = gko::CudaExecutor::get_num_devices();
+
+//     ASSERT_EQ(count, num_devices);
+// }
+
+
+// /* Properly checks if it works only when multiple GPUs exist */
+// TEST_F(CudaExecutor, PreservesDeviceSettings)
+// {
+//     auto previous_device = gko::CudaExecutor::get_num_devices() - 1;
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
+//     auto orig = cuda->get_mem_space()->alloc<int>(2);
+//     int current_device;
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
+//     ASSERT_EQ(current_device, previous_device);
+
+//     cuda->get_mem_space()->free(orig);
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
+//     ASSERT_EQ(current_device, previous_device);
+// }
 
 
 TEST_F(CudaExecutor, RunsOnProperDevice)
 {
     int value = -1;
+    int data[] = {20, 30};
 
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    auto hand = cuda2->run(ExampleOperation(value));
-    hand->wait();
+    auto hand = cuda2->run(ExampleOperation(value, &data[0]));
+    // hand->wait();
 
+    EXPECT_EQ(data[0], 11);
+    EXPECT_EQ(data[1], 72);
     ASSERT_EQ(value, cuda2->get_device_id());
 }
 
 
-TEST_F(CudaExecutor, Synchronizes)
-{
-    // Todo design a proper unit test once we support streams
-    ASSERT_NO_THROW(cuda->synchronize());
-}
+// TEST_F(CudaExecutor, Synchronizes)
+// {
+//     // Todo design a proper unit test once we support streams
+//     ASSERT_NO_THROW(cuda->synchronize());
+// }
 
 
-TEST_F(CudaExecutor, ExecInfoSetsCorrectProperties)
-{
-    auto dev_id = cuda->get_device_id();
-    auto num_sm = 0;
-    auto major = 0;
-    auto minor = 0;
-    auto max_threads_per_block = 0;
-    auto warp_size = 0;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-        &num_sm, cudaDevAttrMultiProcessorCount, dev_id));
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-        &major, cudaDevAttrComputeCapabilityMajor, dev_id));
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-        &minor, cudaDevAttrComputeCapabilityMinor, dev_id));
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
-        &max_threads_per_block, cudaDevAttrMaxThreadsPerBlock, dev_id));
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, dev_id));
-    auto num_cores = convert_sm_ver_to_cores(major, minor);
+// TEST_F(CudaExecutor, ExecInfoSetsCorrectProperties)
+// {
+//     auto dev_id = cuda->get_device_id();
+//     auto num_sm = 0;
+//     auto major = 0;
+//     auto minor = 0;
+//     auto max_threads_per_block = 0;
+//     auto warp_size = 0;
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+//         &num_sm, cudaDevAttrMultiProcessorCount, dev_id));
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+//         &major, cudaDevAttrComputeCapabilityMajor, dev_id));
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+//         &minor, cudaDevAttrComputeCapabilityMinor, dev_id));
+//     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
+//         &max_threads_per_block, cudaDevAttrMaxThreadsPerBlock, dev_id));
+//     GKO_ASSERT_NO_CUDA_ERRORS(
+//         cudaDeviceGetAttribute(&warp_size, cudaDevAttrWarpSize, dev_id));
+//     auto num_cores = convert_sm_ver_to_cores(major, minor);
 
-    ASSERT_EQ(cuda->get_major_version(), major);
-    ASSERT_EQ(cuda->get_minor_version(), minor);
-    ASSERT_EQ(cuda->get_num_multiprocessor(), num_sm);
-    ASSERT_EQ(cuda->get_warp_size(), warp_size);
-    ASSERT_EQ(cuda->get_num_warps(), num_sm * (num_cores / warp_size));
-    ASSERT_EQ(cuda->get_num_warps_per_sm(), num_cores / warp_size);
-}
+//     ASSERT_EQ(cuda->get_major_version(), major);
+//     ASSERT_EQ(cuda->get_minor_version(), minor);
+//     ASSERT_EQ(cuda->get_num_multiprocessor(), num_sm);
+//     ASSERT_EQ(cuda->get_warp_size(), warp_size);
+//     ASSERT_EQ(cuda->get_num_warps(), num_sm * (num_cores / warp_size));
+//     ASSERT_EQ(cuda->get_num_warps_per_sm(), num_cores / warp_size);
+// }
 
 
 }  // namespace
