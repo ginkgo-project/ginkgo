@@ -112,12 +112,12 @@ int main(int argc, char* argv[])
     auto B = dist_mtx::create(exec, B_data.size, comm);
     auto X = dist_mtx::create(exec, gko::dim<2>(A_data.size[0], B_data.size[1]),
                               partition, comm);
-    auto x =
-        dist_vec::create(exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
-                         gko::dim<2>(partition->get_part_size(comm->rank())));
-    auto b =
-        dist_vec::create(exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
-                         gko::dim<2>(partition->get_part_size(comm->rank())));
+    auto x = dist_vec::create(
+        exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+        gko::dim<2>(partition->get_part_size(comm->rank()), 1));
+    auto b = dist_vec::create(
+        exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+        gko::dim<2>(partition->get_part_size(comm->rank()), 1));
     A->read_distributed(A_data, partition);
     B->read_distributed(B_data, partition);
 
