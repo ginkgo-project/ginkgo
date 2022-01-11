@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
@@ -65,8 +66,7 @@ protected:
     using vtype = double;
 #endif
     using Id = gko::matrix::Identity<vtype>;
-    using Mtx = gko::matrix::Dense<vtype>;
-    using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
+    using Dense = gko::matrix::Dense<vtype>;
     using Arr = gko::Array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
 
@@ -86,23 +86,21 @@ protected:
     }
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data()
     {
-        id = Id::create(ref, 40);
-        x = gen_mtx<Mtx>(40, 40);
-        alpha = gko::initialize<Mtx>({2.0}, ref);
-        beta = gko::initialize<Mtx>({-1.0}, ref);
-        square = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[0]);
-        did = Id::create(exec, 40);
-        dx = gko::clone(exec, x);
+        id = Id::create(ref, sz);
+        alpha = gko::initialize<Dense>({2.0}, ref);
+        beta = gko::initialize<Dense>({-1.0}, ref);
+        did = Id::create(exec, sz);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
     }
@@ -120,26 +118,41 @@ protected:
 
     std::ranlux48 rand_engine;
 
+	gko::size_type sz = 41;
     std::unique_ptr<Id> id;
-    std::unique_ptr<Mtx> x;
-    std::unique_ptr<Mtx> alpha;
-    std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> square;
+    std::unique_ptr<Dense> alpha;
+    std::unique_ptr<Dense> beta;
     std::unique_ptr<Id> did;
-    std::unique_ptr<Mtx> dx;
-    std::unique_ptr<Mtx> dalpha;
-    std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Dense> dalpha;
+    std::unique_ptr<Dense> dbeta;
 };
 
 
-TEST_F(Identity, ScaleDenseAddIdentity)
+TEST_F(Identity, AddScaledIdentityToDense)
 {
     set_up_apply_data();
+    auto x = gen_mtx<Dense>(sz, sz, sz-5);
+    auto dx = gko::clone(exec, x);
 
     id->apply(alpha.get(), id.get(), beta.get(), x.get());
     did->apply(dalpha.get(), did.get(), dbeta.get(), dx.get());
 
     GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
+}
+
+
+TEST_F(Identity, AddScaledIdentityToCsr)
+{
+    using Csr = gko::matrix::Csr<vtype, itype>;
+    set_up_apply_data();
+    auto mtx = gen_mtx<Csr>(id->get_size()[0], id->get_size()[1], 5);
+    auto dmtx = gko::clone(exec, mtx);
+    dmtx->copy_from(mtx.get());
+
+    id->apply(alpha.get(), id.get(), beta.get(), mtx.get());
+    did->apply(dalpha.get(), did.get(), dbeta.get(), dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
 
 
