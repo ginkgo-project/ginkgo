@@ -960,6 +960,52 @@ public:
     }
 
     /**
+     * Gather data onto all ranks from all other ranks in the communicator with
+     * offsets.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param displacements  the offsets for the buffer
+     */
+    template <typename SendType, typename RecvType>
+    void all_gather_v(const SendType* send_buffer, const int send_count,
+                      RecvType* recv_buffer, const int* recv_counts,
+                      const int* displacements) const
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgatherv(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_counts, displacements,
+            type_impl<RecvType>::get_type(), this->get()));
+    }
+
+    /**
+     * (Non-blocking) Gather data onto all ranks from all other ranks in the
+     * communicator with offsets.
+     *
+     * @param send_buffer  the buffer to gather from
+     * @param send_count  the number of elements to send
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param displacements  the offsets for the buffer
+     *
+     * @return  the request handle for the call
+     */
+    template <typename SendType, typename RecvType>
+    request i_all_gather_v(const SendType* send_buffer, const int send_count,
+                           RecvType* recv_buffer, const int* recv_counts,
+                           const int* displacements) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallgatherv(
+            send_buffer, send_count, type_impl<SendType>::get_type(),
+            recv_buffer, recv_counts, displacements,
+            type_impl<RecvType>::get_type(), this->get(), req.get()));
+        return req;
+    }
+
+    /**
      * Gather data onto all ranks from all ranks in the communicator.
      *
      * @param send_buffer  the buffer to gather from

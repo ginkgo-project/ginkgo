@@ -86,12 +86,16 @@ public:
         {}
         serialized_mtx(std::shared_ptr<const Executor> exec,
                        size_type total_nnz, size_type total_rptr_size)
-            : total_nnz_count(total_nnz),
-              total_row_ptrs_size(total_rptr_size),
-              col_idxs{exec, total_nnz_count},
-              row_ptrs{exec, total_row_ptrs_size},
-              values{exec, total_nnz_count}
-        {}
+            : total_nnz_count{total_nnz},
+              total_row_ptrs_size{total_rptr_size},
+              col_idxs{exec, total_nnz},
+              row_ptrs{exec, total_rptr_size},
+              values{exec, total_nnz}
+        {
+            GKO_ASSERT(col_idxs.get_num_elems() == total_nnz);
+            GKO_ASSERT(row_ptrs.get_num_elems() == total_rptr_size);
+            GKO_ASSERT(values.get_num_elems() == total_nnz);
+        }
         Array<local_index_type> col_idxs;
         Array<local_index_type> row_ptrs;
         Array<value_type> values;
