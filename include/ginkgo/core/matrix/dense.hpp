@@ -119,7 +119,7 @@ class Dense
       public Permutable<int32>,
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
-      public EnableScaledIdentityAddition {
+      public EnableScaledIdentityAddition<Dense<ValueType>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;

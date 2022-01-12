@@ -1136,4 +1136,15 @@ TEST_F(Dense, AddScaledIdentityToNonSquare)
 }
 
 
+TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
+{
+    set_up_apply_data();
+
+    x->add_scaled_identity(alpha.get(), beta.get());
+    dx->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
+}
+
+
 }  // namespace
