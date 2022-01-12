@@ -239,6 +239,58 @@ to_arithmetic_type(const Ref& ref)
 }
 
 
+/**
+ * @internal
+ * Struct used for testing if an implicit cast is present. The constructor only
+ * takes an OutType, so any argument of a type that is not implicitly
+ * convertable to OutType is incompatible.
+ */
+template <typename OutType>
+struct test_for_implicit_cast {
+    constexpr GKO_ACC_ATTRIBUTES test_for_implicit_cast(const OutType&) {}
+};
+
+
+/**
+ * @internal
+ * Checks if an implicit cast is defined from InType to OutType.
+ */
+template <typename OutType, typename InType, typename Dummy = void>
+struct has_implicit_cast {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Don't touch the Dummy type!");
+    static constexpr bool value = false;
+};
+
+template <typename OutType, typename InType>
+struct has_implicit_cast<OutType, InType,
+                         xstd::void_t<decltype(test_for_implicit_cast<OutType>(
+                             std::declval<InType>()))>> {
+    static constexpr bool value = true;
+};
+
+
+/**
+ * Converts in from InType to OutType with an implicit cast if it is defined,
+ * otherwise, a `static_cast` is used.
+ */
+template <typename OutType, typename InType>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<has_implicit_cast<OutType, InType>::value, OutType>
+    implicit_explicit_conversion(const InType& in)
+{
+    return in;
+}
+
+template <typename OutType, typename InType>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<!has_implicit_cast<OutType, InType>::value, OutType>
+    implicit_explicit_conversion(const InType& in)
+{
+    return static_cast<OutType>(in);
+}
+
+
 }  // namespace detail
 }  // namespace acc
 }  // namespace gko
