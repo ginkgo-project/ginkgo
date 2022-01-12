@@ -160,7 +160,7 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,
+void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Coo<ValueType, IndexType>* coo,
                     IndexType* rows, IndexType* offsets,
                     const size_type num_blocks, const size_type block_size,
@@ -188,7 +188,7 @@ void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL);
+    GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

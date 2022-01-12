@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_BCCOO_HERLPER_HPP_
-#define GKO_CORE_MATRIX_BCCOO_HERLPER_HPP_
+#ifndef GKO_CORE_MATRIX_BCCOO_HELPER_HPP_
+#define GKO_CORE_MATRIX_BCCOO_HELPER_HPP_
 
 
 #include <cstring>
@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/types.hpp>
+
+
 #include "core/base/unaligned_access.hpp"
 
 
@@ -353,4 +355,4 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_BCCOO_HERLPER_HPP_
+#endif  // GKO_CORE_MATRIX_BCCOO_HELPER_HPP_
