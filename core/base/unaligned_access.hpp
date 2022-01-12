@@ -47,7 +47,11 @@ namespace gko {
 /**
  * Copies the value in the m-th byte of ptr.
  *
- * @copy the value in the m-th byte of ptr.
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ * @param value  the value
  */
 template <typename T>
 void set_value_chunk(void* ptr, size_type start, T value)
@@ -58,6 +62,11 @@ void set_value_chunk(void* ptr, size_type start, T value)
 
 /**
  * Returns the value in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @tparam T     the type of value
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
  *
  * @return the value in the m-th byte of ptr, which is adjusting to T class.
  */

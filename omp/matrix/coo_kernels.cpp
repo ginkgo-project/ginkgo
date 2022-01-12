@@ -363,15 +363,8 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL);
+    GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL);
 
-
-template <typename ValueType, typename IndexType>
-void fill_bccoo(std::shared_ptr<const OmpExecutor> exec,
-                const matrix::Coo<ValueType, IndexType>* coo,
-                const IndexType* rows, const IndexType* offsets, uint8* data,
-                const size_type num_blocks,
-                const size_type block_size) GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
