@@ -140,7 +140,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public Permutable<IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
-            public EnableScaledIdentityAddition {
+            public EnableScaledIdentityAddition<Csr<ValueType, IndexType>> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;

@@ -780,10 +780,10 @@ public:
 
 
 /**
- * Mix-in that adds the operation M <- a I + b M for matrix M, identity
+ * Adds the operation M <- a I + b M for matrix M, identity
  * operator I and scalars a and b, where M is the calling object.
  */
-class EnableScaledIdentityAddition {
+class ScaledIdentityAddable {
 public:
     /**
      * Scales this and adds another scalar times the identity to it.
@@ -792,11 +792,38 @@ public:
      * @param b  Scalar to multiply this before adding the scaled identity to
      *   it.
      */
-    void add_scaled_identity(const LinOp* const a, const LinOp* const b)
+    virtual void add_scaled_identity(const LinOp* const a,
+                                     const LinOp* const b) = 0;
+};
+
+
+/**
+ * Implements common checks for the operation M <- a I + b M for matrix M,
+ * identity operator I and scalars a and b, where M is the calling object.
+ *
+ * @tparam ConcreteType  The concrete type that should have this operation
+ *                       (the CRTP parameter).
+ */
+template <typename ConcreteType>
+class EnableScaledIdentityAddition : public ScaledIdentityAddable {
+public:
+    /**
+     * Scales this and adds another scalar times the identity to it.
+     *
+     * @param a  Scalar to multiply the identity operator by before adding.
+     * @param b  Scalar to multiply this before adding the scaled identity to
+     *   it.
+     */
+    void add_scaled_identity(const LinOp* const a,
+                             const LinOp* const b) override
     {
         GKO_ASSERT_IS_SCALAR(a);
         GKO_ASSERT_IS_SCALAR(b);
-        add_scaled_identity_impl(a, b);
+        auto ae =
+            make_temporary_clone(as<ConcreteType>(this)->get_executor(), a);
+        auto be =
+            make_temporary_clone(as<ConcreteType>(this)->get_executor(), b);
+        add_scaled_identity_impl(ae.get(), be.get());
     }
 
 private:

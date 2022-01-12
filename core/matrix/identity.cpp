@@ -55,7 +55,7 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
     if (auto bI = dynamic_cast<const Identity<ValueType>*>(b)) {
-        if (auto xs = dynamic_cast<EnableScaledIdentityAddition*>(x)) {
+        if (auto xs = dynamic_cast<ScaledIdentityAddable*>(x)) {
             xs->add_scaled_identity(alpha, beta);
         } else {
             GKO_NOT_IMPLEMENTED;
