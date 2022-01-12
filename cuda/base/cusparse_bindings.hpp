@@ -879,7 +879,7 @@ inline void destroy(cusparseSpMatDescr_t descr)
 }
 
 
-#if (CUDA_VERSION >= 11030)
+#if (CUDA_VERSION >= 11031)
 
 
 template <typename AttribType>
@@ -905,7 +905,7 @@ inline void destroy(cusparseSpSMDescr_t info)
 }
 
 
-#endif  // CUDA_VERSION >= 11030
+#endif  // CUDA_VERSION >= 11031
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
@@ -1108,7 +1108,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
 
 
 template <typename ValueType>
@@ -1153,7 +1153,7 @@ void spsm_solve(cusparseHandle_t handle, cusparseOperation_t op_a,
 }
 
 
-#endif  // (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
+#endif  // (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
 
 
 template <typename IndexType>

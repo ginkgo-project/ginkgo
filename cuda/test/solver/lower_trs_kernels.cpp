@@ -199,7 +199,7 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     d_b2->convert_to(db2_strided.get());
     // The cuSPARSE Generic SpSM implementation uses the wrong stride here
     // so the input and output stride need to match
-#if CUDA_VERSION >= 11030
+#if CUDA_VERSION >= 11031
     auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
 #else
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);

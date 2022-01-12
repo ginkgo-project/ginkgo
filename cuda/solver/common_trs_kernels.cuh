@@ -75,7 +75,7 @@ namespace cuda {
 namespace {
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
 
 
 template <typename ValueType, typename IndexType>
