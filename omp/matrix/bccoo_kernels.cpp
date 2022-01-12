@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/bccoo_helper.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -105,6 +106,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL);
 
+#define OPTION 1
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const OmpExecutor> exec,
@@ -137,6 +139,13 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 uint8 ind = get_position_newrow(chunk_data, shf, row, col);
                 get_next_position_value(chunk_data, nblk, ind, shf, col, val);
                 if (row_old != row) {
+#ifdef OPTION
+                    for (size_type j = 0; j < num_cols; j++) {
+                        atomic_add(c->at(row_old, j), sumV[j]);
+                        // c->at(row_old, j) += sumV[j];
+                        sumV[j] = zero<ValueType>();
+                    }
+#else
 #pragma omp critical(bccoo_apply)
                     {
                         for (size_type j = 0; j < num_cols; j++) {
@@ -148,11 +157,18 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                             sumV[j] = zero<ValueType>();
                         }
                     }
+#endif
                 }
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] += val * b->at(col, j);
                 }
             }
+#ifdef OPTION
+            for (size_type j = 0; j < num_cols; j++) {
+                atomic_add(c->at(row, j), sumV[j]);
+                // c->at(row_old, j) += sumV[j];
+            }
+#else
 #pragma omp critical(bccoo_apply)
             {
                 for (size_type j = 0; j < num_cols; j++) {
@@ -162,6 +178,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     c->at(row, j) += sumV[j];
                 }
             }
+#endif
         }
     }
 }
@@ -204,6 +221,13 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 uint8 ind = get_position_newrow(chunk_data, shf, row, col);
                 get_next_position_value(chunk_data, nblk, ind, shf, col, val);
                 if (row_old != row) {
+#ifdef OPTION
+                    for (size_type j = 0; j < num_cols; j++) {
+                        atomic_add(c->at(row_old, j), sumV[j]);
+                        // c->at(row_old, j) += sumV[j];
+                        sumV[j] = zero<ValueType>();
+                    }
+#else
 #pragma omp critical(bccoo_apply)
                     {
                         for (size_type j = 0; j < num_cols; j++) {
@@ -215,11 +239,18 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                             sumV[j] = zero<ValueType>();
                         }
                     }
+#endif
                 }
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] += alpha_val * val * b->at(col, j);
                 }
             }
+#ifdef OPTION
+            for (size_type j = 0; j < num_cols; j++) {
+                atomic_add(c->at(row, j), sumV[j]);
+                // c->at(row_old, j) += sumV[j];
+            }
+#else
 #pragma omp critical(bccoo_apply)
             {
                 for (size_type j = 0; j < num_cols; j++) {
@@ -229,6 +260,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     c->at(row, j) += sumV[j];
                 }
             }
+#endif
         }
     }
 }

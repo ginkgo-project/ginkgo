@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -79,12 +80,14 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
-        EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{1.0});
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{1.0});
         ind += sizeof(value_type);
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{3.0});
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{3.0});
         ind += sizeof(value_type);
 
         if (block_size < 3) {
@@ -93,7 +96,8 @@ protected:
             EXPECT_EQ(chunk_data[ind], 0x01);
         }
         ind++;
-        EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{2.0});
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{2.0});
         ind += sizeof(value_type);
 
         if ((block_size == 2) || (block_size >= 4)) {
@@ -103,7 +107,8 @@ protected:
 
         EXPECT_EQ(chunk_data[ind], 0x01);
         ind++;
-        EXPECT_EQ(*((value_type*)(chunk_data + ind)), value_type{5.0});
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{5.0});
         ind += sizeof(value_type);
     }
 
@@ -158,18 +163,18 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingData)
     index_type rows[] = {0};
 
     chunk[ind++] = 0x00;
-    *((value_type*)(chunk + ind)) = 1.0;
+    gko::set_value_chunk<value_type>(chunk, ind, 1.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0x01;
-    *((value_type*)(chunk + ind)) = 2.0;
+    gko::set_value_chunk<value_type>(chunk, ind, 2.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0xFF;
     chunk[ind++] = 0x01;
-    *((value_type*)(chunk + ind)) = 3.0;
+    gko::set_value_chunk<value_type>(chunk, ind, 3.0);
     ind += sizeof(value_type);
     chunk[ind++] = 0xFF;
     chunk[ind++] = 0x00;
-    *((value_type*)(chunk + ind)) = 4.0;
+    gko::set_value_chunk<value_type>(chunk, ind, 4.0);
     ind += sizeof(value_type);
 
     auto mtx = gko::matrix::Bccoo<value_type, index_type>::create(
@@ -177,6 +182,7 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingData)
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
         gko::array<index_type>::view(this->exec, 2, offsets),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
+
     ASSERT_EQ(mtx->get_num_stored_elements(), 4);
     ASSERT_EQ(mtx->get_block_size(), block_size);
     ASSERT_EQ(mtx->get_const_offsets(), offsets);

@@ -70,7 +70,7 @@ class BccooBuilder;
  * by blocks of consecutive elements.
  *
  * First the elements are sorted by row and column indexes, and, then,
- * only the pairs (column,value) are stored in a 1D array of bytes.
+ * only the pairs (column, value) are stored in a 1D array of bytes.
  * The column indexes can be stored directly or as the difference
  * from the previous element in the same row.
  *
@@ -82,7 +82,7 @@ class BccooBuilder;
  * The BCCOO LinOp supports different operations:
  *
  * ```cpp
- * matrix::BCCOO *A, *B, *C;    // matrices
+ * matrix::Bccoo *A, *B, *C;    // matrices
  * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
  * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
  * matrix::Identity *I;         // identity matrix
@@ -338,9 +338,7 @@ protected:
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size}
-    {
-        GKO_ASSERT(block_size_ >= 0);
-    }
+    {}
 
     /**
      * Creates a BCCOO matrix from already allocated (and initialized) rows
@@ -350,14 +348,14 @@ protected:
      * @param size  size of the matrix
      * @param chunk  array of matrix indexes and matrix values
      * @param offsets  array of positions of the first entry of each block in
-     * chunk array
-     * @param rows  array of row index of the first entry of each block in chunk
-     * array
+     *                 chunk array
+     * @param rows  array of row index of the first entry of each block in
+     *              chunk array
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      *
-     * @note If one of `row_idxs`, `col_idxs` or `values` is not an rvalue, not
-     *       an array of IndexType, IndexType and ValueType, respectively, or
+     * @note If one of `chunk`, `offsets` or `rows` is not an rvalue, not
+     *       an array of uint8, IndexType and IndexType, respectively, or
      *       is on the wrong executor, an internal copy of that array will be
      *       created, and the original array chunk will not be used in the
      *       matrix.

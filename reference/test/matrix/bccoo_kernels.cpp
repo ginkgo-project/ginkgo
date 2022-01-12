@@ -77,7 +77,7 @@ protected:
     std::unique_ptr<Mtx> uns_mtx;
 };
 
-TYPED_TEST_SUITE(Bccoo, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(Bccoo, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Bccoo, ConvertsToPrecision)

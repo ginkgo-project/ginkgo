@@ -54,8 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-
-
 namespace bccoo {
 
 
@@ -78,6 +76,7 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
+
 
 }  // namespace bccoo
 
@@ -141,7 +140,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
-    num_bytes += num_nonzeros * (sizeof(new_precision) - sizeof(ValueType));
+    num_bytes += num_nonzeros * sizeof(new_precision);
+    num_bytes -= num_nonzeros * sizeof(ValueType);
     auto tmp = Bccoo<new_precision, IndexType>::create(
         exec, this->get_size(), num_nonzeros, block_size, num_bytes);
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
@@ -240,7 +240,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     // Computation of rows, offsets and m (mem_size)
     IndexType* rows_data = rows.get_data();
     IndexType* offsets_data = offsets.get_data();
-    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type col = 0;
+    size_type row = 0;
+    size_type shf = 0;
     offsets_data[0] = 0;
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
@@ -257,7 +261,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     uint8* chunk_data = chunk.get_data();
 
     // Computation of chunk
-    nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+    nblk = 0;
+    blk = 0;
+    col = 0;
+    row = 0;
+    shf = 0;
     offsets_data[0] = 0;
     for (const auto& elem : data.nonzeros) {
         if (elem.value != zero<ValueType>()) {
@@ -312,6 +320,7 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
         get_detect_endblock(block_size, nblk, blk);
     }
 }
+
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>

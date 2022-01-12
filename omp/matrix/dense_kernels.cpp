@@ -178,7 +178,7 @@ void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const size_type block_size,
                     size_type* result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

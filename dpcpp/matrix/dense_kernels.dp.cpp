@@ -331,12 +331,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const size_type block_size,
                     size_type* result) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMSIZE_BCCOO_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEMS_IZE_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

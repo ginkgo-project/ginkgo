@@ -91,7 +91,7 @@ namespace kernels {
                           const matrix::Coo<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)       \
+#define GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
     void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
                         const matrix::Coo<ValueType, IndexType>* coo, \
                         IndexType* rows, IndexType* offsets,          \
@@ -114,7 +114,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coo, GKO_DECLARE_ALL_AS_TEMPLATES);

@@ -69,7 +69,7 @@ namespace cuda {
 namespace bccoo {
 
 
-constexpr int default_block_size = 512;
+// constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
@@ -186,8 +186,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
-                      matrix::Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+                      remove_complex<matrix::Bccoo<ValueType, IndexType>>*
+                          result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL);

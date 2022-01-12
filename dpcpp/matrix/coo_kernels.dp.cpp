@@ -385,6 +385,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
+                    const matrix::Coo<ValueType, IndexType>* coo,
+                    IndexType* rows, IndexType* offsets,
+                    const size_type num_blocks, const size_type block_size,
+                    size_type* mem_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const DpcppExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_CONVERT_TO_BCCOO_KERNEL);
+
+
 }  // namespace coo
 }  // namespace dpcpp
 }  // namespace kernels

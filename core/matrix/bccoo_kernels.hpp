@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -141,49 +144,7 @@ namespace kernels {
     GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL(ValueType, IndexType)
 
 
-namespace omp {
-namespace bccoo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bccoo
-}  // namespace omp
-
-
-namespace cuda {
-namespace bccoo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bccoo
-}  // namespace cuda
-
-
-namespace reference {
-namespace bccoo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bccoo
-}  // namespace reference
-
-
-namespace hip {
-namespace bccoo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bccoo
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace bccoo {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace bccoo
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(bccoo, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
