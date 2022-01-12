@@ -96,7 +96,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return *r_ptr;
+        return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr);
     }
 
     constexpr GKO_ACC_ATTRIBUTES arithmetic_type
@@ -159,7 +159,7 @@ public:
     constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
     {
         const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
-        return *r_ptr;
+        return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr);
     }
 
 private:
