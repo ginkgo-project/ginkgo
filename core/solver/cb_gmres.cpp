@@ -480,22 +480,24 @@ void CbGmres<ValueType>::apply_dense_impl(
         }  // closes while(true)
         // Solve x
 
-        auto hessenberg_small = hessenberg->create_submatrix(
-            span{0, restart_iter},
-            span{0, dense_b->get_size()[1] * (restart_iter)});
+        if (total_iter > 0) {
+            auto hessenberg_small = hessenberg->create_submatrix(
+                span{0, restart_iter},
+                span{0, dense_b->get_size()[1] * (restart_iter)});
 
-        exec->run(cb_gmres::make_step_2(
-            residual_norm_collection.get(),
-            krylov_bases_range.get_accessor().to_const(),
-            hessenberg_small.get(), y.get(), before_preconditioner.get(),
-            &final_iter_nums));
-        // Solve upper triangular.
-        // y = hessenberg \ residual_norm_collection
-        this->get_preconditioner()->apply(before_preconditioner.get(),
-                                          after_preconditioner.get());
-        dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-        // Solve x
-        // x = x + get_preconditioner() * krylov_bases * y
+            exec->run(cb_gmres::make_step_2(
+                residual_norm_collection.get(),
+                krylov_bases_range.get_accessor().to_const(),
+                hessenberg_small.get(), y.get(), before_preconditioner.get(),
+                &final_iter_nums));
+            // Solve upper triangular.
+            // y = hessenberg \ residual_norm_collection
+            this->get_preconditioner()->apply(before_preconditioner.get(),
+                                              after_preconditioner.get());
+            dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+            // Solve x
+            // x = x + get_preconditioner() * krylov_bases * y
+        }
     };  // End of apply_lambda
 
     // Look which precision to use as the storage type
