@@ -98,7 +98,7 @@ protected:
 };
 
 TYPED_TEST_SUITE(RowGatherer, gko::test::TwoValueIndexType,
-                 PairTypenameNameGenerator);
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(RowGatherer, CanBeEmpty)
