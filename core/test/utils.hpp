@@ -228,8 +228,7 @@ struct TypenameNameGenerator {
 
 
 struct PairTypenameNameGenerator {
-    template <typename T,
-              std::enable_if_t<std::tuple_size<T>::value == 2, bool> = true>
+    template <typename T>
     static std::string GetName(int i)
     {
         static_assert(std::tuple_size<T>::value == 2, "expected a pair");
@@ -241,12 +240,14 @@ struct PairTypenameNameGenerator {
                    typeid(typename std::tuple_element<1, T>::type)) +
                ">";
     }
+};
 
-    template <typename T,
-              std::enable_if_t<std::tuple_size<T>::value == 3, bool> = true>
+
+struct TupleTypenameNameGenerator {
+    template <typename T>
     static std::string GetName(int i)
     {
-        static_assert(std::tuple_size<T>::value == 3, "expected a pair");
+        static_assert(std::tuple_size<T>::value == 3, "expected a tuple");
         return "<" +
                gko::name_demangling::get_type_name(
                    typeid(typename std::tuple_element<0, T>::type)) +
