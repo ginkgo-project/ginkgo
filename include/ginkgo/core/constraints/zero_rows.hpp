@@ -57,9 +57,8 @@ namespace constraints {
  * constrained indices of vectors are set to zero, so that the constrained
  * operator can still be used in a CG method for example. Additionally, a new
  * right-hand-side in that subspace is created as `new_b = b - cons_A * x_0` and
- * the new initial guess is set to 0 for constrained indices. Lastly, the
- * constrained values are added to the solution of the system `cons_A * z =
- * new_b`.
+ * the new initial guess is set to 0. Lastly, the constrained values are added
+ * to the solution of the system `cons_A * z = new_b`.
  *
  * @note Current restrictions:
  * - can only be used with a single right-hand-side

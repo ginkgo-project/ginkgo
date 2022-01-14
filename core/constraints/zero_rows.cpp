@@ -106,8 +106,7 @@ ZeroRowsStrategy<ValueType, IndexType>::construct_initial_guess(
 {
     auto exec = init_guess->get_executor();
     auto cons_init_guess = gko::clone(init_guess);
-    exec->run(cons::make_fill_subset(idxs, cons_init_guess.get()->get_values(),
-                                     gko::zero<ValueType>()));
+    cons_init_guess->fill(zero<ValueType>());
     return cons_init_guess;
 }
 
