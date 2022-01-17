@@ -80,6 +80,7 @@ public:
     using LocalMtx = gko::matrix::Csr<value_type, local_index_type>;
     using LocalAbsMtx =
         gko::matrix::Csr<remove_complex<value_type>, local_index_type>;
+    template <typename SerValueType, typename SerIndexType>
     struct serialized_mtx {
         serialized_mtx(std::shared_ptr<const Executor> exec)
             : col_idxs{exec}, row_ptrs{exec}, values{exec}
@@ -96,9 +97,9 @@ public:
             GKO_ASSERT(row_ptrs.get_num_elems() == total_rptr_size);
             GKO_ASSERT(values.get_num_elems() == total_nnz);
         }
-        Array<local_index_type> col_idxs;
-        Array<local_index_type> row_ptrs;
-        Array<value_type> values;
+        Array<SerIndexType> col_idxs;
+        Array<SerIndexType> row_ptrs;
+        Array<SerValueType> values;
         size_type total_nnz_count;
         size_type total_row_ptrs_size;
     };
@@ -218,7 +219,8 @@ public:
         return offdiag_mtx_;
     }
 
-    std::shared_ptr<serialized_mtx> get_serialized_mtx() const
+    std::shared_ptr<serialized_mtx<value_type, local_index_type>>
+    get_serialized_mtx() const
     {
         return serialized_local_mtx_;
     }
@@ -255,8 +257,9 @@ protected:
 
     void serialize_matrix_blocks();
 
+    template <typename SerValueType, typename SerIndexType>
     void de_serialize_matrix_blocks(
-        serialized_mtx& ser_mtx,
+        serialized_mtx<SerValueType, SerIndexType>& ser_mtx,
         std::vector<std::shared_ptr<LocalMtx>>& output_mtxs) const;
 
     mpi::request communicate(const LocalVec* local_b) const;
@@ -282,7 +285,8 @@ private:
     std::shared_ptr<LocalMtx> diag_mtx_;
     std::shared_ptr<LocalMtx> offdiag_mtx_;
     std::vector<std::shared_ptr<LocalMtx>> local_mtx_blocks_;
-    std::shared_ptr<serialized_mtx> serialized_local_mtx_;
+    std::shared_ptr<serialized_mtx<value_type, local_index_type>>
+        serialized_local_mtx_;
     std::shared_ptr<const Partition<local_index_type>> partition_;
 };
 

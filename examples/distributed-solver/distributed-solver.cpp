@@ -112,6 +112,8 @@ int main(int argc, char* argv[])
              }},
             {"hip",
              [&] {
+                 // return gko::HipExecutor::create(
+                 //     0, gko::ReferenceExecutor::create(), true);
                  return gko::HipExecutor::create(
                      comm->node_local_rank(), gko::ReferenceExecutor::create(),
                      true);
