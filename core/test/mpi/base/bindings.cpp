@@ -956,6 +956,90 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllGatherValues)
 }
 
 
+TYPED_TEST(MpiBindings, CanAllGatherValuesWithDisplacements)
+{
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    std::vector<int> recv_counts;
+    std::vector<int> disp;
+    int send_counts = 0;
+    if (my_rank == 0) {
+        data = {3};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 1;
+    } else if (my_rank == 1) {
+        data = {5, 6};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 2;
+    } else if (my_rank == 2) {
+        data = {7, 8};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 2;
+    } else if (my_rank == 3) {
+        data = {9, 10, 11};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 3;
+    }
+    auto gather_array =
+        gko::Array<TypeParam>{this->ref, static_cast<gko::size_type>(8)};
+
+    comm.all_gather_v(data.data(), send_counts, gather_array.get_data(),
+                      recv_counts.data(), disp.data());
+
+    auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 6, 7, 8, 9, 10, 11});
+    GKO_ASSERT_ARRAY_EQ(ref, gather_array);
+}
+
+
+TYPED_TEST(MpiBindings, CanNonBlockingAllGatherValuesWithDisplacements)
+{
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto my_rank = comm.rank();
+    auto num_ranks = comm.size();
+    std::vector<TypeParam> data;
+    std::vector<int> recv_counts;
+    std::vector<int> disp;
+    int send_counts = 0;
+    if (my_rank == 0) {
+        data = {3};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 1;
+    } else if (my_rank == 1) {
+        data = {5, 6};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 2;
+    } else if (my_rank == 2) {
+        data = {7, 8};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 2;
+    } else if (my_rank == 3) {
+        data = {9, 10, 11};
+        recv_counts = {1, 2, 2, 3};
+        disp = {0, 1, 3, 5};
+        send_counts = 3;
+    }
+    auto gather_array =
+        gko::Array<TypeParam>{this->ref, static_cast<gko::size_type>(8)};
+
+    auto req =
+        comm.i_all_gather_v(data.data(), send_counts, gather_array.get_data(),
+                            recv_counts.data(), disp.data());
+
+    req.wait();
+    auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 6, 7, 8, 9, 10, 11});
+    GKO_ASSERT_ARRAY_EQ(ref, gather_array);
+}
+
+
 TYPED_TEST(MpiBindings, CanGatherValuesWithDisplacements)
 {
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);

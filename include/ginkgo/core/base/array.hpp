@@ -699,6 +699,18 @@ public:
         return data_.get_deleter().target_type() == typeid(default_deleter);
     }
 
+    friend std::ostream& operator<<(std::ostream& os, Array<ValueType>& array)
+    {
+        array.set_executor(array.get_executor()->get_master());
+        os << "Array: [ ";
+        for (auto i = 0; i < array.get_num_elems(); ++i) {
+            os << array.get_const_data()[i] << "\n";
+        }
+        os << "] End of Array.";
+
+        return os;
+    }
+
 
 private:
     // Allow other Array types to access private members

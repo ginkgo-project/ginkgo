@@ -60,15 +60,15 @@ int main(int argc, char* argv[])
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
 
-    // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
-
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
         std::exit(-1);
     }
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const auto grid_dim =
+        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 2);
+
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -92,25 +92,59 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const auto comm = std::make_shared<gko::mpi::communicator>(MPI_COMM_WORLD);
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
 
-    std::ifstream A_stream{"data/A.mtx"};
-    std::ifstream B_stream{"data/B_mat.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(A_stream);
-    auto B_data = gko::read_raw<ValueType, GlobalIndexType>(B_stream);
+    gko::matrix_data<ValueType, GlobalIndexType> A_data;
+    gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    A_data.size = {num_rows, num_rows};
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                // b_data.nonzeros.emplace_back(
+                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
+    }
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
         exec->get_master(), static_cast<gko::size_type>(comm->size() + 1)};
-    const auto rows_per_rank = A_data.size[0] / comm->size();
+    const auto rows_per_rank = num_rows / comm->size();
     for (int i = 0; i < comm->size(); i++) {
         ranges_array.get_data()[i] = i * rows_per_rank;
     }
-    ranges_array.get_data()[comm->size()] = A_data.size[0];
-    auto partition =
-        gko::share(part_type::build_from_contiguous(exec, ranges_array));
-    auto A = dist_mtx::create(exec, A_data.size, comm);
-    auto B = dist_mtx::create(exec, B_data.size, comm);
-    auto X = dist_mtx::create(exec, gko::dim<2>(A_data.size[0], B_data.size[1]),
+    ranges_array.get_data()[comm->size()] = num_rows;
+    auto partition = gko::share(
+        part_type::build_from_contiguous(exec->get_master(), ranges_array));
+
+    auto A_host =
+        gko::share(dist_mtx::create(exec->get_master(), A_data.size, comm));
+    A_host->read_distributed(A_data, partition);
+    auto A = gko::share(dist_mtx::create(exec, A_data.size, comm));
+    A->copy_from(A_host.get());
+    auto B = gko::share(dist_mtx::create(exec, A_data.size, comm));
+    B->copy_from(A_host.get());
+    auto X = dist_mtx::create(exec, gko::dim<2>(A_data.size[0], A_data.size[1]),
                               partition, comm);
     auto x = dist_vec::create(
         exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
@@ -119,7 +153,9 @@ int main(int argc, char* argv[])
         exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
         gko::dim<2>(partition->get_part_size(comm->rank()), 1));
     A->read_distributed(A_data, partition);
-    B->read_distributed(B_data, partition);
+    B->read_distributed(A_data, partition);
+    std::cout << " Rank " << comm->rank() << " Mat size " << A->get_size()
+              << " lmat size " << A->get_local_diag()->get_size() << std::endl;
 
     A->apply(lend(B), lend(X));
 
