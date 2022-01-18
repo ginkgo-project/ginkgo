@@ -172,7 +172,7 @@ class thread_block_tile : public sycl::sub_group {
 
 public:
     // note: intel calls nd_item.get_sub_group(), but it still call
-    // intel::sub_group() to create the sub_group.
+    // sycl::sub_group() to create the sub_group.
     template <typename Group>
     explicit thread_block_tile(const Group& parent_group)
         : data_{Size, 0}, sub_group()
