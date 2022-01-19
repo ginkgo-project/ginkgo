@@ -434,8 +434,8 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::fill(exec, c, zero<OutputValueType>());
     }
     select_abstract_spmv(
-        syn::value_list<std::uint32_t, 256u, 512u, 1024u>(),
-        [](std::uint32_t cfg) { return 512 == cfg; }, compiled_kernels(),
+        syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),
+        [](auto cfg) { return 1024 == cfg.block_size; }, compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
@@ -470,8 +470,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::scale(exec, beta, c);
     }
     select_abstract_spmv(
-        syn::value_list<std::uint32_t, 256u>(),
-        [](std::uint32_t cfg) { return 256 == cfg; }, compiled_kernels(),
+        syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),
+        [](auto cfg) { return 512 == cfg.block_size; }, compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
         ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
         ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
