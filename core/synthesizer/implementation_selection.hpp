@@ -108,10 +108,10 @@ namespace syn {
 
 #define GKO_ENABLE_IMPLEMENTATION_TWO_SELECTION_KERNEL(_name, _callable)      \
     template <typename Predicate, bool... BoolArgs, int... IntArgs,           \
-              gko::size_type... SizeTArgs, typename... TArgs,                 \
-              std::uint32_t cfg, typename... InferredArgs>                    \
+              gko::size_type... SizeTArgs, typename... TArgs, typename CFG,   \
+              typename... InferredArgs>                                       \
     inline void _name(::gko::syn::value_list<int>, Predicate,                 \
-                      ::gko::syn::value_list<std::uint32_t, cfg>,             \
+                      ::gko::syn::type_list<CFG>,                             \
                       ::gko::syn::value_list<bool, BoolArgs...>,              \
                       ::gko::syn::value_list<int, IntArgs...>,                \
                       ::gko::syn::value_list<gko::size_type, SizeTArgs...>,   \
@@ -120,10 +120,10 @@ namespace syn {
                                                                               \
     template <int K, int... Rest, typename Predicate, bool... BoolArgs,       \
               int... IntArgs, gko::size_type... SizeTArgs, typename... TArgs, \
-              std::uint32_t cfg, typename... InferredArgs>                    \
+              typename CFG, typename... InferredArgs>                         \
     inline void _name(                                                        \
         ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,       \
-        ::gko::syn::value_list<std::uint32_t, cfg> device_args,               \
+        ::gko::syn::type_list<CFG> device_args,                               \
         ::gko::syn::value_list<bool, BoolArgs...> bool_args,                  \
         ::gko::syn::value_list<int, IntArgs...> int_args,                     \
         ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,       \
@@ -131,7 +131,7 @@ namespace syn {
     {                                                                         \
         if (is_eligible(K)) {                                                 \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K,     \
-                      cfg>(::gko::syn::value_list<int, K>(),                  \
+                      CFG>(::gko::syn::value_list<int, K>(),                  \
                            std::forward<InferredArgs>(args)...);              \
         } else {                                                              \
             _name(::gko::syn::value_list<int, Rest...>(), is_eligible,        \
@@ -172,8 +172,9 @@ namespace syn {
     {                                                                          \
         if (is_eligible(K)) {                                                  \
             _callable(kernel_args, kernel_is_eligible,                         \
-                      ::gko::syn::value_list<std::uint32_t, K>(), bool_args,   \
-                      int_args, size_args, type_args,                          \
+                      ::gko::syn::type_list<                                   \
+                          ::gko::kernels::dpcpp::device_config<K, 32>>(),      \
+                      bool_args, int_args, size_args, type_args,               \
                       std::forward<InferredArgs>(args)...);                    \
         } else {                                                               \
             _name(::gko::syn::value_list<std::uint32_t, Rest...>(),            \
