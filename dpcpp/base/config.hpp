@@ -72,6 +72,13 @@ struct config {
 };
 
 
+template <int block, int subgroup>
+struct device_config {
+    static constexpr uint32 block_size = block;
+    static constexpr uint32 subgroup_size = subgroup;
+};
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
