@@ -304,7 +304,7 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 namespace {
 
 
-template <int info, std::uint32_t cfg, typename InputValueType,
+template <int info, typename cfg, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
 void abstract_spmv(syn::value_list<int, info>,
@@ -316,7 +316,7 @@ void abstract_spmv(syn::value_list<int, info>,
                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
                    const matrix::Dense<OutputValueType>* beta = nullptr)
 {
-    std::cout << "cfg " << cfg << std::endl;
+    std::cout << "cfg " << cfg::block_size << std::endl;
     using a_accessor =
         gko::acc::reduced_row_major<1, OutputValueType, const MatrixValueType>;
     using b_accessor =
