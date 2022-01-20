@@ -138,15 +138,4 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, AddScaledIdentityToNonSquare)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha.get(), beta.get());
-    dx->add_scaled_identity(dalpha.get(), dbeta.get());
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
-}
-
-
 }  //  namespace

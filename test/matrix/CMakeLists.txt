@@ -1,4 +1,3 @@
 ginkgo_create_common_test(csr_kernels)
 ginkgo_create_common_test(dense_kernels)
-ginkgo_create_common_test(identity_kernels)
 ginkgo_create_common_test(matrix)

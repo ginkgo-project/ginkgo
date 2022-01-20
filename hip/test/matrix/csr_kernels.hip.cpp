@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "hip/test/utils.hip.hpp"
 
@@ -1007,6 +1008,19 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
                                                          &has_diags);
 
     ASSERT_TRUE(has_diags);
+}
+
+
+TEST_F(Csr, AddScaledIdentityToNonSquare)
+{
+    set_up_apply_data(std::make_shared<Mtx::classical>());
+    gko::test::modify_to_ensure_all_diagonal_entries(mtx.get());
+    dmtx->copy_from(mtx.get());
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+    dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<double>::value);
 }
 
 

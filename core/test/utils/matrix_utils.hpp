@@ -164,12 +164,11 @@ void remove_diagonal_entry_from_row(
     matrix::Csr<ValueType, IndexType>* const mtx,
     const IndexType row_to_process)
 {
-    GKO_ASSERT(
-        mtx->get_executor()->memory_accessible(ReferenceExecutor::create()));
+    auto ref_mtx = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
     const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
-    const auto rowptrs = mtx->get_row_ptrs();
-    const auto colidxs = mtx->get_col_idxs();
-    const auto values = mtx->get_values();
+    const auto rowptrs = ref_mtx->get_row_ptrs();
+    const auto colidxs = ref_mtx->get_col_idxs();
+    const auto values = ref_mtx->get_values();
     IndexType diag_iz = -1;
     for (IndexType j = rowptrs[row_to_process]; j < rowptrs[row_to_process + 1];
          j++) {
@@ -187,6 +186,7 @@ void remove_diagonal_entry_from_row(
             rowptrs[i]--;
         }
     }
+    mtx->copy_from(ref_mtx.get());
 }
 
 
@@ -201,11 +201,10 @@ template <typename ValueType, typename IndexType>
 void modify_to_ensure_all_diagonal_entries(
     matrix::Csr<ValueType, IndexType>* const mtx)
 {
-    GKO_ASSERT(
-        mtx->get_executor()->memory_accessible(ReferenceExecutor::create()));
+    auto ref_mtx = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
     const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
-    const auto rowptrs = mtx->get_const_row_ptrs();
-    const auto colidxs = mtx->get_col_idxs();
+    const auto rowptrs = ref_mtx->get_const_row_ptrs();
+    const auto colidxs = ref_mtx->get_col_idxs();
     for (IndexType i = 0; i < nrows; i++) {
         bool has_diag = false;
         IndexType last_before_diag = rowptrs[i] - 1;
@@ -233,6 +232,7 @@ void modify_to_ensure_all_diagonal_entries(
             }
         }
     }
+    mtx->copy_from(ref_mtx.get());
 }
 
 
