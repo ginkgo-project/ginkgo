@@ -123,15 +123,26 @@ int main(int argc, char* argv[])
 
     auto A = dist_mtx::create(exec, A_data.size, comm);
     auto x = dist_vec::create(exec, comm);
+    auto x2 = dist_vec::create(exec, comm);
+    auto x3 = dist_vec::create(exec, comm);
     auto b = dist_vec::create(exec, comm);
     A->read_distributed(A_data, partition);
     x->read_distributed(x_data, partition);
+    x2->read_distributed(x_data, partition);
+    x3->read_distributed(x_data, partition);
     b->read_distributed(b_data, partition);
 
+    A->apply(lend(b), lend(x2));
+    A->apply2(lend(b), lend(x3));
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
+    x3->add_scaled(lend(minus_one), lend(x2));
+    auto bresult = gko::initialize<vec>({0.0}, exec->get_master());
+    x3->compute_norm2(lend(bresult));
+
     A->apply(lend(one), lend(x), lend(minus_one), lend(b));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
     b->compute_norm2(lend(result));
-    std::cout << *result->get_values() << std::endl;
+    std::cout << "Spmv l2 error: " << *result->get_values()
+              << "\n block spmv error " << *bresult->get_values() << std::endl;
 }
