@@ -1263,6 +1263,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx,
+    bool* const has_all_diags)
+{
+    const size_type num_blocks = exec->get_num_multiprocessor() * 4;
+    Array<int> block_has_diags(exec, num_blocks);
+    kernel::check_diagonal_entries<<<num_blocks, default_block_size>>>(
+        static_cast<IndexType>(
+            std::min(mtx->get_size()[0], mtx->get_size()[1])),
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+        block_has_diags.get_data());
+    kernel::reduce_and_array<<<1, default_block_size>>>(
+        num_blocks, block_has_diags.get_data());
+    *has_all_diags = static_cast<bool>(
+        exec->copy_val_to_host(block_has_diags.get_const_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,

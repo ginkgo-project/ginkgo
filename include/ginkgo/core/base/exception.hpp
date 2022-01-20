@@ -623,6 +623,28 @@ public:
 };
 
 
+/**
+ * Exception throws if a matrix does not have a property required by a
+ * numerical method.
+ *
+ * Currently, a message is specified at the call-site manually.
+ */
+class UnsupportedMatrixProperty : public Error {
+public:
+    /**
+     * Initializes the UnsupportedMatrixProperty error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param msg  A message describing the property required.
+     */
+    UnsupportedMatrixProperty(const std::string& file, const int line,
+                              const std::string& msg)
+        : Error(file, line, msg)
+    {}
+};
+
+
 }  // namespace gko
 
 

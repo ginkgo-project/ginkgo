@@ -152,6 +152,90 @@ void make_hpd(matrix::Dense<ValueType>* mtx,
 }
 
 
+/**
+ * Changes the diagonal entry in the requested row, logically shrinking the
+ * matrix by 1 nonzero entry.
+ *
+ * @param mtx  The CSR matrix to remove a diagonal entry from.
+ * @param row_to_process  The row from which to remove the diagonal entry.
+ */
+template <typename ValueType, typename IndexType>
+void remove_diagonal_entry_from_row(
+    matrix::Csr<ValueType, IndexType>* const mtx,
+    const IndexType row_to_process)
+{
+    GKO_ASSERT(
+        mtx->get_executor()->memory_accessible(ReferenceExecutor::create()));
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto rowptrs = mtx->get_row_ptrs();
+    const auto colidxs = mtx->get_col_idxs();
+    const auto values = mtx->get_values();
+    IndexType diag_iz = -1;
+    for (IndexType j = rowptrs[row_to_process]; j < rowptrs[row_to_process + 1];
+         j++) {
+        if (colidxs[j] == row_to_process) {
+            diag_iz = j;
+        }
+    }
+    if (diag_iz >= 0) {
+        // remove diagonal
+        for (IndexType j = diag_iz; j < rowptrs[nrows]; j++) {
+            colidxs[j] = colidxs[j + 1];
+            values[j] = values[j + 1];
+        }
+        for (IndexType i = row_to_process + 1; i < nrows + 1; i++) {
+            rowptrs[i]--;
+        }
+    }
+}
+
+
+/**
+ * Ensures each row has a diagonal entry, but the matrix is mathematically
+ * changed.
+ *
+ * The number of nonzeros is not increased; rather column indices are adjusted
+ * to have the diagonal entry.
+ */
+template <typename ValueType, typename IndexType>
+void modify_to_ensure_all_diagonal_entries(
+    matrix::Csr<ValueType, IndexType>* const mtx)
+{
+    GKO_ASSERT(
+        mtx->get_executor()->memory_accessible(ReferenceExecutor::create()));
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto rowptrs = mtx->get_const_row_ptrs();
+    const auto colidxs = mtx->get_col_idxs();
+    for (IndexType i = 0; i < nrows; i++) {
+        bool has_diag = false;
+        IndexType last_before_diag = rowptrs[i] - 1;
+        IndexType first_after_diag = rowptrs[i + 1];
+        for (IndexType j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
+            if (colidxs[j] == i) {
+                has_diag = true;
+                break;
+            }
+            if (colidxs[j] > i && first_after_diag > j) {
+                first_after_diag = j;
+            }
+            if (colidxs[j] < i && j > last_before_diag) {
+                last_before_diag = j;
+            }
+        }
+        if (!has_diag) {
+            if (last_before_diag >= rowptrs[i]) {
+                colidxs[last_before_diag] = i;
+            } else if (first_after_diag < rowptrs[i + 1]) {
+                colidxs[first_after_diag] = i;
+            } else {
+                throw std::runtime_error(
+                    "Invalid matrix - each row should have at least 1 nnz!");
+            }
+        }
+    }
+}
+
+
 }  // namespace test
 }  // namespace gko
 

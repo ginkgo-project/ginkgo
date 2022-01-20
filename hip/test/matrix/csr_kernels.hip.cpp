@@ -973,4 +973,41 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, CanDetectMissingDiagonalEntry)
+{
+    using T = double;
+    using Csr = Mtx;
+    auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
+    const auto rowptrs = ref_mtx->get_row_ptrs();
+    const auto colidxs = ref_mtx->get_col_idxs();
+    const int testrow = 15;
+    gko::test::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
+    auto mtx = Csr::create(hip);
+    mtx->copy_from(ref_mtx.get());
+    bool has_diags = true;
+
+    gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),
+                                                         &has_diags);
+
+    ASSERT_FALSE(has_diags);
+}
+
+
+TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
+{
+    using T = double;
+    using Csr = Mtx;
+    auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
+    gko::test::modify_to_ensure_all_diagonal_entries(ref_mtx.get());
+    auto mtx = Csr::create(hip);
+    mtx->copy_from(ref_mtx.get());
+    bool has_diags = false;
+
+    gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),
+                                                         &has_diags);
+
+    ASSERT_TRUE(has_diags);
+}
+
+
 }  // namespace

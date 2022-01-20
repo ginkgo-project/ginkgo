@@ -967,6 +967,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx,
+    bool* const has_all_diags)
+{
+    *has_all_diags = true;
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
+    for (size_type row = 0; row < minsize; row++) {
+        bool row_diag = false;
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            if (col_idxs[iz] == row) {
+                row_diag = true;
+            }
+        }
+        if (!row_diag) {
+            *has_all_diags = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,
