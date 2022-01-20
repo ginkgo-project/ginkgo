@@ -195,6 +195,11 @@ namespace kernels {
                    const matrix::Dense<ValueType>* alpha,       \
                    matrix::Csr<ValueType, IndexType>* to_scale)
 
+#define GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType) \
+    void check_diagonal_entries_exist(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::Csr<ValueType, IndexType>* mtx, bool* has_all_diags)
+
 #define GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)  \
     void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
                              const matrix::Dense<ValueType>* alpha,       \
@@ -251,6 +256,8 @@ namespace kernels {
     GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType);      \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
 

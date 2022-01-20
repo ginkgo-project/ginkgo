@@ -969,6 +969,35 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx,
+    bool* const has_all_diags)
+{
+    bool l_has_all_diags = true;
+    const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+#pragma omp parallel for reduction(&& : l_has_all_diags)
+    for (size_type row = 0; row < minsize; row++) {
+        bool row_diag = false;
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            if (col_idxs[iz] == row) {
+                row_diag = true;
+            }
+        }
+        if (!row_diag) {
+            l_has_all_diags = false;
+        }
+    }
+    *has_all_diags = l_has_all_diags;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
                          const matrix::Dense<ValueType>* const alpha,
                          const matrix::Dense<ValueType>* const beta,

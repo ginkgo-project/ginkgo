@@ -652,6 +652,21 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
 
 
 /**
+ * Throws an @ref UnsupportedMatrixProperty exception in case of an unmet
+ * matrix property requirement.
+ *
+ * @param _message  A message describing the matrix property required.
+ */
+#define GKO_UNSUPPORTED_MATRIX_PROPERTY(_message)                             \
+    {                                                                         \
+        throw ::gko::UnsupportedMatrixProperty(__FILE__, __LINE__, _message); \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+
+/**
  * Ensures that a given size, typically of a linear algebraic object,
  * is divisible by a given block size.
  *

@@ -53,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -107,8 +106,8 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 GKO_REGISTER_OPERATION(scale, csr::scale);
 GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
-GKO_REGISTER_OPERATION(add_diagonal_elems,
-                       factorization::add_diagonal_elements);
+GKO_REGISTER_OPERATION(check_diagonal_entries,
+                       csr::check_diagonal_entries_exist);
 
 
 }  // anonymous namespace
@@ -680,7 +679,13 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
                                                          const LinOp* const b)
 {
-    this->get_executor()->run(csr::make_add_diagonal_elems(this, false));
+    bool has_diags{false};
+    this->get_executor()->run(
+        csr::make_check_diagonal_entries(this, &has_diags));
+    if (!has_diags) {
+        GKO_UNSUPPORTED_MATRIX_PROPERTY(
+            "The matrix has one or more structurally zero diagonals!");
+    }
     this->get_executor()->run(csr::make_add_scaled_identity(
         as<Dense<ValueType>>(a), as<Dense<ValueType>>(b), this));
 }
