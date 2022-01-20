@@ -635,6 +635,52 @@ void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* b,
 
 
 template <typename ValueType, typename LocalIndexType>
+void Matrix<ValueType, LocalIndexType>::apply2(const LinOp* b, LinOp* x) const
+{
+    auto dense_b = as<GlobalVec>(b);
+    auto dense_x = as<GlobalVec>(x);
+    auto exec = this->get_executor();
+    auto part = this->get_partition();
+    auto comm = this->get_communicator();
+    auto req = this->communicate(dense_b->get_local());
+    diag_mtx_->apply(dense_b->get_local(), dense_x->get_local());
+    req.wait();
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        recv_buffer_->copy_from(host_recv_buffer_.get());
+    }
+    int offset = 0;
+    int x_offset = 0;
+    for (auto i = 0; i < local_mtx_blocks_.size(); ++i) {
+        if (i != comm->rank()) {
+            auto recv_buf_view = LocalVec::create(
+                recv_buffer_->get_executor(),
+                gko::dim<2>(part->get_part_size(i),
+                            recv_buffer_->get_size()[1]),
+                Array<ValueType>::view(recv_buffer_->get_executor(),
+                                       part->get_part_size(i),
+                                       recv_buffer_->get_values() + offset),
+                recv_buffer_->get_size()[1]);
+            auto x_view = LocalVec::create(
+                dense_x->get_executor(),
+                gko::dim<2>(local_mtx_blocks_[i]->get_size()[0],
+                            dense_x->get_size()[1]),
+                Array<ValueType>::view(
+                    dense_x->get_executor(),
+                    local_mtx_blocks_[i]->get_size()[0],
+                    dense_x->get_local()->get_values() + x_offset),
+                dense_x->get_size()[1]);
+            local_mtx_blocks_[i]->apply(&one_scalar_, recv_buf_view.get(),
+                                        &one_scalar_, x_view.get());
+            offset += part->get_part_size(i);
+            x_offset += local_mtx_blocks_[i]->get_size()[0];
+        }
+    }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Matrix<ValueType, LocalIndexType>::apply_impl(const LinOp* alpha,
                                                    const LinOp* b,
                                                    const LinOp* beta,

@@ -149,16 +149,39 @@ int main(int argc, char* argv[])
     auto x = dist_vec::create(
         exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
         gko::dim<2>(partition->get_part_size(comm->rank()), 1));
+    auto x_spgemm = dist_vec::create(
+        exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+        gko::dim<2>(partition->get_part_size(comm->rank()), 1));
     auto b = dist_vec::create(
         exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
         gko::dim<2>(partition->get_part_size(comm->rank()), 1));
+    auto y = dist_vec::create(
+        exec, comm, partition, gko::dim<2>(A_data.size[0], 1),
+        gko::dim<2>(partition->get_part_size(comm->rank()), 1));
+    y->fill(gko::zero<ValueType>());
+    b->fill(gko::one<ValueType>());
+    x->fill(gko::zero<ValueType>());
+    x_spgemm->fill(gko::zero<ValueType>());
     A->read_distributed(A_data, partition);
     B->read_distributed(A_data, partition);
     std::cout << " Rank " << comm->rank() << " Mat size " << A->get_size()
               << " lmat size " << A->get_local_diag()->get_size() << std::endl;
 
     A->apply(lend(B), lend(X));
+    std::cout << " Rank " << comm->rank() << " X Mat size " << X->get_size()
+              << " lmat size " << X->get_local_diag()->get_size() << std::endl;
+    std::cout << " Rank " << comm->rank() << " b Vec size " << b->get_size()
+              << std::endl;
+    std::cout << " Rank " << comm->rank() << " x spgemm Vec size "
+              << x_spgemm->get_size() << std::endl;
 
+    std::cout << "Here " << __LINE__ << std::endl;
+    B->apply(lend(b), lend(y));
+    std::cout << "Here " << __LINE__ << std::endl;
+    A->apply(lend(y), lend(x));
+    std::cout << "Here " << __LINE__ << std::endl;
+    X->apply2(lend(b), lend(x_spgemm));
+    std::cout << "Here " << __LINE__ << std::endl;
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
     B->apply(lend(one), lend(x), lend(minus_one), lend(b));

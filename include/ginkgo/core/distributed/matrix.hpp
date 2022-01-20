@@ -238,6 +238,8 @@ public:
         const Overlap<size_type>& block_overlaps,
         const Array<size_type>& block_sizes) const;
 
+    void apply2(const LinOp* b, LinOp* x) const;
+
 protected:
     Matrix(std::shared_ptr<const Executor> exec, const gko::dim<2>& size = {},
            std::shared_ptr<mpi::communicator> comm =
