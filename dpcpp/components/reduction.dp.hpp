@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
 #include "dpcpp/components/uninitialized_array.hpp"
+#include "dpcpp/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
@@ -202,13 +203,12 @@ void reduce_array(size_type size, const ValueType* __restrict__ source,
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.
  */
-template <std::uint32_t cfg, typename ValueType>
-void reduce_add_array(
-    size_type size, const ValueType* __restrict__ source,
-    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
+template <typename cfg, typename ValueType>
+void reduce_add_array(size_type size, const ValueType* __restrict__ source,
+                      ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+                      UninitializedArray<ValueType, cfg::block_size>& block_sum)
 {
-    reduce_array<KCFG_1D::decode<1>(cfg)>(
+    reduce_array<cfg::subgroup_size>(
         size, source, static_cast<ValueType*>(block_sum), item_ct1,
         [](const ValueType& x, const ValueType& y) { return x + y; });
 
@@ -217,29 +217,29 @@ void reduce_add_array(
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
+template <typename cfg = device_config<256, 16>, typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, size_type size,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
-                       0, sycl::access::mode::read_write,
+        sycl::accessor<UninitializedArray<ValueType, cfg::block_size>, 0,
+                       sycl::access::mode::read_write,
                        sycl::access::target::local>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            KCFG_1D::decode<1>(cfg))]] {
+                                            cfg::subgroup_size)]] {
                 reduce_add_array<cfg>(size, source, result, item_ct1,
                                       *block_sum_acc_ct1.get_pointer());
             });
     });
 }
 
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_add_array_config,
-                                           reduce_add_array);
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(reduce_add_array_config,
+                                                  reduce_add_array, KCFG_1D);
 
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
                                kcfg_1d_list);
