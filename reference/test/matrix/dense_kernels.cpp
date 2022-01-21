@@ -98,7 +98,7 @@ protected:
     std::unique_ptr<Mtx> mtx7;
     std::unique_ptr<Mtx> mtx8;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)

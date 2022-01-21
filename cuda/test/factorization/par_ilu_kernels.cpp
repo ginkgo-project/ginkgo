@@ -66,7 +66,7 @@ protected:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::shared_ptr<const Csr> csr_ref;

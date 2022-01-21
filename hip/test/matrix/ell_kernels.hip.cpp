@@ -119,7 +119,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
     gko::dim<2> size;
     gko::size_type num_els_rowwise;
     gko::size_type ell_stride;

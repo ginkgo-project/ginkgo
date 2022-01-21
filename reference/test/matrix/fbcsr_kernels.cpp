@@ -145,7 +145,7 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
     const size_t nrhs)
 {
     using RT = gko::remove_complex<T>;
-    std::ranlux48 engine(39);
+    std::default_random_engine engine(39);
     std::normal_distribution<RT> dist(0.0, 5.0);
     std::uniform_int_distribution<> nnzdist(1, nrhs);
     return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(

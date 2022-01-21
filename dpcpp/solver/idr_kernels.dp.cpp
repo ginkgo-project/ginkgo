@@ -609,7 +609,7 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
         auto subspace_vectors_data = matrix_data<ValueType>(
             subspace_vectors->get_size(),
             std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0),
-            std::ranlux48(15));
+            std::default_random_engine(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
         auto seed = time(NULL);

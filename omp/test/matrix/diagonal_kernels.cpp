@@ -151,7 +151,7 @@ protected:
     std::shared_ptr<const gko::OmpExecutor> omp;
 
     const gko::dim<2> mtx_size;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::unique_ptr<Diag> diag;
     std::unique_ptr<Diag> ddiag;

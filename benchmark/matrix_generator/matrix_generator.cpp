@@ -97,12 +97,12 @@ void validate_option_object(const rapidjson::Value& value)
 
 
 using generator_function = std::function<gko::matrix_data<etype, itype>(
-    rapidjson::Value&, std::ranlux24&)>;
+    rapidjson::Value&, std::default_random_engine&)>;
 
 
 // matrix generators
-gko::matrix_data<etype, itype> generate_block_diagonal(rapidjson::Value& config,
-                                                       std::ranlux24& engine)
+gko::matrix_data<etype, itype> generate_block_diagonal(
+    rapidjson::Value& config, std::default_random_engine& engine)
 {
     if (!config.HasMember("num_blocks") || !config["num_blocks"].IsUint() ||
         !config.HasMember("block_size") || !config["block_size"].IsUint()) {

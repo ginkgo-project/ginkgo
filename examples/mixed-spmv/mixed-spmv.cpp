@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
     auto x_dim = gko::dim<2>{A_dim[0], b_dim[1]};
     auto host_b = hp_vec::create(exec->get_master(), b_dim);
     // fill the b vector with some random data
-    std::ranlux48 rand_engine(32);
+    std::default_random_engine rand_engine(32);
     auto dist = std::uniform_real_distribution<RealValueType>(0.0, 1.0);
     for (int i = 0; i < host_b->get_size()[0]; i++) {
         host_b->at(i, 0) = get_rand_value<HighPrecision>(dist, rand_engine);

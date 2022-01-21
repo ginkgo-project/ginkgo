@@ -154,7 +154,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_cols = subspace_vectors->get_size()[1];
     auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
     auto seed = deterministic ? 15 : time(NULL);
-    auto gen = std::ranlux48(seed);
+    auto gen = std::default_random_engine(seed);
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             subspace_vectors->at(row, col) =
