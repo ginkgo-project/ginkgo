@@ -103,6 +103,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         });                                                               \
     }
 
+#define GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(name_, kernel_)                 \
+    template <typename KCFG, typename... InferredArgs>                      \
+    inline void name_(dim3 grid, dim3 block, gko::size_type,                \
+                      sycl::queue* queue, InferredArgs... args)             \
+    {                                                                       \
+        queue->submit([&](sycl::handler& cgh) {                             \
+            cgh.parallel_for(                                               \
+                sycl_nd_range(grid, block),                                 \
+                [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
+                    KCFG::subgroup_size)]] __WG_BOUND__(KCFG::block_size) { \
+                    kernel_<KCFG>(args..., item_ct1);                       \
+                });                                                         \
+        });                                                                 \
+    }
+
 /**
  * GKO_ENABLE_DEFAULT_CONFIG_CALL gives a default config selection call
  * implementation for those kernels which require config selection but do not
