@@ -59,8 +59,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::generate_random_matrix<mtx_type>(
               500, 500, std::normal_distribution<real_type>(50, 5),
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
           unsquare_mtx(mtx_type::create(exec, gko::dim<2>(500, 100)))
     {}
 

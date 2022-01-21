@@ -119,7 +119,7 @@ protected:
     std::shared_ptr<CsrMtx> d_csr_mtx;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 

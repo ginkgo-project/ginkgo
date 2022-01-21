@@ -145,7 +145,7 @@ protected:
     const index_type num_brows = 112;
     const index_type num_bcols = 31;
     const int blk_sz = 3;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<ComplexMtx> complex_mtx;

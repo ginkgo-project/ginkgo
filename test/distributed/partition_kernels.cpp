@@ -118,7 +118,7 @@ protected:
                 const_cast<local_index_type*>(dpart->get_part_sizes())));
     }
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;

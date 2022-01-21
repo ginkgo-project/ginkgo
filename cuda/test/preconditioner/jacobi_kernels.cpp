@@ -78,7 +78,7 @@ protected:
         gko::uint32 max_block_size, int min_nnz, int max_nnz, int num_rhs = 1,
         double accuracy = 0.1, bool skip_sorting = true)
     {
-        std::ranlux48 engine(42);
+        std::default_random_engine engine(42);
         const auto dim = *(end(block_pointers) - 1);
         if (condition_numbers.size() == 0) {
             mtx = gko::test::generate_random_matrix<Mtx>(
@@ -306,7 +306,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32Sorted)
 
 TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32Unsorted)
 {
-    std::ranlux48 engine(42);
+    std::default_random_engine engine(42);
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
     gko::test::unsort_matrix(mtx.get(), engine);
 
@@ -413,7 +413,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRef)
 TEST_F(Jacobi, CudaScalarApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
-    std::ranlux48 engine(42);
+    std::default_random_engine engine(42);
     auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, dim, std::uniform_int_distribution<>(1, dim),
         std::normal_distribution<>(1.0, 2.0), engine, ref));
@@ -462,7 +462,7 @@ TEST_F(Jacobi, CudaLinearCombinationApplyEquivalentToRef)
 TEST_F(Jacobi, CudaScalarLinearCombinationApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
-    std::ranlux48 engine(42);
+    std::default_random_engine engine(42);
     auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
         dim, dim, std::uniform_int_distribution<>(1, dim),
         std::normal_distribution<>(1.0, 2.0), engine, ref));

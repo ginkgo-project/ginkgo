@@ -104,7 +104,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> empty;

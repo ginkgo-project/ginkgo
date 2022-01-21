@@ -161,7 +161,7 @@ protected:
     std::shared_ptr<const gko::CudaExecutor> cuda;
 
     const gko::dim<2> mtx_size;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx2;

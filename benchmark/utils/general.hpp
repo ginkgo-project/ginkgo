@@ -196,9 +196,9 @@ std::unique_ptr<gko::LinOp> read_matrix(
 
 
 // Returns a random number engine
-std::ranlux24& get_engine()
+std::default_random_engine& get_engine()
 {
-    static std::ranlux24 engine(FLAGS_seed);
+    static std::default_random_engine engine(FLAGS_seed);
     return engine;
 }
 

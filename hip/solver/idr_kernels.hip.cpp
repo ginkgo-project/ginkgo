@@ -99,7 +99,7 @@ void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
     if (deterministic) {
         auto subspace_vectors_data = matrix_data<ValueType>(
             subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
-            std::ranlux48(15));
+            std::default_random_engine(15));
         subspace_vectors->read(subspace_vectors_data);
     } else {
         auto gen =

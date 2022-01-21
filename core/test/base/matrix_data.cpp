@@ -83,7 +83,7 @@ TEST(MatrixData, InitializesWithRandomValues)
 
     gko::matrix_data<double, int> m(
         gko::dim<2>{2, 3}, std::uniform_real_distribution<double>(-1, 1),
-        std::ranlux48(19));
+        std::default_random_engine(19));
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 3));
     ASSERT_LE(m.nonzeros.size(), 6);
@@ -262,7 +262,7 @@ TEST(MatrixData, InitializesDiagonalWithConditionNumber)
 
     const auto m =
         data::cond(3, 100.0, std::uniform_real_distribution<double>(-1, 1),
-                   std::ranlux48(42), 0);
+                   std::default_random_engine(42), 0);
 
     ASSERT_EQ(m.size, gko::dim<2>(3, 3));
     ASSERT_NEAR(m.nonzeros[0].value / m.nonzeros[2].value, 100.0, 1e-16);
@@ -322,7 +322,8 @@ TEST(MatrixData, InitializesGeneralMatrixWithConditionNumber)
     using data = gko::matrix_data<double, int>;
     using nnz = data::nonzero_type;
 
-    const auto m = data::cond(2, 4.0, dummy_distribution{}, std::ranlux48(42));
+    const auto m = data::cond(2, 4.0, dummy_distribution{},
+                              std::default_random_engine(42));
 
     ASSERT_EQ(m.size, gko::dim<2>(2, 2));
     ASSERT_EQ(m.nonzeros.size(), 4);
