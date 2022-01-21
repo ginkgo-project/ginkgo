@@ -899,7 +899,8 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
                 break;
             }
         }
-        const unsigned row_has_diag = warp_tile.ballot(row_has_diag_local);
+        const config::lane_mask_type row_has_diag =
+            warp_tile.ballot(row_has_diag_local);
         if (warp_tile.thread_rank() == 0) {
             has_diag[warpid_in_block] =
                 static_cast<int>(has_diag[warpid_in_block] && row_has_diag);
@@ -908,7 +909,7 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     __syncthreads();
     if (warpid_in_block == 0) {
         // accumulate into one warp length
-        for (uint32 i = 1; i <= warps_per_block / warp_size; i <<= 2) {
+        for (uint32 i = 1; i <= warps_per_block / warp_size; i <<= 1) {
             if (i * warp_size + warp_tile.thread_rank() < warps_per_block) {
                 has_diag[warp_tile.thread_rank()] = static_cast<int>(
                     has_diag[warp_tile.thread_rank()] &&
@@ -922,7 +923,7 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
         // TODO: round up warps_per_block to a power of 2 below
         // (by default it already is)
         for (uint32 k = static_cast<uint32>(warps_per_block / 2); k >= 1;
-             k >>= 2) {
+             k >>= 1) {
             val = static_cast<int>(val && warp_tile.shfl_down(val, k));
         }
         if (warp_tile.thread_rank() == 0) {
