@@ -97,9 +97,6 @@ protected:
         dx->copy_from(x.get());
         dalpha = Vec::create(exec);
         dalpha->copy_from(alpha.get());
-        beta = gko::initialize<Vec>({-1.0}, ref);
-        dbeta = Vec::create(exec);
-        dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -109,10 +106,8 @@ protected:
 
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Vec> alpha;
-    std::unique_ptr<Vec> beta;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<Vec> dalpha;
-    std::unique_ptr<Vec> dbeta;
 };
 
 
