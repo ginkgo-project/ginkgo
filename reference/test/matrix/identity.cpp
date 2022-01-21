@@ -222,44 +222,4 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMixedComplex)
 }
 
 
-TYPED_TEST(Identity, ScaleDenseAddIdentity)
-{
-    using Id = typename TestFixture::Id;
-    using Vec = typename TestFixture::Vec;
-    using MixedVec = typename TestFixture::MixedVec;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<MixedVec>({2.0}, this->exec);
-    auto beta = gko::initialize<MixedVec>({-1.0}, this->exec);
-    auto identity = Id::create(this->exec, 3);
-    auto b = gko::initialize<Vec>(
-        3, {I<T>{2.0, 3.0, -1.0}, I<T>{1.0, -2.0, 2.5}, I<T>{5.0, -1.0, 4.0}},
-        this->exec);
-
-    identity->apply(alpha.get(), identity.get(), beta.get(), b.get());
-
-    GKO_ASSERT_MTX_NEAR(
-        b, l({{0.0, -3.0, 1.0}, {-1.0, 4.0, -2.5}, {-5.0, 1.0, -2.0}}), 0.0);
-}
-
-
-TYPED_TEST(Identity, ScaleCsrAddIdentity)
-{
-    using Id = typename TestFixture::Id;
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
-    using Csr = typename gko::matrix::Csr<T, int>;
-    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
-    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
-    auto identity = Id::create(this->exec, 3);
-    auto b = gko::initialize<Csr>(
-        3, {I<T>{2.0, 0.0, -1.0}, I<T>{1.0, 0.0, 2.5}, I<T>{0.0, -1.0, 4.0}},
-        this->exec);
-
-    identity->apply(alpha.get(), identity.get(), beta.get(), b.get());
-
-    GKO_ASSERT_MTX_NEAR(
-        b, l({{0.0, 0.0, 1.0}, {-1.0, 2.0, -2.5}, {0.0, 1.0, -2.0}}), 0.0);
-}
-
-
 }  // namespace
