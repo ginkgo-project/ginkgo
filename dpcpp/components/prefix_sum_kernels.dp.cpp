@@ -51,12 +51,7 @@ namespace dpcpp {
 namespace components {
 
 
-using KCFG_1D = ConfigSet<11, 7>;
-
-constexpr auto block_cfg_list =
-    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(512, 16),
-                           KCFG_1D::encode(256, 16),
-                           KCFG_1D::encode(128, 16)>();
+constexpr auto block_cfg_list = block_cfg_list_t();
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(start_prefix_sum,
                                                   start_prefix_sum, KCFG_1D);
