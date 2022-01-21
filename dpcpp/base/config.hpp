@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
+
+#include "core/base/types.hpp"
 
 
 namespace gko {
@@ -77,6 +80,27 @@ struct device_config {
     static constexpr uint32 block_size = block;
     static constexpr uint32 subgroup_size = subgroup;
 };
+
+using KCFG_1D = ConfigSet<11, 7>;
+using block_cfg_list_t =
+    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(512, 16),
+                           KCFG_1D::encode(256, 16), KCFG_1D::encode(128, 16)>;
+
+using kcfg_1d_list_t =
+    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
+                           KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
+                           KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
+                           KCFG_1D::encode(256, 8)>;
+
+using kcfg_sq_list_t =
+    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(4096, 64),
+                           KCFG_1D::encode(1024, 32), KCFG_1D::encode(256, 16),
+                           KCFG_1D::encode(64, 8)>;
+
+using kcfg_1sg_list_t =
+    syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
+                    KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
+                    KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>;
 
 
 }  // namespace dpcpp

@@ -73,19 +73,9 @@ namespace dense {
 
 // Disable the 64 subgroup. CPU supports 64 now, but conj_transpose will
 // lead CL_OUT_OF_RESOURCES. TODO: investigate this issue.
-using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 32),
-                    KCFG_1D::encode(512, 16), KCFG_1D::encode(256, 32),
-                    KCFG_1D::encode(256, 16), KCFG_1D::encode(256, 8)>();
-constexpr auto subgroup_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(32, 32),
-                    KCFG_1D::encode(16, 16), KCFG_1D::encode(8, 8),
-                    KCFG_1D::encode(4, 4)>();
-constexpr auto kcfg_sq_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(1024, 32),
-                    KCFG_1D::encode(256, 16), KCFG_1D::encode(64, 8),
-                    KCFG_1D::encode(16, 4)>();
+constexpr auto kcfg_1d_list = kcfg_1d_list_t();
+constexpr auto subgroup_list = kcfg_1sg_list_t();
+constexpr auto kcfg_sq_list = kcfg_sq_list_t();
 constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 constexpr int default_block_size = 256;
 
@@ -559,8 +549,11 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
     auto queue = exec->get_queue();
     const std::uint32_t cfg =
         get_first_cfg(sq_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+            const auto sg_size = KCFG_1D::decode<1>(cfg);
+            return validate(queue, KCFG_1D::decode<0>(cfg), sg_size) &&
+                   sg_size * (sg_size + 1) * sizeof(ValueType) <=
+                       queue->get_device()
+                           .get_info<sycl::info::device::local_mem_size>();
         });
     const auto sg_size = KCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
@@ -583,8 +576,11 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     auto queue = exec->get_queue();
     const std::uint32_t cfg =
         get_first_cfg(sq_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+            const auto sg_size = KCFG_1D::decode<1>(cfg);
+            return validate(queue, KCFG_1D::decode<0>(cfg), sg_size) &&
+                   sg_size * (sg_size + 1) * sizeof(ValueType) <=
+                       queue->get_device()
+                           .get_info<sycl::info::device::local_mem_size>();
         });
     const auto sg_size = KCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
