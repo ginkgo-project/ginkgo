@@ -27,6 +27,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -449,6 +450,22 @@ struct UpperTrsSyncfreeUnitdiag : UpperTrs {
         return solver_type::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_unit_diagonal(true);
+    }
+};
+
+
+struct Minres : SimpleSolverTest<gko::solver::Minres<solver_value_type>> {
+    static void preprocess(gko::matrix_data<value_type, index_type>& data)
+    {
+        // make sure the matrix is well-conditioned
+        gko::utils::make_hpd(data, 2.0);
+        // only positive diagonal values to ensure that the
+        // preconditioner is SPD
+        for (auto& nz : data.nonzeros) {
+            if (nz.row == nz.column) {
+                nz.value = std::abs(nz.value);
+            }
+        }
     }
 };
 
@@ -891,8 +908,8 @@ using SolverTypes =
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>,
-                     FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, LowerTrs, UpperTrs,
-                     LowerTrsUnitdiag, UpperTrsUnitdiag
+                     FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, Minres, LowerTrs,
+                     UpperTrs, LowerTrsUnitdiag, UpperTrsUnitdiag
 #ifdef GKO_COMPILING_CUDA
                      ,
                      LowerTrsSyncfree, UpperTrsSyncfree,
