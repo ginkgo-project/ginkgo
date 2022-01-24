@@ -105,7 +105,7 @@ public:
     using real_type = absolute_type;
     using complex_type =
         Vector<to_complex<value_type>, local_index_type, global_index_type>;
-    using local_mtx_type = gko::matrix::Dense<value_type>;
+    using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
      * Reads a vector from the matrix_data structure and a global row partition.
@@ -273,19 +273,19 @@ public:
     void compute_norm1(LinOp* result) const;
 
     /**
-     * Direct (read) access to the underlying local local_mtx_type vectors.
+     * Direct (read) access to the underlying local local_vector_type vectors.
      *
-     * @return a constant pointer to the underlying local_mtx_type vectors
+     * @return a constant pointer to the underlying local_vector_type vectors
      */
-    const local_mtx_type* get_const_local() const;
+    const local_vector_type* get_const_local() const;
 
     /*
-     * Direct (read/write) access to the underlying local_mtx_type Dense
+     * Direct (read/write) access to the underlying local_vector_type Dense
      * vectors.
      *
-     * @return a constant pointer to the underlying local_mtx_type vectors
+     * @return a constant pointer to the underlying local_vector_type vectors
      */
-    local_mtx_type* get_local();
+    local_vector_type* get_local();
 
     /**
      * Access to the partition that defines these global vectors.
@@ -326,7 +326,7 @@ protected:
 private:
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
         partition_;
-    local_mtx_type local_;
+    local_vector_type local_;
 };
 
 
