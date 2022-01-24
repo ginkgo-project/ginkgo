@@ -83,7 +83,7 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->set_size(this->get_size());
     result->set_communicator(this->get_communicator());
     result->partition_ = this->partition_;
-    this->get_local()->convert_to(result->get_local());
+    this->get_const_local()->convert_to(result->get_local());
 }
 
 
@@ -104,9 +104,9 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_absolute() const
 
     auto result = absolute_type::create(exec, this->get_communicator(),
                                         this->get_partition(), this->get_size(),
-                                        this->get_local()->get_size());
+                                        this->get_const_local()->get_size());
 
-    exec->run(vector::make_outplace_absolute_dense(this->get_local(),
+    exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
                                                    result->get_local()));
 
     return result;
@@ -124,7 +124,7 @@ void Vector<ValueType, LocalIndexType,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 const typename Vector<ValueType, LocalIndexType,
                       GlobalIndexType>::local_mtx_type*
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_local() const
+Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
 {
     return &local_;
 }
@@ -299,7 +299,7 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::add_scaled(
     const LinOp* alpha, const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType, LocalIndexType, GlobalIndexType>>(b);
-    this->get_local()->add_scaled(alpha, dense_b->get_local());
+    this->get_local()->add_scaled(alpha, dense_b->get_const_local());
 }
 
 
@@ -319,7 +319,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_dot(
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_local()->compute_dot(as<Vector>(b)->get_local(), dense_res.get());
+    this->get_const_local()->compute_dot(as<Vector>(b)->get_const_local(),
+                                         dense_res.get());
     exec->synchronize();
     auto dense_res_host =
         make_temporary_clone(exec->get_master(), dense_res.get());
@@ -337,8 +338,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_conj_dot(
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
-                                        dense_res.get());
+    this->get_const_local()->compute_conj_dot(as<Vector>(b)->get_const_local(),
+                                              dense_res.get());
     exec->synchronize();
     this->get_communicator().all_reduce(dense_res->get_values(),
                                         static_cast<int>(this->get_size()[1]),
@@ -350,12 +351,12 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
     LinOp* result) const
 {
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using NormVector = typename local_mtx_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(
-        vector::make_compute_norm2_sqr(this->get_local(), dense_res.get()));
+    exec->run(vector::make_compute_norm2_sqr(this->get_const_local(),
+                                             dense_res.get()));
     exec->synchronize();
     this->get_communicator().all_reduce(dense_res->get_values(),
                                         static_cast<int>(this->get_size()[1]),
