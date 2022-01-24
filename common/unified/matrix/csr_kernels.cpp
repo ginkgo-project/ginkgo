@@ -153,23 +153,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* source,
-                            size_type* result)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto row_ptrs, auto nnz) {
-            nnz[row] = row_ptrs[row + 1] - row_ptrs[row];
-        },
-        source->get_size()[0], source->get_const_row_ptrs(), result);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* matrix,
                       matrix::Sellp<ValueType, IndexType>* output)

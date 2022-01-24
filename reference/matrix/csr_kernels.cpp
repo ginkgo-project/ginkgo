@@ -882,21 +882,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* source,
-                            size_type* result)
-{
-    const auto row_ptrs = source->get_const_row_ptrs();
-    for (size_type i = 0; i < source->get_size()[0]; i++) {
-        result[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {

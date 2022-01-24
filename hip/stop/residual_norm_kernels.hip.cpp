@@ -108,12 +108,15 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
-                       tau->get_size()[1], rel_residual_goal,
-                       as_hip_type(tau->get_const_values()),
-                       as_hip_type(orig_tau->get_const_values()), stoppingId,
-                       setFinalized, as_hip_type(stop_status->get_data()),
-                       as_hip_type(device_storage->get_data()));
+    if (grid_size > 0) {
+        hipLaunchKernelGGL((residual_norm_kernel), grid_size, block_size, 0, 0,
+                           tau->get_size()[1], rel_residual_goal,
+                           as_hip_type(tau->get_const_values()),
+                           as_hip_type(orig_tau->get_const_values()),
+                           stoppingId, setFinalized,
+                           as_hip_type(stop_status->get_data()),
+                           as_hip_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
@@ -186,12 +189,15 @@ void implicit_residual_norm(
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau->get_size()[1], block_size);
 
-    hipLaunchKernelGGL((implicit_residual_norm_kernel), grid_size, block_size,
-                       0, 0, tau->get_size()[1], rel_residual_goal,
-                       as_hip_type(tau->get_const_values()),
-                       as_hip_type(orig_tau->get_const_values()), stoppingId,
-                       setFinalized, as_hip_type(stop_status->get_data()),
-                       as_hip_type(device_storage->get_data()));
+    if (grid_size > 0) {
+        hipLaunchKernelGGL(
+            (implicit_residual_norm_kernel), grid_size, block_size, 0, 0,
+            tau->get_size()[1], rel_residual_goal,
+            as_hip_type(tau->get_const_values()),
+            as_hip_type(orig_tau->get_const_values()), stoppingId, setFinalized,
+            as_hip_type(stop_status->get_data()),
+            as_hip_type(device_storage->get_data()));
+    }
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());

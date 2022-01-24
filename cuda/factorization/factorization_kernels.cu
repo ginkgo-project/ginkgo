@@ -75,6 +75,9 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);
     size_type row_ptrs_size = num_rows + 1;
+    if (num_rows == 0) {
+        return;
+    }
 
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
     Array<bool> needs_change_host{exec->get_master(), 1};
@@ -90,20 +93,18 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
     const auto block_dim = default_block_size;
     const auto grid_dim =
         static_cast<uint32>(ceildiv(num_rows, block_dim / subwarp_size));
-    if (num_rows > 0) {
-        if (is_sorted) {
-            kernel::find_missing_diagonal_elements<true, subwarp_size>
-                <<<grid_dim, block_dim>>>(
-                    num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
-                    cuda_row_ptrs_add,
-                    as_cuda_type(needs_change_device.get_data()));
-        } else {
-            kernel::find_missing_diagonal_elements<false, subwarp_size>
-                <<<grid_dim, block_dim>>>(
-                    num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
-                    cuda_row_ptrs_add,
-                    as_cuda_type(needs_change_device.get_data()));
-        }
+    if (is_sorted) {
+        kernel::find_missing_diagonal_elements<true, subwarp_size>
+            <<<grid_dim, block_dim>>>(
+                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                cuda_row_ptrs_add,
+                as_cuda_type(needs_change_device.get_data()));
+    } else {
+        kernel::find_missing_diagonal_elements<false, subwarp_size>
+            <<<grid_dim, block_dim>>>(
+                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                cuda_row_ptrs_add,
+                as_cuda_type(needs_change_device.get_data()));
     }
     needs_change_host = needs_change_device;
     if (!needs_change_host.get_const_data()[0]) {

@@ -77,6 +77,7 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
 {
     Array<size_type> nums(exec, 1);
 
+    // FIXME: num_rows == 0 bug
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
     const auto block_size = config::warp_size;

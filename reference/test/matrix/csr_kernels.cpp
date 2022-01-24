@@ -1009,19 +1009,6 @@ TYPED_TEST(Csr, MovesEmptyToHybrid)
 }
 
 
-TYPED_TEST(Csr, CalculatesNonzerosPerRow)
-{
-    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
-
-    gko::kernels::reference::csr::count_nonzeros_per_row(
-        this->exec, this->mtx.get(), row_nnz.get_data());
-
-    auto row_nnz_val = row_nnz.get_data();
-    ASSERT_EQ(row_nnz_val[0], 3);
-    ASSERT_EQ(row_nnz_val[1], 1);
-}
-
-
 TYPED_TEST(Csr, ConvertsToEll)
 {
     using Ell = typename TestFixture::Ell;

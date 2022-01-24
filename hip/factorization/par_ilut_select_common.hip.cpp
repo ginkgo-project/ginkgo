@@ -78,9 +78,11 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::build_searchtree), 1,
                        bucket_count, 0, 0, as_hip_type(values), size, tree);
     // determine bucket sizes
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), num_blocks,
-                       default_block_size, 0, 0, as_hip_type(values), size,
-                       tree, partial_counts, oracles, items_per_thread);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::count_buckets), num_blocks,
+                           default_block_size, 0, 0, as_hip_type(values), size,
+                           tree, partial_counts, oracles, items_per_thread);
+    }
     // compute prefix sum and total sum over block-local values
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::block_prefix_sum), bucket_count,
                        default_block_size, 0, 0, partial_counts, total_counts,

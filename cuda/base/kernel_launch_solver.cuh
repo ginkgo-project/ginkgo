@@ -62,7 +62,7 @@ void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs&&... args)
 {
-    if (size[0] * size[1] > 0) {
+    if (size[0] > 0 && size[1] > 0) {
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         generic_kernel_2d_solver<<<num_blocks, block_size>>>(

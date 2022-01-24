@@ -277,7 +277,9 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
         components::fill_array(exec, c->get_values(),
                                c->get_num_stored_elements(), zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
@@ -370,7 +372,9 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
         const IndexType nwarps = a->get_num_srow_elements();
@@ -550,9 +554,11 @@ void spgeam(syn::value_list<int, subwarp_size>,
     // count nnz for alpha * A + beta * B
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(m, subwarps_per_block);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam_nnz<subwarp_size>),
-                       num_blocks, default_block_size, 0, 0, a_row_ptrs,
-                       a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam_nnz<subwarp_size>),
+                           num_blocks, default_block_size, 0, 0, a_row_ptrs,
+                           a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+    }
 
     // build row pointers
     components::prefix_sum(exec, c_row_ptrs, m + 1);
@@ -564,11 +570,14 @@ void spgeam(syn::value_list<int, subwarp_size>,
     c_builder.get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
     auto c_vals = c->get_values();
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::spgeam<subwarp_size>), num_blocks,
-        default_block_size, 0, 0, as_hip_type(alpha), a_row_ptrs, a_col_idxs,
-        as_hip_type(a_vals), as_hip_type(beta), b_row_ptrs, b_col_idxs,
-        as_hip_type(b_vals), m, c_row_ptrs, c_col_idxs, as_hip_type(c_vals));
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam<subwarp_size>),
+                           num_blocks, default_block_size, 0, 0,
+                           as_hip_type(alpha), a_row_ptrs, a_col_idxs,
+                           as_hip_type(a_vals), as_hip_type(beta), b_row_ptrs,
+                           b_col_idxs, as_hip_type(b_vals), m, c_row_ptrs,
+                           c_col_idxs, as_hip_type(c_vals));
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
@@ -711,10 +720,12 @@ void fill_in_dense(std::shared_ptr<const HipExecutor> exec,
     const auto vals = source->get_const_values();
 
     auto grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_dense, grid_dim, default_block_size, 0,
-                       0, num_rows, as_hip_type(row_ptrs),
-                       as_hip_type(col_idxs), as_hip_type(vals), stride,
-                       as_hip_type(result->get_values()));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::fill_in_dense, grid_dim, default_block_size,
+                           0, 0, num_rows, as_hip_type(row_ptrs),
+                           as_hip_type(col_idxs), as_hip_type(vals), stride,
+                           as_hip_type(result->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -774,9 +785,11 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
 
-        hipLaunchKernelGGL(conjugate_kernel, grid_size, block_size, 0, 0,
-                           trans->get_num_stored_elements(),
-                           as_hip_type(trans->get_values()));
+        if (grid_size > 0) {
+            hipLaunchKernelGGL(conjugate_kernel, grid_size, block_size, 0, 0,
+                               trans->get_num_stored_elements(),
+                               as_hip_type(trans->get_values()));
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -794,19 +807,23 @@ void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
-                       count_num_blocks, default_block_size, 0, 0, num_rows,
-                       perm, orig->get_const_row_ptrs(),
-                       permuted->get_row_ptrs());
+    if (count_num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+                           count_num_blocks, default_block_size, 0, 0, num_rows,
+                           perm, orig->get_const_row_ptrs(),
+                           permuted->get_row_ptrs());
+    }
     components::prefix_sum(exec, permuted->get_row_ptrs(), num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(inv_symm_permute_kernel<config::warp_size>),
-        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
-        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_hip_type(orig->get_const_values()), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), as_hip_type(permuted->get_values()));
+    if (copy_num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(inv_symm_permute_kernel<config::warp_size>),
+            copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
+            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+            as_hip_type(orig->get_const_values()), permuted->get_row_ptrs(),
+            permuted->get_col_idxs(), as_hip_type(permuted->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -820,19 +837,24 @@ void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType* perm,
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(row_ptr_permute_kernel),
-                       count_num_blocks, default_block_size, 0, 0, num_rows,
-                       perm, orig->get_const_row_ptrs(),
-                       row_permuted->get_row_ptrs());
+    if (count_num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(row_ptr_permute_kernel),
+                           count_num_blocks, default_block_size, 0, 0, num_rows,
+                           perm, orig->get_const_row_ptrs(),
+                           row_permuted->get_row_ptrs());
+    }
     components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(row_permute_kernel<config::warp_size>), copy_num_blocks,
-        default_block_size, 0, 0, num_rows, perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_hip_type(orig->get_const_values()),
-        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-        as_hip_type(row_permuted->get_values()));
+    if (copy_num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(row_permute_kernel<config::warp_size>),
+            copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
+            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+            as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+            row_permuted->get_col_idxs(),
+            as_hip_type(row_permuted->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -847,19 +869,24 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
 {
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
-                       count_num_blocks, default_block_size, 0, 0, num_rows,
-                       perm, orig->get_const_row_ptrs(),
-                       row_permuted->get_row_ptrs());
+    if (count_num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+                           count_num_blocks, default_block_size, 0, 0, num_rows,
+                           perm, orig->get_const_row_ptrs(),
+                           row_permuted->get_row_ptrs());
+    }
     components::prefix_sum(exec, row_permuted->get_row_ptrs(), num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(inv_row_permute_kernel<config::warp_size>),
-        copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
-        orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(), as_hip_type(row_permuted->get_values()));
+    if (copy_num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(inv_row_permute_kernel<config::warp_size>),
+            copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
+            orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
+            as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
+            row_permuted->get_col_idxs(),
+            as_hip_type(row_permuted->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -877,10 +904,12 @@ void calculate_nonzeros_per_row_in_span(
     auto col_idxs = source->get_const_col_idxs();
     auto grid_dim = ceildiv(row_span.length(), default_block_size);
 
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row_in_span, grid_dim,
-                       default_block_size, 0, 0, row_span, col_span,
-                       as_hip_type(row_ptrs), as_hip_type(col_idxs),
-                       as_hip_type(row_nnz->get_data()));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::calculate_nnz_per_row_in_span, grid_dim,
+                           default_block_size, 0, 0, row_span, col_span,
+                           as_hip_type(row_ptrs), as_hip_type(col_idxs),
+                           as_hip_type(row_nnz->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -899,17 +928,17 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    auto num_nnz = source->get_num_stored_elements();
-    grid_dim = ceildiv(num_nnz, default_block_size);
-    hipLaunchKernelGGL(
-        kernel::compute_submatrix_idxs_and_vals, grid_dim, default_block_size,
-        0, 0, num_rows, num_cols, num_nnz, row_offset, col_offset,
-        as_hip_type(source->get_const_row_ptrs()),
-        as_hip_type(source->get_const_col_idxs()),
-        as_hip_type(source->get_const_values()),
-        as_hip_type(result->get_const_row_ptrs()),
-        as_hip_type(result->get_col_idxs()), as_hip_type(result->get_values()));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::compute_submatrix_idxs_and_vals, grid_dim,
+                           default_block_size, 0, 0, num_rows, num_cols,
+                           row_offset, col_offset,
+                           as_hip_type(source->get_const_row_ptrs()),
+                           as_hip_type(source->get_const_col_idxs()),
+                           as_hip_type(source->get_const_values()),
+                           as_hip_type(result->get_const_row_ptrs()),
+                           as_hip_type(result->get_col_idxs()),
+                           as_hip_type(result->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -975,10 +1004,12 @@ void is_sorted_by_column_index(
     auto block_size = default_block_size;
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::check_unsorted), num_blocks,
-                       block_size, 0, 0, to_check->get_const_row_ptrs(),
-                       to_check->get_const_col_idxs(), num_rows,
-                       gpu_array.get_data());
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::check_unsorted), num_blocks,
+                           block_size, 0, 0, to_check->get_const_row_ptrs(),
+                           to_check->get_const_col_idxs(), num_rows,
+                           gpu_array.get_data());
+    }
     cpu_array = gpu_array;
 }
 
@@ -1000,11 +1031,13 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
     const auto orig_row_ptrs = orig->get_const_row_ptrs();
     const auto orig_col_idxs = orig->get_const_col_idxs();
     auto diag_values = diag->get_values();
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::extract_diagonal), num_blocks,
-                       default_block_size, 0, 0, diag_size, nnz,
-                       as_hip_type(orig_values), as_hip_type(orig_row_ptrs),
-                       as_hip_type(orig_col_idxs), as_hip_type(diag_values));
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::extract_diagonal),
+                           num_blocks, default_block_size, 0, 0, diag_size, nnz,
+                           as_hip_type(orig_values), as_hip_type(orig_row_ptrs),
+                           as_hip_type(orig_col_idxs),
+                           as_hip_type(diag_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);

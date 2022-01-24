@@ -338,6 +338,13 @@ protected:
         GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
     }
 
+    /**
+     * Resizes the matrix and associated storage to the given sizes.
+     * Internal storage may be reallocated if they don't match the old values.
+     *
+     * @param new_size  the new matrix dimensions.
+     * @param nnz  the new number of nonzeros.
+     */
     void resize(dim<2> new_size, size_type nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

@@ -81,7 +81,7 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        if (c->get_size()[0] * c->get_size()[1] > 0) {
+        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 cublas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
@@ -110,7 +110,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     if (cublas::is_supported<ValueType>::value) {
-        if (c->get_size()[0] * c->get_size()[1] > 0) {
+        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 cublas::gemm(
                     exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,

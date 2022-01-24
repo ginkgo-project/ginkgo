@@ -84,7 +84,7 @@ void simple_apply(std::shared_ptr<const HipExecutor> exec,
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
-        if (c->get_size()[0] * c->get_size()[1] > 0) {
+        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 hipblas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
@@ -114,7 +114,7 @@ void apply(std::shared_ptr<const HipExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     if (hipblas::is_supported<ValueType>::value) {
-        if (c->get_size()[0] * c->get_size()[1] > 0) {
+        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 hipblas::gemm(
                     exec->get_hipblas_handle(), HIPBLAS_OP_N, HIPBLAS_OP_N,

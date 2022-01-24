@@ -1030,6 +1030,8 @@ protected:
      *
      * If the new size matches the current size, the stride will be left
      * unchanged, otherwise it will be set to the number of columns.
+     *
+     * @param new_size  the new matrix dimensions
      */
     void resize(gko::dim<2> new_size);
 
