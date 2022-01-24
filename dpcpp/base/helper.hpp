@@ -145,6 +145,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             queue, std::forward<InferredArgs>(args)...);                      \
     }
 
+#define GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE(name_, callable_)                  \
+    template <typename TypeList, typename Predicate, typename... InferredArgs> \
+    void name_(TypeList list, Predicate selector, InferredArgs... args)        \
+    {                                                                          \
+        callable_(list, selector, ::gko::syn::value_list<bool>(),              \
+                  ::gko::syn::value_list<int>(),                               \
+                  ::gko::syn::value_list<gko::size_type>(),                    \
+                  ::gko::syn::type_list<>(),                                   \
+                  std::forward<InferredArgs>(args)...);                        \
+    }
+
 // __WG_BOUND__ gives the cuda-like launch bound in cuda ordering
 #define __WG_BOUND_1D__(x) [[sycl::reqd_work_group_size(1, 1, x)]]
 #define __WG_BOUND_2D__(x, y) [[sycl::reqd_work_group_size(1, y, x)]]

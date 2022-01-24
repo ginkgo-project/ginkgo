@@ -97,6 +97,10 @@ using kcfg_sq_list_t =
                            KCFG_1D::encode(1024, 32), KCFG_1D::encode(256, 16),
                            KCFG_1D::encode(64, 8)>;
 
+using kcfg_sq_type_list_t =
+    ::gko::syn::type_list<device_config<4096, 64>, device_config<1024, 32>,
+                          device_config<256, 16>, device_config<64, 8>>;
+
 using kcfg_1sg_list_t =
     syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
                     KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),

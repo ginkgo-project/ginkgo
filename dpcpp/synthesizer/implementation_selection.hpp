@@ -81,6 +81,38 @@ namespace syn {
     }
 
 
+#define GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TYPE(_name, _callable)    \
+    template <typename Predicate, bool... BoolArgs, int... IntArgs,          \
+              gko::size_type... SizeTArgs, typename... TArgs,                \
+              typename... InferredArgs>                                      \
+    inline void _name(::gko::syn::type_list<>, Predicate,                    \
+                      ::gko::syn::value_list<bool, BoolArgs...>,             \
+                      ::gko::syn::value_list<int, IntArgs...>,               \
+                      ::gko::syn::value_list<gko::size_type, SizeTArgs...>,  \
+                      ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
+        GKO_KERNEL_NOT_FOUND;                                                \
+                                                                             \
+    template <typename K, typename... Rest, typename Predicate,              \
+              bool... BoolArgs, int... IntArgs, gko::size_type... SizeTArgs, \
+              typename... TArgs, typename... InferredArgs>                   \
+    inline void _name(                                                       \
+        ::gko::syn::type_list<K, Rest...>, Predicate is_eligible,            \
+        ::gko::syn::value_list<bool, BoolArgs...> bool_args,                 \
+        ::gko::syn::value_list<int, IntArgs...> int_args,                    \
+        ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,      \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
+    {                                                                        \
+        if (is_eligible(K())) {                                              \
+            _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K>(   \
+                std::forward<InferredArgs>(args)...);                        \
+        } else {                                                             \
+            _name(::gko::syn::type_list<Rest...>(), is_eligible, bool_args,  \
+                  int_args, size_args, type_args,                            \
+                  std::forward<InferredArgs>(args)...);                      \
+        }                                                                    \
+    }
+
+
 #define GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(_name, _callable,  \
                                                           _kcfg)             \
     template <typename Predicate, bool... BoolArgs, int... IntArgs,          \
