@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 
 #ifdef SYCL_LANGUAGE_VERSION
@@ -858,6 +859,140 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
 }
 
 
+namespace detail {
+
+
+/**
+ * @internal
+ * Tests if a member function `Ref::to_arithmetic_type` exists
+ * This is used for the accessor references to convert to the arithmetic type in
+ * the math-functions
+ *
+ * @note
+ * This basically mirrors the accessor functionality
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+    using type = Ref;
+};
+
+template <typename Ref>
+struct has_to_arithmetic_type<
+    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
+};
+
+
+/**
+ * @internal
+ * Tests if the type `Ref::arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+};
+
+template <typename Ref>
+struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
+    : std::true_type {};
+
+
+/**
+ * @internal
+ * converts `ref` to arithmetic type. This is used for accessor references to
+ * convert the type before performing math operations.
+ * It performs the following three steps in order:
+ * 1. If a function `to_arithmetic_type()` is available, it will return the
+ *    result of that function
+ * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
+ *    implicit cast from Ref -> `Ref::arithmetic_type`
+ * 3. Otherwise, it will return `ref` itself.
+ */
+template <typename Ref>
+constexpr GKO_ATTRIBUTES
+    std::enable_if_t<has_to_arithmetic_type<Ref>::value,
+                     typename has_to_arithmetic_type<Ref>::type>
+    to_arithmetic_type(const Ref& ref)
+{
+    return ref.to_arithmetic_type();
+}
+
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              has_arithmetic_type<Ref>::value,
+                                          typename Ref::arithmetic_type>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+template <typename Ref>
+constexpr GKO_ATTRIBUTES std::enable_if_t<!has_to_arithmetic_type<Ref>::value &&
+                                              !has_arithmetic_type<Ref>::value,
+                                          Ref>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+
+// Note: All functions have postfix `impl` so they are not considered for
+// overload resolution (in case a class / function also is in the namespace
+// `detail`)
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+real_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+real_impl(const T& x)
+{
+    return x.real();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+imag_impl(const T&)
+{
+    return T{};
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
+imag_impl(const T& x)
+{
+    return x.imag();
+}
+
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value, T>
+conj_impl(const T& x)
+{
+    return T{real_impl(x), -imag_impl(x)};
+}
+
+
+}  // namespace detail
+
+
 /**
  * Returns the real part of the object.
  *
@@ -868,18 +1003,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T& x, const T& y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-real(const T& x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto real(const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-real(const T& x)
-{
-    return x.real();
+    return detail::real_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -893,18 +1019,9 @@ real(const T& x)
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
-imag(const T&)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto imag(const T& x)
 {
-    return zero<T>();
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
-                                                     remove_complex<T>>
-imag(const T& x)
-{
-    return x.imag();
+    return detail::imag_impl(detail::to_arithmetic_type(x));
 }
 
 
@@ -916,17 +1033,9 @@ imag(const T& x)
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<!is_complex_s<T>::value, T> conj(
-    const T& x)
+GKO_ATTRIBUTES GKO_INLINE constexpr auto conj(const T& x)
 {
-    return x;
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
-    const T& x)
-{
-    return T{x.real(), -x.imag()};
+    return detail::conj_impl(detail::to_arithmetic_type(x));
 }
 
 

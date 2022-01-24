@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ACCESSOR_UTILS_HPP_
 
 #include <cassert>
+#include <cinttypes>
 #include <complex>
-#include <cstddef>  // for std::size_t
 
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
@@ -81,7 +81,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace acc {
-
 namespace xstd {
 
 
@@ -89,10 +88,10 @@ template <typename...>
 using void_t = void;
 
 
-}
+}  // namespace xstd
 
 
-using size_type = std::size_t;
+using size_type = std::int64_t;
 
 
 namespace detail {
@@ -166,6 +165,133 @@ struct are_all_integral<First, Args...>
                                 are_all_integral<Args...>, std::false_type> {};
 
 
+namespace detail {
+
+
+/**
+ * @internal
+ * Tests if a member function `Ref::to_arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+    using type = Ref;
+};
+
+template <typename Ref>
+struct has_to_arithmetic_type<
+    Ref, xstd::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
+};
+
+
+/**
+ * @internal
+ * Tests if the type `Ref::arithmetic_type` exists
+ */
+template <typename Ref, typename Dummy = xstd::void_t<>>
+struct has_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+};
+
+template <typename Ref>
+struct has_arithmetic_type<Ref, xstd::void_t<typename Ref::arithmetic_type>>
+    : std::true_type {};
+
+
+/**
+ * @internal
+ * converts `ref` to an arithmetic type. It performs the following three steps:
+ * 1. If a function `to_arithmetic_type()` is available, it will return the
+ *    result of that function
+ * 2. Otherwise, if the type `Ref::arithmetic_type` exists, it will return the
+ *    implicit cast from Ref -> `Ref::arithmetic_type`
+ * 3. Otherwise, it will return `ref` itself.
+ */
+template <typename Ref>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<has_to_arithmetic_type<Ref>::value,
+                     typename has_to_arithmetic_type<Ref>::type>
+    to_arithmetic_type(const Ref& ref)
+{
+    return ref.to_arithmetic_type();
+}
+
+template <typename Ref>
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    !has_to_arithmetic_type<Ref>::value && has_arithmetic_type<Ref>::value,
+    typename Ref::arithmetic_type>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+template <typename Ref>
+constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    !has_to_arithmetic_type<Ref>::value && !has_arithmetic_type<Ref>::value,
+    Ref>
+to_arithmetic_type(const Ref& ref)
+{
+    return ref;
+}
+
+
+/**
+ * @internal
+ * Struct used for testing if an implicit cast is present. The constructor only
+ * takes an OutType, so any argument of a type that is not implicitly
+ * convertable to OutType is incompatible.
+ */
+template <typename OutType>
+struct test_for_implicit_cast {
+    constexpr GKO_ACC_ATTRIBUTES test_for_implicit_cast(const OutType&) {}
+};
+
+
+/**
+ * @internal
+ * Checks if an implicit cast is defined from InType to OutType.
+ */
+template <typename OutType, typename InType, typename Dummy = void>
+struct has_implicit_cast {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Don't touch the Dummy type!");
+    static constexpr bool value = false;
+};
+
+template <typename OutType, typename InType>
+struct has_implicit_cast<OutType, InType,
+                         xstd::void_t<decltype(test_for_implicit_cast<OutType>(
+                             std::declval<InType>()))>> {
+    static constexpr bool value = true;
+};
+
+
+/**
+ * Converts in from InType to OutType with an implicit cast if it is defined,
+ * otherwise, a `static_cast` is used.
+ */
+template <typename OutType, typename InType>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<has_implicit_cast<OutType, InType>::value, OutType>
+    implicit_explicit_conversion(const InType& in)
+{
+    return in;
+}
+
+template <typename OutType, typename InType>
+constexpr GKO_ACC_ATTRIBUTES
+    std::enable_if_t<!has_implicit_cast<OutType, InType>::value, OutType>
+    implicit_explicit_conversion(const InType& in)
+{
+    return static_cast<OutType>(in);
+}
+
+
+}  // namespace detail
 }  // namespace acc
 }  // namespace gko
 

@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_ACCESSOR_BLOCK_COL_MAJOR_HPP_
 
 #include <array>
+#include <cinttypes>
+
 
 #include "accessor_helper.hpp"
 #include "range.hpp"
@@ -59,7 +61,7 @@ namespace acc {
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor
  */
-template <typename ValueType, size_type Dimensionality>
+template <typename ValueType, std::size_t Dimensionality>
 class block_col_major {
 public:
     friend class range<block_col_major>;
@@ -72,7 +74,7 @@ public:
     /**
      * Number of dimensions of the accessor.
      */
-    static constexpr size_type dimensionality = Dimensionality;
+    static constexpr auto dimensionality = Dimensionality;
 
     /**
      * Type of values returned by the accessor.
@@ -87,6 +89,9 @@ public:
     using const_accessor = block_col_major<const ValueType, Dimensionality>;
     using stride_type = std::array<size_type, dimensionality - 1>;
     using length_type = std::array<size_type, dimensionality>;
+
+private:
+    using index_type = std::int64_t;
 
 protected:
     /**
@@ -145,7 +150,7 @@ public:
         std::enable_if_t<are_all_integral<Indices...>::value, value_type&>
         operator()(Indices&&... indices) const
     {
-        return data[helper::blk_col_major::compute_index(
+        return data[helper::blk_col_major::compute_index<index_type>(
             lengths, stride, std::forward<Indices>(indices)...)];
     }
 
@@ -167,7 +172,7 @@ public:
                range<block_col_major>{
                    length_type{
                        (index_span{spans}.end - index_span{spans}.begin)...},
-                   data + helper::blk_col_major::compute_index(
+                   data + helper::blk_col_major::compute_index<index_type>(
                               lengths, stride, (index_span{spans}.begin)...),
                    stride};
     }

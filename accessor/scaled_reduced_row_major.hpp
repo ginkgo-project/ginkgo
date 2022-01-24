@@ -35,14 +35,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <cinttypes>
 #include <type_traits>
 #include <utility>
 
 
 #include "accessor_helper.hpp"
-#include "accessor_references.hpp"
 #include "index_span.hpp"
 #include "range.hpp"
+#include "scaled_reduced_row_major_reference.hpp"
 #include "utils.hpp"
 
 
@@ -53,8 +54,6 @@ namespace gko {
  * @ingroup accessor
  */
 namespace acc {
-
-
 namespace detail {
 
 
@@ -156,8 +155,8 @@ private:
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType,
-          size_type ScalarMask>
+template <std::size_t Dimensionality, typename ArithmeticType,
+          typename StorageType, std::uint64_t ScalarMask>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
@@ -167,8 +166,8 @@ class scaled_reduced_row_major
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
-    static constexpr size_type scalar_mask{ScalarMask};
+    static constexpr auto dimensionality = Dimensionality;
+    static constexpr auto scalar_mask = ScalarMask;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using scalar_type =
         std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
@@ -191,9 +190,9 @@ public:
     friend class range<scaled_reduced_row_major>;
 
 protected:
-    static constexpr size_type scalar_dim{
+    static constexpr std::size_t scalar_dim{
         helper::count_mask_dimensionality<scalar_mask, dimensionality>()};
-    static constexpr size_type scalar_stride_dim{
+    static constexpr std::size_t scalar_stride_dim{
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
     using dim_type = std::array<size_type, dimensionality>;
@@ -202,6 +201,10 @@ protected:
     using reference_type =
         reference_class::scaled_reduced_storage<arithmetic_type, StorageType>;
 
+private:
+    using index_type = std::int64_t;
+
+protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -242,8 +245,7 @@ protected:
         : scaled_reduced_row_major{
               size, storage, stride, scalar,
               helper::compute_default_masked_row_major_stride_array<
-                  typename scalar_stride_type::value_type, scalar_mask,
-                  scalar_stride_dim, dimensionality>(size)}
+                  scalar_mask, scalar_stride_dim, dimensionality>(size)}
     {}
 
     /**
@@ -260,9 +262,7 @@ protected:
                                                           scalar_type* scalar)
         : scaled_reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<
-                  typename storage_stride_type::value_type>(size),
-              scalar}
+              helper::compute_default_row_major_stride_array(size), scalar}
     {}
 
     /**
@@ -453,7 +453,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_row_major_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<index_type, dimensionality>(
             size_, storage_stride_, std::forward<Indices>(indices)...);
     }
 
@@ -463,7 +463,7 @@ protected:
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_masked_index<size_type, scalar_mask,
+        return helper::compute_masked_index<index_type, scalar_mask,
                                             scalar_stride_dim>(
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }
@@ -475,7 +475,7 @@ protected:
         static_assert(
             sizeof...(Indices) == scalar_dim,
             "Number of indices must match number of set bits in scalar mask!");
-        return helper::compute_masked_index_direct<size_type, scalar_mask,
+        return helper::compute_masked_index_direct<index_type, scalar_mask,
                                                    scalar_stride_dim>(
             size_, scalar_stride_, std::forward<Indices>(indices)...);
     }

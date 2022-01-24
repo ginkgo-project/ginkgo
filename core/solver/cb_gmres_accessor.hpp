@@ -64,7 +64,7 @@ namespace detail {
 template <typename Accessor>
 struct has_3d_scaled_accessor : public std::false_type {};
 
-template <typename T1, typename T2, size_type mask>
+template <typename T1, typename T2, uint64 mask>
 struct has_3d_scaled_accessor<
     acc::range<acc::scaled_reduced_row_major<3, T1, T2, mask>>>
     : public std::true_type {};
@@ -97,12 +97,14 @@ public:
     Range3dHelper() = default;
 
     Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
-        : krylov_dim_{{krylov_dim[0], krylov_dim[1], krylov_dim[2]}},
-          bases_{exec, krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]},
-          scale_{exec, krylov_dim_[0] * krylov_dim_[2]}
+        : krylov_dim_{{static_cast<acc::size_type>(krylov_dim[0]),
+                       static_cast<acc::size_type>(krylov_dim[1]),
+                       static_cast<acc::size_type>(krylov_dim[2])}},
+          bases_{exec, krylov_dim[0] * krylov_dim[1] * krylov_dim[2]},
+          scale_{exec, krylov_dim[0] * krylov_dim[2]}
     {
         Array<ValueType> h_scale{exec->get_master(),
-                                 krylov_dim_[0] * krylov_dim_[2]};
+                                 krylov_dim[0] * krylov_dim[2]};
         for (size_type i = 0; i < h_scale.get_num_elems(); ++i) {
             h_scale.get_data()[i] = one<ValueType>();
         }
@@ -117,7 +119,7 @@ public:
     gko::Array<StorageType>& get_bases() { return bases_; }
 
 private:
-    std::array<size_type, 3> krylov_dim_;
+    std::array<acc::size_type, 3> krylov_dim_;
     Array<StorageType> bases_;
     Array<ValueType> scale_;
 };
@@ -132,9 +134,10 @@ public:
     Range3dHelper() = default;
 
     Range3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
-        : krylov_dim_{{krylov_dim[0], krylov_dim[1], krylov_dim[2]}},
-          bases_{std::move(exec),
-                 krylov_dim_[0] * krylov_dim_[1] * krylov_dim_[2]}
+        : krylov_dim_{{static_cast<acc::size_type>(krylov_dim[0]),
+                       static_cast<acc::size_type>(krylov_dim[1]),
+                       static_cast<acc::size_type>(krylov_dim[2])}},
+          bases_{std::move(exec), krylov_dim[0] * krylov_dim[1] * krylov_dim[2]}
     {}
 
     Range get_range() { return Range(krylov_dim_, bases_.get_data()); }
@@ -142,7 +145,7 @@ public:
     gko::Array<StorageType>& get_bases() { return bases_; }
 
 private:
-    std::array<size_type, 3> krylov_dim_;
+    std::array<acc::size_type, 3> krylov_dim_;
     Array<StorageType> bases_;
 };
 
@@ -155,7 +158,7 @@ struct helper_functions_accessor {};
 template <typename Accessor3d>
 struct helper_functions_accessor<Accessor3d, true> {
     using arithmetic_type = typename Accessor3d::accessor::arithmetic_type;
-    static constexpr size_type dimensionality = Accessor3d::dimensionality;
+    static constexpr auto dimensionality = Accessor3d::dimensionality;
     static_assert(detail::has_3d_scaled_accessor<Accessor3d>::value,
                   "Accessor must have a scalar here!");
     template <typename IndexType>
@@ -175,8 +178,9 @@ struct helper_functions_accessor<Accessor3d, true> {
                                                         vector_idx, col_idx);
     }
 
-    static constexpr GKO_ATTRIBUTES std::array<size_type, dimensionality - 1>
-    get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES
+        std::array<acc::size_type, dimensionality - 1>
+        get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_storage_stride();
     }
@@ -197,8 +201,9 @@ struct helper_functions_accessor<Accessor3d, false> {
         // Since there is no scalar, there is nothing to write.
     }
 
-    static constexpr GKO_ATTRIBUTES std::array<size_type, dimensionality - 1>
-    get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES
+        std::array<acc::size_type, dimensionality - 1>
+        get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_stride();
     }

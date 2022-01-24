@@ -35,15 +35,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <cinttypes>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
 
 #include "accessor_helper.hpp"
-#include "accessor_references.hpp"
 #include "index_span.hpp"
 #include "range.hpp"
+#include "reduced_row_major_reference.hpp"
 #include "utils.hpp"
 
 
@@ -74,12 +75,13 @@ namespace acc {
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
-template <int Dimensionality, typename ArithmeticType, typename StorageType>
+template <std::size_t Dimensionality, typename ArithmeticType,
+          typename StorageType>
 class reduced_row_major {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
-    static constexpr size_type dimensionality{Dimensionality};
+    static constexpr auto dimensionality = Dimensionality;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using const_accessor =
         reduced_row_major<dimensionality, arithmetic_type, const storage_type>;
@@ -95,6 +97,10 @@ protected:
     using reference_type =
         reference_class::reduced_storage<arithmetic_type, storage_type>;
 
+private:
+    using index_type = std::int64_t;
+
+protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -142,7 +148,7 @@ protected:
                                                    storage_type* storage)
         : reduced_row_major{
               size, storage,
-              helper::compute_default_row_major_stride_array<size_type>(size)}
+              helper::compute_default_row_major_stride_array(size)}
     {}
 
     /**
@@ -253,12 +259,12 @@ public:
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
+    constexpr GKO_ACC_ATTRIBUTES index_type
     compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
                       "Number of indices must match dimensionality!");
-        return helper::compute_row_major_index<size_type, dimensionality>(
+        return helper::compute_row_major_index<index_type, dimensionality>(
             size_, stride_, std::forward<Indices>(indices)...);
     }
 
