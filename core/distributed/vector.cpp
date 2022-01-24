@@ -123,7 +123,7 @@ void Vector<ValueType, LocalIndexType,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 const typename Vector<ValueType, LocalIndexType,
-                      GlobalIndexType>::local_mtx_type*
+                      GlobalIndexType>::local_vector_type*
 Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
 {
     return &local_;
@@ -131,7 +131,7 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-typename Vector<ValueType, LocalIndexType, GlobalIndexType>::local_mtx_type*
+typename Vector<ValueType, LocalIndexType, GlobalIndexType>::local_vector_type*
 Vector<ValueType, LocalIndexType, GlobalIndexType>::get_local()
 {
     return &local_;
@@ -351,7 +351,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
     LinOp* result) const
 {
-    using NormVector = typename local_mtx_type::absolute_type;
+    using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
@@ -369,7 +369,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm1(
     LinOp* result) const
 {
-    using NormVector = typename local_mtx_type::absolute_type;
+    using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
