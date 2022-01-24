@@ -199,6 +199,7 @@ void Hybrid<ValueType, IndexType>::resize(dim<2> new_size,
                                           size_type ell_row_nnz,
                                           size_type coo_nnz)
 {
+    this->set_size(new_size);
     ell_->resize(new_size, ell_row_nnz);
     coo_->resize(new_size, coo_nnz);
 }

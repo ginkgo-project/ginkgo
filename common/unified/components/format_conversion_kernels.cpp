@@ -96,10 +96,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS32);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_IDXS_TO_PTRS64);
 
 
-template <typename IndexType, typename RowPtrType>
+template <typename RowPtrType>
 void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,
                            const RowPtrType* ptrs, size_type num_blocks,
-                           IndexType* sizes)
+                           size_type* sizes)
 {
     run_kernel(
         exec,
@@ -109,8 +109,7 @@ void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,
         num_blocks, ptrs, sizes);
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES32);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES64);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 
 
 }  // namespace components

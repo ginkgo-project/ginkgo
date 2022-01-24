@@ -78,9 +78,12 @@ void sampleselect_filter(const ValueType* values, IndexType size,
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
         static_cast<IndexType>(ceildiv(num_threads_total, default_block_size));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
-                       default_block_size, 0, 0, as_hip_type(values), size,
-                       bucket, oracles, partial_counts, out, items_per_thread);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::filter_bucket), num_blocks,
+                           default_block_size, 0, 0, as_hip_type(values), size,
+                           bucket, oracles, partial_counts, out,
+                           items_per_thread);
+    }
 }
 
 

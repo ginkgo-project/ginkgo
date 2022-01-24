@@ -74,9 +74,11 @@ void set_all_statuses(std::shared_ptr<const HipExecutor> exec, uint8 stoppingId,
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(stop_status->get_num_elems(), block_size);
 
-    hipLaunchKernelGGL((set_all_statuses), grid_size, block_size, 0, 0,
-                       stop_status->get_num_elems(), stoppingId, setFinalized,
-                       as_hip_type(stop_status->get_data()));
+    if (grid_size > 0) {
+        hipLaunchKernelGGL((set_all_statuses), grid_size, block_size, 0, 0,
+                           stop_status->get_num_elems(), stoppingId,
+                           setFinalized, as_hip_type(stop_status->get_data()));
+    }
 }
 
 

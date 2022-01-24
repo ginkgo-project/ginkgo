@@ -92,7 +92,8 @@ GKO_REGISTER_OPERATION(row_permute, csr::row_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, csr::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, csr::inverse_column_permute);
 GKO_REGISTER_OPERATION(invert_permutation, csr::invert_permutation);
-GKO_REGISTER_OPERATION(count_nonzeros_per_row, csr::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(convert_ptrs_to_sizes,
+                       components::convert_ptrs_to_sizes);
 GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
@@ -231,16 +232,15 @@ void Csr<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     Array<size_type> row_nnz{exec, this->get_size()[0]};
     Array<int64> coo_row_ptrs{exec, this->get_size()[0] + 1};
-    exec->run(csr::make_count_nonzeros_per_row(this, row_nnz.get_data()));
+    exec->run(csr::make_convert_ptrs_to_sizes(
+        this->get_const_row_ptrs(), this->get_size()[0], row_nnz.get_data()));
     size_type ell_lim{};
     size_type coo_nnz{};
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
     exec->run(csr::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                     coo_row_ptrs.get_data()));
     auto tmp = make_temporary_clone(exec, result);
-    tmp->ell_->resize(this->get_size(), ell_lim);
-    tmp->coo_->resize(this->get_size(), coo_nnz);
-    tmp->set_size(this->get_size());
+    tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
                                           tmp.get()));
 }
@@ -294,7 +294,7 @@ void Csr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     if (!result->value_.get_data()) {
         result->value_ =
-            gko::Array<ValueType>(result->get_executor(), {one<ValueType>()});
+            Array<ValueType>(result->get_executor(), {one<ValueType>()});
     }
     result->set_size(this->get_size());
 }

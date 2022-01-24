@@ -654,21 +654,6 @@ TEST_F(Csr, ConvertsEmptyToSellp)
 }
 
 
-TEST_F(Csr, CalculatesNonzerosPerRow)
-{
-    set_up_apply_data(std::make_shared<Mtx::sparselib>());
-    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
-    gko::Array<gko::size_type> drow_nnz(dpcpp, dmtx->get_size()[0]);
-
-    gko::kernels::reference::csr::count_nonzeros_per_row(ref, mtx.get(),
-                                                         row_nnz.get_data());
-    gko::kernels::dpcpp::csr::count_nonzeros_per_row(dpcpp, dmtx.get(),
-                                                     drow_nnz.get_data());
-
-    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
-}
-
-
 TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<vtype>;

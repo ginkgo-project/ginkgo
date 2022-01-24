@@ -165,11 +165,6 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec, size_type size, \
         const IndexType* permutation_indices, IndexType* inv_permutation)
 
-#define GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType) \
-    void count_nonzeros_per_row(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Csr<ValueType, IndexType>* source, size_type* result)
-
 #define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType)  \
     void calculate_nonzeros_per_row_in_span(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                           \
@@ -244,8 +239,6 @@ namespace kernels {
     GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);   \
     template <typename IndexType>                                          \
     GKO_DECLARE_INVERT_PERMUTATION_KERNEL(IndexType);                      \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_CSR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                      \

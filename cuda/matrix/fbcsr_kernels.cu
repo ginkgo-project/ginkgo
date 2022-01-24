@@ -265,11 +265,10 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
     constexpr int subwarp_size = config::warp_size;
-    const size_type nbnz = mat->get_num_stored_blocks();
-    const size_type numthreads = nbnz * subwarp_size;
-    const size_type numblocks = ceildiv(numthreads, default_block_size);
-    const auto block_size = static_cast<unsigned>(default_block_size);
-    const auto grid_dim = static_cast<unsigned>(numblocks);
+    const auto nbnz = mat->get_num_stored_blocks();
+    const auto numthreads = nbnz * subwarp_size;
+    const auto block_size = default_block_size;
+    const auto grid_dim = ceildiv(numthreads, block_size);
     if (grid_dim > 0) {
         kernel::transpose_blocks<mat_blk_sz, subwarp_size>
             <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());

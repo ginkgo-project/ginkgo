@@ -77,6 +77,9 @@ void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);
     size_type row_ptrs_size = num_rows + 1;
+    if (num_rows == 0) {
+        return;
+    }
 
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
     Array<bool> needs_change_host{exec->get_master(), 1};
@@ -159,12 +162,14 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size));
     const auto grid_dim = number_blocks;
 
-    hipLaunchKernelGGL(kernel::count_nnz_per_l_u_row, grid_dim, block_size, 0,
-                       0, num_rows,
-                       as_hip_type(system_matrix->get_const_row_ptrs()),
-                       as_hip_type(system_matrix->get_const_col_idxs()),
-                       as_hip_type(system_matrix->get_const_values()),
-                       as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::count_nnz_per_l_u_row, grid_dim, block_size,
+                           0, 0, num_rows,
+                           as_hip_type(system_matrix->get_const_row_ptrs()),
+                           as_hip_type(system_matrix->get_const_col_idxs()),
+                           as_hip_type(system_matrix->get_const_values()),
+                           as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
+    }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
     components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
@@ -185,15 +190,19 @@ void initialize_l_u(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
-    hipLaunchKernelGGL(
-        kernel::initialize_l_u, grid_dim, block_size, 0, 0, num_rows,
-        as_hip_type(system_matrix->get_const_row_ptrs()),
-        as_hip_type(system_matrix->get_const_col_idxs()),
-        as_hip_type(system_matrix->get_const_values()),
-        as_hip_type(csr_l->get_const_row_ptrs()),
-        as_hip_type(csr_l->get_col_idxs()), as_hip_type(csr_l->get_values()),
-        as_hip_type(csr_u->get_const_row_ptrs()),
-        as_hip_type(csr_u->get_col_idxs()), as_hip_type(csr_u->get_values()));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::initialize_l_u, grid_dim, block_size, 0, 0,
+                           num_rows,
+                           as_hip_type(system_matrix->get_const_row_ptrs()),
+                           as_hip_type(system_matrix->get_const_col_idxs()),
+                           as_hip_type(system_matrix->get_const_values()),
+                           as_hip_type(csr_l->get_const_row_ptrs()),
+                           as_hip_type(csr_l->get_col_idxs()),
+                           as_hip_type(csr_l->get_values()),
+                           as_hip_type(csr_u->get_const_row_ptrs()),
+                           as_hip_type(csr_u->get_col_idxs()),
+                           as_hip_type(csr_u->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -213,12 +222,14 @@ void initialize_row_ptrs_l(
         ceildiv(num_rows, static_cast<size_type>(block_size));
     const auto grid_dim = number_blocks;
 
-    hipLaunchKernelGGL(kernel::count_nnz_per_l_row, grid_dim, block_size, 0, 0,
-                       num_rows,
-                       as_hip_type(system_matrix->get_const_row_ptrs()),
-                       as_hip_type(system_matrix->get_const_col_idxs()),
-                       as_hip_type(system_matrix->get_const_values()),
-                       as_hip_type(l_row_ptrs));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::count_nnz_per_l_row, grid_dim, block_size, 0,
+                           0, num_rows,
+                           as_hip_type(system_matrix->get_const_row_ptrs()),
+                           as_hip_type(system_matrix->get_const_col_idxs()),
+                           as_hip_type(system_matrix->get_const_values()),
+                           as_hip_type(l_row_ptrs));
+    }
 
     components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
 }
@@ -237,14 +248,16 @@ void initialize_l(std::shared_ptr<const HipExecutor> exec,
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
 
-    hipLaunchKernelGGL(kernel::initialize_l, grid_dim, block_size, 0, 0,
-                       num_rows,
-                       as_hip_type(system_matrix->get_const_row_ptrs()),
-                       as_hip_type(system_matrix->get_const_col_idxs()),
-                       as_hip_type(system_matrix->get_const_values()),
-                       as_hip_type(csr_l->get_const_row_ptrs()),
-                       as_hip_type(csr_l->get_col_idxs()),
-                       as_hip_type(csr_l->get_values()), diag_sqrt);
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::initialize_l, grid_dim, block_size, 0, 0,
+                           num_rows,
+                           as_hip_type(system_matrix->get_const_row_ptrs()),
+                           as_hip_type(system_matrix->get_const_col_idxs()),
+                           as_hip_type(system_matrix->get_const_values()),
+                           as_hip_type(csr_l->get_const_row_ptrs()),
+                           as_hip_type(csr_l->get_col_idxs()),
+                           as_hip_type(csr_l->get_values()), diag_sqrt);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

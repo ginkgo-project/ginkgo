@@ -371,11 +371,13 @@ void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
 {
     const auto num_blocks =
         ceildiv(rows * col_blocks * subwarp_size, default_block_size);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(generic_kernel_row_reduction_2d<subwarp_size>),
-        num_blocks, default_block_size, 0, 0, rows, cols, col_blocks, fn, op,
-        finalize, as_hip_type(identity), as_hip_type(result), result_stride,
-        args...);
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(generic_kernel_row_reduction_2d<subwarp_size>),
+            num_blocks, default_block_size, 0, 0, rows, cols, col_blocks, fn,
+            op, finalize, as_hip_type(identity), as_hip_type(result),
+            result_stride, args...);
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
@@ -412,11 +414,14 @@ void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
             num_blocks, default_block_size, 0, 0, rows, cols, fn, op,
             [] __device__(auto v) { return v; }, as_hip_type(identity),
             as_hip_type(tmp_storage.get_data()), args...);
-        hipLaunchKernelGGL(
-            generic_kernel_reduction_finalize_2d,
-            ceildiv(cols, default_block_size), default_block_size, 0, 0, cols,
-            num_blocks, op, finalize, as_hip_type(identity),
-            as_hip_type(tmp_storage.get_const_data()), 1, as_hip_type(result));
+        if (cols > 0) {
+            hipLaunchKernelGGL(generic_kernel_reduction_finalize_2d,
+                               ceildiv(cols, default_block_size),
+                               default_block_size, 0, 0, cols, num_blocks, op,
+                               finalize, as_hip_type(identity),
+                               as_hip_type(tmp_storage.get_const_data()), 1,
+                               as_hip_type(result));
+        }
     }
 }
 
@@ -448,6 +453,7 @@ void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
                                  static_cast<size_type>(col_blocks * rows)};
         const auto num_blocks =
             ceildiv(rows * col_blocks * config::warp_size, default_block_size);
+        // no need to guard this kernel, as rows * cols > resources
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(generic_kernel_row_reduction_2d<config::warp_size>),
             num_blocks, default_block_size, 0, 0, rows, cols, col_blocks, fn,
@@ -513,6 +519,7 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
         } else {
             Array<ValueType> tmp_storage{
                 exec, static_cast<size_type>(row_blocks * cols)};
+            // no need to guard this kernel, as cols > warp_size, row_blocks > 1
             hipLaunchKernelGGL(
                 generic_kernel_col_reduction_2d_blocked,
                 dim3(row_blocks, col_blocks), default_block_size, 0, 0, rows,

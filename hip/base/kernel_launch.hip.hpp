@@ -94,7 +94,7 @@ template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs&&... args)
 {
-    if (size[0] * size[1] > 0) {
+    if (size[0] > 0 && size[1] > 0) {
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         hipLaunchKernelGGL(generic_kernel_2d, num_blocks, block_size, 0, 0,

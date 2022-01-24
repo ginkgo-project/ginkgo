@@ -117,7 +117,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
-    if (nwarps > 0) {
+    if (nwarps > 0 && b_ncols > 0) {
         // TODO: b_ncols needs to be tuned.
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
@@ -158,7 +158,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
-    if (nwarps > 0) {
+    if (nwarps > 0 && b_ncols > 0) {
         // TODO: b_ncols needs to be tuned.
         if (b_ncols < 4) {
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);

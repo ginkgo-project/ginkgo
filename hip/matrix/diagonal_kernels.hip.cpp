@@ -77,9 +77,11 @@ void apply_to_csr(std::shared_ptr<const HipExecutor> exec,
 
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);
-    hipLaunchKernelGGL(kernel::apply_to_csr, grid_dim, default_block_size, 0, 0,
-                       num_rows, as_hip_type(diag_values),
-                       as_hip_type(csr_row_ptrs), as_hip_type(csr_values));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::apply_to_csr, grid_dim, default_block_size,
+                           0, 0, num_rows, as_hip_type(diag_values),
+                           as_hip_type(csr_row_ptrs), as_hip_type(csr_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -67,14 +67,10 @@ namespace kernels {
 #define GKO_DECLARE_CONVERT_IDXS_TO_PTRS64(IndexType) \
     GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, ::gko::int64)
 
-#define GKO_DECLARE_CONVERT_PTRS_TO_SIZES(IndexType, RowPtrType)             \
+#define GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)                        \
     void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,  \
                                const RowPtrType* ptrs, size_type num_blocks, \
-                               IndexType* sizes)
-#define GKO_DECLARE_CONVERT_PTRS_TO_SIZES32(IndexType) \
-    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(IndexType, ::gko::int32)
-#define GKO_DECLARE_CONVERT_PTRS_TO_SIZES64(IndexType) \
-    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(IndexType, ::gko::int64)
+                               size_type* sizes)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                         \
@@ -82,8 +78,8 @@ namespace kernels {
     GKO_DECLARE_CONVERT_PTRS_TO_IDXS(IndexType, RowPtrType); \
     template <typename IndexType, typename RowPtrType>       \
     GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType); \
-    template <typename IndexType, typename RowPtrType>       \
-    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(IndexType, RowPtrType)
+    template <typename RowPtrType>                           \
+    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

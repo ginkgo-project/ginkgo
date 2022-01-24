@@ -350,6 +350,15 @@ protected:
                       col_idxs_.get_num_elems());
     }
 
+    /**
+     * Resizes the matrix to the given dimensions and row nonzero count.
+     * If the dimensions or row nonzero count don't match their old values,
+     * the column stride will be reset to the number of rows and the internal
+     * storage reallocated to match these values.
+     *
+     * @param new_size  the new matrix dimensions
+     * @param max_row_nnz  the new number of nonzeros per row
+     */
     void resize(dim<2> new_size, size_type max_row_nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

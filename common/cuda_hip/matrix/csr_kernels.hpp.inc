@@ -795,8 +795,7 @@ template <typename ValueType, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
         const size_type num_rows, const size_type num_cols,
-        const size_type num_nnz, const size_type row_offset,
-        const size_type col_offset,
+        const size_type row_offset, const size_type col_offset,
         const IndexType* __restrict__ source_row_ptrs,
         const IndexType* __restrict__ source_col_idxs,
         const ValueType* __restrict__ source_values,

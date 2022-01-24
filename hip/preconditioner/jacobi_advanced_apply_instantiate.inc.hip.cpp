@@ -92,21 +92,24 @@ void advanced_apply(
         ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
-                                                warps_per_block>),
-            grid_size, block_size, 0, 0, as_hip_type(blocks), storage_scheme,
-            block_precisions, block_pointers, num_blocks, as_hip_type(alpha),
-            as_hip_type(b), b_stride, as_hip_type(x), x_stride);
-    } else {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::advanced_apply<max_block_size, subwarp_size,
-                                                   warps_per_block>),
-            grid_size, block_size, 0, 0, as_hip_type(blocks), storage_scheme,
-            block_pointers, num_blocks, as_hip_type(alpha), as_hip_type(b),
-            b_stride, as_hip_type(x), x_stride);
+    if (grid_size > 0) {
+        if (block_precisions) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::advanced_adaptive_apply<
+                                max_block_size, subwarp_size, warps_per_block>),
+                grid_size, block_size, 0, 0, as_hip_type(blocks),
+                storage_scheme, block_precisions, block_pointers, num_blocks,
+                as_hip_type(alpha), as_hip_type(b), b_stride, as_hip_type(x),
+                x_stride);
+        } else {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::advanced_apply<max_block_size, subwarp_size,
+                                           warps_per_block>),
+                grid_size, block_size, 0, 0, as_hip_type(blocks),
+                storage_scheme, block_pointers, num_blocks, as_hip_type(alpha),
+                as_hip_type(b), b_stride, as_hip_type(x), x_stride);
+        }
     }
 }
 

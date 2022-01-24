@@ -115,12 +115,15 @@ void convert_to_csr(const std::shared_ptr<const HipExecutor> exec,
     constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto num_blocks =
         ceildiv(source->get_num_block_rows(), warps_per_block);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(kernel::convert_to_csr), num_blocks, default_block_size,
-        0, 0, source->get_const_row_ptrs(), source->get_const_col_idxs(),
-        as_hip_type(source->get_const_values()), result->get_row_ptrs(),
-        result->get_col_idxs(), as_hip_type(result->get_values()),
-        source->get_num_block_rows(), source->get_block_size());
+    if (num_blocks > 0) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::convert_to_csr), num_blocks,
+            default_block_size, 0, 0, source->get_const_row_ptrs(),
+            source->get_const_col_idxs(),
+            as_hip_type(source->get_const_values()), result->get_row_ptrs(),
+            result->get_col_idxs(), as_hip_type(result->get_values()),
+            source->get_num_block_rows(), source->get_block_size());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

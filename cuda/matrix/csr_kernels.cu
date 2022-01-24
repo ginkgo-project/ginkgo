@@ -230,7 +230,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     const auto block = spmv_block_size;
 
     if (alpha == nullptr && beta == nullptr) {
-        if (grid.x * grid.y > 0) {
+        if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, 0>>>(
                     a->get_size()[0], as_cuda_type(a->get_const_values()),
@@ -240,7 +240,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     as_cuda_type(c->get_values()), c->get_stride());
         }
     } else if (alpha != nullptr && beta != nullptr) {
-        if (grid.x * grid.y > 0) {
+        if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, 0>>>(
                     a->get_size()[0], as_cuda_type(alpha->get_const_values()),
@@ -277,7 +277,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
         const dim3 csr_block(config::warp_size, warps_in_block, 1);
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         if (alpha) {
-            if (csr_grid.x * csr_grid.y > 0) {
+            if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_cuda_type(alpha->get_const_values()),
@@ -291,7 +291,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
                     as_cuda_type(c->get_stride()));
             }
         } else {
-            if (csr_grid.x * csr_grid.y > 0) {
+            if (csr_grid.x > 0 && csr_grid.y > 0) {
                 kernel::abstract_spmv<<<csr_grid, csr_block>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_cuda_type(a->get_const_values()),
@@ -357,7 +357,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
         cusparse::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
                                              beta, vecc, alg, &buffer_size);
 
-        gko::Array<char> buffer_array(exec, buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::spmv<ValueType>(handle, trans, alpha, mat, vecb, beta, vecc,
                                   alg, buffer);
@@ -374,7 +374,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
                                              vecb, beta, vecc, alg,
                                              &buffer_size);
 
-        gko::Array<char> buffer_array(exec, buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::spmm<ValueType>(handle, trans, trans, alpha, mat, vecb, beta,
                                   vecc, alg, buffer);
@@ -417,7 +417,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    if (c->get_size()[0] * c->get_size()[1] == 0) {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
         host_kernel::load_balance_spmv(exec, a, b, c);
@@ -475,7 +475,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    if (c->get_size()[0] * c->get_size()[1] == 0) {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
         host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
@@ -1141,13 +1141,10 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    auto num_nnz = source->get_num_stored_elements();
-    grid_dim = ceildiv(num_nnz, default_block_size);
     if (grid_dim > 0) {
         kernel::
             compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size>>>(
-                num_rows, num_cols, num_nnz, row_offset, col_offset,
+                num_rows, num_cols, row_offset, col_offset,
                 as_cuda_type(source->get_const_row_ptrs()),
                 as_cuda_type(source->get_const_col_idxs()),
                 as_cuda_type(source->get_const_values()),

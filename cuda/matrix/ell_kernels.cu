@@ -151,7 +151,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
             {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
-        if (grid_size.x * grid_size.y > 0) {
+        if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, 0>>>(
                     nrows, num_worker_per_row, acc::as_cuda_range(a_vals),
@@ -162,7 +162,7 @@ void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
     } else if (alpha != nullptr && beta != nullptr) {
         const auto alpha_val = gko::acc::range<a_accessor>(
             std::array<acc::size_type, 1>{1}, alpha->get_const_values());
-        if (grid_size.x * grid_size.y > 0) {
+        if (grid_size.x > 0 && grid_size.y > 0) {
             kernel::spmv<num_thread_per_worker, atomic>
                 <<<grid_size, block_size, 0, 0>>>(
                     nrows, num_worker_per_row, acc::as_cuda_range(alpha_val),

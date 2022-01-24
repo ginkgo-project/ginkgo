@@ -581,14 +581,8 @@ TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
 TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
-
-    gko::Array<int> nnz_per_row;
-    nnz_per_row.set_executor(ref);
-    nnz_per_row.resize_and_reset(mtx->get_size()[0]);
-
-    gko::Array<int> dnnz_per_row;
-    dnnz_per_row.set_executor(dpcpp);
-    dnnz_per_row.resize_and_reset(dmtx->get_size()[0]);
+    gko::Array<int> nnz_per_row{ref, mtx->get_size()[0]};
+    gko::Array<int> dnnz_per_row{dpcpp, dmtx->get_size()[0]};
 
     gko::kernels::reference::ell::count_nonzeros_per_row(
         ref, mtx.get(), nnz_per_row.get_data());
