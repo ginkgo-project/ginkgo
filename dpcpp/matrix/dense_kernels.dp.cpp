@@ -121,30 +121,35 @@ void transpose(
 }
 
 template <typename cfg, typename ValueType>
-void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-               sycl::queue* queue, const size_type nrows, const size_type ncols,
-               const ValueType* in, const size_type in_stride, ValueType* out,
-               const size_type out_stride)
+void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
+               matrix::Dense<ValueType>* trans)
 {
+    auto size = orig->get_size();
     constexpr auto sg_size = cfg::subgroup_size;
+    std::cout << sg_size << std::endl;
+    dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
+    dim3 block(sg_size, sg_size);
+
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             space_acc_ct1(cgh);
-
+        // Can not pass the member to device function directly
+        auto in = orig->get_const_values();
+        auto in_stride = orig->get_stride();
+        auto out = trans->get_values();
+        auto out_stride = trans->get_stride();
         cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
-                transpose<sg_size>(nrows, ncols, in, in_stride, out, out_stride,
-                                   item_ct1, *space_acc_ct1.get_pointer());
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                transpose<cfg>(size[0], size[1], in, in_stride, out, out_stride,
+                               item_ct1, *space_acc_ct1.get_pointer());
             });
     });
 }
 
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(transpose, transpose,
-                                                  KCFG_1D);
-GKO_ENABLE_DEFAULT_CONFIG_CALL(transpose_call, transpose, kcfg_sq_list);
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TYPE(transpose, transpose)
+GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE(transpose_call, transpose);
 
 
 template <typename cfg, typename ValueType>
@@ -544,23 +549,17 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
-    auto size = orig->get_size();
-    auto sq_array = syn::as_array(kcfg_sq_list);
     auto queue = exec->get_queue();
-    const std::uint32_t cfg =
-        get_first_cfg(sq_array, [&queue](std::uint32_t cfg) {
-            const auto sg_size = KCFG_1D::decode<1>(cfg);
-            return validate(queue, KCFG_1D::decode<0>(cfg), sg_size) &&
+    kernel::transpose_call(
+        kcfg_sq_type_list_t(),
+        [&queue](auto cfg) {
+            const auto sg_size = cfg.subgroup_size;
+            return validate(queue, cfg.block_size, sg_size) &&
                    sg_size * (sg_size + 1) * sizeof(ValueType) <=
                        queue->get_device()
                            .get_info<sycl::info::device::local_mem_size>();
-        });
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-    dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
-    dim3 block(sg_size, sg_size);
-    kernel::transpose_call(cfg, grid, block, 0, queue, size[0], size[1],
-                           orig->get_const_values(), orig->get_stride(),
-                           trans->get_values(), trans->get_stride());
+        },
+        queue, orig, trans);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
