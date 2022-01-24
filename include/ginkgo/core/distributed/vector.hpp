@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#if GINKGO_BUILD_MPI
+
+
 namespace gko {
 namespace distributed {
 
@@ -329,6 +332,9 @@ private:
 
 }  // namespace distributed
 }  // namespace gko
+
+
+#endif
 
 
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_
