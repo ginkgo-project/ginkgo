@@ -220,7 +220,7 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
     const acc::range<acc::block_col_major<const ValueType, 3>> values{
-        to_std_array<size_type>(nbnz, bs, bs), source->get_const_values()};
+        to_std_array<acc::size_type>(nbnz, bs, bs), source->get_const_values()};
 #pragma omp parallel for
     for (size_type block_row = 0; block_row < nbrows; block_row++) {
         const auto row_begin = row_ptrs[block_row];
