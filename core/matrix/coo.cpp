@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -78,6 +79,15 @@ GKO_REGISTER_OPERATION(mem_size_bccoo, coo::mem_size_bccoo);
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+namespace bccoo {
+
+
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
+
+}  // namespace bccoo
 
 
 template <typename ValueType, typename IndexType>
@@ -154,11 +164,13 @@ void Coo<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto num_stored_elements = this->get_num_stored_elements();
 
-    const size_type block_size = 1024;
-    // JIAE task
-    //		const auto block_size = Bccoo<ValueType,
-    // IndexType>::compute_block_size(
-    // result->get_executor(), this.size(), num_stored_elements);
+    //  const size_type block_size = 1024;
+    // JIAE TODO
+    //	const auto block_size = Bccoo<ValueType, IndexType>::
+    //	  compute_block_size( result->get_executor(), this.size(),
+    //    num_stored_elements);
+    size_type block_size = 1024;
+    exec->run(bccoo::make_get_default_block_size(&block_size));
     const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
     array<IndexType> rows(exec, num_blocks);
@@ -170,10 +182,11 @@ void Coo<ValueType, IndexType>::convert_to(
                                            offsets.get_data(), num_blocks,
                                            block_size, &mem_size));
     } else {
-        auto host_coo = clone(exec->get_master(), this);
-        exec->run(coo::make_mem_size_bccoo(host_coo.get(), rows.get_data(),
-                                           offsets.get_data(), num_blocks,
-                                           block_size, &mem_size));
+        //        auto host_coo = clone(exec->get_master(), this);
+        auto host_coo = this->clone(exec->get_master());
+        exec->get_master()->run(coo::make_mem_size_bccoo(
+            host_coo.get(), rows.get_data(), offsets.get_data(), num_blocks,
+            block_size, &mem_size));
     }
 
     array<uint8> data(exec, mem_size);
