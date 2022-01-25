@@ -212,40 +212,21 @@ struct cuda_type_impl<matrix_data_entry<ValueType, IndexType>> {
 template <typename T>
 struct cuda_data_type_impl {};
 
-template <>
-struct cuda_data_type_impl<float16> {
-    constexpr static cudaDataType_t value = CUDA_R_16F;
-};
+#define GKO_CUDA_DATA_TYPE(_type, _value)               \
+    template <>                                         \
+    struct cuda_data_type_impl<_type> {                 \
+        constexpr static cudaDataType_t value = _value; \
+    }
 
-template <>
-struct cuda_data_type_impl<float> {
-    constexpr static cudaDataType_t value = CUDA_R_32F;
-};
+GKO_CUDA_DATA_TYPE(float16, CUDA_R_16F);
+GKO_CUDA_DATA_TYPE(float, CUDA_R_32F);
+GKO_CUDA_DATA_TYPE(double, CUDA_R_64F);
+GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
+GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
+GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
+GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 
-template <>
-struct cuda_data_type_impl<double> {
-    constexpr static cudaDataType_t value = CUDA_R_64F;
-};
-
-template <>
-struct cuda_data_type_impl<std::complex<float>> {
-    constexpr static cudaDataType_t value = CUDA_C_32F;
-};
-
-template <>
-struct cuda_data_type_impl<std::complex<double>> {
-    constexpr static cudaDataType_t value = CUDA_C_64F;
-};
-
-template <>
-struct cuda_data_type_impl<int32> {
-    constexpr static cudaDataType_t value = CUDA_R_32I;
-};
-
-template <>
-struct cuda_data_type_impl<int8> {
-    constexpr static cudaDataType_t value = CUDA_R_8I;
-};
+#undef GKO_CUDA_DATA_TYPE
 
 
 #if defined(CUDA_VERSION) &&  \
@@ -256,20 +237,17 @@ struct cuda_data_type_impl<int8> {
 template <typename T>
 struct cusparse_index_type_impl {};
 
-template <>
-struct cusparse_index_type_impl<std::uint16_t> {
-    constexpr static cusparseIndexType_t value = CUSPARSE_INDEX_16U;
-};
+#define GKO_CUDA_INDEX_TYPE(_type, _value)                   \
+    template <>                                              \
+    struct cusparse_index_type_impl<_type> {                 \
+        constexpr static cusparseIndexType_t value = _value; \
+    }
 
-template <>
-struct cusparse_index_type_impl<int32> {
-    constexpr static cusparseIndexType_t value = CUSPARSE_INDEX_32I;
-};
+GKO_CUDA_INDEX_TYPE(std::uint16_t, CUSPARSE_INDEX_16U);
+GKO_CUDA_INDEX_TYPE(int32, CUSPARSE_INDEX_32I);
+GKO_CUDA_INDEX_TYPE(int64, CUSPARSE_INDEX_64I);
 
-template <>
-struct cusparse_index_type_impl<int64> {
-    constexpr static cusparseIndexType_t value = CUSPARSE_INDEX_64I;
-};
+#undef GKO_CUDA_INDEX_TYPE
 
 
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
