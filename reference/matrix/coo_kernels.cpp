@@ -162,15 +162,15 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     const ValueType* values = coo->get_const_values();
     const size_type num_rows = coo->get_size()[0];
     const size_type num_stored_elements = coo->get_num_stored_elements();
-    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
+    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
     for (size_type i = 0; i < num_stored_elements; i++) {
         const size_type row = row_idxs[i];
         const size_type col = col_idxs[i];
         const ValueType val = values[i];
-        cnt_detect_newblock(nblk, shf, rowR, row - rowR, colR);
-        size_type colRS =
-            cnt_position_newrow_mat_data(row, col, shf, rowR, colR);
-        cnt_next_position_value(colRS, shf, colR, val, nblk);
+        cnt_detect_newblock(nblk, shf, row_res, row - row_res, col_res);
+        size_type col_src_res =
+            cnt_position_newrow_mat_data(row, col, shf, row_res, col_res);
+        cnt_next_position_value(col_src_res, shf, col_res, val, nblk);
         cnt_detect_endblock(block_size, nblk, blk);
     }
 
@@ -197,7 +197,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     const ValueType* values = source->get_const_values();
     const size_type num_rows = source->get_size()[0];
     const size_type num_stored_elements = source->get_num_stored_elements();
-    size_type nblk = 0, blk = 0, rowR = 0, colR = 0, shf = 0;
+    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
     if (num_stored_elements > 0) {
         offsets_data[0] = 0;
     }
@@ -205,11 +205,12 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         const size_type row = row_idxs[i];
         const size_type col = col_idxs[i];
         const ValueType val = values[i];
-        put_detect_newblock(chunk_data, rows_data, nblk, blk, shf, rowR,
-                            row - rowR, colR);
-        size_type colRS =
-            put_position_newrow_mat_data(row, col, chunk_data, shf, rowR, colR);
-        put_next_position_value(chunk_data, nblk, col - colR, shf, colR, val);
+        put_detect_newblock(chunk_data, rows_data, nblk, blk, shf, row_res,
+                            row - row_res, col_res);
+        size_type col_src_res = put_position_newrow_mat_data(
+            row, col, chunk_data, shf, row_res, col_res);
+        put_next_position_value(chunk_data, nblk, col - col_res, shf, col_res,
+                                val);
         put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
     }
 }

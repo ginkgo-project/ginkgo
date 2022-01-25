@@ -173,39 +173,41 @@ void convert_to_next_precision(
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblkS = 0, blkS = 0, rowS = 0, colS = 0, shfS = 0;
-    size_type num_bytesS = source->get_num_bytes();
+    size_type nblk_src = 0, blk_src = 0, row_src = 0, col_src = 0, shf_src = 0;
+    size_type num_bytes_src = source->get_num_bytes();
 
-    auto* rows_dataS = source->get_const_rows();
-    auto* offsets_dataS = source->get_const_offsets();
-    auto* chunk_dataS = source->get_const_chunk();
-    ValueType valS;
+    auto* rows_data_src = source->get_const_rows();
+    auto* offsets_data_src = source->get_const_offsets();
+    auto* chunk_data_src = source->get_const_chunk();
+    ValueType val_src;
 
-    size_type nblkR = 0, blkR = 0, rowR = 0, colR = 0, shfR = 0;
-    size_type num_bytesR = result->get_num_bytes();
+    size_type nblk_res = 0, blk_res = 0, row_res = 0, col_res = 0, shf_res = 0;
+    size_type num_bytes_res = result->get_num_bytes();
 
-    auto* rows_dataR = result->get_rows();
-    auto* offsets_dataR = result->get_offsets();
-    auto* chunk_dataR = result->get_chunk();
-    new_precision valR;
+    auto* rows_data_res = result->get_rows();
+    auto* offsets_data_res = result->get_offsets();
+    auto* chunk_data_res = result->get_chunk();
+    new_precision val_res;
 
     if (num_stored_elements > 0) {
-        offsets_dataR[0] = 0;
+        offsets_data_res[0] = 0;
     }
     for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
-                            colS);
-        put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
-                            rowS - rowR, colR);
-        uint8 indS =
-            get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
-                                    nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
-        valR = valS;
-        put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR, colR,
-                                valR);
-        get_detect_endblock(block_size, nblkS, blkS);
-        put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
+        get_detect_newblock(rows_data_src, offsets_data_src, nblk_src, blk_src,
+                            shf_src, row_src, col_src);
+        put_detect_newblock(chunk_data_res, rows_data_res, nblk_res, blk_res,
+                            shf_res, row_res, row_src - row_res, col_res);
+        uint8 ind_src = get_position_newrow_put(
+            chunk_data_src, shf_src, row_src, col_src, chunk_data_res, nblk_res,
+            blk_res, rows_data_res, shf_res, row_res, col_res);
+        get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                col_src, val_src);
+        val_res = val_src;
+        put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
+                                shf_res, col_res, val_res);
+        get_detect_endblock(block_size, nblk_src, blk_src);
+        put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
+                            blk_res);
     }
 }
 
@@ -401,39 +403,41 @@ void compute_absolute(
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblkS = 0, blkS = 0, rowS = 0, colS = 0, shfS = 0;
-    size_type num_bytesS = source->get_num_bytes();
+    size_type nblk_src = 0, blk_src = 0, row_src = 0, col_src = 0, shf_src = 0;
+    size_type num_bytes_src = source->get_num_bytes();
 
-    auto* rows_dataS = source->get_const_rows();
-    auto* offsets_dataS = source->get_const_offsets();
-    auto* chunk_dataS = source->get_const_chunk();
-    ValueType valS;
+    auto* rows_data_src = source->get_const_rows();
+    auto* offsets_data_src = source->get_const_offsets();
+    auto* chunk_data_src = source->get_const_chunk();
+    ValueType val_src;
 
-    size_type nblkR = 0, blkR = 0, rowR = 0, colR = 0, shfR = 0;
-    size_type num_bytesR = result->get_num_bytes();
+    size_type nblk_res = 0, blk_res = 0, row_res = 0, col_res = 0, shf_res = 0;
+    size_type num_bytes_res = result->get_num_bytes();
 
-    auto* rows_dataR = result->get_rows();
-    auto* offsets_dataR = result->get_offsets();
-    auto* chunk_dataR = result->get_chunk();
-    remove_complex<ValueType> valR;
+    auto* rows_data_res = result->get_rows();
+    auto* offsets_data_res = result->get_offsets();
+    auto* chunk_data_res = result->get_chunk();
+    remove_complex<ValueType> val_res;
 
     if (num_stored_elements > 0) {
-        offsets_dataR[0] = 0;
+        offsets_data_res[0] = 0;
     }
     for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_dataS, offsets_dataS, nblkS, blkS, shfS, rowS,
-                            colS);
-        put_detect_newblock(chunk_dataR, rows_dataR, nblkR, blkR, shfR, rowR,
-                            rowS - rowR, colR);
-        uint8 indS =
-            get_position_newrow_put(chunk_dataS, shfS, rowS, colS, chunk_dataR,
-                                    nblkR, blkR, rows_dataR, shfR, rowR, colR);
-        get_next_position_value(chunk_dataS, nblkS, indS, shfS, colS, valS);
-        valR = abs(valS);
-        put_next_position_value(chunk_dataR, nblkR, colS - colR, shfR, colR,
-                                valR);
-        get_detect_endblock(block_size, nblkS, blkS);
-        put_detect_endblock(offsets_dataR, shfR, block_size, nblkR, blkR);
+        get_detect_newblock(rows_data_src, offsets_data_src, nblk_src, blk_src,
+                            shf_src, row_src, col_src);
+        put_detect_newblock(chunk_data_res, rows_data_res, nblk_res, blk_res,
+                            shf_res, row_res, row_src - row_res, col_res);
+        uint8 ind_src = get_position_newrow_put(
+            chunk_data_src, shf_src, row_src, col_src, chunk_data_res, nblk_res,
+            blk_res, rows_data_res, shf_res, row_res, col_res);
+        get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                col_src, val_src);
+        val_res = abs(val_src);
+        put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
+                                shf_res, col_res, val_res);
+        get_detect_endblock(block_size, nblk_src, blk_src);
+        put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
+                            blk_res);
     }
 }
 

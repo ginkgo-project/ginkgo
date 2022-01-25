@@ -47,26 +47,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-inline void cnt_next_position(const size_type colRS, size_type& shf,
+inline void cnt_next_position(const size_type col_src_res, size_type& shf,
                               size_type& col)
 {
-    if (colRS < 0xFD) {
+    if (col_src_res < 0xFD) {
         shf++;
-    } else if (colRS < 0xFFFF) {
+    } else if (col_src_res < 0xFFFF) {
         shf += 3;
     } else {
         shf += 5;
     }
-    col += colRS;
+    col += col_src_res;
 }
 
 
 template <typename ValueType>
-inline void cnt_next_position_value(const size_type colRS, size_type& shf,
+inline void cnt_next_position_value(const size_type col_src_res, size_type& shf,
                                     size_type& col, const ValueType val,
                                     size_type& nblk)
 {
-    cnt_next_position(colRS, shf, col);
+    cnt_next_position(col_src_res, shf, col);
     shf += sizeof(ValueType);
     nblk++;
 }
@@ -117,24 +117,24 @@ inline void get_next_position_value_put(uint8* chunk_data, size_type& nblk,
 }
 
 
-inline void put_next_position(uint8* chunk_data, const size_type colRS,
+inline void put_next_position(uint8* chunk_data, const size_type col_src_res,
                               size_type& shf, size_type& col)
 {
-    if (colRS < 0xFD) {
-        set_value_chunk<uint8>(chunk_data, shf, colRS);
-        col += colRS;
+    if (col_src_res < 0xFD) {
+        set_value_chunk<uint8>(chunk_data, shf, col_src_res);
+        col += col_src_res;
         shf++;
-    } else if (colRS < 0xFFFF) {
+    } else if (col_src_res < 0xFFFF) {
         set_value_chunk<uint8>(chunk_data, shf, 0xFD);
         shf++;
-        set_value_chunk<uint16>(chunk_data, shf, colRS);
-        col += colRS;
+        set_value_chunk<uint16>(chunk_data, shf, col_src_res);
+        col += col_src_res;
         shf += 2;
     } else {
         set_value_chunk<uint8>(chunk_data, shf, 0xFE);
         shf++;
-        set_value_chunk<uint32>(chunk_data, shf, colRS);
-        col += colRS;
+        set_value_chunk<uint32>(chunk_data, shf, col_src_res);
+        col += col_src_res;
         shf += 4;
     }
 }
@@ -142,10 +142,10 @@ inline void put_next_position(uint8* chunk_data, const size_type colRS,
 
 template <typename ValueType>
 inline void put_next_position_value(uint8* chunk_data, size_type& nblk,
-                                    const size_type colRS, size_type& shf,
+                                    const size_type col_src_res, size_type& shf,
                                     size_type& col, const ValueType val)
 {
-    put_next_position(chunk_data, colRS, shf, col);
+    put_next_position(chunk_data, col_src_res, shf, col);
     set_value_chunk<ValueType>(chunk_data, shf, val);
     shf += sizeof(ValueType);
     nblk++;
@@ -169,10 +169,10 @@ inline void get_detect_newblock(const IndexType* rows_data,
 template <typename IndexType>
 inline void put_detect_newblock(IndexType* rows_data, const size_type nblk,
                                 const size_type blk, size_type& row,
-                                const size_type rowRS, size_type& col)
+                                const size_type row_src_res, size_type& col)
 {
     if (nblk == 0) {
-        row += rowRS;
+        row += row_src_res;
         col = 0;
         rows_data[blk] = row;
     }
@@ -183,14 +183,14 @@ template <typename IndexType>
 inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
                                 const size_type nblk, const size_type blk,
                                 size_type& shf, size_type& row,
-                                const size_type rowRS, size_type& col)
+                                const size_type row_src_res, size_type& col)
 {
     if (nblk == 0) {
-        row += rowRS;
+        row += row_src_res;
         col = 0;
         rows_data[blk] = row;
-    } else if (rowRS != 0) {  // new row
-        row += rowRS;
+    } else if (row_src_res != 0) {  // new row
+        row += row_src_res;
         col = 0;
         set_value_chunk<uint8>(chunk_data, shf, 0xFF);
         shf++;
@@ -199,16 +199,16 @@ inline void put_detect_newblock(uint8* chunk_data, IndexType* rows_data,
 
 
 inline void cnt_detect_newblock(const size_type nblk, size_type& shf,
-                                size_type& row, const size_type rowRS,
+                                size_type& row, const size_type row_src_res,
                                 size_type& col)
 {
     if (nblk == 0) {
-        row += rowRS;
+        row += row_src_res;
         col = 0;
-    } else if (rowRS != 0) {  // new row
-        row += rowRS;
+    } else if (row_src_res != 0) {  // new row
+        row += row_src_res;
         col = 0;
-        shf += rowRS;
+        shf += row_src_res;
     }
 }
 
@@ -232,17 +232,17 @@ inline void get_detect_newblock_csr(const IndexType* rows_data,
 }
 
 
-inline size_type cnt_position_newrow_mat_data(const size_type rowMD,
-                                              const size_type colMD,
+inline size_type cnt_position_newrow_mat_data(const size_type row_mat_data,
+                                              const size_type col_mat_data,
                                               size_type& shf, size_type& row,
                                               size_type& col)
 {
-    if (rowMD != row) {
-        shf += rowMD - row;
-        row = rowMD;
+    if (row_mat_data != row) {
+        shf += row_mat_data - row;
+        row = row_mat_data;
         col = 0;
     }
-    return (colMD - col);
+    return (col_mat_data - col);
 }
 
 
@@ -279,44 +279,43 @@ inline uint8 get_position_newrow_csr(const uint8* chunk_data,
 
 
 template <typename IndexType>
-inline uint8 get_position_newrow_put(const uint8* chunk_dataS, size_type& shfS,
-                                     size_type& rowS, size_type& colS,
-                                     uint8* chunk_dataR, const size_type nblkR,
-                                     const size_type blkR,
-                                     IndexType* rows_dataR, size_type& shfR,
-                                     size_type& rowR, size_type& colR)
+inline uint8 get_position_newrow_put(
+    const uint8* chunk_data_src, size_type& shf_src, size_type& row_src,
+    size_type& col_src, uint8* chunk_data_res, const size_type nblk_res,
+    const size_type blk_res, IndexType* rows_data_res, size_type& shf_res,
+    size_type& row_res, size_type& col_res)
 {
-    uint8 indS = get_value_chunk<uint8>(chunk_dataS, shfS);
-    while (indS == 0xFF) {
-        rowS++;
-        colS = 0;
-        shfS++;
-        indS = get_value_chunk<uint8>(chunk_dataS, shfS);
-        rowR++;
-        colR = 0;
-        if (nblkR == 0) {
-            rows_dataR[blkR] = rowR;
+    uint8 ind_src = get_value_chunk<uint8>(chunk_data_src, shf_src);
+    while (ind_src == 0xFF) {
+        row_src++;
+        col_src = 0;
+        shf_src++;
+        ind_src = get_value_chunk<uint8>(chunk_data_src, shf_src);
+        row_res++;
+        col_res = 0;
+        if (nblk_res == 0) {
+            rows_data_res[blk_res] = row_res;
         } else {
-            set_value_chunk<uint8>(chunk_dataR, shfR, 0xFF);
-            shfR++;
+            set_value_chunk<uint8>(chunk_data_res, shf_res, 0xFF);
+            shf_res++;
         }
     }
-    return indS;
+    return ind_src;
 }
 
 
-inline size_type put_position_newrow_mat_data(const size_type rowMD,
-                                              const size_type colMD,
+inline size_type put_position_newrow_mat_data(const size_type row_mat_data,
+                                              const size_type col_mat_data,
                                               uint8* chunk_data, size_type& shf,
                                               size_type& row, size_type& col)
 {
-    while (rowMD != row) {
+    while (row_mat_data != row) {
         row++;
         col = 0;
         set_value_chunk<uint8>(chunk_data, shf, 0xFF);
         shf++;
     }
-    return (colMD - col);
+    return (col_mat_data - col);
 }
 
 
