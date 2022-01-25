@@ -106,6 +106,20 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
 
 
 template <typename IndexType>
+IndexType IndexSet<IndexType>::get_subset_id(const IndexType index) const
+{
+    auto exec = this->get_executor();
+    auto ss_end_host = Array<IndexType>(exec->get_master(), this->subsets_end_);
+    for (size_type id = 0; id < this->get_num_subsets(); ++id) {
+        if (index <= ss_end_host.get_const_data()[id]) {
+            return id;
+        }
+    }
+    return -1;
+}
+
+
+template <typename IndexType>
 Array<IndexType> IndexSet<IndexType>::to_global_indices() const
 {
     auto exec = this->get_executor();

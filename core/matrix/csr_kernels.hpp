@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -165,11 +166,28 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType>* source, const span& row_span, \
         const span& col_span, Array<IndexType>* row_nnz)
 
+#define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL(ValueType, \
+                                                             IndexType) \
+    void calculate_nonzeros_per_row_in_index_set(                       \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* source,                \
+        const IndexSet<IndexType>& row_index_set,                       \
+        const IndexSet<IndexType>& col_index_set, Array<IndexType>* row_nnz)
+
 #define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)     \
     void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,     \
                            const matrix::Csr<ValueType, IndexType>* source, \
                            gko::span row_span, gko::span col_span,          \
                            matrix::Csr<ValueType, IndexType>* result)
+
+#define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL(ValueType, \
+                                                                 IndexType) \
+    void compute_submatrix_from_index_set(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::Csr<ValueType, IndexType>* source,                    \
+        const IndexSet<IndexType>& row_index_set,                           \
+        const IndexSet<IndexType>& col_index_set,                           \
+        matrix::Csr<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)         \
     void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
@@ -246,6 +264,12 @@ namespace kernels {
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL(ValueType,        \
+                                                         IndexType);       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL(ValueType,    \
+                                                             IndexType);   \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                      \

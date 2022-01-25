@@ -321,6 +321,20 @@ TYPED_TEST(IndexSet, CanGetLocalIndex)
 }
 
 
+TYPED_TEST(IndexSet, CanGetSubsetId)
+{
+    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto idx_set = gko::IndexSet<TypeParam>{this->exec, 10, idx_arr};
+
+    ASSERT_EQ(idx_set.get_num_elems(), 8);
+    EXPECT_EQ(idx_set.get_subset_id(6), 2);
+    EXPECT_EQ(idx_set.get_subset_id(7), 2);
+    EXPECT_EQ(idx_set.get_subset_id(0), 0);
+    EXPECT_EQ(idx_set.get_subset_id(8), 2);
+    EXPECT_EQ(idx_set.get_subset_id(4), 1);
+}
+
+
 TYPED_TEST(IndexSet, CanDetectNonExistentIndices)
 {
     auto idx_arr = gko::Array<TypeParam>{

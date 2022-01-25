@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -791,6 +792,10 @@ public:
         const Array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::IndexSet<IndexType>& row_index_set,
+        const gko::IndexSet<IndexType>& column_index_set) const;
 
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
         const gko::span& row_span, const gko::span& column_span) const;

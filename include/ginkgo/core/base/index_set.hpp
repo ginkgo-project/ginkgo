@@ -101,6 +101,26 @@ public:
     {}
 
     /**
+     * Creates an index set on the specified executor from the initializer list.
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param size  the maximum index the index set it allowed to hold. This
+     *              is the size of the index space.
+     * @param indices  the indices that the index set should hold.
+     * @param is_sorted  a parameter that specifies if the indices array is
+     *                   sorted or not. `true` if sorted.
+     */
+    IndexSet(std::shared_ptr<const gko::Executor> executor,
+             std::initializer_list<IndexType> init_list,
+             const bool is_sorted = false)
+        : EnablePolymorphicObject<IndexSet>(std::move(executor)),
+          index_space_size_(init_list.size())
+    {
+        this->populate_subsets(
+            Array<IndexType>(this->get_executor(), init_list), is_sorted);
+    }
+
+    /**
      * Creates an index set on the specified executor and the given size
      *
      * @param exec  the Executor where the index set data will be allocated
@@ -195,6 +215,28 @@ public:
      *          overheads and should be avoided if possible.
      */
     index_type get_local_index(index_type global_index) const;
+
+    /**
+     * Return which set the global index belongs to.
+     *
+     * Consider the set idx_set = (0, 1, 2, 4, 6, 7, 8, 9). This function
+     * returns the subset id in the index set of the input global index. For
+     * example, `idx_set.get_subset_id(0) == 0` `idx_set.get_subset_id(4)
+     * == 1` and `idx_set.get_subset_id(6) == 2`.
+     *
+     * @note This function returns a scalar value and needs a scalar value.
+     *       For repeated queries, it is more efficient to use the Array
+     *       functions that take and return arrays which allow for more
+     *       throughput.
+     *
+     * @param global_index  the global index.
+     *
+     * @return  the local index of the element in the index set.
+     *
+     * @warning This single entry query can have significant kernel lauch
+     *          overheads and should be avoided if possible.
+     */
+    index_type get_subset_id(index_type global_index) const;
 
     /**
      * This is an array version of the scalar function above.

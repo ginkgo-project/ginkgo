@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -83,7 +84,11 @@ GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
                        csr::calculate_nonzeros_per_row_in_span);
+GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_index_set,
+                       csr::calculate_nonzeros_per_row_in_index_set);
 GKO_REGISTER_OPERATION(compute_submatrix, csr::compute_submatrix);
+GKO_REGISTER_OPERATION(compute_submatrix_from_index_set,
+                       csr::compute_submatrix_from_index_set);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 GKO_REGISTER_OPERATION(inv_symm_permute, csr::inv_symm_permute);
@@ -609,6 +614,49 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
                                           sub_mat.get()));
     sub_mat->make_srow();
     return sub_mat;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_submatrix(
+    const IndexSet<IndexType>& row_index_set,
+    const IndexSet<IndexType>& col_index_set) const
+{
+    using Mat = Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    if (row_index_set.is_contiguous() && col_index_set.is_contiguous()) {
+        auto row_st = row_index_set.get_executor()->copy_val_to_host(
+            row_index_set.get_subsets_begin());
+        auto row_end = row_index_set.get_executor()->copy_val_to_host(
+            row_index_set.get_subsets_end());
+        auto col_st = col_index_set.get_executor()->copy_val_to_host(
+            col_index_set.get_subsets_begin());
+        auto col_end = col_index_set.get_executor()->copy_val_to_host(
+            col_index_set.get_subsets_end());
+
+        return this->create_submatrix(span(row_st, row_end),
+                                      span(col_st, col_end));
+    } else {
+        auto submat_num_rows = row_index_set.get_num_elems();
+        auto submat_num_cols = col_index_set.get_num_elems();
+        auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
+        Array<IndexType> row_ptrs(exec, submat_num_rows + 1);
+        exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
+            this, row_index_set, col_index_set, &row_ptrs));
+        exec->run(
+            csr::make_prefix_sum(row_ptrs.get_data(), submat_num_rows + 1));
+        auto num_nnz =
+            exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
+        auto sub_mat = Mat::create(exec, sub_mat_size,
+                                   std::move(Array<ValueType>(exec, num_nnz)),
+                                   std::move(Array<IndexType>(exec, num_nnz)),
+                                   std::move(row_ptrs), this->get_strategy());
+        exec->run(csr::make_compute_submatrix_from_index_set(
+            this, row_index_set, col_index_set, sub_mat.get()));
+        sub_mat->make_srow();
+        return sub_mat;
+    }
 }
 
 
