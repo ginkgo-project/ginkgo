@@ -580,4 +580,24 @@ TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, AddScaledIdentityNonSquareIsEquivalentToReference)
+{
+    set_up_apply_data();
+    const gko::size_type batchsize = 10;
+    const gko::size_type num_rows = 62;
+    const gko::size_type num_cols = 51;
+    auto rmtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batchsize, num_rows, num_cols,
+        std::uniform_int_distribution<>(num_cols, num_cols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto dmtx = Mtx::create(omp);
+    dmtx->copy_from(rmtx.get());
+
+    rmtx->add_scaled_identity(alpha.get(), beta.get());
+    dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(rmtx, dmtx, 1e-15)
+}
+
+
 }  // namespace
