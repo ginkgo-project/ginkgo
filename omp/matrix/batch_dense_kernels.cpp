@@ -552,6 +552,28 @@ void batch_scale(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
 
 
+template <typename ValueType>
+void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchDense<ValueType>* const mtx)
+{
+    const auto a_ub = host::get_batch_struct(a);
+    const auto b_ub = host::get_batch_struct(b);
+    const auto mtx_ub = host::get_batch_struct(mtx);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < mtx->get_num_batch_entries(); ++batch) {
+        auto a_b = gko::batch::batch_entry(a_ub, batch);
+        auto b_b = gko::batch::batch_entry(b_ub, batch);
+        auto mtx_b = gko::batch::batch_entry(mtx_ub, batch);
+        add_scaled_identity(a_b.values[0], b_b.values[0], mtx_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_dense
 }  // namespace omp
 }  // namespace kernels
