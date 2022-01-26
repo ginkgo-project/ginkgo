@@ -29,7 +29,9 @@ set(EXAMPLES_LIST
     performance-debugging
     preconditioner-export
     schroedinger-splitting
-    simple-solver-logging)
+    simple-solver-logging
+    solver-comparison
+    )
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
     list(APPEND EXAMPLES_LIST custom-matrix-format)
