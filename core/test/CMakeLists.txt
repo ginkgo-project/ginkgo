@@ -2,6 +2,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/create_test.cmake)
 
 add_subdirectory(accessor)
 add_subdirectory(base)
+add_subdirectory(components)
 if(GINKGO_BUILD_MPI)
     add_subdirectory(mpi)
 endif()
