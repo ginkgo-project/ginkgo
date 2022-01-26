@@ -60,7 +60,9 @@ public:
     device_guard(int device_id)
     {
         GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
+        if (original_device_id != device_id) {
+            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
+        }
     }
 
     device_guard(device_guard& other) = delete;

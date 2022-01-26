@@ -60,7 +60,9 @@ public:
     device_guard(int device_id)
     {
         GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+        if (original_device_id != device_id) {
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+        }
     }
 
     device_guard(device_guard& other) = delete;
