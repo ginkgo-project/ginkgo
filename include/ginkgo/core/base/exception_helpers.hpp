@@ -607,8 +607,32 @@ inline std::tuple<bool, size_type> check_batch_single_column(
                   "semi-colon warnings")
 
 
+#define GKO_ASSERT_IS_BATCH_SCALAR(_op)                                      \
+    {                                                                        \
+        auto op_sz = gko::detail::get_batch_size(_op);                       \
+        auto scalar_sz = gko::batch_dim<>(op_sz.get_num_batch_entries(),     \
+                                          gko::dim<2>(1, 1));                \
+        auto comprows = gko::detail::compare_batch_rows(op_sz, scalar_sz);   \
+        if (!std::get<0>(comprows)) {                                        \
+            const int bidx = std::get<1>(comprows);                          \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      op_sz.at(bidx)[0], op_sz.at(bidx)[1],  \
+                                      "expected batch scalar");              \
+        }                                                                    \
+        auto compcols = gko::detail::compare_batch_cols(op_sz, scalar_sz);   \
+        if (!std::get<0>(compcols)) {                                        \
+            const int bidx = std::get<1>(compcols);                          \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      op_sz.at(bidx)[0], op_sz.at(bidx)[1],  \
+                                      "expected batch scalar");              \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
 /**
-<<<<<<< HEAD
  * Instantiates a MpiError.
  *
  * @param errcode  The error code returned from the MPI routine.
