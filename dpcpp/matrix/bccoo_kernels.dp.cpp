@@ -162,7 +162,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL);
 
 template <typename ValueType, typename IndexType>
-void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
+void compute_absolute_inplace(std::shared_ptr<const DpcppExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
     GKO_NOT_IMPLEMENTED;
 
@@ -171,7 +171,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
+void compute_absolute(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
                       matrix::Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;

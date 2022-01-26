@@ -175,7 +175,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
+void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
     GKO_NOT_IMPLEMENTED;
 
@@ -184,7 +184,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute(std::shared_ptr<const DefaultExecutor> exec,
+void compute_absolute(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
                       remove_complex<matrix::Bccoo<ValueType, IndexType>>*
                           result) GKO_NOT_IMPLEMENTED;
