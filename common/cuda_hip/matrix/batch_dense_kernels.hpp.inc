@@ -455,3 +455,32 @@ __global__ void transpose(const int src_nrows, const int src_ncols,
     transpose_entry(src_nrows, src_ncols, src_stride, bsrc, dest_stride, bdest,
                     op);
 }
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void add_scaled_identity(
+    const size_type num_batch, const int nrows, const int ncols,
+    const size_type stride, ValueType* const __restrict__ values,
+    const size_type a_stride, const ValueType* const __restrict__ alpha,
+    const size_type b_stride, const ValueType* const __restrict__ beta)
+{
+    constexpr auto tile_size = config::warp_size;
+    auto warp_grp =
+        group::tiled_partition<tile_size>(group::this_thread_block());
+    const auto warp_grp_id = static_cast<int>(threadIdx.x / tile_size);
+    constexpr int num_tiles = default_block_size / tile_size;
+    for (size_type ibatch = blockIdx.x; ibatch < num_batch;
+         ibatch += gridDim.x) {
+        auto values_batch = values + ibatch * stride * nrows;
+        for (int row = warp_grp_id; row < nrows; row += num_tiles) {
+            for (int col = warp_grp.thread_rank(); col < ncols;
+                 col += tile_size) {
+                values_batch[row * stride + col] *= beta[ibatch * b_stride];
+                if (col == row) {
+                    values_batch[row * stride + row] +=
+                        alpha[ibatch * a_stride];
+                }
+            }
+        }
+    }
+}
