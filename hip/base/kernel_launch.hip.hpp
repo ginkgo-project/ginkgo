@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/hip_runtime.h>
 
 
-#include "hip/base/device_guard.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
@@ -83,7 +82,6 @@ void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs&&... args)
 {
     if (size > 0) {
-        gko::hip::device_guard guard{exec->get_device_id()};
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size, block_size);
         hipLaunchKernelGGL(generic_kernel_1d, num_blocks, block_size, 0, 0,
@@ -97,7 +95,6 @@ void run_kernel(std::shared_ptr<const HipExecutor> exec, KernelFunction fn,
                 dim<2> size, KernelArgs&&... args)
 {
     if (size[0] * size[1] > 0) {
-        gko::hip::device_guard guard{exec->get_device_id()};
         constexpr auto block_size = default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         hipLaunchKernelGGL(generic_kernel_2d, num_blocks, block_size, 0, 0,
