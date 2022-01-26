@@ -57,11 +57,12 @@ namespace cuda {
  */
 class device_guard {
 public:
-    device_guard(int device_id)
+    device_guard(int device_id) : original_device_id{}, need_reset{}
     {
         GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
         if (original_device_id != device_id) {
             GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+            need_reset = true;
         }
     }
 
@@ -75,16 +76,19 @@ public:
 
     ~device_guard() noexcept(false)
     {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+        if (need_reset) {
+            /* Ignore the error during stack unwinding for this call */
+            if (std::uncaught_exception()) {
+                cudaSetDevice(original_device_id);
+            } else {
+                GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
+            }
         }
     }
 
 private:
-    int original_device_id{};
+    int original_device_id;
+    bool need_reset;
 };
 
 
