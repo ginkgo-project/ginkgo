@@ -392,6 +392,32 @@ void batch_scale(std::shared_ptr<const HipExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL);
 
 
+template <typename ValueType>
+void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchDense<ValueType>* const mtx)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto num_blocks = mtx->get_num_batch_entries();
+    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const auto ncols = static_cast<int>(mtx->get_size().at(0)[1]);
+    const auto stride = mtx->get_stride().at(0);
+    const auto values = mtx->get_values();
+    const auto alpha = a->get_const_values();
+    const auto a_stride = a->get_stride().at(0);
+    const auto b_stride = b->get_stride().at(0);
+    const auto beta = b->get_const_values();
+    hipLaunchKernelGGL(add_scaled_identity, num_blocks, default_block_size, 0,
+                       0, num_blocks, nrows, ncols, stride, as_hip_type(values),
+                       a_stride, as_hip_type(alpha), b_stride,
+                       as_hip_type(beta));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_dense
 }  // namespace hip
 }  // namespace kernels
