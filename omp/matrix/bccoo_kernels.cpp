@@ -116,7 +116,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
-#pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
+// #pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
+#pragma omp parallel default(shared)
     {
         auto num_cols = b->get_size()[1];
         array<ValueType> sumV_array(exec, num_cols);
@@ -196,7 +197,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = a->get_num_blocks();
 
 // Computation of chunk
-#pragma omp parallel default(none), shared(exec, alpha, a, b, c, num_blks)
+// #pragma omp parallel default(none), shared(exec, alpha, a, b, c, num_blks)
+#pragma omp parallel default(shared)
     {
         auto num_cols = b->get_size()[1];
         array<ValueType> sumV_array(exec, num_cols);
@@ -275,13 +277,14 @@ void convert_to_next_precision(
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
 {
-    auto num_bklS = source->get_num_blocks();
+    auto num_blk_src = source->get_num_blocks();
     if (source->get_block_size() == source->get_block_size()) {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
-#pragma omp parallel for default(none), shared(source, result, num_bklS)
-        for (size_type blk_src = 0; blk_src < num_bklS; blk_src++) {
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             auto* rows_data_src = source->get_const_rows();
             auto* offsets_data_src = source->get_const_offsets();
             auto* rows_data_res = result->get_rows();
@@ -290,8 +293,9 @@ void convert_to_next_precision(
             offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
         }
 // Computation of chunk
-#pragma omp parallel for default(none), shared(source, result, num_bklS)
-        for (size_type blk_src = 0; blk_src < num_bklS; blk_src++) {
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             auto* rows_data_src = source->get_const_rows();
             auto* offsets_data_src = source->get_const_offsets();
             auto* chunk_data_src = source->get_const_chunk();
@@ -340,7 +344,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_blks = source->get_num_blocks();
 
-#pragma omp parallel for default(none), shared(source, result, num_blks)
+// #pragma omp parallel for default(none), shared(source, result, num_blks)
+#pragma omp parallel for default(shared)
     for (size_type blk = 0; blk < num_blks; blk++) {
         auto* rows_data = source->get_const_rows();
         auto* offsets_data = source->get_const_offsets();
@@ -382,8 +387,9 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     array<IndexType> rows_array(exec, nnz);
     IndexType* row_idxs = rows_array.get_data();
 
-#pragma omp parallel for default(none), \
-    shared(source, result, row_idxs, num_blks)
+// #pragma omp parallel for default(none), \
+//     shared(source, result, row_idxs, num_blks)
+#pragma omp parallel for default(shared)
     for (size_type blk = 0; blk < num_blks; blk++) {
         auto* rows_data = source->get_const_rows();
         auto* offsets_data = source->get_const_offsets();
@@ -429,7 +435,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
-#pragma omp parallel for default(none), shared(source, result, num_blks)
+// #pragma omp parallel for default(none), shared(source, result, num_blks)
+#pragma omp parallel for default(shared)
     for (size_type blk = 0; blk < num_blks; blk++) {
         auto* rows_data = source->get_const_rows();
         auto* offsets_data = source->get_const_offsets();
@@ -464,7 +471,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
-#pragma omp parallel for default(none), shared(diag_values, orig, num_blks)
+// #pragma omp parallel for default(none), shared(diag_values, orig, num_blks)
+#pragma omp parallel for default(shared)
     for (size_type blk = 0; blk < num_blks; blk++) {
         auto* rows_data = orig->get_const_rows();
         auto* offsets_data = orig->get_const_offsets();
@@ -495,7 +503,8 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = matrix->get_num_blocks();
 
 // Computation of chunk
-#pragma omp parallel for default(none), shared(matrix, num_blks)
+// #pragma omp parallel for default(none), shared(matrix, num_blks)
+#pragma omp parallel for default(shared)
     for (size_type blk = 0; blk < num_blks; blk++) {
         auto* rows_data = matrix->get_const_rows();
         auto* offsets_data = matrix->get_const_offsets();
@@ -523,13 +532,14 @@ void compute_absolute(
     const matrix::Bccoo<ValueType, IndexType>* source,
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
-    auto num_bklS = source->get_num_blocks();
+    auto num_blk_src = source->get_num_blocks();
     if (source->get_block_size() == source->get_block_size()) {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
-#pragma omp parallel for default(none), shared(source, result, num_bklS)
-        for (size_type blk_src = 0; blk_src < num_bklS; blk_src++) {
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             auto* rows_data_src = source->get_const_rows();
             auto* offsets_data_src = source->get_const_offsets();
             auto* rows_data_res = result->get_rows();
@@ -538,8 +548,9 @@ void compute_absolute(
             offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
         }
 // Computation of chunk
-#pragma omp parallel for default(none), shared(source, result, num_bklS)
-        for (size_type blk_src = 0; blk_src < num_bklS; blk_src++) {
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
             auto* rows_data_src = source->get_const_rows();
             auto* offsets_data_src = source->get_const_offsets();
             auto* chunk_data_src = source->get_const_chunk();
