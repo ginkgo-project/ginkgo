@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/device_guard.hpp"
 
 
 namespace gko {
@@ -57,7 +56,6 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto id = exec->get_device_id();
     auto handle = exec->get_cusparse_handle();
-    gko::cuda::device_guard g{id};
     auto desc = cusparse::create_mat_descr();
     auto info = cusparse::create_ilu0_info();
 
