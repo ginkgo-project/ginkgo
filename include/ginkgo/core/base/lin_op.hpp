@@ -819,10 +819,10 @@ public:
     {
         GKO_ASSERT_IS_SCALAR(a);
         GKO_ASSERT_IS_SCALAR(b);
-        auto ae =
-            make_temporary_clone(as<ConcreteType>(this)->get_executor(), a);
-        auto be =
-            make_temporary_clone(as<ConcreteType>(this)->get_executor(), b);
+        auto ae = make_temporary_clone(
+            static_cast<ConcreteType*>(this)->get_executor(), a);
+        auto be = make_temporary_clone(
+            static_cast<ConcreteType*>(this)->get_executor(), b);
         add_scaled_identity_impl(ae.get(), be.get());
     }
 
