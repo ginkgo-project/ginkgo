@@ -79,6 +79,7 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(calculate_total_cols, batch_dense::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, batch_dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, batch_dense::conj_transpose);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_dense::add_scaled_identity);
 
 
 }  // namespace batch_dense
@@ -408,6 +409,15 @@ std::unique_ptr<BatchLinOp> BatchDense<ValueType>::conj_transpose() const
 
     exec->run(batch_dense::make_conj_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::add_scaled_identity_impl(const BatchLinOp* const a,
+                                                     const BatchLinOp* const b)
+{
+    this->get_executor()->run(batch_dense::make_add_scaled_identity(
+        as<BatchDense<ValueType>>(a), as<BatchDense<ValueType>>(b), this));
 }
 
 
