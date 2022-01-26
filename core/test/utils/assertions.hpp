@@ -678,6 +678,27 @@ template <typename ValueType>
                                     second.copy_to_array());
 }
 
+/** array_equal overloads where one side is an initializer list .*/
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       std::initializer_list<ValueType> first,
+                                       const Array<ValueType>& second)
+{
+    return array_equal(first_expression, second_expression,
+                       Array<ValueType>{second.get_executor(), first}, second);
+}
+
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       const Array<ValueType>& first,
+                                       std::initializer_list<ValueType> second)
+{
+    return array_equal(first_expression, second_expression, first,
+                       Array<ValueType>{first.get_executor(), second});
+}
+
 
 /**
  * This is a gtest predicate which checks if one string is contained in another.
@@ -919,6 +940,16 @@ T* plain_ptr(T* ptr)
  * @param _array2  second array
  **/
 #define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                              \
+    {                                                                      \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
+                            _array2);                                      \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_ARRAY_EQ
+ **/
+#define GKO_EXPECT_ARRAY_EQ(_array1, _array2)                              \
     {                                                                      \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \
