@@ -334,3 +334,19 @@ inline void compute_dot_product(
         }
     }
 }
+
+
+template <typename ValueType>
+inline void add_scaled_identity(
+    const ValueType& a, const ValueType& b,
+    const gko::batch_dense::BatchEntry<ValueType>& mat)
+{
+    for (int i = 0; i < mat.num_rows; i++) {
+        for (int j = 0; j < mat.num_rhs; j++) {
+            mat.values[i * mat.stride + j] *= b;
+            if (i == j) {
+                mat.values[i * mat.stride + i] += a;
+            }
+        }
+    }
+}

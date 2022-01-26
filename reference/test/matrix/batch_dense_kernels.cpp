@@ -901,4 +901,27 @@ TYPED_TEST(BatchDense, NonSquareMatrixIsTransposable)
 }
 
 
+TYPED_TEST(BatchDense, SquareMatrixAddScaledIdentity)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = gko::batch_initialize<Mtx>(
+        {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 0.0, 3.0}),
+          I<T>({1.2, -0.5, 1.0})},
+         {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}, {3.0, 0.0, -1.5}}},
+        this->exec);
+    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+    auto beta = gko::batch_initialize<Mtx>({{3.0}, {-1.0}}, this->exec);
+    auto sol_mtx = gko::batch_initialize<Mtx>(
+        {{I<T>({5.0, -3.0, 4.5}), I<T>({-6.0, 2.0, 9.0}),
+          I<T>({3.6, -1.5, 5.0})},
+         {{-3.0, 2.0, 0.5}, {-1.0, 0.5, -4.0}, {-3.0, 0.0, -0.5}}},
+        this->exec);
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, sol_mtx, r<T>::value);
+}
+
+
 }  // namespace

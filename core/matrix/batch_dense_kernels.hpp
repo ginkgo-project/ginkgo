@@ -163,6 +163,12 @@ namespace kernels {
                      const matrix::BatchDense<ValueType>* scale_vec, \
                      matrix::BatchDense<ValueType>* vec_to_scale)
 
+#define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)     \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
+                             const matrix::BatchDense<ValueType>* a,      \
+                             const matrix::BatchDense<ValueType>* b,      \
+                             matrix::BatchDense<ValueType>* mtx)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
     template <typename ValueType>                                              \
@@ -208,7 +214,9 @@ namespace kernels {
     template <typename ValueType>                                              \
     GKO_DECLARE_BATCH_DENSE_CONJ_TRANSPOSE_KERNEL(ValueType);                  \
     template <typename ValueType>                                              \
-    GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)
+    GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType);                     \
+    template <typename ValueType>                                              \
+    GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)
 
 
 namespace omp {
