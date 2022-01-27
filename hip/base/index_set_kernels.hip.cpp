@@ -60,10 +60,11 @@ namespace index_set {
 template <typename IndexType>
 void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
                        const IndexType index_space_size,
-                       const Array<IndexType>* subset_begin,
-                       const Array<IndexType>* subset_end,
-                       const Array<IndexType>* superset_indices,
-                       Array<IndexType>* decomp_indices) GKO_NOT_IMPLEMENTED;
+                       const IndexType num_subsets,
+                       const IndexType* subset_begin,
+                       const IndexType* subset_end,
+                       const IndexType* superset_indices,
+                       IndexType* decomp_indices) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL);
@@ -84,11 +85,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
 template <typename IndexType>
 void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* global_indices,
-                     Array<IndexType>* local_indices,
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* subset_end,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* global_indices, IndexType* local_indices,
                      const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -98,11 +99,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* local_indices,
-                     Array<IndexType>* global_indices,
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* subset_end,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* local_indices, IndexType* global_indices,
                      const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

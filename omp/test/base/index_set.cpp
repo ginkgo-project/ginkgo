@@ -188,13 +188,19 @@ TYPED_TEST(IndexSet, GetGlobalIndicesIsEquivalentToReference)
     auto ref_local_arr =
         gko::Array<TypeParam>{this->ref, rand_global_arr.get_num_elems()};
     gko::kernels::reference::index_set::global_to_local(
-        this->ref, TypeParam(520), &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, &rand_global_arr, &ref_local_arr, false);
+        this->ref, TypeParam(520), ref_idx_set.get_num_subsets(),
+        ref_idx_set.get_subsets_begin(), ref_idx_set.get_subsets_end(),
+        ref_idx_set.get_superset_indices(),
+        static_cast<TypeParam>(rand_global_arr.get_num_elems()),
+        rand_global_arr.get_const_data(), ref_local_arr.get_data(), false);
     auto omp_local_arr =
         gko::Array<TypeParam>{this->omp, rand_global_arr.get_num_elems()};
     gko::kernels::omp::index_set::global_to_local(
-        this->omp, TypeParam(520), &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, &rand_global_arr, &omp_local_arr, false);
+        this->omp, TypeParam(520), omp_idx_set.get_num_subsets(),
+        omp_idx_set.get_subsets_begin(), omp_idx_set.get_subsets_end(),
+        omp_idx_set.get_superset_indices(),
+        static_cast<TypeParam>(rand_global_arr.get_num_elems()),
+        rand_global_arr.get_const_data(), omp_local_arr.get_data(), false);
 
     ASSERT_EQ(rand_global_arr.get_num_elems(), omp_local_arr.get_num_elems());
     GKO_ASSERT_ARRAY_EQ(ref_local_arr, omp_local_arr);
@@ -229,13 +235,19 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
     auto ref_global_arr =
         gko::Array<TypeParam>{this->ref, rand_local_arr.get_num_elems()};
     gko::kernels::reference::index_set::local_to_global(
-        this->ref, TypeParam(520), &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, &rand_local_arr, &ref_global_arr, false);
+        this->ref, TypeParam(520), ref_idx_set.get_num_subsets(),
+        ref_idx_set.get_subsets_begin(), ref_idx_set.get_subsets_end(),
+        ref_idx_set.get_superset_indices(),
+        static_cast<TypeParam>(rand_local_arr.get_num_elems()),
+        rand_local_arr.get_const_data(), ref_global_arr.get_data(), false);
     auto omp_global_arr =
         gko::Array<TypeParam>{this->omp, rand_local_arr.get_num_elems()};
     gko::kernels::omp::index_set::local_to_global(
-        this->omp, TypeParam(520), &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, &rand_local_arr, &omp_global_arr, false);
+        this->omp, TypeParam(520), omp_idx_set.get_num_subsets(),
+        omp_idx_set.get_subsets_begin(), omp_idx_set.get_subsets_end(),
+        omp_idx_set.get_superset_indices(),
+        static_cast<TypeParam>(rand_local_arr.get_num_elems()),
+        rand_local_arr.get_const_data(), omp_global_arr.get_data(), false);
 
     ASSERT_EQ(rand_local_arr.get_num_elems(), omp_global_arr.get_num_elems());
     GKO_ASSERT_ARRAY_EQ(ref_global_arr, omp_global_arr);

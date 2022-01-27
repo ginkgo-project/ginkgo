@@ -128,8 +128,9 @@ Array<IndexType> IndexSet<IndexType>::to_global_indices() const
         this->superset_cumulative_indices_.get_num_elems() - 1);
     auto decomp_indices = gko::Array<IndexType>(exec, num_elems);
     exec->run(index_set::make_to_global_indices(
-        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
-        &this->superset_cumulative_indices_, &decomp_indices));
+        this->index_space_size_, this->get_num_subsets(),
+        this->get_subsets_begin(), this->get_subsets_end(),
+        this->get_superset_indices(), decomp_indices.get_data()));
 
     return decomp_indices;
 }
@@ -145,9 +146,11 @@ Array<IndexType> IndexSet<IndexType>::map_local_to_global(
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(index_set::make_local_to_global(
-        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
-        &this->superset_cumulative_indices_, &local_indices, &global_indices,
-        is_sorted));
+        this->index_space_size_, this->get_num_subsets(),
+        this->get_subsets_begin(), this->get_subsets_end(),
+        this->get_superset_indices(),
+        static_cast<IndexType>(local_indices.get_num_elems()),
+        local_indices.get_const_data(), global_indices.get_data(), is_sorted));
     return global_indices;
 }
 
@@ -162,9 +165,11 @@ Array<IndexType> IndexSet<IndexType>::map_global_to_local(
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(index_set::make_global_to_local(
-        this->index_space_size_, &this->subsets_begin_, &this->subsets_end_,
-        &this->superset_cumulative_indices_, &global_indices, &local_indices,
-        is_sorted));
+        this->index_space_size_, this->get_num_subsets(),
+        this->get_subsets_begin(), this->get_subsets_end(),
+        this->get_superset_indices(),
+        static_cast<IndexType>(local_indices.get_num_elems()),
+        global_indices.get_const_data(), local_indices.get_data(), is_sorted));
     return local_indices;
 }
 
