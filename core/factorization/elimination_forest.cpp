@@ -94,7 +94,8 @@ void compute_elim_forest_children_impl(const IndexType* parent, IndexType size,
     // we count the same again, this time shifted by 1 => exclusive prefix sum
     for (IndexType i = 0; i < size; i++) {
         const auto p = parent[i];
-        child[child_ptr[p + 1]++] = i;
+        child[child_ptr[p + 1]] = i;
+        child_ptr[p + 1]++;
     }
 }
 
@@ -130,7 +131,9 @@ void compute_elim_forest_postorder_lvl_impl(
                 postorder_idx++;
             } else {
                 // otherwise go to the next child node
-                cur_node = child[first_child + current_child[cur_node]++];
+                const auto old_node = cur_node;
+                cur_node = child[first_child + current_child[old_node]];
+                current_child[old_node]++;
                 level_idx++;
             }
         }
