@@ -101,10 +101,10 @@ void compute_elim_forest_children_impl(const IndexType* parent, IndexType size,
 
 
 template <typename IndexType>
-void compute_elim_forest_postorder_lvl_impl(
+void compute_elim_forest_postorder_impl(
     std::shared_ptr<const Executor> host_exec, const IndexType* parent,
     const IndexType* child_ptr, const IndexType* child, IndexType size,
-    IndexType* postorder, IndexType* inv_postorder, IndexType* level)
+    IndexType* postorder, IndexType* inv_postorder)
 {
     Array<IndexType> current_child_array{host_exec,
                                          static_cast<size_type>(size + 1)};
@@ -116,7 +116,6 @@ void compute_elim_forest_postorder_lvl_impl(
         // start from the root
         const auto root = child[tree];
         auto cur_node = root;
-        IndexType level_idx{};
         // traverse until we moved to the pseudo-root
         while (cur_node < size) {
             const auto first_child = child_ptr[cur_node];
@@ -125,16 +124,13 @@ void compute_elim_forest_postorder_lvl_impl(
                 // if this node is completed, output it
                 postorder[postorder_idx] = cur_node;
                 inv_postorder[cur_node] = postorder_idx;
-                level[postorder_idx] = level_idx;
                 cur_node = parent[cur_node];
-                level_idx--;
                 postorder_idx++;
             } else {
                 // otherwise go to the next child node
                 const auto old_node = cur_node;
                 cur_node = child[first_child + current_child[old_node]];
                 current_child[old_node]++;
-                level_idx++;
             }
         }
     }
@@ -165,8 +161,7 @@ elimination_forest<IndexType>::elimination_forest(
       children{host_exec, static_cast<size_type>(size)},
       postorder{host_exec, static_cast<size_type>(size)},
       inv_postorder{host_exec, static_cast<size_type>(size)},
-      postorder_parents{host_exec, static_cast<size_type>(size)},
-      levels{host_exec, static_cast<size_type>(size)}
+      postorder_parents{host_exec, static_cast<size_type>(size)}
 {}
 
 
@@ -180,7 +175,6 @@ void elimination_forest<IndexType>::set_executor(
     postorder.set_executor(exec);
     inv_postorder.set_executor(exec);
     postorder_parents.set_executor(exec);
-    levels.set_executor(exec);
 }
 
 
@@ -198,11 +192,10 @@ elimination_forest<IndexType> compute_elim_forest(
     compute_elim_forest_children_impl(forest.parents.get_const_data(), num_rows,
                                       forest.child_ptrs.get_data(),
                                       forest.children.get_data());
-    compute_elim_forest_postorder_lvl_impl(
+    compute_elim_forest_postorder_impl(
         host_exec, forest.parents.get_const_data(),
         forest.child_ptrs.get_const_data(), forest.children.get_const_data(),
-        num_rows, forest.postorder.get_data(), forest.inv_postorder.get_data(),
-        forest.levels.get_data());
+        num_rows, forest.postorder.get_data(), forest.inv_postorder.get_data());
     compute_elim_forest_postorder_parent_impl(
         forest.parents.get_const_data(), forest.inv_postorder.get_const_data(),
         num_rows, forest.postorder_parents.get_data());
