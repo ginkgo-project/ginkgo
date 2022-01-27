@@ -64,20 +64,18 @@ namespace index_set {
 template <typename IndexType>
 void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
                        const IndexType index_space_size,
-                       const Array<IndexType>* subset_begin,
-                       const Array<IndexType>* subset_end,
-                       const Array<IndexType>* superset_indices,
-                       Array<IndexType>* decomp_indices)
+                       const IndexType num_subsets,
+                       const IndexType* subset_begin,
+                       const IndexType* subset_end,
+                       const IndexType* superset_indices,
+                       IndexType* decomp_indices)
 {
-    auto indices = decomp_indices->get_data();
-    auto num_subsets = superset_indices->get_num_elems() - 1;
-    auto ss_indices = superset_indices->get_const_data();
 #pragma omp parallel for
     for (size_type subset = 0; subset < num_subsets; ++subset) {
-        for (size_type i = 0; i < ss_indices[subset + 1] - ss_indices[subset];
-             ++i) {
-            indices[ss_indices[subset] + i] =
-                subset_begin->get_const_data()[subset] + i;
+        for (size_type i = 0;
+             i < superset_indices[subset + 1] - superset_indices[subset]; ++i) {
+            decomp_indices[superset_indices[subset] + i] =
+                subset_begin[subset] + i;
         }
     }
 }
@@ -148,29 +146,26 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
 template <typename IndexType>
 void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* global_indices,
-                     Array<IndexType>* local_indices, const bool is_sorted)
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* subset_end,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* global_indices, IndexType* local_indices,
+                     const bool is_sorted)
 {
 #pragma omp parallel for
-    for (size_type i = 0; i < global_indices->get_num_elems(); ++i) {
-        auto index = global_indices->get_const_data()[i];
+    for (size_type i = 0; i < num_indices; ++i) {
+        auto index = global_indices[i];
         GKO_ASSERT(index < index_space_size);
-        auto bucket =
-            std::distance(subset_begin->get_const_data(),
-                          std::upper_bound(subset_begin->get_const_data(),
-                                           subset_begin->get_const_data() +
-                                               subset_begin->get_num_elems(),
-                                           index));
+        const auto bucket = std::distance(
+            subset_begin,
+            std::upper_bound(subset_begin, subset_begin + num_subsets, index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
-        if (subset_end->get_const_data()[shifted_bucket] <= index) {
-            local_indices->get_data()[i] = invalid_index<IndexType>();
+        if (subset_end[shifted_bucket] <= index) {
+            local_indices[i] = invalid_index<IndexType>();
         } else {
-            local_indices->get_data()[i] =
-                index - subset_begin->get_const_data()[shifted_bucket] +
-                superset_indices->get_const_data()[shifted_bucket];
+            local_indices[i] = index - subset_begin[shifted_bucket] +
+                               superset_indices[shifted_bucket];
         }
     }
 }
@@ -182,29 +177,24 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* local_indices,
-                     Array<IndexType>* global_indices, const bool is_sorted)
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* subset_end,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* local_indices, IndexType* global_indices,
+                     const bool is_sorted)
 {
 #pragma omp parallel for
-    for (size_type i = 0; i < local_indices->get_num_elems(); ++i) {
-        auto index = local_indices->get_const_data()[i];
-        GKO_ASSERT(
-            index <=
-            (superset_indices
-                 ->get_const_data()[superset_indices->get_num_elems() - 1]));
-        auto bucket = std::distance(
-            superset_indices->get_const_data(),
-            std::upper_bound(superset_indices->get_const_data(),
-                             superset_indices->get_const_data() +
-                                 superset_indices->get_num_elems(),
-                             index));
+    for (size_type i = 0; i < num_indices; ++i) {
+        auto index = local_indices[i];
+        GKO_ASSERT(index <= (superset_indices[num_subsets]));
+        const auto bucket = std::distance(
+            superset_indices,
+            std::upper_bound(superset_indices,
+                             superset_indices + num_subsets + 1, index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
-        global_indices->get_data()[i] =
-            subset_begin->get_const_data()[shifted_bucket] + index -
-            superset_indices->get_const_data()[shifted_bucket];
+        global_indices[i] = subset_begin[shifted_bucket] + index -
+                            superset_indices[shifted_bucket];
     }
 }
 

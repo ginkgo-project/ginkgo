@@ -52,13 +52,12 @@ namespace kernels {
                           const Array<IndexType>* local_indices,       \
                           Array<bool>* validity_array)
 
-#define GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL(IndexType)       \
-    void to_global_indices(std::shared_ptr<const DefaultExecutor> exec, \
-                           const IndexType index_space_size,            \
-                           const Array<IndexType>* subset_begin,        \
-                           const Array<IndexType>* subset_end,          \
-                           const Array<IndexType>* superset_indices,    \
-                           Array<IndexType>* decomp_indices)
+#define GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL(IndexType)      \
+    void to_global_indices(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        const IndexType index_space_size, const IndexType num_subsets, \
+        const IndexType* subset_begin, const IndexType* subset_end,    \
+        const IndexType* superset_indices, IndexType* decomp_indices)
 
 #define GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType)                   \
     void populate_subsets(                                                 \
@@ -67,25 +66,23 @@ namespace kernels {
         Array<IndexType>* subset_begin, Array<IndexType>* subset_end,      \
         Array<IndexType>* superset_indices, const bool is_sorted)
 
-#define GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType)       \
-    void global_to_local(std::shared_ptr<const DefaultExecutor> exec, \
-                         const IndexType index_space_size,            \
-                         const Array<IndexType>* subset_begin,        \
-                         const Array<IndexType>* subset_end,          \
-                         const Array<IndexType>* superset_indices,    \
-                         const Array<IndexType>* global_indices,      \
-                         Array<IndexType>* local_indices,             \
-                         const bool is_sorted)
+#define GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType)         \
+    void global_to_local(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const IndexType index_space_size, const IndexType num_subsets,  \
+        const IndexType* subset_begin, const IndexType* subset_end,     \
+        const IndexType* superset_indices, const IndexType num_indices, \
+        const IndexType* global_indices, IndexType* local_indices,      \
+        const bool is_sorted)
 
-#define GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)       \
-    void local_to_global(std::shared_ptr<const DefaultExecutor> exec, \
-                         const IndexType index_space_size,            \
-                         const Array<IndexType>* subset_begin,        \
-                         const Array<IndexType>* subset_end,          \
-                         const Array<IndexType>* superset_indices,    \
-                         const Array<IndexType>* local_indices,       \
-                         Array<IndexType>* global_indices,            \
-                         const bool is_sorted)
+#define GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)         \
+    void local_to_global(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const IndexType index_space_size, const IndexType num_subsets,  \
+        const IndexType* subset_begin, const IndexType* subset_end,     \
+        const IndexType* superset_indices, const IndexType num_indices, \
+        const IndexType* local_indices, IndexType* global_indices,      \
+        const bool is_sorted)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                           \
