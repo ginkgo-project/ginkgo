@@ -141,6 +141,19 @@ void compute_elim_forest_postorder_lvl_impl(
 }
 
 
+template <typename IndexType>
+void compute_elim_forest_postorder_parent_impl(const IndexType* parent,
+                                               const IndexType* inv_postorder,
+                                               IndexType size,
+                                               IndexType* postorder_parent)
+{
+    for (IndexType row = 0; row < size; row++) {
+        postorder_parent[inv_postorder[row]] =
+            parent[row] == size ? size : inv_postorder[parent[row]];
+    }
+}
+
+
 }  // namespace
 
 
@@ -152,8 +165,23 @@ elimination_forest<IndexType>::elimination_forest(
       children{host_exec, static_cast<size_type>(size)},
       postorder{host_exec, static_cast<size_type>(size)},
       inv_postorder{host_exec, static_cast<size_type>(size)},
+      postorder_parents{host_exec, static_cast<size_type>(size)},
       levels{host_exec, static_cast<size_type>(size)}
 {}
+
+
+template <typename IndexType>
+void elimination_forest<IndexType>::set_executor(
+    std::shared_ptr<const Executor> exec)
+{
+    parents.set_executor(exec);
+    child_ptrs.set_executor(exec);
+    children.set_executor(exec);
+    postorder.set_executor(exec);
+    inv_postorder.set_executor(exec);
+    postorder_parents.set_executor(exec);
+    levels.set_executor(exec);
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -175,6 +203,11 @@ elimination_forest<IndexType> compute_elim_forest(
         forest.child_ptrs.get_const_data(), forest.children.get_const_data(),
         num_rows, forest.postorder.get_data(), forest.inv_postorder.get_data(),
         forest.levels.get_data());
+    compute_elim_forest_postorder_parent_impl(
+        forest.parents.get_const_data(), forest.inv_postorder.get_const_data(),
+        num_rows, forest.postorder_parents.get_data());
+
+    forest.set_executor(mtx->get_executor());
     return forest;
 }
 

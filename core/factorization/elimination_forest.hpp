@@ -51,11 +51,14 @@ struct elimination_forest {
     elimination_forest(std::shared_ptr<const Executor> host_exec,
                        IndexType size);
 
+    void set_executor(std::shared_ptr<const Executor> exec);
+
     Array<IndexType> parents;
     Array<IndexType> child_ptrs;
     Array<IndexType> children;
     Array<IndexType> postorder;
     Array<IndexType> inv_postorder;
+    Array<IndexType> postorder_parents;
     Array<IndexType> levels;
 };
 
