@@ -59,7 +59,6 @@ struct elimination_forest {
     Array<IndexType> postorder;
     Array<IndexType> inv_postorder;
     Array<IndexType> postorder_parents;
-    Array<IndexType> levels;
 };
 
 

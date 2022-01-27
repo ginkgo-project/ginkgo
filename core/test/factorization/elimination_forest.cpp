@@ -101,8 +101,6 @@ TYPED_TEST(EliminationForest, WorksForExample)
                         I<index_type>({3, 1, 4, 0, 2, 5, 6, 7, 8, 9}));
     GKO_ASSERT_ARRAY_EQ(forest.postorder_parents,
                         I<index_type>({8, 2, 8, 4, 6, 6, 7, 8, 9, 10}));
-    GKO_ASSERT_ARRAY_EQ(forest.levels,
-                        I<index_type>({2, 3, 2, 5, 4, 4, 3, 2, 1, 0}));
 }
 
 
@@ -139,8 +137,6 @@ TYPED_TEST(EliminationForest, WorksForSeparable)
                         I<index_type>({0, 1, 2, 3, 4, 5, 6, 7, 8, 9}));
     GKO_ASSERT_ARRAY_EQ(forest.postorder_parents,
                         I<index_type>({2, 2, 10, 4, 5, 9, 7, 9, 9, 10}));
-    GKO_ASSERT_ARRAY_EQ(forest.levels,
-                        I<index_type>({1, 1, 0, 3, 2, 1, 2, 1, 1, 0}));
 }
 
 
@@ -166,8 +162,6 @@ TYPED_TEST(EliminationForest, WorksForAni1)
     GKO_ASSERT_ARRAY_EQ(forest.children, iota_arr);
     GKO_ASSERT_ARRAY_EQ(forest.postorder, iota_arr);
     GKO_ASSERT_ARRAY_EQ(forest.inv_postorder, iota_arr);
-    std::reverse(iota_arr.get_data(), iota_arr.get_data() + 36);
-    GKO_ASSERT_ARRAY_EQ(forest.levels, iota_arr);
 }
 
 
@@ -204,11 +198,6 @@ TYPED_TEST(EliminationForest, WorksForAni1Amd)
         I<index_type>({4,  2,  3,  4,  5,  29, 7,  8,  9,  27, 11, 12,
                        13, 14, 16, 16, 17, 18, 24, 20, 21, 22, 23, 24,
                        25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
-    GKO_ASSERT_ARRAY_EQ(
-        forest.levels,
-        I<index_type>({9,  11, 10, 9,  8,  7,  12, 11, 10, 9,  19, 18,
-                       17, 16, 15, 15, 14, 13, 12, 16, 15, 14, 13, 12,
-                       11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1,  0}));
 }
 
 
