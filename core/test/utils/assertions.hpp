@@ -771,6 +771,19 @@ template <typename LinOp1, typename LinOp2>
 }
 
 
+template <typename LinOp1, typename T>
+::testing::AssertionResult matrices_equal_sparsity(
+    const std::string& first_expression, const std::string& second_expression,
+    const LinOp1* first, std::initializer_list<T> second)
+{
+    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
+        second, first->get_executor()->get_master());
+    return matrices_equal_sparsity(
+        first_expression, detail::remove_list_wrapper(second_expression), first,
+        second_mtx.get());
+}
+
+
 namespace detail {
 
 

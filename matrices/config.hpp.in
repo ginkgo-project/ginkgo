@@ -39,6 +39,12 @@ namespace matrices {
 
 
 const char* location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
+const char* location_ani1_chol_mtx =
+    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_chol.mtx";
+const char* location_ani1_amd_mtx =
+    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_amd.mtx";
+const char* location_ani1_amd_chol_mtx =
+    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_amd_chol.mtx";
 const char* location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
 const char* location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
 const char* location_1138_bus_mtx =
