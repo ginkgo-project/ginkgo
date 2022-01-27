@@ -166,4 +166,40 @@ TYPED_TEST(EliminationForest, WorksForAni1)
 }
 
 
+TYPED_TEST(EliminationForest, WorksForAni1Amd)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
+    auto mtx = gko::read<matrix_type>(stream, this->ref);
+
+    auto forest = gko::factorization::compute_elim_forest(mtx.get());
+
+    GKO_ASSERT_ARRAY_EQ(
+        forest.parents,
+        I<index_type>({4,  2,  3,  4,  5,  29, 7,  8,  9,  27, 11, 12,
+                       13, 14, 16, 16, 17, 18, 24, 20, 21, 22, 23, 24,
+                       25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36}));
+    GKO_ASSERT_ARRAY_EQ(
+        forest.child_ptrs,
+        I<index_type>({0,  0,  0,  1,  2,  4,  5,  5,  6,  7,  8,  8,  9,
+                       10, 11, 12, 12, 14, 15, 16, 16, 17, 18, 19, 20, 22,
+                       23, 24, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36}));
+    GKO_ASSERT_ARRAY_EQ(
+        forest.children,
+        I<index_type>({1,  2,  0,  3,  4,  6,  7,  8,  10, 11, 12, 13,
+                       14, 15, 16, 17, 19, 20, 21, 22, 18, 23, 24, 25,
+                       9,  26, 27, 5,  28, 29, 30, 31, 32, 33, 34, 35}));
+    gko::Array<index_type> iota_arr{this->ref, 36};
+    std::iota(iota_arr.get_data(), iota_arr.get_data() + 36, 0);
+    GKO_ASSERT_ARRAY_EQ(forest.postorder, iota_arr);
+    GKO_ASSERT_ARRAY_EQ(forest.inv_postorder, iota_arr);
+    GKO_ASSERT_ARRAY_EQ(
+        forest.levels,
+        I<index_type>({9,  11, 10, 9,  8,  7,  12, 11, 10, 9,  19, 18,
+                       17, 16, 15, 15, 14, 13, 12, 16, 15, 14, 13, 12,
+                       11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1,  0}));
+}
+
+
 }  // namespace
