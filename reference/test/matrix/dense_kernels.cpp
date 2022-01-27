@@ -177,13 +177,15 @@ TYPED_TEST(Dense, CanBeFilledWithValueForStridedMatrices)
     using T = value_type;
     auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
-    auto in_stride = m->get_values()[3];
+    T in_stride{-1.0};
+    m->get_values()[3] = in_stride;
+
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 12);
     EXPECT_EQ(m->at(0), value_type{1.0});
     EXPECT_EQ(m->at(1), value_type{2.0});
     EXPECT_EQ(m->at(2), value_type{3.0});
-    ASSERT_EQ(m->at(3), value_type{4.0});
+    EXPECT_EQ(m->at(3), value_type{4.0});
     EXPECT_EQ(m->at(4), value_type{5.0});
     EXPECT_EQ(m->at(5), value_type{6.0});
 
@@ -194,16 +196,19 @@ TYPED_TEST(Dense, CanBeFilledWithValueForStridedMatrices)
     EXPECT_EQ(m->at(0), value_type{42.0});
     EXPECT_EQ(m->at(1), value_type{42.0});
     EXPECT_EQ(m->at(2), value_type{42.0});
-    ASSERT_EQ(m->at(3), value_type{42.0});
+    EXPECT_EQ(m->at(3), value_type{42.0});
     EXPECT_EQ(m->at(4), value_type{42.0});
     EXPECT_EQ(m->at(5), value_type{42.0});
-    EXPECT_EQ(m->get_values()[3], in_stride);
+    ASSERT_EQ(m->get_values()[3], in_stride);
 }
 
 
 TYPED_TEST(Dense, AppliesToDense)
 {
     using T = typename TestFixture::value_type;
+    T in_stride{-1};
+    this->mtx3->get_values()[3] = in_stride;
+
     this->mtx2->apply(this->mtx1.get(), this->mtx3.get());
 
     EXPECT_EQ(this->mtx3->at(0, 0), T{-0.5});
@@ -211,7 +216,8 @@ TYPED_TEST(Dense, AppliesToDense)
     EXPECT_EQ(this->mtx3->at(0, 2), T{-0.5});
     EXPECT_EQ(this->mtx3->at(1, 0), T{1.0});
     EXPECT_EQ(this->mtx3->at(1, 1), T{1.0});
-    ASSERT_EQ(this->mtx3->at(1, 2), T{1.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{1.0});
+    ASSERT_EQ(this->mtx3->get_values()[3], in_stride);
 }
 
 
@@ -241,6 +247,8 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
     auto beta = gko::initialize<Mtx>({2.0}, this->exec);
+    T in_stride{-1};
+    this->mtx3->get_values()[3] = in_stride;
 
     this->mtx2->apply(alpha.get(), this->mtx1.get(), beta.get(),
                       this->mtx3.get());
@@ -250,7 +258,8 @@ TYPED_TEST(Dense, AppliesLinearCombinationToDense)
     EXPECT_EQ(this->mtx3->at(0, 2), T{6.5});
     EXPECT_EQ(this->mtx3->at(1, 0), T{0.0});
     EXPECT_EQ(this->mtx3->at(1, 1), T{2.0});
-    ASSERT_EQ(this->mtx3->at(1, 2), T{4.0});
+    EXPECT_EQ(this->mtx3->at(1, 2), T{4.0});
+    ASSERT_EQ(this->mtx3->get_values()[3], in_stride);
 }
 
 
@@ -387,6 +396,8 @@ TYPED_TEST(Dense, ScalesDataWithStride)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{-1.0, 1.0, 2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->scale(alpha.get());
 
@@ -395,7 +406,8 @@ TYPED_TEST(Dense, ScalesDataWithStride)
     EXPECT_EQ(this->mtx1->at(0, 2), T{6.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{-1.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{2.5});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{7.0});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{7.0});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -404,6 +416,8 @@ TYPED_TEST(Dense, AddsScaled)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{2.0, 1.0, -2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -412,7 +426,8 @@ TYPED_TEST(Dense, AddsScaled)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -423,6 +438,8 @@ TYPED_TEST(Dense, AddsScaledMixed)
     auto mmtx3 = MixedMtx::create(this->exec);
     this->mtx3->convert_to(mmtx3.get());
     auto alpha = gko::initialize<MixedMtx>({{2.0, 1.0, -2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -431,7 +448,8 @@ TYPED_TEST(Dense, AddsScaledMixed)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -440,6 +458,8 @@ TYPED_TEST(Dense, SubtractsScaled)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({{-2.0, -1.0, 2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->sub_scaled(alpha.get(), this->mtx3.get());
 
@@ -448,7 +468,8 @@ TYPED_TEST(Dense, SubtractsScaled)
     EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
@@ -457,6 +478,8 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
 
     this->mtx1->add_scaled(alpha.get(), this->mtx3.get());
 
@@ -465,7 +488,8 @@ TYPED_TEST(Dense, AddsScaledWithScalar)
     EXPECT_EQ(this->mtx1->at(0, 2), T{9.0});
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{5.5});
-    ASSERT_EQ(this->mtx1->at(1, 2), T{8.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{8.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 
 
