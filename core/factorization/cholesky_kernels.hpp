@@ -55,7 +55,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
-        IndexType* row_nnz)
+        IndexType* row_nnz, Array<IndexType>& tmp_storage)
 
 
 #define GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType)    \
@@ -63,7 +63,8 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* mtx,                    \
         const gko::factorization::elimination_forest<IndexType>& forest, \
-        matrix::Csr<ValueType, IndexType>* l_factor)
+        matrix::Csr<ValueType, IndexType>* l_factor,                     \
+        const Array<IndexType>& tmp_storage)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                           \

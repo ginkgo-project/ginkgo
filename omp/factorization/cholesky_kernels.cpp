@@ -60,16 +60,17 @@ void cholesky_symbolic_count(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz)
+    IndexType* row_nnz, Array<IndexType>& tmp_storage)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto cols = mtx->get_const_col_idxs();
+    const auto inv_postorder = forest.inv_postorder.get_const_data();
+    const auto postorder = forest.postorder.get_const_data();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
-    Array<IndexType> postorder_col_array{exec, mtx->get_num_stored_elements()};
-    auto postorder_cols = postorder_col_array.get_data();
-    auto inv_postorder = forest.inv_postorder.get_const_data();
-    auto postorder = forest.postorder.get_const_data();
+    tmp_storage.resize_and_reset(mtx->get_num_stored_elements() + num_rows);
+    const auto postorder_cols = tmp_storage.get_data();
+    const auto lower_ends = postorder_cols + mtx->get_num_stored_elements();
 #pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
@@ -97,6 +98,7 @@ void cholesky_symbolic_count(
                 node = postorder_parent[node];
             }
         }
+        lower_ends[row] = lower_end;
         row_nnz[row] = count + 1;  // lower entries plus diagonal
     }
 }
@@ -110,7 +112,8 @@ void cholesky_symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    matrix::Csr<ValueType, IndexType>* l_factor)
+    matrix::Csr<ValueType, IndexType>* l_factor,
+    const Array<IndexType>& tmp_storage)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -118,26 +121,15 @@ void cholesky_symbolic_factorize(
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();
-    Array<IndexType> postorder_col_array{exec, mtx->get_num_stored_elements()};
-    auto postorder_cols = postorder_col_array.get_data();
-    auto inv_postorder = forest.inv_postorder.get_const_data();
-    auto postorder = forest.postorder.get_const_data();
+    const auto postorder_cols = tmp_storage.get_const_data();
+    const auto lower_ends = postorder_cols + mtx->get_num_stored_elements();
+    const auto inv_postorder = forest.inv_postorder.get_const_data();
+    const auto postorder = forest.postorder.get_const_data();
 #pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
-        // transform lower triangular entries into sorted postorder
-        auto lower_end = row_begin;
-        for (auto nz = row_begin; nz < row_end; nz++) {
-            const auto col = cols[nz];
-            if (col <= row) {
-                postorder_cols[lower_end] = inv_postorder[col];
-                lower_end++;
-            }
-        }
-        std::sort(postorder_cols + row_begin, postorder_cols + lower_end);
-        // the subtree root should be the last entry as a sentinel
-        GKO_ASSERT(postorder_cols[lower_end - 1] == inv_postorder[row]);
+        const auto lower_end = lower_ends[row];
         // Now move from each node to its LCA with other nodes to cut off a path
         auto out_nz = out_row_ptrs[row];
         for (auto nz = row_begin; nz < lower_end - 1; nz++) {
