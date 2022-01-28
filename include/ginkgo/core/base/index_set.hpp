@@ -114,7 +114,9 @@ public:
              std::initializer_list<IndexType> init_list,
              const bool is_sorted = false)
         : EnablePolymorphicObject<IndexSet>(std::move(executor)),
-          index_space_size_(init_list.size())
+          index_space_size_(
+              *(std::max_element(std::begin(init_list), std::end(init_list))) +
+              1)
     {
         this->populate_subsets(
             Array<IndexType>(this->get_executor(), init_list), is_sorted);
