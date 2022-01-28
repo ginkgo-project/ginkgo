@@ -31,7 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/factorization/elimination_forest.hpp"
-#include "ginkgo/core/base/types.hpp"
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
