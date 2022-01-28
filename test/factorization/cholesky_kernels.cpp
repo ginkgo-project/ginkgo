@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils/assertions.hpp"
 #include "ginkgo/core/base/executor.hpp"
 #include "matrices/config.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -63,12 +64,12 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
 
-    Cholesky()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::CudaExecutor::create(0, ref)),
-          tmp{ref},
-          dtmp{exec}
+    void SetUp()
     {
+        ref = gko::ReferenceExecutor::create();
+        init_executor(ref, exec);
+        dtmp.set_executor(ref);
+        dtmp.set_executor(exec);
         matrices.emplace_back("example", gko::initialize<matrix_type>(
                                              {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
                                               {0, 1, 0, 1, 0, 0, 0, 0, 0, 1},
@@ -100,17 +101,24 @@ protected:
                               gko::read<matrix_type>(ani1_amd_stream, ref));
     }
 
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> exec;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
         matrices;
     gko::Array<index_type> tmp;
     gko::Array<index_type> dtmp;
 };
 
-using types = ::testing::Types<std::tuple<float, gko::int32>>;
+using Types = ::testing::Types<std::tuple<float, gko::int32>>;
 
-TYPED_TEST_SUITE(Cholesky, types, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Cholesky, Types, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Cholesky, KernelSymbolicCount)
@@ -128,7 +136,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
 
         gko::kernels::reference::cholesky::cholesky_symbolic_count(
             this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
-        gko::kernels::cuda::cholesky::cholesky_symbolic_count(
+        gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_count(
             this->exec, dmtx.get(), dforest, drow_nnz.get_data(), this->dtmp);
 
         GKO_ASSERT_ARRAY_EQ(drow_nnz, row_nnz);
@@ -165,12 +173,12 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
         const auto dforest =
             gko::factorization::compute_elim_forest(dmtx.get());
         gko::Array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
-        gko::kernels::cuda::cholesky::cholesky_symbolic_count(
+        gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_count(
             this->exec, dmtx.get(), dforest, dtmp_ptrs.get_data(), this->dtmp);
 
         gko::kernels::reference::cholesky::cholesky_symbolic_factorize(
             this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
-        gko::kernels::cuda::cholesky::cholesky_symbolic_factorize(
+        gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_factorize(
             this->exec, dmtx.get(), dforest, dl_factor.get(), this->dtmp);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dl_factor, l_factor);
