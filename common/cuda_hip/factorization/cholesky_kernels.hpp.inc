@@ -60,6 +60,19 @@ __global__ __launch_bounds__(default_block_size) void build_postorder_cols(
 
 
 template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void pointer_doubling_kernel(
+    IndexType num_rows, const IndexType* parents, IndexType* doubled_parents)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto parent = parents[row];
+    doubled_parents[row] = parent < num_rows ? parents[parent] : num_rows;
+}
+
+
+template <typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
         IndexType num_rows, const IndexType* row_ptrs,
