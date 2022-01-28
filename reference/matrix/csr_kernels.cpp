@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -50,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/index_set_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -623,6 +625,55 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
 
 
+// TODO: FIXME
+namespace index_set {
+
+
+template <typename IndexType>
+Array<IndexType> map_global_to_local(const IndexSet<IndexType>& index_set,
+                                     const Array<IndexType>& global_indices,
+                                     const bool is_sorted)
+{
+    auto exec = index_set.get_executor();
+    auto local_indices =
+        gko::Array<IndexType>(exec, global_indices.get_num_elems());
+
+    GKO_ASSERT(index_set.get_num_subsets() >= 1);
+    gko::kernels::reference::index_set::global_to_local(
+        as<gko::ReferenceExecutor>(exec), index_set.get_size(),
+        index_set.get_num_subsets(), index_set.get_subsets_begin(),
+        index_set.get_subsets_end(), index_set.get_superset_indices(),
+        static_cast<IndexType>(local_indices.get_num_elems()),
+        global_indices.get_const_data(), local_indices.get_data(), is_sorted);
+    return local_indices;
+}
+
+
+template <typename IndexType>
+IndexType get_local_index(const IndexSet<IndexType>& index_set,
+                          const IndexType index)
+{
+    auto exec = index_set.get_executor();
+    const auto global_idx =
+        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+    auto local_idx = Array<IndexType>(
+        exec, index_set::map_global_to_local(index_set, global_idx, true));
+
+    return exec->copy_val_to_host(local_idx.get_data());
+}
+
+
+template <typename IndexType>
+bool contains(const IndexSet<IndexType>& index_set, const IndexType input_index)
+{
+    auto local_index = index_set::get_local_index(index_set, input_index);
+    return local_index != invalid_index<IndexType>();
+}
+
+
+}  // namespace index_set
+
+
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -640,7 +691,8 @@ void calculate_nonzeros_per_row_in_index_set(
             row_nnz->get_data()[res_row] = zero<IndexType>();
             for (size_type nnz = source->get_const_row_ptrs()[row];
                  nnz < source->get_const_row_ptrs()[row + 1]; ++nnz) {
-                if (col_index_set.contains(source->get_const_col_idxs()[nnz])) {
+                if (index_set::contains(col_index_set,
+                                        source->get_const_col_idxs()[nnz])) {
                     row_nnz->get_data()[res_row]++;
                 }
             }
@@ -711,15 +763,18 @@ void compute_submatrix_from_index_set(
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
+            auto local_map = std::vector<IndexType>(
+                src_row_ptrs[row + 1] - src_row_ptrs[row], 0);
             for (size_type nnz = src_row_ptrs[row]; nnz < src_row_ptrs[row + 1];
                  ++nnz) {
-                if (col_index_set.contains(src_col_idxs[nnz])) {
-                    res_col_idxs[res_nnz] =
-                        col_index_set.get_local_index(src_col_idxs[nnz]);
+                if (index_set::contains(col_index_set, src_col_idxs[nnz])) {
+                    res_col_idxs[res_nnz] = index_set::get_local_index(
+                        col_index_set, src_col_idxs[nnz]);
                     res_values[res_nnz] = src_values[nnz];
                     res_nnz++;
                 }
             }
+            // res_nnz = res_row_ptrs[row_index_set.get_local_index(row)];
         }
     }
 }
