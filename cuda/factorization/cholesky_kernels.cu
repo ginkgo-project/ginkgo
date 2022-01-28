@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/base/allocator.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "cuda/base/cusparse_bindings.hpp"

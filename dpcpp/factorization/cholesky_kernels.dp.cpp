@@ -37,31 +37,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <CL/sycl.hpp>
+
+
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/components/fill_array_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace dpcpp {
 /**
  * @brief The Cholesky namespace.
  *
  * @ingroup factor
  */
 namespace cholesky {
-
-
-constexpr int default_block_size = 512;
-
-
-#include "common/cuda_hip/factorization/cholesky_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -71,11 +64,8 @@ void cholesky_symbolic_count(
     const factorization::elimination_forest<IndexType>& forest,
     IndexType* row_nnz, Array<IndexType>& tmp_storage)
 {
-    const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
-    if (num_rows == 0) {
-        return;
-    }
-    const auto mtx_nnz = static_cast<IndexType>(mtx->get_num_stored_elements());
+    const auto num_rows = mtx->get_size()[0];
+    const auto mtx_nnz = mtx->get_num_stored_elements();
     tmp_storage.resize_and_reset(mtx_nnz + num_rows);
     const auto postorder_cols = tmp_storage.get_data();
     const auto lower_ends = postorder_cols + mtx_nnz;
@@ -83,36 +73,47 @@ void cholesky_symbolic_count(
     const auto cols = mtx->get_const_col_idxs();
     const auto inv_postorder = forest.inv_postorder.get_const_data();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
-    // transform col indices to postorder indices
-    {
-        const auto num_blocks = ceildiv(num_rows, default_block_size);
-        build_postorder_cols<<<num_blocks, default_block_size>>>(
-            num_rows, cols, row_ptrs, inv_postorder, postorder_cols,
-            lower_ends);
-    }
-    // sort postorder_cols inside rows
-    {
-        const auto handle = exec->get_hipsparse_handle();
-        auto descr = hipsparse::create_mat_descr();
-        Array<IndexType> permutation_array(exec, mtx_nnz);
-        auto permutation = permutation_array.get_data();
-        components::fill_seq_array(exec, permutation, mtx_nnz);
-        size_type buffer_size{};
-        hipsparse::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
-                                       row_ptrs, postorder_cols, buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
-        auto buffer = buffer_array.get_data();
-        hipsparse::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
-                           postorder_cols, permutation, buffer);
-        hipsparse::destroy(descr);
-    }
-    // count nonzeros in L
-    {
-        const auto num_blocks = ceildiv(num_rows, default_block_size);
-        cholesky_symbolic_count_kernel<<<num_blocks, default_block_size>>>(
-            num_rows, row_ptrs, lower_ends, postorder_cols, postorder_parent,
-            row_nnz);
-    }
+    auto queue = exec->get_queue();
+    // build sorted postorder node list for each row
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+            const auto row = idx_id[0];
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            auto lower_end = row_begin;
+            for (auto nz = row_begin; nz < row_end; nz++) {
+                const auto col = cols[nz];
+                if (col <= row) {
+                    postorder_cols[lower_end] = inv_postorder[cols[nz]];
+                    lower_end++;
+                }
+            }
+            // heap-sort the elements
+            std::make_heap(postorder_cols + row_begin,
+                           postorder_cols + lower_end);
+            std::sort_heap(postorder_cols + row_begin,
+                           postorder_cols + lower_end);
+            lower_ends[row] = lower_end;
+        });
+    });
+    // count nonzeros per row
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+            const auto row = idx_id[0];
+            const auto row_begin = row_ptrs[row];
+            const auto lower_end = lower_ends[row];
+            IndexType count{};
+            for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
+                auto node = postorder_cols[nz];
+                const auto next_node = postorder_cols[nz + 1];
+                while (node < next_node) {
+                    count++;
+                    node = postorder_parent[node];
+                }
+            }
+            row_nnz[row] = count + 1;  // lower entries plus diagonal
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -127,11 +128,8 @@ void cholesky_symbolic_factorize(
     matrix::Csr<ValueType, IndexType>* l_factor,
     const Array<IndexType>& tmp_storage)
 {
-    const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
-    if (num_rows == 0) {
-        return;
-    }
-    const auto mtx_nnz = static_cast<IndexType>(mtx->get_num_stored_elements());
+    const auto num_rows = mtx->get_size()[0];
+    const auto mtx_nnz = mtx->get_num_stored_elements();
     const auto postorder_cols = tmp_storage.get_const_data();
     const auto lower_ends = postorder_cols + mtx_nnz;
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -140,10 +138,25 @@ void cholesky_symbolic_factorize(
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();
-    const auto num_blocks = ceildiv(num_rows, default_block_size);
-    cholesky_symbolic_factorize_kernel<<<num_blocks, default_block_size>>>(
-        num_rows, row_ptrs, lower_ends, postorder_cols, postorder,
-        postorder_parent, out_row_ptrs, out_cols);
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
+            const auto row = idx_id[0];
+            const auto row_begin = row_ptrs[row];
+            const auto lower_end = lower_ends[row];
+            auto out_nz = out_row_ptrs[row];
+            for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
+                auto node = postorder_cols[nz];
+                const auto next_node = postorder_cols[nz + 1];
+                while (node < next_node) {
+                    out_cols[out_nz] = postorder[node];
+                    out_nz++;
+                    node = postorder_parent[node];
+                }
+            }
+            // add diagonal entry
+            out_cols[out_nz] = row;
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -151,6 +164,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace cholesky
-}  // namespace hip
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
