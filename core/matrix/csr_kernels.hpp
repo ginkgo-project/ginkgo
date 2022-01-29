@@ -260,7 +260,6 @@ namespace kernels {
                         const size_type num_blocks,                   \
                         const size_type block_size, size_type* mem_size)
 
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                     \
