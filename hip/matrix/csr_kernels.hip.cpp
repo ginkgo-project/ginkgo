@@ -717,6 +717,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* csr,
+                    IndexType* rows, IndexType* offsets,
+                    const size_type num_blocks, const size_type block_size,
+                    size_type* mem_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)

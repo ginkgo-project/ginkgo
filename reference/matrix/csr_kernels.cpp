@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -56,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "reference/components/csr_spgeam.hpp"
 
@@ -357,6 +359,80 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* csr,
+                    IndexType* rows, IndexType* offsets,
+                    const size_type num_blocks, const size_type block_size,
+                    size_type* mem_size)
+{
+    // Computation of rows, offsets and m (mem_size)
+    const IndexType* row_ptrs = csr->get_const_row_ptrs();
+    const IndexType* col_idxs = csr->get_const_col_idxs();
+    const ValueType* values = csr->get_const_values();
+    const size_type num_rows = csr->get_size()[0];
+    const size_type num_stored_elements = csr->get_num_stored_elements();
+    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
+    for (size_type i = 0; i < num_rows; i++) {
+        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+            const size_type row = i;
+            const size_type col = col_idxs[j];
+            const ValueType val = values[j];
+            cnt_detect_newblock(nblk, shf, row_res, row - row_res, col_res);
+            size_type col_src_res =
+                cnt_position_newrow_mat_data(row, col, shf, row_res, col_res);
+            cnt_next_position_value(col_src_res, shf, col_res, val, nblk);
+            cnt_detect_endblock(block_size, nblk, blk);
+        }
+    }
+
+    *mem_size = shf;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+{
+    size_type block_size = result->get_block_size();
+    IndexType* rows_data = result->get_rows();
+    IndexType* offsets_data = result->get_offsets();
+    uint8* chunk_data = result->get_chunk();
+
+    // Computation of chunk
+    const IndexType* row_ptrs = source->get_const_row_ptrs();
+    const IndexType* col_idxs = source->get_const_col_idxs();
+    const ValueType* values = source->get_const_values();
+    const size_type num_rows = source->get_size()[0];
+    const size_type num_stored_elements = source->get_num_stored_elements();
+    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
+    if (num_stored_elements > 0) {
+        offsets_data[0] = 0;
+    }
+    for (size_type i = 0; i < num_rows; i++) {
+        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+            const size_type row = i;
+            const size_type col = col_idxs[j];
+            const ValueType val = values[j];
+            put_detect_newblock(chunk_data, rows_data, nblk, blk, shf, row_res,
+                                row - row_res, col_res);
+            size_type col_src_res = put_position_newrow_mat_data(
+                row, col, chunk_data, shf, row_res, col_res);
+            put_next_position_value(chunk_data, nblk, col - col_res, shf,
+                                    col_res, val);
+            put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
