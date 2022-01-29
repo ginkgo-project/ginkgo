@@ -245,6 +245,13 @@ namespace kernels {
                       const IndexType* storage_offsets, int64* row_desc,      \
                       int32* storage)
 
+#define GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
+    void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
+                        const matrix::Csr<ValueType, IndexType>* coo, \
+                        IndexType* rows, IndexType* offsets,          \
+                        const size_type num_blocks,                   \
+                        const size_type block_size, size_type* mem_size)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -259,6 +266,8 @@ namespace kernels {
     GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType);                   \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                      \
@@ -308,7 +317,9 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);

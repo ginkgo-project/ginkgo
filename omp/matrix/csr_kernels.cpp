@@ -555,6 +555,36 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
+template <typename IndexType>
+void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
+                              const IndexType* ptrs, size_type num_rows,
+                              IndexType* idxs)
+{
+    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
+}
+
+
+template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* csr,
+                    IndexType* rows, IndexType* offsets,
+                    const size_type num_blocks, const size_type block_size,
+                    size_type* mem_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_bccoo(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_BCCOO_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* source,
