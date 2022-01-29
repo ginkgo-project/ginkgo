@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -51,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/bccoo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -68,6 +70,7 @@ GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, csr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_to_bccoo, csr::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
 GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
@@ -99,10 +102,20 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 GKO_REGISTER_OPERATION(scale, csr::scale);
 GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
+GKO_REGISTER_OPERATION(mem_size_bccoo, csr::mem_size_bccoo);
 
 
 }  // anonymous namespace
 }  // namespace csr
+
+
+namespace bccoo {
+
+
+GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+
+
+}  // namespace bccoo
 
 
 template <typename ValueType, typename IndexType>
@@ -178,7 +191,7 @@ void Csr<ValueType, IndexType>::move_to(
 }
 
 
-template <typename ValueType, typename IndexType>
+/* template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     Bccoo<ValueType, IndexType>* result) const GKO_NOT_IMPLEMENTED;
 
@@ -186,6 +199,56 @@ void Csr<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
+
+*/
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Bccoo<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    auto num_stored_elements = this->get_num_stored_elements();
+
+    //  const size_type block_size = 1024;
+    // JIAE TODO
+    //  const auto block_size = Bccoo<ValueType, IndexType>::
+    //    compute_block_size( result->get_executor(), this.size(),
+    //    num_stored_elements);
+    size_type block_size = 1024;
+    exec->run(bccoo::make_get_default_block_size(&block_size));
+    const auto num_blocks = ceildiv(num_stored_elements, block_size);
+
+    Array<IndexType> rows(exec, num_blocks);
+    Array<IndexType> offsets(exec, num_blocks + 1);
+
+    size_type mem_size{};
+    if (exec == exec->get_master()) {
+        exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
+                                           offsets.get_data(), num_blocks,
+                                           block_size, &mem_size));
+    } else {
+        //        auto host_csr = clone(exec->get_master(), this);
+        auto host_csr = this->clone(exec->get_master());
+        exec->get_master()->run(csr::make_mem_size_bccoo(
+            host_csr.get(), rows.get_data(), offsets.get_data(), num_blocks,
+            block_size, &mem_size));
+    }
+
+    Array<uint8> data(exec, mem_size);
+
+    auto tmp = Bccoo<ValueType, IndexType>::create(
+        exec, this->get_size(), std::move(data), std::move(offsets),
+        std::move(rows), num_stored_elements, block_size);
+
+    exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
+{
+    this->convert_to(result);
+}
 
 
 template <typename ValueType, typename IndexType>
