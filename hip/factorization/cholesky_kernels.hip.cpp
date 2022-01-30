@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/elimination_forest.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/intrinsics.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
@@ -108,10 +111,12 @@ void cholesky_symbolic_count(
     }
     // count nonzeros in L
     {
-        const auto num_blocks = ceildiv(num_rows, default_block_size);
-        cholesky_symbolic_count_kernel<<<num_blocks, default_block_size>>>(
-            num_rows, row_ptrs, lower_ends, postorder_cols, postorder_parent,
-            row_nnz);
+        const auto num_blocks =
+            ceildiv(num_rows, default_block_size / config::warp_size);
+        cholesky_symbolic_count_kernel<config::warp_size>
+            <<<num_blocks, default_block_size>>>(num_rows, row_ptrs, lower_ends,
+                                                 postorder_cols,
+                                                 postorder_parent, row_nnz);
     }
 }
 
@@ -140,10 +145,12 @@ void cholesky_symbolic_factorize(
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();
-    const auto num_blocks = ceildiv(num_rows, default_block_size);
-    cholesky_symbolic_factorize_kernel<<<num_blocks, default_block_size>>>(
-        num_rows, row_ptrs, lower_ends, postorder_cols, postorder,
-        postorder_parent, out_row_ptrs, out_cols);
+    const auto num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    cholesky_symbolic_factorize_kernel<config::warp_size>
+        <<<num_blocks, default_block_size>>>(
+            num_rows, row_ptrs, lower_ends, postorder_cols, postorder,
+            postorder_parent, out_row_ptrs, out_cols);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
