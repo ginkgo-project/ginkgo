@@ -37,6 +37,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/unified/base/kernel_launch.hpp"
 
 
+#define GKO_KERNEL_REDUCE_SUM(ValueType)               \
+    [] GKO_KERNEL(auto a, auto b) { return a + b; },   \
+        [] GKO_KERNEL(auto a) { return a; }, ValueType \
+    {}
+#define GKO_KERNEL_REDUCE_MAX(ValueType)                     \
+    [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; }, \
+        [] GKO_KERNEL(auto a) { return a; }, ValueType       \
+    {}
+
+
 #if defined(GKO_COMPILING_CUDA)
 #include "cuda/base/kernel_launch_reduction.cuh"
 #elif defined(GKO_COMPILING_HIP)

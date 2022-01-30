@@ -60,8 +60,7 @@ void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto array, auto result) {
             return i == 0 ? (array[i] + result[0]) : array[i];
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result.get_data(),
+        GKO_KERNEL_REDUCE_SUM(ValueType), result.get_data(),
         array.get_num_elems(), array, result);
 }
 
