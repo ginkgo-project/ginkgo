@@ -536,4 +536,73 @@ TYPED_TEST(BatchCsr, ConvertibleToBatchDense)
 }
 
 
+TYPED_TEST(BatchCsr, CanDetectMissingDiagonalEntry)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mat = gko::batch_initialize<Mtx>(
+        {{I<T>{2.0, 0.0, -1.0, 0.0}, I<T>{0.0, 1.0, -1.5, -2.0},
+          I<T>{4.0, 2.5, 0.0, -1.0}},
+         {I<T>{4.0, 0.0, 2.0, 0.0}, I<T>{0.0, -1.0, -2.5, 0.2},
+          I<T>{3.0, -1.5, 0.0, 0.5}}},
+        this->exec);
+    bool has_all_diags = true;
+
+    gko::kernels::reference::batch_csr::check_diagonal_entries_exist(
+        this->exec, mat.get(), has_all_diags);
+
+    ASSERT_FALSE(has_all_diags);
+}
+
+
+TYPED_TEST(BatchCsr, CanDetectPresenceOfAllDiagonalEntries)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mat = gko::batch_initialize<Mtx>(
+        {{I<T>{2.0, 0.0, -1.0, 0.0}, I<T>{0.0, 1.0, -1.5, -2.0},
+          I<T>{4.0, 2.5, 1.0, -1.0}},
+         {I<T>{4.0, 0.0, 2.0, 0.0}, I<T>{0.0, -1.0, -2.5, 0.2},
+          I<T>{3.0, -1.5, 0.1, 0.5}}},
+        this->exec);
+    bool has_all_diags = false;
+
+    gko::kernels::reference::batch_csr::check_diagonal_entries_exist(
+        this->exec, mat.get(), has_all_diags);
+
+    ASSERT_TRUE(has_all_diags);
+}
+
+
+TYPED_TEST(BatchCsr, AddScaledIdentity)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using BDense = gko::matrix::BatchDense<T>;
+    auto mat = gko::batch_initialize<Mtx>(
+        {{I<T>{3.0, 0.0, -1.0, 0.0}, I<T>{0.0, 1.0, -1.5, -2.0},
+          I<T>{4.0, 2.5, 1.0, -1.0}},
+         {I<T>{4.0, 0.0, 2.0, 0.0}, I<T>{0.0, -1.0, -2.5, 0.2},
+          I<T>{3.0, -1.5, 0.1, 0.5}}},
+        this->exec);
+    auto beta =
+        gko::batch_initialize<BDense>({{I<T>{-1.0}}, {I<T>{-0.5}}}, this->exec);
+    auto alpha =
+        gko::batch_initialize<BDense>({{I<T>{2.0}}, {I<T>{-3.0}}}, this->exec);
+    auto sol_mat = gko::batch_initialize<Mtx>(
+        {{I<T>{-1.0, 0.0, 1.0, 0.0}, I<T>{0.0, 1.0, 1.5, 2.0},
+          I<T>{-4.0, -2.5, 1.0, 1.0}},
+         {I<T>{-5.0, 0.0, -1.0, 0.0}, I<T>{0.0, -2.5, 1.25, -0.1},
+          I<T>{-1.5, 0.75, -3.05, -0.25}}},
+        this->exec);
+
+    mat->add_scaled_identity(alpha.get(), beta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mat, sol_mat, r<T>::value);
+}
+
+
 }  // namespace
