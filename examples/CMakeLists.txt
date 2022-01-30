@@ -15,7 +15,6 @@ set(EXAMPLES_EXEC_LIST
     poisson-solver
     preconditioned-solver
     simple-solver
-    schwarz-preconditioned-solver
     three-pt-stencil-solver)
 
 set(EXAMPLES_LIST
@@ -26,6 +25,7 @@ set(EXAMPLES_LIST
     mixed-spmv
     mixed-multigrid-solver
     multigrid-preconditioned-solver
+    schwarz-preconditioned-solver
     par-ilu-convergence
     performance-debugging
     preconditioner-export

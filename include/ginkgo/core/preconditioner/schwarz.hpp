@@ -39,6 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
 namespace gko {
@@ -94,6 +96,29 @@ public:
         return subdomain_matrices_;
     }
 
+    struct coarse_solver_type {
+        coarse_solver_type(bool uses_coarse_solver = false)
+            : uses_coarse_solver_(uses_coarse_solver),
+              coarse_op_{nullptr},
+              coarse_solver_{nullptr}
+        {}
+
+        coarse_solver_type(
+            std::shared_ptr<const multigrid::MultigridLevel> coarse_operator,
+            std::shared_ptr<const LinOpFactory> coarse_factory)
+            : uses_coarse_solver_(coarse_operator != nullptr &&
+                                  coarse_factory != nullptr),
+              coarse_op_{coarse_operator},
+              coarse_solver_{
+                  coarse_factory->generate(coarse_operator->get_coarse_op())}
+        {}
+
+        bool uses_coarse_solver_;
+        std::shared_ptr<const LinOp> coarse_solver_;
+        std::shared_ptr<const multigrid::MultigridLevel> coarse_op_;
+    };
+
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -139,58 +164,6 @@ public:
             generated_inner_solvers,
             std::vector<std::shared_ptr<const LinOp>>{});
 
-    private:
-        struct coarse_solver_type {
-            coarse_solver_type(bool using_coarse_solver = false)
-                : using_coarse_solver_(using_coarse_solver),
-                  coarse_solver_{nullptr},
-                  coarse_indices_{}
-            {}
-
-            coarse_solver_type(
-                std::shared_ptr<const LinOp> coarse_operator,
-                std::shared_ptr<const LinOpFactory> coarse_factory,
-                const Array<IndexType>& coarse_indices)
-                : using_coarse_solver_(coarse_operator != nullptr &&
-                                       coarse_factory != nullptr),
-                  coarse_indices_{coarse_indices},
-                  coarse_solver_{coarse_factory->generate(coarse_operator)}
-            {}
-
-            coarse_solver_type(
-                std::shared_ptr<const LinOp> coarse_operator,
-                std::shared_ptr<const LinOpFactory> coarse_factory,
-                Array<IndexType>&& coarse_indices)
-                : using_coarse_solver_(coarse_operator != nullptr &&
-                                       coarse_factory != nullptr),
-                  coarse_indices_{std::move(coarse_indices)},
-                  coarse_solver_{coarse_factory->generate(coarse_operator)}
-            {}
-
-            bool uses_coarse_solver() const { return using_coarse_solver_; }
-
-            IndexType get_num_indices() const
-            {
-                return coarse_indices_.get_num_elems();
-            }
-
-            const IndexType* get_coarse_indices() const
-            {
-                return coarse_indices_.get_const_data();
-            }
-
-            std::shared_ptr<const LinOp> get_coarse_solver() const
-            {
-                return coarse_solver_;
-            }
-
-        private:
-            bool using_coarse_solver_;
-            std::shared_ptr<const LinOp> coarse_solver_;
-            gko::Array<IndexType> coarse_indices_;
-        };
-
-    public:
         // FIXME
         // /**
         //  * Coarse solver factory.
@@ -214,7 +187,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Schwarz>(exec), num_subdomains_{}
+        : EnableLinOp<Schwarz>(std::move(exec)), num_subdomains_{}
     {}
 
     /**
@@ -231,9 +204,10 @@ protected:
           parameters_{factory->get_parameters()},
           num_subdomains_{parameters_.subdomain_sizes.size() > 0
                               ? parameters_.subdomain_sizes.size()
-                              : parameters_.num_subdomains}
+                              : parameters_.num_subdomains},
+          system_matrix_{std::move(system_matrix)}
     {
-        this->generate(lend(system_matrix), parameters_.skip_sorting);
+        this->generate(lend(system_matrix_), parameters_.skip_sorting);
     }
 
     /**
@@ -249,11 +223,15 @@ protected:
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
+    void apply_dense_impl(const matrix::Dense<ValueType>* b,
+                          matrix::Dense<ValueType>* x) const;
+
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
 private:
     size_type num_subdomains_;
+    std::shared_ptr<const LinOp> system_matrix_{};
     std::vector<std::shared_ptr<LinOp>> subdomain_matrices_;
     std::vector<std::shared_ptr<LinOp>> subdomain_solvers_;
     std::shared_ptr<const LinOp> coarse_solver_;

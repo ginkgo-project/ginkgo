@@ -153,7 +153,8 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     // Create MultigridLevel factory
-    auto mg_level_gen = amgx_pgm::build().with_deterministic(true).on(exec);
+    auto mg_level_gen =
+        gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()
@@ -169,12 +170,16 @@ int main(int argc, char* argv[])
             .with_min_coarse_rows(10u)
             .with_pre_smoother(smoother_gen)
             .with_post_uses_pre(true)
-            .with_mg_level(gko::share(mg_level_gen))
+            .with_mg_level(mg_level_gen)
             .with_coarsest_solver(coarsest_gen)
             .with_zero_guess(true)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
+
+    auto coarse_op = gko::as<gko::multigrid::MultigridLevel>(
+        share(mg_level_gen->generate(A)));
+    // auto coarse_op = gko::share(mg_level_gen->generate(A));
 
     auto solver_gen =
         cg::build()
@@ -182,10 +187,13 @@ int main(int argc, char* argv[])
             // .with_preconditioner(bj::build().on(exec))
             // .with_preconditioner(ic::build().on(exec))
             // .with_preconditioner(multigrid_factory)
-            .with_preconditioner(schwarz::build()
-                                     .with_num_subdomains(num_subdomains)
-                                     .with_inner_solver(ic::build().on(exec))
-                                     .on(exec))
+            .with_preconditioner(
+                schwarz::build()
+                    .with_coarse_solver(schwarz::coarse_solver_type{
+                        coarse_op, ic::build().on(exec)})
+                    .with_num_subdomains(num_subdomains)
+                    .with_inner_solver(ic::build().on(exec))
+                    .on(exec))
             .on(exec);
     auto solver = solver_gen->generate(A);
 

@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
 #include "core/preconditioner/schwarz_kernels.hpp"
 
@@ -69,22 +68,56 @@ template <typename ValueType, typename IndexType>
 void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
-        [this](const auto dense_b, auto dense_x) {
-            size_type offset = 0;
-            // TODO Replace with BlockApprox
-            for (size_type i = 0; i < this->num_subdomains_; ++i) {
-                size_type l_num_rows =
-                    this->subdomain_matrices_[i]->get_size()[0];
-                auto rspan = gko::span(offset, offset + l_num_rows);
-                const auto b_view = dense_b->create_submatrix(
-                    rspan, gko::span(0, dense_b->get_size()[1]));
-                auto x_view = dense_x->create_submatrix(
-                    rspan, gko::span(0, dense_x->get_size()[1]));
-                this->subdomain_solvers_[i]->apply(b_view.get(), x_view.get());
-                offset += l_num_rows;
-            }
+        [this](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x);
         },
         b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Schwarz<ValueType, IndexType>::apply_dense_impl(
+    const matrix::Dense<ValueType>* dense_b,
+    matrix::Dense<ValueType>* dense_x) const
+{
+    using Vector = matrix::Dense<ValueType>;
+    auto exec = this->get_executor();
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    size_type offset = 0;
+
+    for (size_type i = 0; i < this->num_subdomains_; ++i) {
+        size_type l_num_rows = this->subdomain_matrices_[i]->get_size()[0];
+        auto rspan = gko::span(offset, offset + l_num_rows);
+        const auto b_view = dense_b->create_submatrix(
+            rspan, gko::span(0, dense_b->get_size()[1]));
+        auto x_view = dense_x->create_submatrix(
+            rspan, gko::span(0, dense_x->get_size()[1]));
+        this->subdomain_solvers_[i]->apply(b_view.get(), x_view.get());
+        offset += l_num_rows;
+    }
+    if (parameters_.coarse_solver.uses_coarse_solver_) {
+        auto r = Vector::create_with_config_of(dense_b);
+        r->copy_from(dense_b);
+        auto restrict_op =
+            parameters_.coarse_solver.coarse_op_->get_restrict_op();
+        auto prolong_op =
+            parameters_.coarse_solver.coarse_op_->get_prolong_op();
+
+        system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+        auto restricted_r = Vector::create(
+            exec,
+            gko::dim<2>(restrict_op->get_size()[0], dense_x->get_size()[1]));
+        restrict_op->apply(r.get(), restricted_r.get());
+        auto restricted_e = Vector::create(
+            exec,
+            gko::dim<2>(restrict_op->get_size()[0], dense_x->get_size()[1]));
+        restricted_e->fill(zero<ValueType>());
+        parameters_.coarse_solver.coarse_solver_->apply(restricted_r.get(),
+                                                        restricted_e.get());
+        prolong_op->apply(one_op.get(), restricted_e.get(), one_op.get(),
+                          dense_x);
+    }
 }
 
 
@@ -170,8 +203,8 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
-    if (parameters_.coarse_solver.uses_coarse_solver()) {
-        coarse_solver_ = parameters_.coarse_solver.get_coarse_solver();
+    if (parameters_.coarse_solver.uses_coarse_solver_) {
+        coarse_solver_ = parameters_.coarse_solver.coarse_solver_;
     }
 }
 
