@@ -74,7 +74,8 @@ class BatchCsr
       public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public BatchTransposable {
+      public BatchTransposable,
+      public EnableBatchScaledIdentityAddition<BatchCsr<ValueType, IndexType>> {
     friend class EnableCreateMethod<BatchCsr>;
     friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;
@@ -407,6 +408,9 @@ private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
+
+    void add_scaled_identity_impl(const BatchLinOp* a,
+                                  const BatchLinOp* b) override;
 };
 
 

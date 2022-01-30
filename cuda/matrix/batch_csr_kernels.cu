@@ -270,6 +270,49 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const mtx,
+    bool& has_all_diags)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto nmin = static_cast<int>(
+        std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
+    Array<bool> d_result(exec, 1);
+    check_all_diagonal_locations<<<1, default_block_size>>>(
+        nmin, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+        d_result.get_data());
+    has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const CudaExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchCsr<ValueType, IndexType>* const mtx)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const size_type nbatch = mtx->get_num_batch_entries();
+    const int nnz = static_cast<int>(mtx->get_num_stored_elements() / nbatch);
+    const int nrows = mtx->get_size().at()[0];
+    const size_type astride = a->get_stride().at();
+    const size_type bstride = b->get_stride().at();
+    add_scaled_identity<<<nbatch, default_block_size>>>(
+        nbatch, nrows, nnz, mtx->get_const_row_ptrs(),
+        mtx->get_const_col_idxs(), as_cuda_type(mtx->get_values()), astride,
+        as_cuda_type(a->get_const_values()), bstride,
+        as_cuda_type(b->get_const_values()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_csr
 }  // namespace cuda
 }  // namespace kernels
