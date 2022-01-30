@@ -214,7 +214,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     result->resize(this->get_size());
     result->fill(zero<ValueType>());
     exec->run(csr::make_fill_in_dense(
-        this, make_temporary_clone(exec, result).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 

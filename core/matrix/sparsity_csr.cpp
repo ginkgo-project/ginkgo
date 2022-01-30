@@ -127,7 +127,7 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
     Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = make_temporary_clone(exec, result);
+    auto tmp = make_temporary_output_clone(exec, result);
     tmp->resize(this->get_size());
     tmp->fill(zero<ValueType>());
     exec->run(sparsity_csr::make_fill_in_dense(this, tmp.get()));

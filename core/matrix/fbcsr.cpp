@@ -158,7 +158,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->resize(this->get_size());
     result->fill(zero<ValueType>());
     exec->run(fbcsr::make_fill_in_dense(
-        this, make_temporary_clone(exec, result).get()));
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
