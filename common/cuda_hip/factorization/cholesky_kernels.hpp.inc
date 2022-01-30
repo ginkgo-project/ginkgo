@@ -72,21 +72,24 @@ __global__ __launch_bounds__(default_block_size) void pointer_doubling_kernel(
 }
 
 
-template <typename IndexType>
+template <int subwarp_size, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void cholesky_symbolic_count_kernel(
         IndexType num_rows, const IndexType* row_ptrs,
         const IndexType* lower_ends, const IndexType* postorder_cols,
         const IndexType* postorder_parent, IndexType* row_nnz)
 {
-    const auto row = thread::get_thread_id_flat<IndexType>();
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
         return;
     }
     const auto row_begin = row_ptrs[row];
     const auto lower_end = lower_ends[row];
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto lane = subwarp.thread_rank();
     IndexType count{};
-    for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
+    for (auto nz = row_begin + lane; nz < lower_end - 1; nz += subwarp_size) {
         auto node = postorder_cols[nz];
         const auto next_node = postorder_cols[nz + 1];
         while (node < next_node) {
@@ -94,11 +97,16 @@ __global__
             node = postorder_parent[node];
         }
     }
-    row_nnz[row] = count + 1;  // lower entries plus diagonal
+    count =
+        reduce(subwarp, count, [](IndexType a, IndexType b) { return a + b; }) +
+        1;  // lower entries plus diagonal
+    if (lane == 0) {
+        row_nnz[row] = count;
+    }
 }
 
 
-template <typename IndexType>
+template <int subwarp_size, typename IndexType>
 __global__
     __launch_bounds__(default_block_size) void cholesky_symbolic_factorize_kernel(
         IndexType num_rows, const IndexType* row_ptrs,
@@ -106,22 +114,36 @@ __global__
         const IndexType* postorder, const IndexType* postorder_parent,
         const IndexType* out_row_ptrs, IndexType* out_cols)
 {
-    const auto row = thread::get_thread_id_flat<IndexType>();
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (row >= num_rows) {
         return;
     }
     const auto row_begin = row_ptrs[row];
     const auto lower_end = lower_ends[row];
-    auto out_nz = out_row_ptrs[row];
-    for (auto nz = row_begin; nz < lower_end - 1; ++nz) {
-        auto node = postorder_cols[nz];
-        const auto next_node = postorder_cols[nz + 1];
-        while (node < next_node) {
-            out_cols[out_nz] = postorder[node];
-            out_nz++;
-            node = postorder_parent[node];
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto lane = subwarp.thread_rank();
+    const auto prefix_mask = (config::lane_mask_type(1) << lane) - 1;
+    auto out_base = out_row_ptrs[row];
+    for (auto base = row_begin; base < lower_end - 1; base += subwarp_size) {
+        auto nz = base + lane;
+        auto node = nz < lower_end - 1 ? postorder_cols[nz] : -1;
+        const auto next_node = nz < lower_end - 1 ? postorder_cols[nz + 1] : -1;
+        bool pred = node < next_node;
+        auto mask = subwarp.ballot(pred);
+        while (mask) {
+            if (pred) {
+                const auto out_nz = out_base + popcnt(mask & prefix_mask);
+                out_cols[out_nz] = postorder[node];
+                node = postorder_parent[node];
+                pred = node < next_node;
+            }
+            out_base += popcnt(mask);
+            mask = subwarp.ballot(pred);
         }
     }
     // add diagonal entry
-    out_cols[out_nz] = row;
+    if (lane == 0) {
+        out_cols[out_base] = row;
+    }
 }
