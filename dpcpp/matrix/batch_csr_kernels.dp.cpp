@@ -215,6 +215,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const mtx,
+    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchCsr<ValueType, IndexType>* const mtx)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_csr
 }  // namespace dpcpp
 }  // namespace kernels
