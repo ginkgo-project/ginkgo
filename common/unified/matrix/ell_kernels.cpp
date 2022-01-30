@@ -62,8 +62,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto row_ptrs) {
             return row_ptrs[i + 1] - row_ptrs[i];
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
         row_ptrs.get_num_elems() - 1, row_ptrs);
     max_nnz = exec->copy_val_to_host(result.get_const_data());
 }
@@ -169,8 +168,7 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
             const auto ell_idx = ell_col * ell_stride + row;
             return is_nonzero(in_vals[ell_idx]) ? 1 : 0;
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, IndexType{}, result,
+        GKO_KERNEL_REDUCE_SUM(IndexType), result,
         dim<2>{source->get_num_stored_elements_per_row(),
                source->get_size()[0]},
         static_cast<int64>(source->get_stride()), source->get_const_values());

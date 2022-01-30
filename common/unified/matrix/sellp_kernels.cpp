@@ -73,8 +73,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                              stride_factor)
                        : size_type{};
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, slice_lengths, 1,
+        GKO_KERNEL_REDUCE_MAX(size_type), slice_lengths, 1,
         gko::dim<2>{num_slices, slice_size}, row_ptrs, slice_size,
         stride_factor, num_rows);
     exec->copy(num_slices, slice_lengths, slice_sets);

@@ -252,9 +252,8 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
-        x->get_size(), x, y);
+        GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
+        x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
@@ -271,9 +270,8 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, ValueType{}, result->get_values(),
-        x->get_size(), x, y);
+        GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
+        x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
@@ -301,9 +299,8 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, remove_complex<ValueType>{},
-        result->get_values(), x->get_size(), x);
+        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
+        x->get_size(), x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
@@ -318,8 +315,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
     count_nonzeros_per_row(exec, source, partial.get_data());
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto partial) { return partial[i]; },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{},
+        GKO_KERNEL_REDUCE_MAX(size_type),
         partial.get_data() + source->get_size()[0], source->get_size()[0],
         partial);
     result = exec->copy_val_to_host(partial.get_const_data() +
@@ -351,8 +347,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                                         stride_factor)
                                   : size_type{};
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, slice_lengths, 1,
+        GKO_KERNEL_REDUCE_MAX(size_type), slice_lengths, 1,
         gko::dim<2>{num_slices, slice_size}, row_nnz, slice_size, stride_factor,
         num_rows);
     exec->copy(num_slices, slice_lengths, slice_sets);
@@ -373,9 +368,7 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto mtx) {
             return is_nonzero(mtx(i, j)) ? 1 : 0;
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, IndexType{}, result, 1,
-        mtx->get_size(), mtx);
+        GKO_KERNEL_REDUCE_SUM(IndexType), result, 1, mtx->get_size(), mtx);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
