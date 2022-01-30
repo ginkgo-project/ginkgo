@@ -115,53 +115,54 @@ TYPED_TEST(FormatConversion, ConvertsEmptyPtrsToIdxs)
 
 TYPED_TEST(FormatConversion, ConvertPtrsToIdxs)
 {
-    auto ref = this->idxs;
+    auto ref_idxs = this->idxs;
     this->idxs.fill(-1);
 
     gko::kernels::EXEC_NAMESPACE::components::convert_ptrs_to_idxs(
         this->exec, this->ptrs.get_const_data(), this->size,
         this->idxs.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(this->idxs, ref);
+    GKO_ASSERT_ARRAY_EQ(this->idxs, ref_idxs);
 }
 
 
 TYPED_TEST(FormatConversion, ConvertsEmptyIdxsToPtrs)
 {
     this->ptrs.fill(0);
-    auto ref = this->ptrs;
+    auto ref_ptrs = this->ptrs;
+    this->ptrs.fill(-1);
     TypeParam* input = nullptr;
 
     gko::kernels::EXEC_NAMESPACE::components::convert_idxs_to_ptrs(
         this->exec, input, 0, this->size, this->ptrs.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(this->ptrs, ref);
+    GKO_ASSERT_ARRAY_EQ(this->ptrs, ref_ptrs);
 }
 
 
 TYPED_TEST(FormatConversion, ConvertIdxsToPtrsIsEquivalentToRef)
 {
-    auto ref = this->ptrs;
+    auto ref_ptrs = this->ptrs;
     this->ptrs.fill(-1);
 
     gko::kernels::EXEC_NAMESPACE::components::convert_idxs_to_ptrs(
         this->exec, this->idxs.get_const_data(), this->idxs.get_num_elems(),
         this->size, this->ptrs.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(this->ptrs, ref);
+    GKO_ASSERT_ARRAY_EQ(this->ptrs, ref_ptrs);
 }
 
 
 TYPED_TEST(FormatConversion, ConvertPtrsToSizesIsEquivalentToRef)
 {
-    auto ref = this->sizes;
+    auto ref_sizes = this->sizes;
     this->sizes.fill(12345);
 
     gko::kernels::EXEC_NAMESPACE::components::convert_ptrs_to_sizes(
         this->exec, this->ptrs.get_const_data(), this->size,
         this->sizes.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(this->sizes, ref);
+    GKO_ASSERT_ARRAY_EQ(this->sizes, ref_sizes);
 }
 
 
