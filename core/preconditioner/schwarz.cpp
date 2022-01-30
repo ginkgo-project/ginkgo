@@ -73,7 +73,8 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             size_type offset = 0;
             // TODO Replace with BlockApprox
             for (size_type i = 0; i < this->num_subdomains_; ++i) {
-                size_type l_num_rows = parameters_.subdomain_sizes[i];
+                size_type l_num_rows =
+                    this->subdomain_matrices_[i]->get_size()[0];
                 auto rspan = gko::span(offset, offset + l_num_rows);
                 const auto b_view = dense_b->create_submatrix(
                     rspan, gko::span(0, dense_b->get_size()[1]));
@@ -134,17 +135,24 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
                                              bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-    GKO_ASSERT(num_subdomains_ > 0);
     using csr_type = matrix::Csr<ValueType, IndexType>;
     const auto exec = this->get_executor();
     auto csr_mtx =
         convert_to_with_sorting<csr_type>(exec, system_matrix, skip_sorting);
     size_type offset = 0;
     auto mat_size = system_matrix->get_size();
+    std::vector<size_type> subd_sizes;
+    if (parameters_.subdomain_sizes.size() == 0) {
+        subd_sizes = std::vector<size_type>(num_subdomains_,
+                                            mat_size[0] / num_subdomains_);
+        subd_sizes[0] += mat_size[0] - (num_subdomains_ * subd_sizes[1]);
+    } else {
+        subd_sizes = parameters_.subdomain_sizes;
+    }
     size_type l_num_rows = 0;
     // TODO Replace with BlockApprox
     for (size_type i = 0; i < num_subdomains_; ++i) {
-        size_type l_num_rows = parameters_.subdomain_sizes[i];
+        size_type l_num_rows = subd_sizes[i];
         auto rspan = gko::span(offset, offset + l_num_rows);
         auto cspan = gko::span(offset, offset + l_num_rows);
         subdomain_matrices_.emplace_back(
@@ -161,6 +169,9 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
         }
     } else {
         GKO_NOT_IMPLEMENTED;
+    }
+    if (parameters_.coarse_solver.uses_coarse_solver()) {
+        coarse_solver_ = parameters_.coarse_solver.get_coarse_solver();
     }
 }
 

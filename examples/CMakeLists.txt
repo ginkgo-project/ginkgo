@@ -15,6 +15,7 @@ set(EXAMPLES_EXEC_LIST
     poisson-solver
     preconditioned-solver
     simple-solver
+    schwarz-preconditioned-solver
     three-pt-stencil-solver)
 
 set(EXAMPLES_LIST

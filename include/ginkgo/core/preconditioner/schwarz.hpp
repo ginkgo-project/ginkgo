@@ -103,6 +103,11 @@ public:
             subdomain_sizes, std::vector<size_type>{});
 
         /**
+         * Number of subdomains.
+         */
+        size_type GKO_FACTORY_PARAMETER_SCALAR(num_subdomains, 1);
+
+        /**
          * @brief `true` means it is known that the matrix given to this
          *        factory will be sorted first by row, then by column index,
          *        `false` means it is unknown or not sorted, so an additional
@@ -133,6 +138,71 @@ public:
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
             generated_inner_solvers,
             std::vector<std::shared_ptr<const LinOp>>{});
+
+    private:
+        struct coarse_solver_type {
+            coarse_solver_type(bool using_coarse_solver = false)
+                : using_coarse_solver_(using_coarse_solver),
+                  coarse_solver_{nullptr},
+                  coarse_indices_{}
+            {}
+
+            coarse_solver_type(
+                std::shared_ptr<const LinOp> coarse_operator,
+                std::shared_ptr<const LinOpFactory> coarse_factory,
+                const Array<IndexType>& coarse_indices)
+                : using_coarse_solver_(coarse_operator != nullptr &&
+                                       coarse_factory != nullptr),
+                  coarse_indices_{coarse_indices},
+                  coarse_solver_{coarse_factory->generate(coarse_operator)}
+            {}
+
+            coarse_solver_type(
+                std::shared_ptr<const LinOp> coarse_operator,
+                std::shared_ptr<const LinOpFactory> coarse_factory,
+                Array<IndexType>&& coarse_indices)
+                : using_coarse_solver_(coarse_operator != nullptr &&
+                                       coarse_factory != nullptr),
+                  coarse_indices_{std::move(coarse_indices)},
+                  coarse_solver_{coarse_factory->generate(coarse_operator)}
+            {}
+
+            bool uses_coarse_solver() const { return using_coarse_solver_; }
+
+            IndexType get_num_indices() const
+            {
+                return coarse_indices_.get_num_elems();
+            }
+
+            const IndexType* get_coarse_indices() const
+            {
+                return coarse_indices_.get_const_data();
+            }
+
+            std::shared_ptr<const LinOp> get_coarse_solver() const
+            {
+                return coarse_solver_;
+            }
+
+        private:
+            bool using_coarse_solver_;
+            std::shared_ptr<const LinOp> coarse_solver_;
+            gko::Array<IndexType> coarse_indices_;
+        };
+
+    public:
+        // FIXME
+        // /**
+        //  * Coarse solver factory.
+        //  */
+        // std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+        //     coarse_solver, nullptr);
+
+        /**
+         * Generated Coarse solvers.
+         */
+        coarse_solver_type GKO_FACTORY_PARAMETER_SCALAR(coarse_solver,
+                                                        coarse_solver_type{});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -159,7 +229,9 @@ protected:
         : EnableLinOp<Schwarz>(factory->get_executor(),
                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          num_subdomains_{parameters_.subdomain_sizes.size()}
+          num_subdomains_{parameters_.subdomain_sizes.size() > 0
+                              ? parameters_.subdomain_sizes.size()
+                              : parameters_.num_subdomains}
     {
         this->generate(lend(system_matrix), parameters_.skip_sorting);
     }
@@ -184,6 +256,7 @@ private:
     size_type num_subdomains_;
     std::vector<std::shared_ptr<LinOp>> subdomain_matrices_;
     std::vector<std::shared_ptr<LinOp>> subdomain_solvers_;
+    std::shared_ptr<const LinOp> coarse_solver_;
 };
 
 
