@@ -64,6 +64,9 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        batch_csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(convert_to_batch_dense,
                        batch_csr::convert_to_batch_dense);
+GKO_REGISTER_OPERATION(check_diagonal_entries_exist,
+                       batch_csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_csr::add_scaled_identity);
 
 
 }  // namespace batch_csr
@@ -223,6 +226,24 @@ void BatchCsr<ValueType, IndexType>::sort_by_column_index() GKO_NOT_IMPLEMENTED;
 template <typename ValueType, typename IndexType>
 bool BatchCsr<ValueType, IndexType>::is_sorted_by_column_index() const
     GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType, typename IndexType>
+void BatchCsr<ValueType, IndexType>::add_scaled_identity_impl(
+    const BatchLinOp* const a, const BatchLinOp* const b)
+{
+    bool has_all_diags = false;
+    this->get_executor()->run(
+        batch_csr::make_check_diagonal_entries_exist(this, has_all_diags));
+    if (!has_all_diags) {
+        // TODO: Replace this with proper exception helper after merging
+        // non-batched add_scaled_identity PR
+        throw std::runtime_error("Matrix does not have all diagonal entries!");
+    }
+    this->get_executor()->run(batch_csr::make_add_scaled_identity(
+        as<const BatchDense<ValueType>>(a), as<const BatchDense<ValueType>>(b),
+        this));
+}
 
 
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class BatchCsr<ValueType, int32>
