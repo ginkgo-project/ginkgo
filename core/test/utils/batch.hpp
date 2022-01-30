@@ -333,6 +333,32 @@ std::pair<bool, size_type> check_relative_difference(const Mtx* const a_ref,
 }
 
 
+template <typename ValueType>
+void remove_diagonal_from_row(matrix::BatchCsr<ValueType>* const mtx,
+                              const int row)
+{
+    const int nrows = mtx->get_size().at()[0];
+    const auto row_ptrs = mtx->get_row_ptrs();
+    const auto col_idxs = mtx->get_col_idxs();
+    const auto values = mtx->get_values();
+    int diag_pos = -1;
+    for (int iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+        if (col_idxs[iz] == row) {
+            diag_pos = iz;
+        }
+    }
+    if (diag_pos != -1) {
+        for (int iz = diag_pos; iz < row_ptrs[nrows] - 1; iz++) {
+            col_idxs[iz] = col_idxs[iz + 1];
+            values[iz] = values[iz + 1];
+        }
+        for (int i = row + 1; i < nrows + 1; i++) {
+            row_ptrs[i]--;
+        }
+    }
+}
+
+
 }  // namespace test
 }  // namespace gko
 
