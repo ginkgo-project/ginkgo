@@ -274,4 +274,62 @@ TEST_F(BatchCsr, ConvertToBatchDenseIsEquivalentToReference)
 }
 
 
+TEST_F(BatchCsr, DetectsMissingDiagonalEntry)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
+    gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::omp::batch_csr::check_diagonal_entries_exist(omp, omtx.get(),
+                                                               all_diags);
+
+    ASSERT_FALSE(all_diags);
+}
+
+
+TEST_F(BatchCsr, DetectsPresenceOfAllDiagonalEntries)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::omp::batch_csr::check_diagonal_entries_exist(omp, omtx.get(),
+                                                               all_diags);
+
+    ASSERT_TRUE(all_diags);
+}
+
+
+TEST_F(BatchCsr, AddScaleIdentityIsEquivalentToReference)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    set_up_apply_data();
+    auto omtx = Mtx::create(omp);
+    omtx->copy_from(mtx.get());
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+    omtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<double>::value);
+}
+
+
 }  // namespace

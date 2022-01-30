@@ -154,3 +154,42 @@ inline void convert_csr_to_dense(const int num_rows, const int num_cols,
         }
     }
 }
+
+
+inline void check_diagonal_entries_exist(const int nrows,
+                                         const int* const row_ptrs,
+                                         const int* const col_idxs,
+                                         bool& has_all_diags)
+{
+    has_all_diags = true;
+    for (int irow = 0; irow < nrows; irow++) {
+        bool has_diag = false;
+        for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
+            if (col_idxs[iz] == irow) {
+                has_diag = true;
+                break;
+            }
+        }
+        if (!has_diag) {
+            has_all_diags = false;
+            break;
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void add_scaled_identity(const int nrows, const int* const row_ptrs,
+                                const int* const col_idxs,
+                                ValueType* const values, const ValueType& alpha,
+                                const ValueType& beta)
+{
+    for (int i = 0; i < nrows; i++) {
+        for (int jz = row_ptrs[i]; jz < row_ptrs[i + 1]; jz++) {
+            values[jz] *= beta;
+            if (i == col_idxs[jz]) {
+                values[jz] += alpha;
+            }
+        }
+    }
+}
