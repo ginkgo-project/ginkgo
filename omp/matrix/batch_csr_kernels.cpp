@@ -288,6 +288,53 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const mtx,
+    bool& has_all_diags)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    check_diagonal_entries_exist(nrows, row_ptrs, col_idxs, has_all_diags);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchCsr<ValueType, IndexType>* const mtx)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto batch_size = mtx->get_num_batch_entries();
+    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const IndexType nnz = mtx->get_const_row_ptrs()[nrows];
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto a_stride = a->get_stride().at();
+    const auto b_stride = b->get_stride().at();
+#pragma omp parallel for
+    for (size_type batch = 0; batch < batch_size; batch++) {
+        const auto values = mtx->get_values() + batch * nnz;
+        const auto aptr =
+            batch::batch_entry_ptr(a->get_const_values(), a_stride, 1, batch);
+        const auto bptr =
+            batch::batch_entry_ptr(b->get_const_values(), b_stride, 1, batch);
+        add_scaled_identity(nrows, row_ptrs, col_idxs, values, aptr[0],
+                            bptr[0]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_csr
 }  // namespace omp
 }  // namespace kernels
