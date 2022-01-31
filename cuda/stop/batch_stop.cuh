@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_STOP_BATCH_STOP_CUH_
 
 
+#include <ginkgo/core/base/math.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
