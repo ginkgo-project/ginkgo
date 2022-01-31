@@ -86,7 +86,7 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
-                 const size_type* __restrict__ row_ptrs,
+                 const int64* __restrict__ row_ptrs,
                  const ValueType* __restrict__ source,
                  IndexType* __restrict__ row_idxs,
                  IndexType* __restrict__ col_idxs,
@@ -659,10 +659,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Dense<ValueType>* source,
-                       matrix::Hybrid<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+void convert_to_hybrid(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Dense<ValueType>* source, const int64* coo_row_ptrs,
+    matrix::Hybrid<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
