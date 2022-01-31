@@ -68,77 +68,6 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::fill(
-    const ValueType value)
-{
-    this->get_local()->fill(value);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
-    const
-{
-    result->set_size(this->get_size());
-    result->set_communicator(this->get_communicator());
-    result->partition_ = this->partition_;
-    this->get_const_local()->convert_to(result->get_local());
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<
-    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::absolute_type>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_absolute() const
-{
-    auto exec = this->get_executor();
-
-    auto result = absolute_type::create(exec, this->get_communicator(),
-                                        this->get_partition(), this->get_size(),
-                                        this->get_const_local()->get_size());
-
-    exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
-                                                   result->get_local()));
-
-    return result;
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType,
-            GlobalIndexType>::compute_absolute_inplace()
-{
-    this->get_local()->compute_absolute_inplace();
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-const typename Vector<ValueType, LocalIndexType,
-                      GlobalIndexType>::local_vector_type*
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
-{
-    return &local_;
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-typename Vector<ValueType, LocalIndexType, GlobalIndexType>::local_vector_type*
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_local()
-{
-    return &local_;
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition,
@@ -209,6 +138,77 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     auto global_rows = static_cast<size_type>(this->partition_->get_size());
     this->set_size({global_rows, data.size[1]});
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Vector<ValueType, LocalIndexType, GlobalIndexType>::fill(
+    const ValueType value)
+{
+    this->get_local()->fill(value);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Vector<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
+    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
+    const
+{
+    result->set_size(this->get_size());
+    result->set_communicator(this->get_communicator());
+    result->partition_ = this->partition_;
+    this->get_const_local()->convert_to(result->get_local());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Vector<ValueType, LocalIndexType, GlobalIndexType>::move_to(
+    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<
+    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::absolute_type>
+Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_absolute() const
+{
+    auto exec = this->get_executor();
+
+    auto result = absolute_type::create(exec, this->get_communicator(),
+                                        this->get_partition(), this->get_size(),
+                                        this->get_const_local()->get_size());
+
+    exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
+                                                   result->get_local()));
+
+    return result;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Vector<ValueType, LocalIndexType,
+            GlobalIndexType>::compute_absolute_inplace()
+{
+    this->get_local()->compute_absolute_inplace();
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+const typename Vector<ValueType, LocalIndexType,
+                      GlobalIndexType>::local_vector_type*
+Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
+{
+    return &local_;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+typename Vector<ValueType, LocalIndexType, GlobalIndexType>::local_vector_type*
+Vector<ValueType, LocalIndexType, GlobalIndexType>::get_local()
+{
+    return &local_;
 }
 
 
