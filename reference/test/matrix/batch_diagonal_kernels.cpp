@@ -269,8 +269,8 @@ protected:
     ComplexBatchDiagonal()
         : exec(gko::ReferenceExecutor::create()),
           mtx_1(gko::batch_diagonal_initialize(
-              {I<T>({1.0 - 1.0i, -1.0, 2.2 + 0.5i}),
-               I<T>({-2.0, 2.0 - 3.5i, -0.5 + 2.2i})},
+              {I<T>({1.0 - 1.0i, -1.0 + 0.0i, 2.2 + 0.5i}),
+               I<T>({-2.0 + 0.0i, 2.0 - 3.5i, -0.5 + 2.2i})},
               exec)),
           mtx_2(generate_batch_diag_matrix())
     {}
