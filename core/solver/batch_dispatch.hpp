@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
+
+
 #include "core/log/batch_logging.hpp"
 
 
