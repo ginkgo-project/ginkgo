@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -50,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
-#include "ginkgo/core/base/matrix_data.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -184,6 +184,7 @@ struct CsrWithAutomaticalStrategy
 
 struct Ell : SimpleMatrixTest<gko::matrix::Ell<double, int>> {};
 
+
 struct FbcsrBlocksize1 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
     static bool preserves_zeros() { return false; }
 
@@ -214,6 +215,7 @@ struct FbcsrBlocksize2 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
     }
 };
 
+
 struct SellpDefaultParameters
     : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
@@ -236,6 +238,7 @@ struct Sellp32Factor2 : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
         ASSERT_EQ(mtx->get_slice_size(), 32);
     }
 };
+
 
 struct HybridDefaultStrategy
     : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {};
@@ -399,7 +402,10 @@ protected:
     template <typename ValueType, typename IndexType>
     gko::matrix_data<ValueType, IndexType> gen_dense_data(gko::dim<2> size)
     {
-        return {size, std::normal_distribution<>(0.0, 1.0), rand_engine};
+        return {
+            size,
+            std::normal_distribution<gko::remove_complex<ValueType>>(0.0, 1.0),
+            rand_engine};
     }
 
     template <typename VecType = Vec>
@@ -420,7 +426,10 @@ protected:
         return {gko::initialize<VecType>(
                     {gko::test::detail::get_rand_value<
                         typename VecType::value_type>(
-                        std::normal_distribution<>(0.0, 1.0), rand_engine)},
+                        std::normal_distribution<
+                            gko::remove_complex<typename VecType::value_type>>(
+                            0.0, 1.0),
+                        rand_engine)},
                     ref),
                 exec};
     }
@@ -482,8 +491,8 @@ protected:
         {
             SCOPED_TRACE(
                 "Sparse Matrix with heavily imbalanced row nnz (200x100)");
-            guarded_fn(gen_mtx_data(200, 100,
-                                    std::binomial_distribution<>{100, 0.05}));
+            guarded_fn(
+                gen_mtx_data(200, 100, std::poisson_distribution<>{1.5}));
         }
         {
             SCOPED_TRACE("Dense matrix (200x100)");
@@ -553,6 +562,8 @@ protected:
                        gen_out_vec<VecType>(mtx, 1, 3));
         }
         if (!gko::is_complex<value_type>()) {
+            // check application of real matrix to complex vector
+            // viewed as interleaved real/imag vector
             using complex_vec = gko::to_complex<VecType>;
             {
                 SCOPED_TRACE("Single strided complex vector");
