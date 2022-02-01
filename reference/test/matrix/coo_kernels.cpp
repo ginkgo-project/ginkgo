@@ -42,11 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/test/utils.hpp"
 
@@ -61,6 +63,7 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Bccoo = gko::matrix::Bccoo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Mtx = gko::matrix::Coo<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
@@ -97,6 +100,48 @@ protected:
         EXPECT_EQ(v[1], value_type{3.0});
         EXPECT_EQ(v[2], value_type{2.0});
         EXPECT_EQ(v[3], value_type{5.0});
+    }
+
+    void assert_equal_to_mtx(const Bccoo* m)
+    {
+        auto chunk_data = m->get_const_chunk();
+        gko::size_type block_size = m->get_block_size();
+        index_type ind = {};
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(chunk_data[ind], 0x00);
+        ind++;
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{1.0});
+        ind += sizeof(value_type);
+
+        EXPECT_EQ(chunk_data[ind], 0x01);
+        ind++;
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{3.0});
+        ind += sizeof(value_type);
+
+        if (block_size < 3) {
+            EXPECT_EQ(chunk_data[ind], 0x02);
+        } else {
+            EXPECT_EQ(chunk_data[ind], 0x01);
+        }
+        ind++;
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{2.0});
+        ind += sizeof(value_type);
+
+        if ((block_size == 2) || (block_size >= 4)) {
+            EXPECT_EQ(chunk_data[ind], 0xFF);
+            ind++;
+        }
+
+        EXPECT_EQ(chunk_data[ind], 0x01);
+        ind++;
+        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                  value_type{5.0});
+        ind += sizeof(value_type);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -271,6 +316,28 @@ TYPED_TEST(Coo, MovesEmptyToPrecision)
 
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, ConvertsToBccoo)
+{
+    using Bccoo = typename TestFixture::Bccoo;
+    auto bccoo_mtx = Bccoo::create(this->mtx->get_executor());
+
+    this->mtx->convert_to(bccoo_mtx.get());
+
+    this->assert_equal_to_mtx(bccoo_mtx.get());
+}
+
+
+TYPED_TEST(Coo, MovesToBccoo)
+{
+    using Bccoo = typename TestFixture::Bccoo;
+    auto bccoo_mtx = Bccoo::create(this->mtx->get_executor());
+
+    this->mtx->move_to(bccoo_mtx.get());
+
+    this->assert_equal_to_mtx(bccoo_mtx.get());
 }
 
 

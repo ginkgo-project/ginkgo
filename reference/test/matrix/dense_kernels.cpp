@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -54,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/unaligned_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/test/utils.hpp"
 
@@ -777,6 +779,186 @@ TYPED_TEST(Dense, MovesToPrecision)
     tmp->move_to(res);
 
     GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Dense, ConvertsToBccoo32)
+{
+    using T = typename TestFixture::value_type;
+    using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
+    auto bccoo_mtx = Bccoo::create(this->mtx4->get_executor());
+
+    this->mtx4->convert_to(bccoo_mtx.get());
+
+    auto chunk_data = bccoo_mtx->get_const_chunk();
+    gko::size_type block_size = bccoo_mtx->get_block_size();
+    gko::int32 ind = {};
+
+    ASSERT_EQ(bccoo_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(chunk_data[ind], 0x00);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    ind += sizeof(T);
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    ind += sizeof(T);
+
+    if (block_size < 3) {
+        EXPECT_EQ(chunk_data[ind], 0x02);
+    } else {
+        EXPECT_EQ(chunk_data[ind], 0x01);
+    }
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    ind += sizeof(T);
+
+    if ((block_size == 2) || (block_size >= 4)) {
+        EXPECT_EQ(chunk_data[ind], 0xFF);
+        ind++;
+    }
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    ind += sizeof(T);
+}
+
+
+TYPED_TEST(Dense, MovesToBccoo32)
+{
+    using T = typename TestFixture::value_type;
+    using Bccoo = typename gko::matrix::Bccoo<T, gko::int32>;
+    auto bccoo_mtx = Bccoo::create(this->mtx4->get_executor());
+
+    this->mtx4->move_to(bccoo_mtx.get());
+
+    auto chunk_data = bccoo_mtx->get_const_chunk();
+    gko::size_type block_size = bccoo_mtx->get_block_size();
+    gko::int32 ind = {};
+
+    ASSERT_EQ(bccoo_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(chunk_data[ind], 0x00);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    ind += sizeof(T);
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    ind += sizeof(T);
+
+    if (block_size < 3) {
+        EXPECT_EQ(chunk_data[ind], 0x02);
+    } else {
+        EXPECT_EQ(chunk_data[ind], 0x01);
+    }
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    ind += sizeof(T);
+
+    if ((block_size == 2) || (block_size >= 4)) {
+        EXPECT_EQ(chunk_data[ind], 0xFF);
+        ind++;
+    }
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    ind += sizeof(T);
+}
+
+
+TYPED_TEST(Dense, ConvertsToBccoo64)
+{
+    using T = typename TestFixture::value_type;
+    using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
+    auto bccoo_mtx = Bccoo::create(this->mtx4->get_executor());
+
+    this->mtx4->convert_to(bccoo_mtx.get());
+
+    auto chunk_data = bccoo_mtx->get_const_chunk();
+    gko::size_type block_size = bccoo_mtx->get_block_size();
+    gko::int64 ind = {};
+
+    ASSERT_EQ(bccoo_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(chunk_data[ind], 0x00);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    ind += sizeof(T);
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    ind += sizeof(T);
+
+    if (block_size < 3) {
+        EXPECT_EQ(chunk_data[ind], 0x02);
+    } else {
+        EXPECT_EQ(chunk_data[ind], 0x01);
+    }
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    ind += sizeof(T);
+
+    if ((block_size == 2) || (block_size >= 4)) {
+        EXPECT_EQ(chunk_data[ind], 0xFF);
+        ind++;
+    }
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    ind += sizeof(T);
+}
+
+
+TYPED_TEST(Dense, MovesToBccoo64)
+{
+    using T = typename TestFixture::value_type;
+    using Bccoo = typename gko::matrix::Bccoo<T, gko::int64>;
+    auto bccoo_mtx = Bccoo::create(this->mtx4->get_executor());
+
+    this->mtx4->move_to(bccoo_mtx.get());
+
+    auto chunk_data = bccoo_mtx->get_const_chunk();
+    gko::size_type block_size = bccoo_mtx->get_block_size();
+    gko::int64 ind = {};
+
+    ASSERT_EQ(bccoo_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(bccoo_mtx->get_num_stored_elements(), 4);
+    EXPECT_EQ(chunk_data[ind], 0x00);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{1.0});
+    ind += sizeof(T);
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{3.0});
+    ind += sizeof(T);
+
+    if (block_size < 3) {
+        EXPECT_EQ(chunk_data[ind], 0x02);
+    } else {
+        EXPECT_EQ(chunk_data[ind], 0x01);
+    }
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{2.0});
+    ind += sizeof(T);
+
+    if ((block_size == 2) || (block_size >= 4)) {
+        EXPECT_EQ(chunk_data[ind], 0xFF);
+        ind++;
+    }
+
+    EXPECT_EQ(chunk_data[ind], 0x01);
+    ind++;
+    EXPECT_EQ(gko::get_value_chunk<T>(chunk_data, ind), T{5.0});
+    ind += sizeof(T);
 }
 
 
