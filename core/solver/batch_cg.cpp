@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
+#include "core/solver/batch_solver.ipp"
 
 
 namespace gko {
@@ -46,8 +47,6 @@ namespace solver {
 namespace batch_cg {
 
 
-GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
-GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(apply, batch_cg::apply);
 
 
@@ -83,84 +82,33 @@ std::unique_ptr<BatchLinOp> BatchCg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchCg<ValueType>::apply_impl(const BatchLinOp* b, BatchLinOp* x) const
+void BatchCg<ValueType>::solver_apply(const BatchLinOp* const mtx,
+                                      const BatchLinOp* const b,
+                                      BatchLinOp* const x,
+                                      BatchInfo* const info) const
 {
-    using Mtx = matrix::BatchCsr<ValueType>;
-    using Vector = matrix::BatchDense<ValueType>;
-    using real_type = remove_complex<ValueType>;
-
-    auto exec = this->get_executor();
-    auto dense_b = as<const Vector>(b);
-    auto dense_x = as<Vector>(x);
-    const auto acsr = dynamic_cast<const Mtx*>(system_matrix_.get());
-    if (!acsr) {
-        GKO_NOT_SUPPORTED(system_matrix_);
-    }
-
-    auto a_scaled_smart = Mtx::create(exec);
-    auto b_scaled_smart = Vector::create(exec);
-    const Mtx* a_scaled{};
-    const Vector* b_scaled{};
-    const bool to_scale =
-        this->get_left_scaling_vector() && this->get_right_scaling_vector();
-    if (to_scale) {
-        a_scaled_smart->copy_from(acsr);
-        b_scaled_smart->copy_from(dense_b);
-        exec->run(batch_cg::make_pre_diag_scale_system(
-            this->get_left_scaling_vector(), this->get_right_scaling_vector(),
-            a_scaled_smart.get(), b_scaled_smart.get()));
-        a_scaled = a_scaled_smart.get();
-        b_scaled = b_scaled_smart.get();
-    } else {
-        a_scaled = acsr;
-        b_scaled = dense_b;
-    }
-
+    using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_cg::BatchCgOptions<remove_complex<ValueType>> opts{
         parameters_.preconditioner, parameters_.max_iterations,
         parameters_.residual_tol, parameters_.tolerance_type};
-
-    // allocate logging arrays assuming uniform size batch
-    log::BatchLogData<ValueType> logdata;
-    // GKO_ASSERT(dense_b->stores_equal_sizes());
-
-    const size_type num_rhs = dense_b->get_size().at(0)[1];
-    const size_type num_batches = dense_b->get_num_batch_entries();
-    batch_dim<> sizes(num_batches, dim<2>{1, num_rhs});
-
-    logdata.res_norms =
-        matrix::BatchDense<real_type>::create(this->get_executor(), sizes);
-    logdata.iter_counts.set_executor(this->get_executor());
-    logdata.iter_counts.resize_and_reset(num_rhs * num_batches);
-
-    exec->run(batch_cg::make_apply(opts, a_scaled, b_scaled, dense_x, logdata));
-
-    this->template log<log::Logger::batch_solver_completed>(
-        logdata.iter_counts, logdata.res_norms.get());
-
-    if (to_scale) {
-        exec->run(batch_cg::make_vec_scale(this->get_right_scaling_vector(),
-                                           dense_x));
-    }
-}
-
-
-template <typename ValueType>
-void BatchCg<ValueType>::apply_impl(const BatchLinOp* alpha,
-                                    const BatchLinOp* b, const BatchLinOp* beta,
-                                    BatchLinOp* x) const
-{
-    auto dense_x = as<matrix::BatchDense<ValueType>>(x);
-
-    auto x_clone = dense_x->clone();
-    this->apply(b, x_clone.get());
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    auto exec = this->get_executor();
+    exec->run(batch_cg::make_apply(
+        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
 
 #define GKO_DECLARE_BATCH_CG(_type) class BatchCg<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG);
+
+
+#define GKO_DECLARE_BATCH_CG_APPLY_FUNCTION(_type)                            \
+    void EnableBatchSolver<BatchCg<_type>, BatchLinOp>::apply_impl(           \
+        const BatchLinOp* b, BatchLinOp* x) const;                            \
+    template void EnableBatchSolver<BatchCg<_type>, BatchLinOp>::apply_impl(  \
+        const BatchLinOp* alpha, const BatchLinOp* b, const BatchLinOp* beta, \
+        BatchLinOp* x) const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_FUNCTION);
 
 
 }  // namespace solver
