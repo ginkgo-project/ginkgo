@@ -754,7 +754,7 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
-    this->template forall_matrix_data_scenarios([&](auto data) {
+    this->forall_matrix_data_scenarios([&](auto data) {
         auto ref_src = Dense::create(this->ref);
         auto dev_src = Dense::create(this->exec);
         ref_src->read(data);
