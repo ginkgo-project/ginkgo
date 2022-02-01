@@ -1,9 +1,15 @@
 function(filter_generator_expressions INPUT OUTPUT)
-    string(REGEX REPLACE ".+LINK:.+:(.+)>" "\\1"
-                    TMP "${INPUT}")
-    string(REGEX REPLACE ".+\\$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>:.+>(.+)" "\\1"
-                    TMP "${TMP}")
+    # See https://gitlab.kitware.com/cmake/cmake/-/blob/v3.22.2/Modules/FindMPI.cmake#L1218
+    # and other versions of this file for what we are removing here.
+    string(REGEX REPLACE "[$<]+COMPILE.*>:.+[>]+(.+)" "\\1" TMP "${INPUT}")
+    # There can be at least two type of SHELL, one with generator $<> form, one
+    # without (v3.16.x). Sometimes, it also has extra arguments. We need to do
+    # at least a greedy regex also consuming the final `>` if present before
+    # doing a non greedy one for the leftovers.
+    string(REGEX REPLACE "[$<A-Z_:]+SHELL:(.+)[>]+" "\\1" TMP "${TMP}")
+    string(REGEX REPLACE "[$<A-Z_:]*SHELL:(.+)[>]*" "\\1" TMP "${TMP}")
     string(REGEX REPLACE ".+INTERFACE:.+>" "" TMP "${TMP}")
+    string(REGEX REPLACE "\$<COMMA>" "," TMP "${TMP}")
     set(${OUTPUT} "${TMP}" PARENT_SCOPE)
 endfunction()
 
