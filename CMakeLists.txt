@@ -333,9 +333,9 @@ if(GINKGO_BUILD_DOC)
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
-    ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
-file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc
-     INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc)
+    ${Ginkgo_BINARY_DIR}/ginkgo.pc.in @ONLY)
+file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
+     INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
 
 # WINDOWS NVCC has " inside the string, add escape character
 # to avoid config problem.
