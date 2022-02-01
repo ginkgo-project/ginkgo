@@ -155,10 +155,10 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     Dense<ValueType>* const result) const
 {
     auto exec = this->get_executor();
-    result->resize(this->get_size());
-    result->fill(zero<ValueType>());
-    exec->run(fbcsr::make_fill_in_dense(
-        this, make_temporary_output_clone(exec, result).get()));
+    auto tmp_result = make_temporary_output_clone(exec, result);
+    tmp_result->resize(this->get_size());
+    tmp_result->fill(zero<ValueType>());
+    exec->run(fbcsr::make_fill_in_dense(this, tmp_result.get()));
 }
 
 
