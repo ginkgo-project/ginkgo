@@ -48,12 +48,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 namespace gko {
@@ -76,12 +79,14 @@ GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
-GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
-GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
-                       dense::calculate_max_nnz_per_row);
-GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
-                       dense::calculate_nonzeros_per_row);
-GKO_REGISTER_OPERATION(calculate_total_cols, dense::calculate_total_cols);
+GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
+GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
+                       hybrid::compute_coo_row_ptrs);
+GKO_REGISTER_OPERATION(count_nonzeros_per_row, dense::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
+                       dense::count_nonzero_blocks_per_row);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
+GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
@@ -94,6 +99,7 @@ GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_fbcsr, dense::convert_to_fbcsr);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
 GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
@@ -107,126 +113,6 @@ GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
 
 }  // anonymous namespace
 }  // namespace dense
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Coo<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Coo<ValueType, IndexType>::create(exec, source->get_size(),
-                                                 num_stored_nonzeros);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Csr<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Ell<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-    size_type num_stored_elements_per_row = 0;
-    exec->run(dense::make_calculate_max_nnz_per_row(
-        source, &num_stored_elements_per_row));
-    const auto max_nnz_per_row = std::max(
-        result->get_num_stored_elements_per_row(), num_stored_elements_per_row);
-    const auto stride = std::max(result->get_stride(), source->get_size()[0]);
-    auto tmp = Ell<ValueType, IndexType>::create(exec, source->get_size(),
-                                                 max_nnz_per_row, stride);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Hybrid<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-    Array<size_type> row_nnz(exec, source->get_size()[0]);
-    exec->run(dense::make_calculate_nonzeros_per_row(source, &row_nnz));
-    size_type ell_lim = zero<size_type>();
-    size_type coo_lim = zero<size_type>();
-    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
-    const auto max_nnz_per_row =
-        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
-    const auto stride =
-        std::max(result->get_ell_stride(), source->get_size()[0]);
-    const auto coo_nnz =
-        std::max(result->get_coo_num_stored_elements(), coo_lim);
-    auto tmp = Hybrid<ValueType, IndexType>::create(
-        exec, source->get_size(), max_nnz_per_row, stride, coo_nnz,
-        result->get_strategy());
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(Sellp<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? default_stride_factor
-                                   : result->get_stride_factor();
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? default_slice_size
-                                : result->get_slice_size();
-    size_type total_cols = 0;
-    exec->run(dense::make_calculate_total_cols(source, &total_cols,
-                                               stride_factor, slice_size));
-    auto tmp = Sellp<ValueType, IndexType>::create(
-        exec, source->get_size(), slice_size, stride_factor, total_cols);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-template <typename ValueType, typename IndexType, typename MatrixType,
-          typename OperationType>
-inline void conversion_helper(SparsityCsr<ValueType, IndexType>* result,
-                              MatrixType* source, const OperationType& op)
-{
-    auto exec = source->get_executor();
-
-    size_type num_stored_nonzeros = 0;
-    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = SparsityCsr<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
-}
-
-
-}  // namespace
 
 
 template <typename ValueType>
@@ -477,12 +363,28 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto num_rows = this->get_size()[0];
+
+    Array<int64> row_ptrs{exec, num_rows + 1};
+    exec->run(dense::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
+    exec->run(dense::make_prefix_sum(row_ptrs.get_data(), num_rows + 1));
+    const auto nnz =
+        exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
+    result->resize(this->get_size(), nnz);
+    exec->run(
+        dense::make_convert_to_coo(this, row_ptrs.get_const_data(),
+                                   make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32>* result) const
 {
-    // const ref parameters, as make_* functions take parameters by ref
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_coo(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -496,9 +398,7 @@ void Dense<ValueType>::move_to(Coo<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_coo(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -510,12 +410,32 @@ void Dense<ValueType>::move_to(Coo<ValueType, int64>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Csr<ValueType, IndexType>* result) const
+{
+    {
+        auto exec = this->get_executor();
+        const auto num_rows = this->get_size()[0];
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+        exec->run(
+            dense::make_count_nonzeros_per_row(this, tmp->get_row_ptrs()));
+        exec->run(dense::make_prefix_sum(tmp->get_row_ptrs(), num_rows + 1));
+        const auto nnz =
+            exec->copy_val_to_host(tmp->get_const_row_ptrs() + num_rows);
+        tmp->col_idxs_.resize_and_reset(nnz);
+        tmp->values_.resize_and_reset(nnz);
+        tmp->set_size(this->get_size());
+        exec->run(dense::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_csr(in, out);
-    });
-    result->make_srow();
+    this->convert_impl(result);
 }
 
 
@@ -529,10 +449,7 @@ void Dense<ValueType>::move_to(Csr<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_csr(in, out);
-    });
-    result->make_srow();
+    this->convert_impl(result);
 }
 
 
@@ -544,11 +461,73 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto bs = result->get_block_size();
+    const auto row_blocks = detail::get_num_blocks(bs, this->get_size()[0]);
+    const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
+    exec->run(dense::make_count_nonzero_blocks_per_row(this, bs,
+                                                       tmp->get_row_ptrs()));
+    exec->run(dense::make_prefix_sum(tmp->get_row_ptrs(), row_blocks + 1));
+    const auto nnz_blocks =
+        exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
+    tmp->col_idxs_.resize_and_reset(nnz_blocks);
+    tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
+    tmp->set_size(this->get_size());
+    exec->run(dense::make_convert_to_fbcsr(this, tmp.get()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Fbcsr<ValueType, int32>* result) const
+{
+    this->convert_impl(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Fbcsr<ValueType, int32>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Fbcsr<ValueType, int64>* result) const
+{
+    this->convert_impl(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Ell<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    size_type num_stored_elements_per_row{};
+    exec->run(
+        dense::make_compute_max_nnz_per_row(this, num_stored_elements_per_row));
+    result->resize(this->get_size(), num_stored_elements_per_row);
+    exec->run(dense::make_convert_to_ell(
+        this, make_temporary_clone(exec, result).get()));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Ell<ValueType, int32>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_ell(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -562,9 +541,7 @@ void Dense<ValueType>::move_to(Ell<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Ell<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_ell(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -576,11 +553,31 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    Array<size_type> row_nnz{exec, this->get_size()[0]};
+    Array<int64> coo_row_ptrs{exec, this->get_size()[0] + 1};
+    exec->run(dense::make_count_nonzeros_per_row(this, row_nnz.get_data()));
+    size_type ell_lim{};
+    size_type coo_nnz{};
+    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
+    exec->run(dense::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
+                                                      coo_row_ptrs.get_data()));
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->ell_->resize(this->get_size(), ell_lim);
+    tmp->coo_->resize(this->get_size(), coo_nnz);
+    tmp->set_size(this->get_size());
+    exec->run(dense::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
+                                            tmp.get()));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Hybrid<ValueType, int32>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_hybrid(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -594,9 +591,7 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Hybrid<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_hybrid(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -608,11 +603,35 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int64>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto num_rows = this->get_size()[0];
+    const auto stride_factor = result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
+    const auto num_slices = ceildiv(num_rows, slice_size);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->stride_factor_ = stride_factor;
+    tmp->slice_size_ = slice_size;
+    tmp->slice_sets_.resize_and_reset(num_slices + 1);
+    tmp->slice_lengths_.resize_and_reset(num_slices);
+    exec->run(dense::make_compute_slice_sets(this, slice_size, stride_factor,
+                                             tmp->get_slice_sets(),
+                                             tmp->get_slice_lengths()));
+    auto total_cols =
+        exec->copy_val_to_host(tmp->get_slice_sets() + num_slices);
+    tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
+    tmp->values_.resize_and_reset(total_cols * slice_size);
+    tmp->set_size(this->get_size());
+    exec->run(dense::make_convert_to_sellp(this, tmp.get()));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int32>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_sellp(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -626,9 +645,7 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Sellp<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_sellp(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -640,11 +657,30 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64>* result)
 
 
 template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::convert_impl(
+    SparsityCsr<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto num_rows = this->get_size()[0];
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+    exec->run(
+        dense::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
+    exec->run(dense::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+    const auto nnz =
+        exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows);
+    tmp->col_idxs_.resize_and_reset(nnz);
+    tmp->value_.fill(one<ValueType>());
+    tmp->set_size(this->get_size());
+    exec->run(dense::make_convert_to_sparsity_csr(this, tmp.get()));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_sparsity_csr(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -658,9 +694,7 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32>* result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64>* result) const
 {
-    conversion_helper(result, this, [](const auto& in, const auto& out) {
-        return dense::make_convert_to_sparsity_csr(in, out);
-    });
+    this->convert_impl(result);
 }
 
 
@@ -672,14 +706,21 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
 
 
 template <typename ValueType>
+void Dense<ValueType>::resize(gko::dim<2> new_size)
+{
+    if (this->get_size() != new_size) {
+        this->set_size(new_size);
+        this->stride_ = new_size[1];
+        this->values_.resize_and_reset(new_size[0] * this->get_stride());
+    }
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data& data)
 {
-    if (this->get_size() != data.size) {
-        this->set_size(data.size);
-        this->stride_ = data.size[1];
-        this->values_.resize_and_reset(data.size[0] * this->get_stride());
-    }
     auto exec = this->get_executor();
+    this->resize(data.size);
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data.nonzeros), this));
@@ -689,12 +730,8 @@ void Dense<ValueType>::read(const device_mat_data& data)
 template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data32& data)
 {
-    if (this->get_size() != data.size) {
-        this->set_size(data.size);
-        this->stride_ = data.size[1];
-        this->values_.resize_and_reset(data.size[0] * this->get_stride());
-    }
     auto exec = this->get_executor();
+    this->resize(data.size);
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data.nonzeros), this));
@@ -723,14 +760,13 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
-    std::unique_ptr<const LinOp> op{};
     auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {mtx->get_size(), {}};
 
     for (size_type row = 0; row < data.size[0]; ++row) {
         for (size_type col = 0; col < data.size[1]; ++col) {
-            if (tmp->at(row, col) != zero<typename MatrixType::value_type>()) {
+            if (is_nonzero(tmp->at(row, col))) {
                 data.nonzeros.emplace_back(row, col, tmp->at(row, col));
             }
         }

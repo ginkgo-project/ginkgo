@@ -64,6 +64,9 @@ template <typename ValueType, typename IndexType>
 class Ell;
 
 template <typename ValueType, typename IndexType>
+class Fbcsr;
+
+template <typename ValueType, typename IndexType>
 class Hybrid;
 
 template <typename ValueType, typename IndexType>
@@ -99,6 +102,8 @@ class Dense
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Ell<ValueType, int32>>,
       public ConvertibleTo<Ell<ValueType, int64>>,
+      public ConvertibleTo<Fbcsr<ValueType, int32>>,
+      public ConvertibleTo<Fbcsr<ValueType, int64>>,
       public ConvertibleTo<Hybrid<ValueType, int32>>,
       public ConvertibleTo<Hybrid<ValueType, int64>>,
       public ConvertibleTo<Sellp<ValueType, int32>>,
@@ -123,6 +128,8 @@ class Dense
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
+    friend class Fbcsr<ValueType, int32>;
+    friend class Fbcsr<ValueType, int64>;
     friend class Hybrid<ValueType, int32>;
     friend class Hybrid<ValueType, int64>;
     friend class Sellp<ValueType, int32>;
@@ -231,6 +238,14 @@ public:
     void convert_to(Ell<ValueType, int64>* result) const override;
 
     void move_to(Ell<ValueType, int64>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int32>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int32>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int64>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int64>* result) override;
 
     void convert_to(Hybrid<ValueType, int32>* result) const override;
 
@@ -925,6 +940,27 @@ protected:
         return Dense::create(exec, size, stride);
     }
 
+    template <typename IndexType>
+    void convert_impl(Coo<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Csr<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Ell<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Fbcsr<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Hybrid<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Sellp<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
+
     /**
      * @copydoc scale(const LinOp *)
      *
@@ -988,6 +1024,16 @@ protected:
      *        instead of compute_norm1(LinOp *result).
      */
     virtual void compute_norm1_impl(LinOp* result) const;
+
+    /**
+     * Resizes the matrix to the given size.
+     *
+     * If the new size matches the current size, the stride will be left
+     * unchanged, otherwise it will be set to the number of columns.
+     *
+     * @param new_size  the new matrix dimensions
+     */
+    void resize(gko::dim<2> new_size);
 
     /**
      * @copydoc create_submatrix(const span, const span, const size_type)

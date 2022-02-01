@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
@@ -74,7 +75,7 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
 GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
@@ -84,7 +85,7 @@ GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 using par_ilut_factorization::make_add_candidates;
 using par_ilut_factorization::make_compute_l_u_factors;
-using par_ilut_factorization::make_convert_to_coo;
+using par_ilut_factorization::make_convert_ptrs_to_idxs;
 using par_ilut_factorization::make_csr_transpose;
 using par_ilut_factorization::make_initialize_l_u;
 using par_ilut_factorization::make_initialize_row_ptrs_l_u;
@@ -283,8 +284,12 @@ void ParIlutState<ValueType, IndexType>::iterate()
     exec->run(make_csr_transpose(u_new.get(), u_new_csc.get()));
 
     // convert L' and U' into COO format
-    exec->run(make_convert_to_coo(l_new.get(), l_coo.get()));
-    exec->run(make_convert_to_coo(u_new.get(), u_coo.get()));
+    exec->run(make_convert_ptrs_to_idxs(l_new->get_const_row_ptrs(),
+                                        l_new->get_size()[0],
+                                        l_coo->get_row_idxs()));
+    exec->run(make_convert_ptrs_to_idxs(u_new->get_const_row_ptrs(),
+                                        u_new->get_size()[0],
+                                        u_coo->get_row_idxs()));
 
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(system_matrix, l_new.get(), l_coo.get(),

@@ -58,7 +58,7 @@ void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
             exec,
             [] GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows,
                           auto nonzeros, auto row_ptrs) {
-                auto begin_row = i == 0 ? size_type{} : nonzeros[i - 1].row;
+                auto begin_row = i == 0 ? IndexType{} : nonzeros[i - 1].row;
                 auto end_row = i == num_nonzeros ? num_rows : nonzeros[i].row;
                 for (auto row = begin_row; row < end_row; row++) {
                     row_ptrs[row + 1] = i;
@@ -76,38 +76,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
-
-
-template <typename IndexType, typename RowPtrType>
-void build_row_ptrs_from_idxs(std::shared_ptr<const DefaultExecutor> exec,
-                              const Array<IndexType>& row_idxs,
-                              size_type num_rows, RowPtrType* row_ptrs)
-{
-    if (row_idxs.get_num_elems() == 0) {
-        fill_array(exec, row_ptrs, num_rows + 1, RowPtrType{});
-    } else {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto i, auto num_idxs, auto num_rows, auto row_idxs,
-                          auto row_ptrs) {
-                auto begin_row = i == 0 ? size_type{} : row_idxs[i - 1];
-                auto end_row = i == num_idxs ? num_rows : row_idxs[i];
-                for (auto row = begin_row; row < end_row; row++) {
-                    row_ptrs[row + 1] = i;
-                }
-                if (i == 0) {
-                    row_ptrs[0] = 0;
-                }
-            },
-            row_idxs.get_num_elems() + 1, row_idxs.get_num_elems(), num_rows,
-            row_idxs, row_ptrs);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL32);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_FROM_IDXS_KERNEL64);
 
 
 }  // namespace components

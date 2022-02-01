@@ -53,10 +53,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
+#include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/components/csr_spgeam.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -553,36 +553,10 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs)
-{
-    convert_ptrs_to_idxs(ptrs, num_rows, idxs);
-}
-
-
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Coo<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_idxs = result->get_row_idxs();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-
-    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
+                   const matrix::Csr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -592,9 +566,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
-        for (size_type col = 0; col < num_cols; ++col) {
-            result->at(row, col) = zero<ValueType>();
-        }
         for (size_type i = row_ptrs[row];
              i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
             result->at(row, col_idxs[i]) = vals[i];
@@ -603,27 +574,77 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source,
-                      matrix::Sellp<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source, int bs,
+                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+                      Array<ValueType>& values)
+{
+    using entry = matrix_data_entry<ValueType, IndexType>;
+    const auto num_rows = source->get_size()[0];
+    const auto num_cols = source->get_size()[1];
+    const auto num_block_rows = num_rows / bs;
+    const auto num_block_cols = num_cols / bs;
+    const auto in_row_ptrs = source->get_const_row_ptrs();
+    const auto in_cols = source->get_const_col_idxs();
+    const auto in_vals = source->get_const_values();
+    const auto nnz = source->get_num_stored_elements();
+    auto out_row_ptrs = row_ptrs.get_data();
+    Array<entry> entry_array{exec, nnz};
+    auto entries = entry_array.get_data();
+    for (IndexType row = 0; row < num_rows; row++) {
+        for (auto nz = in_row_ptrs[row]; nz < in_row_ptrs[row + 1]; nz++) {
+            entries[nz] = {row, in_cols[nz], in_vals[nz]};
+        }
+    }
+    auto to_block = [bs](entry a) {
+        return std::make_pair(a.row / bs, a.column / bs);
+    };
+    // sort by block in row-major order
+    std::sort(entries, entries + nnz,
+              [&](entry a, entry b) { return to_block(a) < to_block(b); });
+    // set row pointers by jumps in block row index
+    gko::vector<IndexType> col_idx_vec{{exec}};
+    gko::vector<ValueType> value_vec{{exec}};
+    int64 block_row = -1;
+    int64 block_col = -1;
+    for (size_type i = 0; i < nnz; i++) {
+        const auto entry = entries[i];
+        const auto new_block_row = entry.row / bs;
+        const auto new_block_col = entry.column / bs;
+        while (new_block_row > block_row) {
+            // we finished row block_row, so store its end pointer
+            out_row_ptrs[block_row + 1] = col_idx_vec.size();
+            block_col = -1;
+            ++block_row;
+        }
+        if (new_block_col != block_col) {
+            // we encountered a new column, so insert it with block storage
+            col_idx_vec.emplace_back(new_block_col);
+            value_vec.resize(value_vec.size() + bs * bs);
+            block_col = new_block_col;
+        }
+        const auto local_row = entry.row % bs;
+        const auto local_col = entry.column % bs;
+        value_vec[value_vec.size() - bs * bs + local_row + local_col * bs] =
+            entry.value;
+    }
+    while (block_row < static_cast<int64>(row_ptrs.get_num_elems() - 1)) {
+        // we finished row block_row, so store its end pointer
+        out_row_ptrs[block_row + 1] = col_idx_vec.size();
+        ++block_row;
+    }
+    values.resize_and_reset(value_vec.size());
+    col_idxs.resize_and_reset(col_idx_vec.size());
+    std::copy(value_vec.begin(), value_vec.end(), values.get_data());
+    std::copy(col_idx_vec.begin(), col_idx_vec.end(), col_idxs.get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Ell<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
@@ -660,9 +681,12 @@ void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
     auto orig_num_rows = orig->get_size()[0];
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    trans_row_ptrs[0] = 0;
-    convert_unsorted_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                                  orig_num_cols);
+    components::fill_array(exec, trans_row_ptrs, orig_num_cols + 1,
+                           IndexType{});
+    for (size_type i = 0; i < orig_nnz; i++) {
+        trans_row_ptrs[orig_col_idxs[i] + 1]++;
+    }
+    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_csr_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs, orig_vals,
                        trans_col_idxs, trans_row_ptrs + 1, trans_vals, op);
@@ -692,25 +716,6 @@ void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType>* source,
-                               size_type* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -768,82 +773,6 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       matrix::Hybrid<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto strategy = result->get_strategy();
-    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
-    auto coo_lim = strategy->get_coo_nnz();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
-    const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
-
-// Initial Hybrid Matrix
-#pragma omp parallel for
-    for (size_type i = 0; i < max_nnz_per_row; i++) {
-        for (size_type j = 0; j < result->get_ell_stride(); j++) {
-            result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = 0;
-        }
-    }
-
-    const auto csr_row_ptrs = source->get_const_row_ptrs();
-    const auto csr_vals = source->get_const_values();
-    auto coo_offset = Array<IndexType>(exec, num_rows);
-    auto coo_offset_val = coo_offset.get_data();
-
-    coo_offset_val[0] = 0;
-#pragma omp parallel for
-    for (size_type i = 1; i < num_rows; i++) {
-        auto temp = csr_row_ptrs[i] - csr_row_ptrs[i - 1];
-        coo_offset_val[i] = (temp > max_nnz_per_row) * (temp - max_nnz_per_row);
-    }
-
-    auto workspace = Array<IndexType>(exec, num_rows);
-    auto workspace_val = workspace.get_data();
-    for (size_type i = 1; i < num_rows; i <<= 1) {
-#pragma omp parallel for
-        for (size_type j = i; j < num_rows; j++) {
-            workspace_val[j] = coo_offset_val[j] + coo_offset_val[j - i];
-        }
-#pragma omp parallel for
-        for (size_type j = i; j < num_rows; j++) {
-            coo_offset_val[j] = workspace_val[j];
-        }
-    }
-
-#pragma omp parallel for
-    for (IndexType row = 0; row < num_rows; row++) {
-        size_type ell_idx = 0;
-        size_type csr_idx = csr_row_ptrs[row];
-        size_type coo_idx = coo_offset_val[row];
-        while (csr_idx < csr_row_ptrs[row + 1]) {
-            const auto val = csr_vals[csr_idx];
-            if (ell_idx < ell_lim) {
-                result->ell_val_at(row, ell_idx) = val;
-                result->ell_col_at(row, ell_idx) =
-                    source->get_const_col_idxs()[csr_idx];
-                ell_idx++;
-            } else {
-                coo_val[coo_idx] = val;
-                coo_col[coo_idx] = source->get_const_col_idxs()[csr_idx];
-                coo_row[coo_idx] = row;
-                coo_idx++;
-            }
-            csr_idx++;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -960,24 +889,6 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType>* source,
-                                Array<size_type>* result)
-{
-    const auto row_ptrs = source->get_const_row_ptrs();
-    auto row_nnz_val = result->get_data();
-
-#pragma omp parallel for
-    for (size_type i = 0; i < result->get_num_elems(); i++) {
-        row_nnz_val[i] = row_ptrs[i + 1] - row_ptrs[i];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

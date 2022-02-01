@@ -85,23 +85,26 @@ void advanced_apply(
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
-                                        warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_precisions,
-                block_pointers, num_blocks, as_cuda_type(alpha),
-                as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
-    } else {
-        kernel::advanced_apply<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_pointers,
-                num_blocks, as_cuda_type(alpha), as_cuda_type(b), b_stride,
-                as_cuda_type(x), x_stride);
+    if (grid_size > 0) {
+        if (block_precisions) {
+            kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
+                                            warps_per_block>
+                <<<grid_size, block_size, 0, 0>>>(
+                    as_cuda_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_cuda_type(alpha),
+                    as_cuda_type(b), b_stride, as_cuda_type(x), x_stride);
+        } else {
+            kernel::advanced_apply<max_block_size, subwarp_size,
+                                   warps_per_block>
+                <<<grid_size, block_size, 0, 0>>>(
+                    as_cuda_type(blocks), storage_scheme, block_pointers,
+                    num_blocks, as_cuda_type(alpha), as_cuda_type(b), b_stride,
+                    as_cuda_type(x), x_stride);
+        }
     }
 }
 

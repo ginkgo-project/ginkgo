@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -49,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 
 
@@ -63,13 +65,12 @@ GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_dense, ell::convert_to_dense);
+GKO_REGISTER_OPERATION(fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
-GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
-GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
-                       ell::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(count_nonzeros_per_row, ell::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
@@ -78,32 +79,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace ell
-
-
-namespace {
-
-
-template <typename ValueType, typename IndexType>
-size_type calculate_max_nnz_per_row(
-    const matrix_data<ValueType, IndexType>& data)
-{
-    size_type nnz = 0;
-    IndexType current_row = 0;
-    size_type num_stored_elements_per_row = 0;
-    for (const auto& elem : data.nonzeros) {
-        if (elem.row != current_row) {
-            current_row = elem.row;
-            num_stored_elements_per_row =
-                std::max(num_stored_elements_per_row, nnz);
-            nnz = 0;
-        }
-        nnz += (elem.value != zero<ValueType>());
-    }
-    return std::max(num_stored_elements_per_row, nnz);
-}
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -157,9 +132,10 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(ell::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(ell::make_fill_in_dense(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -175,16 +151,22 @@ void Ell<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-
-    size_type num_stored_elements = 0;
-    exec->run(ell::make_count_nonzeros(this, &num_stored_elements));
-
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(ell::make_convert_to_csr(this, tmp.get()));
-
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto num_rows = this->get_size()[0];
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
+        exec->run(
+            ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
+        exec->run(
+            ell::make_prefix_sum(tmp->row_ptrs_.get_data(), num_rows + 1));
+        const auto nnz = static_cast<size_type>(
+            exec->copy_val_to_host(tmp->row_ptrs_.get_const_data() + num_rows));
+        tmp->col_idxs_.resize_and_reset(nnz);
+        tmp->values_.resize_and_reset(nnz);
+        tmp->set_size(this->get_size());
+        exec->run(ell::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
@@ -192,6 +174,20 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::resize(dim<2> new_size, size_type max_row_nnz)
+{
+    if (this->get_size() != new_size ||
+        this->get_num_stored_elements_per_row() != max_row_nnz) {
+        this->stride_ = new_size[0];
+        values_.resize_and_reset(this->stride_ * max_row_nnz);
+        col_idxs_.resize_and_reset(this->stride_ * max_row_nnz);
+        this->num_stored_elements_per_row_ = max_row_nnz;
+        this->set_size(new_size);
+    }
 }
 
 
@@ -205,14 +201,7 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
                                        row_ptrs.get_data()));
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));
-    if (this->get_size() != data.size ||
-        this->get_num_stored_elements_per_row() != max_nnz) {
-        stride_ = data.size[0];
-        values_.resize_and_reset(stride_ * max_nnz);
-        col_idxs_.resize_and_reset(stride_ * max_nnz);
-        num_stored_elements_per_row_ = max_nnz;
-        this->set_size(data.size);
-    }
+    this->resize(data.size, max_nnz);
     exec->run(ell::make_fill_in_matrix_data(*local_data,
                                             row_ptrs.get_const_data(), this));
 }
@@ -229,21 +218,14 @@ void Ell<ValueType, IndexType>::read(const mat_data& data)
 template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::write(mat_data& data) const
 {
-    std::unique_ptr<const LinOp> op{};
-    const Ell* tmp{};
-    if (this->get_executor()->get_master() != this->get_executor()) {
-        op = this->clone(this->get_executor()->get_master());
-        tmp = static_cast<const Ell*>(op.get());
-    } else {
-        tmp = this;
-    }
+    auto tmp = make_temporary_clone(this->get_executor()->get_master(), this);
 
     data = {tmp->get_size(), {}};
 
     for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
         for (size_type i = 0; i < tmp->num_stored_elements_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 const auto col = tmp->col_at(row, i);
                 data.nonzeros.emplace_back(row, col, val);
             }

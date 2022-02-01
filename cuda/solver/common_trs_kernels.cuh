@@ -113,10 +113,10 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // workaround suggested by NVIDIA engineers: for some reason
         // cusparse needs non-nullptr input vectors even for analysis
         auto descr_b = cusparse::create_dnmat(
-            matrix->get_size()[0], num_rhs, matrix->get_size()[1],
+            dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
             reinterpret_cast<ValueType*>(0xDEAD));
         auto descr_c = cusparse::create_dnmat(
-            matrix->get_size()[0], num_rhs, matrix->get_size()[1],
+            dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
             reinterpret_cast<ValueType*>(0xDEAF));
 
         auto work_size = cusparse::spsm_buffer_size(
@@ -143,11 +143,10 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     {
         cusparse::pointer_mode_guard pm_guard(handle);
         auto descr_b = cusparse::create_dnmat(
-            input->get_size()[0], input->get_size()[1], input->get_stride(),
+            input->get_size(), input->get_stride(),
             const_cast<ValueType*>(input->get_const_values()));
-        auto descr_c =
-            cusparse::create_dnmat(output->get_size()[0], output->get_size()[1],
-                                   output->get_stride(), output->get_values());
+        auto descr_c = cusparse::create_dnmat(
+            output->get_size(), output->get_stride(), output->get_values());
 
         cusparse::spsm_solve(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                              CUSPARSE_OPERATION_NON_TRANSPOSE, one<ValueType>(),

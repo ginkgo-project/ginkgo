@@ -343,7 +343,7 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
 }
 
 
@@ -358,7 +358,7 @@ TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
     dense_mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 

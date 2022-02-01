@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -47,6 +48,21 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace hybrid {
 
 
+void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+                          const Array<size_type>& row_nnz, size_type ell_lim,
+                          int64* coo_row_ptrs)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto row_nnz, auto ell_lim, auto coo_row_ptrs) {
+            coo_row_ptrs[i] = max(int64{}, static_cast<int64>(row_nnz[i]) -
+                                               static_cast<int64>(ell_lim));
+        },
+        row_nnz.get_num_elems(), row_nnz, ell_lim, coo_row_ptrs);
+    components::prefix_sum(exec, coo_row_ptrs, row_nnz.get_num_elems() + 1);
+}
+
+
 void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
                      const Array<int64>& row_ptrs, size_type* row_nnzs)
 {
@@ -57,6 +73,67 @@ void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         },
         row_ptrs.get_num_elems() - 1, row_ptrs, row_nnzs);
 }
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Hybrid<ValueType, IndexType>* source,
+                    const IndexType* ell_row_ptrs,
+                    const IndexType* coo_row_ptrs,
+                    matrix::Csr<ValueType, IndexType>* result)
+{
+    const auto ell = source->get_ell();
+    const auto coo = source->get_coo();
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_cols,
+                      auto in_vals, auto ell_row_ptrs, auto coo_row_ptrs,
+                      auto out_cols, auto out_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            const auto out_row_begin = ell_row_ptrs[row] + coo_row_ptrs[row];
+            const auto ell_row_size = ell_row_ptrs[row + 1] - ell_row_ptrs[row];
+            if (ell_col < ell_row_size) {
+                const auto out_idx = out_row_begin + ell_col;
+                out_cols[out_idx] = in_cols[ell_idx];
+                out_vals[out_idx] = in_vals[ell_idx];
+            }
+        },
+        dim<2>{ell->get_num_stored_elements_per_row(), ell->get_size()[0]},
+        static_cast<int64>(ell->get_stride()), ell->get_const_col_idxs(),
+        ell->get_const_values(), ell_row_ptrs, coo_row_ptrs,
+        result->get_col_idxs(), result->get_values());
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto idx, auto ell_row_ptrs, auto coo_row_ptrs,
+                      auto out_row_ptrs) {
+            out_row_ptrs[idx] = ell_row_ptrs[idx] + coo_row_ptrs[idx];
+        },
+        source->get_size()[0] + 1, ell_row_ptrs, coo_row_ptrs,
+        result->get_row_ptrs());
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto idx, auto in_rows, auto in_cols, auto in_vals,
+                      auto ell_row_ptrs, auto coo_row_ptrs, auto out_cols,
+                      auto out_vals) {
+            const auto row = in_rows[idx];
+            const auto col = in_cols[idx];
+            const auto val = in_vals[idx];
+            const auto coo_row_begin = coo_row_ptrs[row];
+            const auto coo_local_pos = idx - coo_row_begin;
+            // compute row_ptrs[row] + ell_row_size[row]
+            const auto out_row_begin = ell_row_ptrs[row + 1] + coo_row_begin;
+            const auto out_idx = out_row_begin + coo_local_pos;
+            out_cols[out_idx] = col;
+            out_vals[out_idx] = val;
+        },
+        coo->get_num_stored_elements(), coo->get_const_row_idxs(),
+        coo->get_const_col_idxs(), coo->get_const_values(), ell_row_ptrs,
+        coo_row_ptrs, result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL);
 
 
 }  // namespace hybrid

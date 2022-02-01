@@ -138,6 +138,7 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
                   remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Fbcsr>;
     friend class EnablePolymorphicObject<Fbcsr, LinOp>;
+    friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class FbcsrBuilder<ValueType, IndexType>;
@@ -378,6 +379,7 @@ protected:
           row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
     {
         GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
+        row_ptrs_.fill(0);
     }
 
     /**

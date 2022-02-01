@@ -105,7 +105,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (prev_rho->at(j) * omega->at(j) != zero<ValueType>()) {
+            if (is_nonzero(prev_rho->at(j) * omega->at(j))) {
                 const auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
                 p->at(i, j) = r->at(i, j) +
@@ -134,7 +134,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (beta->at(j) != zero<ValueType>()) {
+            if (is_nonzero(beta->at(j))) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             } else {
@@ -161,7 +161,7 @@ void step_3(
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (beta->at(j) != zero<ValueType>()) {
+        if (is_nonzero(beta->at(j))) {
             omega->at(j) = gamma->at(j) / beta->at(j);
         } else {
             omega->at(j) = zero<ValueType>();

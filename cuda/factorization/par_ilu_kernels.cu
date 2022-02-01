@@ -67,20 +67,20 @@ void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
 {
     iterations = (iterations == 0) ? 10 : iterations;
     const auto num_elements = system_matrix->get_num_stored_elements();
-    const dim3 block_size{default_block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<uint32>(
-            ceildiv(num_elements, static_cast<size_type>(block_size.x))),
-        1, 1};
+    const auto block_size = default_block_size;
+    const auto grid_dim = static_cast<uint32>(
+        ceildiv(num_elements, static_cast<size_type>(block_size)));
     for (size_type i = 0; i < iterations; ++i) {
-        kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
-            num_elements, system_matrix->get_const_row_idxs(),
-            system_matrix->get_const_col_idxs(),
-            as_cuda_type(system_matrix->get_const_values()),
-            l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
-            as_cuda_type(l_factor->get_values()),
-            u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
-            as_cuda_type(u_factor->get_values()));
+        if (grid_dim > 0) {
+            kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
+                num_elements, system_matrix->get_const_row_idxs(),
+                system_matrix->get_const_col_idxs(),
+                as_cuda_type(system_matrix->get_const_values()),
+                l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
+                as_cuda_type(l_factor->get_values()),
+                u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),
+                as_cuda_type(u_factor->get_values()));
+        }
     }
 }
 

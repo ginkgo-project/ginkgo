@@ -410,7 +410,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
     mtx->convert_to(coo_mtx.get());
     dmtx->convert_to(dcoo_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 0);
 }
 
 
@@ -423,7 +423,7 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
     mtx->move_to(coo_mtx.get());
     dmtx->move_to(dcoo_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(coo_mtx.get(), dcoo_mtx.get(), 0);
 }
 
 
@@ -436,7 +436,7 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 0);
 }
 
 
@@ -449,7 +449,7 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
     mtx->move_to(dense_mtx.get());
     dmtx->move_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 0);
 }
 
 
@@ -462,7 +462,7 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
     mtx->convert_to(sparsity_mtx.get());
     dmtx->convert_to(d_sparsity_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
 }
 
 
@@ -475,22 +475,7 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
     mtx->move_to(sparsity_mtx.get());
     dmtx->move_to(d_sparsity_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
-}
-
-
-TEST_F(Csr, CalculatesNonzerosPerRow)
-{
-    set_up_apply_data();
-    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
-    gko::Array<gko::size_type> drow_nnz(omp, dmtx->get_size()[0]);
-
-    gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
-                                                             &row_nnz);
-    gko::kernels::omp::csr::calculate_nonzeros_per_row(omp, dmtx.get(),
-                                                       &drow_nnz);
-
-    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
 }
 
 
@@ -506,7 +491,7 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
     mtx->convert_to(hybrid_mtx.get());
     dmtx->convert_to(dhybrid_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 0);
 }
 
 
@@ -522,7 +507,7 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     mtx->move_to(hybrid_mtx.get());
     dmtx->move_to(dhybrid_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 0);
 }
 
 

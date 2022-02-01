@@ -517,39 +517,6 @@ TYPED_TEST(Fbcsr, MovesEmptyToSparsityCsr)
 }
 
 
-TYPED_TEST(Fbcsr, CalculatesNonzerosPerRow)
-{
-    using IndexType = typename TestFixture::index_type;
-    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx2->get_size()[0]);
-
-    gko::kernels::reference::fbcsr::calculate_nonzeros_per_row(
-        this->exec, this->mtx2.get(), &row_nnz);
-    gko::Array<gko::size_type> refrnnz(this->exec, this->mtx2->get_size()[0]);
-    gko::kernels::reference::csr ::calculate_nonzeros_per_row(
-        this->exec, this->ref2csrmtx.get(), &refrnnz);
-
-    ASSERT_EQ(row_nnz.get_num_elems(), refrnnz.get_num_elems());
-    auto row_nnz_val = row_nnz.get_data();
-    for (gko::size_type i = 0; i < this->mtx2->get_size()[0]; i++)
-        ASSERT_EQ(row_nnz_val[i], refrnnz.get_const_data()[i]);
-}
-
-
-TYPED_TEST(Fbcsr, CalculatesMaxNnzPerRow)
-{
-    using IndexType = typename TestFixture::index_type;
-    gko::size_type max_row_nnz{};
-
-    gko::kernels::reference::fbcsr::calculate_max_nnz_per_row(
-        this->exec, this->mtx2.get(), &max_row_nnz);
-    gko::size_type ref_max_row_nnz{};
-    gko::kernels::reference::csr::calculate_max_nnz_per_row(
-        this->exec, this->ref2csrmtx.get(), &ref_max_row_nnz);
-
-    ASSERT_EQ(max_row_nnz, ref_max_row_nnz);
-}
-
-
 TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
 {
     using Fbcsr = typename TestFixture::Mtx;

@@ -52,8 +52,9 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace sellp {
 
 
+template <typename IndexType>
 void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<int64>& row_ptrs, size_type slice_size,
+                        const Array<IndexType>& row_ptrs, size_type slice_size,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
@@ -72,13 +73,15 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                              stride_factor)
                        : size_type{};
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, slice_lengths, 1,
+        GKO_KERNEL_REDUCE_MAX(size_type), slice_lengths, 1,
         gko::dim<2>{num_slices, slice_size}, row_ptrs, slice_size,
         stride_factor, num_rows);
     exec->copy(num_slices, slice_lengths, slice_sets);
     components::prefix_sum(exec, slice_sets, num_slices + 1);
 }
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_SELLP_COMPUTE_SLICE_SETS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -113,6 +116,131 @@ void fill_in_matrix_data(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Sellp<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
+                      auto values, auto result) {
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            for (int64 i = 0; i < slice_length; i++) {
+                result(row, cols[in_idx]) += values[in_idx];
+                in_idx += slice_size;
+            }
+        },
+        source->get_size()[0], source->get_slice_size(),
+        source->get_const_slice_sets(), source->get_const_col_idxs(),
+        source->get_const_values(), result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Sellp<ValueType, IndexType>* source,
+                            IndexType* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto values,
+                      auto result) {
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            IndexType row_nnz{};
+            for (int64 i = 0; i < slice_length; i++) {
+                row_nnz += is_nonzero(values[in_idx]);
+                in_idx += slice_size;
+            }
+            result[row] = row_nnz;
+        },
+        source->get_size()[0], source->get_slice_size(),
+        source->get_const_slice_sets(), source->get_const_values(), result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_COUNT_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Sellp<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
+                      auto values, auto out_row_ptrs, auto out_cols,
+                      auto out_vals) {
+            const auto row_begin = out_row_ptrs[row];
+            const auto row_end = out_row_ptrs[row + 1];
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            for (auto i = row_begin; i < row_end; i++) {
+                out_cols[i] = cols[in_idx];
+                out_vals[i] = values[in_idx];
+                in_idx += slice_size;
+            }
+        },
+        source->get_size()[0], source->get_slice_size(),
+        source->get_const_slice_sets(), source->get_const_col_idxs(),
+        source->get_const_values(), result->get_row_ptrs(),
+        result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Sellp<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
+                      auto values, auto diag) {
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto in_idx = slice_begin * slice_size + local_row;
+            for (int64 i = 0; i < slice_length; i++) {
+                if (row == cols[in_idx]) {
+                    diag[row] = values[in_idx];
+                    break;
+                }
+                in_idx += slice_size;
+            }
+        },
+        orig->get_size()[0], orig->get_slice_size(),
+        orig->get_const_slice_sets(), orig->get_const_col_idxs(),
+        orig->get_const_values(), diag->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace sellp

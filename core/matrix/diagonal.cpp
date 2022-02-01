@@ -169,10 +169,15 @@ template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int32>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
@@ -187,10 +192,15 @@ template <typename ValueType>
 void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, int64>::create(
-        exec, this->get_size(), this->get_size()[0], result->get_strategy());
-    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
-    tmp->move_to(result);
+    {
+        auto tmp = make_temporary_clone(exec, result);
+        tmp->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+        tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
+        tmp->values_.resize_and_reset(this->get_size()[0]);
+        tmp->set_size(this->get_size());
+        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    }
+    result->make_srow();
 }
 
 
@@ -283,14 +293,7 @@ namespace {
 template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType* mtx, MatrixData& data)
 {
-    std::unique_ptr<const LinOp> op{};
-    const MatrixType* tmp{};
-    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
-        op = mtx->clone(mtx->get_executor()->get_master());
-        tmp = static_cast<const MatrixType*>(op.get());
-    } else {
-        tmp = mtx;
-    }
+    auto tmp = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
 
     data = {tmp->get_size(), {}};
     const auto values = tmp->get_const_values();

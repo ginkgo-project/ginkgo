@@ -47,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
-#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
@@ -257,99 +256,6 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
-{
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto num_stored_elements_per_row =
-        source->get_num_stored_elements_per_row();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
-        }
-        for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            result->at(row, source->col_at(row, i)) += source->val_at(row, i);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType>* source,
-                    size_type* result)
-{
-    size_type nonzeros = 0;
-    const auto num_rows = source->get_size()[0];
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-    const auto stride = source->get_stride();
-
-#pragma omp parallel for reduction(+ : nonzeros)
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros += (source->val_at(row, i) != zero<ValueType>());
-        }
-    }
-
-    *result = nonzeros;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType>* source,
-                                Array<size_type>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    const auto col_idxs = orig->get_const_col_idxs();
-    const auto values = orig->get_const_values();
-    const auto diag_size = diag->get_size()[0];
-    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
-    auto diag_values = diag->get_values();
-
-#pragma omp parallel for
-    for (size_type row = 0; row < diag_size; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            if (orig->col_at(row, i) == row) {
-                diag_values[row] = orig->val_at(row, i);
-                break;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell

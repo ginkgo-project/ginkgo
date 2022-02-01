@@ -351,7 +351,7 @@ public:
          *
          * @retrun percent
          */
-        auto get_percentage() { return strategy_.get_percentage(); }
+        auto get_percentage() const { return strategy_.get_percentage(); }
 
     private:
         imbalance_limit strategy_;
@@ -735,6 +735,18 @@ protected:
           coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
           strategy_(std::move(strategy))
     {}
+
+    /**
+     * Resizes the matrix to the given dimensions and storage sizes.
+     *
+     * @param new_size  the new matrix dimensions
+     * @param ell_row_nnz  the number of non-zeros per row stored in ELL
+     * @param coo_nnz  the number of non-zeros stored in COO
+     *
+     * @see Ell::resize(dim<2>, size_type)
+     * @see Coo::resize(dim<2>, size_type)
+     */
+    void resize(dim<2> new_size, size_type ell_row_nnz, size_type coo_nnz);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

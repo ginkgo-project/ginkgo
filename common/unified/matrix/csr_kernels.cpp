@@ -152,6 +152,114 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* matrix,
+                      matrix::Sellp<ValueType, IndexType>* output)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto in_cols, auto in_values, auto row_ptrs,
+                      auto slice_size, auto slice_sets, auto cols,
+                      auto values) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const auto slice = row / slice_size;
+            const auto local_row = row % slice_size;
+            const auto slice_begin = slice_sets[slice];
+            const auto slice_end = slice_sets[slice + 1];
+            const auto slice_length = slice_end - slice_begin;
+            auto out_idx = slice_begin * slice_size + local_row;
+            for (auto i = row_begin; i < row_begin + slice_length; i++) {
+                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                values[out_idx] = i < row_end ? unpack_member(in_values[i])
+                                              : zero(values[out_idx]);
+                out_idx += slice_size;
+            }
+        },
+        output->get_size()[0], matrix->get_const_col_idxs(),
+        matrix->get_const_values(), matrix->get_const_row_ptrs(),
+        output->get_slice_size(), output->get_const_slice_sets(),
+        output->get_col_idxs(), output->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::Ell<ValueType, IndexType>* output)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto in_cols, auto in_values, auto row_ptrs,
+                      auto ell_length, auto ell_stride, auto cols,
+                      auto values) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            auto out_idx = row;
+            for (auto i = row_begin; i < row_begin + ell_length; i++) {
+                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                values[out_idx] = i < row_end ? unpack_member(in_values[i])
+                                              : zero(values[out_idx]);
+                out_idx += ell_stride;
+            }
+        },
+        output->get_size()[0], matrix->get_const_col_idxs(),
+        matrix->get_const_values(), matrix->get_const_row_ptrs(),
+        output->get_num_stored_elements_per_row(), output->get_stride(),
+        output->get_col_idxs(), output->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
+                       const matrix::Csr<ValueType, IndexType>* source,
+                       const int64* coo_row_ptrs,
+                       matrix::Hybrid<ValueType, IndexType>* result)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto cols, auto vals,
+                      auto ell_stride, auto ell_max_nnz, auto ell_cols,
+                      auto ell_vals, auto coo_row_ptrs, auto coo_row_idxs,
+                      auto coo_col_idxs, auto coo_vals) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_size = row_ptrs[row + 1] - row_begin;
+            for (int64 i = 0; i < ell_max_nnz; i++) {
+                const auto out_idx = row + ell_stride * i;
+                const auto in_idx = i + row_begin;
+                const bool use = i < row_size;
+                ell_cols[out_idx] = use ? cols[in_idx] : 0;
+                ell_vals[out_idx] = use ? vals[in_idx] : zero(vals[in_idx]);
+            }
+            const auto coo_begin = coo_row_ptrs[row];
+            for (int64 i = ell_max_nnz; i < row_size; i++) {
+                const auto in_idx = i + row_begin;
+                const auto out_idx =
+                    coo_begin + i - static_cast<int64>(ell_max_nnz);
+                coo_row_idxs[out_idx] = row;
+                coo_col_idxs[out_idx] = cols[in_idx];
+                coo_vals[out_idx] = vals[in_idx];
+            }
+        },
+        source->get_size()[0], source->get_const_row_ptrs(),
+        source->get_const_col_idxs(), source->get_const_values(),
+        result->get_ell_stride(), result->get_ell_num_stored_elements_per_row(),
+        result->get_ell_col_idxs(), result->get_ell_values(), coo_row_ptrs,
+        result->get_coo_row_idxs(), result->get_coo_col_idxs(),
+        result->get_coo_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
+
+
 }  // namespace csr
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

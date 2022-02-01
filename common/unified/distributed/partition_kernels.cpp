@@ -57,8 +57,7 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
             auto prev_part = i == 0 ? comm_index_type{-1} : mapping[i - 1];
             return cur_part != prev_part ? 1 : 0;
         },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        GKO_KERNEL_REDUCE_SUM(size_type), result.get_data(),
         mapping.get_num_elems(), mapping);
     num_ranges = exec->copy_val_to_host(result.get_const_data());
 }

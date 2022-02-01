@@ -126,8 +126,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
 
 
+template <typename IndexType>
 void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<int64>& row_ptrs, size_type slice_size,
+                        const Array<IndexType>& row_ptrs, size_type slice_size,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
@@ -140,7 +141,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
             const auto row = slice * slice_size + local_row;
             const auto row_length =
                 row < num_rows ? row_ptrs_ptr[row + 1] - row_ptrs_ptr[row]
-                               : int64{};
+                               : IndexType{};
             slice_length = std::max<size_type>(
                 slice_length,
                 ceildiv(row_length, stride_factor) * stride_factor);
@@ -150,6 +151,9 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
     exec->copy(num_slices, slice_lengths, slice_sets);
     components::prefix_sum(exec, slice_sets, num_slices + 1);
 }
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_SELLP_COMPUTE_SLICE_SETS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -191,9 +195,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Sellp<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -210,9 +214,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
             if (global_row >= num_rows) {
                 break;
             }
-            for (size_type col = 0; col < num_cols; col++) {
-                result->at(global_row, col) = zero<ValueType>();
-            }
             for (size_type i = slice_sets[slice]; i < slice_sets[slice + 1];
                  i++) {
                 result->at(global_row, col_idxs[row + i * slice_size]) +=
@@ -223,7 +224,43 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Sellp<ValueType, IndexType>* source,
+                            IndexType* result)
+{
+    auto num_rows = source->get_size()[0];
+    auto slice_size = source->get_slice_size();
+    auto slice_num = ceildiv(num_rows, slice_size);
+
+    const auto source_vals = source->get_const_values();
+    const auto source_slice_lengths = source->get_const_slice_lengths();
+    const auto source_slice_sets = source->get_const_slice_sets();
+    const auto source_col_idxs = source->get_const_col_idxs();
+
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0; row < slice_size; row++) {
+            auto global_row = slice * slice_size + row;
+            if (global_row >= num_rows) {
+                break;
+            }
+            IndexType row_nnz{};
+            for (size_type sellp_ind =
+                     source_slice_sets[slice] * slice_size + row;
+                 sellp_ind < source_slice_sets[slice + 1] * slice_size + row;
+                 sellp_ind += slice_size) {
+                row_nnz += is_nonzero(source_vals[sellp_ind]);
+            }
+            result[global_row] = row_nnz;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -257,7 +294,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                      source_slice_sets[slice] * slice_size + row;
                  sellp_ind < source_slice_sets[slice + 1] * slice_size + row;
                  sellp_ind += slice_size) {
-                if (source_vals[sellp_ind] != zero<ValueType>()) {
+                if (is_nonzero(source_vals[sellp_ind])) {
                     result_vals[cur_ptr] = source_vals[sellp_ind];
                     result_col_idxs[cur_ptr] = source_col_idxs[sellp_ind];
                     cur_ptr++;
@@ -270,40 +307,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType>* source,
-                    size_type* result)
-{
-    auto num_rows = source->get_size()[0];
-    auto slice_size = source->get_slice_size();
-    auto slice_num = ceildiv(num_rows, slice_size);
-
-    const auto vals = source->get_const_values();
-    const auto slice_sets = source->get_const_slice_sets();
-
-    auto num_nonzeros = 0;
-
-    for (size_type slice = 0; slice < slice_num; slice++) {
-        for (size_type row = 0;
-             row < slice_size && slice_size * slice + row < num_rows; row++) {
-            for (size_type sellp_ind = slice_sets[slice] * slice_size + row;
-                 sellp_ind < slice_sets[slice + 1] * slice_size + row;
-                 sellp_ind += slice_size) {
-                if (vals[sellp_ind] != zero<ValueType>()) {
-                    num_nonzeros++;
-                }
-            }
-        }
-    }
-
-    *result = num_nonzeros;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

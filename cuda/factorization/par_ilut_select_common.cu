@@ -72,9 +72,11 @@ void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
     kernel::build_searchtree<<<1, bucket_count>>>(as_cuda_type(values), size,
                                                   tree);
     // determine bucket sizes
-    kernel::count_buckets<<<num_blocks, default_block_size>>>(
-        as_cuda_type(values), size, tree, partial_counts, oracles,
-        items_per_thread);
+    if (num_blocks > 0) {
+        kernel::count_buckets<<<num_blocks, default_block_size>>>(
+            as_cuda_type(values), size, tree, partial_counts, oracles,
+            items_per_thread);
+    }
     // compute prefix sum and total sum over block-local values
     kernel::block_prefix_sum<<<bucket_count, default_block_size>>>(
         partial_counts, total_counts, num_blocks);

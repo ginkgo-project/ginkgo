@@ -77,14 +77,18 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
 {
     Array<size_type> nums(exec, 1);
 
+    // FIXME: num_rows == 0 bug
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(config::warp_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
-    compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
-        mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), matching_next_row.get_data());
+    const auto block_size = config::warp_size;
+    const auto grid_size =
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
+
+    if (grid_size > 0) {
+        compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
+            mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
+            mtx->get_const_col_idxs(), matching_next_row.get_data());
+    }
     generate_natural_block_pointer<<<1, 1, 0, 0>>>(
         mtx->get_size()[0], max_block_size, matching_next_row.get_const_data(),
         block_ptrs, nums.get_data());
@@ -119,9 +123,11 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    duplicate_array<default_num_warps><<<grid_size, block_size>>>(
-        source.get_const_data(), source.get_num_elems(), precisions.get_data(),
-        precisions.get_num_elems());
+    if (grid_size > 0) {
+        duplicate_array<default_num_warps><<<grid_size, block_size>>>(
+            source.get_const_data(), source.get_num_elems(),
+            precisions.get_data(), precisions.get_num_elems());
+    }
 }
 
 
@@ -156,21 +162,23 @@ void transpose_jacobi(
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                                  warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                as_cuda_type(blocks), storage_scheme, block_precisions,
-                block_pointers, num_blocks, as_cuda_type(out_blocks));
-    } else {
-        transpose_jacobi<conjugate, max_block_size, subwarp_size,
-                         warps_per_block><<<grid_size, block_size, 0, 0>>>(
-            as_cuda_type(blocks), storage_scheme, block_pointers, num_blocks,
-            as_cuda_type(out_blocks));
+    if (grid_size > 0) {
+        if (block_precisions) {
+            adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                                      warps_per_block>
+                <<<grid_size, block_size, 0, 0>>>(
+                    as_cuda_type(blocks), storage_scheme, block_precisions,
+                    block_pointers, num_blocks, as_cuda_type(out_blocks));
+        } else {
+            transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                             warps_per_block><<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_pointers,
+                num_blocks, as_cuda_type(out_blocks));
+        }
     }
 }
 

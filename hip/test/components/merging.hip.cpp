@@ -168,10 +168,9 @@ TEST_F(Merging, MergeStep)
 {
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_step), dim3(1),
-                           dim3(config::warp_size), 0, 0,
-                           ddata1.get_const_data(), ddata2.get_const_data(),
-                           doutdata.get_data());
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_step), 1,
+                           config::warp_size, 0, 0, ddata1.get_const_data(),
+                           ddata2.get_const_data(), doutdata.get_data());
 
         assert_eq_ref(config::warp_size, config::warp_size);
     }
@@ -197,10 +196,10 @@ TEST_F(Merging, FullMerge)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge), dim3(1),
-                               dim3(config::warp_size), 0, 0,
-                               ddata1.get_const_data(), ddata2.get_const_data(),
-                               size, doutdata.get_data());
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge), 1,
+                               config::warp_size, 0, 0, ddata1.get_const_data(),
+                               ddata2.get_const_data(), size,
+                               doutdata.get_data());
 
             assert_eq_ref(size, 2 * size);
         }
@@ -224,8 +223,8 @@ TEST_F(Merging, SequentialFullMerge)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sequential_merge), dim3(1),
-                               dim3(1), 0, 0, ddata1.get_const_data(),
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sequential_merge), 1, 1, 0,
+                               0, ddata1.get_const_data(),
                                ddata2.get_const_data(), size,
                                doutdata.get_data());
 
@@ -270,13 +269,12 @@ TEST_F(Merging, FullMergeIdxs)
     for (int i = 0; i < rng_runs; ++i) {
         init_data(i);
         for (auto size : sizes) {
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_idxs), dim3(1),
-                               dim3(config::warp_size), 0, 0,
-                               ddata1.get_const_data(), ddata2.get_const_data(),
-                               size, doutdata.get_data(), didxs1.get_data(),
-                               didxs2.get_data(), didxs3.get_data(),
-                               drefidxs1.get_data(), drefidxs2.get_data(),
-                               drefidxs3.get_data());
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(test_merge_idxs), 1, config::warp_size, 0, 0,
+                ddata1.get_const_data(), ddata2.get_const_data(), size,
+                doutdata.get_data(), didxs1.get_data(), didxs2.get_data(),
+                didxs3.get_data(), drefidxs1.get_data(), drefidxs2.get_data(),
+                drefidxs3.get_data());
 
             assert_eq_ref(size, 2 * size);
             idxs1 = didxs1;

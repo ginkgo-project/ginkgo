@@ -193,9 +193,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Ell<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -203,9 +203,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         source->get_num_stored_elements_per_row();
 
     for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            result->at(row, col) = zero<ValueType>();
-        }
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             result->at(row, source->col_at(row, i)) += source->val_at(row, i);
         }
@@ -213,7 +210,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -234,7 +231,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto val = source->val_at(row, i);
             const auto col = source->col_at(row, i);
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 values[cur_ptr] = val;
                 col_idxs[cur_ptr] = col;
                 cur_ptr++;
@@ -249,51 +246,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType>* source,
-                    size_type* result)
-{
-    size_type nonzeros = 0;
-    const auto num_rows = source->get_size()[0];
-    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
-    const auto stride = source->get_stride();
-
-    for (size_type row = 0; row < num_rows; row++) {
-        for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros += (source->val_at(row, i) != zero<ValueType>());
-        }
-    }
-
-    *result = nonzeros;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType>* source,
-                                Array<size_type>* result)
+void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                            const matrix::Ell<ValueType, IndexType>* source,
+                            IndexType* result)
 {
     const auto num_rows = source->get_size()[0];
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
     const auto stride = source->get_stride();
-
-    auto row_nnz_val = result->get_data();
 
     for (size_type row = 0; row < num_rows; row++) {
         size_type nonzeros_in_this_row = 0;
         for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros_in_this_row +=
-                (source->val_at(row, i) != zero<ValueType>());
+            nonzeros_in_this_row += is_nonzero(source->val_at(row, i));
         }
-        row_nnz_val[row] = nonzeros_in_this_row;
+        result[row] = nonzeros_in_this_row;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -392,7 +392,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 
     ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
               coo_mtx->get_num_stored_elements());
-    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 0);
 }
 
 
@@ -407,7 +407,7 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
 
     ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
               coo_mtx->get_num_stored_elements());
-    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcoo_mtx.get(), coo_mtx.get(), 0);
 }
 
 
@@ -420,7 +420,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
     x->convert_to(csr_mtx.get());
     dx->convert_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 0);
 }
 
 
@@ -433,7 +433,7 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
     x->move_to(csr_mtx.get());
     dx->move_to(dcsr_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 0);
 }
 
 
@@ -446,7 +446,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
     x->convert_to(ell_mtx.get());
     dx->convert_to(dell_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 0);
 }
 
 
@@ -459,7 +459,7 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
     x->move_to(ell_mtx.get());
     dx->move_to(dell_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(dell_mtx.get(), ell_mtx.get(), 0);
 }
 
 
@@ -472,7 +472,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
     x->convert_to(sellp_mtx.get());
     dx->convert_to(dsellp_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
 }
 
 
@@ -485,7 +485,7 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
     x->move_to(sellp_mtx.get());
     dx->move_to(dsellp_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
 }
 
 
@@ -501,19 +501,6 @@ TEST_F(Dense, ConvertsEmptyToSellp)
 }
 
 
-TEST_F(Dense, CountNNZIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::size_type nnz;
-    gko::size_type dnnz;
-
-    gko::kernels::reference::dense::count_nonzeros(ref, x.get(), &nnz);
-    gko::kernels::cuda::dense::count_nonzeros(cuda, dx.get(), &dnnz);
-
-    ASSERT_EQ(nnz, dnnz);
-}
-
-
 TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
@@ -522,10 +509,10 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     gko::Array<gko::size_type> dnnz_per_row(cuda);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
-    gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
-                                                               &nnz_per_row);
-    gko::kernels::cuda::dense::calculate_nonzeros_per_row(cuda, dx.get(),
-                                                          &dnnz_per_row);
+    gko::kernels::reference::dense::count_nonzeros_per_row(
+        ref, x.get(), nnz_per_row.get_data());
+    gko::kernels::cuda::dense::count_nonzeros_per_row(cuda, dx.get(),
+                                                      dnnz_per_row.get_data());
 
     auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
     for (gko::size_type i = 0; i < nnz_per_row.get_num_elems(); i++) {
@@ -534,33 +521,18 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
+TEST_F(Dense, ComputeMaxNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
     gko::size_type max_nnz;
     gko::size_type dmax_nnz;
 
-    gko::kernels::reference::dense::calculate_max_nnz_per_row(ref, x.get(),
-                                                              &max_nnz);
-    gko::kernels::cuda::dense::calculate_max_nnz_per_row(cuda, dx.get(),
-                                                         &dmax_nnz);
+    gko::kernels::reference::dense::compute_max_nnz_per_row(ref, x.get(),
+                                                            max_nnz);
+    gko::kernels::cuda::dense::compute_max_nnz_per_row(cuda, dx.get(),
+                                                       dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
-}
-
-
-TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::size_type total_cols;
-    gko::size_type dtotal_cols;
-
-    gko::kernels::reference::dense::calculate_total_cols(
-        ref, x.get(), &total_cols, 2, gko::matrix::default_slice_size);
-    gko::kernels::cuda::dense::calculate_total_cols(
-        cuda, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
-
-    ASSERT_EQ(total_cols, dtotal_cols);
 }
 
 

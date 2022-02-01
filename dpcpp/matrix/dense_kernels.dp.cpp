@@ -86,7 +86,7 @@ namespace kernel {
 
 template <typename ValueType, typename IndexType>
 void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
-                 const size_type* __restrict__ row_ptrs,
+                 const int64* __restrict__ row_ptrs,
                  const ValueType* __restrict__ source,
                  IndexType* __restrict__ row_idxs,
                  IndexType* __restrict__ col_idxs,
@@ -97,7 +97,7 @@ void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
         size_type write_to = row_ptrs[tidx];
 
         for (size_type i = 0; i < num_cols; i++) {
-            if (source[stride * tidx + i] != zero<ValueType>()) {
+            if (is_nonzero(source[stride * tidx + i])) {
                 values[write_to] = source[stride * tidx + i];
                 col_idxs[write_to] = i;
                 row_idxs[write_to] = tidx;
@@ -124,7 +124,7 @@ void count_nnz_per_row(size_type num_rows, size_type num_cols, size_type stride,
     if (row_idx < num_rows) {
         IndexType part_result{};
         for (auto i = warp_tile.thread_rank(); i < num_cols; i += sg_size) {
-            if (work[stride * row_idx + i] != zero<ValueType>()) {
+            if (is_nonzero(work[stride * row_idx + i])) {
                 part_result += 1;
             }
         }
@@ -152,7 +152,7 @@ void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
     if (tidx < num_rows) {
         auto write_to = row_ptrs[tidx];
         for (size_type i = 0; i < num_cols; i++) {
-            if (source[stride * tidx + i] != zero<ValueType>()) {
+            if (is_nonzero(source[stride * tidx + i])) {
                 values[write_to] = source[stride * tidx + i];
                 col_idxs[write_to] = i;
                 write_to++;
@@ -175,7 +175,7 @@ void fill_in_ell(size_type num_rows, size_type num_cols,
     if (tidx < num_rows) {
         IndexType col_idx = 0;
         for (size_type col = 0; col < num_cols; col++) {
-            if (source[tidx * source_stride + col] != zero<ValueType>()) {
+            if (is_nonzero(source[tidx * source_stride + col])) {
                 col_ptrs[col_idx * result_stride + tidx] = col;
                 values[col_idx * result_stride + tidx] =
                     source[tidx * source_stride + col];
@@ -254,7 +254,7 @@ void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
 
         for (size_type col = 0; col < num_cols; col++) {
             auto val = source[global_row * stride + col];
-            if (val != zero<ValueType>()) {
+            if (is_nonzero(val)) {
                 col_idxs[sellp_ind] = col;
                 vals[sellp_ind] = val;
                 sellp_ind += slice_size;
@@ -537,6 +537,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* source,
+                    const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
@@ -547,11 +548,6 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
     auto values = result->get_values();
 
     auto stride = source->get_stride();
-
-    auto nnz_prefix_sum = Array<size_type>(exec, num_rows);
-    calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
-
-    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
 
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
@@ -565,8 +561,8 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
     size_type grid_dim = ceildiv(num_rows, wg_size);
 
     kernel::fill_in_coo(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
-                        num_cols, stride, nnz_prefix_sum.get_const_data(),
-                        source->get_const_values(), row_idxs, col_idxs, values);
+                        num_cols, stride, row_ptrs, source->get_const_values(),
+                        row_idxs, col_idxs, values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -596,15 +592,6 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
     auto values = result->get_values();
 
     auto stride = source->get_stride();
-
-    const auto rows_per_block = ceildiv(wg_size, sg_size);
-    const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
-
-    kernel::count_nnz_per_row_call(
-        cfg, grid_dim_nnz, wg_size, 0, exec->get_queue(), num_rows, num_cols,
-        stride, source->get_const_values(), row_ptrs);
-
-    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     size_type grid_dim = ceildiv(num_rows, wg_size);
 
@@ -652,10 +639,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Dense<ValueType>* source,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Dense<ValueType>* source,
+                      matrix::Fbcsr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                                  const matrix::Dense<ValueType>* source,
+                                  int bs,
+                                  IndexType* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Dense<ValueType>* source, const int64* coo_row_ptrs,
+    matrix::Hybrid<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
@@ -685,16 +692,12 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
     auto slice_lengths = result->get_slice_lengths();
     auto slice_sets = result->get_slice_sets();
 
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? matrix::default_slice_size
-                                : result->get_slice_size();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? matrix::default_stride_factor
-                                   : result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
+    const auto stride_factor = result->get_stride_factor();
     const int slice_num = ceildiv(num_rows, slice_size);
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
-    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
+    count_nonzeros_per_row(exec, source, nnz_per_row.get_data());
 
     auto grid_dim = slice_num;
 
@@ -728,149 +731,6 @@ void convert_to_sparsity_csr(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
-
-
-template <typename ValueType>
-void count_nonzeros(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType>* source, size_type* result)
-{
-    const auto num_rows = source->get_size()[0];
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-
-    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-
-    *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
-
-
-template <typename ValueType>
-void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                               const matrix::Dense<ValueType>* source,
-                               size_type* result)
-{
-    const auto num_rows = source->get_size()[0];
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-
-    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto n = ceildiv(num_rows, wg_size);
-    const size_type grid_dim = (n <= wg_size) ? n : wg_size;
-
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_max_nnz_call(
-        cfg, grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
-        num_rows, nnz_per_row.get_const_data(), block_results.get_data());
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_max_nnz_call(
-        cfg, 1, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
-        grid_dim, block_results.get_const_data(), d_result.get_data());
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType>
-void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                                const matrix::Dense<ValueType>* source,
-                                Array<size_type>* result)
-{
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-    const dim3 block_size(wg_size, 1, 1);
-    auto rows_per_block = ceildiv(wg_size, sg_size);
-    const size_t grid_x = ceildiv(source->get_size()[0], rows_per_block);
-    const dim3 grid_size(grid_x, 1, 1);
-    if (grid_x > 0) {
-        kernel::count_nnz_per_row_call(
-            cfg, grid_size, block_size, 0, exec->get_queue(),
-            source->get_size()[0], source->get_size()[1], source->get_stride(),
-            source->get_const_values(), result->get_data());
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);
-
-
-template <typename ValueType>
-void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::Dense<ValueType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size)
-{
-    const auto num_rows = source->get_size()[0];
-
-    if (num_rows == 0) {
-        *result = 0;
-        return;
-    }
-
-    const auto num_cols = source->get_size()[1];
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-
-    calculate_nonzeros_per_row(exec, source, &nnz_per_row);
-
-    auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-
-    auto grid_dim = ceildiv(slice_num * sg_size, wg_size);
-
-    kernel::reduce_max_nnz_per_slice_call(
-        cfg, grid_dim, wg_size, 0, exec->get_queue(), num_rows, slice_size,
-        stride_factor, nnz_per_row.get_const_data(),
-        max_nnz_per_slice.get_data());
-
-    grid_dim = ceildiv(slice_num, wg_size);
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_total_cols_call(
-        cfg, grid_dim, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
-        slice_num, max_nnz_per_slice.get_const_data(),
-        block_results.get_data());
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_total_cols_call(
-        cfg, 1, wg_size, wg_size * sizeof(size_type), exec->get_queue(),
-        grid_dim, block_results.get_const_data(), d_result.get_data());
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL);
 
 
 template <typename ValueType>

@@ -72,6 +72,50 @@ __global__ __launch_bounds__(default_block_size) void transpose_blocks(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void convert_to_csr(
+    const IndexType* block_row_ptrs, const IndexType* block_col_idxs,
+    const ValueType* blocks, IndexType* row_ptrs, IndexType* col_idxs,
+    ValueType* values, size_type num_block_rows, int block_size)
+{
+    const auto block_row = thread::get_subwarp_id_flat<config::warp_size>();
+    if (block_row >= num_block_rows) {
+        return;
+    }
+    const auto block_begin = block_row_ptrs[block_row];
+    const auto block_end = block_row_ptrs[block_row + 1];
+    const auto num_blocks = block_end - block_begin;
+    const auto first_row = block_row * block_size;
+    const auto block_row_begin = block_begin * block_size * block_size;
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    if (block_row == 0 && lane == 0) {
+        row_ptrs[0] = 0;
+    }
+    if (lane < block_size) {
+        row_ptrs[first_row + lane + 1] =
+            block_row_begin + num_blocks * block_size * (lane + 1);
+    }
+    for (IndexType i = lane; i < num_blocks * block_size * block_size;
+         i += config::warp_size) {
+        const auto local_row = i / (num_blocks * block_size);
+        const auto local_block = (i % (num_blocks * block_size)) / block_size;
+        const auto local_col = i % block_size;
+        const auto block_idx = block_col_idxs[block_begin + local_block];
+        // first nz of the row block + all prev rows + all prev blocks in row +
+        // all previous cols in this block
+        const auto out_idx = block_row_begin +
+                             num_blocks * block_size * local_row +
+                             local_block * block_size + local_col;
+        col_idxs[out_idx] = block_idx * block_size + local_col;
+        values[out_idx] =
+            blocks[(block_begin + local_block) * block_size * block_size +
+                   local_col * block_size + local_row];
+    }
+}
+
+
 }  // namespace kernel
 
 
@@ -135,8 +179,9 @@ void fill_in_matrix_data(
                                                     data_ptr[i].column / bs);
                       });
     // build row pointers from row indices
-    components::build_row_ptrs_from_idxs(exec, row_idx_array, num_rows,
-                                         row_ptrs);
+    components::convert_idxs_to_ptrs(exec, row_idx_array.get_const_data(),
+                                     row_idx_array.get_num_elems(), num_rows,
+                                     row_ptrs);
     // fill in values
     components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
                            zero<ValueType>());

@@ -44,7 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
-#include "reference/components/format_conversion.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -130,6 +131,27 @@ void fill_in_matrix_data(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::SparsityCsr<ValueType, IndexType>* input,
+                   matrix::Dense<ValueType>* output)
+{
+    auto row_ptrs = input->get_const_row_ptrs();
+    auto col_idxs = input->get_const_col_idxs();
+    auto val = input->get_const_value()[0];
+
+    for (size_type row = 0; row < input->get_size()[0]; ++row) {
+        for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+            auto col = col_idxs[k];
+            output->at(row, col) = val;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -220,9 +242,12 @@ void transpose_and_transform(
     auto orig_num_rows = orig->get_size()[0];
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
-    trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
+    components::fill_array(exec, trans_row_ptrs, orig_num_cols + 1,
+                           IndexType{});
+    for (size_type i = 0; i < orig_nnz; i++) {
+        trans_row_ptrs[orig_col_idxs[i] + 1]++;
+    }
+    components::prefix_sum(exec, trans_row_ptrs + 1, orig_num_cols);
 
     convert_sparsity_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
                             trans_col_idxs, trans_row_ptrs + 1);

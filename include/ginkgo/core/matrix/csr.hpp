@@ -46,6 +46,9 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
+template <typename ValueType>
+class Diagonal;
+
 template <typename ValueType, typename IndexType>
 class Coo;
 
@@ -63,6 +66,9 @@ class SparsityCsr;
 
 template <typename ValueType, typename IndexType>
 class Csr;
+
+template <typename ValueType, typename IndexType>
+class Fbcsr;
 
 template <typename ValueType, typename IndexType>
 class CsrBuilder;
@@ -123,6 +129,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
+            public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
@@ -137,10 +144,12 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
+    friend class Diagonal<ValueType>;
     friend class Ell<ValueType, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
     friend class Sellp<ValueType, IndexType>;
     friend class SparsityCsr<ValueType, IndexType>;
+    friend class Fbcsr<ValueType, IndexType>;
     friend class CsrBuilder<ValueType, IndexType>;
     friend class Csr<to_complex<ValueType>, IndexType>;
 
@@ -433,10 +442,12 @@ public:
                 }
                 const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
                 const auto num_elems = row_ptrs[num_rows];
+                const auto bucket_divider =
+                    num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
                         ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
-                                ceildiv(num_elems, warp_size_));
+                                bucket_divider);
                     if (bucket < nwarps) {
                         srow[bucket]++;
                     }
@@ -724,6 +735,10 @@ public:
 
     void move_to(Ell<ValueType, IndexType>* result) override;
 
+    void convert_to(Fbcsr<ValueType, IndexType>* result) const override;
+
+    void move_to(Fbcsr<ValueType, IndexType>* result) override;
+
     void convert_to(Hybrid<ValueType, IndexType>* result) const override;
 
     void move_to(Hybrid<ValueType, IndexType>* result) override;
@@ -985,7 +1000,10 @@ protected:
           row_ptrs_(exec, size[0] + 1),
           srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(strategy->copy())
-    {}
+    {
+        row_ptrs_.fill(0);
+        this->make_srow();
+    }
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row

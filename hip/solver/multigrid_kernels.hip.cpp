@@ -83,14 +83,16 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
-    const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));
-    hipLaunchKernelGGL(
-        kernel::kcycle_step_1_kernel, dim3(grid), dim3(default_block_size), 0,
-        0, nrows, nrhs, e->get_stride(), grid_nrows,
-        as_hip_type(alpha->get_const_values()),
-        as_hip_type(rho->get_const_values()),
-        as_hip_type(v->get_const_values()), as_hip_type(g->get_values()),
-        as_hip_type(d->get_values()), as_hip_type(e->get_values()));
+    const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
+    if (grid > 0) {
+        hipLaunchKernelGGL(
+            kernel::kcycle_step_1_kernel, grid, default_block_size, 0, 0, nrows,
+            nrhs, e->get_stride(), grid_nrows,
+            as_hip_type(alpha->get_const_values()),
+            as_hip_type(rho->get_const_values()),
+            as_hip_type(v->get_const_values()), as_hip_type(g->get_values()),
+            as_hip_type(d->get_values()), as_hip_type(e->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
@@ -111,16 +113,18 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
-    const dim3 grid(ceildiv(grid_nrows * nrhs, default_block_size));
-    hipLaunchKernelGGL(
-        kernel::kcycle_step_2_kernel, dim3(grid), dim3(default_block_size), 0,
-        0, nrows, nrhs, e->get_stride(), grid_nrows,
-        as_hip_type(alpha->get_const_values()),
-        as_hip_type(rho->get_const_values()),
-        as_hip_type(gamma->get_const_values()),
-        as_hip_type(beta->get_const_values()),
-        as_hip_type(zeta->get_const_values()),
-        as_hip_type(d->get_const_values()), as_hip_type(e->get_values()));
+    const auto grid = ceildiv(grid_nrows * nrhs, default_block_size);
+    if (grid > 0) {
+        hipLaunchKernelGGL(
+            kernel::kcycle_step_2_kernel, grid, default_block_size, 0, 0, nrows,
+            nrhs, e->get_stride(), grid_nrows,
+            as_hip_type(alpha->get_const_values()),
+            as_hip_type(rho->get_const_values()),
+            as_hip_type(gamma->get_const_values()),
+            as_hip_type(beta->get_const_values()),
+            as_hip_type(zeta->get_const_values()),
+            as_hip_type(d->get_const_values()), as_hip_type(e->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
@@ -136,12 +140,14 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
     components::fill_array(exec, dis_stop.get_data(), dis_stop.get_num_elems(),
                            true);
     const auto nrhs = new_norm->get_size()[1];
-    const dim3 grid(ceildiv(nrhs, default_block_size));
-    hipLaunchKernelGGL(kernel::kcycle_check_stop_kernel, dim3(grid),
-                       dim3(default_block_size), 0, 0, nrhs,
-                       as_hip_type(old_norm->get_const_values()),
-                       as_hip_type(new_norm->get_const_values()), rel_tol,
-                       as_hip_type(dis_stop.get_data()));
+    const auto grid = ceildiv(nrhs, default_block_size);
+    if (grid > 0) {
+        hipLaunchKernelGGL(kernel::kcycle_check_stop_kernel, grid,
+                           default_block_size, 0, 0, nrhs,
+                           as_hip_type(old_norm->get_const_values()),
+                           as_hip_type(new_norm->get_const_values()), rel_tol,
+                           as_hip_type(dis_stop.get_data()));
+    }
     is_stop = exec->copy_val_to_host(dis_stop.get_const_data());
 }
 

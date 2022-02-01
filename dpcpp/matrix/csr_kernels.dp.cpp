@@ -727,42 +727,6 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 }
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(size_type num_rows,
-                              const IndexType* __restrict__ ptrs,
-                              IndexType* __restrict__ idxs,
-                              sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        for (auto i = ptrs[tidx]; i < ptrs[tidx + 1]; i++) {
-            idxs[i] = tidx;
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(convert_row_ptrs_to_idxs, convert_row_ptrs_to_idxs);
-
-
-template <typename ValueType>
-void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                           size_type stride, ValueType* __restrict__ result,
-                           sycl::nd_item<3> item_ct1)
-{
-    const auto tidx_x =
-        item_ct1.get_local_id(2) +
-        item_ct1.get_local_range().get(2) * item_ct1.get_group(2);
-    const auto tidx_y =
-        item_ct1.get_local_id(1) +
-        item_ct1.get_local_range().get(1) * item_ct1.get_group(1);
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(initialize_zero_dense, initialize_zero_dense);
-
-
 template <typename ValueType, typename IndexType>
 void fill_in_dense(size_type num_rows, const IndexType* __restrict__ row_ptrs,
                    const IndexType* __restrict__ col_idxs,
@@ -795,189 +759,6 @@ void calculate_nnz_per_row(size_type num_rows,
 GKO_ENABLE_DEFAULT_HOST(calculate_nnz_per_row, calculate_nnz_per_row);
 
 
-void calculate_slice_lengths(size_type num_rows, size_type slice_size,
-                             size_type stride_factor,
-                             const size_type* __restrict__ nnz_per_row,
-                             size_type* __restrict__ slice_lengths,
-                             size_type* __restrict__ slice_sets,
-                             sycl::nd_item<3> item_ct1)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto sliceid = item_ct1.get_group(2);
-    const auto tid_in_warp = item_ct1.get_local_id(2);
-
-    if (sliceid * slice_size + tid_in_warp < num_rows) {
-        size_type thread_result = 0;
-        for (int i = tid_in_warp; i < slice_size; i += warp_size) {
-            thread_result =
-                (i + slice_size * sliceid < num_rows)
-                    ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
-                    : thread_result;
-        }
-
-        auto warp_tile = group::tiled_partition<warp_size>(
-            group::this_thread_block(item_ct1));
-        auto warp_result = ::gko::kernels::dpcpp::reduce(
-            warp_tile, thread_result,
-            [](const size_type& a, const size_type& b) { return max(a, b); });
-
-        if (tid_in_warp == 0) {
-            auto slice_length =
-                ceildiv(warp_result, stride_factor) * stride_factor;
-            slice_lengths[sliceid] = slice_length;
-            slice_sets[sliceid] = slice_length;
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(calculate_slice_lengths, calculate_slice_lengths);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_sellp(size_type num_rows, size_type slice_size,
-                   const ValueType* __restrict__ source_values,
-                   const IndexType* __restrict__ source_row_ptrs,
-                   const IndexType* __restrict__ source_col_idxs,
-                   size_type* __restrict__ slice_lengths,
-                   size_type* __restrict__ slice_sets,
-                   IndexType* __restrict__ result_col_idxs,
-                   ValueType* __restrict__ result_values,
-                   sycl::nd_item<3> item_ct1)
-{
-    const auto global_row = thread::get_thread_id_flat(item_ct1);
-    const auto row = global_row % slice_size;
-    const auto sliceid = global_row / slice_size;
-
-    if (global_row < num_rows) {
-        size_type sellp_ind = slice_sets[sliceid] * slice_size + row;
-
-        for (size_type csr_ind = source_row_ptrs[global_row];
-             csr_ind < source_row_ptrs[global_row + 1]; csr_ind++) {
-            result_values[sellp_ind] = source_values[csr_ind];
-            result_col_idxs[sellp_ind] = source_col_idxs[csr_ind];
-            sellp_ind += slice_size;
-        }
-        for (size_type i = sellp_ind;
-             i <
-             (slice_sets[sliceid] + slice_lengths[sliceid]) * slice_size + row;
-             i += slice_size) {
-            result_col_idxs[i] = 0;
-            result_values[i] = zero<ValueType>();
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_sellp, fill_in_sellp);
-
-
-template <typename ValueType, typename IndexType>
-void initialize_zero_ell(size_type max_nnz_per_row, size_type stride,
-                         ValueType* __restrict__ values,
-                         IndexType* __restrict__ col_idxs,
-                         sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx < stride * max_nnz_per_row) {
-        values[tidx] = zero<ValueType>();
-        col_idxs[tidx] = 0;
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(initialize_zero_ell, initialize_zero_ell);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_ell(size_type num_rows, size_type stride,
-                 const ValueType* __restrict__ source_values,
-                 const IndexType* __restrict__ source_row_ptrs,
-                 const IndexType* __restrict__ source_col_idxs,
-                 ValueType* __restrict__ result_values,
-                 IndexType* __restrict__ result_col_idxs,
-                 sycl::nd_item<3> item_ct1)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto row = thread::get_subwarp_id_flat<warp_size>(item_ct1);
-    const auto local_tidx = item_ct1.get_local_id(2) % warp_size;
-
-    if (row < num_rows) {
-        for (size_type i = local_tidx;
-             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
-             i += warp_size) {
-            const auto result_idx = row + stride * i;
-            const auto source_idx = i + source_row_ptrs[row];
-            result_values[result_idx] = source_values[source_idx];
-            result_col_idxs[result_idx] = source_col_idxs[source_idx];
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_ell, fill_in_ell);
-
-
-void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
-                              size_type stride_factor,
-                              const size_type* __restrict__ nnz_per_row,
-                              size_type* __restrict__ result,
-                              sycl::nd_item<3> item_ct1)
-{
-    constexpr auto warp_size = config::warp_size;
-    auto warp_tile =
-        group::tiled_partition<warp_size>(group::this_thread_block(item_ct1));
-    const auto warpid = thread::get_subwarp_id_flat<warp_size>(item_ct1);
-    const auto tid_in_warp = warp_tile.thread_rank();
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    size_type thread_result = 0;
-    for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
-        if (warpid * slice_size + i < num_rows) {
-            thread_result =
-                max(thread_result, nnz_per_row[warpid * slice_size + i]);
-        }
-    }
-    auto warp_result = ::gko::kernels::dpcpp::reduce(
-        warp_tile, thread_result,
-        [](const size_type& a, const size_type& b) { return max(a, b); });
-
-    if (tid_in_warp == 0 && warpid < slice_num) {
-        result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(reduce_max_nnz_per_slice, reduce_max_nnz_per_slice);
-
-
-void reduce_total_cols(size_type num_slices,
-                       const size_type* __restrict__ max_nnz_per_slice,
-                       size_type* __restrict__ result,
-                       sycl::nd_item<3> item_ct1, size_type* block_result)
-{
-    reduce_array(num_slices, max_nnz_per_slice, block_result, item_ct1,
-                 [](const size_type& x, const size_type& y) { return x + y; });
-
-    if (item_ct1.get_local_id(2) == 0) {
-        result[item_ct1.get_group(2)] = block_result[0];
-    }
-}
-
-void reduce_total_cols(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue* queue, size_type num_slices,
-                       const size_type* max_nnz_per_slice, size_type* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<size_type, 1, sycl::access_mode::read_write,
-                       sycl::access::target::local>
-            block_result_acc_ct1(sycl::range<1>(default_block_size), cgh);
-
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                reduce_total_cols(num_slices, max_nnz_per_slice, result,
-                                  item_ct1, block_result_acc_ct1.get_pointer());
-            });
-    });
-}
-
-
 void reduce_max_nnz(size_type size, const size_type* __restrict__ nnz_per_row,
                     size_type* __restrict__ result, sycl::nd_item<3> item_ct1,
                     size_type* block_max)
@@ -1007,66 +788,6 @@ void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          });
     });
 }
-
-
-template <typename IndexType>
-void calculate_hybrid_coo_row_nnz(size_type num_rows,
-                                  size_type ell_max_nnz_per_row,
-                                  IndexType* __restrict__ csr_row_idxs,
-                                  size_type* __restrict__ coo_row_nnz,
-                                  sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        const size_type csr_nnz = csr_row_idxs[tidx + 1] - csr_row_idxs[tidx];
-        coo_row_nnz[tidx] =
-            (csr_nnz > ell_max_nnz_per_row) * (csr_nnz - ell_max_nnz_per_row);
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(calculate_hybrid_coo_row_nnz,
-                        calculate_hybrid_coo_row_nnz);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_hybrid(size_type num_rows, size_type stride,
-                    size_type ell_max_nnz_per_row,
-                    const ValueType* __restrict__ source_values,
-                    const IndexType* __restrict__ source_row_ptrs,
-                    const IndexType* __restrict__ source_col_idxs,
-                    const size_type* __restrict__ coo_offset,
-                    ValueType* __restrict__ result_ell_val,
-                    IndexType* __restrict__ result_ell_col,
-                    ValueType* __restrict__ result_coo_val,
-                    IndexType* __restrict__ result_coo_col,
-                    IndexType* __restrict__ result_coo_row,
-                    sycl::nd_item<3> item_ct1)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto row = thread::get_subwarp_id_flat<warp_size>(item_ct1);
-    const auto local_tidx = item_ct1.get_local_id(2) % warp_size;
-
-    if (row < num_rows) {
-        for (size_type i = local_tidx;
-             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
-             i += warp_size) {
-            const auto source_idx = i + source_row_ptrs[row];
-            if (i < ell_max_nnz_per_row) {
-                const auto result_idx = row + stride * i;
-                result_ell_val[result_idx] = source_values[source_idx];
-                result_ell_col[result_idx] = source_col_idxs[source_idx];
-            } else {
-                const auto result_idx =
-                    coo_offset[row] + i - ell_max_nnz_per_row;
-                result_coo_val[result_idx] = source_values[source_idx];
-                result_coo_col[result_idx] = source_col_idxs[source_idx];
-                result_coo_row[result_idx] = row;
-            }
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_hybrid, fill_in_hybrid);
 
 
 template <typename IndexType>
@@ -2212,39 +1933,10 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs)
-{
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::convert_row_ptrs_to_idxs(grid_dim, default_block_size, 0,
-                                     exec->get_queue(), num_rows, ptrs, idxs);
-}
-
-
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Coo<ValueType, IndexType>* result)
-{
-    auto num_rows = result->get_size()[0];
-
-    auto row_idxs = result->get_row_idxs();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-
-    convert_row_ptrs_to_idxs(exec, source_row_ptrs, num_rows, row_idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result)
+void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::Csr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -2253,14 +1945,6 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
     const auto col_idxs = source->get_const_col_idxs();
     const auto vals = source->get_const_values();
 
-    const dim3 block_size(config::warp_size,
-                          config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
-                             ceildiv(num_rows, block_size.y), 1);
-    kernel::initialize_zero_dense(init_grid_dim, block_size, 0,
-                                  exec->get_queue(), num_rows, num_cols, stride,
-                                  result->get_values());
-
     auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
                           num_rows, row_ptrs, col_idxs, vals, stride,
@@ -2268,151 +1952,17 @@ void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source,
-                      matrix::Sellp<ValueType, IndexType>* result)
-{
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-
-    auto result_values = result->get_values();
-    auto result_col_idxs = result->get_col_idxs();
-    auto slice_lengths = result->get_slice_lengths();
-    auto slice_sets = result->get_slice_sets();
-
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? matrix::default_slice_size
-                                : result->get_slice_size();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? matrix::default_stride_factor
-                                   : result->get_stride_factor();
-    const int slice_num = ceildiv(num_rows, slice_size);
-
-    const auto source_values = source->get_const_values();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    if (grid_dim > 0) {
-        kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
-                                      exec->get_queue(), num_rows,
-                                      source_row_ptrs, nnz_per_row.get_data());
-    }
-
-    grid_dim = slice_num;
-
-    if (grid_dim > 0) {
-        kernel::calculate_slice_lengths(
-            grid_dim, config::warp_size, 0, exec->get_queue(), num_rows,
-            slice_size, stride_factor, nnz_per_row.get_const_data(),
-            slice_lengths, slice_sets);
-    }
-
-    components::prefix_sum(exec, slice_sets, slice_num + 1);
-
-    grid_dim = ceildiv(num_rows, default_block_size);
-    if (grid_dim > 0) {
-        kernel::fill_in_sellp(
-            grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-            slice_size, source_values, source_row_ptrs, source_col_idxs,
-            slice_lengths, slice_sets, result_col_idxs, result_values);
-    }
-}
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source, int bs,
+                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
+                      Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* source,
-                    matrix::Ell<ValueType, IndexType>* result)
-{
-    const auto source_values = source->get_const_values();
-    const auto source_row_ptrs = source->get_const_row_ptrs();
-    const auto source_col_idxs = source->get_const_col_idxs();
-
-    auto result_values = result->get_values();
-    auto result_col_idxs = result->get_col_idxs();
-    const auto stride = result->get_stride();
-    const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-
-    const auto init_grid_dim =
-        ceildiv(max_nnz_per_row * num_rows, default_block_size);
-
-    kernel::initialize_zero_ell(init_grid_dim, default_block_size, 0,
-                                exec->get_queue(), max_nnz_per_row, stride,
-                                result_values, result_col_idxs);
-
-    const auto grid_dim =
-        ceildiv(num_rows * config::warp_size, default_block_size);
-
-    kernel::fill_in_ell(grid_dim, default_block_size, 0, exec->get_queue(),
-                        num_rows, stride, source_values, source_row_ptrs,
-                        source_col_idxs, result_values, result_col_idxs);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const DpcppExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* source,
-                          size_type* result, size_type stride_factor,
-                          size_type slice_size)
-{
-    const auto num_rows = source->get_size()[0];
-
-    if (num_rows == 0) {
-        *result = 0;
-        return;
-    }
-
-    const auto slice_num = ceildiv(num_rows, slice_size);
-    const auto row_ptrs = source->get_const_row_ptrs();
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
-                                  exec->get_queue(), num_rows, row_ptrs,
-                                  nnz_per_row.get_data());
-
-    grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
-    auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
-
-    kernel::reduce_max_nnz_per_slice(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-        slice_size, stride_factor, nnz_per_row.get_const_data(),
-        max_nnz_per_slice.get_data());
-
-    grid_dim = ceildiv(slice_num, default_block_size);
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_total_cols(
-        grid_dim, default_block_size, 0, exec->get_queue(), slice_num,
-        max_nnz_per_slice.get_const_data(), block_results.get_data());
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_total_cols(1, default_block_size, 0, exec->get_queue(),
-                              grid_dim, block_results.get_const_data(),
-                              d_result.get_data());
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL);
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
 
 
 template <bool conjugate, typename ValueType, typename IndexType>
@@ -2562,98 +2112,6 @@ void inverse_row_permute(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType>* source,
-                               size_type* result)
-{
-    const auto num_rows = source->get_size()[0];
-
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    auto block_results = Array<size_type>(exec, default_block_size);
-    auto d_result = Array<size_type>(exec, 1);
-
-    const auto grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::calculate_nnz_per_row(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-        source->get_const_row_ptrs(), nnz_per_row.get_data());
-
-    const auto n = ceildiv(num_rows, default_block_size);
-    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    kernel::reduce_max_nnz(reduce_dim, default_block_size, 0, exec->get_queue(),
-                           num_rows, nnz_per_row.get_const_data(),
-                           block_results.get_data());
-
-    kernel::reduce_max_nnz(1, default_block_size, 0, exec->get_queue(),
-                           reduce_dim, block_results.get_const_data(),
-                           d_result.get_data());
-
-    *result = exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       matrix::Hybrid<ValueType, IndexType>* result)
-{
-    auto ell_val = result->get_ell_values();
-    auto ell_col = result->get_ell_col_idxs();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
-    const auto stride = result->get_ell_stride();
-    const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
-    const auto num_rows = result->get_size()[0];
-    const auto coo_num_stored_elements = result->get_coo_num_stored_elements();
-    auto grid_dim = ceildiv(max_nnz_per_row * num_rows, default_block_size);
-
-    kernel::initialize_zero_ell(grid_dim, default_block_size, 0,
-                                exec->get_queue(), max_nnz_per_row, stride,
-                                ell_val, ell_col);
-
-    grid_dim = ceildiv(num_rows, default_block_size);
-    auto coo_offset = Array<size_type>(exec, num_rows);
-    kernel::calculate_hybrid_coo_row_nnz(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows,
-        max_nnz_per_row, source->get_const_row_ptrs(), coo_offset.get_data());
-
-    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
-
-    grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
-    kernel::fill_in_hybrid(
-        grid_dim, default_block_size, 0, exec->get_queue(), num_rows, stride,
-        max_nnz_per_row, source->get_const_values(),
-        source->get_const_row_ptrs(), source->get_const_col_idxs(),
-        coo_offset.get_const_data(), ell_val, ell_col, coo_val, coo_col,
-        coo_row);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const DpcppExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType>* source,
-                                Array<size_type>* result)
-{
-    const auto num_rows = source->get_size()[0];
-    auto row_ptrs = source->get_const_row_ptrs();
-    auto grid_dim = ceildiv(num_rows, default_block_size);
-
-    kernel::calculate_nnz_per_row(grid_dim, default_block_size, 0,
-                                  exec->get_queue(), num_rows, row_ptrs,
-                                  result->get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

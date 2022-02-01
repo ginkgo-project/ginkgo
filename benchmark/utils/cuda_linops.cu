@@ -76,12 +76,6 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
-                    gko::LinOp*) const override
-    {
-        GKO_NOT_IMPLEMENTED;
-    }
-
     CusparseBase(std::shared_ptr<const gko::Executor> exec,
                  const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
@@ -143,6 +137,12 @@ class CusparseCsrmp
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -174,6 +174,10 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+
     CusparseCsrmp(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CusparseCsrmp, CusparseBase>(exec, size),
@@ -203,6 +207,12 @@ class CusparseCsr
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -234,6 +244,10 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+
     CusparseCsr(std::shared_ptr<const gko::Executor> exec,
                 const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CusparseCsr, CusparseBase>(exec, size),
@@ -264,6 +278,12 @@ class CusparseCsrmm
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -295,6 +315,10 @@ protected:
             dense_b->get_size()[0], &scalars.get_const_data()[1], dx,
             dense_x->get_size()[0]);
     }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseCsrmm(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
@@ -329,6 +353,12 @@ class CusparseCsrEx
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -380,6 +410,9 @@ protected:
         // DEVICE for Ginkgo
     }
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseCsrEx(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
@@ -422,6 +455,12 @@ class CusparseHybrid
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -470,6 +509,10 @@ protected:
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
             &scalars.get_const_data()[1], dx);
     }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseHybrid(std::shared_ptr<const gko::Executor> exec,
                    const gko::dim<2>& size = gko::dim<2>{})
@@ -551,9 +594,15 @@ class CusparseGenericCsr
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
     cusparseIndexType_t cu_index =
         gko::kernels::cuda::cusparse_index_type<IndexType>();
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -598,6 +647,10 @@ protected:
                               Alg);
     }
 
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+
     CusparseGenericCsr(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})
         : gko::EnableLinOp<CusparseGenericCsr, CusparseBase>(exec, size),
@@ -629,9 +682,15 @@ class CusparseGenericCoo
 public:
     using coo = gko::matrix::Coo<ValueType, IndexType>;
     using mat_data = gko::matrix_data<ValueType, IndexType>;
+    using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
     cusparseIndexType_t cu_index =
         gko::kernels::cuda::cusparse_index_type<IndexType>();
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
+
+    void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
 
     void read(const mat_data& data) override
     {
@@ -675,6 +734,10 @@ protected:
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
                               CUSPARSE_MV_ALG_DEFAULT);
     }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta,
+                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseGenericCoo(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})

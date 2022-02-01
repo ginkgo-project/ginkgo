@@ -75,8 +75,8 @@ protected:
     template <typename Kernel>
     void test(Kernel kernel)
     {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), dim3(1),
-                           dim3(config::warp_size), 0, 0, dresult.get_data());
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), 1, config::warp_size, 0, 0,
+                           dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 
@@ -86,9 +86,8 @@ protected:
     template <typename Kernel>
     void test_subwarp(Kernel kernel)
     {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), dim3(1),
-                           dim3(config::warp_size / 2), 0, 0,
-                           dresult.get_data());
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), 1, config::warp_size / 2, 0,
+                           0, dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 
@@ -307,8 +306,8 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
     }
     dvalue = value;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<double>), dim3(1),
-                       dim3(config::warp_size), 0, 0, num, dvalue.get_data());
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<double>), 1,
+                       config::warp_size, 0, 0, num, dvalue.get_data());
 
     value = dvalue;
     GKO_ASSERT_ARRAY_EQ(value, answer);
@@ -332,7 +331,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
     dvalue = value;
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<thrust::complex<double>>),
-                       dim3(1), dim3(config::warp_size), 0, 0, num,
+                       1, config::warp_size, 0, 0, num,
                        as_hip_type(dvalue.get_data()));
 
     value = dvalue;

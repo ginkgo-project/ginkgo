@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -50,8 +51,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/ell_kernels.hpp"
+#include "core/matrix/hybrid_kernels.hpp"
+#include "core/matrix/sellp_kernels.hpp"
 
 
 namespace gko {
@@ -67,11 +72,15 @@ GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, csr::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
-GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
+GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
+GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
-GKO_REGISTER_OPERATION(calculate_total_cols, csr::calculate_total_cols);
+GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_fbcsr, csr::convert_to_fbcsr);
+GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
+                       hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row_in_span,
                        csr::calculate_nonzeros_per_row_in_span);
@@ -83,10 +92,8 @@ GKO_REGISTER_OPERATION(row_permute, csr::row_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, csr::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, csr::inverse_column_permute);
 GKO_REGISTER_OPERATION(invert_permutation, csr::invert_permutation);
-GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
-                       csr::calculate_max_nnz_per_row);
-GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
-                       csr::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(convert_ptrs_to_sizes,
+                       components::convert_ptrs_to_sizes);
 GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
@@ -183,12 +190,13 @@ void Csr<ValueType, IndexType>::convert_to(
     Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Coo<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements());
+    auto tmp = make_temporary_clone(exec, result);
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(csr::make_convert_to_coo(this, tmp.get()));
-    tmp->move_to(result);
+    tmp->row_idxs_.resize_and_reset(this->get_num_stored_elements());
+    tmp->set_size(this->get_size());
+    exec->run(csr::make_convert_ptrs_to_idxs(
+        this->get_const_row_ptrs(), this->get_size()[0], tmp->get_row_idxs()));
 }
 
 
@@ -203,9 +211,10 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(csr::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(csr::make_fill_in_dense(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -221,21 +230,19 @@ void Csr<ValueType, IndexType>::convert_to(
     Hybrid<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    Array<size_type> row_nnz(exec, this->get_size()[0]);
-    exec->run(csr::make_calculate_nonzeros_per_row(this, &row_nnz));
-    size_type ell_lim = zero<size_type>();
-    size_type coo_lim = zero<size_type>();
-    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
-    const auto max_nnz_per_row =
-        std::max(result->get_ell_num_stored_elements_per_row(), ell_lim);
-    const auto stride = std::max(result->get_ell_stride(), this->get_size()[0]);
-    const auto coo_nnz =
-        std::max(result->get_coo_num_stored_elements(), coo_lim);
-    auto tmp = Hybrid<ValueType, IndexType>::create(
-        exec, this->get_size(), max_nnz_per_row, stride, coo_nnz,
-        result->get_strategy());
-    exec->run(csr::make_convert_to_hybrid(this, tmp.get()));
-    tmp->move_to(result);
+    Array<size_type> row_nnz{exec, this->get_size()[0]};
+    Array<int64> coo_row_ptrs{exec, this->get_size()[0] + 1};
+    exec->run(csr::make_convert_ptrs_to_sizes(
+        this->get_const_row_ptrs(), this->get_size()[0], row_nnz.get_data()));
+    size_type ell_lim{};
+    size_type coo_nnz{};
+    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
+    exec->run(csr::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
+                                                    coo_row_ptrs.get_data()));
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->resize(this->get_size(), ell_lim, coo_nnz);
+    exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
+                                          tmp.get()));
 }
 
 
@@ -251,19 +258,24 @@ void Csr<ValueType, IndexType>::convert_to(
     Sellp<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    const auto stride_factor = (result->get_stride_factor() == 0)
-                                   ? default_stride_factor
-                                   : result->get_stride_factor();
-    const auto slice_size = (result->get_slice_size() == 0)
-                                ? default_slice_size
-                                : result->get_slice_size();
-    size_type total_cols = 0;
-    exec->run(csr::make_calculate_total_cols(this, &total_cols, stride_factor,
-                                             slice_size));
-    auto tmp = Sellp<ValueType, IndexType>::create(
-        exec, this->get_size(), slice_size, stride_factor, total_cols);
+    const auto stride_factor = result->get_stride_factor();
+    const auto slice_size = result->get_slice_size();
+    const auto num_rows = this->get_size()[0];
+    const auto num_slices = ceildiv(num_rows, slice_size);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->slice_sets_.resize_and_reset(num_slices + 1);
+    tmp->slice_lengths_.resize_and_reset(num_slices);
+    tmp->stride_factor_ = stride_factor;
+    tmp->slice_size_ = slice_size;
+    exec->run(csr::make_compute_slice_sets(this->row_ptrs_, slice_size,
+                                           stride_factor, tmp->get_slice_sets(),
+                                           tmp->get_slice_lengths()));
+    auto total_cols =
+        exec->copy_val_to_host(tmp->get_slice_sets() + num_slices);
+    tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
+    tmp->values_.resize_and_reset(total_cols * slice_size);
+    tmp->set_size(this->get_size());
     exec->run(csr::make_convert_to_sellp(this, tmp.get()));
-    tmp->move_to(result);
 }
 
 
@@ -278,17 +290,13 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     SparsityCsr<ValueType, IndexType>* result) const
 {
-    auto exec = this->get_executor();
-    auto tmp = SparsityCsr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements());
-    tmp->col_idxs_ = this->col_idxs_;
-    tmp->row_ptrs_ = this->row_ptrs_;
-    if (result->value_.get_data()) {
-        tmp->value_ = result->value_;
-    } else {
-        tmp->value_ = gko::Array<ValueType>(exec, {one<ValueType>()});
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    if (!result->value_.get_data()) {
+        result->value_ =
+            Array<ValueType>(result->get_executor(), {one<ValueType>()});
     }
-    tmp->move_to(result);
+    result->set_size(this->get_size());
 }
 
 
@@ -305,17 +313,47 @@ void Csr<ValueType, IndexType>::convert_to(
     Ell<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    size_type max_nnz_per_row;
-    exec->run(csr::make_calculate_max_nnz_per_row(this, &max_nnz_per_row));
-    auto tmp = Ell<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 max_nnz_per_row);
+    size_type max_nnz_per_row{};
+    exec->run(csr::make_compute_max_row_nnz(this->row_ptrs_, max_nnz_per_row));
+    auto tmp = make_temporary_clone(exec, result);
+    if (tmp->get_size() != this->get_size() ||
+        tmp->num_stored_elements_per_row_ != max_nnz_per_row) {
+        tmp->num_stored_elements_per_row_ = max_nnz_per_row;
+        tmp->stride_ = this->get_size()[0];
+        const auto storage = tmp->num_stored_elements_per_row_ * tmp->stride_;
+        tmp->col_idxs_.resize_and_reset(storage);
+        tmp->values_.resize_and_reset(storage);
+        tmp->set_size(this->get_size());
+    }
     exec->run(csr::make_convert_to_ell(this, tmp.get()));
-    tmp->move_to(result);
 }
 
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Ell<ValueType, IndexType>* result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Fbcsr<ValueType, IndexType>* result) const
+{
+    auto exec = this->get_executor();
+    const auto bs = result->get_block_size();
+    const auto row_blocks = detail::get_num_blocks(bs, this->get_size()[0]);
+    const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
+    auto tmp = make_temporary_clone(exec, result);
+    tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
+    tmp->set_size(this->get_size());
+    exec->run(csr::make_convert_to_fbcsr(this, bs, tmp->row_ptrs_,
+                                         tmp->col_idxs_, tmp->values_));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Fbcsr<ValueType, IndexType>* result)
 {
     this->convert_to(result);
 }
@@ -334,10 +372,10 @@ void Csr<ValueType, IndexType>::read(const device_mat_data& data)
 {
     const auto nnz = data.nonzeros.get_num_elems();
     auto exec = this->get_executor();
-    this->set_size(data.size);
     this->row_ptrs_.resize_and_reset(data.size[0] + 1);
     this->col_idxs_.resize_and_reset(nnz);
     this->values_.resize_and_reset(nnz);
+    this->set_size(data.size);
     auto local_data = make_temporary_clone(exec, &data.nonzeros);
     exec->run(csr::make_build_row_ptrs(*local_data, data.size[0],
                                        this->get_row_ptrs()));

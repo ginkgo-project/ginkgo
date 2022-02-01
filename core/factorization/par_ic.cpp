@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -64,7 +65,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 GKO_REGISTER_OPERATION(init_factor, par_ic_factorization::init_factor);
 GKO_REGISTER_OPERATION(compute_factor, par_ic_factorization::compute_factor);
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
-GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 
 
 }  // anonymous namespace
@@ -124,14 +125,12 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     auto l_vals_view =
         Array<ValueType>::view(exec, l_nnz, l_factor->get_values());
     auto a_vals = Array<ValueType>{exec, l_vals_view};
-    auto a_row_idxs =
+    auto a_row_idxs = Array<IndexType>{exec, l_nnz};
+    auto a_col_idxs =
         Array<IndexType>::view(exec, l_nnz, l_factor->get_col_idxs());
-    auto a_col_idxs = Array<IndexType>{exec, l_nnz};
     auto a_lower_coo =
         CooMatrix::create(exec, matrix_size, std::move(a_vals),
-                          std::move(a_row_idxs), std::move(a_col_idxs));
-    exec->run(par_ic_factorization::make_convert_to_coo(l_factor.get(),
-                                                        a_lower_coo.get()));
+                          std::move(a_col_idxs), std::move(a_row_idxs));
 
     // compute sqrt of diagonal entries
     exec->run(par_ic_factorization::make_init_factor(l_factor.get()));

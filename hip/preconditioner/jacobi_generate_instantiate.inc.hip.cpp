@@ -88,28 +88,31 @@ void generate(syn::value_list<int, max_block_size>,
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
     constexpr int blocks_per_warp = config::warp_size / subwarp_size;
-    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
-                         1, 1);
+    const auto grid_size =
+        ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
-    if (block_precisions) {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(
-                kernel::adaptive_generate<max_block_size, subwarp_size,
-                                          warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
-            as_hip_type(block_data), storage_scheme, as_hip_type(conditioning),
-            block_precisions, block_ptrs, num_blocks);
-    } else {
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size,
-                                             warps_per_block>),
-            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
-            storage_scheme, block_ptrs, num_blocks);
+    if (grid_size > 0) {
+        if (block_precisions) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::adaptive_generate<max_block_size, subwarp_size,
+                                              warps_per_block>),
+                grid_size, block_size, 0, 0, mtx->get_size()[0],
+                mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
+                as_hip_type(block_data), storage_scheme,
+                as_hip_type(conditioning), block_precisions, block_ptrs,
+                num_blocks);
+        } else {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size,
+                                                 warps_per_block>),
+                grid_size, block_size, 0, 0, mtx->get_size()[0],
+                mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
+                storage_scheme, block_ptrs, num_blocks);
+        }
     }
 }
 

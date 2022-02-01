@@ -70,7 +70,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx1(Mtx::create(exec)),
           mtx2(Mtx::create(exec)),
-          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 2))
+          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 1))
     {
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
@@ -97,11 +97,8 @@ protected:
         ell_col[3] = 1;
         // Set Coo values
         coo_val[0] = 2.0;
-        coo_val[1] = 0.0;
         coo_col[0] = 2;
-        coo_col[1] = 2;
         coo_row[0] = 0;
-        coo_row[1] = 1;
     }
 
     void assert_equal_to_mtx(const Csr* m)
@@ -490,17 +487,6 @@ TYPED_TEST(Hybrid, MovesEmptyToCsr)
     ASSERT_EQ(res->get_num_stored_elements(), 0);
     ASSERT_EQ(*res->get_const_row_ptrs(), 0);
     ASSERT_FALSE(res->get_size());
-}
-
-
-TYPED_TEST(Hybrid, CountsNonzeros)
-{
-    gko::size_type nonzeros;
-
-    gko::kernels::reference::hybrid::count_nonzeros(
-        this->exec, this->mtx1.get(), &nonzeros);
-
-    ASSERT_EQ(nonzeros, 4);
 }
 
 

@@ -50,16 +50,16 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   Array<matrix_data_entry<ValueType, IndexType>>& data)
 {
     auto size = data.get_num_elems();
-    auto is_nonzero = [](matrix_data_entry<ValueType, IndexType> entry) {
-        return entry.value != zero<ValueType>();
+    auto is_nonzero_entry = [](matrix_data_entry<ValueType, IndexType> entry) {
+        return is_nonzero(entry.value);
     };
     auto nnz = std::count_if(data.get_const_data(),
-                             data.get_const_data() + size, is_nonzero);
+                             data.get_const_data() + size, is_nonzero_entry);
     if (nnz < size) {
         Array<matrix_data_entry<ValueType, IndexType>> result{
             exec, static_cast<size_type>(nnz)};
         std::copy_if(data.get_const_data(), data.get_const_data() + size,
-                     result.get_data(), is_nonzero);
+                     result.get_data(), is_nonzero_entry);
         data = std::move(result);
     }
 }

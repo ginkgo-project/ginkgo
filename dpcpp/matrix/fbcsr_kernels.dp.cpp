@@ -89,19 +89,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const DpcppExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs) GKO_NOT_IMPLEMENTED;
-
-
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::Fbcsr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -131,26 +125,6 @@ void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    size_type* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

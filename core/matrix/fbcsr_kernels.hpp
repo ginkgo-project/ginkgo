@@ -72,10 +72,10 @@ namespace kernels {
         int block_size, Array<IndexType>& row_ptrs,                        \
         Array<IndexType>& col_idxs, Array<ValueType>& values)
 
-#define GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
-                          const matrix::Fbcsr<ValueType, IndexType>* source, \
-                          matrix::Dense<ValueType>* result)
+#define GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
+    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,       \
+                       const matrix::Fbcsr<ValueType, IndexType>* source, \
+                       matrix::Dense<ValueType>* result)
 
 #define GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
@@ -92,19 +92,6 @@ namespace kernels {
                         const matrix::Fbcsr<ValueType, IndexType>* orig, \
                         matrix::Fbcsr<ValueType, IndexType>* trans)
 
-#define GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, \
-                                                           IndexType) \
-    void calculate_max_nnz_per_row(                                   \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Fbcsr<ValueType, IndexType>* source, size_type* result)
-
-#define GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, \
-                                                            IndexType) \
-    void calculate_nonzeros_per_row(                                   \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::Fbcsr<ValueType, IndexType>* source,             \
-        Array<size_type>* result)
-
 #define GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)       \
     void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
                               matrix::Fbcsr<ValueType, IndexType>* to_sort)
@@ -119,30 +106,26 @@ namespace kernels {
                           const matrix::Fbcsr<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);                       \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType);                  \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
-    template <typename ValueType, typename IndexType>                          \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL(ValueType, IndexType)
 
 

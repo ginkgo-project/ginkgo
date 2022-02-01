@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/matrix/dense_kernels.hpp"
 
 
 namespace gko {
@@ -61,8 +62,7 @@ void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto row_ptrs) {
             return row_ptrs[i + 1] - row_ptrs[i];
         },
-        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; },
-        [] GKO_KERNEL(auto a) { return a; }, size_type{}, result.get_data(),
+        GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
         row_ptrs.get_num_elems() - 1, row_ptrs);
     max_nnz = exec->copy_val_to_host(result.get_const_data());
 }
@@ -97,6 +97,111 @@ void fill_in_matrix_data(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Ell<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result)
+{
+    // TODO simplify once we can guarantee unique column indices outside padding
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto cols, auto ell_cols, auto ell_stride,
+                      auto in_cols, auto in_vals, auto out) {
+            for (int64 ell_col = 0; ell_col < ell_cols; ell_col++) {
+                const auto ell_idx = ell_col * ell_stride + row;
+                const auto col = in_cols[ell_idx];
+                const auto val = in_vals[ell_idx];
+                out(row, col) += val;
+            }
+        },
+        source->get_size()[0], source->get_size()[1],
+        source->get_num_stored_elements_per_row(),
+        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
+        source->get_const_values(), result);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Ell<ValueType, IndexType>* source,
+                    matrix::Csr<ValueType, IndexType>* result)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_cols,
+                      auto in_vals, auto out_row_ptrs, auto out_cols,
+                      auto out_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            const auto row_begin = out_row_ptrs[row];
+            const auto row_size = out_row_ptrs[row + 1] - row_begin;
+            if (ell_col < row_size) {
+                out_cols[row_begin + ell_col] = in_cols[ell_idx];
+                out_vals[row_begin + ell_col] = in_vals[ell_idx];
+            }
+        },
+        dim<2>{source->get_num_stored_elements_per_row(),
+               source->get_size()[0]},
+        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
+        source->get_const_values(), result->get_row_ptrs(),
+        result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Ell<ValueType, IndexType>* source,
+                            IndexType* result)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel_col_reduction(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            return is_nonzero(in_vals[ell_idx]) ? 1 : 0;
+        },
+        GKO_KERNEL_REDUCE_SUM(IndexType), result,
+        dim<2>{source->get_num_stored_elements_per_row(),
+               source->get_size()[0]},
+        static_cast<int64>(source->get_stride()), source->get_const_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Ell<ValueType, IndexType>* orig,
+                      matrix::Diagonal<ValueType>* diag)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto ell_stride, auto in_cols,
+                      auto in_vals, auto out_vals) {
+            const auto ell_idx = ell_col * ell_stride + row;
+            const auto col = in_cols[ell_idx];
+            const auto val = in_vals[ell_idx];
+            if (row == col && is_nonzero(val)) {
+                out_vals[row] = val;
+            }
+        },
+        dim<2>{orig->get_num_stored_elements_per_row(), orig->get_size()[0]},
+        static_cast<int64>(orig->get_stride()), orig->get_const_col_idxs(),
+        orig->get_const_values(), diag->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell

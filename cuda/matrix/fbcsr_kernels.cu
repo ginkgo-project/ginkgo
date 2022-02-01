@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/block_sizes.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
@@ -226,26 +227,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
-template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
-                              const IndexType* ptrs, size_type num_rows,
-                              IndexType* idxs) GKO_NOT_IMPLEMENTED;
-
-
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Fbcsr<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
+                   const matrix::Fbcsr<ValueType, IndexType>* source,
+                   matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CONVERT_TO_DENSE_KERNEL);
+    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    if (num_blocks > 0) {
+        kernel::convert_to_csr<<<num_blocks, default_block_size>>>(
+            source->get_const_row_ptrs(), source->get_const_col_idxs(),
+            as_cuda_type(source->get_const_values()), result->get_row_ptrs(),
+            result->get_col_idxs(), as_cuda_type(result->get_values()),
+            source->get_num_block_rows(), source->get_block_size());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);
@@ -259,13 +265,14 @@ void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
     constexpr int subwarp_size = config::warp_size;
-    const size_type nbnz = mat->get_num_stored_blocks();
-    const size_type numthreads = nbnz * subwarp_size;
-    const size_type numblocks = ceildiv(numthreads, default_block_size);
-    const dim3 block_size{static_cast<unsigned>(default_block_size), 1, 1};
-    const dim3 grid_dim{static_cast<unsigned>(numblocks), 1, 1};
-    kernel::transpose_blocks<mat_blk_sz, subwarp_size>
-        <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
+    const auto nbnz = mat->get_num_stored_blocks();
+    const auto numthreads = nbnz * subwarp_size;
+    const auto block_size = default_block_size;
+    const auto grid_dim = ceildiv(numthreads, block_size);
+    if (grid_dim > 0) {
+        kernel::transpose_blocks<mat_blk_sz, subwarp_size>
+            <<<grid_dim, block_size, 0, 0>>>(nbnz, mat->get_values());
+    }
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_blocks,
@@ -321,55 +328,15 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     const int grid_size =
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
-    csr_reuse::conjugate_kernel<<<grid_size, default_block_size>>>(
-        trans->get_num_stored_elements(), as_cuda_type(trans->get_values()));
+    if (grid_size > 0) {
+        csr_reuse::conjugate_kernel<<<grid_size, default_block_size>>>(
+            trans->get_num_stored_elements(),
+            as_cuda_type(trans->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* const source,
-    size_type* const result)
-{
-    const auto num_b_rows = source->get_num_block_rows();
-    const auto bs = source->get_block_size();
-
-    auto nnz_per_row = Array<size_type>(exec, num_b_rows);
-    auto block_results = Array<size_type>(exec, default_block_size);
-    auto d_result = Array<size_type>(exec, 1);
-
-    const auto grid_dim = ceildiv(num_b_rows, default_block_size);
-    csr_reuse::kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_b_rows, as_cuda_type(source->get_const_row_ptrs()),
-        nnz_per_row.get_data());
-
-    const auto n = ceildiv(num_b_rows, default_block_size);
-    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    csr_reuse::kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
-        num_b_rows, nnz_per_row.get_const_data(), block_results.get_data());
-
-    csr_reuse::kernel::reduce_max_nnz<<<1, default_block_size>>>(
-        reduce_dim, block_results.get_const_data(), d_result.get_data());
-
-    *result = bs * exec->copy_val_to_host(d_result.get_const_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(
-    std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_FBCSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -387,9 +354,11 @@ void is_sorted_by_column_index(
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
     const auto num_blocks = ceildiv(num_brows, block_size);
-    csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
-        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
-        num_brows, gpu_array.get_data());
+    if (num_blocks > 0) {
+        csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
+            to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+            num_brows, gpu_array.get_data());
+    }
     *is_sorted = exec->copy_val_to_host(gpu_array.get_data());
 }
 

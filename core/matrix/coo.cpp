@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 
 
@@ -62,8 +64,8 @@ GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, coo::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
-GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
+GKO_REGISTER_OPERATION(fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
@@ -148,14 +150,15 @@ void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    tmp->values_ = this->values_;
-    tmp->col_idxs_ = this->col_idxs_;
-    exec->run(coo::make_convert_to_csr(this, tmp.get()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    result->set_size(this->get_size());
+    result->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+    result->col_idxs_ = this->col_idxs_;
+    result->values_ = this->values_;
+    exec->run(coo::make_convert_idxs_to_ptrs(
+        this->get_const_row_idxs(), this->get_num_stored_elements(),
+        this->get_size()[0],
+        make_temporary_clone(exec, &result->row_ptrs_)->get_data()));
+    result->make_srow();
 }
 
 
@@ -163,14 +166,15 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType>* result)
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    tmp->values_ = std::move(this->values_);
-    tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(this, tmp.get()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    const auto nnz = this->get_num_stored_elements();
+    result->set_size(this->get_size());
+    result->row_ptrs_.resize_and_reset(this->get_size()[0] + 1);
+    result->col_idxs_ = std::move(this->col_idxs_);
+    result->values_ = std::move(this->values_);
+    exec->run(coo::make_convert_idxs_to_ptrs(
+        this->get_const_row_idxs(), nnz, this->get_size()[0],
+        make_temporary_clone(exec, &result->row_ptrs_)->get_data()));
+    result->make_srow();
 }
 
 
@@ -178,9 +182,10 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    result->resize(this->get_size());
+    result->fill(zero<ValueType>());
+    exec->run(coo::make_fill_in_dense(
+        this, make_temporary_output_clone(exec, result).get()));
 }
 
 
@@ -188,6 +193,16 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::resize(dim<2> new_size, size_type nnz)
+{
+    this->set_size(new_size);
+    this->row_idxs_.resize_and_reset(nnz);
+    this->col_idxs_.resize_and_reset(nnz);
+    this->values_.resize_and_reset(nnz);
 }
 
 

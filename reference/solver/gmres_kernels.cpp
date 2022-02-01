@@ -108,7 +108,7 @@ void calculate_sin_and_cos(matrix::Dense<ValueType>* givens_sin,
                            matrix::Dense<ValueType>* hessenberg_iter,
                            size_type iter, const size_type rhs)
 {
-    if (hessenberg_iter->at(iter, rhs) == zero<ValueType>()) {
+    if (is_zero(hessenberg_iter->at(iter, rhs))) {
         givens_cos->at(iter, rhs) = zero<ValueType>();
         givens_sin->at(iter, rhs) = one<ValueType>();
     } else {

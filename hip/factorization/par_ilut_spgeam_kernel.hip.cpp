@@ -111,11 +111,13 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_vals = u->get_const_values();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
-    // count non-zeros per row
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::tri_spgeam_nnz<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       lu_row_ptrs, lu_col_idxs, a_row_ptrs, a_col_idxs,
-                       l_new_row_ptrs, u_new_row_ptrs, num_rows);
+    if (num_blocks > 0) {
+        // count non-zeros per row
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::tri_spgeam_nnz<subwarp_size>), num_blocks,
+            default_block_size, 0, 0, lu_row_ptrs, lu_col_idxs, a_row_ptrs,
+            a_col_idxs, l_new_row_ptrs, u_new_row_ptrs, num_rows);
+    }
 
     // build row ptrs
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
@@ -134,15 +136,17 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_new_col_idxs = u_new->get_col_idxs();
     auto u_new_vals = u_new->get_values();
 
-    // fill columns and values
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::tri_spgeam_init<subwarp_size>),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       lu_row_ptrs, lu_col_idxs, as_hip_type(lu_vals),
-                       a_row_ptrs, a_col_idxs, as_hip_type(a_vals), l_row_ptrs,
-                       l_col_idxs, as_hip_type(l_vals), u_row_ptrs, u_col_idxs,
-                       as_hip_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
-                       as_hip_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
-                       as_hip_type(u_new_vals), num_rows);
+    if (num_blocks > 0) {
+        // fill columns and values
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::tri_spgeam_init<subwarp_size>), num_blocks,
+            default_block_size, 0, 0, lu_row_ptrs, lu_col_idxs,
+            as_hip_type(lu_vals), a_row_ptrs, a_col_idxs, as_hip_type(a_vals),
+            l_row_ptrs, l_col_idxs, as_hip_type(l_vals), u_row_ptrs, u_col_idxs,
+            as_hip_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
+            as_hip_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
+            as_hip_type(u_new_vals), num_rows);
+    }
 }
 
 

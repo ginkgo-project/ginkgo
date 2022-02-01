@@ -335,7 +335,10 @@ protected:
           slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
           stride_factor_(stride_factor)
-    {}
+    {
+        slice_sets_.fill(0);
+        slice_lengths_.fill(0);
+    }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
