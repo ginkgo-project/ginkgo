@@ -589,9 +589,9 @@ TYPED_TEST(BatchCsr, AddScaledIdentity)
           I<T>{3.0, -1.5, 0.1, 0.5}}},
         this->exec);
     auto beta =
-        gko::batch_initialize<BDense>({{I<T>{-1.0}}, {I<T>{-0.5}}}, this->exec);
+        gko::batch_initialize<BDense>({I<T>{-1.0}, I<T>{-0.5}}, this->exec);
     auto alpha =
-        gko::batch_initialize<BDense>({{I<T>{2.0}}, {I<T>{-3.0}}}, this->exec);
+        gko::batch_initialize<BDense>({I<T>{2.0}, I<T>{-3.0}}, this->exec);
     auto sol_mat = gko::batch_initialize<Mtx>(
         {{I<T>{-1.0, 0.0, 1.0, 0.0}, I<T>{0.0, 1.0, 1.5, 2.0},
           I<T>{-4.0, -2.5, 1.0, 1.0}},
