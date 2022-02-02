@@ -46,8 +46,6 @@ namespace solver {
 namespace batch_direct {
 
 
-// GKO_REGISTER_OPERATION(pre_diag_scale_system,
-// batch_csr::pre_diag_scale_system);
 GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(pre_diag_scale_system_transpose,
                        batch_direct::pre_diag_scale_system_transpose);
