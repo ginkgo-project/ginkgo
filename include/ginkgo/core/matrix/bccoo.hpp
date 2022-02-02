@@ -312,10 +312,13 @@ protected:
     Bccoo(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
           rows_(exec, 0),
+          cols_(exec, 0),
+          types_(exec, 0),
           offsets_(exec, 0),
           chunk_(exec, 0),
           num_nonzeros_{0},
-          block_size_{0}
+          block_size_{0},
+          cpu_gpu_{false}
     {}
 
     /**
@@ -326,23 +329,32 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      * @param num_bytes     number of bytes
+     * @param cpu_gpu     	CPU or GPU variant
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type num_nonzeros, size_type block_size, size_type num_bytes)
+          size_type num_nonzeros, size_type block_size, size_type num_bytes,
+          boolean cpu_gpu)
         : EnableLinOp<Bccoo>(exec, size),
           rows_(exec,
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
+          cols_(exec, (cpu_gpu || (block_size <= 0))
+                          ? 0
+                          : ceildiv(num_nonzeros, block_size)),
+          types_(exec, (cpu_gpu || (block_size <= 0))
+                           ? 0
+                           : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
                              ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
-          block_size_{block_size}
+          block_size_{block_size},
+          cpu_gpu_{cpu_gpu}
     {}
 
     /**
-     * Creates a BCCOO matrix from already allocated (and initialized) rows
-     * offsets and chunk arrays.
+     * Creates a CPU variant of the BCCOO matrix from already allocated
+     * (and initialized) rows, offsets and chunk arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -355,7 +367,7 @@ protected:
      * @param block_size    number of nonzeros in each block
      *
      * @note If one of `chunk`, `offsets` or `rows` is not an rvalue, not
-     *       an array of uint8, IndexType and IndexType, respectively, or
+     *       an array of uint8, IndexType or IndexType, respectively, or
      *       is on the wrong executor, an internal copy of that array will be
      *       created, and the original array chunk will not be used in the
      *       matrix.
@@ -368,7 +380,49 @@ protected:
           offsets_{exec, std::move(offsets)},
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
-          block_size_{block_size}
+          block_size_{block_size},
+          cpu_gpu_{true}
+    {
+        GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
+    }
+
+    /**
+     * Creates a GPU variant of the BCCOO matrix from already allocated
+     * (and initialized) rows offsets and chunk arrays.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param chunk   array of matrix indexes and matrix values
+     * @param offsets array of positions of the first entry of each block in
+     *                chunk array
+     * @param types   array of compression type for each block in
+     *                chunk array
+     * @param cols    array of minimum column index for each block in
+     *                chunk array
+     * @param rows    array of minimum row index for each block in
+     *                chunk array
+     * @param num_nonzeros  number of nonzeros
+     * @param block_size    number of nonzeros in each block
+     *
+     * @note If one of `chunk`, `offsets`, `types`, `cols` or `rows` is not
+     * 			 an rvalue, not an array of uint8, IndexType, IndexType,
+     * IndexType or IndexType, respectively, or is on the wrong executor, an
+     * 			 internal copy of that array will be created, and the
+     * original array chunk will not be used in the matrix.
+     */
+    Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+          Array<uint8> chunk, Array<IndexType> offsets, Array<IndexType> types,
+          Array<IndexType> cols, Array<IndexType> rows, size_type num_nonzeros,
+          size_type block_size)
+        : EnableLinOp<Bccoo>(exec, size),
+          chunk_{exec, std::move(chunk)},
+          offsets_{exec, std::move(offsets)},
+          types_{exec, std::move(types)},
+          cols_{exec, std::move(cols)},
+          rows_{exec, std::move(rows)},
+          num_nonzeros_{num_nonzeros},
+          block_size_{block_size},
+          cpu_gpu_{false}
     {
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
@@ -384,10 +438,13 @@ protected:
 
 private:
     array<index_type> rows_;
+    array<index_type> cols_;
+    array<index_type> types_;
     array<index_type> offsets_;
     array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;
+    boolean cpu_gpu_;
 };
 
 
