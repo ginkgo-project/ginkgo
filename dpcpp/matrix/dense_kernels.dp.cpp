@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -659,10 +660,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Dense<ValueType>* source, const int64* coo_row_ptrs,
-    matrix::Hybrid<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
+void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
+                       const matrix::Dense<ValueType>* source,
+                       const int64* coo_row_ptrs,
+                       matrix::Hybrid<ValueType, IndexType>* result)
+{
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto ell_lim = result->get_ell_num_stored_elements_per_row();
+    const auto source_vals = source->get_const_values();
+    const auto source_stride = source->get_stride();
+    const auto ell_stride = result->get_ell_stride();
+    auto ell_cols = result->get_ell_col_idxs();
+    auto ell_vals = result->get_ell_values();
+    auto coo_rows = result->get_coo_row_idxs();
+    auto coo_cols = result->get_coo_col_idxs();
+    auto coo_vals = result->get_coo_values();
+
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            size_type ell_count = 0;
+            size_type col = 0;
+            auto ell_idx = row;
+            for (; col < num_cols && ell_count < ell_lim; col++) {
+                auto val = source_vals[row * source_stride + col];
+                if (is_nonzero(val)) {
+                    ell_vals[ell_idx] = val;
+                    ell_cols[ell_idx] = col;
+                    ell_count++;
+                    ell_idx += ell_stride;
+                }
+            }
+            for (; ell_count < ell_lim; ell_count++) {
+                ell_vals[ell_idx] = zero<ValueType>();
+                ell_cols[ell_idx] = 0;
+                ell_idx += ell_stride;
+            }
+            auto coo_idx = coo_row_ptrs[row];
+            for (; col < num_cols; col++) {
+                auto val = source_vals[row * source_stride + col];
+                if (is_nonzero(val)) {
+                    coo_vals[coo_idx] = val;
+                    coo_cols[coo_idx] = col;
+                    coo_rows[coo_idx] = row;
+                    coo_idx++;
+                }
+            }
+        });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);

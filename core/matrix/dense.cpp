@@ -557,18 +557,23 @@ template <typename IndexType>
 void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    Array<size_type> row_nnz{exec, this->get_size()[0]};
-    Array<int64> coo_row_ptrs{exec, this->get_size()[0] + 1};
+    const auto num_rows = this->get_size()[0];
+    const auto num_cols = this->get_size()[1];
+    Array<size_type> row_nnz{exec, num_rows};
+    Array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(dense::make_count_nonzeros_per_row(this, row_nnz.get_data()));
     size_type ell_lim{};
     size_type coo_nnz{};
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
+    if (ell_lim > num_cols) {
+        // TODO remove temporary fix after ELL gains true structural zeros
+        ell_lim = num_cols;
+    }
     exec->run(dense::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                       coo_row_ptrs.get_data()));
+    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
     auto tmp = make_temporary_clone(exec, result);
-    tmp->ell_->resize(this->get_size(), ell_lim);
-    tmp->coo_->resize(this->get_size(), coo_nnz);
-    tmp->set_size(this->get_size());
+    tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(dense::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
                                             tmp.get()));
 }

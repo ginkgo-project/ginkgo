@@ -76,6 +76,50 @@ void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         const int64* row_ptrs, const int64* coo_row_ptrs,
+                         matrix::Hybrid<ValueType, IndexType>* result)
+{
+    using device_value_type = device_type<ValueType>;
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto data, auto ell_stride,
+                      auto ell_max_nnz, auto ell_cols, auto ell_vals,
+                      auto coo_row_ptrs, auto coo_row_idxs, auto coo_col_idxs,
+                      auto coo_vals) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_size = row_ptrs[row + 1] - row_begin;
+            for (int64 i = 0; i < ell_max_nnz; i++) {
+                const auto out_idx = row + ell_stride * i;
+                const auto in_idx = i + row_begin;
+                const bool use = i < row_size;
+                ell_cols[out_idx] = use ? data[in_idx].column : 0;
+                ell_vals[out_idx] = use ? unpack_member(data[in_idx].value)
+                                        : zero<device_value_type>();
+            }
+            const auto coo_begin = coo_row_ptrs[row];
+            for (int64 i = ell_max_nnz; i < row_size; i++) {
+                const auto in_idx = i + row_begin;
+                const auto out_idx =
+                    coo_begin + i - static_cast<int64>(ell_max_nnz);
+                coo_row_idxs[out_idx] = row;
+                coo_col_idxs[out_idx] = data[in_idx].column;
+                coo_vals[out_idx] = unpack_member(data[in_idx].value);
+            }
+        },
+        data.size[0], row_ptrs, data.nonzeros, result->get_ell_stride(),
+        result->get_ell_num_stored_elements_per_row(),
+        result->get_ell_col_idxs(), result->get_ell_values(), coo_row_ptrs,
+        result->get_coo_row_idxs(), result->get_coo_col_idxs(),
+        result->get_coo_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_FILL_IN_MATRIX_DATA_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Hybrid<ValueType, IndexType>* source,
                     const IndexType* ell_row_ptrs,

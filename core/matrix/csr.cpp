@@ -230,15 +230,22 @@ void Csr<ValueType, IndexType>::convert_to(
     Hybrid<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    Array<size_type> row_nnz{exec, this->get_size()[0]};
-    Array<int64> coo_row_ptrs{exec, this->get_size()[0] + 1};
-    exec->run(csr::make_convert_ptrs_to_sizes(
-        this->get_const_row_ptrs(), this->get_size()[0], row_nnz.get_data()));
+    const auto num_rows = this->get_size()[0];
+    const auto num_cols = this->get_size()[1];
+    Array<size_type> row_nnz{exec, num_rows};
+    Array<int64> coo_row_ptrs{exec, num_rows + 1};
+    exec->run(csr::make_convert_ptrs_to_sizes(this->get_const_row_ptrs(),
+                                              num_rows, row_nnz.get_data()));
     size_type ell_lim{};
     size_type coo_nnz{};
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
+    if (ell_lim > num_cols) {
+        // TODO remove temporary fix after ELL gains true structural zeros
+        ell_lim = num_cols;
+    }
     exec->run(csr::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
                                                     coo_row_ptrs.get_data()));
+    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),

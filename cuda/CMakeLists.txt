@@ -95,7 +95,6 @@ target_sources(ginkgo_cuda
     matrix/ell_kernels.cu
     matrix/fbcsr_kernels.cu
     matrix/fft_kernels.cu
-    matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu
     matrix/sparsity_csr_kernels.cu
     multigrid/amgx_pgm_kernels.cu
