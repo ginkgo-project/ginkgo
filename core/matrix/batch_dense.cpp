@@ -285,6 +285,8 @@ void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
                      dim<2>{batch_size.at(0)[0]}},
         std::move(this->values_));
     *result = std::move(*temp);
+    // set the size of this to 0
+    this->set_size(batch_dim<2>());
 }
 
 
