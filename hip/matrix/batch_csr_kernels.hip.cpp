@@ -256,32 +256,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void pre_diag_scale_system(
-    std::shared_ptr<const HipExecutor> exec,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
-    matrix::BatchCsr<ValueType, IndexType>* const a,
-    matrix::BatchDense<ValueType>* const b)
-{
-    const size_type nbatch = a->get_num_batch_entries();
-    const int nrows = static_cast<int>(a->get_size().at()[0]);
-    const size_type nnz = a->get_num_stored_elements() / nbatch;
-    const int nrhs = static_cast<int>(b->get_size().at()[1]);
-    const size_type b_stride = b->get_stride().at();
-    hipLaunchKernelGGL(pre_diag_scale_system, dim3(nbatch),
-                       dim3(default_block_size), 0, 0, nbatch, nrows, nnz,
-                       as_hip_type(a->get_values()), a->get_const_col_idxs(),
-                       a->get_const_row_ptrs(), nrhs, b_stride,
-                       as_hip_type(b->get_values()),
-                       as_hip_type(left_scale->get_const_values()),
-                       as_hip_type(right_scale->get_const_values()));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
-
-
-template <typename ValueType, typename IndexType>
 void convert_to_batch_dense(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const src,
