@@ -38,13 +38,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param[in,out] a  The dense matrix or vectors to scale.
  */
 template <typename ValueType>
-inline void batch_diag_apply(const ValueType* const diag_vec,
-                             const gko::batch_dense::BatchEntry<ValueType>& a)
+inline void batch_diag_apply_in_place(
+    const ValueType* const diag_vec,
+    const gko::batch_dense::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
         const ValueType scale = diag_vec[i_row];
         for (int j = 0; j < a.num_rhs; j++) {
             a.values[i_row * a.stride + j] *= scale;
+        }
+    }
+}
+
+template <typename ValueType>
+inline void batch_diag_apply(const int nrows, const int ncols,
+                             const ValueType* const diag, const int nrhs,
+                             const int x_stride, const ValueType* const x,
+                             const int y_stride, ValueType* const y)
+{
+    const int mindim = std::min(nrows, ncols);
+    for (int i = 0; i < mindim; i++) {
+        for (int j = 0; j < nrhs; j++) {
+            y[i * y_stride + j] = diag[i] * x[i * x_stride + j];
+        }
+    }
+    for (int i = mindim; i < nrows; i++) {
+        for (int j = 0; j < nrhs; j++) {
+            y[i * y_stride + j] = zero<ValueType>();
         }
     }
 }
