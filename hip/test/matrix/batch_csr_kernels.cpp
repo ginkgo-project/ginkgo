@@ -227,36 +227,31 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 
 TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
 {
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     set_up_apply_data();
     const size_t batch_size = mtx_size.get_num_batch_entries();
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
     const int nrhs = 3;
-    auto ref_left_scale = gen_mtx<Vec>(batch_size, nrows, 1, 1);
-    auto ref_right_scale = gen_mtx<Vec>(batch_size, ncols, 1, 1);
+    auto ref_left_scale = gen_mtx<BDiag>(batch_size, nrows, nrows, 1);
+    auto ref_right_scale = gen_mtx<BDiag>(batch_size, ncols, nrows, 1);
     auto ref_b = gen_mtx<Vec>(batch_size, nrows, nrhs, 2);
-    auto d_left_scale = Vec::create(hip);
+    auto d_left_scale = BDiag::create(hip);
     d_left_scale->copy_from(ref_left_scale.get());
-    auto d_right_scale = Vec::create(hip);
+    auto d_right_scale = BDiag::create(hip);
     d_right_scale->copy_from(ref_right_scale.get());
     auto d_b = Vec::create(hip);
     d_b->copy_from(ref_b.get());
 
-    gko::kernels::reference::batch_csr::pre_diag_scale_system(
+    gko::kernels::reference::batch_csr::pre_diag_transform_system(
         ref, ref_left_scale.get(), ref_right_scale.get(), mtx.get(),
         ref_b.get());
-    gko::kernels::hip::batch_csr::pre_diag_scale_system(
-        hip, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
-    auto scaled_mtx = Mtx::create(ref);
-    scaled_mtx->copy_from(dmtx.get());
-    auto scaled_b = Vec::create(ref);
-    scaled_b->copy_from(d_b.get());
+    gko::kernels::cuda::batch_csr::pre_diag_transform_system(
+        cuda, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
-    gko::test::check_relative_diff(mtx.get(), scaled_mtx.get(),
+    gko::test::check_relative_diff(mtx.get(), dmtx.get(),
                                    0.001 * r<value_type>::value);
-    // The following line fails with a NaN error for some reason
-    // GKO_ASSERT_BATCH_MTX_NEAR(mtx, scaled_mtx, r<value_type>::value);
-    GKO_ASSERT_BATCH_MTX_NEAR(ref_b, scaled_b, 0.0);
+    GKO_ASSERT_BATCH_MTX_NEAR(ref_b, d_b, 0.001 * r<value_type>::value);
 }
 
 
