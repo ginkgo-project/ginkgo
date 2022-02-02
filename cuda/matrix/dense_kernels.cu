@@ -300,7 +300,23 @@ template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const CudaExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+
+    auto stride = source->get_stride();
+
+    const auto grid_dim =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    if (grid_dim > 0) {
+        kernel::fill_in_sparsity_csr<<<grid_dim, default_block_size>>>(
+            num_rows, num_cols, stride,
+            as_cuda_type(source->get_const_values()), row_ptrs, col_idxs);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);

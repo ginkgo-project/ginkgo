@@ -85,316 +85,6 @@ constexpr int default_block_size = 256;
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
-void fill_in_coo(size_type num_rows, size_type num_cols, size_type stride,
-                 const int64* __restrict__ row_ptrs,
-                 const ValueType* __restrict__ source,
-                 IndexType* __restrict__ row_idxs,
-                 IndexType* __restrict__ col_idxs,
-                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        size_type write_to = row_ptrs[tidx];
-
-        for (size_type i = 0; i < num_cols; i++) {
-            if (is_nonzero(source[stride * tidx + i])) {
-                values[write_to] = source[stride * tidx + i];
-                col_idxs[write_to] = i;
-                row_idxs[write_to] = tidx;
-                write_to++;
-            }
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_coo, fill_in_coo)
-
-
-template <std::uint32_t cfg, typename ValueType, typename IndexType>
-void count_nnz_per_row(size_type num_rows, size_type num_cols, size_type stride,
-                       const ValueType* __restrict__ work,
-                       IndexType* __restrict__ result,
-                       sycl::nd_item<3> item_ct1)
-{
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    const auto row_idx = thread::get_subwarp_id_flat<sg_size>(item_ct1);
-    auto warp_tile =
-        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
-
-    if (row_idx < num_rows) {
-        IndexType part_result{};
-        for (auto i = warp_tile.thread_rank(); i < num_cols; i += sg_size) {
-            if (is_nonzero(work[stride * row_idx + i])) {
-                part_result += 1;
-            }
-        }
-        result[row_idx] = ::gko::kernels::dpcpp::reduce(
-            warp_tile, part_result,
-            [](const size_type& a, const size_type& b) { return a + b; });
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST_CONFIG(count_nnz_per_row, count_nnz_per_row)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(count_nnz_per_row, count_nnz_per_row)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(count_nnz_per_row_call, count_nnz_per_row,
-                               kcfg_1d_list)
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_csr(size_type num_rows, size_type num_cols, size_type stride,
-                 const ValueType* __restrict__ source,
-                 IndexType* __restrict__ row_ptrs,
-                 IndexType* __restrict__ col_idxs,
-                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-
-    if (tidx < num_rows) {
-        auto write_to = row_ptrs[tidx];
-        for (size_type i = 0; i < num_cols; i++) {
-            if (is_nonzero(source[stride * tidx + i])) {
-                values[write_to] = source[stride * tidx + i];
-                col_idxs[write_to] = i;
-                write_to++;
-            }
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_csr, fill_in_csr)
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_ell(size_type num_rows, size_type num_cols,
-                 size_type source_stride, const ValueType* __restrict__ source,
-                 size_type max_nnz_per_row, size_type result_stride,
-                 IndexType* __restrict__ col_ptrs,
-                 ValueType* __restrict__ values, sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        IndexType col_idx = 0;
-        for (size_type col = 0; col < num_cols; col++) {
-            if (is_nonzero(source[tidx * source_stride + col])) {
-                col_ptrs[col_idx * result_stride + tidx] = col;
-                values[col_idx * result_stride + tidx] =
-                    source[tidx * source_stride + col];
-                col_idx++;
-            }
-        }
-        for (size_type j = col_idx; j < max_nnz_per_row; j++) {
-            col_ptrs[j * result_stride + tidx] = 0;
-            values[j * result_stride + tidx] = zero<ValueType>();
-        }
-    } else if (tidx < result_stride) {
-        for (size_type j = 0; j < max_nnz_per_row; j++) {
-            col_ptrs[j * result_stride + tidx] = 0;
-            values[j * result_stride + tidx] = zero<ValueType>();
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_ell, fill_in_ell)
-
-
-template <std::uint32_t cfg>
-void calculate_slice_lengths(size_type num_rows, size_type slice_size,
-                             int slice_num, size_type stride_factor,
-                             const size_type* __restrict__ nnz_per_row,
-                             size_type* __restrict__ slice_lengths,
-                             size_type* __restrict__ slice_sets,
-                             sycl::nd_item<3> item_ct1)
-{
-    constexpr auto sg_size = cfg;
-    const auto sliceid = item_ct1.get_group(2);
-    const auto tid_in_warp = item_ct1.get_local_id(2);
-    const bool runable = sliceid * slice_size + tid_in_warp < num_rows;
-    size_type thread_result = 0;
-    for (size_type i = tid_in_warp; i < slice_size; i += sg_size) {
-        thread_result =
-            (i + slice_size * sliceid < num_rows)
-                ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
-                : thread_result;
-    }
-
-    auto warp_tile =
-        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
-    auto warp_result = ::gko::kernels::dpcpp::reduce(
-        warp_tile, thread_result,
-        [](const size_type& a, const size_type& b) { return max(a, b); });
-
-    if (tid_in_warp == 0 && runable) {
-        auto slice_length = ceildiv(warp_result, stride_factor) * stride_factor;
-        slice_lengths[sliceid] = slice_length;
-        slice_sets[sliceid] = slice_length;
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST_CONFIG(calculate_slice_lengths, calculate_slice_lengths)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(calculate_slice_lengths,
-                                           calculate_slice_lengths)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(calculate_slice_lengths_call,
-                               calculate_slice_lengths, subgroup_list)
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_sellp(size_type num_rows, size_type num_cols, size_type slice_size,
-                   size_type stride, const ValueType* __restrict__ source,
-                   size_type* __restrict__ slice_lengths,
-                   size_type* __restrict__ slice_sets,
-                   IndexType* __restrict__ col_idxs,
-                   ValueType* __restrict__ vals, sycl::nd_item<3> item_ct1)
-{
-    const auto global_row = thread::get_thread_id_flat(item_ct1);
-    const auto row = global_row % slice_size;
-    const auto sliceid = global_row / slice_size;
-
-    if (global_row < num_rows) {
-        size_type sellp_ind = slice_sets[sliceid] * slice_size + row;
-
-        for (size_type col = 0; col < num_cols; col++) {
-            auto val = source[global_row * stride + col];
-            if (is_nonzero(val)) {
-                col_idxs[sellp_ind] = col;
-                vals[sellp_ind] = val;
-                sellp_ind += slice_size;
-            }
-        }
-        for (size_type i = sellp_ind;
-             i <
-             (slice_sets[sliceid] + slice_lengths[sliceid]) * slice_size + row;
-             i += slice_size) {
-            col_idxs[i] = 0;
-            vals[i] = zero<ValueType>();
-        }
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(fill_in_sellp, fill_in_sellp)
-
-
-template <std::uint32_t cfg>
-void reduce_max_nnz(size_type size, const size_type* __restrict__ nnz_per_row,
-                    size_type* __restrict__ result, sycl::nd_item<3> item_ct1,
-                    uint8_t* dpct_local)
-{
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    auto block_max = (size_type*)dpct_local;
-
-    reduce_array<sg_size>(
-        size, nnz_per_row, block_max, item_ct1,
-        [](const size_type& x, const size_type& y) { return max(x, y); });
-
-    if (item_ct1.get_local_id(2) == 0) {
-        result[item_ct1.get_group(2)] = block_max[0];
-    }
-}
-
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
-void reduce_max_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                    sycl::queue* queue, size_type size,
-                    const size_type* nnz_per_row, size_type* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
-                       sycl::access::target::local>
-            dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
-
-
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                reduce_max_nnz<cfg>(size, nnz_per_row, result, item_ct1,
-                                    dpct_local_acc_ct1.get_pointer().get());
-            });
-    });
-}
-
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_max_nnz, reduce_max_nnz);
-GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_call, reduce_max_nnz,
-                               kcfg_1d_list)
-
-
-template <std::uint32_t cfg>
-void reduce_max_nnz_per_slice(size_type num_rows, size_type slice_size,
-                              size_type stride_factor,
-                              const size_type* __restrict__ nnz_per_row,
-                              size_type* __restrict__ result,
-                              sycl::nd_item<3> item_ct1)
-{
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    auto warp_tile =
-        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
-    const auto warpid = thread::get_subwarp_id_flat<sg_size>(item_ct1);
-    const auto tid_in_warp = warp_tile.thread_rank();
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    size_type thread_result = 0;
-    for (size_type i = tid_in_warp; i < slice_size; i += sg_size) {
-        if (warpid * slice_size + i < num_rows) {
-            thread_result =
-                max(thread_result, nnz_per_row[warpid * slice_size + i]);
-        }
-    }
-
-    auto warp_result = ::gko::kernels::dpcpp::reduce(
-        warp_tile, thread_result,
-        [](const size_type& a, const size_type& b) { return max(a, b); });
-
-    if (tid_in_warp == 0 && warpid < slice_num) {
-        result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST_CONFIG(reduce_max_nnz_per_slice,
-                               reduce_max_nnz_per_slice)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_max_nnz_per_slice,
-                                           reduce_max_nnz_per_slice)
-GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_max_nnz_per_slice_call,
-                               reduce_max_nnz_per_slice, kcfg_1d_list)
-
-
-template <std::uint32_t cfg>
-void reduce_total_cols(size_type num_slices,
-                       const size_type* __restrict__ max_nnz_per_slice,
-                       size_type* __restrict__ result,
-                       sycl::nd_item<3> item_ct1, uint8_t* dpct_local)
-{
-    auto block_result = (size_type*)dpct_local;
-    constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
-    reduce_array<sg_size>(
-        num_slices, max_nnz_per_slice, block_result, item_ct1,
-        [](const size_type& x, const size_type& y) { return x + y; });
-
-    if (item_ct1.get_local_id(2) == 0) {
-        result[item_ct1.get_group(2)] = block_result[0];
-    }
-}
-
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16)>
-void reduce_total_cols(dim3 grid, dim3 block, size_type dynamic_shared_memory,
-                       sycl::queue* queue, size_type num_slices,
-                       const size_type* max_nnz_per_slice, size_type* result)
-{
-    queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uint8_t, 1, sycl::access::mode::read_write,
-                       sycl::access::target::local>
-            dpct_local_acc_ct1(sycl::range<1>(dynamic_shared_memory), cgh);
-
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                reduce_total_cols<cfg>(num_slices, max_nnz_per_slice, result,
-                                       item_ct1,
-                                       dpct_local_acc_ct1.get_pointer().get());
-            });
-    });
-}
-
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_total_cols,
-                                           reduce_total_cols);
-GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_total_cols_call, reduce_total_cols,
-                               kcfg_1d_list)
-
 template <std::uint32_t sg_size, typename ValueType, typename Closure>
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
@@ -541,29 +231,30 @@ void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto in_vals = source->get_const_values();
+    const auto stride = source->get_stride();
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto rows = result->get_row_idxs();
+    auto cols = result->get_col_idxs();
+    auto vals = result->get_values();
 
-    auto stride = source->get_stride();
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            auto write_to = row_ptrs[row];
 
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+            for (size_type col = 0; col < num_cols; col++) {
+                if (is_nonzero(in_vals[stride * row + col])) {
+                    vals[write_to] = in_vals[stride * row + col];
+                    cols[write_to] = static_cast<IndexType>(col);
+                    rows[write_to] = static_cast<IndexType>(row);
+                    write_to++;
+                }
+            }
         });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-    size_type grid_dim = ceildiv(num_rows, wg_size);
-
-    kernel::fill_in_coo(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
-                        num_cols, stride, row_ptrs, source->get_const_values(),
-                        row_idxs, col_idxs, values);
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -575,30 +266,29 @@ void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto in_vals = source->get_const_values();
+    const auto stride = source->get_stride();
+
+    const auto row_ptrs = result->get_const_row_ptrs();
+    auto cols = result->get_col_idxs();
+    auto vals = result->get_values();
+
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            auto write_to = row_ptrs[row];
+
+            for (size_type col = 0; col < num_cols; col++) {
+                if (is_nonzero(in_vals[stride * row + col])) {
+                    vals[write_to] = in_vals[stride * row + col];
+                    cols[write_to] = static_cast<IndexType>(col);
+                    write_to++;
+                }
+            }
         });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
-
-    auto stride = source->get_stride();
-
-    size_type grid_dim = ceildiv(num_rows, wg_size);
-
-    kernel::fill_in_csr(grid_dim, default_block_size, 0, exec->get_queue(),
-                        num_rows, num_cols, stride, source->get_const_values(),
-                        row_ptrs, col_idxs, values);
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -610,29 +300,34 @@ void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Ell<ValueType, IndexType>* result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto max_nnz_per_row = result->get_num_stored_elements_per_row();
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
+    const auto in_vals = source->get_const_values();
+    const auto in_stride = source->get_stride();
 
-    auto col_ptrs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto cols = result->get_col_idxs();
+    auto vals = result->get_values();
+    const auto stride = result->get_stride();
 
-    auto source_stride = source->get_stride();
-    auto result_stride = result->get_stride();
-
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            size_type col_idx = 0;
+            for (size_type col = 0; col < num_cols; col++) {
+                if (is_nonzero(in_vals[row * in_stride + col])) {
+                    cols[col_idx * stride + row] = col;
+                    vals[col_idx * stride + row] =
+                        in_vals[row * in_stride + col];
+                    col_idx++;
+                }
+            }
+            for (; col_idx < max_nnz_per_row; col_idx++) {
+                cols[col_idx * stride + row] = 0;
+                vals[col_idx * stride + row] = zero<ValueType>();
+            }
         });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-    auto grid_dim = ceildiv(result_stride, wg_size);
-    kernel::fill_in_ell(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
-                        num_cols, source_stride, source->get_const_values(),
-                        max_nnz_per_row, result_stride, col_ptrs, values);
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -668,8 +363,8 @@ void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    const auto source_vals = source->get_const_values();
-    const auto source_stride = source->get_stride();
+    const auto in_vals = source->get_const_values();
+    const auto in_stride = source->get_stride();
     const auto ell_stride = result->get_ell_stride();
     auto ell_cols = result->get_ell_col_idxs();
     auto ell_vals = result->get_ell_values();
@@ -684,10 +379,10 @@ void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
             size_type col = 0;
             auto ell_idx = row;
             for (; col < num_cols && ell_count < ell_lim; col++) {
-                auto val = source_vals[row * source_stride + col];
+                const auto val = in_vals[row * in_stride + col];
                 if (is_nonzero(val)) {
                     ell_vals[ell_idx] = val;
-                    ell_cols[ell_idx] = col;
+                    ell_cols[ell_idx] = static_cast<IndexType>(col);
                     ell_count++;
                     ell_idx += ell_stride;
                 }
@@ -699,11 +394,11 @@ void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
             }
             auto coo_idx = coo_row_ptrs[row];
             for (; col < num_cols; col++) {
-                auto val = source_vals[row * source_stride + col];
+                const auto val = in_vals[row * in_stride + col];
                 if (is_nonzero(val)) {
                     coo_vals[coo_idx] = val;
-                    coo_cols[coo_idx] = col;
-                    coo_rows[coo_idx] = row;
+                    coo_cols[coo_idx] = static_cast<IndexType>(col);
+                    coo_rows[coo_idx] = static_cast<IndexType>(row);
                     coo_idx++;
                 }
             }
@@ -720,50 +415,38 @@ void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Sellp<ValueType, IndexType>* result)
 {
-    auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
-
-    const auto stride = source->get_stride();
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
+    const auto stride = source->get_stride();
+    const auto in_vals = source->get_const_values();
 
+    const auto slice_sets = result->get_const_slice_sets();
+    const auto slice_size = result->get_slice_size();
     auto vals = result->get_values();
     auto col_idxs = result->get_col_idxs();
-    auto slice_lengths = result->get_slice_lengths();
-    auto slice_sets = result->get_slice_sets();
 
-    const auto slice_size = result->get_slice_size();
-    const auto stride_factor = result->get_stride_factor();
-    const int slice_num = ceildiv(num_rows, slice_size);
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            const auto local_row = row % slice_size;
+            const auto slice = row / slice_size;
+            const auto slice_end = slice_sets[slice + 1] * slice_size;
+            auto out_idx = slice_sets[slice] * slice_size + local_row;
 
-    auto nnz_per_row = Array<size_type>(exec, num_rows);
-    count_nonzeros_per_row(exec, source, nnz_per_row.get_data());
-
-    auto grid_dim = slice_num;
-
-    if (grid_dim > 0) {
-        kernel::calculate_slice_lengths_call(
-            sg_size, grid_dim, sg_size, 0, exec->get_queue(), num_rows,
-            slice_size, slice_num, stride_factor, nnz_per_row.get_const_data(),
-            slice_lengths, slice_sets);
-    }
-
-    components::prefix_sum(exec, slice_sets, slice_num + 1);
-
-    grid_dim = ceildiv(num_rows, wg_size);
-    if (grid_dim > 0) {
-        kernel::fill_in_sellp(grid_dim, wg_size, 0, exec->get_queue(), num_rows,
-                              num_cols, slice_size, stride,
-                              source->get_const_values(), slice_lengths,
-                              slice_sets, col_idxs, vals);
-    }
+            for (size_type col = 0; col < num_cols; col++) {
+                const auto val = in_vals[row * stride + col];
+                if (is_nonzero(val)) {
+                    col_idxs[out_idx] = static_cast<IndexType>(col);
+                    vals[out_idx] = val;
+                    out_idx += slice_size;
+                }
+            }
+            for (; out_idx < slice_end; out_idx += slice_size) {
+                col_idxs[out_idx] = 0;
+                vals[out_idx] = zero<ValueType>();
+            }
+        });
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -774,7 +457,29 @@ template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const DpcppExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto in_vals = source->get_const_values();
+    const auto stride = source->get_stride();
+
+    const auto row_ptrs = result->get_const_row_ptrs();
+    auto cols = result->get_col_idxs();
+
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(num_rows, [=](sycl::item<1> item) {
+            const auto row = static_cast<size_type>(item[0]);
+            auto write_to = row_ptrs[row];
+
+            for (size_type col = 0; col < num_cols; col++) {
+                if (is_nonzero(in_vals[stride * row + col])) {
+                    cols[write_to] = static_cast<IndexType>(col);
+                    write_to++;
+                }
+            }
+        });
+    });
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);

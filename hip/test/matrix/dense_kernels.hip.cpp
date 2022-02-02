@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
@@ -430,6 +431,32 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
     dx->move_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dcsr_mtx.get(), csr_mtx.get(), 0);
+}
+
+
+TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
+
+    x->convert_to(sparsity_mtx.get());
+    dx->convert_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
+}
+
+
+TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
+
+    x->move_to(sparsity_mtx.get());
+    dx->move_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 0);
 }
 
 
