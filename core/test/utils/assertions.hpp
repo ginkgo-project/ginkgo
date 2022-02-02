@@ -1263,4 +1263,17 @@ T* plain_ptr(T* ptr)
     }
 
 
+/**
+ * Throws an error if a positive numerical value is too close to zero.
+ */
+#define GKO_ASSERT_AWAY_FROM_ZERO(_val, _tolerance)                            \
+    {                                                                          \
+        if ((_val) < (_tolerance)) {                                           \
+            throw gko::Error(                                                  \
+                __FILE__, __LINE__,                                            \
+                "Value " + std::to_string(_val) + " is too close to zero!\n"); \
+        }                                                                      \
+    }
+
+
 #endif  // GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
