@@ -628,4 +628,4 @@ std::unique_ptr<matrix::BatchDiagonal<ValueType>> batch_diagonal_initialize(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_DENSE_HPP_
+#endif  // GKO_PUBLIC_CORE_MATRIX_BATCH_DIAGONAL_HPP_
