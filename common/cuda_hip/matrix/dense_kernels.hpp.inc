@@ -96,6 +96,35 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 
 
 template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_sparsity_csr(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType* __restrict__ source, IndexType* __restrict__ row_ptrs,
+    IndexType* __restrict__ col_idxs)
+{
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+
+    if (row < num_rows) {
+        auto warp = group::tiled_partition<config::warp_size>(
+            group::this_thread_block());
+        auto lane_prefix_mask =
+            (config::lane_mask_type(1) << warp.thread_rank()) - 1;
+        auto base_out_idx = row_ptrs[row];
+        for (size_type i = 0; i < num_cols; i += config::warp_size) {
+            const auto col = i + warp.thread_rank();
+            const auto pred =
+                col < num_cols ? is_nonzero(source[stride * row + col]) : false;
+            const auto mask = warp.ballot(pred);
+            const auto out_idx = base_out_idx + popcnt(mask & lane_prefix_mask);
+            if (pred) {
+                col_idxs[out_idx] = col;
+            }
+            base_out_idx += popcnt(mask);
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     size_type num_rows, size_type num_cols, size_type source_stride,
     const ValueType* __restrict__ source, size_type max_nnz_per_row,
