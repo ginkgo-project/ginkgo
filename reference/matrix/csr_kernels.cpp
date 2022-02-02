@@ -683,8 +683,7 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
     auto strategy = result->get_strategy();
-    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
-    auto coo_lim = strategy->get_coo_nnz();
+    auto ell_lim = result->get_ell_num_stored_elements_per_row();
     auto coo_val = result->get_coo_values();
     auto coo_col = result->get_coo_col_idxs();
     auto coo_row = result->get_coo_row_idxs();
