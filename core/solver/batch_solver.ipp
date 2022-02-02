@@ -46,14 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace batch {
-
-
-GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
-GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
-
-
-}
 
 
 struct BatchInfo {

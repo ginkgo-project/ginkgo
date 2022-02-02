@@ -298,21 +298,27 @@ void check_relative_diff(const matrix::BatchCsr<ValueType>* const a_ref,
                          const double tolerance)
 {
     using real_type = typename gko::remove_complex<ValueType>;
+    using Mtx = matrix::BatchCsr<ValueType>;
     const size_type batch_size = a_ref->get_num_batch_entries();
     ASSERT_EQ(batch_size, b->get_num_batch_entries());
+    auto ref = ReferenceExecutor::create();
+    auto h_a = Mtx::create(ref);
+    auto h_b = Mtx::create(ref);
+    h_a->copy_from(a_ref);
+    h_b->copy_from(b);
     for (size_type ib = 0; ib < batch_size; ib++) {
         real_type relerr = gko::zero<real_type>();
         real_type refnorm = gko::zero<real_type>();
-        for (size_type irow = 0; irow < a_ref->get_size().at()[0]; irow++) {
-            ASSERT_EQ(a_ref->get_const_row_ptrs()[irow],
-                      b->get_const_row_ptrs()[irow]);
-            for (int iz = a_ref->get_const_row_ptrs()[irow];
-                 iz < a_ref->get_const_row_ptrs()[irow + 1]; iz++) {
-                ASSERT_EQ(a_ref->get_const_col_idxs()[iz],
-                          b->get_const_col_idxs()[iz]);
-                relerr += gko::squared_norm(a_ref->get_const_values()[iz] -
-                                            b->get_const_values()[iz]);
-                refnorm += gko::squared_norm(a_ref->get_const_values()[iz]);
+        for (size_type irow = 0; irow < h_a->get_size().at()[0]; irow++) {
+            ASSERT_EQ(h_a->get_const_row_ptrs()[irow],
+                      h_b->get_const_row_ptrs()[irow]);
+            for (int iz = h_a->get_const_row_ptrs()[irow];
+                 iz < h_a->get_const_row_ptrs()[irow + 1]; iz++) {
+                ASSERT_EQ(h_a->get_const_col_idxs()[iz],
+                          h_b->get_const_col_idxs()[iz]);
+                relerr += gko::squared_norm(h_a->get_const_values()[iz] -
+                                            h_b->get_const_values()[iz]);
+                refnorm += gko::squared_norm(h_a->get_const_values()[iz]);
             }
         }
         ASSERT_LE(relerr / refnorm, tolerance);
