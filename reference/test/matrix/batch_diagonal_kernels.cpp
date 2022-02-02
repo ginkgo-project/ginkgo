@@ -40,9 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
@@ -119,7 +117,7 @@ protected:
 TYPED_TEST_SUITE(BatchDiagonal, gko::test::ValueTypes);
 
 
-TYPED_TEST(BatchDiagonal, AppliesToDense)
+TYPED_TEST(BatchDiagonal, SquareAppliesToDenseInPlace)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -128,12 +126,53 @@ TYPED_TEST(BatchDiagonal, AppliesToDense)
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
-    auto diag(gko::batch_diagonal_initialize(
-        {I<T>{1.0, 2.0, 3.0}, I<T>{-1.0, -2.0, -3.0}}, this->exec));
-    auto rmtx = Dense::create(this->exec, mtx->get_size());
-    gko::kernels::reference::components::fill_array(
-        this->exec, rmtx->get_values(), mtx->get_num_stored_elements(),
-        gko::zero<T>());
+    auto diag =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 3)));
+    diag->at(0, 0) = 1.0;
+    diag->at(0, 1) = 2.0;
+    diag->at(0, 2) = 3.0;
+    diag->at(1, 0) = -1.0;
+    diag->at(1, 1) = -2.0;
+    diag->at(1, 2) = -3.0;
+
+    gko::kernels::reference::batch_diagonal::simple_apply(
+        this->exec, diag.get(), mtx.get());
+
+    EXPECT_EQ(mtx->at(0, 0, 0), T{1.0});
+    EXPECT_EQ(mtx->at(0, 1, 0), T{4.0});
+    EXPECT_EQ(mtx->at(0, 2, 0), T{6.0});
+    EXPECT_EQ(mtx->at(0, 0, 1), T{0.0});
+    EXPECT_EQ(mtx->at(0, 1, 1), T{6.0});
+    EXPECT_EQ(mtx->at(0, 2, 1), T{12.0});
+
+    EXPECT_EQ(mtx->at(1, 0, 0), T{4.0});
+    EXPECT_EQ(mtx->at(1, 1, 0), T{6.0});
+    EXPECT_EQ(mtx->at(1, 2, 0), T{0.0});
+    EXPECT_EQ(mtx->at(1, 0, 1), T{-2.0});
+    EXPECT_EQ(mtx->at(1, 1, 1), T{4.0});
+    EXPECT_EQ(mtx->at(1, 2, 1), T{-3.0});
+}
+
+
+TYPED_TEST(BatchDiagonal, ThickAppliesToDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Dense = gko::matrix::BatchDense<T>;
+    auto mtx(gko::batch_initialize<Dense>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}, I<T>{20.0, -15.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}, I<T>{2.0, 1.5}}},
+        this->exec));
+    auto diag =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 4)));
+    diag->at(0, 0) = 1.0;
+    diag->at(0, 1) = 2.0;
+    diag->at(0, 2) = 3.0;
+    diag->at(1, 0) = -1.0;
+    diag->at(1, 1) = -2.0;
+    diag->at(1, 2) = -3.0;
+    auto rmtx =
+        Dense::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 2)));
 
     diag->apply(mtx.get(), rmtx.get());
 
@@ -150,6 +189,48 @@ TYPED_TEST(BatchDiagonal, AppliesToDense)
     EXPECT_EQ(rmtx->at(1, 0, 1), T{-2.0});
     EXPECT_EQ(rmtx->at(1, 1, 1), T{4.0});
     EXPECT_EQ(rmtx->at(1, 2, 1), T{-3.0});
+}
+
+
+TYPED_TEST(BatchDiagonal, SkinnyAppliesToDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Dense = gko::matrix::BatchDense<T>;
+    auto mtx(gko::batch_initialize<Dense>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
+        this->exec));
+    auto diag =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(4, 3)));
+    diag->at(0, 0) = 1.0;
+    diag->at(0, 1) = 2.0;
+    diag->at(0, 2) = 3.0;
+    diag->at(1, 0) = -1.0;
+    diag->at(1, 1) = -2.0;
+    diag->at(1, 2) = -3.0;
+    auto rmtx =
+        Dense::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(4, 2)));
+
+    diag->apply(mtx.get(), rmtx.get());
+
+    EXPECT_EQ(rmtx->at(0, 0, 0), T{1.0});
+    EXPECT_EQ(rmtx->at(0, 1, 0), T{4.0});
+    EXPECT_EQ(rmtx->at(0, 2, 0), T{6.0});
+    EXPECT_EQ(rmtx->at(0, 3, 0), T{0.0});
+    EXPECT_EQ(rmtx->at(0, 0, 1), T{0.0});
+    EXPECT_EQ(rmtx->at(0, 1, 1), T{6.0});
+    EXPECT_EQ(rmtx->at(0, 2, 1), T{12.0});
+    EXPECT_EQ(rmtx->at(0, 3, 1), T{0.0});
+
+    EXPECT_EQ(rmtx->at(1, 0, 0), T{4.0});
+    EXPECT_EQ(rmtx->at(1, 1, 0), T{6.0});
+    EXPECT_EQ(rmtx->at(1, 2, 0), T{0.0});
+    EXPECT_EQ(rmtx->at(1, 3, 0), T{0.0});
+    EXPECT_EQ(rmtx->at(1, 0, 1), T{-2.0});
+    EXPECT_EQ(rmtx->at(1, 1, 1), T{4.0});
+    EXPECT_EQ(rmtx->at(1, 2, 1), T{-3.0});
+    EXPECT_EQ(rmtx->at(1, 3, 1), T{0.0});
 }
 
 
@@ -268,7 +349,7 @@ protected:
 
     ComplexBatchDiagonal()
         : exec(gko::ReferenceExecutor::create()),
-          mtx_1(Mtx::create(exec)),
+          mtx_1(Mtx::create(exec, gko::batch_dim<2>(2, gko::dim<2>(3, 3)))),
           mtx_2(generate_batch_diag_matrix())
     {
         mtx_1->at(0, 0) = 1.0 - 1.0i;
