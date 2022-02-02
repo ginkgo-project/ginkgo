@@ -54,6 +54,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
+#if GINKGO_DPCPP_SINGLE_MODE
+using matrix_value_type = float;
+#else
+using matrix_value_type = double;
+#endif  // GINKGO_DPCPP_SINGLE_MODE
+
+
 template <typename MtxType>
 struct SimpleMatrixTest {
     using matrix_type = MtxType;
@@ -69,7 +76,8 @@ struct SimpleMatrixTest {
     static void check_property(const std::unique_ptr<matrix_type>&) {}
 };
 
-struct DenseWithDefaultStride : SimpleMatrixTest<gko::matrix::Dense<double>> {
+struct DenseWithDefaultStride
+    : SimpleMatrixTest<gko::matrix::Dense<matrix_value_type>> {
     static bool preserves_zeros() { return false; }
 };
 
@@ -86,10 +94,10 @@ struct DenseWithCustomStride : DenseWithDefaultStride {
     }
 };
 
-struct Coo : SimpleMatrixTest<gko::matrix::Coo<double, int>> {};
+struct Coo : SimpleMatrixTest<gko::matrix::Coo<matrix_value_type, int>> {};
 
 struct CsrWithDefaultStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {};
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {};
 
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
@@ -97,7 +105,7 @@ struct CsrWithDefaultStrategy
 
 
 struct CsrWithClassicalStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -113,7 +121,7 @@ struct CsrWithClassicalStrategy
 };
 
 struct CsrWithMergePathStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -129,7 +137,7 @@ struct CsrWithMergePathStrategy
 };
 
 struct CsrWithSparselibStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -145,7 +153,7 @@ struct CsrWithSparselibStrategy
 };
 
 struct CsrWithLoadBalanceStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -162,7 +170,7 @@ struct CsrWithLoadBalanceStrategy
 };
 
 struct CsrWithAutomaticalStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -182,10 +190,11 @@ struct CsrWithAutomaticalStrategy
 #endif
 
 
-struct Ell : SimpleMatrixTest<gko::matrix::Ell<double, int>> {};
+struct Ell : SimpleMatrixTest<gko::matrix::Ell<matrix_value_type, int>> {};
 
 
-struct FbcsrBlocksize1 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
+struct FbcsrBlocksize1
+    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static bool preserves_zeros() { return false; }
 
     static std::unique_ptr<matrix_type> create(
@@ -200,7 +209,8 @@ struct FbcsrBlocksize1 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
     }
 };
 
-struct FbcsrBlocksize2 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
+struct FbcsrBlocksize2
+    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static bool preserves_zeros() { return false; }
 
     static std::unique_ptr<matrix_type> create(
@@ -217,7 +227,7 @@ struct FbcsrBlocksize2 : SimpleMatrixTest<gko::matrix::Fbcsr<double, int>> {
 
 
 struct SellpDefaultParameters
-    : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Sellp<matrix_value_type, int>> {
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
     {
         ASSERT_EQ(mtx->get_stride_factor(), 1);
@@ -225,7 +235,8 @@ struct SellpDefaultParameters
     }
 };
 
-struct Sellp32Factor2 : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
+struct Sellp32Factor2
+    : SimpleMatrixTest<gko::matrix::Sellp<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -241,10 +252,10 @@ struct Sellp32Factor2 : SimpleMatrixTest<gko::matrix::Sellp<double, int>> {
 
 
 struct HybridDefaultStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {};
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {};
 
 struct HybridColumnLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -262,7 +273,7 @@ struct HybridColumnLimitStrategy
 };
 
 struct HybridImbalanceLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -280,7 +291,7 @@ struct HybridImbalanceLimitStrategy
 };
 
 struct HybridImbalanceBoundedLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -301,7 +312,7 @@ struct HybridImbalanceBoundedLimitStrategy
 };
 
 struct HybridMinStorageStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -319,7 +330,7 @@ struct HybridMinStorageStrategy
 };
 
 struct HybridAutomaticStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<double, int>> {
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -657,6 +668,7 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
 }
 
 
+#if !(GINKGO_DPCPP_SINGLE_MODE)
 TYPED_TEST(Matrix, MixedSpMVIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
@@ -690,6 +702,7 @@ TYPED_TEST(Matrix, MixedAdvancedSpMVIsEquivalentToRef)
             });
     });
 }
+#endif
 
 
 TYPED_TEST(Matrix, ConvertToCsrIsEquivalentToRef)
