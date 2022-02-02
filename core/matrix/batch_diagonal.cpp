@@ -54,7 +54,7 @@ namespace matrix {
 namespace batch_diagonal {
 
 
-GKO_REGISTER_OPERATION(simple_apply, batch_diagonal::simple_apply);
+GKO_REGISTER_OPERATION(apply, batch_diagonal::apply);
 GKO_REGISTER_OPERATION(pre_diag_transform_csr,
                        batch_csr::pre_diag_transform_system);
 GKO_REGISTER_OPERATION(conj_transpose, batch_diagonal::conj_transpose);
@@ -71,9 +71,9 @@ void BatchDiagonal<ValueType>::apply_impl(const BatchLinOp* b,
     if (!this->get_size().stores_equal_sizes()) {
         GKO_NOT_IMPLEMENTED;
     }
-    x->copy_from(b);
     if (auto xd = dynamic_cast<BatchDense<ValueType>*>(x)) {
-        this->get_executor()->run(batch_diagonal::make_simple_apply(this, xd));
+        auto bd = as<const BatchDense<ValueType>>(b);
+        this->get_executor()->run(batch_diagonal::make_apply(this, bd, xd));
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -81,9 +81,20 @@ void BatchDiagonal<ValueType>::apply_impl(const BatchLinOp* b,
 
 
 template <typename ValueType>
-void BatchDiagonal<ValueType>::apply_impl(
-    const BatchLinOp* alpha, const BatchLinOp* b, const BatchLinOp* beta,
-    BatchLinOp* x) const GKO_NOT_IMPLEMENTED;
+void BatchDiagonal<ValueType>::apply_impl(const BatchLinOp* alpha,
+                                          const BatchLinOp* b,
+                                          const BatchLinOp* beta,
+                                          BatchLinOp* x) const
+{
+    if (!x->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    auto dense_x = as<matrix::BatchDense<value_type>>(x);
+    std::cout << "Size dx = " << dense_x->get_size().at(0) << std::endl;
+    auto x_clone = dense_x->clone();
+    std::cout << "Size x-clone = " << x_clone->get_size().at(0) << std::endl;
+    this->apply(b, x_clone.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, x_clone.get());
+}
 
 
 template <typename ValueType>
