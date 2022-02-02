@@ -63,6 +63,23 @@ constexpr auto default_block_size = 256;
 
 
 template <typename ValueType>
+void apply(std::shared_ptr<const CudaExecutor> exec,
+           const matrix::BatchDiagonal<ValueType>* const diag,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x)
+{
+    const auto b_stride = b->get_stride().at();
+    const auto x_stride = x->get_stride().at();
+    const auto nrows = static_cast<int>(diag->get_size().at()[0]);
+    const auto ncols = static_cast<int>(diag->get_size().at()[1]);
+    const auto nrhs = static_cast<int>(x->get_size().at()[1]);
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
+
+
+template <typename ValueType>
 void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::BatchDiagonal<ValueType>* const diag,
                   matrix::BatchDense<ValueType>* const b)
