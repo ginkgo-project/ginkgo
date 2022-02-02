@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -268,12 +268,16 @@ protected:
 
     ComplexBatchDiagonal()
         : exec(gko::ReferenceExecutor::create()),
-          mtx_1(gko::batch_diagonal_initialize(
-              {I<T>({1.0 - 1.0i, -1.0 + 0.0i, 2.2 + 0.5i}),
-               I<T>({-2.0 + 0.0i, 2.0 - 3.5i, -0.5 + 2.2i})},
-              exec)),
+          mtx_1(Mtx::create(exec)),
           mtx_2(generate_batch_diag_matrix())
-    {}
+    {
+        mtx_1->at(0, 0) = 1.0 - 1.0i;
+        mtx_1->at(0, 1) = -1.0;
+        mtx_1->at(0, 2) = 2.2 + 0.5i;
+        mtx_1->at(1, 0) = -2.0;
+        mtx_1->at(1, 1) = 2.0 - 3.5i;
+        mtx_1->at(1, 2) = -0.5 + 2.2i;
+    }
 
     std::unique_ptr<Mtx> generate_batch_diag_matrix()
     {
