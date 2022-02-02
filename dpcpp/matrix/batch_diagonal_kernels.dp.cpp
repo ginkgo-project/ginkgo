@@ -53,6 +53,18 @@ namespace batch_diagonal {
 
 
 template <typename ValueType>
+void apply(std::shared_ptr<const DpcppExecutor> exec,
+           const matrix::BatchDiagonal<ValueType>* const diag,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
+
+
+template <typename ValueType>
 void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::BatchDiagonal<ValueType>* const diag,
                   matrix::BatchDense<ValueType>* const b)

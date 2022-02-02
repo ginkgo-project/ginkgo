@@ -47,6 +47,12 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL(_type)      \
+    void apply(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::BatchDiagonal<_type>* a,       \
+               const matrix::BatchDense<_type>* b,          \
+               matrix::BatchDense<_type>* x)
+
 #define GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL(_type)      \
     void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::BatchDiagonal<_type>* a,       \
@@ -59,6 +65,8 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                           \
+    template <typename ValueType>                              \
+    GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL(ValueType);        \
     template <typename ValueType>                              \
     GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL(ValueType); \
     template <typename ValueType>                              \
