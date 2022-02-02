@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -130,6 +130,11 @@ public:
      */
     void read(const std::vector<mat_data>& data) override;
 
+    /**
+     * Read from a COO-type matrix data object into this batch diagonal matrix.
+     *
+     * Any off-diagonal entries in the input are ignored.
+     */
     void read(const std::vector<mat_data32>& data) override;
 
     void write(std::vector<mat_data>& data) const override;
