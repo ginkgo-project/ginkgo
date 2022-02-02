@@ -968,6 +968,27 @@ TYPED_TEST(BatchDense, ConvertsToBatchDiagonal)
 }
 
 
+TYPED_TEST(BatchDense, MovesToBatchDiagonal)
+{
+    using BDense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using BDiag = gko::matrix::BatchDiagonal<T>;
+    auto vec = gko::batch_initialize<BDense>(
+        {I<T>({2.0, 3.0, -1.0}), I<T>({1.0, -2.0, 8.0})}, this->exec);
+    auto vec_ptr = vec->get_const_values();
+    auto diag = BDiag::create(this->exec);
+
+    vec->move_to(diag.get());
+
+    auto check_sz = gko::batch_dim<2>{2, gko::dim<2>{3}};
+    ASSERT_EQ(diag->get_size(), check_sz);
+    auto diag_vals = diag->get_const_values();
+    ASSERT_EQ(diag_vals, vec_ptr);
+    ASSERT_NE(diag_vals, vec->get_const_values());
+    ASSERT_EQ(vec->get_num_batch_entries(), 0);
+}
+
+
 TYPED_TEST(BatchDense, SquareMatrixIsTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
