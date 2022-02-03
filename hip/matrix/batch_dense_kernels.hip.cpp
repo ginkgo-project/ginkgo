@@ -131,15 +131,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType>
-void convergence_scale(std::shared_ptr<const HipExecutor> exec,
-                       const matrix::BatchDense<ValueType>* const alpha,
-                       matrix::BatchDense<ValueType>* const x,
-                       const uint32& converged) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DENSE_CONVERGENCE_SCALE_KERNEL);
-
-template <typename ValueType>
 void add_scaled(std::shared_ptr<const HipExecutor> exec,
                 const matrix::BatchDense<ValueType>* const alpha,
                 const matrix::BatchDense<ValueType>* const x,

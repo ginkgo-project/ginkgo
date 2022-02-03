@@ -229,40 +229,6 @@ inline void copy(
 
 
 template <typename ValueType>
-inline void scale(const gko::batch_dense::BatchEntry<const ValueType>& alpha,
-                  const gko::batch_dense::BatchEntry<ValueType>& x,
-                  const gko::uint32& converged)
-{
-    if (alpha.num_rhs == 1) {
-        for (int i = 0; i < x.num_rows; ++i) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                const gko::uint32 conv = converged & (1 << j);
-
-                if (conv) {
-                    continue;
-                }
-
-
-                x.values[i * x.stride + j] *= alpha.values[0];
-            }
-        }
-    } else {
-        for (int i = 0; i < x.num_rows; ++i) {
-            for (int j = 0; j < x.num_rhs; ++j) {
-                const gko::uint32 conv = converged & (1 << j);
-
-                if (conv) {
-                    continue;
-                }
-
-                x.values[i * x.stride + j] *= alpha.values[j];
-            }
-        }
-    }
-}
-
-
-template <typename ValueType>
 inline void add_scaled(
     const gko::batch_dense::BatchEntry<const ValueType>& alpha,
     const gko::batch_dense::BatchEntry<const ValueType>& x,
