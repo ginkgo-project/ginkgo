@@ -58,7 +58,6 @@ namespace batch_dense {
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, batch_dense::apply);
 GKO_REGISTER_OPERATION(scale, batch_dense::scale);
-GKO_REGISTER_OPERATION(convergence_scale, batch_dense::convergence_scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_dense::add_scaled);
 GKO_REGISTER_OPERATION(convergence_add_scaled,
                        batch_dense::convergence_add_scaled);
