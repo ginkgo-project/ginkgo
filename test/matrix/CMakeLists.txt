@@ -1,2 +1,3 @@
+ginkgo_create_common_test(batch_diagonal_kernels)
 ginkgo_create_common_test(csr_kernels)
 ginkgo_create_common_test(dense_kernels)
