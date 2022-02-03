@@ -107,26 +107,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
 
 
-template <typename ValueType>
-void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* orig,
-                    matrix::BatchDiagonal<ValueType>* trans)
-{
-#pragma omp parallel for
-    for (size_type batch = 0; batch < orig->get_num_batch_entries(); ++batch) {
-        const auto origvals = orig->get_const_values(batch);
-        const auto transvals = trans->get_values(batch);
-#pragma omp simd
-        for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
-            transvals[i] = conj(origvals[i]);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
-
-
 }  // namespace batch_diagonal
 }  // namespace omp
 }  // namespace kernels

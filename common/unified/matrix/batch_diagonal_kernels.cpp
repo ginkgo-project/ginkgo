@@ -30,53 +30,51 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
 #include "core/matrix/batch_diagonal_kernels.hpp"
 
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
 
 
-#include "core/matrix/batch_struct.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace dpcpp {
+namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The BatchDense matrix format namespace.
- * @ref BatchDense
+ * @brief The batch diagonal format namespace.
+ *
  * @ingroup batch_diagonal
  */
 namespace batch_diagonal {
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::BatchDiagonal<ValueType>* const diag,
-           const matrix::BatchDense<ValueType>* const b,
-           matrix::BatchDense<ValueType>* const x)
+void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::BatchDiagonal<ValueType>* orig,
+                    matrix::BatchDiagonal<ValueType>* trans)
 {
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::BatchDiagonal<ValueType>* const diag,
-                  matrix::BatchDense<ValueType>* const b)
-{
-    GKO_NOT_IMPLEMENTED;
+    const size_type mindim =
+        std::min(orig->get_size().at()[0], orig->get_size().at()[1]);
+    const size_type nbatch = orig->get_num_batch_entries();
+    const size_type total_mindim = mindim * nbatch;
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto input, auto output) {
+            output[row] = conj(input[row]);
+        },
+        total_mindim, orig->get_const_values(), trans->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace batch_diagonal
-}  // namespace dpcpp
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
