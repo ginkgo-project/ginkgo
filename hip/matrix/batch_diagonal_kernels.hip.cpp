@@ -56,6 +56,9 @@ namespace hip {
 namespace batch_diagonal {
 
 
+constexpr int default_block_size = 512;
+
+
 #include "common/cuda_hip/matrix/batch_diagonal_kernels.hpp.inc"
 
 
@@ -95,8 +98,8 @@ void simple_apply(std::shared_ptr<const HipExecutor> exec,
     const int num_blocks = b->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_diag_apply_inplace, num_blocks,
                        default_block_size, 0, 0, nrows, stride, nrhs, nbatch,
-                       as_cuda_type(diag->get_const_values()),
-                       as_cuda_type(b->get_values()));
+                       as_hip_type(diag->get_const_values()),
+                       as_hip_type(b->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

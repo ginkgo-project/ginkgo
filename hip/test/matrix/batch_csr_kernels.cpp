@@ -246,8 +246,8 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
     gko::kernels::reference::batch_csr::pre_diag_transform_system(
         ref, ref_left_scale.get(), ref_right_scale.get(), mtx.get(),
         ref_b.get());
-    gko::kernels::cuda::batch_csr::pre_diag_transform_system(
-        cuda, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
+    gko::kernels::hip::batch_csr::pre_diag_transform_system(
+        hip, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
     gko::test::check_relative_diff(mtx.get(), dmtx.get(),
                                    0.001 * r<value_type>::value);
