@@ -88,9 +88,7 @@ void BatchDiagonal<ValueType>::apply_impl(const BatchLinOp* alpha,
 {
     if (!x->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     auto dense_x = as<matrix::BatchDense<value_type>>(x);
-    std::cout << "Size dx = " << dense_x->get_size().at(0) << std::endl;
     auto x_clone = dense_x->clone();
-    std::cout << "Size x-clone = " << x_clone->get_size().at(0) << std::endl;
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
     dense_x->add_scaled(alpha, x_clone.get());

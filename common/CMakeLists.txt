@@ -7,6 +7,7 @@ set(UNIFIED_SOURCES
     components/precision_conversion_kernels.cpp
     components/reduce_array_kernels.cpp
     distributed/partition_kernels.cpp
+    matrix/batch_diagonal_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
     matrix/dense_kernels.cpp
