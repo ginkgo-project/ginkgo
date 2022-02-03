@@ -107,22 +107,3 @@ __global__ __launch_bounds__(default_block_size) void uniform_batch_diag_apply(
                          x_ptr);
     }
 }
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void conj_transpose(
-    const size_type batch_size, const int min_dim,
-    const ValueType* const __restrict__ orig,
-    ValueType* const __restrict__ trans)
-{
-    for (size_type batch_id = blockIdx.x; batch_id < batch_size;
-         batch_id += gridDim.x) {
-        const auto o_ptr =
-            gko::batch::batch_entry_ptr(orig, 1, min_dim, batch_id);
-        const auto t_ptr =
-            gko::batch::batch_entry_ptr(trans, 1, min_dim, batch_id);
-        for (int i = threadIdx.x; i < min_dim; i += blockDim.x) {
-            t_ptr[i] = conj(o_ptr[i]);
-        }
-    }
-}
