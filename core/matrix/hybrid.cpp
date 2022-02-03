@@ -63,12 +63,13 @@ namespace {
 
 GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
-GKO_REGISTER_OPERATION(split_matrix_data, hybrid::split_matrix_data);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, hybrid::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(ell_fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(coo_fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(ell_extract_diagonal, ell::extract_diagonal);
 GKO_REGISTER_OPERATION(coo_extract_diagonal, coo::extract_diagonal);
 GKO_REGISTER_OPERATION(ell_count_nonzeros_per_row, ell::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(compute_coo_row_ptrs, hybrid::compute_coo_row_ptrs);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
@@ -209,9 +210,11 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
 {
     auto exec = this->get_executor();
+    const auto num_rows = data.size[0];
+    const auto num_cols = data.size[1];
     auto local_data = make_temporary_clone(exec, &data.nonzeros);
-    Array<int64> row_ptrs{exec, data.size[0] + 1};
-    exec->run(hybrid::make_build_row_ptrs(*local_data, data.size[0],
+    Array<int64> row_ptrs{exec, num_rows + 1};
+    exec->run(hybrid::make_build_row_ptrs(*local_data, num_rows,
                                           row_ptrs.get_data()));
     Array<size_type> row_nnz{exec, data.size[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
@@ -219,15 +222,17 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     size_type coo_nnz{};
     this->get_strategy()->compute_hybrid_config(row_nnz, &ell_max_nnz,
                                                 &coo_nnz);
-    auto ell_nnz = data.nonzeros.get_num_elems() - coo_nnz;
-    device_mat_data ell_data{exec, data.size, ell_nnz};
-    device_mat_data coo_data{exec, data.size, coo_nnz};
-    exec->run(hybrid::make_split_matrix_data(
-        data.nonzeros, row_ptrs.get_const_data(), ell_max_nnz, data.size[0],
-        ell_data.nonzeros, coo_data.nonzeros));
-    this->set_size(data.size);
-    ell_->read(ell_data);
-    coo_->read(coo_data);
+    if (ell_max_nnz > num_cols) {
+        // TODO remove temporary fix after ELL gains true structural zeros
+        ell_max_nnz = num_cols;
+    }
+    Array<int64> coo_row_ptrs{exec, num_rows + 1};
+    exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
+                                                coo_row_ptrs.get_data()));
+    coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
+    this->resize(data.size, ell_max_nnz, coo_nnz);
+    exec->run(hybrid::make_fill_in_matrix_data(
+        data, row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(), this));
 }
 
 
