@@ -496,8 +496,8 @@ protected:
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
-    size_type linearize_index(const size_type batch,
-                              const size_type row) const noexcept
+    size_type linearize_index(const size_type batch, const size_type row) const
+        noexcept
     {
         if (this->get_size().stores_equal_sizes()) {
             return row + batch * std::min(this->get_size().at(0)[0],
