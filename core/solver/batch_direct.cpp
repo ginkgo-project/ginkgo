@@ -101,7 +101,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
                                         BatchLinOp* x) const
 {
     using Mtx = matrix::BatchCsr<ValueType>;
-    using Dense = matrix::BatchDense<ValueType>;
+    using BDense = matrix::BatchDense<ValueType>;
     using BDiag = matrix::BatchDiagonal<ValueType>;
     using Vector = matrix::BatchDense<ValueType>;
     using real_type = remove_complex<ValueType>;
@@ -120,9 +120,9 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
 
     const bool to_scale =
         this->get_left_scaling_op() && this->get_right_scaling_op();
-    std::shared_ptr<Dense> adense = Dense::create(
+    std::shared_ptr<BDense> adense = BDense::create(
         exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
-    std::shared_ptr<Dense> bt = Dense::create(
+    std::shared_ptr<BDense> bt = BDense::create(
         exec, batch_dim<>(num_batches, dim<2>(num_rhs, num_rows)));
 
     // delete the scaled CSR copy at the end
@@ -146,10 +146,10 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
         }
 
         adense = convert_and_transpose(exec, a_scaled);
-        bt = std::dynamic_pointer_cast<Dense>(
+        bt = std::dynamic_pointer_cast<BDense>(
             gko::share(b_scaled->transpose()));
 #else
-        auto a1 = Dense::create(exec);
+        auto a1 = BDense::create(exec);
         acsr->convert_to(a1.get());
         if (to_scale) {
             exec->run(batch_direct::make_pre_diag_scale_system_transpose(
@@ -157,8 +157,8 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
                 as<BDiag>(this->get_right_scaling_op()), adense.get(),
                 bt.get()));
         } else {
-            gko::as<Dense>(a1->transpose())->move_to(adense.get());
-            gko::as<Dense>(dense_b->transpose())->move_to(bt.get());
+            gko::as<BDense>(a1->transpose())->move_to(adense.get());
+            gko::as<BDense>(dense_b->transpose())->move_to(bt.get());
         }
 #endif
     }
@@ -172,7 +172,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
             as<BDiag>(this->get_right_scaling_op()), bt.get(), dense_x));
     } else {
         auto btt =
-            std::dynamic_pointer_cast<Dense>(gko::share(bt->transpose()));
+            std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
         dense_x->copy_from(btt.get());
     }
 }
