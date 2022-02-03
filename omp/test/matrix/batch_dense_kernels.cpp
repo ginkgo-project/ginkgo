@@ -167,21 +167,6 @@ TEST_F(BatchDense, SingleVectorScaleIsEquivalentToRef)
     GKO_ASSERT_BATCH_MTX_NEAR(result, x, 1e-14);
 }
 
-TEST_F(BatchDense, SingleVectorConvergenceScaleIsEquivalentToRef)
-{
-    const int num_rhs = 1;
-    set_up_vector_data(num_rhs);
-
-    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_dense::convergence_scale(
-        this->ref, alpha.get(), x.get(), converged);
-    gko::kernels::omp::batch_dense::convergence_scale(this->omp, dalpha.get(),
-                                                      dx.get(), converged);
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
 
 TEST_F(BatchDense, MultipleVectorScaleIsEquivalentToRef)
 {
@@ -194,45 +179,12 @@ TEST_F(BatchDense, MultipleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(BatchDense, MultipleVectorConvergenceScaleIsEquivalentToRef)
-{
-    const int num_rhs = 19;
-    set_up_vector_data(num_rhs);
-
-    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_dense::convergence_scale(
-        this->ref, alpha.get(), x.get(), converged);
-    gko::kernels::omp::batch_dense::convergence_scale(this->omp, dalpha.get(),
-                                                      dx.get(), converged);
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
 TEST_F(BatchDense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
     x->scale(alpha.get());
     dx->scale(dalpha.get());
-
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
-}
-
-
-TEST_F(BatchDense,
-       MultipleVectorConvergenceScaleWithDifferentAlphaIsEquivalentToRef)
-{
-    const int num_rhs = 19;
-    set_up_vector_data(num_rhs, true);
-
-    const gko::uint32 converged = 0xbfa00f0c | (0 - (1 << num_rhs));
-
-    gko::kernels::reference::batch_dense::convergence_scale(
-        this->ref, alpha.get(), x.get(), converged);
-    gko::kernels::omp::batch_dense::convergence_scale(this->omp, dalpha.get(),
-                                                      dx.get(), converged);
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
