@@ -88,7 +88,6 @@ protected:
                             bool different_alpha = false)
     {
         x = gen_mtx<BDense>(batch_size, num_cols, num_vecs);
-        y = gen_mtx<BDense>(batch_size, num_rows, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<BDense>(batch_size, 1, num_vecs);
         } else {
@@ -97,8 +96,6 @@ protected:
         beta = gko::batch_initialize<BDense>(batch_size, {-1.0}, ref);
         dx = BDense::create(omp);
         dx->copy_from(x.get());
-        dy = BDense::create(omp);
-        dy->copy_from(y.get());
         dalpha = BDense::create(omp);
         dalpha->copy_from(alpha.get());
         dbeta = BDense::create(omp);
@@ -115,13 +112,10 @@ protected:
     {
         nsdiag = gen_mtx<Mtx>(batch_size, num_rows, num_cols);
         diag = gen_mtx<Mtx>(batch_size, num_cols, num_cols);
-        compl_diag = gen_mtx<ComplexMtx>(batch_size, num_cols, num_cols);
         ddiag = Mtx::create(omp);
         ddiag->copy_from(diag.get());
         dnsdiag = Mtx::create(omp);
         dnsdiag->copy_from(nsdiag.get());
-        dcompl_diag = ComplexMtx::create(omp);
-        dcompl_diag->copy_from(compl_diag.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -134,20 +128,16 @@ protected:
     const int num_cols = 53;
     std::unique_ptr<Mtx> nsdiag;
     std::unique_ptr<Mtx> diag;
-    std::unique_ptr<ComplexMtx> compl_diag;
     std::unique_ptr<BDense> x;
-    std::unique_ptr<BDense> y;
     std::unique_ptr<BDense> alpha;
     std::unique_ptr<BDense> beta;
     std::unique_ptr<BDense> expected;
     std::unique_ptr<BDense> dresult;
     std::unique_ptr<BDense> dx;
-    std::unique_ptr<BDense> dy;
     std::unique_ptr<BDense> dalpha;
     std::unique_ptr<BDense> dbeta;
     std::unique_ptr<Mtx> dnsdiag;
     std::unique_ptr<Mtx> ddiag;
-    std::unique_ptr<ComplexMtx> dcompl_diag;
 };
 
 
@@ -202,30 +192,6 @@ TEST_F(BatchDiagonal, AdvancedApplyIsEquivalentToRef)
     dnsdiag->apply(dalpha.get(), dx.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(BatchDiagonal, IsTransposable)
-{
-    set_up_matrix_data();
-
-    auto trans = nsdiag->transpose();
-    auto dtrans = dnsdiag->transpose();
-
-    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<Mtx*>(dtrans.get()),
-                              static_cast<Mtx*>(trans.get()), 0);
-}
-
-
-TEST_F(BatchDiagonal, IsConjugateTransposable)
-{
-    set_up_matrix_data();
-
-    auto trans = compl_diag->conj_transpose();
-    auto dtrans = dcompl_diag->conj_transpose();
-
-    GKO_ASSERT_BATCH_MTX_NEAR(static_cast<ComplexMtx*>(dtrans.get()),
-                              static_cast<ComplexMtx*>(trans.get()), 0);
 }
 
 
