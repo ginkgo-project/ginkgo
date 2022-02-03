@@ -110,8 +110,10 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::BatchDiagonal<ValueType>* orig,
                     matrix::BatchDiagonal<ValueType>* trans)
 {
+    const int mindim = static_cast<int>(
+        std::min(orig->get_size().at()[0], orig->get_size().at()[1]));
     for (size_type batch = 0; batch < orig->get_num_batch_entries(); ++batch) {
-        for (size_type i = 0; i < orig->get_size().at(batch)[0]; ++i) {
+        for (int i = 0; i < mindim; ++i) {
             trans->at(batch, i) = conj(orig->at(batch, i));
         }
     }

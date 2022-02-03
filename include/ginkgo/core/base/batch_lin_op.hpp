@@ -428,9 +428,9 @@ protected:
                                          const BatchLinOp* x) const
     {
         this->validate_application_parameters(b, x);
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+        GKO_ASSERT_BATCH_EQUAL_ROWS(
             alpha, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+        GKO_ASSERT_BATCH_EQUAL_ROWS(
             beta, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
     }
 

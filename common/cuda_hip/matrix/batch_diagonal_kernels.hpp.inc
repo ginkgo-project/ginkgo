@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * One thread is assigned to each entry.
  */
 template <typename ValueType>
-__device__ __forceinline__ void batch_diag_apply(
+__device__ __forceinline__ void batch_diag_apply_inplace(
     const int num_rows, const size_type stride, const int num_rhs,
     const ValueType* const diag_vec, ValueType* const a)
 {
@@ -51,7 +51,7 @@ __device__ __forceinline__ void batch_diag_apply(
 }
 
 template <typename ValueType>
-__global__ void uniform_batch_diag_apply(
+__global__ void uniform_batch_diag_apply_inplace(
     const int nrows, const size_type stride, const int nrhs,
     const size_type num_batch, const ValueType* const __restrict__ diag_vals,
     ValueType* const __restrict__ a)
@@ -62,6 +62,67 @@ __global__ void uniform_batch_diag_apply(
             gko::batch::batch_entry_ptr(a, stride, nrows, batch_id);
         const auto d_ptr =
             gko::batch::batch_entry_ptr(diag_vals, 1, nrows, batch_id);
-        batch_diag_apply(nrows, stride, nrhs, d_ptr, a_ptr);
+        batch_diag_apply_inplace(nrows, stride, nrhs, d_ptr, a_ptr);
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void batch_diag_apply(
+    const int nrows, const int ncols, const ValueType* const diag,
+    const int nrhs, const size_type b_stride, const ValueType* const b,
+    const size_type x_stride, ValueType* const x)
+{
+    const int mindim = min(nrows, ncols);
+    for (int iz = threadIdx.x; iz < mindim * nrhs; iz += blockDim.x) {
+        const int row = iz / nrhs;
+        const int col = iz % nrhs;
+        x[row * x_stride + col] = diag[row] * b[row * b_stride + col];
+    }
+    for (int iz = threadIdx.x + mindim * nrhs; iz < nrows * nrhs;
+         iz += blockDim.x) {
+        const int row = iz / nrhs;
+        const int col = iz % nrhs;
+        x[row * x_stride + col] = zero<ValueType>();
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void uniform_batch_diag_apply(
+    const size_type num_batch, const int nrows, const int ncols,
+    const ValueType* const __restrict__ diag_vals, const int nrhs,
+    const size_type b_stride, const ValueType* const __restrict__ b,
+    const size_type x_stride, ValueType* const __restrict__ x)
+{
+    const int mindim = min(nrows, ncols);
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch;
+         batch_id += gridDim.x) {
+        const auto b_ptr =
+            gko::batch::batch_entry_ptr(b, b_stride, ncols, batch_id);
+        const auto x_ptr =
+            gko::batch::batch_entry_ptr(x, x_stride, nrows, batch_id);
+        const auto d_ptr =
+            gko::batch::batch_entry_ptr(diag_vals, 1, mindim, batch_id);
+        batch_diag_apply(nrows, ncols, d_ptr, nrhs, b_stride, b_ptr, x_stride,
+                         x_ptr);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void conj_transpose(
+    const size_type batch_size, const int min_dim,
+    const ValueType* const __restrict__ orig,
+    ValueType* const __restrict__ trans)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < batch_size;
+         batch_id += gridDim.x) {
+        const auto o_ptr =
+            gko::batch::batch_entry_ptr(orig, 1, min_dim, batch_id);
+        const auto t_ptr =
+            gko::batch::batch_entry_ptr(trans, 1, min_dim, batch_id);
+        for (int i = threadIdx.x; i < min_dim; i += blockDim.x) {
+            t_ptr[i] = conj(o_ptr[i]);
+        }
     }
 }
