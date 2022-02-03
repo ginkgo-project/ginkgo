@@ -68,12 +68,17 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x)
 {
+    if (!b->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     const auto b_stride = b->get_stride().at();
     const auto x_stride = x->get_stride().at();
     const auto nrows = static_cast<int>(diag->get_size().at()[0]);
     const auto ncols = static_cast<int>(diag->get_size().at()[1]);
     const auto nrhs = static_cast<int>(x->get_size().at()[1]);
-    GKO_NOT_IMPLEMENTED;
+    const int num_blocks = b->get_num_batch_entries();
+    uniform_batch_diag_apply<<<num_blocks, default_block_size>>>(
+        num_blocks, nrows, ncols, as_cuda_type(diag->get_const_values()), nrhs,
+        b_stride, as_cuda_type(b->get_const_values()), x_stride,
+        as_cuda_type(x->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
@@ -85,33 +90,18 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
                   matrix::BatchDense<ValueType>* const b)
 {
     if (!diag->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-
     const auto stride = b->get_stride().at();
     const auto nrows = b->get_size().at()[0];
     const auto nrhs = b->get_size().at()[1];
     const auto nbatch = b->get_num_batch_entries();
-
     const int num_blocks = b->get_num_batch_entries();
-    uniform_batch_diag_apply<<<num_blocks, default_block_size>>>(
+    uniform_batch_diag_apply_inplace<<<num_blocks, default_block_size>>>(
         nrows, stride, nrhs, nbatch, as_cuda_type(diag->get_const_values()),
         as_cuda_type(b->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
-
-
-template <typename ValueType>
-void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
-                    const matrix::BatchDiagonal<ValueType>* orig,
-                    matrix::BatchDiagonal<ValueType>* trans)
-{
-    GKO_NOT_IMPLEMENTED;
-    // use batch dense conjugate transpose?
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace batch_diagonal

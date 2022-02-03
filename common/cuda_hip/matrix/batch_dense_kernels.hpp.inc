@@ -139,10 +139,8 @@ __global__
 }
 
 /**
- *
- *   Scales the vectors in global or shared memory with a factor of alpha(alpha
- * is in global memory or shared memory or even the thread's local memory)
- *
+ * Scales the vectors in global or shared memory with a factor of alpha (alpha
+ * is in global memory or shared memory)
  */
 template <typename ValueType>
 __device__ __forceinline__ void scale(const BatchEntry<const ValueType>& alpha,
