@@ -234,6 +234,56 @@ TYPED_TEST(BatchDiagonal, SkinnyAppliesToDense)
 }
 
 
+TYPED_TEST(BatchDiagonal, AdvancedAppliesToDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Dense = gko::matrix::BatchDense<T>;
+    auto x(gko::batch_initialize<Dense>(
+        {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}, I<T>{0.12, 1.21}},
+         {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}, I<T>{1.21, 0.12}}},
+        this->exec));
+    auto b(gko::batch_initialize<Dense>(
+        {{I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}},
+         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}},
+        this->exec));
+    auto alphat = gko::batch_initialize<Dense>(
+        {I<T>{-1.0, 0.5}, I<T>{2.0, 0.25}}, this->exec);
+    auto betat = gko::batch_initialize<Dense>(
+        {I<T>{2.0, -3.0}, I<T>{-0.5, 4.0}}, this->exec);
+    auto alpha = gko::as<Dense>(alphat->transpose());
+    auto beta = gko::as<Dense>(betat->transpose());
+    auto diag =
+        Mtx::create(this->exec, gko::batch_dim<2>(2, gko::dim<2>(4, 3)));
+    diag->at(0, 0) = 1.0;
+    diag->at(0, 1) = 2.0;
+    diag->at(0, 2) = 3.0;
+    diag->at(1, 0) = -1.0;
+    diag->at(1, 1) = -2.0;
+    diag->at(1, 2) = -3.0;
+
+    diag->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+    EXPECT_EQ(x->at(0, 0, 0), T{6.0});
+    EXPECT_EQ(x->at(0, 1, 0), T{10.0});
+    EXPECT_EQ(x->at(0, 2, 0), T{4.0});
+    EXPECT_EQ(x->at(0, 3, 0), T{0.24});
+    EXPECT_EQ(x->at(0, 0, 1), T{1.0});
+    EXPECT_EQ(x->at(0, 1, 1), T{-11.0});
+    EXPECT_EQ(x->at(0, 2, 1), T{-10.5});
+    EXPECT_EQ(x->at(0, 3, 1), T{-3.63});
+
+    EXPECT_EQ(x->at(1, 0, 0), T{0.0});
+    EXPECT_EQ(x->at(1, 1, 0), T{-6.5});
+    EXPECT_EQ(x->at(1, 2, 0), T{-12.0});
+    EXPECT_EQ(x->at(1, 3, 0), T{-0.605});
+    EXPECT_EQ(x->at(1, 0, 1), T{8.0});
+    EXPECT_EQ(x->at(1, 1, 1), T{-9.5});
+    EXPECT_EQ(x->at(1, 2, 1), T{1.0});
+    EXPECT_EQ(x->at(1, 3, 1), T{0.48});
+}
+
+
 TYPED_TEST(BatchDiagonal, ConvertsToPrecision)
 {
     using BatchDiagonal = typename TestFixture::Mtx;
@@ -432,14 +482,18 @@ TYPED_TEST(ComplexBatchDiagonal, NonSquareMatrixIsConjTransposable)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-
-    auto trans = this->mtx_2->conj_transpose();
-    auto trans_as_batch_diag = static_cast<Mtx*>(trans.get());
     auto check =
         Mtx::create(this->exec, gko::transpose(this->mtx_2->get_size()));
-    for (size_t i = 0; i < check->get_num_stored_elements(); i++) {
-        check->get_values()[i] = gko::conj(this->mtx_2->get_const_values()[i]);
-    }
+    auto valarr = check->get_values();
+    valarr[0] = 2.5 - 1.0i;
+    valarr[1] = -1.5 + 0.5i;
+    valarr[2] = 3.0 + 6.0i;
+    valarr[3] = 1.5 - 1.5i;
+    valarr[4] = 5.5 + 2.5i;
+    valarr[5] = -2.0 - 4.0i;
+
+    auto trans = this->mtx_2->conj_transpose();
+    auto trans_as_batch_diag = gko::as<Mtx>(trans.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(trans_as_batch_diag, check, 0.0);
 }
