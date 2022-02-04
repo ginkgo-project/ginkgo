@@ -250,8 +250,8 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
         omp, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(ref_b, d_b, 0.0);
-    gko::test::check_relative_diff(mtx.get(), dmtx.get(),
-                                   0.001 * r<value_type>::value);
+    gko::test::check_relative_difference(mtx.get(), dmtx.get(),
+                                         0.001 * r<value_type>::value);
 }
 
 
