@@ -98,6 +98,8 @@ option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ bac
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+option(GINKGO_FORCE_GPU_AWARE_MPI "Assert that the MPI library is GPU aware. This forces Ginkgo to assume that GPU aware functionality is available (OFF (default) or ON), but may fail
+     catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced" OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -189,8 +191,14 @@ else()
     message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
+set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 if(GINKGO_BUILD_MPI)
     find_package(MPI REQUIRED)
+    if(GINKGO_FORCE_GPU_AWARE_MPI)
+        set(GINKGO_HAVE_GPU_AWARE_MPI ON)
+    else()
+        set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
+    endif()
 endif()
 
 # We keep using NVCC/HCC for consistency with previous releases even if AMD
