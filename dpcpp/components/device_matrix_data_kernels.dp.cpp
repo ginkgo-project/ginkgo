@@ -48,22 +48,34 @@ namespace components {
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<matrix_data_entry<ValueType, IndexType>>& data)
+                  Array<ValueType>& values, Array<IndexType>& row_idxs,
+                  Array<IndexType>& col_idxs)
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    auto size = data.get_num_elems();
+    auto size = values.get_num_elems();
     auto policy =
         oneapi::dpl::execution::make_device_policy(*exec->get_queue());
     auto nnz = std::count_if(
-        policy, data.get_const_data(), data.get_const_data() + size,
-        [](nonzero_type entry) { return is_nonzero(entry.value); });
+        policy, values.get_const_data(), values.get_const_data() + size,
+        [](ValueType val) { return is_nonzero<ValueType>(val); });
     if (nnz < size) {
-        Array<nonzero_type> result{exec, static_cast<size_type>(nnz)};
-        std::copy_if(
-            policy, data.get_const_data(), data.get_const_data() + size,
-            result.get_data(),
-            [](nonzero_type entry) { return is_nonzero(entry.value); });
-        data = std::move(result);
+        // allocate new storage
+        Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
+        Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
+        Array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
+        // copy nonzeros
+        auto input_it = oneapi::dpl::make_zip_iterator(
+            row_idxs.get_const_data(), col_idxs.get_const_data(),
+            values.get_const_data());
+        auto output_it = oneapi::dpl::make_zip_iterator(new_row_idxs.get_data(),
+                                                        new_col_idxs.get_data(),
+                                                        new_values.get_data());
+        std::copy_if(policy, input_it, input_it + size, output_it,
+                     [](auto tuple) { return is_nonzero(std::get<2>(tuple)); });
+        // swap out storage
+        values = std::move(new_values);
+        row_idxs = std::move(new_row_idxs);
+        col_idxs = std::move(new_col_idxs);
     }
 }
 
@@ -73,14 +85,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    Array<matrix_data_entry<ValueType, IndexType>>& data)
+                    device_matrix_data<ValueType, IndexType>& data)
 {
-    using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     auto policy =
         oneapi::dpl::execution::make_device_policy(*exec->get_queue());
-    std::sort(policy, data.get_data(), data.get_data() + data.get_num_elems(),
-              [](nonzero_type a, nonzero_type b) {
-                  return std::tie(a.row, a.column) < std::tie(b.row, b.column);
+    auto input_it = oneapi::dpl::make_zip_iterator(
+        data.get_row_idxs(), data.get_col_idxs(), data.get_values());
+    std::sort(policy, input_it, input_it + data.get_num_elems(),
+              [](auto a, auto b) {
+                  return std::tie(std::get<0>(a), std::get<1>(a)) <
+                         std::tie(std::get<0>(b), std::get<1>(b));
               });
 }
 

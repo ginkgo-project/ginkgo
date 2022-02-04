@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/device_matrix_data_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
 
@@ -57,8 +58,7 @@ GKO_REGISTER_OPERATION(advanced_spmv, sparsity_csr::advanced_spmv);
 GKO_REGISTER_OPERATION(transpose, sparsity_csr::transpose);
 GKO_REGISTER_OPERATION(count_num_diagonal_elements,
                        sparsity_csr::count_num_diagonal_elements);
-GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
-GKO_REGISTER_OPERATION(fill_in_matrix_data, sparsity_csr::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, sparsity_csr::fill_in_dense);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        sparsity_csr::remove_diagonal_elements);
@@ -144,24 +144,33 @@ void SparsityCsr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    const auto nnz = data.nonzeros.get_num_elems();
+    // make a copy, read the data in
+    this->read(device_mat_data{this->get_executor(), data});
+}
+
+
+template <typename ValueType, typename IndexType>
+void SparsityCsr<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    auto size = data.get_size();
     auto exec = this->get_executor();
-    this->set_size(data.size);
-    this->row_ptrs_.resize_and_reset(data.size[0] + 1);
-    this->col_idxs_.resize_and_reset(nnz);
+    auto arrays = data.empty_out();
+    this->row_ptrs_.resize_and_reset(size[0] + 1);
+    this->set_size(size);
     this->value_.fill(one<ValueType>());
-    auto local_data = make_temporary_clone(exec, &data.nonzeros);
-    exec->run(sparsity_csr::make_build_row_ptrs(*local_data, data.size[0],
-                                                this->get_row_ptrs()));
-    exec->run(sparsity_csr::make_fill_in_matrix_data(*local_data, this));
+    this->col_idxs_ = std::move(arrays.col_idxs);
+    const auto row_idxs = std::move(arrays.row_idxs);
+    auto local_row_idxs = make_temporary_clone(exec, &row_idxs);
+    exec->run(sparsity_csr::make_convert_idxs_to_ptrs(
+        local_row_idxs->get_const_data(), local_row_idxs->get_num_elems(),
+        size[0], this->get_row_ptrs()));
 }
 
 
 template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 

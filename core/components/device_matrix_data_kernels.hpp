@@ -49,42 +49,37 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType, \
-                                                           IndexType) \
-    void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,    \
-                      Array<matrix_data_entry<ValueType, IndexType>>& data)
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL(ValueType, IndexType) \
+    void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,               \
+                    const device_matrix_data<ValueType, IndexType>& in,        \
+                    Array<matrix_data_entry<ValueType, IndexType>>& out)
+
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL(ValueType, IndexType) \
+    void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,               \
+                    const Array<matrix_data_entry<ValueType, IndexType>>& in,  \
+                    device_matrix_data<ValueType, IndexType>& out)
+
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType,       \
+                                                           IndexType)       \
+    void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,          \
+                      Array<ValueType>& values, Array<IndexType>& row_idxs, \
+                      Array<IndexType>& col_idxs)
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, \
                                                              IndexType) \
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,    \
-                        Array<matrix_data_entry<ValueType, IndexType>>& data)
-
-#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(       \
-    ValueType, IndexType, RowPtrType)                               \
-    void build_row_ptrs(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                \
-        const Array<matrix_data_entry<ValueType, IndexType>>& data, \
-        size_type num_rows, RowPtrType* row_ptrs)
-
-#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32(ValueType,      \
-                                                               IndexType)      \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType, \
-                                                         ::gko::int32)
-#define GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64(ValueType,      \
-                                                               IndexType)      \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType, \
-                                                         ::gko::int64)
+                        device_matrix_data<ValueType, IndexType>& data)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType,            \
-                                                         IndexType);           \
-    template <typename ValueType, typename IndexType, typename RowPtrType>     \
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL(ValueType, IndexType, \
-                                                         RowPtrType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

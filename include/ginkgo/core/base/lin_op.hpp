@@ -603,6 +603,18 @@ public:
     {
         this->read(data.copy_to_host());
     }
+
+    /**
+     * Reads a matrix from a device_matrix_data structure.
+     * The structure may be emptied by this function.
+     *
+     * @param data  the device_matrix_data structure.
+     */
+    virtual void read(device_matrix_data<ValueType, IndexType>&& data)
+    {
+        this->read(data.copy_to_host());
+        data.empty_out();
+    }
 };
 
 

@@ -46,36 +46,42 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
-template <typename ValueType, typename IndexType, typename RowPtrType>
-void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<matrix_data_entry<ValueType, IndexType>>& data,
-                    size_type num_rows, RowPtrType* row_ptrs)
+template <typename ValueType, typename IndexType>
+void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
+                const device_matrix_data<ValueType, IndexType>& in,
+                Array<matrix_data_entry<ValueType, IndexType>>& out)
 {
-    if (data.get_num_elems() == 0) {
-        fill_array(exec, row_ptrs, num_rows + 1, RowPtrType{});
-    } else {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows,
-                          auto nonzeros, auto row_ptrs) {
-                auto begin_row = i == 0 ? IndexType{} : nonzeros[i - 1].row;
-                auto end_row = i == num_nonzeros ? num_rows : nonzeros[i].row;
-                for (auto row = begin_row; row < end_row; row++) {
-                    row_ptrs[row + 1] = i;
-                }
-                if (i == 0) {
-                    row_ptrs[0] = 0;
-                }
-            },
-            data.get_num_elems() + 1, data.get_num_elems(), num_rows, data,
-            row_ptrs);
-    }
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto rows, auto cols, auto vals, auto out) {
+            out[i] = {rows[i], cols[i], vals[i]};
+        },
+        in.get_num_elems(), in.get_const_row_idxs(), in.get_const_col_idxs(),
+        in.get_const_values(), out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
+                const Array<matrix_data_entry<ValueType, IndexType>>& in,
+                device_matrix_data<ValueType, IndexType>& out)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto in, auto rows, auto cols, auto vals) {
+            rows[i] = in[i].row;
+            cols[i] = in[i].column;
+            vals[i] = unpack_member(in[i].value);
+        },
+        in.get_num_elems(), in, out.get_row_idxs(), out.get_col_idxs(),
+        out.get_values());
+}
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
+    GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL);
 
 
 }  // namespace components

@@ -63,7 +63,6 @@ GKO_REGISTER_OPERATION(spmv, coo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, coo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
-GKO_REGISTER_OPERATION(fill_in_matrix_data, coo::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
@@ -209,22 +208,26 @@ void Coo<ValueType, IndexType>::resize(dim<2> new_size, size_type nnz)
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    const auto nnz = data.nonzeros.get_num_elems();
-    auto exec = this->get_executor();
-    this->set_size(data.size);
-    this->row_idxs_.resize_and_reset(nnz);
-    this->col_idxs_.resize_and_reset(nnz);
-    this->values_.resize_and_reset(nnz);
-    auto nonzeros = make_temporary_clone(exec, &data.nonzeros);
-    exec->run(coo::make_fill_in_matrix_data(*nonzeros, this));
+    // make a copy, read the data in
+    this->read(device_mat_data{this->get_executor(), data});
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    this->set_size(data.get_size());
+    auto arrays = data.empty_out();
+    this->values_ = std::move(arrays.values);
+    this->col_idxs_ = std::move(arrays.col_idxs);
+    this->row_idxs_ = std::move(arrays.row_idxs);
 }
 
 

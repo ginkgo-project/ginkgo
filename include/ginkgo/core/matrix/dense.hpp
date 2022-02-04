@@ -279,6 +279,10 @@ public:
 
     void read(const device_mat_data32& data) override;
 
+    void read(device_mat_data&& data) override;
+
+    void read(device_mat_data32&& data) override;
+
     void write(mat_data& data) const override;
 
     void write(mat_data32& data) const override;

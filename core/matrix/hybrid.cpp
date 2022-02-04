@@ -61,7 +61,6 @@ namespace hybrid {
 namespace {
 
 
-GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
 GKO_REGISTER_OPERATION(compute_row_nnz, hybrid::compute_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, hybrid::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(ell_fill_in_dense, ell::fill_in_dense);
@@ -210,13 +209,14 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
 {
     auto exec = this->get_executor();
-    const auto num_rows = data.size[0];
-    const auto num_cols = data.size[1];
-    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    const auto num_rows = data.get_size()[0];
+    const auto num_cols = data.get_size()[1];
+    auto local_data = make_temporary_clone(exec, &data);
     Array<int64> row_ptrs{exec, num_rows + 1};
-    exec->run(hybrid::make_build_row_ptrs(*local_data, num_rows,
-                                          row_ptrs.get_data()));
-    Array<size_type> row_nnz{exec, data.size[0]};
+    exec->run(hybrid::make_convert_idxs_to_ptrs(
+        local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
+        row_ptrs.get_data()));
+    Array<size_type> row_nnz{exec, data.get_size()[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
     size_type ell_max_nnz{};
     size_type coo_nnz{};
@@ -230,17 +230,25 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
                                                 coo_row_ptrs.get_data()));
     coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
-    this->resize(data.size, ell_max_nnz, coo_nnz);
-    exec->run(hybrid::make_fill_in_matrix_data(
-        data, row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(), this));
+    this->resize(data.get_size(), ell_max_nnz, coo_nnz);
+    exec->run(
+        hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),
+                                         coo_row_ptrs.get_const_data(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
 }
 
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 
