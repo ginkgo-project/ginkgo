@@ -58,6 +58,19 @@ namespace gko {
 namespace mpi {
 
 
+/**
+ * Return if GPU aware functionality is available
+ */
+static constexpr bool is_gpu_aware()
+{
+#if GINKGO_HAVE_GPU_AWARE_MPI
+    return true;
+#else
+    return false;
+#endif
+}
+
+
 #define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
     template <>                                             \
     struct type_impl<input_type> {                          \

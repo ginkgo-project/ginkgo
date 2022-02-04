@@ -317,17 +317,23 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_dot(
     const LinOp* b, LinOp* result) const
 {
     auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_const_local()->compute_dot(as<Vector>(b)->get_const_local(),
                                          dense_res.get());
     exec->synchronize();
-    auto dense_res_host =
-        make_temporary_clone(exec->get_master(), dense_res.get());
-    this->get_communicator().all_reduce(dense_res_host->get_values(),
-                                        static_cast<int>(this->get_size()[1]),
-                                        MPI_SUM);
-    dense_res->copy_from(dense_res_host.get());
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm.all_reduce(dense_res_host->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm.all_reduce(dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
 }
 
 
@@ -336,14 +342,23 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_conj_dot(
     const LinOp* b, LinOp* result) const
 {
     auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_const_local()->compute_conj_dot(as<Vector>(b)->get_const_local(),
                                               dense_res.get());
     exec->synchronize();
-    this->get_communicator().all_reduce(dense_res->get_values(),
-                                        static_cast<int>(this->get_size()[1]),
-                                        MPI_SUM);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm.all_reduce(dense_res_host->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm.all_reduce(dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
 }
 
 
@@ -354,13 +369,22 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
     exec->run(vector::make_compute_norm2_sqr(this->get_const_local(),
                                              dense_res.get()));
     exec->synchronize();
-    this->get_communicator().all_reduce(dense_res->get_values(),
-                                        static_cast<int>(this->get_size()[1]),
-                                        MPI_SUM);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm.all_reduce(dense_res_host->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm.all_reduce(dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
     exec->run(vector::make_compute_sqrt(dense_res.get()));
 }
 
@@ -372,12 +396,21 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm1(
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
     this->get_const_local()->compute_norm1(dense_res.get());
     exec->synchronize();
-    this->get_communicator().all_reduce(dense_res->get_values(),
-                                        static_cast<int>(this->get_size()[1]),
-                                        MPI_SUM);
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm.all_reduce(dense_res_host->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm.all_reduce(dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
 }
 
 
