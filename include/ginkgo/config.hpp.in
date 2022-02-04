@@ -87,6 +87,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine01 GINKGO_BUILD_MPI
 // clang-format on
 
+/* Is the MPI implementation GPU aware? */
+// clang-format off
+#cmakedefine01 GINKGO_HAVE_GPU_AWARE_MPI
+// clang-format on
+
 
 /* Is HWLOC available ? */
 // clang-format off
