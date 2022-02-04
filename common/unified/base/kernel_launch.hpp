@@ -56,16 +56,6 @@ namespace cuda {
 
 
 template <typename T>
-using device_type = typename detail::cuda_type_impl<T>::type;
-
-template <typename T>
-device_type<T> as_device_type(T value)
-{
-    return as_cuda_type(value);
-}
-
-
-template <typename T>
 using unpack_member_type = typename detail::fake_complex_unpack_impl<T>::type;
 
 template <typename T>
@@ -90,16 +80,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 namespace gko {
 namespace kernels {
 namespace hip {
-
-
-template <typename T>
-using device_type = typename detail::hip_type_impl<T>::type;
-
-template <typename T>
-device_type<T> as_device_type(T value)
-{
-    return as_hip_type(value);
-}
 
 
 template <typename T>

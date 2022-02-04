@@ -90,19 +90,21 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto ell_max_nnz = result->get_ell_num_stored_elements_per_row();
-    const auto nonzeros = data.nonzeros.get_const_data();
+    const auto values = data.get_const_values();
+    const auto row_idxs = data.get_const_row_idxs();
+    const auto col_idxs = data.get_const_col_idxs();
     size_type coo_nz{};
     for (size_type row = 0; row < num_rows; row++) {
         size_type ell_nz{};
         for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
             if (ell_nz < ell_max_nnz) {
-                result->ell_col_at(row, ell_nz) = nonzeros[nz].column;
-                result->ell_val_at(row, ell_nz) = nonzeros[nz].value;
+                result->ell_col_at(row, ell_nz) = col_idxs[nz];
+                result->ell_val_at(row, ell_nz) = values[nz];
                 ell_nz++;
             } else {
-                result->get_coo_row_idxs()[coo_nz] = nonzeros[nz].row;
-                result->get_coo_col_idxs()[coo_nz] = nonzeros[nz].column;
-                result->get_coo_values()[coo_nz] = nonzeros[nz].value;
+                result->get_coo_row_idxs()[coo_nz] = row_idxs[nz];
+                result->get_coo_col_idxs()[coo_nz] = col_idxs[nz];
+                result->get_coo_values()[coo_nz] = values[nz];
                 coo_nz++;
             }
         }

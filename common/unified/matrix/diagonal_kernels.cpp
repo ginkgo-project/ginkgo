@@ -107,20 +107,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& data,
-    matrix::Diagonal<ValueType>* output)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         matrix::Diagonal<ValueType>* output)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto data, auto output) {
-            const auto entry = data[i];
-            if (entry.row == entry.column) {
-                output[entry.row] = unpack_member(entry.value);
+        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
+            if (row[i] == col[i]) {
+                output[row[i]] = val[i];
             }
         },
-        data.get_num_elems(), data, output->get_values());
+        data.get_num_elems(), data.get_const_row_idxs(),
+        data.get_const_col_idxs(), data.get_const_values(),
+        output->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

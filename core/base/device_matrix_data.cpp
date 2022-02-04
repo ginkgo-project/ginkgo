@@ -33,7 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/device_matrix_data.hpp>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 
 
 #include "core/components/device_matrix_data_kernels.hpp"
@@ -44,6 +46,8 @@ namespace components {
 namespace {
 
 
+GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
+GKO_REGISTER_OPERATION(soa_to_aos, components::soa_to_aos);
 GKO_REGISTER_OPERATION(remove_zeros, components::remove_zeros);
 GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
 
@@ -54,15 +58,21 @@ GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
 
 template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>::device_matrix_data(
-    std::shared_ptr<const Executor> exec, dim<2> size, size_type nnz)
-    : size{size}, nonzeros{exec, nnz}
+    std::shared_ptr<const Executor> exec, dim<2> size, size_type num_entries)
+    : size_{size},
+      values_{exec, num_entries},
+      col_idxs_{exec, num_entries},
+      row_idxs_{exec, num_entries}
 {}
 
 
 template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>::device_matrix_data(
-    dim<2> size, Array<nonzero_type> data)
-    : size{size}, nonzeros{std::move(data)}
+    std::shared_ptr<const Executor> exec, const device_matrix_data& data)
+    : size_{data.size_},
+      values_{exec, data.values_},
+      col_idxs_{exec, data.col_idxs_},
+      row_idxs_{exec, data.row_idxs_}
 {}
 
 
@@ -70,41 +80,140 @@ template <typename ValueType, typename IndexType>
 matrix_data<ValueType, IndexType>
 device_matrix_data<ValueType, IndexType>::copy_to_host() const
 {
-    const auto nnz = nonzeros.get_num_elems();
-    matrix_data<ValueType, IndexType> result{size};
+    const auto exec = values_.get_executor();
+    const auto nnz = this->get_num_elems();
+    matrix_data<ValueType, IndexType> result{this->get_size()};
     result.nonzeros.resize(nnz);
-    nonzeros.get_executor()->get_master()->copy_from(
-        nonzeros.get_executor().get(), nnz, nonzeros.get_const_data(),
-        result.nonzeros.data());
+    auto host_view =
+        make_array_view(exec->get_master(), nnz, result.nonzeros.data());
+    exec->run(components::make_soa_to_aos(
+        *this, *make_temporary_clone(exec, &host_view)));
     return result;
 }
 
 
 template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>
-device_matrix_data<ValueType, IndexType>::create_view_from_host(
-    std::shared_ptr<const Executor> exec, host_type& data)
+device_matrix_data<ValueType, IndexType>::create_from_host(
+    std::shared_ptr<const Executor> exec, const host_type& data)
 {
-    auto host_view = Array<nonzero_type>::view(
-        exec->get_master(), data.nonzeros.size(), data.nonzeros.data());
-    auto device_view = Array<nonzero_type>{exec, std::move(host_view)};
-    return device_matrix_data{data.size, std::move(device_view)};
-}
-
-
-template <typename ValueType, typename IndexType>
-void device_matrix_data<ValueType, IndexType>::remove_zeros()
-{
-    this->nonzeros.get_executor()->run(
-        components::make_remove_zeros(this->nonzeros));
+    const auto host_view =
+        make_array_view(exec->get_master(), data.nonzeros.size(),
+                        const_cast<nonzero_type*>(data.nonzeros.data()));
+    device_matrix_data result{exec, data.size, data.nonzeros.size()};
+    exec->run(components::make_aos_to_soa(
+        *make_temporary_clone(exec, &host_view), result));
+    return result;
 }
 
 
 template <typename ValueType, typename IndexType>
 void device_matrix_data<ValueType, IndexType>::sort_row_major()
 {
-    this->nonzeros.get_executor()->run(
-        components::make_sort_row_major(this->nonzeros));
+    this->values_.get_executor()->run(components::make_sort_row_major(*this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::remove_zeros()
+{
+    this->values_.get_executor()->run(components::make_remove_zeros(
+        this->values_, this->row_idxs_, this->col_idxs_));
+}
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<const Executor>
+device_matrix_data<ValueType, IndexType>::get_executor() const
+{
+    return values_.get_executor();
+}
+
+
+template <typename ValueType, typename IndexType>
+dim<2> device_matrix_data<ValueType, IndexType>::get_size() const
+{
+    return size_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type device_matrix_data<ValueType, IndexType>::get_num_elems() const
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* device_matrix_data<ValueType, IndexType>::get_values()
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* device_matrix_data<ValueType, IndexType>::get_const_values()
+    const
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* device_matrix_data<ValueType, IndexType>::get_col_idxs()
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* device_matrix_data<ValueType, IndexType>::get_const_col_idxs()
+    const
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* device_matrix_data<ValueType, IndexType>::get_row_idxs()
+{
+    return row_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* device_matrix_data<ValueType, IndexType>::get_const_row_idxs()
+    const
+{
+    return row_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::resize_and_reset(
+    size_type new_num_entries)
+{
+    values_.resize_and_reset(new_num_entries);
+    col_idxs_.resize_and_reset(new_num_entries);
+    row_idxs_.resize_and_reset(new_num_entries);
+}
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::resize_and_reset(
+    dim<2> new_size, size_type new_num_entries)
+{
+    size_ = new_size;
+    resize_and_reset(new_num_entries);
+}
+
+
+template <typename ValueType, typename IndexType>
+typename device_matrix_data<ValueType, IndexType>::arrays
+device_matrix_data<ValueType, IndexType>::empty_out()
+{
+    arrays result{std::move(values_), std::move(col_idxs_),
+                  std::move(row_idxs_)};
+    size_ = {};
+    return result;
 }
 
 

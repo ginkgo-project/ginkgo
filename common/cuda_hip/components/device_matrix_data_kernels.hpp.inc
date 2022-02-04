@@ -30,68 +30,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
-
-
-#include <algorithm>
-
-
-#include <omp.h>
-
-
-#include "core/base/allocator.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace omp {
-namespace components {
-
-
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   Array<ValueType>& values, Array<IndexType>& row_idxs,
                   Array<IndexType>& col_idxs)
 {
-    const auto size = values.get_num_elems();
-    const auto num_threads = omp_get_max_threads();
-    const auto per_thread = static_cast<size_type>(ceildiv(size, num_threads));
-    vector<size_type> partial_counts(num_threads, {exec});
-#pragma omp parallel num_threads(num_threads)
-    {
-        const auto tidx = static_cast<size_type>(omp_get_thread_num());
-        const auto begin = per_thread * tidx;
-        const auto end = std::min(size, begin + per_thread);
-        for (auto i = begin; i < end; i++) {
-            partial_counts[tidx] +=
-                is_nonzero(values.get_const_data()[i]) ? 1 : 0;
-        }
-    }
-    std::partial_sum(partial_counts.begin(), partial_counts.end(),
-                     partial_counts.begin());
-    auto nnz = static_cast<size_type>(partial_counts.back());
+    auto value_ptr =
+        thrust::device_pointer_cast(as_device_type(values.get_const_data()));
+    auto size = values.get_num_elems();
+    // count nonzeros
+    auto nnz = thrust::count_if(value_ptr, value_ptr + size,
+                                [] __device__(device_type<ValueType> value) {
+                                    return is_nonzero(value);
+                                });
     if (nnz < size) {
-        Array<ValueType> new_values{exec, nnz};
-        Array<IndexType> new_row_idxs{exec, nnz};
-        Array<IndexType> new_col_idxs{exec, nnz};
-#pragma omp parallel num_threads(num_threads)
-        {
-            const auto tidx = static_cast<size_type>(omp_get_thread_num());
-            const auto begin = per_thread * tidx;
-            const auto end = std::min(size, begin + per_thread);
-            auto out_idx = tidx == 0 ? size_type{} : partial_counts[tidx - 1];
-            for (auto i = begin; i < end; i++) {
-                auto val = values.get_const_data()[i];
-                if (is_nonzero(val)) {
-                    new_values.get_data()[out_idx] = val;
-                    new_row_idxs.get_data()[out_idx] =
-                        row_idxs.get_const_data()[i];
-                    new_col_idxs.get_data()[out_idx] =
-                        col_idxs.get_const_data()[i];
-                    out_idx++;
-                }
-            }
-        }
+        using tuple_type =
+            thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
+        // allocate new storage
+        Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
+        Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
+        Array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
+        // copy nonzeros
+        auto it = thrust::make_zip_iterator(thrust::make_tuple(
+            thrust::device_pointer_cast(row_idxs.get_const_data()),
+            thrust::device_pointer_cast(col_idxs.get_const_data()), value_ptr));
+        auto out_it = thrust::make_zip_iterator(thrust::make_tuple(
+            thrust::device_pointer_cast(new_row_idxs.get_data()),
+            thrust::device_pointer_cast(new_col_idxs.get_data()),
+            thrust::device_pointer_cast(
+                as_device_type(new_values.get_data()))));
+        thrust::copy_if(thrust::device, it, it + size, out_it,
+                        [] __device__(tuple_type entry) {
+                            return is_nonzero(thrust::get<2>(entry));
+                        });
+        // swap out storage
         values = std::move(new_values);
         row_idxs = std::move(new_row_idxs);
         col_idxs = std::move(new_col_idxs);
@@ -106,18 +78,18 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
-                                                       data.get_num_elems()};
-    soa_to_aos(exec, data, tmp);
-    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
-    aos_to_soa(exec, tmp, data);
+    using tuple_type =
+        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
+    auto it = thrust::make_zip_iterator(thrust::make_tuple(
+        thrust::device_pointer_cast(data.get_row_idxs()),
+        thrust::device_pointer_cast(data.get_col_idxs()),
+        thrust::device_pointer_cast(as_device_type(data.get_values()))));
+    thrust::sort(thrust::device, it, it + data.get_num_elems(),
+                 [] __device__(tuple_type a, tuple_type b) {
+                     return thrust::tie(thrust::get<0>(a), thrust::get<1>(a)) <
+                            thrust::tie(thrust::get<0>(b), thrust::get<1>(b));
+                 });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
-
-
-}  // namespace components
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko

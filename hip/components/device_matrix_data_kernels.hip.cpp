@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/count.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
 #include <thrust/tuple.h>
 
@@ -50,59 +51,7 @@ namespace hip {
 namespace components {
 
 
-template <typename ValueType, typename IndexType>
-void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<matrix_data_entry<ValueType, IndexType>>& data)
-{
-    using nonzero_type = hip_type<matrix_data_entry<ValueType, IndexType>>;
-    using host_nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    static_assert(sizeof(nonzero_type) == sizeof(host_nonzero_type),
-                  "mismatching size");
-    auto size = data.get_num_elems();
-    auto nnz = thrust::count_if(
-        thrust::device_pointer_cast(as_hip_type(data.get_const_data())),
-        thrust::device_pointer_cast(as_hip_type(data.get_const_data() + size)),
-        [] __device__(nonzero_type entry) { return is_nonzero(entry.value); });
-    if (nnz < size) {
-        Array<matrix_data_entry<ValueType, IndexType>> result{
-            exec, static_cast<size_type>(nnz)};
-        thrust::copy_if(
-            thrust::device,
-            thrust::device_pointer_cast(as_hip_type(data.get_const_data())),
-            thrust::device_pointer_cast(
-                as_hip_type(data.get_const_data() + size)),
-            thrust::device_pointer_cast(as_hip_type(result.get_data())),
-            [] __device__(nonzero_type entry) {
-                return is_nonzero(entry.value);
-            });
-        data = std::move(result);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    Array<matrix_data_entry<ValueType, IndexType>>& data)
-{
-    using nonzero_type = hip_type<matrix_data_entry<ValueType, IndexType>>;
-    using host_nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    static_assert(sizeof(nonzero_type) == sizeof(host_nonzero_type),
-                  "mismatching size");
-    thrust::sort(thrust::device,
-                 thrust::device_pointer_cast(as_hip_type(data.get_data())),
-                 thrust::device_pointer_cast(
-                     as_hip_type(data.get_data() + data.get_num_elems())),
-                 [] __device__(nonzero_type a, nonzero_type b) {
-                     return thrust::tie(a.row, a.column) <
-                            thrust::tie(b.row, b.column);
-                 });
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
+#include "common/cuda_hip/components/device_matrix_data_kernels.hpp.inc"
 
 
 }  // namespace components

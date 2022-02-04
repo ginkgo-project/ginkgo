@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
@@ -58,7 +59,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
-GKO_REGISTER_OPERATION(build_row_ptrs, components::build_row_ptrs);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(prefix_sum, components::prefix_sum);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, sellp::fill_in_matrix_data);
@@ -176,15 +177,15 @@ template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
 {
     auto exec = this->get_executor();
-    if (this->get_size() != data.size) {
-        slice_lengths_.resize_and_reset(ceildiv(data.size[0], slice_size_));
-        slice_sets_.resize_and_reset(ceildiv(data.size[0], slice_size_) + 1);
-        this->set_size(data.size);
-    }
-    Array<int64> row_ptrs{exec, data.size[0] + 1};
-    auto local_data = make_temporary_clone(exec, &data.nonzeros);
-    exec->run(sellp::make_build_row_ptrs(*local_data, data.size[0],
-                                         row_ptrs.get_data()));
+    const auto size = data.get_size();
+    slice_lengths_.resize_and_reset(ceildiv(size[0], slice_size_));
+    slice_sets_.resize_and_reset(ceildiv(size[0], slice_size_) + 1);
+    this->set_size(size);
+    Array<int64> row_ptrs{exec, size[0] + 1};
+    auto local_data = make_temporary_clone(exec, &data);
+    exec->run(sellp::make_convert_idxs_to_ptrs(local_data->get_const_row_idxs(),
+                                               local_data->get_num_elems(),
+                                               size[0], row_ptrs.get_data()));
     exec->run(sellp::make_compute_slice_sets(
         row_ptrs, this->get_slice_size(), this->get_stride_factor(),
         slice_sets_.get_data(), slice_lengths_.get_data()));
@@ -198,10 +199,17 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
 
 
 template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 

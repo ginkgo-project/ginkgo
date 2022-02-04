@@ -725,10 +725,10 @@ template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data& data)
 {
     auto exec = this->get_executor();
-    this->resize(data.size);
+    this->resize(data.get_size());
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data.nonzeros), this));
+        *make_temporary_clone(exec, &data), this));
 }
 
 
@@ -736,26 +736,40 @@ template <typename ValueType>
 void Dense<ValueType>::read(const device_mat_data32& data)
 {
     auto exec = this->get_executor();
-    this->resize(data.size);
+    this->resize(data.get_size());
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data.nonzeros), this));
+        *make_temporary_clone(exec, &data), this));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::read(device_mat_data32&& data)
+{
+    this->read(data);
+    data.empty_out();
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::read(const mat_data32& data)
 {
-    this->read(device_mat_data32::create_view_from_host(
-        this->get_executor(), const_cast<mat_data32&>(data)));
+    this->read(device_mat_data32::create_from_host(this->get_executor(), data));
 }
 
 

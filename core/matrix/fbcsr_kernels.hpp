@@ -65,12 +65,12 @@ namespace kernels {
                        const matrix::Dense<ValueType>* beta,         \
                        matrix::Dense<ValueType>* c)
 
-#define GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
-    void fill_in_matrix_data(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const Array<matrix_data_entry<ValueType, IndexType>>& data,        \
-        int block_size, Array<IndexType>& row_ptrs,                        \
-        Array<IndexType>& col_idxs, Array<ValueType>& values)
+#define GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType)   \
+    void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,    \
+                             device_matrix_data<ValueType, IndexType>& data, \
+                             int block_size, Array<IndexType>& row_ptrs,     \
+                             Array<IndexType>& col_idxs,                     \
+                             Array<ValueType>& values)
 
 #define GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,       \

@@ -157,10 +157,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    const int64* row_ptrs, matrix::Sellp<ValueType, IndexType>* output)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         const int64* row_ptrs,
+                         matrix::Sellp<ValueType, IndexType>* output)
 {
     const auto slice_size = output->get_slice_size();
     const auto slice_sets = output->get_const_slice_sets();
@@ -177,9 +177,8 @@ void fill_in_matrix_data(
         const auto slice_length = slice_end - slice_begin;
         auto out_idx = slice_begin * slice_size + local_row;
         for (auto i = row_begin; i < row_end; i++) {
-            const auto nonzero = nonzeros.get_const_data()[i];
-            cols[out_idx] = nonzero.column;
-            vals[out_idx] = nonzero.value;
+            cols[out_idx] = data.get_const_col_idxs()[i];
+            vals[out_idx] = data.get_const_values()[i];
             out_idx += slice_size;
         }
         for (auto i = row_nnz; i < slice_length; i++) {

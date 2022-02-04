@@ -219,22 +219,30 @@ void Fbcsr<ValueType, IndexType>::move_to(
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::read(const device_mat_data& data)
 {
-    const auto row_blocks = detail::get_num_blocks(bs_, data.size[0]);
-    const auto col_blocks = detail::get_num_blocks(bs_, data.size[1]);
-    this->set_size(data.size);
+    // make a copy, read the data in
+    this->read(device_mat_data{this->get_executor(), data});
+}
+
+
+template <typename ValueType, typename IndexType>
+void Fbcsr<ValueType, IndexType>::read(device_mat_data&& data)
+{
+    const auto row_blocks = detail::get_num_blocks(bs_, data.get_size()[0]);
+    const auto col_blocks = detail::get_num_blocks(bs_, data.get_size()[1]);
+    this->set_size(data.get_size());
     row_ptrs_.resize_and_reset(row_blocks + 1);
     auto exec = this->get_executor();
-    auto local_data = make_temporary_clone(exec, &data.nonzeros);
+    auto local_data = make_temporary_clone(exec, &data);
     exec->run(fbcsr::make_fill_in_matrix_data(*local_data, bs_, row_ptrs_,
                                               col_idxs_, values_));
+    data.empty_out();
 }
 
 
 template <typename ValueType, typename IndexType>
 void Fbcsr<ValueType, IndexType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 

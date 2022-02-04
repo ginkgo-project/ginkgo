@@ -76,7 +76,7 @@ namespace kernels {
 #define GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const Array<matrix_data_entry<ValueType, IndexType>>& data,           \
+        const device_matrix_data<ValueType, IndexType>& data,                 \
         matrix::Diagonal<ValueType>* output)
 
 #define GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \

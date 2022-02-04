@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
@@ -45,8 +46,10 @@ namespace gko {
 
 /**
  * This type is a device-side equivalent to matrix_data.
- * It stores the data necessary to initialize any matrix format in Ginkgo in a
- * array of matrix_data_entry values together with associated matrix dimensions.
+ * It stores the data necessary to initialize any matrix format in Ginkgo in
+ * individual value, column and row index arrays together with associated matrix
+ * dimensions. matrix_data uses Array-of-Structs storage (AoS), while
+ * device_matrix_data uses Struct-of-Arrays (SoA).
  *
  * @note To be used with a Ginkgo matrix type, the entry array must be sorted in
  *       row-major order, i.e. by row index, then by column index within rows.
@@ -57,9 +60,12 @@ namespace gko {
  * @tparam IndexType  the type used to store matrix row and column indices
  */
 template <typename ValueType, typename IndexType>
-struct device_matrix_data {
-    using nonzero_type = matrix_data_entry<ValueType, IndexType>;
-    using host_type = matrix_data<ValueType, IndexType>;
+class device_matrix_data {
+public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+    using nonzero_type = matrix_data_entry<value_type, index_type>;
+    using host_type = matrix_data<value_type, index_type>;
 
     /**
      * Initializes a new device_matrix_data object.
@@ -74,12 +80,36 @@ struct device_matrix_data {
                        size_type num_entries = 0);
 
     /**
+     * Initializes a device_matrix_data object by copying an existing object on
+     * another executor.
+     *
+     * @param exec  the executor to be used to store the matrix entries
+     * @param data  the device_matrix data object to copy, potentially stored on
+     * another executor.
+     */
+    device_matrix_data(std::shared_ptr<const Executor> exec,
+                       const device_matrix_data& data);
+
+    /**
      * Initializes a new device_matrix_data object from existing data.
      *
      * @param size  the matrix dimensions
-     * @param data  the array containing the matrix entries
+     * @param data  the array containing the matrix values
+     * @param data  the array containing the matrix column indices
+     * @param data  the array containing the matrix row indices
      */
-    device_matrix_data(dim<2> size, Array<nonzero_type> data);
+    template <typename ValueArray, typename IndexArray>
+    device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
+                       ValueArray&& values, IndexArray&& col_idxs,
+                       IndexArray&& row_idxs)
+        : size_{size},
+          values_{exec, std::forward<ValueArray>(values)},
+          col_idxs_{exec, std::forward<IndexArray>(col_idxs)},
+          row_idxs_{exec, std::forward<IndexArray>(row_idxs)}
+    {
+        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
+    }
 
     /**
      * Copies the device_matrix_data entries to the host to return a regular
@@ -99,8 +129,8 @@ struct device_matrix_data {
      *          host executor or copied into an owning Array if `exec` is a
      *          device executor.
      */
-    static device_matrix_data create_view_from_host(
-        std::shared_ptr<const Executor> exec, host_type& data);
+    static device_matrix_data create_from_host(
+        std::shared_ptr<const Executor> exec, const host_type& data);
 
     /**
      * Sorts the matrix entries in row-major order
@@ -116,21 +146,174 @@ struct device_matrix_data {
      */
     void remove_zeros();
 
-    /** The matrix dimensions. */
-    dim<2> size;
     /**
-     * The matrix entries.
+     * Returns the executor used to store the device_matrix_data entries.
      *
-     * @note Despite the name, the entry values may be zero, which can be
-     *       necessary dependent on the matrix format.
-     * @note To be used with a Ginkgo matrix type, the entry array must be
-     *       sorted in row-major order, i.e. by row index, then by column index
-     *       within rows. This can be achieved by calling sort_row_major()
+     * @return the executor used to store the device_matrix_data entries.
      */
-    Array<nonzero_type> nonzeros;
+    std::shared_ptr<const Executor> get_executor() const;
+
+    /**
+     * Returns the dimensions of the matrix.
+     *
+     * @return the dimensions of the matrix.
+     */
+    dim<2> get_size() const;
+
+    /**
+     * Returns the number of stored elements of the matrix.
+     *
+     * @return the number of stored elements of the matrix.
+     */
+    size_type get_num_elems() const;
+
+    /**
+     * Returns a pointer to the value array
+     *
+     * @return a pointer to the value array
+     */
+    value_type* get_values();
+
+    /**
+     * Returns a pointer to the constant value array
+     *
+     * @return a pointer to the constant value array
+     */
+    const value_type* get_const_values() const;
+
+    /**
+     * Returns a pointer to the column index array
+     *
+     * @return a pointer to the column index array
+     */
+    index_type* get_col_idxs();
+
+    /**
+     * Returns a pointer to the constant column index array
+     *
+     * @return a pointer to the constant column index array
+     */
+    const index_type* get_const_col_idxs() const;
+
+    /**
+     * Returns a pointer to the row index array
+     *
+     * @return a pointer to the row index array
+     */
+    index_type* get_row_idxs();
+
+    /**
+     * Returns a pointer to the constant row index array
+     *
+     * @return a pointer to the constant row index array
+     */
+    const index_type* get_const_row_idxs() const;
+
+    /**
+     * Resizes the internal storage to the given number of stored matrix
+     * entries. The resulting storage should be assumed uninitialized.
+     *
+     * @param new_num_entries  the new number of stored matrix entries.
+     */
+    void resize_and_reset(size_type new_num_entries);
+
+    /**
+     * Resizes the matrix and internal storage to the given dimensions.
+     * The resulting storage should be assumed uninitialized.
+     *
+     * @param new_size  the new matrix dimensions.
+     * @param new_num_entries  the new number of stored matrix entries.
+     */
+    void resize_and_reset(dim<2> new_size, size_type new_num_entries);
+
+    /**
+     * Stores the internal arrays of a device_matrix_data object.
+     */
+    struct arrays {
+        Array<value_type> values;
+        Array<index_type> col_idxs;
+        Array<index_type> row_idxs;
+    };
+
+    /**
+     * Moves out the internal arrays of the device_matrix_data object and resets
+     * it to an empty 0x0 matrix.
+     *
+     * @return a struct containing the internal arrays.
+     */
+    arrays empty_out();
+
+private:
+    dim<2> size_;
+    Array<value_type> values_;
+    Array<index_type> col_idxs_;
+    Array<index_type> row_idxs_;
 };
 
 
+namespace detail {
+
+
+template <typename ValueType, typename IndexType>
+struct temporary_clone_helper<device_matrix_data<ValueType, IndexType>> {
+    static std::unique_ptr<device_matrix_data<ValueType, IndexType>> create(
+        std::shared_ptr<const Executor> exec,
+        device_matrix_data<ValueType, IndexType>* ptr, bool copy_data)
+    {
+        if (copy_data) {
+            return std::make_unique<device_matrix_data<ValueType, IndexType>>(
+                std::move(exec), *ptr);
+        } else {
+            return std::make_unique<device_matrix_data<ValueType, IndexType>>(
+                std::move(exec), ptr->get_size(), ptr->get_num_elems());
+        }
+    }
+};
+
+template <typename ValueType, typename IndexType>
+struct temporary_clone_helper<const device_matrix_data<ValueType, IndexType>> {
+    static std::unique_ptr<const device_matrix_data<ValueType, IndexType>>
+    create(std::shared_ptr<const Executor> exec,
+           const device_matrix_data<ValueType, IndexType>* ptr, bool)
+    {
+        return std::make_unique<const device_matrix_data<ValueType, IndexType>>(
+            std::move(exec), *ptr);
+    }
+};
+
+
+// specialization for non-constant device_matrix_data, copying back via
+// assignment
+template <typename ValueType, typename IndexType>
+class copy_back_deleter<device_matrix_data<ValueType, IndexType>> {
+public:
+    using pointer = device_matrix_data<ValueType, IndexType>*;
+
+    /**
+     * Creates a new deleter object.
+     *
+     * @param original  the origin object where the data will be copied before
+     *                  deletion
+     */
+    copy_back_deleter(pointer original) : original_{original} {}
+
+    /**
+     * Copies back the pointed-to object to the original and deletes it.
+     *
+     * @param ptr  pointer to the object to be copied back and deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        *original_ = *ptr;
+        delete ptr;
+    }
+
+private:
+    pointer original_;
+};
+
+
+}  // namespace detail
 }  // namespace gko
 
 

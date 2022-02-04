@@ -71,26 +71,26 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         const int64* row_ptrs,
+                         matrix::Ell<ValueType, IndexType>* output)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto stride,
-                      auto num_cols, auto cols, auto values) {
+        [] GKO_KERNEL(auto row, auto in_cols, auto in_vals, auto row_ptrs,
+                      auto stride, auto num_cols, auto cols, auto values) {
             const auto begin = row_ptrs[row];
             const auto end = row_ptrs[row + 1];
             auto out_idx = row;
             for (auto i = begin; i < begin + num_cols; i++) {
-                cols[out_idx] = i < end ? nonzeros[i].column : 0;
-                values[out_idx] = i < end ? unpack_member(nonzeros[i].value)
-                                          : zero(values[out_idx]);
+                cols[out_idx] = i < end ? in_cols[i] : 0;
+                values[out_idx] = i < end ? in_vals[i] : zero(values[out_idx]);
                 out_idx += stride;
             }
         },
-        output->get_size()[0], nonzeros, row_ptrs, output->get_stride(),
+        output->get_size()[0], data.get_const_col_idxs(),
+        data.get_const_values(), row_ptrs, output->get_stride(),
         output->get_num_stored_elements_per_row(), output->get_col_idxs(),
         output->get_values());
 }

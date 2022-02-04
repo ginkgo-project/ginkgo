@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -85,18 +86,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::Dense<ValueType>* output)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         matrix::Dense<ValueType>* output)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto data, auto output) {
-            const auto entry = data[i];
-            output(entry.row, entry.column) = unpack_member(entry.value);
+        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
+            output(row[i], col[i]) = val[i];
         },
-        nonzeros.get_num_elems(), nonzeros, output);
+        data.get_num_elems(), data.get_const_row_idxs(),
+        data.get_const_col_idxs(), data.get_const_values(), output);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

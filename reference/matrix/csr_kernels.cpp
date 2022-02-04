@@ -358,23 +358,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::Csr<ValueType, IndexType>* output)
-{
-    for (size_type i = 0; i < nonzeros.get_num_elems(); i++) {
-        const auto nonzero = nonzeros.get_const_data()[i];
-        output->get_col_idxs()[i] = nonzero.column;
-        output->get_values()[i] = nonzero.value;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_FILL_IN_MATRIX_DATA_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)
