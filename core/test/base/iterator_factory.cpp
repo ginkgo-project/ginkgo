@@ -260,13 +260,13 @@ TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
 
     // a set of operations that return inconsistent results for the two
     // different iterators
-    EXPECT_EXIT(it2 - it1, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it2 == it1, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it2 != it1, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it1 < it2, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it2 <= it1, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it2 > it1, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(it1 >= it2, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_DEATH(it2 - it1, "");
+    EXPECT_DEATH(it2 == it1, "");
+    EXPECT_DEATH(it2 != it1, "");
+    EXPECT_DEATH(it1 < it2, "");
+    EXPECT_DEATH(it2 <= it1, "");
+    EXPECT_DEATH(it2 > it1, "");
+    EXPECT_DEATH(it1 >= it2, "");
 }
 
 
