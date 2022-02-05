@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <numeric>
 #include <vector>
 
 
@@ -41,6 +42,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+
+
+namespace std {
+
+
+// add a comparison for std::complex to allow comparisons without custom
+// comparator
+// HERE BE DRAGONS! This is technically UB, since we are adding things to
+// namespace std, but since it is only inside a test, it should be fine :)
+template <typename ValueType>
+bool operator<(const std::complex<ValueType>& a,
+               const std::complex<ValueType>& b)
+{
+    return a.real() < b.real();
+}
+
+
+}  // namespace std
 
 
 namespace {
@@ -61,13 +80,6 @@ protected:
           ordered_value{-1., 2.,  3.,  4.,  5.,  6.,  7., 7.,
                         9.,  10., 11., 12., 13., 14., 15.}
     {}
-
-    template <typename T1, typename T2>
-    void check_vector_equal(const std::vector<T1>& v1,
-                            const std::vector<T2>& v2)
-    {
-        ASSERT_TRUE(std::equal(v1.begin(), v1.end(), v2.begin()));
-    }
 
     // Require that Iterator has a `value_type` specified
     template <typename Iterator, typename = typename Iterator::value_type>
@@ -104,11 +116,11 @@ TYPED_TEST(IteratorFactory, EmptyIterator)
 {
     using index_type = typename TestFixture::index_type;
     using value_type = typename TestFixture::value_type;
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        nullptr, nullptr, 0);
 
-    ASSERT_TRUE(test_iter.begin() == test_iter.end());
-    ASSERT_NO_THROW(std::sort(test_iter.begin(), test_iter.end()));
+    auto test_iter = gko::detail::make_zip_iterator<index_type*, value_type*>(
+        nullptr, nullptr);
+
+    ASSERT_NO_THROW(std::sort(test_iter, test_iter));
 }
 
 
@@ -119,12 +131,11 @@ TYPED_TEST(IteratorFactory, SortingReversedWithIterator)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    std::sort(test_iter.begin(), test_iter.end());
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    std::sort(test_iter, test_iter + vec1.size());
 
-    this->check_vector_equal(vec1, this->ordered_index);
-    this->check_vector_equal(vec2, this->reversed_value);
+    ASSERT_EQ(vec1, this->ordered_index);
+    ASSERT_EQ(vec2, this->reversed_value);
 }
 
 
@@ -135,12 +146,11 @@ TYPED_TEST(IteratorFactory, SortingAlreadySortedWithIterator)
     std::vector<index_type> vec1{this->ordered_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    std::sort(test_iter.begin(), test_iter.end());
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    std::sort(test_iter, test_iter + vec1.size());
 
-    this->check_vector_equal(vec1, this->ordered_index);
-    this->check_vector_equal(vec2, this->ordered_value);
+    ASSERT_EQ(vec1, this->ordered_index);
+    ASSERT_EQ(vec2, this->ordered_value);
 }
 
 
@@ -151,10 +161,9 @@ TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
     bool is_sorted =
-        this->is_sorted_iterator(test_iter.begin(), test_iter.end());
+        this->is_sorted_iterator(test_iter, test_iter + vec1.size());
 
     ASSERT_FALSE(is_sorted);
 }
@@ -167,10 +176,9 @@ TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller2)
     std::vector<index_type> vec1{this->ordered_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
     bool is_sorted =
-        this->is_sorted_iterator(test_iter.begin(), test_iter.end());
+        this->is_sorted_iterator(test_iter, test_iter + vec1.size());
 
     ASSERT_TRUE(is_sorted);
 }
@@ -183,10 +191,10 @@ TYPED_TEST(IteratorFactory, IncreasingIterator)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    auto begin = test_iter.begin();
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    auto begin = test_iter;
     auto plus_2 = begin + 2;
+    auto plus_2_rev = 2 + begin;
     auto plus_minus_2 = plus_2 - 2;
     auto increment_pre_2 = begin;
     ++increment_pre_2;
@@ -197,13 +205,44 @@ TYPED_TEST(IteratorFactory, IncreasingIterator)
     auto increment_pre_test = begin;
     auto increment_post_test = begin;
 
+    // check results for equality
     ASSERT_TRUE(begin == plus_minus_2);
     ASSERT_TRUE(plus_2 == increment_pre_2);
+    ASSERT_TRUE(plus_2_rev == increment_pre_2);
     ASSERT_TRUE(increment_pre_2 == increment_post_2);
     ASSERT_TRUE(begin == increment_post_test++);
     ASSERT_TRUE(begin + 1 == ++increment_pre_test);
-    ASSERT_TRUE((*plus_2).dominant() == vec1[2]);
-    ASSERT_TRUE((*plus_2).secondary() == vec2[2]);
+    ASSERT_TRUE(std::get<0>(*plus_2) == vec1[2]);
+    ASSERT_TRUE(std::get<1>(*plus_2) == vec2[2]);
+    // check other comparison operators and difference
+    std::vector<gko::detail::zip_iterator<index_type*, value_type*>> its{
+        begin,
+        plus_2,
+        plus_2_rev,
+        plus_minus_2,
+        increment_pre_2,
+        increment_post_2,
+        increment_pre_test,
+        increment_post_test,
+        begin + 5,
+        begin + 9};
+    std::sort(its.begin(), its.end());
+    std::vector<int> dists;
+    std::vector<int> ref_dists{0, 1, 0, 1, 0, 0, 0, 3, 4};
+    for (int i = 0; i < its.size() - 1; i++) {
+        SCOPED_TRACE(i);
+        dists.push_back(its[i + 1] - its[i]);
+        auto equal = dists.back() > 0;
+        ASSERT_EQ(its[i + 1] > its[i], equal);
+        ASSERT_EQ(its[i] < its[i + 1], equal);
+        ASSERT_EQ(its[i] != its[i + 1], equal);
+        ASSERT_EQ(its[i] == its[i + 1], !equal);
+        ASSERT_EQ(its[i] >= its[i + 1], !equal);
+        ASSERT_EQ(its[i + 1] <= its[i], !equal);
+        ASSERT_TRUE(its[i + 1] >= its[i]);
+        ASSERT_TRUE(its[i] <= its[i + 1]);
+    }
+    ASSERT_EQ(dists, ref_dists);
 }
 
 
@@ -214,9 +253,8 @@ TYPED_TEST(IteratorFactory, DecreasingIterator)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    auto iter = test_iter.begin() + 5;
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    auto iter = test_iter + 5;
     auto minus_2 = iter - 2;
     auto minus_plus_2 = minus_2 + 2;
     auto decrement_pre_2 = iter;
@@ -233,8 +271,8 @@ TYPED_TEST(IteratorFactory, DecreasingIterator)
     ASSERT_TRUE(decrement_pre_2 == decrement_post_2);
     ASSERT_TRUE(iter == decrement_post_test--);
     ASSERT_TRUE(iter - 1 == --decrement_pre_test);
-    ASSERT_TRUE((*minus_2).dominant() == vec1[3]);
-    ASSERT_TRUE((*minus_2).secondary() == vec2[3]);
+    ASSERT_TRUE(std::get<0>(*minus_2) == vec1[3]);
+    ASSERT_TRUE(std::get<1>(*minus_2) == vec2[3]);
 }
 
 
@@ -246,17 +284,16 @@ TYPED_TEST(IteratorFactory, CorrectDereferencing)
     std::vector<value_type_it> vec2{this->ordered_value};
     constexpr int element_to_test = 3;
 
-    auto test_iter = gko::detail::IteratorFactory<index_type_it, value_type_it>(
-        vec1.data(), vec2.data(), vec1.size());
-    auto begin = test_iter.begin();
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    auto begin = test_iter;
     using value_type = typename decltype(begin)::value_type;
     auto to_test_ref = *(begin + element_to_test);
     value_type to_test_pair = to_test_ref;  // Testing implicit conversion
 
-    ASSERT_TRUE(to_test_pair.dominant == vec1[element_to_test]);
-    ASSERT_TRUE(to_test_pair.dominant == to_test_ref.dominant());
-    ASSERT_TRUE(to_test_pair.secondary == vec2[element_to_test]);
-    ASSERT_TRUE(to_test_pair.secondary == to_test_ref.secondary());
+    ASSERT_TRUE(std::get<0>(to_test_pair) == vec1[element_to_test]);
+    ASSERT_TRUE(std::get<0>(to_test_pair) == std::get<0>(to_test_ref));
+    ASSERT_TRUE(std::get<1>(to_test_pair) == vec2[element_to_test]);
+    ASSERT_TRUE(std::get<1>(to_test_pair) == std::get<1>(to_test_ref));
 }
 
 
@@ -267,10 +304,9 @@ TYPED_TEST(IteratorFactory, CorrectSwapping)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    auto first_el_reference = *test_iter.begin();
-    auto second_el_reference = *(test_iter.begin() + 1);
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    auto first_el_reference = *test_iter;
+    auto second_el_reference = *(test_iter + 1);
     swap(first_el_reference, second_el_reference);
 
     ASSERT_TRUE(vec1[0] == this->reversed_index[1]);
@@ -292,11 +328,10 @@ TYPED_TEST(IteratorFactory, CorrectHandWrittenSwapping)
     std::vector<index_type> vec1{this->reversed_index};
     std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
-        vec1.data(), vec2.data(), vec1.size());
-    auto first_el_reference = *test_iter.begin();
-    auto second_el_reference = *(test_iter.begin() + 1);
-    auto temp = static_cast<typename decltype(test_iter.begin())::value_type>(
+    auto test_iter = gko::detail::make_zip_iterator(vec1.data(), vec2.data());
+    auto first_el_reference = *test_iter;
+    auto second_el_reference = *(test_iter + 1);
+    auto temp = static_cast<typename decltype(test_iter)::value_type>(
         first_el_reference);
     first_el_reference = second_el_reference;
     second_el_reference = temp;

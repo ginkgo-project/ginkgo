@@ -46,7 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/base/iterator_factory.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
