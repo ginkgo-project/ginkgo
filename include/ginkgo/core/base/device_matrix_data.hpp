@@ -151,63 +151,75 @@ public:
      *
      * @return the executor used to store the device_matrix_data entries.
      */
-    std::shared_ptr<const Executor> get_executor() const;
+    std::shared_ptr<const Executor> get_executor() const
+    {
+        return values_.get_executor();
+    }
 
     /**
      * Returns the dimensions of the matrix.
      *
      * @return the dimensions of the matrix.
      */
-    dim<2> get_size() const;
+    dim<2> get_size() const { return size_; }
 
     /**
      * Returns the number of stored elements of the matrix.
      *
      * @return the number of stored elements of the matrix.
      */
-    size_type get_num_elems() const;
+    size_type get_num_elems() const { return values_.get_num_elems(); }
 
     /**
      * Returns a pointer to the value array
      *
      * @return a pointer to the value array
      */
-    value_type* get_values();
+    value_type* get_values() { return values_.get_data(); }
 
     /**
      * Returns a pointer to the constant value array
      *
      * @return a pointer to the constant value array
      */
-    const value_type* get_const_values() const;
+    const value_type* get_const_values() const
+    {
+        return values_.get_const_data();
+    }
 
     /**
      * Returns a pointer to the column index array
      *
      * @return a pointer to the column index array
      */
-    index_type* get_col_idxs();
+    index_type* get_col_idxs() { return col_idxs_.get_data(); }
 
     /**
      * Returns a pointer to the constant column index array
      *
      * @return a pointer to the constant column index array
      */
-    const index_type* get_const_col_idxs() const;
+    const index_type* get_const_col_idxs() const
+    {
+        return col_idxs_.get_const_data();
+    }
 
     /**
      * Returns a pointer to the row index array
      *
      * @return a pointer to the row index array
      */
-    index_type* get_row_idxs();
+    index_type* get_row_idxs() { return row_idxs_.get_data(); }
 
     /**
      * Returns a pointer to the constant row index array
      *
      * @return a pointer to the constant row index array
      */
-    const index_type* get_const_row_idxs() const;
+    const index_type* get_const_row_idxs() const
+    {
+        return row_idxs_.get_const_data();
+    }
 
     /**
      * Resizes the internal storage to the given number of stored matrix
