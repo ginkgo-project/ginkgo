@@ -35,17 +35,22 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                   Array<ValueType>& values, Array<IndexType>& row_idxs,
                   Array<IndexType>& col_idxs)
 {
-    auto value_ptr =
-        thrust::device_pointer_cast(as_device_type(values.get_const_data()));
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    using device_value_type = device_member_type<ValueType>;
+    auto value_ptr = thrust::device_pointer_cast(
+        reinterpret_cast<const device_value_type*>(values.get_const_data()));
     auto size = values.get_num_elems();
     // count nonzeros
-    auto nnz = thrust::count_if(value_ptr, value_ptr + size,
-                                [] __device__(device_type<ValueType> value) {
-                                    return is_nonzero(value);
-                                });
+    auto nnz =
+        thrust::count_if(thrust::device, value_ptr, value_ptr + size,
+                         [] __device__(device_value_type value) {
+                             return is_nonzero(fake_complex_unpack(value));
+                         });
     if (nnz < size) {
         using tuple_type =
-            thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
+            thrust::tuple<IndexType, IndexType, device_value_type>;
         // allocate new storage
         Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
         Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
@@ -58,11 +63,12 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
             thrust::device_pointer_cast(new_row_idxs.get_data()),
             thrust::device_pointer_cast(new_col_idxs.get_data()),
             thrust::device_pointer_cast(
-                as_device_type(new_values.get_data()))));
-        thrust::copy_if(thrust::device, it, it + size, out_it,
-                        [] __device__(tuple_type entry) {
-                            return is_nonzero(thrust::get<2>(entry));
-                        });
+                reinterpret_cast<device_value_type*>(new_values.get_data()))));
+        thrust::copy_if(
+            thrust::device, it, it + size, out_it,
+            [] __device__(tuple_type entry) {
+                return is_nonzero(fake_complex_unpack(thrust::get<2>(entry)));
+            });
         // swap out storage
         values = std::move(new_values);
         row_idxs = std::move(new_row_idxs);
@@ -78,17 +84,16 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    using tuple_type =
-        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
-    auto it = thrust::make_zip_iterator(thrust::make_tuple(
-        thrust::device_pointer_cast(data.get_row_idxs()),
-        thrust::device_pointer_cast(data.get_col_idxs()),
-        thrust::device_pointer_cast(as_device_type(data.get_values()))));
-    thrust::sort(thrust::device, it, it + data.get_num_elems(),
-                 [] __device__(tuple_type a, tuple_type b) {
-                     return thrust::tie(thrust::get<0>(a), thrust::get<1>(a)) <
-                            thrust::tie(thrust::get<0>(b), thrust::get<1>(b));
-                 });
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    using device_value_type = device_member_type<ValueType>;
+    auto it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(data.get_row_idxs()),
+                           thrust::device_pointer_cast(data.get_col_idxs())));
+    auto vals = thrust::device_pointer_cast(
+        reinterpret_cast<device_value_type*>(data.get_values()));
+    thrust::sort_by_key(thrust::device, it, it + data.get_num_elems(), vals);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
