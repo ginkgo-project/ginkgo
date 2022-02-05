@@ -490,12 +490,39 @@ struct matrix_data {
             });
     }
 
+    /**
+     * Remove entries with value zero from the matrix data.
+     */
     void remove_zeros()
     {
         nonzeros.erase(
             std::remove_if(begin(nonzeros), end(nonzeros),
                            [](nonzero_type nz) { return is_zero(nz.value); }),
             end(nonzeros));
+    }
+
+    /**
+     * Sum up all values that refer to the same matrix entry.
+     * The result is sorted in row-major order.
+     */
+    void sum_duplicates()
+    {
+        ensure_row_major_order();
+        std::vector<nonzero_type> new_nonzeros;
+        if (!nonzeros.empty()) {
+            new_nonzeros.emplace_back(nonzeros.front().row,
+                                      nonzeros.front().column,
+                                      zero<ValueType>());
+            for (auto entry : nonzeros) {
+                if (entry.row != new_nonzeros.back().row ||
+                    entry.column != new_nonzeros.back().column) {
+                    new_nonzeros.emplace_back(entry.row, entry.column,
+                                              zero<ValueType>());
+                }
+                new_nonzeros.back().value += entry.value;
+            }
+            nonzeros = std::move(new_nonzeros);
+        }
     }
 
 private:

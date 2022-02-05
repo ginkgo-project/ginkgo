@@ -81,6 +81,51 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
+                    Array<ValueType>& values, Array<IndexType>& row_idxs,
+                    Array<IndexType>& col_idxs)
+{
+    const auto size = values.get_num_elems();
+    const auto rows = row_idxs.get_const_data();
+    const auto cols = col_idxs.get_const_data();
+    auto iota = thrust::make_counting_iterator(size_type{});
+    const auto new_size = static_cast<size_type>(
+        thrust::count_if(thrust::device, iota, iota + size,
+                         [rows, cols] __device__(size_type i) {
+                             const auto prev_row = i > 0 ? rows[i - 1] : -1;
+                             const auto prev_col = i > 0 ? cols[i - 1] : -1;
+                             return rows[i] != prev_row || cols[i] != prev_col;
+                         }));
+    if (new_size < size) {
+        // allocate new storage
+        Array<ValueType> new_values{exec, new_size};
+        Array<IndexType> new_row_idxs{exec, new_size};
+        Array<IndexType> new_col_idxs{exec, new_size};
+        // reduce duplicates
+        auto in_locs = thrust::make_zip_iterator(
+            thrust::make_tuple(thrust::device_pointer_cast(rows),
+                               thrust::device_pointer_cast(cols)));
+        auto in_vals = thrust::device_pointer_cast(
+            as_device_type(values.get_const_data()));
+        auto out_locs = thrust::make_zip_iterator(thrust::make_tuple(
+            thrust::device_pointer_cast(new_row_idxs.get_data()),
+            thrust::device_pointer_cast(new_col_idxs.get_data())));
+        auto out_vals =
+            thrust::device_pointer_cast(as_device_type(new_values.get_data()));
+        thrust::reduce_by_key(thrust::device, in_locs, in_locs + size, in_vals,
+                              out_locs, out_vals);
+        // swap out storage
+        values = std::move(new_values);
+        row_idxs = std::move(new_row_idxs);
+        col_idxs = std::move(new_col_idxs);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {

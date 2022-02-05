@@ -40,6 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -100,6 +102,67 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
+                    size_type num_rows, Array<ValueType>& values,
+                    Array<IndexType>& row_idxs, Array<IndexType>& col_idxs)
+{
+    const auto size = values.get_num_elems();
+    Array<int64> row_ptrs_array{exec, num_rows + 1};
+    Array<int64> out_row_ptrs_array{exec, num_rows + 1};
+    components::convert_idxs_to_ptrs(exec, row_idxs.get_const_data(),
+                                     row_idxs.get_num_elems(), num_rows,
+                                     row_ptrs_array.get_data());
+    const auto row_ptrs = row_ptrs_array.get_const_data();
+    {
+        const auto out_row_ptrs = out_row_ptrs_array.get_data();
+#pragma omp parallel for
+        for (IndexType row = 0; row < num_rows; row++) {
+            int64 count_unique{};
+            IndexType col = -1;
+            for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+                const auto new_col = col_idxs.get_const_data()[i];
+                if (col != new_col) {
+                    col = new_col;
+                    count_unique++;
+                }
+            }
+            out_row_ptrs[row] = count_unique;
+        }
+        components::prefix_sum(exec, out_row_ptrs, num_rows + 1);
+    }
+    const auto out_row_ptrs = out_row_ptrs_array.get_const_data();
+    const auto out_size = static_cast<size_type>(out_row_ptrs[num_rows]);
+    if (out_size < size) {
+        Array<ValueType> new_values{exec, out_size};
+        Array<IndexType> new_row_idxs{exec, out_size};
+        Array<IndexType> new_col_idxs{exec, out_size};
+#pragma omp parallel for
+        for (IndexType row = 0; row < num_rows; row++) {
+            auto out_i = out_row_ptrs[row] - 1;
+            IndexType col = -1;
+            for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+                const auto new_col = col_idxs.get_const_data()[i];
+                if (col != new_col) {
+                    col = new_col;
+                    out_i++;
+                    new_row_idxs.get_data()[out_i] = row;
+                    new_col_idxs.get_data()[out_i] = col;
+                    new_values.get_data()[out_i] = zero<ValueType>();
+                }
+                new_values.get_data()[out_i] += values.get_const_data()[i];
+            }
+        }
+        values = std::move(new_values);
+        row_idxs = std::move(new_row_idxs);
+        col_idxs = std::move(new_col_idxs);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
