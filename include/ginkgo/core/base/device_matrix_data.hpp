@@ -147,6 +147,13 @@ public:
     void remove_zeros();
 
     /**
+     * Sums up all duplicate entries pointing to the same non-zero location.
+     * The output will be sorted in row-major order, and it will only reallocate
+     * if duplicates exist.
+     */
+    void sum_duplicates();
+
+    /**
      * Returns the executor used to store the device_matrix_data entries.
      *
      * @return the executor used to store the device_matrix_data entries.

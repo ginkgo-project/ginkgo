@@ -114,6 +114,55 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
+                    Array<ValueType>& values, Array<IndexType>& row_idxs,
+                    Array<IndexType>& col_idxs)
+{
+    IndexType row{-1};
+    IndexType col{-1};
+    const auto size = values.get_num_elems();
+    size_type count_unique{};
+    for (size_type i = 0; i < size; i++) {
+        const auto new_row = row_idxs.get_const_data()[i];
+        const auto new_col = col_idxs.get_const_data()[i];
+        if (row != new_row || col != new_col) {
+            row = new_row;
+            col = new_col;
+            count_unique++;
+        }
+    }
+    if (count_unique < size) {
+        Array<ValueType> new_values{exec, count_unique};
+        Array<IndexType> new_row_idxs{exec, count_unique};
+        Array<IndexType> new_col_idxs{exec, count_unique};
+        row = -1;
+        col = -1;
+        int64 out_i = -1;
+        for (size_type i = 0; i < size; i++) {
+            const auto new_row = row_idxs.get_const_data()[i];
+            const auto new_col = col_idxs.get_const_data()[i];
+            const auto new_val = values.get_const_data()[i];
+            if (row != new_row || col != new_col) {
+                row = new_row;
+                col = new_col;
+                out_i++;
+                new_row_idxs.get_data()[out_i] = row;
+                new_col_idxs.get_data()[out_i] = col;
+                new_values.get_data()[out_i] = zero<ValueType>();
+            }
+            new_values.get_data()[out_i] += new_val;
+        }
+        values = std::move(new_values);
+        row_idxs = std::move(new_row_idxs);
+        col_idxs = std::move(new_col_idxs);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
