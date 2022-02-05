@@ -903,9 +903,11 @@ void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
     for (size_type i = 0; i < number_rows; ++i) {
         auto start_row_idx = row_ptrs[i];
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
-        auto helper = detail::IteratorFactory<IndexType, ValueType>(
-            col_idxs + start_row_idx, values + start_row_idx, row_nnz);
-        std::sort(helper.begin(), helper.end());
+        auto it = detail::make_zip_iterator(col_idxs + start_row_idx,
+                                            values + start_row_idx);
+        std::sort(it, it + row_nnz, [](auto t1, auto t2) {
+            return std::get<0>(t1) < std::get<0>(t2);
+        });
     }
 }
 
