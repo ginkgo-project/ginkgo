@@ -45,6 +45,7 @@ namespace gko {
 namespace detail {
 
 
+/** Helper function to pass pack expansions to, whose values we don't need. */
 template <typename... Args>
 void tuple_unpack_sink(Args&&...)
 {}
@@ -54,6 +55,25 @@ template <typename... Iterators>
 class zip_iterator;
 
 
+/**
+ * A reference-like type pointing to a tuple of elements originating from a
+ * tuple of iterators. A few caveats related to its use:
+ *
+ * 1. It should almost never be stored as a reference, i.e.
+ * `auto& ref = *it` leads to a dangling reference, since the
+ * `zip_iterator_reference` returned by `*it` is a temporary.
+ *
+ * 2. Any copy of the object is itself a reference to the same entry, i.e.
+ * `auto ref_copy = ref` means that assigning values to `ref_copy` also changes
+ * the data referenced by `ref`
+ *
+ * 3. If you want to copy the data, assign it to a variable of value_type:
+ * `tuple<int, float> val = ref` or use the `copy` member function
+ * `auto val = ref.copy()`
+ *
+ * @see zip_iterator
+ * @tparam Iterators  the iterators that are zipped together
+ */
 template <typename... Iterators>
 class zip_iterator_reference
     : public std::tuple<
@@ -89,9 +109,23 @@ public:
         assign_impl(index_sequence{}, other);
         return *this;
     }
+
+    value_type copy() const { return *this; }
 };
 
 
+/**
+ * A generic iterator adapter that combines multiple separate random access
+ * iterators for types a, b, c, ... into an iterator over tuples of type
+ * (a, b, c, ...).
+ * Dereferencing it returns a reference-like zip_iterator_reference object,
+ * similar to std::vector<bool> bit references. Accesses through that reference
+ * to the individual tuple elements get translated to the corresponding
+ * iterator's references.
+ *
+ * @see zip_iterator_reference
+ * @tparam Iterators  the iterators to zip together
+ */
 template <typename... Iterators>
 class zip_iterator {
     static_assert(sizeof...(Iterators) > 0, "Can't build empty zip iterator");
@@ -263,31 +297,52 @@ zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(Iterators&&... it)
 }
 
 
+/**
+ * Swap function for zip iterator references. It takes care of creating a
+ * non-reference temporary to avoid the problem of a normal std::swap():
+ * ```
+ * // a and b are reference-like objects pointing to different entries
+ * auto tmp = a; // tmp is a reference-like type, so this is not a copy!
+ * a = b;        // copies value at b to a, which also modifies tmp
+ * b = tmp;      // copies value at tmp (= a) to b
+ * // now both a and b point to the same value that was originally at b
+ * ```
+ * It is modelled after the behavior of std::vector<bool> bit references.
+ * To swap in generic code, use the pattern `using std::swap; swap(a, b)`
+ *
+ * @tparam Iterators  the iterator types inside the corresponding zip_iterator
+ */
 template <typename... Iterators>
 void swap(zip_iterator_reference<Iterators...> a,
           zip_iterator_reference<Iterators...> b)
 {
-    typename zip_iterator<Iterators...>::value_type tmp = a;
+    auto tmp = a.copy();
     a = b;
     b = tmp;
 }
 
 
+/**
+ * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
+ */
 template <typename... Iterators>
 void swap(typename zip_iterator<Iterators...>::value_type& a,
           zip_iterator_reference<Iterators...> b)
 {
-    typename zip_iterator<Iterators...>::value_type tmp = a;
+    auto tmp = a;
     a = b;
     b = tmp;
 }
 
 
+/**
+ * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
+ */
 template <typename... Iterators>
 void swap(zip_iterator_reference<Iterators...> a,
           typename zip_iterator<Iterators...>::value_type& b)
 {
-    typename zip_iterator<Iterators...>::value_type tmp = a;
+    auto tmp = a.copy();
     a = b;
     b = tmp;
 }
