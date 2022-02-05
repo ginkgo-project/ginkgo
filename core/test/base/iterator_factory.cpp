@@ -246,6 +246,33 @@ TYPED_TEST(IteratorFactory, IncreasingIterator)
 }
 
 
+#ifndef NDEBUG
+
+
+TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
+{
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    auto it1 = gko::detail::make_zip_iterator(this->ordered_index.data(),
+                                              this->ordered_value.data());
+    auto it2 = gko::detail::make_zip_iterator(this->ordered_index.data() + 1,
+                                              this->ordered_value.data());
+
+    // a set of operations that return inconsistent results for the two
+    // different iterators
+    EXPECT_EXIT(it2 - it1, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it2 == it1, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it2 != it1, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it1 < it2, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it2 <= it1, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it2 > it1, testing::KilledBySignal(SIGABRT), "");
+    EXPECT_EXIT(it1 >= it2, testing::KilledBySignal(SIGABRT), "");
+}
+
+
+#endif
+
+
 TYPED_TEST(IteratorFactory, DecreasingIterator)
 {
     using index_type = typename TestFixture::index_type;
