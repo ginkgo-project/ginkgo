@@ -169,6 +169,39 @@ TYPED_TEST(DeviceMatrixData, CreatesFromHost)
 }
 
 
+TYPED_TEST(DeviceMatrixData, EmptiesOut)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, this->host_data);
+    const auto original_ptr1 = data.get_const_row_idxs();
+    const auto original_ptr2 = data.get_const_col_idxs();
+    const auto original_ptr3 = data.get_const_values();
+
+    auto arrays = data.empty_out();
+
+    ASSERT_EQ(data.get_size(), gko::dim<2>{});
+    ASSERT_EQ(data.get_num_elems(), 0);
+    ASSERT_NE(data.get_const_row_idxs(), original_ptr1);
+    ASSERT_NE(data.get_const_col_idxs(), original_ptr2);
+    ASSERT_NE(data.get_const_values(), original_ptr3);
+    ASSERT_EQ(arrays.row_idxs.get_const_data(), original_ptr1);
+    ASSERT_EQ(arrays.col_idxs.get_const_data(), original_ptr2);
+    ASSERT_EQ(arrays.values.get_const_data(), original_ptr3);
+    arrays.row_idxs.set_executor(this->exec->get_master());
+    arrays.col_idxs.set_executor(this->exec->get_master());
+    arrays.values.set_executor(this->exec->get_master());
+    for (gko::size_type i = 0; i < arrays.values.get_num_elems(); i++) {
+        const auto entry = this->host_data.nonzeros[i];
+        ASSERT_EQ(arrays.row_idxs.get_const_data()[i], entry.row);
+        ASSERT_EQ(arrays.col_idxs.get_const_data()[i], entry.column);
+        ASSERT_EQ(arrays.values.get_const_data()[i], entry.value);
+    }
+}
+
+
 TYPED_TEST(DeviceMatrixData, CopiesToHost)
 {
     using value_type = typename TestFixture::value_type;
