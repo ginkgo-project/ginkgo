@@ -126,8 +126,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          Array<IndexType>& col_idx_array,
                          Array<ValueType>& value_array)
 {
-    using tuple_type =
-        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
+    using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = data.get_num_elems();
     const auto bs = block_size;
     auto row_ptrs = row_ptr_array.get_data();
@@ -140,12 +139,16 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     }
     auto in_rows = data.get_row_idxs();
     auto in_cols = data.get_col_idxs();
-    auto in_vals = as_device_type(data.get_values());
-    auto zip_it = thrust::make_zip_iterator(
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    auto in_vals =
+        reinterpret_cast<device_member_type<ValueType>*>(data.get_values());
+    auto in_loc_it = thrust::make_zip_iterator(
         thrust::make_tuple(thrust::device_pointer_cast(in_rows),
-                           thrust::device_pointer_cast(in_cols),
-                           thrust::device_pointer_cast(in_vals)));
-    thrust::stable_sort(thrust::device, zip_it, zip_it + nnz,
+                           thrust::device_pointer_cast(in_cols)));
+    thrust::sort_by_key(thrust::device, in_loc_it, in_loc_it + nnz,
+                        thrust::device_pointer_cast(in_vals),
                         [bs] __device__(tuple_type a, tuple_type b) {
                             return thrust::make_pair(thrust::get<0>(a) / bs,
                                                      thrust::get<1>(a) / bs) <
@@ -192,17 +195,17 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     // fill in values
     components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
                            zero<ValueType>());
-    thrust::for_each_n(thrust::device, iota, num_blocks,
-                       [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols,
-                        in_vals, values] __device__(size_type i) {
-                           const auto block_begin = block_ptrs[i];
-                           const auto block_end =
-                               i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
-                           for (auto nz = block_begin; nz < block_end; nz++) {
-                               values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                                      (in_rows[nz] % bs)] = in_vals[nz];
-                           }
-                       });
+    thrust::for_each_n(
+        thrust::device, iota, num_blocks,
+        [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
+         values] __device__(size_type i) {
+            const auto block_begin = block_ptrs[i];
+            const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
+            for (auto nz = block_begin; nz < block_end; nz++) {
+                values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
+            }
+        });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

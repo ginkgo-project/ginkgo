@@ -320,6 +320,16 @@ using hip_type = typename detail::hip_type_impl<T>::type;
 template <typename T>
 using device_type = hip_type<T>;
 
+/**
+ * This works equivalently to device_type, except for replacing std::complex by
+ * detail::fake_complex to avoid issues with thrust::complex (alignment etc.)
+ *
+ * @tparam T  a type
+ */
+template <typename T>
+using device_member_type =
+    typename detail::hip_struct_member_type_impl<T>::type;
+
 
 /**
  * Reinterprets the passed in value as a HIP type.
