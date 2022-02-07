@@ -273,7 +273,9 @@ public:
      *
      * @note  the method has to be called on the same Executor the matrix is
      *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the OMP results in a runtime error)
+     *        the host results in a runtime error)
+     * @note  This method may not be the fastest way to access matrix entries.
+     *        @sa get_values, get_const_values
      */
     ValueType& at(size_type batch, size_type idx) noexcept
     {
@@ -281,7 +283,7 @@ public:
     }
 
     /**
-     * @copydoc BatchDiagonal::at(size_type, size_type, size_type)
+     * @copydoc BatchDiagonal::at(size_type, size_type)
      */
     ValueType at(size_type batch, size_type idx) const noexcept
     {
@@ -496,8 +498,8 @@ protected:
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
-    size_type linearize_index(const size_type batch, const size_type row) const
-        noexcept
+    size_type linearize_index(const size_type batch,
+                              const size_type row) const noexcept
     {
         if (this->get_size().stores_equal_sizes()) {
             return row + batch * std::min(this->get_size().at(0)[0],
