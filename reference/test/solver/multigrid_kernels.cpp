@@ -266,6 +266,7 @@ protected:
     using CoarseNext = gko::multigrid::AmgxPgm<gko::next_precision<value_type>>;
     using Smoother = gko::preconditioner::Jacobi<value_type>;
     using CoarsestSolver = gko::solver::Cg<value_type>;
+    using CoarsestNextSolver = gko::solver::Cg<gko::next_precision<value_type>>;
     using DummyRPFactory = DummyMultigridLevelWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;
     Multigrid()
@@ -298,6 +299,14 @@ protected:
                           .on(exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
                           .with_reduction_factor(r<value_type>::value)
+                          .on(exec))
+                  .on(exec)),
+          coarsestnext_factory(
+              CoarsestNextSolver::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
                           .on(exec))
                   .on(exec)),
           rp_factory(DummyRPFactory::build().on(exec)),
@@ -372,13 +381,13 @@ protected:
             Solver::build()
                 .with_pre_smoother(smoother_factory)
                 .with_smoother_relax(1.0)
-                .with_coarsest_solver(coarsest_factory)
+                .with_coarsest_solver(coarsestnext_factory)
                 .with_max_levels(2u)
                 .with_post_uses_pre(true)
                 .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
                 .with_mg_level(coarse_factory, coarsenext_factory)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                    gko::stop::Iteration::build().with_max_iters(200u).on(exec),
                     gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(100))
                         .on(exec),
@@ -466,6 +475,7 @@ protected:
     std::shared_ptr<typename CoarseNext::Factory> coarsenext_factory;
     std::shared_ptr<typename Smoother::Factory> smoother_factory;
     std::shared_ptr<typename CoarsestSolver::Factory> coarsest_factory;
+    std::shared_ptr<typename CoarsestNextSolver::Factory> coarsestnext_factory;
     std::shared_ptr<typename DummyRPFactory::Factory> rp_factory;
     std::shared_ptr<typename DummyFactory::Factory> lo_factory;
     std::shared_ptr<Mtx> b;
