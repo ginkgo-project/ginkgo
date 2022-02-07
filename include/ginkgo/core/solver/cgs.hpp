@@ -68,6 +68,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Cgs : public EnableLinOp<Cgs<ValueType>>,
+            public EnableIterativeBase<Cgs<ValueType>>,
             public Preconditionable,
             public Transposable {
     friend class EnableLinOp<Cgs>;
@@ -97,28 +98,6 @@ public:
      * @return true as iterative solvers use the data in x as an initial guess.
      */
     bool apply_uses_initial_guess() const override { return true; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -161,6 +140,8 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Cgs>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
+          EnableIterativeBase<Cgs>(
+              stop::combine(factory->get_parameters().criteria)),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
@@ -176,13 +157,10 @@ protected:
             set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()));
         }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
 

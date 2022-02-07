@@ -80,6 +80,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Idr : public EnableLinOp<Idr<ValueType>>,
+            public EnableIterativeBase<Idr<ValueType>>,
             public Preconditionable,
             public Transposable {
     friend class EnableLinOp<Idr>;
@@ -109,28 +110,6 @@ public:
      * @return true as iterative solvers use the data in x as an initial guess.
      */
     bool apply_uses_initial_guess() const override { return true; }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
 
     /**
      * Gets the subspace dimension of the solver.
@@ -262,6 +241,8 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Idr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
+          EnableIterativeBase<Idr>(
+              stop::combine(factory->get_parameters().criteria)),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
@@ -276,8 +257,6 @@ protected:
             set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]));
         }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
         subspace_dim_ = parameters_.subspace_dim;
         kappa_ = parameters_.kappa;
         deterministic_ = parameters_.deterministic;
@@ -286,7 +265,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     size_type subspace_dim_{};
     remove_complex<ValueType> kappa_{};
     bool deterministic_{};

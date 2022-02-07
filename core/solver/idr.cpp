@@ -69,7 +69,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -82,7 +82,7 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -165,7 +165,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         u->get_values(), problem_size * u->get_stride(), zero<SubspaceType>()));
 
 
-    auto stop_criterion = stop_criterion_factory_->generate(
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual.get());
