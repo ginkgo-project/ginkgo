@@ -65,15 +65,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::BatchDiagonal<ValueType>* const diag,
-                  matrix::BatchDense<ValueType>* const b)
+void apply_in_place(std::shared_ptr<const DpcppExecutor> exec,
+                    const matrix::BatchDiagonal<ValueType>* const diag,
+                    matrix::BatchDense<ValueType>* const b)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_DIAGONAL_SIMPLE_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_DIAGONAL_APPLY_IN_PLACE_KERNEL);
 
 
 }  // namespace batch_diagonal

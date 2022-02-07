@@ -240,7 +240,6 @@ inline void update_c(
     const gko::batch_dense::BatchEntry<ValueType>& temp_sum_entry)
 {
     const auto subspace_dim = M_entry.num_rows;
-    const auto nrhs = f_entry.num_rhs;
     // upper triangular solve
     // solve top to bottom
     for (int row_index = 0; row_index < subspace_dim; row_index++) {
@@ -293,7 +292,6 @@ inline void update_u_k(
 {
     const auto subspace_dim = c_entry.num_rows;
     const auto nrows = v_entry.num_rows;
-    const auto nrhs = v_entry.num_rhs;
 
     for (int row_index = 0; row_index < nrows; row_index++) {
         helper_entry.values[row_index * helper_entry.stride] =
@@ -325,10 +323,6 @@ inline void update_g_k_and_u_k(
     const gko::batch_dense::BatchEntry<ValueType>& u_k_entry)
 {
     const auto nrows = g_k_entry.num_rows;
-    const auto nrhs = g_k_entry.num_rhs;
-    const auto subspace_dim = M_entry.num_rows;
-
-
     for (int i = 0; i <= static_cast<int>(k) - 1; i++) {
         // alpha = (p_i * g_k)/M(i,i)
         alpha_entry.values[0] = zero<ValueType>();
@@ -367,8 +361,6 @@ inline void update_M(
 {
     const auto subspace_dim = M_entry.num_rows;
     const auto nrows = g_k_entry.num_rows;
-    const auto nrhs = g_k_entry.num_rhs;
-
     // M(i,k) = p_i * g_k where i = k , k + 1, ... , subspace_dim -1
     for (int i = k; i < subspace_dim; i++) {
         M_entry.values[i * M_entry.stride + k] = zero<ValueType>();
@@ -514,7 +506,6 @@ inline void batch_entry_idr_impl(
 {
     using real_type = typename gko::remove_complex<ValueType>;
     constexpr int max_nrhs = max_num_rhs;
-    const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
     const auto subspace_dim = opts.subspace_dim_val;
