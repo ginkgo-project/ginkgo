@@ -70,7 +70,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
         .on(this->get_executor())
         ->generate(
@@ -84,7 +84,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
         .on(this->get_executor())
         ->generate(share(
@@ -159,7 +159,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
-    auto stop_criterion = stop_criterion_factory_->generate(
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual.get());

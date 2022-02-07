@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using Rm = gko::extension::resource_manager::ResourceManager;
 
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
     auto b_ptr = resource_manager.build_item<gko::matrix::Dense<double>>(f_b);
     std::cout << "b_ptr is the specified type: "
               << std::is_same<decltype(b_ptr.get()),
-                              gko::matrix::Dense<double> *>::value
+                              gko::matrix::Dense<double>*>::value
               << std::endl;
     auto b = resource_manager.search_data<gko::LinOp>("b");
     std::cout << "b from resource_manager is not nullptr: " << b.get()

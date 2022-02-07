@@ -105,6 +105,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
+           public EnableIterativeBase<Ir<ValueType>>,
            public Transposable,
            public ResidualCacheable,
            public EnableZeroInput {
@@ -154,28 +155,6 @@ public:
         solver_ = new_solver;
     }
 
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -223,6 +202,8 @@ protected:
                 std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ir>(factory->get_executor(),
                           gko::transpose(system_matrix->get_size())),
+          EnableIterativeBase<Ir>(
+              stop::combine(factory->get_parameters().criteria)),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
           stop_status_(factory->get_executor())
@@ -243,14 +224,11 @@ protected:
             {one<ValueType>()}, this->get_executor());
         neg_one_op_ = gko::initialize<matrix::Dense<ValueType>>(
             {-one<ValueType>()}, this->get_executor());
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
     }
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> solver_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
     mutable std::shared_ptr<matrix::Dense<ValueType>> inner_solution_{};
     mutable std::shared_ptr<matrix::Dense<ValueType>> residual_op_{};

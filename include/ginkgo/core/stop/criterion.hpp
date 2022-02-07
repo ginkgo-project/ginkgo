@@ -330,6 +330,100 @@ public:                                                                      \
 
 
 }  // namespace stop
+
+
+/**
+ * A LinOp implementing this interface stores a stopping criterion factory
+ *
+ * @ingroup stop
+ * @ingroup LinOp
+ */
+class IterativeBase {
+public:
+    virtual ~IterativeBase() = default;
+
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    virtual void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = other;
+    }
+
+private:
+    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
+};
+
+
+template <typename DerivedType>
+class EnableIterativeBase : public IterativeBase {
+public:
+    EnableIterativeBase& operator=(const EnableIterativeBase& other)
+    {
+        if (&other != this) {
+            set_stop_criterion_factory(other.get_stop_criterion_factory());
+        }
+        return *this;
+    }
+
+    EnableIterativeBase& operator=(EnableIterativeBase&& other)
+    {
+        if (&other != this) {
+            set_stop_criterion_factory(other.get_stop_criterion_factory());
+            other.set_stop_criterion_factory(nullptr);
+        }
+        return *this;
+    }
+
+    EnableIterativeBase() = default;
+
+    EnableIterativeBase(
+        std::shared_ptr<const stop::CriterionFactory> stop_factory)
+    {
+        set_stop_criterion_factory(std::move(stop_factory));
+    }
+
+    EnableIterativeBase(const EnableIterativeBase& other) { *this = other; }
+
+    EnableIterativeBase(EnableIterativeBase&& other)
+    {
+        *this = std::move(other);
+    }
+
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> new_stop_factory) override
+    {
+        auto exec = self()->get_executor();
+        if (new_stop_factory && new_stop_factory->get_executor() != exec) {
+            new_stop_factory = gko::clone(exec, new_stop_factory);
+        }
+        IterativeBase::set_stop_criterion_factory(new_stop_factory);
+    }
+
+private:
+    DerivedType* self() { return static_cast<DerivedType*>(this); }
+
+    const DerivedType* self() const
+    {
+        return static_cast<const DerivedType*>(this);
+    }
+};
+
+
 }  // namespace gko
 
 

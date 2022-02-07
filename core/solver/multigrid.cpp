@@ -677,7 +677,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
             }
         }
         // system_matrix_->apply(lend(neg_one_op), x, lend(one_op), r.get());
-        auto stop_criterion = stop_criterion_factory_->generate(
+        auto stop_criterion = this->get_stop_criterion_factory()->generate(
             system_matrix_,
             std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
             nullptr);

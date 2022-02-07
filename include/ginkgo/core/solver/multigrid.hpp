@@ -184,7 +184,8 @@ struct MultigridState {
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid> {
+class Multigrid : public EnableLinOp<Multigrid>,
+                  public EnableIterativeBase<Multigrid> {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
 
@@ -198,28 +199,6 @@ public:
     bool apply_uses_initial_guess() const override
     {
         return !parameters_.zero_guess;
-    }
-
-    /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
     }
 
     /**
@@ -503,14 +482,14 @@ protected:
                        std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
+          EnableIterativeBase<Multigrid>(
+              stop::combine(factory->get_parameters().criteria)),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
           stop_status(factory->get_executor())
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
         if (!parameters_.level_selector) {
             if (parameters_.mg_level.size() == 1) {
                 level_selector_ = [](const size_type, const LinOp*) {
@@ -594,7 +573,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
     std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};

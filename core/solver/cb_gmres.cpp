@@ -297,7 +297,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         // next_krylov_basis = residual / residual_norm
         // final_iter_nums = {0, ..., 0}
 
-        auto stop_criterion = stop_criterion_factory_->generate(
+        auto stop_criterion = this->get_stop_criterion_factory()->generate(
             system_matrix_,
             std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
             residual.get());
