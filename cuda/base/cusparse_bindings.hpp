@@ -879,7 +879,7 @@ inline void destroy(cusparseSpMatDescr_t descr)
 }
 
 
-#if (CUDA_VERSION >= 11030)
+#if (CUDA_VERSION >= 11031)
 
 
 template <typename AttribType>
@@ -1108,7 +1108,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11030))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 11031))
 
 
 template <typename ValueType>
