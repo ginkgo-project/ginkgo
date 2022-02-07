@@ -194,15 +194,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
 
 
 template <typename ValueType, typename IndexType>
-void pre_diag_scale_system(
+void pre_diag_transform_system(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
+    const matrix::BatchDiagonal<ValueType>* const left_op,
+    const matrix::BatchDiagonal<ValueType>* const right_op,
     matrix::BatchCsr<ValueType, IndexType>* const a,
     matrix::BatchDense<ValueType>* const b) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
 
 template <typename ValueType, typename IndexType>

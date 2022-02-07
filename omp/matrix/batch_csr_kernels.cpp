@@ -140,10 +140,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void pre_diag_scale_system(
+void pre_diag_transform_system(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
+    const matrix::BatchDiagonal<ValueType>* const left_op,
+    const matrix::BatchDiagonal<ValueType>* const right_op,
     matrix::BatchCsr<ValueType, IndexType>* const a,
     matrix::BatchDense<ValueType>* const b)
 {
@@ -157,12 +157,12 @@ void pre_diag_scale_system(
         pre_diag_scale_system(
             ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
-            left_scale->get_const_values(), right_scale->get_const_values());
+            left_op->get_const_values(), right_op->get_const_values());
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
 
 template <typename IndexType>

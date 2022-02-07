@@ -225,10 +225,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void pre_diag_scale_system(
+void pre_diag_transform_system(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::BatchDense<ValueType>* const left_scale,
-    const matrix::BatchDense<ValueType>* const right_scale,
+    const matrix::BatchDiagonal<ValueType>* const left_op,
+    const matrix::BatchDiagonal<ValueType>* const right_op,
     matrix::BatchCsr<ValueType, IndexType>* const a,
     matrix::BatchDense<ValueType>* const b)
 {
@@ -241,12 +241,12 @@ void pre_diag_scale_system(
         nbatch, nrows, nnz, as_cuda_type(a->get_values()),
         a->get_const_col_idxs(), a->get_const_row_ptrs(), nrhs, b_stride,
         as_cuda_type(b->get_values()),
-        as_cuda_type(left_scale->get_const_values()),
-        as_cuda_type(right_scale->get_const_values()));
+        as_cuda_type(left_op->get_const_values()),
+        as_cuda_type(right_op->get_const_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
 
 template <typename ValueType, typename IndexType>
@@ -256,8 +256,8 @@ void convert_to_batch_dense(
     matrix::BatchDense<ValueType>* const dest)
 {
     const size_type nbatches = src->get_num_batch_entries();
-    const int nrows = src->get_size().at()[0];
-    const int ncols = src->get_size().at()[1];
+    const int nrows = static_cast<int>(src->get_size().at()[0]);
+    const int ncols = static_cast<int>(src->get_size().at()[1]);
     const int nnz = static_cast<int>(src->get_num_stored_elements() / nbatches);
     const size_type dstride = dest->get_stride().at();
     uniform_convert_to_batch_dense<<<nbatches, default_block_size>>>(

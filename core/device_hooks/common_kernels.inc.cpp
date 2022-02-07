@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
+#include "core/matrix/batch_diagonal_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -392,6 +393,17 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 }  // namespace diagonal
+
+
+namespace batch_diagonal {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_APPLY_IN_PLACE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
+
+
+}  // namespace batch_diagonal
 
 
 namespace cg {
@@ -772,10 +784,10 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BATCH_CSR_SCALE);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType)
+GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM(ValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM);
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType)

@@ -428,9 +428,9 @@ protected:
                                          const BatchLinOp* x) const
     {
         this->validate_application_parameters(b, x);
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+        GKO_ASSERT_BATCH_EQUAL_ROWS(
             alpha, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
-        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+        GKO_ASSERT_BATCH_EQUAL_ROWS(
             beta, batch_dim<2>(b->get_num_batch_entries(), dim<2>(1, 1)));
     }
 
@@ -656,26 +656,23 @@ public:
 };
 
 
-namespace matrix {
-
-
-template <typename ValueType>
-class BatchDense;
-
-
-}
-
-
 /**
  * Default batch scalable interface with some type-checking.
+ *
+ * Provides basic functionality for solvers which need to be composed with
+ * batch scaling.
+ * If A is a matrix, S is a batch-scaling operation and F is a solver-type
+ * such that F(A) is a solver,
+ * then if the class for F inherits from this EnableBatchScaling class,
+ * it represents a new solver F(S(A)) (F composed with S applied to A).
  *
  * @see BatchScalable
  */
 class EnableBatchScaling : public BatchScalable {
 public:
-    const BatchLinOp* get_left_scaling_vector() const { return left_scale_; }
+    const BatchLinOp* get_left_scaling_op() const { return left_scale_; }
 
-    const BatchLinOp* get_right_scaling_vector() const { return right_scale_; }
+    const BatchLinOp* get_right_scaling_op() const { return right_scale_; }
 
     /**
      * Scales each matrix in a batch from the left and right.
@@ -697,7 +694,8 @@ public:
          * BatchLinOp so that the following dynamic_cast is not needed.
          */
         if (auto blp = dynamic_cast<BatchLinOp*>(this)) {
-            GKO_ASSERT_BATCH_SCALABLE_TWO_SIDED(blp, left_scale, right_scale);
+            GKO_ASSERT_BATCH_CONFORMANT(left_scale, blp);
+            GKO_ASSERT_BATCH_REVERSE_CONFORMANT(right_scale, blp);
         } else {
             GKO_NOT_SUPPORTED(this);
         }
@@ -715,56 +713,6 @@ private:
 
     const BatchLinOp* left_scale_ = nullptr;
     const BatchLinOp* right_scale_ = nullptr;
-};
-
-
-/**
- * Provides basic functionality for solvers which need to be composed with
- * batch scaling.
- *
- * If A is a matrix, S is a batch-scaling operation and F is a solver-type
- * such that F(A) is a solver,
- * then if the class for F inherits from this EnableBatchScaledSolver class,
- * it represents a new solver F(S(A)) (F composed with S applied to A).
- */
-template <typename ValueType>
-class EnableBatchScaledSolver : public EnableBatchScaling {
-public:
-    using value_type = ValueType;
-
-    const matrix::BatchDense<value_type>* get_left_scaling_vector() const
-    {
-        return left_scale_;
-    }
-
-    const matrix::BatchDense<value_type>* get_right_scaling_vector() const
-    {
-        return right_scale_;
-    }
-
-private:
-    /**
-     * Sets the batch scaling vectors so that they can accessed
-     * by the solver kernels.
-     *
-     * @post Once batch_scale, and thus this function, are called on a solver,
-     * it (its apply function) needs to behave as though the underlying matrix
-     * has been scaled appropriately.
-     *
-     * @param left_scale_op  Left scaling batch Dense vector.
-     * @param right_scale_op  Right scaling batch Dense vector.
-     */
-    void batch_scale_impl(const BatchLinOp* const left_scale_op,
-                          const BatchLinOp* const right_scale_op) override
-    {
-        left_scale_ =
-            static_cast<const matrix::BatchDense<ValueType>*>(left_scale_op);
-        right_scale_ =
-            static_cast<const matrix::BatchDense<ValueType>*>(right_scale_op);
-    }
-
-    const matrix::BatchDense<value_type>* left_scale_ = nullptr;
-    const matrix::BatchDense<value_type>* right_scale_ = nullptr;
 };
 
 

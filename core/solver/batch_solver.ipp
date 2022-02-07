@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 
 
@@ -45,14 +46,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace batch {
-
-
-GKO_REGISTER_OPERATION(pre_diag_scale_system, batch_csr::pre_diag_scale_system);
-GKO_REGISTER_OPERATION(vec_scale, batch_dense::batch_scale);
-
-
-}
 
 
 struct BatchInfo {
@@ -66,6 +59,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
 {
     using value_type = typename ConcreteSolver::value_type;
     using Csr = matrix::BatchCsr<value_type>;
+    using Diag = matrix::BatchDiagonal<value_type>;
     using Vector = matrix::BatchDense<value_type>;
     using real_type = remove_complex<value_type>;
 
@@ -73,7 +67,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     const bool to_scale =
-        this->get_left_scaling_vector() && this->get_right_scaling_vector();
+        this->get_left_scaling_op() && this->get_right_scaling_op();
     const auto acsr = dynamic_cast<const Csr*>(system_matrix_.get());
     const BatchLinOp* a_scaled{};
     const Vector* b_scaled{};
@@ -87,10 +81,10 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     if (to_scale) {
         a_scaled_smart->copy_from(acsr);
         b_scaled_smart->copy_from(dense_b);
-        exec->run(batch::make_pre_diag_scale_system(
-            as<const Vector>(this->get_left_scaling_vector()),
-            as<const Vector>(this->get_right_scaling_vector()),
-            a_scaled_smart.get(), b_scaled_smart.get()));
+        matrix::two_sided_batch_system_transform(exec,
+            as<const Diag>(this->get_left_scaling_op()),
+            as<const Diag>(this->get_right_scaling_op()),
+            a_scaled_smart.get(), b_scaled_smart.get());
         a_scaled = a_scaled_smart.get();
         b_scaled = b_scaled_smart.get();
     } else {
@@ -116,8 +110,7 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
         concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
 
     if (to_scale) {
-        exec->run(batch::make_vec_scale(
-            as<Vector>(this->get_right_scaling_vector()), dense_x));
+        as<const Diag>(this->get_right_scaling_op())->apply(dense_x, dense_x);
     }
 }
 

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -234,18 +235,22 @@ TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using Dense = typename TestFixture::Dense;
+    using Diag = gko::matrix::BatchDiagonal<value_type>;
     auto batchbicgstab_factory = Solver::build().on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
-    auto left_scale = Dense::create(
-        this->exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
-    auto right_scale = Dense::create_with_config_of(left_scale.get());
+    auto left_scale = Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
+    auto right_scale = Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
 
     solver->batch_scale(left_scale.get(), right_scale.get());
     auto s_solver = gko::as<gko::EnableBatchScaling>(solver.get());
 
     ASSERT_TRUE(s_solver);
-    ASSERT_EQ(s_solver->get_left_scaling_vector(), left_scale.get());
-    ASSERT_EQ(s_solver->get_right_scaling_vector(), right_scale.get());
+    ASSERT_EQ(s_solver->get_left_scaling_op(), left_scale.get());
+    ASSERT_EQ(s_solver->get_right_scaling_op(), right_scale.get());
 }
 
 

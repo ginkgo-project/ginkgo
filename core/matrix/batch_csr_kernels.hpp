@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 namespace gko {
@@ -112,12 +113,12 @@ namespace kernels {
                      const matrix::BatchDense<ValueType>* right_scale, \
                      matrix::BatchCsr<ValueType, IndexType>* mat)
 
-#define GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType) \
-    void pre_diag_scale_system(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::BatchDense<ValueType>* left_scale,                  \
-        const matrix::BatchDense<ValueType>* right_scale,                 \
-        matrix::BatchCsr<ValueType, IndexType>* a,                        \
+#define GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM(ValueType, IndexType) \
+    void pre_diag_transform_system(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::BatchDiagonal<ValueType>* left_op,                      \
+        const matrix::BatchDiagonal<ValueType>* right_op,                     \
+        matrix::BatchCsr<ValueType, IndexType>* a,                            \
         matrix::BatchDense<ValueType>* b)
 
 #define GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType) \
@@ -152,7 +153,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_SCALE(ValueType, IndexType);                       \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_CSR_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType);       \
+    GKO_DECLARE_BATCH_CSR_PRE_DIAG_TRANSFORM_SYSTEM(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE(ValueType, IndexType)
 

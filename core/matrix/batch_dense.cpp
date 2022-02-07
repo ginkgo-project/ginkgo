@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -57,7 +58,6 @@ namespace batch_dense {
 GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, batch_dense::apply);
 GKO_REGISTER_OPERATION(scale, batch_dense::scale);
-GKO_REGISTER_OPERATION(convergence_scale, batch_dense::convergence_scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_dense::add_scaled);
 GKO_REGISTER_OPERATION(convergence_add_scaled,
                        batch_dense::convergence_add_scaled);
@@ -70,7 +70,6 @@ GKO_REGISTER_OPERATION(convergence_compute_norm2,
                        batch_dense::convergence_compute_norm2);
 GKO_REGISTER_OPERATION(copy, batch_dense::copy);
 GKO_REGISTER_OPERATION(convergence_copy, batch_dense::convergence_copy);
-GKO_REGISTER_OPERATION(batch_scale, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(convert_to_batch_csr, batch_dense::convert_to_batch_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, batch_dense::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
@@ -240,6 +239,53 @@ template <typename ValueType>
 void BatchDense<ValueType>::move_to(BatchCsr<ValueType, int32>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::convert_to(
+    BatchDiagonal<ValueType>* const result) const
+{
+    auto exec = this->get_executor();
+
+    auto batch_size = this->get_size();
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(this);
+    if (this->get_stride().at(0) != 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    auto temp = BatchDiagonal<ValueType>::create(
+        exec, batch_dim<2>{batch_size.get_num_batch_entries(),
+                           dim<2>{batch_size.at(0)[0]}});
+    exec->copy(this->get_num_stored_elements(), this->get_const_values(),
+               temp->get_values());
+    result->copy_from(temp.get());
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::move_to(BatchDiagonal<ValueType>* const result)
+{
+    auto exec = this->get_executor();
+
+    auto batch_size = this->get_size();
+    if (!batch_size.stores_equal_sizes()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    GKO_ASSERT_BATCH_HAS_SINGLE_COLUMN(this);
+    if (this->get_stride().at(0) != 1) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    auto temp = BatchDiagonal<ValueType>::create(
+        exec,
+        batch_dim<2>{batch_size.get_num_batch_entries(),
+                     dim<2>{batch_size.at(0)[0]}},
+        std::move(this->values_));
+    *result = std::move(*temp);
+    // set the size of this to 0
+    this->set_size(batch_dim<2>());
 }
 
 

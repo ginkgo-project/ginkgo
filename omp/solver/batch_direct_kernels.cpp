@@ -49,11 +49,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DIRECT_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void transpose_scale_copy(
-    std::shared_ptr<const OmpExecutor> exec,
-    const matrix::BatchDense<ValueType>* const scaling_vec,
-    const matrix::BatchDense<ValueType>* const orig,
-    matrix::BatchDense<ValueType>* const scaled)
+void transpose_scale_copy(std::shared_ptr<const OmpExecutor> exec,
+                          const matrix::BatchDiagonal<ValueType>* const scaling,
+                          const matrix::BatchDense<ValueType>* const orig,
+                          matrix::BatchDense<ValueType>* const scaled)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -67,8 +66,8 @@ void pre_diag_scale_system_transpose(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::BatchDense<ValueType>* const a,
     const matrix::BatchDense<ValueType>* const b,
-    const matrix::BatchDense<ValueType>* const scalevec,
-    const matrix::BatchDense<ValueType>* const scalevec2,
+    const matrix::BatchDiagonal<ValueType>* const scale,
+    const matrix::BatchDiagonal<ValueType>* const scale2,
     matrix::BatchDense<ValueType>* const a_scaled_t,
     matrix::BatchDense<ValueType>* const b_scaled_t) GKO_NOT_IMPLEMENTED;
 

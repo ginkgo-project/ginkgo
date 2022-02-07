@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
@@ -58,6 +59,7 @@ protected:
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using Options = gko::kernels::batch_idr::BatchIdrOptions<real_type>;
     using LogData = gko::log::BatchLogData<value_type>;
 
@@ -70,15 +72,6 @@ protected:
                            BDense* x, LogData& logdata) {
             gko::kernels::reference::batch_idr::apply<value_type>(
                 execp, opts, mtx, b, x, logdata);
-        };
-        scale_mat = [execp](const BDense* const left, const BDense* const right,
-                            Mtx* const mat, BDense* const b) {
-            gko::kernels::reference::batch_csr::pre_diag_scale_system<
-                value_type>(execp, left, right, mat, b);
-        };
-        scale_vecs = [execp](const BDense* const scale, BDense* const mat) {
-            gko::kernels::reference::batch_dense::batch_scale<value_type>(
-                execp, scale, mat);
         };
     }
 
@@ -105,8 +98,6 @@ protected:
 
     std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
         solve_fn;
-    std::function<void(const BDense*, const BDense*, Mtx*, BDense*)> scale_mat;
-    std::function<void(const BDense*, BDense*)> scale_vecs;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
         std::shared_ptr<const gko::Executor> exec, const Options& opts)
@@ -140,9 +131,8 @@ TYPED_TEST_SUITE(BatchIdr, gko::test::ValueTypes);
 
 TYPED_TEST(BatchIdr, SolvesStencilSystem)
 {
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    auto r_1 = gko::test::solve_poisson_uniform(this->exec, this->solve_fn,
+                                                this->opts_1, this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, this->sys_1.xex, 1e2 * this->eps);
 }
@@ -152,9 +142,8 @@ TYPED_TEST(BatchIdr, StencilSystemLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    auto r_1 = gko::test::solve_poisson_uniform(
-        this->exec, this->solve_fn, this->scale_mat, this->scale_vecs,
-        this->opts_1, this->sys_1, 1);
+    auto r_1 = gko::test::solve_poisson_uniform(this->exec, this->solve_fn,
+                                                this->opts_1, this->sys_1, 1);
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -173,12 +162,12 @@ TYPED_TEST(BatchIdr, StencilSystemLoggerIsCorrect)
 
 TYPED_TEST(BatchIdr, UnitScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
-        this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto left_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
+    auto right_scale =
+        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
     auto factory = this->create_factory(this->exec, this->opts_1);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
@@ -191,11 +180,11 @@ TYPED_TEST(BatchIdr, UnitScalingDoesNotChangeResult)
 
 TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
 {
-    using BDense = typename TestFixture::BDense;
+    using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDense>(
+    auto left_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDense>(
+    auto right_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {1.0, 1.5, 1.05}, this->exec);
     auto factory = this->create_factory(this->exec, this->opts_1);
 
