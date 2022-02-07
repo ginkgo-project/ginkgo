@@ -155,6 +155,8 @@ public:
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
+    enum class strategy_type { vendor, gko };
+
     /**
      * Creates a Dense matrix with the same size and stride as another Dense
      * matrix.
@@ -183,10 +185,11 @@ public:
      */
     static std::unique_ptr<Dense> create_with_type_of(
         const Dense* other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size = dim<2>{})
+        const dim<2>& size = dim<2>{},
+        const strategy_type strategy = strategy_type::gko)
     {
         // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, size[1]);
+        return (*other).create_with_type_of_impl(exec, size, size[1], strategy);
     }
 
     /**
@@ -199,10 +202,11 @@ public:
      */
     static std::unique_ptr<Dense> create_with_type_of(
         const Dense* other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, size_type stride)
+        const dim<2>& size, size_type stride,
+        const strategy_type strategy = strategy_type::gko)
     {
         // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
+        return (*other).create_with_type_of_impl(exec, size, stride, strategy);
     }
 
     friend class Dense<next_precision<ValueType>>;
@@ -634,6 +638,19 @@ public:
         return values_.get_num_elems();
     }
 
+    /** Returns the strategy to be used for the operations. See @strategy_type
+     *
+     * @return the strategy
+     */
+    strategy_type get_strategy() const noexcept { return strategy_; }
+
+    /**
+     * Set the strategy
+     *
+     * @param strategy the dense strategy
+     */
+    void set_strategy(strategy_type strategy) { strategy_ = strategy; }
+
     /**
      * Returns a single element of the matrix.
      *
@@ -913,8 +930,9 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Dense(std::move(exec), size, size[1])
+    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+          const strategy_type strategy = strategy_type::gko)
+        : Dense(std::move(exec), size, size[1], strategy)
     {}
 
     /**
@@ -927,10 +945,11 @@ protected:
      *                  number of matrix elements)
      */
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type stride)
+          size_type stride, const strategy_type strategy = strategy_type::gko)
         : EnableLinOp<Dense>(exec, size),
           values_(exec, size[0] * stride),
-          stride_(stride)
+          stride_(stride),
+          strategy_(strategy)
     {}
 
     /**
@@ -951,10 +970,12 @@ protected:
      */
     template <typename ValuesArray>
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          ValuesArray&& values, size_type stride)
+          ValuesArray&& values, size_type stride,
+          const strategy_type strategy = strategy_type::gko)
         : EnableLinOp<Dense>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
-          stride_{stride}
+          stride_{stride},
+          strategy_(strategy)
     {
         if (size[0] > 0 && size[1] > 0) {
             GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
@@ -971,7 +992,7 @@ protected:
     virtual std::unique_ptr<Dense> create_with_same_config() const
     {
         return Dense::create(this->get_executor(), this->get_size(),
-                             this->get_stride());
+                             this->get_stride(), this->get_strategy());
     }
 
     /**
@@ -983,9 +1004,10 @@ protected:
      */
     virtual std::unique_ptr<Dense> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride) const
+        size_type stride,
+        const strategy_type strategy = strategy_type::gko) const
     {
-        return Dense::create(exec, size, stride);
+        return Dense::create(exec, size, stride, strategy);
     }
 
     template <typename IndexType>
@@ -1106,7 +1128,7 @@ protected:
                 this->get_executor(),
                 range_result.length(0) * range_this.length(1) - columns.begin,
                 range_result->data),
-            stride);
+            stride, this->get_strategy());
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -1161,6 +1183,7 @@ protected:
 private:
     Array<value_type> values_;
     size_type stride_;
+    strategy_type strategy_{strategy_type::gko};
 };
 
 
