@@ -988,7 +988,7 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
     bool has_diags = true;
 
     gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),
-                                                         &has_diags);
+                                                         has_diags);
 
     ASSERT_FALSE(has_diags);
 }
@@ -1005,7 +1005,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     bool has_diags = false;
 
     gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),
-                                                         &has_diags);
+                                                         has_diags);
 
     ASSERT_TRUE(has_diags);
 }

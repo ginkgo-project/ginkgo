@@ -971,8 +971,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool* const has_all_diags)
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
 {
     bool l_has_all_diags = true;
     const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
@@ -990,7 +989,7 @@ void check_diagonal_entries_exist(
             l_has_all_diags = false;
         }
     }
-    *has_all_diags = l_has_all_diags;
+    has_all_diags = l_has_all_diags;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
