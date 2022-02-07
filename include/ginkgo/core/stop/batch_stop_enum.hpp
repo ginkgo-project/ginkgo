@@ -30,9 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_PUBLIC_CORE_STOP_BATCH_STOP_ENUM_HPP_
+#define GKO_PUBLIC_CORE_STOP_BATCH_STOP_ENUM_HPP_
 
-#ifndef GKO_PUBLIC_CORE_STOP_BATCH_ENUM_HPP_
-#define GKO_PUBLIC_CORE_STOP_BATCH_ENUM_HPP_
 
 namespace gko {
 namespace stop {
@@ -46,4 +46,4 @@ enum class ToleranceType { absolute, relative };
 }  // namespace stop
 }  // namespace gko
 
-#endif
+#endif  // GKO_PUBLIC_CORE_STOP_BATCH_STOP_ENUM_HPP_
