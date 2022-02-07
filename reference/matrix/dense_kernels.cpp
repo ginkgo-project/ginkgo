@@ -298,6 +298,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
+void compute_dot_vendor(std::shared_ptr<const ReferenceExecutor> exec,
+                        const matrix::Dense<ValueType>* x,
+                        const matrix::Dense<ValueType>* y,
+                        matrix::Dense<ValueType>* result)
+{
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<ValueType>();
+    }
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) += x->at(i, j) * y->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL);
+
+
+template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,

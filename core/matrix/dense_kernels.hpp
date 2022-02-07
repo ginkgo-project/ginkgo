@@ -110,6 +110,12 @@ namespace kernels {
                      const matrix::Dense<_type>* y,               \
                      matrix::Dense<_type>* result)
 
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL(_type)               \
+    void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec, \
+                            const matrix::Dense<_type>* x,               \
+                            const matrix::Dense<_type>* y,               \
+                            matrix::Dense<_type>* result)
+
 #define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)               \
     void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
                           const matrix::Dense<_type>* x,               \
@@ -301,6 +307,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(ValueType);                    \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL(ValueType);                 \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                   \
     template <typename ValueType>                                           \
