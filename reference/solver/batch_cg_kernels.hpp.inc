@@ -116,7 +116,6 @@ inline void batch_entry_cg_impl(
 {
     using real_type = typename gko::remove_complex<ValueType>;
     using byte = unsigned char;
-    const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
