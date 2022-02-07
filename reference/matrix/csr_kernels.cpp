@@ -969,10 +969,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool* const has_all_diags)
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
 {
-    *has_all_diags = true;
+    has_all_diags = true;
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
@@ -984,7 +983,7 @@ void check_diagonal_entries_exist(
             }
         }
         if (!row_diag) {
-            *has_all_diags = false;
+            has_all_diags = false;
             break;
         }
     }

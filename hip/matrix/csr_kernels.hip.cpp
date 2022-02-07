@@ -1046,8 +1046,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const HipExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool* const has_all_diags)
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
 {
     const size_type num_blocks = exec->get_num_multiprocessor() * 4;
     Array<int> block_has_diags(exec, num_blocks);
@@ -1059,7 +1058,7 @@ void check_diagonal_entries_exist(
                        block_has_diags.get_data());
     hipLaunchKernelGGL(kernel::reduce_and_array, 1, default_block_size, 0, 0,
                        num_blocks, block_has_diags.get_data());
-    *has_all_diags = static_cast<bool>(
+    has_all_diags = static_cast<bool>(
         exec->copy_val_to_host(block_has_diags.get_const_data()));
 }
 
@@ -1074,6 +1073,9 @@ void add_scaled_identity(std::shared_ptr<const HipExecutor> exec,
                          matrix::Csr<ValueType, IndexType>* const mtx)
 {
     const auto nrows = mtx->get_size()[0];
+    if (nrows == 0) {
+        return;
+    }
     const auto nthreads = nrows * config::warp_size;
     const auto nblocks = ceildiv(nthreads, default_block_size);
     hipLaunchKernelGGL(kernel::add_scaled_identity, nblocks, default_block_size,

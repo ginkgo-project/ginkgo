@@ -1529,7 +1529,7 @@ TYPED_TEST(Csr, CanDetectMissingDiagonalEntry)
     bool has_diags{};
 
     gko::kernels::reference::csr::check_diagonal_entries_exist(
-        this->exec, b.get(), &has_diags);
+        this->exec, b.get(), has_diags);
 
     ASSERT_FALSE(has_diags);
 }
@@ -1546,7 +1546,7 @@ TYPED_TEST(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     bool has_diags{};
 
     gko::kernels::reference::csr::check_diagonal_entries_exist(
-        this->exec, b.get(), &has_diags);
+        this->exec, b.get(), has_diags);
 
     ASSERT_TRUE(has_diags);
 }
