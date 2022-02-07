@@ -131,7 +131,8 @@ std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
  * @param row_diag_dominant  If true, a row-diagonal-dominant Fbcsr matrix is
  *                           generated. Note that in this case, the intput Csr
  *                           matrix must have diagonal entries in all rows.
- * @param rand_engine  Random number engine to use, such as std::ranlux48.
+ * @param rand_engine  Random number engine to use, such as
+ * std::default_random_engine.
  */
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
@@ -219,7 +220,8 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
  * @param unsort  If true, the blocks of the generated matrix within each
  *                block-row are ordered randomly. Otherwise, blocks in each row
  *                are ordered by block-column index.
- * @param engine  Random number engine to use, such as std::ranlux48.
+ * @param engine  Random number engine to use, such as
+ * std::default_random_engine.
  */
 template <typename ValueType, typename IndexType, typename RandEngine>
 std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_random_fbcsr(

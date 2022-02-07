@@ -60,14 +60,15 @@ protected:
           mtx(gko::test::generate_random_matrix<
               gko::matrix::Csr<real_type, int>>(
               nbrows, nbcols, std::normal_distribution<real_type>(10, 5),
-              std::normal_distribution<real_type>(20.0, 5.0), std::ranlux48(42),
-              exec)),
-          rbmtx(gko::test::generate_fbcsr_from_csr(exec, mtx.get(), blk_sz,
-                                                   false, std::ranlux48(42))),
-          rbmtx_dd(gko::test::generate_fbcsr_from_csr(exec, mtx.get(), blk_sz,
-                                                      true, std::ranlux48(42))),
+              std::normal_distribution<real_type>(20.0, 5.0),
+              std::default_random_engine(42), exec)),
+          rbmtx(gko::test::generate_fbcsr_from_csr(
+              exec, mtx.get(), blk_sz, false, std::default_random_engine(42))),
+          rbmtx_dd(gko::test::generate_fbcsr_from_csr(
+              exec, mtx.get(), blk_sz, true, std::default_random_engine(42))),
           cbmtx(gko::test::generate_random_fbcsr<value_type>(
-              exec, nbrows, nbcols, blk_sz, true, false, std::ranlux48(42)))
+              exec, nbrows, nbcols, blk_sz, true, false,
+              std::default_random_engine(42)))
     {}
 
     const int nbrows = 100;

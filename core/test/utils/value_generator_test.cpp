@@ -96,7 +96,7 @@ TYPED_TEST(ValueGenerator, OutputHasCorrectAverageAndDeviation)
     int num = 500;
     std::vector<T> values(num);
     auto dist = std::normal_distribution<double>(20.0, 5.0);
-    auto engine = std::ranlux48(42);
+    auto engine = std::default_random_engine(42);
 
     for (int i = 0; i < num; i++) {
         values.at(i) = gko::test::detail::get_rand_value<T>(dist, engine);

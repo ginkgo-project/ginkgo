@@ -165,7 +165,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     gko::Array<index_type> agg;
     gko::Array<index_type> unfinished_agg;

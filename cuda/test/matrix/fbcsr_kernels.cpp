@@ -73,7 +73,7 @@ protected:
         const int block_size = 3;
         rsorted_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
             ref, rand_brows, rand_bcols, block_size, false, false,
-            std::ranlux48(43));
+            std::default_random_engine(43));
     }
 
     void TearDown()
@@ -89,7 +89,7 @@ protected:
     std::unique_ptr<const Mtx> rsorted_ref;
 
     std::normal_distribution<gko::remove_complex<T>> distb;
-    std::ranlux48 engine;
+    std::default_random_engine engine;
 
     value_type get_random_value()
     {
@@ -161,7 +161,7 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     auto rsorted_ref2 =
         gko::test::generate_random_fbcsr<value_type, index_type>(
             this->ref, rand_brows, rand_bcols, block_size, false, false,
-            std::ranlux48(43));
+            std::default_random_engine(43));
     rand_cuda->copy_from(gko::lend(rsorted_ref2));
 
     auto trans_ref_linop = rsorted_ref2->transpose();

@@ -154,7 +154,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::DpcppExecutor> dpcpp;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
@@ -258,9 +258,9 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(v, d_v, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u, d_u, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(m, d_m, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(f, d_f, 13 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(r, d_r, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(x, d_x, 2 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 150 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(r, d_r, 50 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 50 * rr<value_type>::value);
 }
 
 

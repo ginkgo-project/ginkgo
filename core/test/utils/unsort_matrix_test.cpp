@@ -144,7 +144,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
     std::unique_ptr<Csr> csr_empty;
     std::unique_ptr<Coo> coo_empty;
 };

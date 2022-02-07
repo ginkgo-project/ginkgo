@@ -87,7 +87,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 
@@ -177,10 +177,10 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    // Note: r<value_type>::value * 1e2 instead of r<value_type>::value, as
+    // Note: r<value_type>::value * 150 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
     // difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 150);
 }
 
 
