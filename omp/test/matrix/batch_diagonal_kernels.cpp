@@ -146,9 +146,10 @@ TEST_F(BatchDiagonal, SimpleApplyIsEquivalentToRef)
     set_up_vector_data(1);
     set_up_matrix_data();
 
-    gko::kernels::reference::batch_diagonal::simple_apply(ref, diag.get(),
-                                                          x.get());
-    gko::kernels::omp::batch_diagonal::simple_apply(omp, ddiag.get(), dx.get());
+    gko::kernels::reference::batch_diagonal::apply_in_place(ref, diag.get(),
+                                                            x.get());
+    gko::kernels::omp::batch_diagonal::apply_in_place(omp, ddiag.get(),
+                                                      dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }

@@ -135,7 +135,7 @@ TYPED_TEST(BatchDiagonal, SquareAppliesToDenseInPlace)
     diag->at(1, 1) = -2.0;
     diag->at(1, 2) = -3.0;
 
-    gko::kernels::reference::batch_diagonal::simple_apply(
+    gko::kernels::reference::batch_diagonal::apply_in_place(
         this->exec, diag.get(), mtx.get());
 
     EXPECT_EQ(mtx->at(0, 0, 0), T{1.0});
