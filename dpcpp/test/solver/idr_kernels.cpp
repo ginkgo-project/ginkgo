@@ -258,9 +258,9 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(v, d_v, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u, d_u, 2 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(m, d_m, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(f, d_f, 13 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(r, d_r, 2 * rr<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(x, d_x, 2 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 150 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(r, d_r, 50 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 50 * rr<value_type>::value);
 }
 
 

@@ -244,13 +244,13 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
         hip, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(g, d_g, 1e-14);
-    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
-    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
-    GKO_ASSERT_MTX_NEAR(f, d_f, 1e-14);
-    GKO_ASSERT_MTX_NEAR(r, d_r, 1e-14);
-    GKO_ASSERT_MTX_NEAR(x, d_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(g, d_g, 2 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(v, d_v, 2 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(u, d_u, 2 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(m, d_m, 2 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 150 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(r, d_r, 50 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 50 * 1e-14);
 }
 
 
