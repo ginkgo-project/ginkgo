@@ -74,7 +74,32 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const CudaExecutor> exec,
+void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Dense<ValueType>* x,
+                        const matrix::Dense<ValueType>* y,
+                        matrix::Dense<ValueType>* result)
+{
+    if (cublas::is_supported<ValueType>::value) {
+        auto handle = exec->get_cublas_handle();
+        if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
+            cublas::pointer_mode_guard pm_guard(handle);
+            cublas::dot(handle, x->get_size()[0], x->get_const_values(),
+                        x->get_size()[1], y->get_const_values(),
+                        y->get_size()[1], result->get_values());
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL);
+
+
+template <typename ValueType>
+void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* a,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* c)
@@ -104,7 +129,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const CudaExecutor> exec,
+void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
@@ -131,7 +156,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
@@ -160,7 +185,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
@@ -188,7 +213,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Ell<ValueType, IndexType>* result)
 {
@@ -236,7 +261,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Dense<ValueType>* source,
                        const int64* coo_row_ptrs,
                        matrix::Hybrid<ValueType, IndexType>* result)
@@ -268,7 +293,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Sellp<ValueType, IndexType>* result)
 {
@@ -297,7 +322,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sparsity_csr(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
 {
@@ -323,7 +348,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void transpose(std::shared_ptr<const CudaExecutor> exec,
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
@@ -348,7 +373,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
-void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
+void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* trans)
 {

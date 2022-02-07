@@ -190,7 +190,17 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DpcppExecutor> exec,
+void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Dense<ValueType>* x,
+                        const matrix::Dense<ValueType>* y,
+                        matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL);
+
+
+template <typename ValueType>
+void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* a,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* c)
@@ -207,7 +217,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const DpcppExecutor> exec,
+void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
@@ -226,7 +236,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
@@ -262,7 +272,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
@@ -296,7 +306,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     matrix::Ell<ValueType, IndexType>* result)
 {
@@ -355,7 +365,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Dense<ValueType>* source,
                        const int64* coo_row_ptrs,
                        matrix::Hybrid<ValueType, IndexType>* result)
@@ -411,7 +421,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Sellp<ValueType, IndexType>* result)
 {
@@ -454,7 +464,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sparsity_csr(std::shared_ptr<const DpcppExecutor> exec,
+void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
 {
@@ -486,7 +496,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void transpose(std::shared_ptr<const DpcppExecutor> exec,
+void transpose(std::shared_ptr<const DefaultExecutor> exec,
                const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
@@ -508,7 +518,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
-void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
+void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* trans)
 {
