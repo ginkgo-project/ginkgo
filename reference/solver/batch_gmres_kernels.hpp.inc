@@ -97,8 +97,8 @@ inline void initialize(
 
 template <typename ValueType>
 inline void apply_plane_rotation(const ValueType* const cs,
-                                 const ValueType* const sn, const int nrhs,
-                                 ValueType* const x, ValueType* const y)
+                                 const ValueType* const sn, ValueType* const x,
+                                 ValueType* const y)
 {
     const ValueType temp = cs[0] * x[0] + sn[0] * y[0];
     y[0] = -one<ValueType>() * conj(sn[0]) * x[0] + conj(cs[0]) * y[0];
@@ -107,10 +107,12 @@ inline void apply_plane_rotation(const ValueType* const cs,
 
 
 template <typename ValueType>
-inline void generate_and_apply_plane_rot_fused(
-    const int nrhs, ValueType* const cs_i, ValueType* const sn_i,
-    ValueType* const H_i_i, ValueType* const H_i_plus_1_i, ValueType* const s_i,
-    ValueType* const s_i_plus_1)
+inline void generate_and_apply_plane_rot_fused(ValueType* const cs_i,
+                                               ValueType* const sn_i,
+                                               ValueType* const H_i_i,
+                                               ValueType* const H_i_plus_1_i,
+                                               ValueType* const s_i,
+                                               ValueType* const s_i_plus_1)
 {
     if (H_i_plus_1_i[0] == zero<ValueType>()) {
         cs_i[0] = one<ValueType>();
@@ -279,7 +281,6 @@ inline void batch_entry_gmres_impl(
     unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
     const auto restart = opts.restart_num;
@@ -405,7 +406,7 @@ inline void batch_entry_gmres_impl(
                 // + 1 , inner_iter) Hessenberg(k,inner_iter) = temp
                 apply_plane_rotation(
                     &cs_entry.values[k * cs_entry.stride],
-                    &sn_entry.values[k * sn_entry.stride], nrhs,
+                    &sn_entry.values[k * sn_entry.stride],
                     &H_entry.values[k * H_entry.stride + inner_iter * nrhs],
                     &H_entry
                          .values[(k + 1) * H_entry.stride + inner_iter * nrhs]);
@@ -420,7 +421,7 @@ inline void batch_entry_gmres_impl(
             // Hessenberg(inner_iter + 1, inner_iter) Hessenberg(inner_iter
             // + 1, inner_iter) = 0
             generate_and_apply_plane_rot_fused(
-                nrhs, &cs_entry.values[inner_iter * cs_entry.stride],
+                &cs_entry.values[inner_iter * cs_entry.stride],
                 &sn_entry.values[inner_iter * sn_entry.stride],
                 &H_entry
                      .values[inner_iter * H_entry.stride + inner_iter * nrhs],

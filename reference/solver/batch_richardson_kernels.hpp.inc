@@ -41,7 +41,6 @@ inline void batch_entry_richardson_impl(
     unsigned char* const local_space)
 {
     using real_type = typename gko::remove_complex<ValueType>;
-    const size_type nbatch = a.num_batch;
     const auto nrows = a.num_rows;
     const auto nrhs = b.num_rhs;
 
