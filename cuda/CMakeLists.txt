@@ -76,7 +76,7 @@ target_sources(ginkgo_cuda
     base/version.cpp
     components/prefix_sum_kernels.cu
     distributed/partition_kernels.cu
-    distributed/partition_kernels.cu
+    distributed/vector_kernels.cu
     factorization/factorization_kernels.cu
     factorization/ic_kernels.cu
     factorization/ilu_kernels.cu
