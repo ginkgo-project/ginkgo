@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#include <thrust/tuple.h>
 
 
 #include "hip/base/types.hip.hpp"
@@ -46,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace hip {
+
+
+namespace device_std = thrust;
 
 
 constexpr int default_block_size = 512;

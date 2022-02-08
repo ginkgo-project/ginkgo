@@ -36,12 +36,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include <tuple>
+
+
 #include <CL/sycl.hpp>
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+
+
+namespace device_std = std;
 
 
 template <typename KernelFunction, typename... KernelArgs>
