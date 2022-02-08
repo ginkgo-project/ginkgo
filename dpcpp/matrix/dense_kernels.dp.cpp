@@ -190,13 +190,17 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
 
 
 template <typename ValueType>
-void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Dense<ValueType>* x,
-                        const matrix::Dense<ValueType>* y,
-                        matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* x,
+                          const matrix::Dense<ValueType>* y,
+                          matrix::Dense<ValueType>* result)
+{
+    // TODO Add onemkl for single column
+    compute_dot(exec, x, y, result);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL);
+    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL);
 
 
 template <typename ValueType>

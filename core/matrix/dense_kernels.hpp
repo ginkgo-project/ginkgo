@@ -104,17 +104,17 @@ namespace kernels {
                          const matrix::Diagonal<_type>* x,            \
                          matrix::Dense<_type>* y)
 
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(_type)               \
+    void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::Dense<_type>* x,               \
+                              const matrix::Dense<_type>* y,               \
+                              matrix::Dense<_type>* result)
+
 #define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
                      const matrix::Dense<_type>* x,               \
                      const matrix::Dense<_type>* y,               \
                      matrix::Dense<_type>* result)
-
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL(_type)               \
-    void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec, \
-                            const matrix::Dense<_type>* x,               \
-                            const matrix::Dense<_type>* y,               \
-                            matrix::Dense<_type>* result)
 
 #define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)               \
     void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
@@ -308,7 +308,7 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
     template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL(ValueType);                 \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(ValueType);               \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                   \
     template <typename ValueType>                                           \
