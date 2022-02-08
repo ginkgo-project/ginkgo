@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr_lookup.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -1887,6 +1888,82 @@ TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
                                          this->exec);
 
         GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+}
+
+
+TYPED_TEST(Csr, GeneratesLookupData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using IndexType = typename Mtx::index_type;
+    using gko::matrix::sparsity_type;
+    auto mtx = Mtx::create(this->exec);
+    typename Mtx::mat_data data{gko::dim<2>{6, 65}};
+    for (int i = 0; i < 65; i++) {
+        // row 0: empty row
+        // row 1: full row
+        data.nonzeros.emplace_back(1, i, 1.0);
+        // row 2: pretty dense row
+        if (i % 3 == 0) {
+            data.nonzeros.emplace_back(2, i, 1.0);
+        }
+        // row 4-5: contiguous row
+        if (i >= 10 && i < 30) {
+            data.nonzeros.emplace_back(4, i, 1.0);
+        }
+        if (i >= 2 && i < 6) {
+            data.nonzeros.emplace_back(5, i, 1.0);
+        }
+    }
+    // row 3: very sparse
+    data.nonzeros.emplace_back(3, 0, 1.0);
+    data.nonzeros.emplace_back(3, 64, 1.0);
+    data.ensure_row_major_order();
+    mtx->read(data);
+    gko::Array<gko::int64> row_descs(this->exec, mtx->get_size()[0]);
+    gko::Array<gko::int32> lookup_info(this->exec,
+                                       mtx->get_num_stored_elements() * 2);
+    for (auto allowed_methods :
+         {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
+          sparsity_type::bitmap | sparsity_type::hash,
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+        const auto full_allowed =
+            static_cast<bool>(static_cast<int>(allowed_methods) &
+                              static_cast<int>(sparsity_type::full));
+        const auto bitmap_allowed =
+            static_cast<bool>(static_cast<int>(allowed_methods) &
+                              static_cast<int>(sparsity_type::bitmap));
+        const auto bitmap_equivalent =
+            bitmap_allowed ? sparsity_type::bitmap : sparsity_type::hash;
+        const auto full_equivalent =
+            full_allowed ? sparsity_type::full : bitmap_equivalent;
+        SCOPED_TRACE("full: " + std::to_string(full_allowed) +
+                     " bitmap: " + std::to_string(bitmap_allowed));
+
+        gko::kernels::reference::csr::build_lookup(
+            this->exec, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            mtx->get_size()[0], allowed_methods, row_descs.get_data(),
+            lookup_info.get_data());
+
+        const auto descs = row_descs.get_const_data();
+        for (auto entry : data.nonzeros) {
+            const auto row = entry.row;
+            const auto col = entry.column;
+            const auto row_begin = mtx->get_const_row_ptrs()[row];
+            const auto row_nnz = mtx->get_const_row_ptrs()[row + 1] - row_begin;
+            gko::matrix::device_sparsity_lookup<IndexType> lookup{
+                mtx->get_const_col_idxs() + row_begin, row_nnz,
+                lookup_info.get_const_data() + (row_begin * 2), descs[row]};
+
+            const auto nz = lookup[col] + row_begin;
+            ASSERT_EQ(mtx->get_const_col_idxs()[nz], col);
+        }
+        ASSERT_EQ(descs[0] & 0xFFFF, static_cast<int>(full_equivalent));
+        ASSERT_EQ(descs[1] & 0xFFFF, static_cast<int>(full_equivalent));
+        ASSERT_EQ(descs[2] & 0xFFFF, static_cast<int>(bitmap_equivalent));
+        ASSERT_EQ(descs[3] & 0xFFFF, static_cast<int>(sparsity_type::hash));
+        ASSERT_EQ(descs[4] & 0xFFFF, static_cast<int>(full_equivalent));
+        ASSERT_EQ(descs[5] & 0xFFFF, static_cast<int>(full_equivalent));
     }
 }
 

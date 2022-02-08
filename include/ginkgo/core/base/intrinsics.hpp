@@ -30,35 +30,49 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_
+#define GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_
+
+
+#include <bitset>
+
+
+#include <ginkgo/core/base/types.hpp>
+
+
+namespace gko {
+namespace detail {
+
 
 /**
- * @internal
- *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
- * performs suffix sum. Works on the source array and returns whether the thread
- * is the first element of its segment with same `ind`.
+ * Returns the number of set bits in the given bitmask.
  */
-template <unsigned subwarp_size, typename ValueType, typename IndexType,
-          typename Operator>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size>& group, const IndexType ind,
-    ValueType& val, Operator op)
+GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
 {
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val{};
-        if (add_ind == ind && group.thread_rank() >= i) {
-            add_val = val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (group.thread_rank() < subwarp_size - i) {
-            val = op(val, add_val);
-        }
-    }
-    return head;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return __popc(bitmask);
+#else
+    std::bitset<32> bits{bitmask};
+    return bits.count();
+#endif
 }
+
+
+/**
+ * Returns the number of set bits in the given bitmask.
+ */
+GKO_ATTRIBUTES GKO_INLINE int popcount(uint64 bitmask)
+{
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return __popcll(bitmask);
+#else
+    std::bitset<64> bits{bitmask};
+    return bits.count();
+#endif
+}
+
+
+}  // namespace detail
+}  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_

@@ -1129,6 +1129,126 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
+bool csr_lookup_allowed(matrix::sparsity_type allowed,
+                        matrix::sparsity_type type)
+{
+    return ((static_cast<int>(allowed) & static_cast<int>(type)) != 0);
+}
+
+
+template <typename IndexType>
+bool csr_lookup_try_full(IndexType row_len, IndexType col_range,
+                         matrix::sparsity_type allowed, int64& row_desc)
+{
+    using matrix::sparsity_type;
+    bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::full);
+    if (is_allowed && row_len == col_range) {
+        row_desc = static_cast<int>(sparsity_type::full);
+        return true;
+    }
+    return false;
+}
+
+
+constexpr static int csr_lookup_block_size = 32;
+
+
+template <typename IndexType>
+bool csr_lookup_try_bitmap(IndexType row_len, IndexType col_range,
+                           IndexType min_col, IndexType available_storage,
+                           matrix::sparsity_type allowed, int64& row_desc,
+                           int32* local_storage, const IndexType* cols)
+{
+    using matrix::sparsity_type;
+    bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::bitmap);
+    const auto num_blocks = ceildiv(col_range, csr_lookup_block_size);
+    if (is_allowed && num_blocks * 2 <= available_storage) {
+        row_desc = (static_cast<int64>(num_blocks) << 32) |
+                   static_cast<int>(sparsity_type::bitmap);
+        const auto block_ranks = local_storage;
+        const auto block_bitmaps =
+            reinterpret_cast<uint32*>(block_ranks + num_blocks);
+        std::fill_n(block_bitmaps, num_blocks, 0);
+        for (auto col_it = cols; col_it < cols + row_len; col_it++) {
+            const auto rel_col = *col_it - min_col;
+            const auto block = rel_col / csr_lookup_block_size;
+            const auto col_in_block = rel_col % csr_lookup_block_size;
+            block_bitmaps[block] |= uint32{1} << col_in_block;
+        }
+        int32 partial_sum{};
+        for (int32 block = 0; block < num_blocks; block++) {
+            block_ranks[block] = partial_sum;
+            partial_sum += gko::detail::popcount(block_bitmaps[block]);
+        }
+        return true;
+    }
+    return false;
+}
+
+
+template <typename IndexType>
+void csr_lookup_build_hash(IndexType row_len, IndexType available_storage,
+                           int64& row_desc, int32* local_storage,
+                           const IndexType* cols)
+{
+    constexpr double inv_golden_ratio = 0.61803398875;
+    // use golden ratio as approximation for hash parameter that spreads
+    // consecutive values as far apart as possible. Ensure lowest bit is set
+    // otherwise we skip odd hashtable entries
+    const auto hash_parameter =
+        1u | static_cast<uint32>(available_storage * inv_golden_ratio);
+    row_desc = (static_cast<int64>(hash_parameter) << 32) |
+               static_cast<int>(matrix::sparsity_type::hash);
+    std::fill_n(local_storage, available_storage, -1);
+    for (int32 nz = 0; nz < row_len; nz++) {
+        auto hash = (static_cast<uint32>(cols[nz]) * hash_parameter) %
+                    static_cast<uint32>(available_storage);
+        // linear probing: find the next empty entry
+        while (local_storage[hash] != -1) {
+            hash++;
+            if (hash >= available_storage) {
+                hash = 0;
+            }
+        }
+        local_storage[hash] = nz;
+    }
+}
+
+
+template <typename IndexType>
+void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
+                  const IndexType* row_ptrs, const IndexType* col_idxs,
+                  size_type num_rows, matrix::sparsity_type allowed,
+                  int64* row_desc, int32* storage)
+{
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; row++) {
+        const auto row_begin = row_ptrs[row];
+        const auto row_len = row_ptrs[row + 1] - row_begin;
+        const auto storage_begin = 2 * row_begin;
+        const auto available_storage = 2 * row_len;
+        const auto local_storage = storage + storage_begin;
+        const auto local_cols = col_idxs + row_begin;
+        const auto min_col = row_len > 0 ? local_cols[0] : 0;
+        const auto col_range =
+            row_len > 0 ? local_cols[row_len - 1] - min_col + 1 : 0;
+        bool done =
+            csr_lookup_try_full(row_len, col_range, allowed, row_desc[row]);
+        if (!done) {
+            done = csr_lookup_try_bitmap(
+                row_len, col_range, min_col, available_storage, allowed,
+                row_desc[row], local_storage, local_cols);
+        }
+        if (!done) {
+            csr_lookup_build_hash(row_len, available_storage, row_desc[row],
+                                  local_storage, local_cols);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
+
+
 }  // namespace csr
 }  // namespace omp
 }  // namespace kernels

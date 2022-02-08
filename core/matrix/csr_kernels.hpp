@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr_lookup.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -224,6 +225,12 @@ namespace kernels {
                              const matrix::Dense<ValueType>* beta,        \
                              matrix::Csr<ValueType, IndexType>* mtx)
 
+#define GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)                      \
+    void build_lookup(std::shared_ptr<const DefaultExecutor> exec,          \
+                      const IndexType* row_ptrs, const IndexType* col_idxs, \
+                      size_type num_rows, matrix::sparsity_type allowed,    \
+                      int64* row_desc, int32* storage)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
@@ -283,7 +290,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType);      \
+    template <typename IndexType>                                          \
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);

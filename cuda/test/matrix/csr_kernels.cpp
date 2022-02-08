@@ -1012,4 +1012,62 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 }
 
 
+TEST_F(Csr, BuildLookupDataWorks)
+{
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    using gko::matrix::sparsity_type;
+    gko::Array<gko::int64> row_descs(ref, mtx->get_size()[0]);
+    gko::Array<gko::int32> lookup_info(ref, mtx->get_num_stored_elements() * 2);
+    gko::Array<gko::int64> drow_descs(cuda, mtx->get_size()[0]);
+    gko::Array<gko::int32> dlookup_info(cuda,
+                                        mtx->get_num_stored_elements() * 2);
+    for (auto allowed_methods :
+         {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
+          sparsity_type::bitmap | sparsity_type::hash,
+          sparsity_type::full | sparsity_type::hash, sparsity_type::hash}) {
+        const auto full_allowed =
+            static_cast<bool>(static_cast<int>(allowed_methods) &
+                              static_cast<int>(sparsity_type::full));
+        const auto bitmap_allowed =
+            static_cast<bool>(static_cast<int>(allowed_methods) &
+                              static_cast<int>(sparsity_type::bitmap));
+        const auto bitmap_equivalent =
+            bitmap_allowed ? sparsity_type::bitmap : sparsity_type::hash;
+        const auto full_equivalent =
+            full_allowed ? sparsity_type::full : bitmap_equivalent;
+        SCOPED_TRACE("full: " + std::to_string(full_allowed) +
+                     " bitmap: " + std::to_string(bitmap_allowed));
+
+        gko::kernels::reference::csr::build_lookup(
+            ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            mtx->get_size()[0], allowed_methods, row_descs.get_data(),
+            lookup_info.get_data());
+        gko::kernels::cuda::csr::build_lookup(
+            cuda, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+            dmtx->get_size()[0], allowed_methods, drow_descs.get_data(),
+            dlookup_info.get_data());
+
+        gko::Array<gko::int64> host_row_descs(ref, drow_descs);
+        gko::Array<gko::int32> host_lookup_info(ref, dlookup_info);
+        for (int row = 0; row < dmtx->get_size()[0]; row++) {
+            SCOPED_TRACE("row: " + std::to_string(row));
+            const auto row_begin = mtx->get_const_row_ptrs()[row];
+            const auto row_nnz = mtx->get_const_row_ptrs()[row + 1] - row_begin;
+            gko::matrix::device_sparsity_lookup<int> lookup{
+                mtx->get_const_col_idxs() + row_begin, row_nnz,
+                host_lookup_info.get_const_data() + (row_begin * 2),
+                host_row_descs.get_const_data()[row]};
+
+            ASSERT_EQ(host_row_descs.get_const_data()[row] & 0xFFFF,
+                      row_descs.get_const_data()[row] & 0xFFFF);
+            for (int nz = 0; nz < row_nnz; nz++) {
+                SCOPED_TRACE("nz: " + std::to_string(nz));
+                const auto col = mtx->get_const_col_idxs()[nz + row_begin];
+                ASSERT_EQ(nz, lookup[col]);
+            }
+        }
+    }
+}
+
+
 }  // namespace

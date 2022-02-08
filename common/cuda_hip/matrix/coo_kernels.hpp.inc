@@ -82,8 +82,9 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
             (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
-            bool is_first_in_segment =
-                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+            bool is_first_in_segment = segment_scan<subwarp_size>(
+                tile_block, curr_row, temp_val,
+                [](ValueType a, ValueType b) { return a + b; });
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
@@ -97,8 +98,9 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
                                 : zero<ValueType>();
         // segmented scan
-        bool is_first_in_segment =
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
+        bool is_first_in_segment = segment_scan<subwarp_size>(
+            tile_block, curr_row, temp_val,
+            [](ValueType a, ValueType b) { return a + b; });
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }
