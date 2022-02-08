@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace distributed {
 namespace vector {
+namespace {
 
 
 GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
@@ -48,6 +49,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
 
+}  // namespace
 }  // namespace vector
 
 
@@ -66,6 +68,14 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     GKO_NOT_SUPPORTED(this);
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition,
+    dim<2> global_size, dim<2> local_size)
+    : Vector(exec, comm, std::move(partition), global_size, local_size,
+             local_size[1])
+{}
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
@@ -76,13 +86,8 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
           Vector<ValueType, LocalIndexType, GlobalIndexType>>{exec,
                                                               global_size},
       DistributedBase{comm},
-      partition_{
-          partition
-              ? std::move(partition)
-              : gko::share(
-                    Partition<LocalIndexType, GlobalIndexType>::create(exec))},
-      local_{exec, local_size,
-             stride != invalid_index<size_type>() ? stride : local_size[1]}
+      partition_{std::move(partition)},
+      local_{exec, local_size, stride}
 {}
 
 
@@ -97,13 +102,16 @@ void read_local_impl(
 {
     auto rank = comm.rank();
 
-    Array<matrix_data_entry<ValueType, LocalIndexType>> local_data{exec};
-    exec->run(vector::make_build_local(global_data, partition, rank, local_data,
+    auto num_rows = static_cast<size_type>(partition->get_part_size(rank));
+    if (local_mtx->get_size() != dim<2>{num_rows, num_cols}) {
+        auto stride =
+            local_mtx->get_stride() > 0 ? local_mtx->get_stride() : num_cols;
+        LocalMtxType::create(exec, dim<2>{num_rows, num_cols}, stride)
+            ->move_to(local_mtx);
+    }
+    local_mtx->fill(zero<ValueType>());
+    exec->run(vector::make_build_local(global_data, partition, rank, local_mtx,
                                        ValueType{}));
-
-    auto local_rows = static_cast<size_type>(partition->get_part_size(rank));
-    dim<2> local_size{local_rows, num_cols};
-    local_mtx->read({local_size, local_data});
 }
 
 
@@ -112,6 +120,7 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
 {
+    GKO_ASSERT(partition->get_executor() == this->get_executor());
     this->partition_ = std::move(partition);
 
     auto exec = this->get_executor();
@@ -130,6 +139,7 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
 {
+    GKO_ASSERT(partition->get_executor() == this->get_executor());
     this->partition_ = std::move(partition);
 
     read_local_impl(this->get_executor(), this->get_communicator(),
