@@ -76,8 +76,8 @@ public:
      * @param size  the matrix dimensions
      * @param num_entries  the number of entries to be stored
      */
-    device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size = {},
-                       size_type num_entries = 0);
+    explicit device_matrix_data(std::shared_ptr<const Executor> exec,
+                                dim<2> size = {}, size_type num_entries = 0);
 
     /**
      * Initializes a device_matrix_data object by copying an existing object on
@@ -94,21 +94,22 @@ public:
      * Initializes a new device_matrix_data object from existing data.
      *
      * @param size  the matrix dimensions
-     * @param data  the array containing the matrix values
-     * @param data  the array containing the matrix column indices
-     * @param data  the array containing the matrix row indices
+     * @param values  the array containing the matrix values
+     * @param col_idxs  the array containing the matrix column indices
+     * @param row_idxs  the array containing the matrix row indices
      */
-    template <typename ValueArray, typename IndexArray>
+    template <typename ValueArray, typename RowIndexArray,
+              typename ColIndexArray>
     device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
-                       ValueArray&& values, IndexArray&& col_idxs,
-                       IndexArray&& row_idxs)
+                       RowIndexArray&& row_idxs, ColIndexArray&& col_idxs,
+                       ValueArray&& values)
         : size_{size},
-          values_{exec, std::forward<ValueArray>(values)},
-          col_idxs_{exec, std::forward<IndexArray>(col_idxs)},
-          row_idxs_{exec, std::forward<IndexArray>(row_idxs)}
+          row_idxs_{exec, std::forward<RowIndexArray>(row_idxs)},
+          col_idxs_{exec, std::forward<ColIndexArray>(col_idxs)},
+          values_{exec, std::forward<ValueArray>(values)}
     {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
         GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
     }
 
     /**
@@ -124,10 +125,8 @@ public:
      *
      * @param exec  the executor to create the device_matrix_data on.
      * @param data  the data to be wrapped or copied into a device_matrix_data.
-     * @return  a device_matrix_data object with the same size as `data` and the
-     *          same entries, either wrapped as a non-owning view if `exec` is a
-     *          host executor or copied into an owning Array if `exec` is a
-     *          device executor.
+     * @return  a device_matrix_data object with the same size and entries as
+     *          `data` copied to the device executor.
      */
     static device_matrix_data create_from_host(
         std::shared_ptr<const Executor> exec, const host_type& data);
@@ -171,20 +170,20 @@ public:
     size_type get_num_elems() const { return values_.get_num_elems(); }
 
     /**
-     * Returns a pointer to the value array
+     * Returns a pointer to the row index array
      *
-     * @return a pointer to the value array
+     * @return a pointer to the row index array
      */
-    value_type* get_values() { return values_.get_data(); }
+    index_type* get_row_idxs() { return row_idxs_.get_data(); }
 
     /**
-     * Returns a pointer to the constant value array
+     * Returns a pointer to the constant row index array
      *
-     * @return a pointer to the constant value array
+     * @return a pointer to the constant row index array
      */
-    const value_type* get_const_values() const
+    const index_type* get_const_row_idxs() const
     {
-        return values_.get_const_data();
+        return row_idxs_.get_const_data();
     }
 
     /**
@@ -205,20 +204,20 @@ public:
     }
 
     /**
-     * Returns a pointer to the row index array
+     * Returns a pointer to the value array
      *
-     * @return a pointer to the row index array
+     * @return a pointer to the value array
      */
-    index_type* get_row_idxs() { return row_idxs_.get_data(); }
+    value_type* get_values() { return values_.get_data(); }
 
     /**
-     * Returns a pointer to the constant row index array
+     * Returns a pointer to the constant value array
      *
-     * @return a pointer to the constant row index array
+     * @return a pointer to the constant value array
      */
-    const index_type* get_const_row_idxs() const
+    const value_type* get_const_values() const
     {
-        return row_idxs_.get_const_data();
+        return values_.get_const_data();
     }
 
     /**
@@ -242,9 +241,9 @@ public:
      * Stores the internal arrays of a device_matrix_data object.
      */
     struct arrays {
-        Array<value_type> values;
-        Array<index_type> col_idxs;
         Array<index_type> row_idxs;
+        Array<index_type> col_idxs;
+        Array<value_type> values;
     };
 
     /**
@@ -257,9 +256,9 @@ public:
 
 private:
     dim<2> size_;
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
     Array<index_type> row_idxs_;
+    Array<index_type> col_idxs_;
+    Array<value_type> values_;
 };
 
 

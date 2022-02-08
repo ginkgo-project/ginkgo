@@ -131,6 +131,11 @@ public:
         this->read(data.copy_to_host());
     }
 
+    void read(device_mat_data&& data) override
+    {
+        this->read(data.copy_to_host());
+    }
+
     void read(const mat_data& data) override
     {
         csr_->read(data);
@@ -198,6 +203,11 @@ public:
     using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
 
     void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
+
+    void read(device_mat_data&& data) override
     {
         this->read(data.copy_to_host());
     }
@@ -274,6 +284,11 @@ public:
     using device_mat_data = gko::device_matrix_data<ValueType, IndexType>;
 
     void read(const device_mat_data& data) override
+    {
+        this->read(data.copy_to_host());
+    }
+
+    void read(device_mat_data&& data) override
     {
         this->read(data.copy_to_host());
     }
