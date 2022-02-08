@@ -2199,26 +2199,7 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense)
 }
 
 
-TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int32> gather_index{exec, {1, 0, 1}};
-    auto gather =
-        gko::as<gko::RowGatherable<gko::int32>>(gko::share(this->mtx4));
-
-    auto row_collection =
-        gko::as<Mtx>(gko::share(gather->row_gather_linop(&gather_index)));
-
-    GKO_ASSERT_MTX_NEAR(
-        row_collection,
-        l<T>({{0.0, 5.0, 0.0}, {1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}), 0.0);
-}
-
-
-TYPED_TEST(Dense,
-           NonSquareSubmatrixCanGatherRowsIntoMixedDenseWithRowGatherable)
+TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
@@ -2226,10 +2207,8 @@ TYPED_TEST(Dense,
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int32> gather_index{exec, {1, 0, 1}};
     auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
-    auto gather =
-        gko::as<gko::RowGatherable<gko::int32>>(gko::share(this->mtx4));
 
-    gather->row_gather(&gather_index, row_collection.get());
+    this->mtx4->row_gather(&gather_index, row_collection.get());
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,
@@ -2239,9 +2218,7 @@ TYPED_TEST(Dense,
 }
 
 
-TYPED_TEST(
-    Dense,
-    NonSquareSubmatrixCanAdvancedGatherRowsIntoMixedDenseWithRowGatherable)
+TYPED_TEST(Dense, NonSquareSubmatrixCanAdvancedGatherRowsIntoMixedDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
@@ -2252,11 +2229,9 @@ TYPED_TEST(
         {{1.0, 0.5, -1.0}, {-1.5, 0.5, 1.0}, {2.0, -3.0, 1.0}}, exec);
     auto alpha = gko::initialize<MixedMtx>({1.0}, exec);
     auto beta = gko::initialize<Mtx>({2.0}, exec);
-    auto gather =
-        gko::as<gko::RowGatherable<gko::int32>>(gko::share(this->mtx4));
 
-    gather->row_gather(alpha.get(), &gather_index, beta.get(),
-                       row_collection.get());
+    this->mtx4->row_gather(alpha.get(), &gather_index, beta.get(),
+                           row_collection.get());
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,
@@ -2323,25 +2298,7 @@ TYPED_TEST(Dense, SquareSubmatrixCanGatherRowsIntoDense64)
 }
 
 
-TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsWithRowGatherable64)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto exec = this->mtx4->get_executor();
-    gko::Array<gko::int64> gather_index{exec, {1, 0, 1}};
-    auto gather =
-        gko::as<gko::RowGatherable<gko::int64>>(gko::share(this->mtx4));
-
-    auto out =
-        gko::as<Mtx>(gko::share(gather->row_gather_linop(&gather_index)));
-
-    GKO_ASSERT_MTX_NEAR(
-        out, l<T>({{0.0, 5.0, 0.0}, {1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}), 0.0);
-}
-
-
-TYPED_TEST(Dense,
-           NonSquareSubmatrixCanGatherRowsIntoMixedDenseWithRowGatherable64)
+TYPED_TEST(Dense, NonSquareSubmatrixCanGatherRowsIntoMixedDense64)
 {
     using Mtx = typename TestFixture::Mtx;
     using MixedMtx = typename TestFixture::MixedMtx;
@@ -2349,10 +2306,8 @@ TYPED_TEST(Dense,
     auto exec = this->mtx4->get_executor();
     gko::Array<gko::int64> gather_index{exec, {1, 0, 1}};
     auto row_collection = MixedMtx::create(exec, gko::dim<2>{3, 3}, 4);
-    auto gather =
-        gko::as<gko::RowGatherable<gko::int64>>(gko::share(this->mtx4));
 
-    gather->row_gather(&gather_index, row_collection.get());
+    this->mtx4->row_gather(&gather_index, row_collection.get());
 
     GKO_ASSERT_MTX_NEAR(
         row_collection,

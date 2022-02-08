@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/base/dispatch_helper.hpp"
+
+
 namespace gko {
 namespace matrix {
+
+
+template <typename IndexType>
+void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
+{
+    run<const Dense<float>*, const Dense<double>*,
+        const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
+        in, [&](auto gather) { gather->row_gather(&row_indices_, out); });
+}
+
+template <typename IndexType>
+void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
+                                        const LinOp* beta, LinOp* out) const
+{
+    run<const Dense<float>*, const Dense<double>*,
+        const Dense<std::complex<float>>*, const Dense<std::complex<double>>*>(
+        in, [&](auto gather) {
+            gather->row_gather(alpha, &row_indices_, beta, out);
+        });
+}
 
 
 #define GKO_DECLARE_ROWGATHERER_MATRIX(_type) class RowGatherer<_type>
