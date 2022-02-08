@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/device_matrix_data.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -802,5 +803,51 @@ TYPED_TEST(Matrix, ReadWriteRoundtrip)
         }
         ASSERT_EQ(data.size, out_data.size);
         ASSERT_EQ(data.nonzeros, out_data.nonzeros);
+    });
+}
+
+
+TYPED_TEST(Matrix, DeviceReadCopyIsEquivalentToHostRef)
+{
+    using TestConfig = typename TestFixture::Config;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        // put data on reference executor to test cross-executor execution
+        const auto ref_device_data =
+            gko::device_matrix_data<value_type, index_type>::create_from_host(
+                this->ref, data);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
+
+        ref_result->read(data);
+        dev_result->read(ref_device_data);
+
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
+    });
+}
+
+
+TYPED_TEST(Matrix, DeviceReadMoveIsEquivalentToHostRef)
+{
+    using TestConfig = typename TestFixture::Config;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        // put data on reference executor to test cross-executor execution
+        auto ref_device_data =
+            gko::device_matrix_data<value_type, index_type>::create_from_host(
+                this->ref, data);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
+
+        ref_result->read(data);
+        dev_result->read(std::move(ref_device_data));
+
+        ASSERT_EQ(ref_device_data.get_size(), gko::dim<2>{});
+        ASSERT_EQ(ref_device_data.get_num_elems(), gko::dim<2>{});
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
     });
 }

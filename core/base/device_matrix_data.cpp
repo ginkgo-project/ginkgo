@@ -60,9 +60,9 @@ template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>::device_matrix_data(
     std::shared_ptr<const Executor> exec, dim<2> size, size_type num_entries)
     : size_{size},
-      values_{exec, num_entries},
+      row_idxs_{exec, num_entries},
       col_idxs_{exec, num_entries},
-      row_idxs_{exec, num_entries}
+      values_{exec, num_entries}
 {}
 
 
@@ -70,9 +70,9 @@ template <typename ValueType, typename IndexType>
 device_matrix_data<ValueType, IndexType>::device_matrix_data(
     std::shared_ptr<const Executor> exec, const device_matrix_data& data)
     : size_{data.size_},
-      values_{exec, data.values_},
+      row_idxs_{exec, data.row_idxs_},
       col_idxs_{exec, data.col_idxs_},
-      row_idxs_{exec, data.row_idxs_}
+      values_{exec, data.values_}
 {}
 
 
@@ -126,9 +126,9 @@ template <typename ValueType, typename IndexType>
 void device_matrix_data<ValueType, IndexType>::resize_and_reset(
     size_type new_num_entries)
 {
-    values_.resize_and_reset(new_num_entries);
-    col_idxs_.resize_and_reset(new_num_entries);
     row_idxs_.resize_and_reset(new_num_entries);
+    col_idxs_.resize_and_reset(new_num_entries);
+    values_.resize_and_reset(new_num_entries);
 }
 
 template <typename ValueType, typename IndexType>
@@ -144,8 +144,8 @@ template <typename ValueType, typename IndexType>
 typename device_matrix_data<ValueType, IndexType>::arrays
 device_matrix_data<ValueType, IndexType>::empty_out()
 {
-    arrays result{std::move(values_), std::move(col_idxs_),
-                  std::move(row_idxs_)};
+    arrays result{std::move(row_idxs_), std::move(col_idxs_),
+                  std::move(values_)};
     size_ = {};
     return result;
 }

@@ -148,6 +148,61 @@ TYPED_TEST(DeviceMatrixData, ConstructsCorrectly)
 }
 
 
+TYPED_TEST(DeviceMatrixData, CopyConstructsOnOtherExecutorCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, this->host_data);
+
+    auto host_data = gko::device_matrix_data<value_type, index_type>{
+        this->exec->get_master(), device_data};
+
+    ASSERT_EQ(device_data.get_size(), host_data.get_size());
+    ASSERT_EQ(device_data.get_num_elems(), host_data.get_num_elems());
+    auto device_arrays = device_data.empty_out();
+    auto host_arrays = host_data.empty_out();
+    GKO_ASSERT_ARRAY_EQ(device_arrays.row_idxs, host_arrays.row_idxs);
+    GKO_ASSERT_ARRAY_EQ(device_arrays.col_idxs, host_arrays.col_idxs);
+    GKO_ASSERT_ARRAY_EQ(device_arrays.values, host_arrays.values);
+    ASSERT_EQ(device_arrays.row_idxs.get_executor(), this->exec);
+    ASSERT_EQ(device_arrays.col_idxs.get_executor(), this->exec);
+    ASSERT_EQ(device_arrays.values.get_executor(), this->exec);
+    ASSERT_EQ(host_arrays.row_idxs.get_executor(), this->exec->get_master());
+    ASSERT_EQ(host_arrays.col_idxs.get_executor(), this->exec->get_master());
+    ASSERT_EQ(host_arrays.values.get_executor(), this->exec->get_master());
+}
+
+
+TYPED_TEST(DeviceMatrixData, ResizesCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::device_matrix_data<value_type, index_type> local_data{
+        this->exec, gko::dim<2>{4, 3}, 10};
+
+    local_data.resize_and_reset(12);
+
+    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_size(), gko::dim<2>(4, 3));
+}
+
+
+TYPED_TEST(DeviceMatrixData, ResizesDimensionsCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::device_matrix_data<value_type, index_type> local_data{
+        this->exec, gko::dim<2>{4, 3}, 10};
+
+    local_data.resize_and_reset(gko::dim<2>{5, 4}, 12);
+
+    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_size(), gko::dim<2>(5, 4));
+}
+
+
 TYPED_TEST(DeviceMatrixData, CreatesFromHost)
 {
     using value_type = typename TestFixture::value_type;
