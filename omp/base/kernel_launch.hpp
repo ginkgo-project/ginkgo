@@ -36,12 +36,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include <tuple>
+
+
 #include "core/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
+
+
+namespace device_std = std;
 
 
 namespace {
