@@ -1,10 +1,10 @@
 add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
-    base/version.cpp
+    base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
+    base/version.cpp
     components/absolute_array_kernels.cpp
-    components/device_matrix_data_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
     components/reduce_array_kernels.cpp

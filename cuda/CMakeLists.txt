@@ -69,11 +69,11 @@ find_library(CUFFT cufft
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
+    base/device_matrix_data_kernels.cu
     base/exception.cpp
     base/executor.cpp
     base/index_set_kernels.cpp
     base/version.cpp
-    components/device_matrix_data_kernels.cu
     components/prefix_sum_kernels.cu
     distributed/partition_kernels.cu
     factorization/factorization_kernels.cu

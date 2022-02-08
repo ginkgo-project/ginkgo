@@ -3,9 +3,9 @@ find_package(OpenMP 3.0 REQUIRED)
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
+    base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     base/version.cpp
-    components/device_matrix_data_kernels.cpp
     components/prefix_sum_kernels.cpp
     distributed/partition_kernels.cpp
     factorization/factorization_kernels.cpp
