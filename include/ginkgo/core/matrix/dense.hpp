@@ -118,8 +118,6 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableRowGather<Dense<ValueType>, int32>,
-      public EnableRowGather<Dense<ValueType>, int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
@@ -387,29 +385,86 @@ public:
     void row_permute(const Array<int64>* permutation_indices,
                      Dense* output) const;
 
-    std::unique_ptr<Dense> row_gather(
-        const Array<int32>* gather_indices) const override;
+    /**
+     * Create a Dense matrix consisting of the given rows from this matrix.
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @return  Dense matrix on the same executor with the same number of
+     *          columns and `gather_indices->get_num_elems()` rows containing
+     *          the gathered rows from this matrix:
+     *          `output(i,j) = input(gather_indices(i), j)`
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int32>* gather_indices) const;
 
-    std::unique_ptr<Dense> row_gather(
-        const Array<int64>* gather_indices) const override;
+    /**
+     * @copydoc row_gather(const Array<int32>*) const
+     */
+    std::unique_ptr<Dense> row_gather(const Array<int64>* gather_indices) const;
 
+    /**
+     * Copies the given rows from this matrix into `row_collection`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param row_collection  pointer to a Dense matrix that will store the
+     *                      gathered rows:
+     *                      `row_collection(i,j) = input(gather_indices(i), j)`
+     *                      It must have the same number of columns as this
+     *                      matrix and `gather_indices->get_num_elems()` rows.
+     */
     void row_gather(const Array<int32>* gather_indices,
-                    LinOp* row_collection) const override;
+                    Dense* row_collection) const;
 
+    /**
+     * @copydoc row_gather(const Array<int32>*, Dense*) const
+     */
     void row_gather(const Array<int64>* gather_indices,
-                    LinOp* row_collection) const override;
+                    Dense* row_collection) const;
 
+    /**
+     * Copies the given rows from this matrix into `row_collection`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param row_collection  pointer to a LinOp that will store the gathered
+     *                        rows:
+     *                        `row_collection(i,j)
+     *                         = input(gather_indices(i), j)`
+     *                        It must have the same number of columns as this
+     *                        matrix and `gather_indices->get_num_elems()` rows.
+     */
+    void row_gather(const Array<int32>* gather_indices,
+                    LinOp* row_collection) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*, LinOp*) const
+     */
+    void row_gather(const Array<int64>* gather_indices,
+                    LinOp* row_collection) const;
+
+    /**
+     * Copies the given rows from this matrix into `row_collection` with scaling
+     *
+     * @param alpha  scaling the result of row gathering
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param beta  scaling the input row_collection
+     * @param row_collection  pointer to a LinOp that will store the
+     *             gathered rows:
+     *             `row_collection(i,j) = input(gather_indices(i), j)`
+     *             It must have the same number of columns as this
+     *             matrix and `gather_indices->get_num_elems()` rows.
+     */
     void row_gather(const LinOp* alpha, const Array<int32>* gather_indices,
-                    const LinOp* beta, LinOp* row_collection) const override;
+                    const LinOp* beta, LinOp* row_collection) const;
 
+    /**
+     * @copydoc row_gather(const LinOp*, const Array<int32>*, const LinOp*,
+     * LinOp*) const
+     */
     void row_gather(const LinOp* alpha, const Array<int64>* gather_indices,
-                    const LinOp* beta, LinOp* row_collection) const override;
-
-    void row_gather(const Array<int32>* gather_indices,
-                    Dense* row_collection) const override;
-
-    void row_gather(const Array<int64>* gather_indices,
-                    Dense* row_collection) const override;
+                    const LinOp* beta, LinOp* row_collection) const;
 
     std::unique_ptr<LinOp> column_permute(
         const Array<int32>* permutation_indices) const override;

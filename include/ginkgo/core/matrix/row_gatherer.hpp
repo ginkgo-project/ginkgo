@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,25 +79,42 @@ public:
     using index_type = IndexType;
 
     /**
-     * Returns a pointer to the array of row_gatherer_indices.
+     * Returns a pointer to the row index array.
      *
-     * @return the pointer to the row_gatherer_indices array.
+     * @return the pointer to the row index array.
      */
-    index_type* get_row_gatherer_indices() noexcept
-    {
-        return row_gatherer_indices_.get_data();
-    }
+    index_type* get_row_indices() noexcept { return row_indices_.get_data(); }
 
     /**
-     * @copydoc get_row_gatherer_indices()
+     * @copydoc get_row_indices()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_gatherer_indices() const noexcept
+    const index_type* get_const_row_indices() const noexcept
     {
-        return row_gatherer_indices_.get_const_data();
+        return row_indices_.get_const_data();
+    }
+
+    /**
+     * Creates a constant (immutable) RowGatherer matrix from a constant array.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param row_indices  the gathered row indices  of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          the arrays on the correct executor.
+     */
+    static std::unique_ptr<const RowGatherer> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<IndexType>&& row_indices)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const RowGatherer>(new RowGatherer{
+            exec, size, gko::detail::array_const_cast(std::move(row_indices))});
     }
 
 protected:
@@ -117,8 +134,7 @@ protected:
      * @param size  size of the RowGatherable matrix
      */
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size)
-        : EnableLinOp<RowGatherer>(exec, size),
-          row_gatherer_indices_(exec, size[0])
+        : EnableLinOp<RowGatherer>(exec, size), row_indices_(exec, size[0])
     {}
 
     /**
@@ -129,37 +145,28 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the rowgatherer array.
-     * @param row_gatherer_indices array of rowgatherer array
+     * @param row_indices array of rowgatherer array
      *
-     * @note If `row_gatherer_indices` is not an rvalue, not an array of
+     * @note If `row_indices` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,
      * and the original array data will not be used in the matrix.
      */
     template <typename IndicesArray>
     RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                IndicesArray&& row_gatherer_indices)
+                IndicesArray&& row_indices)
         : EnableLinOp<RowGatherer>(exec, size),
-          row_gatherer_indices_{
-              exec, std::forward<IndicesArray>(row_gatherer_indices)}
+          row_indices_{exec, std::forward<IndicesArray>(row_indices)}
     {
-        GKO_ASSERT_EQ(size[0], row_gatherer_indices_.get_num_elems());
+        GKO_ASSERT_EQ(size[0], row_indices_.get_num_elems());
     }
 
-    void apply_impl(const LinOp* in, LinOp* out) const
-    {
-        auto gather = gko::as<RowGatherable<index_type>>(in);
-        gather->row_gather(&row_gatherer_indices_, out);
-    }
+    void apply_impl(const LinOp* in, LinOp* out) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* in, const LinOp* beta,
-                    LinOp* out) const
-    {
-        auto gather = gko::as<RowGatherable<index_type>>(in);
-        gather->row_gather(alpha, &row_gatherer_indices_, beta, out);
-    }
+                    LinOp* out) const override;
 
 private:
-    gko::Array<index_type> row_gatherer_indices_;
+    gko::Array<index_type> row_indices_;
 };
 
 

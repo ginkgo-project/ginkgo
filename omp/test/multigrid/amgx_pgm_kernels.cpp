@@ -296,10 +296,10 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
     auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
     auto row_gather_view = gko::Array<index_type>::const_view(
         row_gatherer->get_executor(), row_gatherer->get_size()[0],
-        row_gatherer->get_const_row_gatherer_indices());
+        row_gatherer->get_const_row_indices());
     auto d_row_gather_view = gko::Array<index_type>::const_view(
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
-        d_row_gatherer->get_const_row_gatherer_indices());
+        d_row_gatherer->get_const_row_indices());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
                         gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
@@ -327,10 +327,10 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
     auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
     auto row_gather_view = gko::Array<index_type>::const_view(
         row_gatherer->get_executor(), row_gatherer->get_size()[0],
-        row_gatherer->get_const_row_gatherer_indices());
+        row_gatherer->get_const_row_indices());
     auto d_row_gather_view = gko::Array<index_type>::const_view(
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
-        d_row_gatherer->get_const_row_gatherer_indices());
+        d_row_gatherer->get_const_row_indices());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
                         gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
