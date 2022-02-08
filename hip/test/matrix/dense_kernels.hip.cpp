@@ -189,28 +189,6 @@ TEST_F(Dense, SingleVectorHipComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorHipComputeDotVendorIsEquivalentToRef)
-{
-    set_up_vector_data(1);
-    dx->set_strategy(Mtx::strategy_type::vendor);
-
-    x->compute_dot(y.get(), expected.get());
-    dx->compute_dot(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Dense, MultipleVectorHipComputeDotVendorFails)
-{
-    set_up_vector_data(20);
-    dx->set_strategy(Mtx::strategy_type::vendor);
-
-    x->compute_dot(y.get(), expected.get());
-    ASSERT_THROW(dx->compute_dot(dy.get(), dresult.get()), gko::NotImplemented);
-}
-
-
 TEST_F(Dense, MultipleVectorHipComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);

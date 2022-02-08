@@ -74,14 +74,14 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Dense<ValueType>* x,
-                        const matrix::Dense<ValueType>* y,
-                        matrix::Dense<ValueType>* result)
+void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Dense<ValueType>* x,
+                          const matrix::Dense<ValueType>* y,
+                          matrix::Dense<ValueType>* result)
 {
-    if (cublas::is_supported<ValueType>::value) {
-        auto handle = exec->get_cublas_handle();
-        if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
+    if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
+        if (cublas::is_supported<ValueType>::value) {
+            auto handle = exec->get_cublas_handle();
             cublas::pointer_mode_guard pm_guard(handle);
             cublas::dot(handle, x->get_size()[0], x->get_const_values(),
                         x->get_size()[1], y->get_const_values(),
@@ -90,12 +90,12 @@ void compute_dot_vendor(std::shared_ptr<const DefaultExecutor> exec,
             GKO_NOT_IMPLEMENTED;
         }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        compute_dot(exec, x, y, result);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_DOT_VENDOR_KERNEL);
+    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL);
 
 
 template <typename ValueType>
