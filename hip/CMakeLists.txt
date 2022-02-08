@@ -154,11 +154,11 @@ if (NOT GINKGO_HIP_THRUST_PATH)
 endif()
 
 set(GINKGO_HIP_SOURCES
+    base/device_matrix_data_kernels.hip.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/index_set_kernels.hip.cpp
     base/version.hip.cpp
-    components/device_matrix_data_kernels.hip.cpp
     components/prefix_sum_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp

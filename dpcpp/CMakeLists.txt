@@ -14,11 +14,11 @@ set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
-    base/version.dp.cpp
+    base/device_matrix_data_kernels.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
-    components/device_matrix_data_kernels.dp.cpp
+    base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/partition_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp

@@ -1,7 +1,7 @@
 set(UNIFIED_SOURCES
+    base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     components/absolute_array_kernels.cpp
-    components/device_matrix_data_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
     components/precision_conversion_kernels.cpp

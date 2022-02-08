@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
 #include <thrust/copy.h>
@@ -51,7 +51,7 @@ namespace cuda {
 namespace components {
 
 
-#include "common/cuda_hip/components/device_matrix_data_kernels.hpp.inc"
+#include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"
 
 
 }  // namespace components
