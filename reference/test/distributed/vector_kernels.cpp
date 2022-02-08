@@ -55,51 +55,48 @@ using comm_index_type = gko::distributed::comm_index_type;
 template <typename ValueLocalGlobalIndexType>
 class Vector : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_entry = gko::matrix_data_entry<value_type, local_index_type>;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
+    using mtx = gko::matrix::Dense<value_type>;
 
-    Vector()
-        : ref(gko::ReferenceExecutor::create()),
-          mapping{ref},
-          input{ref},
-          output{ref}
-    {}
+    Vector() : ref(gko::ReferenceExecutor::create()), mapping{ref} {}
 
-    void validate(const gko::distributed::Partition<
-                      local_index_type, global_index_type>* partition,
-                  std::initializer_list<global_entry> input_entries,
-                  std::initializer_list<std::initializer_list<local_entry>>
-                      output_entries)
+    void validate(
+        const gko::size_type num_cols,
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            partition,
+        std::initializer_list<global_entry> input_entries,
+        std::initializer_list<
+            std::initializer_list<std::initializer_list<value_type>>>
+            output_entries)
     {
-        std::vector<gko::Array<local_entry>> ref_outputs;
-
-        input = gko::Array<global_entry>{ref, input_entries};
+        std::vector<std::initializer_list<std::initializer_list<value_type>>>
+            ref_outputs;
+        auto input = gko::Array<global_entry>{ref, input_entries};
         for (auto entry : output_entries) {
-            ref_outputs.push_back(gko::Array<local_entry>{ref, entry});
+            ref_outputs.emplace_back(entry);
         }
-
         for (comm_index_type part = 0; part < partition->get_num_parts();
              ++part) {
-            gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition, part, output, value_type{});
+            auto num_rows =
+                static_cast<gko::size_type>(partition->get_part_size(part));
+            auto output = mtx::create(ref, gko::dim<2>{num_rows, num_cols});
+            output->fill(gko::zero<value_type>());
 
-            GKO_ASSERT_ARRAY_EQ(output, ref_outputs[part]);
+            gko::kernels::reference::distributed_vector::build_local(
+                ref, input, partition, part, output.get(), value_type{});
+
+            GKO_ASSERT_MTX_NEAR(output, ref_outputs[part], 0);
         }
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::Array<comm_index_type> mapping;
-    gko::Array<global_entry> input;
-    gko::Array<local_entry> output;
 };
 
 TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
@@ -116,7 +113,8 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), {}, {{}, {}, {}});
+    this->validate(0, partition.get(), {},
+                   {{{}, {}}, {{}, {}, {}}, {{}, {}, {}}});
 }
 
 
@@ -131,9 +129,9 @@ TYPED_TEST(Vector, BuildsLocalSmall)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(),
+    this->validate(2, partition.get(),
                    {{0, 0, 1}, {0, 1, 2}, {1, 0, 3}, {1, 1, 4}},
-                   {{{0, 0, 3}, {0, 1, 4}}, {{0, 0, 1}, {0, 1, 2}}});
+                   {{{3, 4}}, {{1, 2}}});
 }
 
 
@@ -148,7 +146,7 @@ TYPED_TEST(Vector, BuildsLocal)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(),
+    this->validate(8, partition.get(),
                    {{0, 0, 1},
                     {0, 1, 2},
                     {1, 2, 3},
@@ -157,9 +155,9 @@ TYPED_TEST(Vector, BuildsLocal)
                     {3, 5, 6},
                     {4, 6, 7},
                     {5, 7, 8}},
-                   {{{0, 4, 5}, {1, 5, 6}},
-                    {{0, 0, 1}, {0, 1, 2}, {1, 7, 8}},
-                    {{0, 2, 3}, {0, 3, 4}, {1, 6, 7}}});
+                   {{{0, 0, 0, 0, 5, 0, 0, 0}, {0, 0, 0, 0, 0, 6, 0, 0}},
+                    {{1, 2, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 8}},
+                    {{0, 0, 3, 4, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 7, 0}}});
 }
 
 
