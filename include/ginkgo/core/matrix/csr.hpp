@@ -963,7 +963,7 @@ public:
         gko::detail::ConstArrayView<ValueType>&& values,
         gko::detail::ConstArrayView<IndexType>&& col_idxs,
         gko::detail::ConstArrayView<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        std::shared_ptr<strategy_type> strategy)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -971,6 +971,23 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(values)),
             gko::detail::array_const_cast(std::move(col_idxs)),
             gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
+    }
+
+    /*
+     * This is version of create_const with a default strategy.
+     */
+    static std::unique_ptr<const Csr> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const Csr>(new Csr{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            gko::detail::array_const_cast(std::move(row_ptrs))});
     }
 
 protected:
@@ -986,16 +1003,16 @@ protected:
     {}
 
     /**
-     * Creates an uninitialized CSR matrix of the specified size.
+     * Creates an uninitialized CSR matrix of the specified size with a user
+     * chosen strategy.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      * @param strategy  the strategy of CSR
      */
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_nonzeros, std::shared_ptr<strategy_type> strategy)
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
@@ -1003,6 +1020,26 @@ protected:
           srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(strategy->copy())
     {
+        row_ptrs_.fill(0);
+        this->make_srow();
+    }
+
+    /**
+     * Creates an uninitialized CSR matrix of the specified size with a
+     * default strategy.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of nonzeros
+     */
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+        size_type num_nonzeros = {})
+        : EnableLinOp<Csr>(exec, size),
+          values_(exec, num_nonzeros),
+          col_idxs_(exec, num_nonzeros),
+          row_ptrs_(exec, size[0] + 1)
+    {
+        initialize_default_strategy(num_nonzeros);
         row_ptrs_.fill(0);
         this->make_srow();
     }
@@ -1031,7 +1068,7 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        std::shared_ptr<strategy_type> strategy)
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -1044,10 +1081,49 @@ protected:
         this->make_srow();
     }
 
+    /**
+     * Creates a CSR matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @note This is the same as the previous constructor but with a default
+     *       strategy.
+     */
+    template <typename ValuesArray, typename ColIdxsArray,
+              typename RowPtrsArray>
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs)
+        : EnableLinOp<Csr>(exec, size),
+          values_{exec, std::forward<ValuesArray>(values)},
+          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
+          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
+    {
+        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
+        initialize_default_strategy(row_ptrs_.get_num_elems());
+        this->make_srow();
+    }
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    // TODO: This provides some more sane settings. Please fix this!
+    void initialize_default_strategy(int64_t nonzeros)
+    {
+        auto exec = this->get_executor();
+        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
+        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+        if (cuda_exec) {
+            strategy_ = std::make_shared<automatical>(cuda_exec);
+        } else if (hip_exec) {
+            strategy_ = std::make_shared<automatical>(hip_exec);
+        } else {
+            strategy_ = std::make_shared<classical>();
+        }
+        srow_ =
+            std::move(Array<IndexType>(exec, strategy_->clac_size(nonzeros)));
+    }
 
     // TODO clean this up as soon as we improve strategy_type
     template <typename CsrType>
