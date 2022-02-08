@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"
@@ -55,8 +56,7 @@ namespace kernels {
         const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,    \
         const distributed::Partition<LocalIndexType, GlobalIndexType>*        \
             partition,                                                        \
-        comm_index_type local_part,                                           \
-        Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,      \
+        comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,      \
         ValueType deduction_help)
 
 

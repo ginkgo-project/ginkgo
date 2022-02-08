@@ -33,10 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/vector_kernels.hpp"
 
 
-#include <omp.h>
-
-
-#include "core/base/allocator.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -51,91 +47,42 @@ void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
+    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,
     ValueType deduction_help)
 {
-    using range_index_type = GlobalIndexType;
-    using part_index_type = comm_index_type;
     auto input_data = input.get_const_data();
     auto range_bounds = partition->get_range_bounds();
     auto range_parts = partition->get_part_ids();
     auto range_starting_indices = partition->get_range_starting_indices();
     auto num_ranges = partition->get_num_ranges();
 
-    // helpers for retrieving range info
-    struct range_info {
-        range_index_type index{};
-        GlobalIndexType begin{};
-        GlobalIndexType end{};
-        LocalIndexType base_rank{};
-        part_index_type part{};
-    };
-    auto find_range = [&](GlobalIndexType idx) {
-        auto it = std::upper_bound(range_bounds + 1,
-                                   range_bounds + num_ranges + 1, idx);
-        return std::distance(range_bounds + 1, it);
-    };
-    auto update_range = [&](GlobalIndexType idx, range_info& info) {
-        if (idx < info.begin || idx >= info.end) {
-            info.index = find_range(idx);
-            info.begin = range_bounds[info.index];
-            info.end = range_bounds[info.index + 1];
-            info.base_rank = range_starting_indices[info.index];
-            info.part = range_parts[info.index];
-            // assert(info.index < num_ranges);
+    auto find_range = [&](GlobalIndexType idx, size_type hint) {
+        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
+            return hint;
+        } else {
+            auto it = std::upper_bound(range_bounds + 1,
+                                       range_bounds + num_ranges + 1, idx);
+            return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
-        // assert(idx >= info.begin && idx < info.end);
     };
     auto map_to_local = [&](GlobalIndexType idx,
-                            range_info info) -> LocalIndexType {
-        return static_cast<LocalIndexType>(idx - info.begin) + info.base_rank;
+                            size_type range_id) -> LocalIndexType {
+        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
+               range_starting_indices[range_id];
     };
 
-    range_info row_range{};
-    auto num_threads = omp_get_max_threads();
-    vector<size_type> partial_counts(num_threads + 1, exec);
-    auto work_per_thread =
-        static_cast<size_type>(ceildiv(input.get_num_elems(), num_threads));
-#pragma omp parallel
-    {
-        auto thread_id = omp_get_thread_num();
-        auto begin = static_cast<size_type>(work_per_thread * thread_id);
-        auto end = std::min(begin + work_per_thread, input.get_num_elems());
-        size_type count{};
-        for (auto i = begin; i < end; i++) {
-            auto entry = input_data[i];
-            update_range(entry.row, row_range);
-            // skip non-local rows
-            if (row_range.part != local_part) {
-                continue;
-            }
-            count++;
-        }
-        partial_counts[thread_id] = count;
-    }
-
-    components::prefix_sum(exec, partial_counts.data(), num_threads + 1);
-
-    local_data.resize_and_reset(partial_counts.back());
-#pragma omp parallel
-    {
-        auto thread_id = omp_get_thread_num();
-        auto begin = static_cast<size_type>(work_per_thread * thread_id);
-        auto end = std::min(begin + work_per_thread, input.get_num_elems());
-        auto idx = partial_counts[thread_id];
-        for (auto i = begin; i < end; i++) {
-            auto entry = input_data[i];
-            update_range(entry.row, row_range);
-            // skip non-local rows
-            if (row_range.part != local_part) {
-                continue;
-            }
-            local_data.get_data()[idx] = {
-                // map global row idx to local row idx
-                map_to_local(entry.row, row_range),
-                static_cast<LocalIndexType>(entry.column), entry.value};
-            idx++;
+    size_type range_id_hint = 0;
+#pragma omp parallel for firstprivate(range_id_hint)
+    for (size_type i = 0; i < input.get_num_elems(); ++i) {
+        auto entry = input_data[i];
+        auto range_id = find_range(entry.row, range_id_hint);
+        range_id_hint = range_id;
+        auto part_id = range_parts[range_id];
+        // skip non-local rows
+        if (part_id == local_part) {
+            local_mtx->at(map_to_local(entry.row, range_id),
+                          static_cast<LocalIndexType>(entry.column)) =
+                entry.value;
         }
     }
 }

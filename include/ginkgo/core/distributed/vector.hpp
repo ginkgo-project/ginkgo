@@ -35,13 +35,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+
+
+#if GINKGO_BUILD_MPI
+
+
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
-
-#if GINKGO_BUILD_MPI
 
 
 namespace gko {
@@ -307,16 +309,29 @@ protected:
      * @param partition  Partition of global rows
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector
-     * @param stride  Stride of the local vector. If not specified, it defaults
-     *                to local_size[1]
+     * @param stride  Stride of the local vector.
+     */
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+               partition,
+           dim<2> global_size, dim<2> local_size, size_type stride);
+
+    /**
+     * Creates an empty distributed vector with a specified size
+     * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector, the default is
+     *              MPI_COMM_WORLD
+     * @param partition  Partition of global rows
+     * @param global_size  Global size of the vector
+     * @param local_size  Processor-local size of the vector, uses local_size[1]
+     *                    as the stride
      */
     explicit Vector(
         std::shared_ptr<const Executor> exec,
         mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
         std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
             partition = nullptr,
-        dim<2> global_size = {}, dim<2> local_size = {},
-        size_type stride = invalid_index<size_type>());
+        dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp*, LinOp*) const override;
 

@@ -386,9 +386,8 @@ void compute_norm2_sqr(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel_col_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return a; }, remove_complex<ValueType>{},
-        result->get_values(), x->get_size(), x);
+        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
+        x->get_size(), x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
