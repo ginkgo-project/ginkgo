@@ -982,12 +982,9 @@ public:
         gko::detail::ConstArrayView<IndexType>&& col_idxs,
         gko::detail::ConstArrayView<IndexType>&& row_ptrs)
     {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Csr>(new Csr{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            gko::detail::array_const_cast(std::move(row_ptrs))});
+        return Csr::create_const(exec, size, std::move(values),
+                                 std::move(col_idxs), std::move(row_ptrs),
+                                 Csr::make_default_strategy(exec));
     }
 
 protected:
@@ -1034,15 +1031,8 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {})
-        : EnableLinOp<Csr>(exec, size),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1)
-    {
-        initialize_default_strategy(num_nonzeros);
-        row_ptrs_.fill(0);
-        this->make_srow();
-    }
+        : Csr{exec, size, num_nonzeros, Csr::make_default_strategy(exec)}
+    {}
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
@@ -1057,6 +1047,7 @@ protected:
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
+     * @param strategy  the strategy the matrix uses for SpMV operations
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -1092,16 +1083,13 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs)
-        : EnableLinOp<Csr>(exec, size),
-          values_{exec, std::forward<ValuesArray>(values)},
-          col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
-    {
-        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
-        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
-        initialize_default_strategy(row_ptrs_.get_num_elems());
-        this->make_srow();
-    }
+        : Csr{exec,
+              size,
+              std::forward<ValuesArray>(values),
+              std::forward<ColIdxsArray>(col_idxs),
+              std::forward<RowPtrsArray>(row_ptrs),
+              Csr::make_default_strategy(exec)}
+    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -1109,20 +1097,20 @@ protected:
                     LinOp* x) const override;
 
     // TODO: This provides some more sane settings. Please fix this!
-    void initialize_default_strategy(int64_t nonzeros)
+    static std::shared_ptr<strategy_type> make_default_strategy(
+        std::shared_ptr<const Executor> exec)
     {
-        auto exec = this->get_executor();
         auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
         auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+        std::shared_ptr<strategy_type> new_strategy;
         if (cuda_exec) {
-            strategy_ = std::make_shared<automatical>(cuda_exec);
+            new_strategy = std::make_shared<automatical>(cuda_exec);
         } else if (hip_exec) {
-            strategy_ = std::make_shared<automatical>(hip_exec);
+            new_strategy = std::make_shared<automatical>(hip_exec);
         } else {
-            strategy_ = std::make_shared<classical>();
+            new_strategy = std::make_shared<classical>();
         }
-        srow_ =
-            std::move(Array<IndexType>(exec, strategy_->clac_size(nonzeros)));
+        return new_strategy;
     }
 
     // TODO clean this up as soon as we improve strategy_type
