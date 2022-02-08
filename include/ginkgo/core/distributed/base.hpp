@@ -35,10 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/mpi.hpp>
 
 
 #if GINKGO_BUILD_MPI
+
+
+#include <ginkgo/core/base/mpi.hpp>
 
 
 namespace gko {
@@ -58,13 +60,10 @@ public:
 
     mpi::communicator get_communicator() const { return comm_; }
 
-    explicit DistributedBase(
-        mpi::communicator comm = mpi::communicator(MPI_COMM_NULL))
-        : comm_{comm}
-    {}
+    explicit DistributedBase(mpi::communicator comm) : comm_{std::move(comm)} {}
 
 protected:
-    void set_communicator(mpi::communicator comm) { comm_ = comm; }
+    void set_communicator(mpi::communicator comm) { comm_ = std::move(comm); }
 
 private:
     mpi::communicator comm_;

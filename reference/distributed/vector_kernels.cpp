@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/vector_kernels.hpp"
 
 
-#include "core/base/allocator.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -47,8 +47,7 @@ void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
+    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,
     ValueType deduction_help)
 {
     auto input_data = input.get_const_data();
@@ -72,7 +71,6 @@ void build_local(
                range_starting_indices[range_id];
     };
 
-    size_type count{};
     size_type range_id_hint = 0;
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
         auto entry = input_data[i];
@@ -81,24 +79,9 @@ void build_local(
         auto part_id = range_parts[range_id];
         // skip non-local rows
         if (part_id == local_part) {
-            count++;
-        }
-    }
-
-    local_data.resize_and_reset(count);
-    size_type idx{};
-    for (size_type i = 0; i < input.get_num_elems(); ++i) {
-        auto entry = input_data[i];
-        auto range_id = find_range(entry.row, range_id_hint);
-        range_id_hint = range_id;
-        auto part_id = range_parts[range_id];
-        // skip non-local rows
-        if (part_id == local_part) {
-            local_data.get_data()[idx] = {
-                // map global row idx to local row idx
-                map_to_local(entry.row, range_id),
-                static_cast<LocalIndexType>(entry.column), entry.value};
-            idx++;
+            local_mtx->at(map_to_local(entry.row, range_id),
+                          static_cast<LocalIndexType>(entry.column)) =
+                entry.value;
         }
     }
 }

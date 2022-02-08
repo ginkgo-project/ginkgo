@@ -47,8 +47,7 @@ void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
     const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part,
-    Array<matrix_data_entry<ValueType, LocalIndexType>>& local_data,
+    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,
     ValueType deduction_help) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
