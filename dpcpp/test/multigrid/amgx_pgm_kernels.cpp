@@ -307,11 +307,14 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_prolong_op()),
+                        r<value_type>::value);
 }
 
 
@@ -331,11 +334,14 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_prolong_op()),
+                        r<value_type>::value);
 }
 
 
