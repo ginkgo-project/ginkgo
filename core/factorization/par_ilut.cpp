@@ -79,7 +79,7 @@ GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 
 
-}  // anonymous namespace
+}  // namespace
 }  // namespace par_ilut_factorization
 
 
@@ -93,6 +93,9 @@ using par_ilut_factorization::make_spgemm;
 using par_ilut_factorization::make_threshold_filter;
 using par_ilut_factorization::make_threshold_filter_approx;
 using par_ilut_factorization::make_threshold_select;
+
+
+namespace {
 
 
 template <typename ValueType, typename IndexType>
@@ -179,6 +182,9 @@ struct ParIlutState {
 
     void iterate();
 };
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
