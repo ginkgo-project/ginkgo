@@ -449,8 +449,8 @@ __device__ __forceinline__ void pre_diag_scale_system(
 
 template <typename ValueType>
 __global__ void pre_diag_scale_system(
-    const size_type nbatch, const int num_rows, const size_type a_batch_stride,
-    ValueType* const __restrict__ a_values,
+    const size_type nbatch, const int num_rows, const int num_cols,
+    const size_type a_batch_stride, ValueType* const __restrict__ a_values,
     const int* const __restrict__ col_idxs,
     const int* const __restrict__ row_ptrs, const int num_rhs,
     const size_type b_stride, ValueType* const __restrict__ b,
@@ -463,7 +463,7 @@ __global__ void pre_diag_scale_system(
         auto left_scaleb =
             gko::batch::batch_entry_ptr(left_scale, 1, num_rows, ib);
         auto right_scaleb =
-            gko::batch::batch_entry_ptr(right_scale, 1, num_rows, ib);
+            gko::batch::batch_entry_ptr(right_scale, 1, num_cols, ib);
         pre_diag_scale_system(num_rows, ab, col_idxs, row_ptrs, num_rhs,
                               b_stride, bb, left_scaleb, right_scaleb);
     }

@@ -85,7 +85,7 @@ protected:
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             batch_size, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
+            std::normal_distribution<>(0.0, 1.0), rand_engine, false, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)
@@ -174,8 +174,6 @@ protected:
     std::unique_ptr<ComplexVec> dcomplex_y;
     std::unique_ptr<ComplexVec> dc_alpha;
     std::unique_ptr<ComplexVec> dc_beta;
-    static constexpr value_type eps =
-        std::numeric_limits<value_type>::epsilon();
 };
 
 
@@ -186,7 +184,7 @@ TEST_F(BatchCsr, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -197,7 +195,7 @@ TEST_F(BatchCsr, SimpleComplexApplyIsEquivalentToRef)
     complex_mtx->apply(complex_x.get(), complex_y.get());
     complex_dmtx->apply(dcomplex_x.get(), dcomplex_y.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dcomplex_y, complex_y, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(dcomplex_y, complex_y, r<value_type>::value);
 }
 
 
@@ -208,7 +206,7 @@ TEST_F(BatchCsr, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 10 * eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -221,7 +219,7 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
     complex_dmtx->apply(dc_alpha.get(), dcomplex_x.get(), dc_beta.get(),
                         dcomplex_y.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dcomplex_y, complex_y, eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(dcomplex_y, complex_y, r<value_type>::value);
 }
 
 
@@ -249,9 +247,8 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
     gko::kernels::hip::batch_csr::pre_diag_transform_system(
         hip, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
-    gko::test::check_relative_difference(mtx.get(), dmtx.get(),
-                                         0.001 * r<value_type>::value);
     GKO_ASSERT_BATCH_MTX_NEAR(ref_b, d_b, 0.001 * r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.001 * r<value_type>::value);
 }
 
 

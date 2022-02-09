@@ -148,12 +148,13 @@ void pre_diag_transform_system(
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const int ncols = static_cast<int>(a->get_size().at()[1]);
     const size_type nnz = a->get_num_stored_elements() / nbatch;
     const int nrhs = static_cast<int>(b->get_size().at()[1]);
     const size_type b_stride = b->get_stride().at();
     for (size_type ib = 0; ib < nbatch; ib++) {
         pre_diag_scale_system(
-            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
+            ib, nnz, nrows, ncols, a->get_values(), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
             left_op->get_const_values(), right_op->get_const_values());
     }
