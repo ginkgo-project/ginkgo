@@ -60,7 +60,7 @@ void compute_elim_forest_parent_impl(std::shared_ptr<const Executor> host_exec,
         auto row_rep = row;
         for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; nz++) {
             const auto col = cols[nz];
-            // for each lower diagonal entry
+            // for each lower triangular entry
             if (col < row) {
                 // find the subtree it is contained in
                 const auto col_rep = subtrees.find(col);

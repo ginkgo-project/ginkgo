@@ -109,7 +109,7 @@ void cholesky_symbolic_count(
                           postorder_cols, permutation, buffer);
         cusparse::destroy(descr);
     }
-    // count nonzeros in L
+    // count nonzeros per row of L
     {
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
