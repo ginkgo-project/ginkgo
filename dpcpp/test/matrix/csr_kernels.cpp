@@ -410,7 +410,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
@@ -425,7 +425,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
 TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
@@ -440,7 +440,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 
 TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto da = gko::clone(dpcpp, a);
@@ -460,7 +460,7 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = gko::clone(dpcpp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
@@ -475,7 +475,7 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 
 TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = gko::clone(dpcpp, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
@@ -768,7 +768,7 @@ TEST_F(Csr, IsInverseColPermutable)
 
 TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
     bool is_sorted_dpcpp{};
     bool is_sorted_ref{};
 
@@ -795,7 +795,7 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
 
     mtx->sort_by_column_index();
     dmtx->sort_by_column_index();
@@ -820,7 +820,7 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 {
-    auto automatical = std::make_shared<Mtx::automatical>();
+    auto automatical = std::make_shared<Mtx::automatical>(dpcpp);
     auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
                                   automatical->amd_row_len_limit);
     auto load_balance_mtx =
@@ -841,7 +841,7 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 
 TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(dpcpp));
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
