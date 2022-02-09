@@ -126,11 +126,10 @@ namespace kernels {
                        const matrix::Dense<_type>* x,               \
                        matrix::Dense<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(_type, _prec) \
-    void fill_in_matrix_data(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,               \
-        const Array<matrix_data_entry<_type, _prec>>& data,        \
-        matrix::Dense<_type>* output)
+#define GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(_type, _prec)         \
+    void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,  \
+                             const device_matrix_data<_type, _prec>& data, \
+                             matrix::Dense<_type>* output)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \

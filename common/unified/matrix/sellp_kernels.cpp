@@ -85,15 +85,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    const int64* row_ptrs, matrix::Sellp<ValueType, IndexType>* output)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         const int64* row_ptrs,
+                         matrix::Sellp<ValueType, IndexType>* output)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto nonzeros, auto row_ptrs, auto slice_size,
-                      auto slice_sets, auto cols, auto values) {
+        [] GKO_KERNEL(auto row, auto in_cols, auto in_vals, auto row_ptrs,
+                      auto slice_size, auto slice_sets, auto cols,
+                      auto values) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
             const auto slice = row / slice_size;
@@ -103,13 +104,14 @@ void fill_in_matrix_data(
             const auto slice_length = slice_end - slice_begin;
             auto out_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_begin + slice_length; i++) {
-                cols[out_idx] = i < row_end ? nonzeros[i].column : 0;
-                values[out_idx] = i < row_end ? unpack_member(nonzeros[i].value)
-                                              : zero(values[out_idx]);
+                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                values[out_idx] =
+                    i < row_end ? in_vals[i] : zero(values[out_idx]);
                 out_idx += slice_size;
             }
         },
-        output->get_size()[0], nonzeros, row_ptrs, output->get_slice_size(),
+        output->get_size()[0], data.get_const_col_idxs(),
+        data.get_const_values(), row_ptrs, output->get_slice_size(),
         output->get_const_slice_sets(), output->get_col_idxs(),
         output->get_values());
 }

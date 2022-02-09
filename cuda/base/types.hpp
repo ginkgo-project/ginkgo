@@ -304,6 +304,24 @@ constexpr cusparseIndexType_t cusparse_index_type()
 template <typename T>
 using cuda_type = typename detail::cuda_type_impl<T>::type;
 
+/**
+ * This is an alias for CUDA/HIP's equivalent of `T` depending on the namespace.
+ *
+ * @tparam T  a type
+ */
+template <typename T>
+using device_type = cuda_type<T>;
+
+/**
+ * This works equivalently to device_type, except for replacing std::complex by
+ * detail::fake_complex to avoid issues with thrust::complex (alignment etc.)
+ *
+ * @tparam T  a type
+ */
+template <typename T>
+using device_member_type =
+    typename detail::cuda_struct_member_type_impl<T>::type;
+
 
 /**
  * Reinterprets the passed in value as a CUDA type.
@@ -330,6 +348,21 @@ inline std::enable_if_t<
 as_cuda_type(T val)
 {
     return *reinterpret_cast<cuda_type<T>*>(&val);
+}
+
+
+/**
+ * Reinterprets the passed in value as a CUDA/HIP type depending on the
+ * namespace.
+ *
+ * @param val  the value to reinterpret
+ *
+ * @return `val` reinterpreted to CUDA/HIP type
+ */
+template <typename T>
+inline device_type<T> as_device_type(T val)
+{
+    return as_cuda_type(val);
 }
 
 

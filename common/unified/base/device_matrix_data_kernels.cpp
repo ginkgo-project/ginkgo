@@ -30,74 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
-#include <algorithm>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include "core/components/prefix_sum_kernels.hpp"
+#include "common/unified/base/kernel_launch.hpp"
+#include "core/components/fill_array_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace GKO_DEVICE_NAMESPACE {
 namespace components {
 
 
 template <typename ValueType, typename IndexType>
-void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<matrix_data_entry<ValueType, IndexType>>& data)
+void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
+                const device_matrix_data<ValueType, IndexType>& in,
+                Array<matrix_data_entry<ValueType, IndexType>>& out)
 {
-    auto size = data.get_num_elems();
-    auto is_nonzero_entry = [](matrix_data_entry<ValueType, IndexType> entry) {
-        return is_nonzero(entry.value);
-    };
-    auto nnz = std::count_if(data.get_const_data(),
-                             data.get_const_data() + size, is_nonzero_entry);
-    if (nnz < size) {
-        Array<matrix_data_entry<ValueType, IndexType>> result{
-            exec, static_cast<size_type>(nnz)};
-        std::copy_if(data.get_const_data(), data.get_const_data() + size,
-                     result.get_data(), is_nonzero_entry);
-        data = std::move(result);
-    }
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto rows, auto cols, auto vals, auto out) {
+            out[i] = {rows[i], cols[i], vals[i]};
+        },
+        in.get_num_elems(), in.get_const_row_idxs(), in.get_const_col_idxs(),
+        in.get_const_values(), out);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    Array<matrix_data_entry<ValueType, IndexType>>& data)
+void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
+                const Array<matrix_data_entry<ValueType, IndexType>>& in,
+                device_matrix_data<ValueType, IndexType>& out)
 {
-    std::sort(data.get_data(), data.get_data() + data.get_num_elems());
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto in, auto rows, auto cols, auto vals) {
+            rows[i] = in[i].row;
+            cols[i] = in[i].column;
+            vals[i] = unpack_member(in[i].value);
+        },
+        in.get_num_elems(), in, out.get_row_idxs(), out.get_col_idxs(),
+        out.get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL);
-
-
-template <typename ValueType, typename IndexType, typename RowPtrType>
-void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<matrix_data_entry<ValueType, IndexType>>& data,
-                    size_type num_rows, RowPtrType* row_ptrs)
-{
-    std::fill_n(row_ptrs, num_rows + 1, 0);
-    for (size_type i = 0; i < data.get_num_elems(); i++) {
-        row_ptrs[data.get_const_data()[i].row]++;
-    }
-    components::prefix_sum(exec, row_ptrs, num_rows + 1);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
+    GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL);
 
 
 }  // namespace components
-}  // namespace reference
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

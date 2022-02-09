@@ -355,14 +355,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::Dense<ValueType>* output)
+void fill_in_matrix_data(std::shared_ptr<const ReferenceExecutor> exec,
+                         const device_matrix_data<ValueType, IndexType>& data,
+                         matrix::Dense<ValueType>* output)
 {
-    for (size_type i = 0; i < nonzeros.get_num_elems(); i++) {
-        auto entry = nonzeros.get_const_data()[i];
-        output->at(entry.row, entry.column) = entry.value;
+    for (size_type i = 0; i < data.get_num_elems(); i++) {
+        output->at(data.get_const_row_idxs()[i], data.get_const_col_idxs()[i]) =
+            data.get_const_values()[i];
     }
 }
 

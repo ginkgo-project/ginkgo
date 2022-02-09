@@ -120,14 +120,13 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
-    Array<IndexType>& row_ptr_array, Array<IndexType>& col_idx_array,
-    Array<ValueType>& value_array)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         device_matrix_data<ValueType, IndexType>& data,
+                         int block_size, Array<IndexType>& row_ptr_array,
+                         Array<IndexType>& col_idx_array,
+                         Array<ValueType>& value_array)
 {
-    using entry = matrix_data_entry<ValueType, IndexType>;
-    using device_entry = device_type<entry>;
+    using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = data.get_num_elems();
     const auto bs = block_size;
     auto row_ptrs = row_ptr_array.get_data();
@@ -138,20 +137,31 @@ void fill_in_matrix_data(
         value_array.resize_and_reset(0);
         return;
     }
-    auto block_ordered_data = data;
-    auto data_ptr = as_device_type(block_ordered_data.get_data());
-    auto data_it = thrust::device_pointer_cast(data_ptr);
-    thrust::stable_sort(thrust::device, data_it, data_it + nnz,
-                        [bs] __device__(device_entry a, device_entry b) {
-                            return thrust::make_pair(a.row / bs,
-                                                     a.column / bs) <
-                                   thrust::make_pair(b.row / bs, b.column / bs);
+    auto in_rows = data.get_row_idxs();
+    auto in_cols = data.get_col_idxs();
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    auto in_vals =
+        reinterpret_cast<device_member_type<ValueType>*>(data.get_values());
+    auto in_loc_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(in_rows),
+                           thrust::device_pointer_cast(in_cols)));
+    thrust::sort_by_key(thrust::device, in_loc_it, in_loc_it + nnz,
+                        thrust::device_pointer_cast(in_vals),
+                        [bs] __device__(tuple_type a, tuple_type b) {
+                            return thrust::make_pair(thrust::get<0>(a) / bs,
+                                                     thrust::get<1>(a) / bs) <
+                                   thrust::make_pair(thrust::get<0>(b) / bs,
+                                                     thrust::get<1>(b) / bs);
                         });
     // build block pattern
-    auto adj_predicate = [bs, data_ptr, nnz] __device__(size_type i) {
-        const auto a = i > 0 ? data_ptr[i - 1] : device_entry{-bs, -bs, {}};
-        const auto b = data_ptr[i];
-        return (a.row / bs != b.row / bs) || (a.column / bs != b.column / bs);
+    auto adj_predicate = [bs, in_rows, in_cols, nnz] __device__(size_type i) {
+        const auto a_block_row = i > 0 ? in_rows[i - 1] / bs : -1;
+        const auto a_block_col = i > 0 ? in_cols[i - 1] / bs : -1;
+        const auto b_block_row = in_rows[i] / bs;
+        const auto b_block_col = in_cols[i] / bs;
+        return (a_block_row != b_block_row) || (a_block_col != b_block_col);
     };
     auto iota = thrust::make_counting_iterator(size_type{});
     // count how many blocks we have by counting how often the block changes
@@ -173,11 +183,11 @@ void fill_in_matrix_data(
     auto block_output_it = thrust::make_zip_iterator(
         thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
                            thrust::device_pointer_cast(col_idxs)));
-    thrust::transform(thrust::device, block_ptr_it, block_ptr_it + num_blocks,
-                      block_output_it, [bs, data_ptr] __device__(size_type i) {
-                          return thrust::make_tuple(data_ptr[i].row / bs,
-                                                    data_ptr[i].column / bs);
-                      });
+    thrust::transform(
+        thrust::device, block_ptr_it, block_ptr_it + num_blocks,
+        block_output_it, [bs, in_rows, in_cols] __device__(size_type i) {
+            return thrust::make_tuple(in_rows[i] / bs, in_cols[i] / bs);
+        });
     // build row pointers from row indices
     components::convert_idxs_to_ptrs(exec, row_idx_array.get_const_data(),
                                      row_idx_array.get_num_elems(), num_rows,
@@ -187,14 +197,13 @@ void fill_in_matrix_data(
                            zero<ValueType>());
     thrust::for_each_n(
         thrust::device, iota, num_blocks,
-        [block_ptrs, nnz, num_blocks, bs, data_ptr,
+        [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
          values] __device__(size_type i) {
             const auto block_begin = block_ptrs[i];
             const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
-                const auto entry = data_ptr[nz];
-                values[i * bs * bs + (entry.column % bs) * bs +
-                       (entry.row % bs)] = fake_complex_unpack(entry.value);
+                values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
             }
         });
 }

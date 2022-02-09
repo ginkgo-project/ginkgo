@@ -30,55 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
-#include <ginkgo/core/base/types.hpp>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sort.h>
+#include <thrust/tuple.h>
 
 
-#include "common/unified/base/kernel_launch.hpp"
-#include "core/components/fill_array_kernels.hpp"
+#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
+namespace hip {
 namespace components {
 
 
-template <typename ValueType, typename IndexType, typename RowPtrType>
-void build_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<matrix_data_entry<ValueType, IndexType>>& data,
-                    size_type num_rows, RowPtrType* row_ptrs)
-{
-    if (data.get_num_elems() == 0) {
-        fill_array(exec, row_ptrs, num_rows + 1, RowPtrType{});
-    } else {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto i, auto num_nonzeros, auto num_rows,
-                          auto nonzeros, auto row_ptrs) {
-                auto begin_row = i == 0 ? IndexType{} : nonzeros[i - 1].row;
-                auto end_row = i == num_nonzeros ? num_rows : nonzeros[i].row;
-                for (auto row = begin_row; row < end_row; row++) {
-                    row_ptrs[row + 1] = i;
-                }
-                if (i == 0) {
-                    row_ptrs[0] = 0;
-                }
-            },
-            data.get_num_elems() + 1, data.get_num_elems(), num_rows, data,
-            row_ptrs);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL32);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DEVICE_MATRIX_DATA_BUILD_ROW_PTRS_KERNEL64);
+#include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"
 
 
 }  // namespace components
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

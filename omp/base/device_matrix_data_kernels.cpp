@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
 #include <algorithm>
@@ -50,12 +50,13 @@ namespace components {
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<matrix_data_entry<ValueType, IndexType>>& data)
+                  Array<ValueType>& values, Array<IndexType>& row_idxs,
+                  Array<IndexType>& col_idxs)
 {
-    const auto size = data.get_num_elems();
+    const auto size = values.get_num_elems();
     const auto num_threads = omp_get_max_threads();
     const auto per_thread = static_cast<size_type>(ceildiv(size, num_threads));
-    gko::vector<size_type> partial_counts(num_threads, {exec});
+    vector<size_type> partial_counts(num_threads, {exec});
 #pragma omp parallel num_threads(num_threads)
     {
         const auto tidx = static_cast<size_type>(omp_get_thread_num());
@@ -63,15 +64,16 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         const auto end = std::min(size, begin + per_thread);
         for (auto i = begin; i < end; i++) {
             partial_counts[tidx] +=
-                is_nonzero(data.get_const_data()[i].value) ? 1 : 0;
+                is_nonzero(values.get_const_data()[i]) ? 1 : 0;
         }
     }
     std::partial_sum(partial_counts.begin(), partial_counts.end(),
                      partial_counts.begin());
-    auto nnz = partial_counts.back();
+    auto nnz = static_cast<size_type>(partial_counts.back());
     if (nnz < size) {
-        Array<matrix_data_entry<ValueType, IndexType>> result{
-            exec, static_cast<size_type>(nnz)};
+        Array<ValueType> new_values{exec, nnz};
+        Array<IndexType> new_row_idxs{exec, nnz};
+        Array<IndexType> new_col_idxs{exec, nnz};
 #pragma omp parallel num_threads(num_threads)
         {
             const auto tidx = static_cast<size_type>(omp_get_thread_num());
@@ -79,14 +81,20 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
             const auto end = std::min(size, begin + per_thread);
             auto out_idx = tidx == 0 ? size_type{} : partial_counts[tidx - 1];
             for (auto i = begin; i < end; i++) {
-                auto entry = data.get_const_data()[i];
-                if (is_nonzero(entry.value)) {
-                    result.get_data()[out_idx] = entry;
+                auto val = values.get_const_data()[i];
+                if (is_nonzero(val)) {
+                    new_values.get_data()[out_idx] = val;
+                    new_row_idxs.get_data()[out_idx] =
+                        row_idxs.get_const_data()[i];
+                    new_col_idxs.get_data()[out_idx] =
+                        col_idxs.get_const_data()[i];
                     out_idx++;
                 }
             }
         }
-        data = std::move(result);
+        values = std::move(new_values);
+        row_idxs = std::move(new_row_idxs);
+        col_idxs = std::move(new_col_idxs);
     }
 }
 
@@ -96,9 +104,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
-                    Array<matrix_data_entry<ValueType, IndexType>>& data)
+                    device_matrix_data<ValueType, IndexType>& data)
 {
-    std::sort(data.get_data(), data.get_data() + data.get_num_elems());
+    Array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
+                                                       data.get_num_elems()};
+    soa_to_aos(exec, data, tmp);
+    std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());
+    aos_to_soa(exec, tmp, data);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

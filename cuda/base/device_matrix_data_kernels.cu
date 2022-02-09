@@ -30,42 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_csr_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
-#include "common/unified/base/kernel_launch.hpp"
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/device_ptr.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sort.h>
+#include <thrust/tuple.h>
+
+
+#include "cuda/base/types.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace GKO_DEVICE_NAMESPACE {
-/**
- * @brief The SparsityCsr matrix format namespace.
- *
- * @ingroup sparsity_csr
- */
-namespace sparsity_csr {
+namespace cuda {
+namespace components {
 
 
-template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& nonzeros,
-    matrix::SparsityCsr<ValueType, IndexType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto nonzeros, auto cols) {
-            cols[i] = nonzeros[i].column;
-        },
-        nonzeros.get_num_elems(), nonzeros, output->get_col_idxs());
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_MATRIX_DATA_KERNEL);
+#include "common/cuda_hip/base/device_matrix_data_kernels.hpp.inc"
 
 
-}  // namespace sparsity_csr
-}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace components
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

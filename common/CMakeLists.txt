@@ -1,7 +1,7 @@
 set(UNIFIED_SOURCES
+    base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     components/absolute_array_kernels.cpp
-    components/device_matrix_data_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
     components/precision_conversion_kernels.cpp
@@ -13,7 +13,6 @@ set(UNIFIED_SOURCES
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cpp
-    matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp

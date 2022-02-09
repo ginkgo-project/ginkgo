@@ -73,7 +73,7 @@ namespace kernels {
 #define GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                     \
-        const Array<matrix_data_entry<ValueType, IndexType>>& data,      \
+        const device_matrix_data<ValueType, IndexType>& data,            \
         const int64* row_ptrs, matrix::Ell<ValueType, IndexType>* output)
 
 #define GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \

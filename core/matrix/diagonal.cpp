@@ -211,79 +211,59 @@ void Diagonal<ValueType>::move_to(Csr<ValueType, int64>* result)
 }
 
 
-namespace {
-
-
-template <typename MatrixType, typename MatrixData>
-inline void read_impl(MatrixType* mtx, const MatrixData& data)
-{
-    // Diagonal matrices are assumed to be square.
-    GKO_ASSERT_EQ(data.size[0], data.size[1]);
-    // Diagonal matrices can have at most as many nonzero entries as rows /
-    // cols.
-    GKO_ASSERT_EQ(max(data.size[0], data.nonzeros.size()), data.size[0]);
-
-    auto tmp =
-        MatrixType::create(mtx->get_executor()->get_master(), data.size[0]);
-    auto values = tmp->get_values();
-    size_type ind = 0;
-    for (size_type row = 0; row < data.size[0]; ++row) {
-        values[row] = zero<typename MatrixType::value_type>();
-        for (size_type ind = 0; ind < data.nonzeros.size(); ind++) {
-            if (data.nonzeros[ind].row == row) {
-                // Diagonal matrices can only have entries on the diagonal.
-                GKO_ASSERT_EQ(row, data.nonzeros[ind].column);
-                values[row] = data.nonzeros[ind].value;
-            }
-        }
-    }
-
-    mtx->copy_from(tmp.get());
-}
-
-
-}  // namespace
-
-
 template <typename ValueType>
 void Diagonal<ValueType>::read(const device_mat_data& data)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(data.size);
-    this->set_size(data.size);
-    values_.resize_and_reset(data.size[0]);
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
+    this->set_size(data.get_size());
+    values_.resize_and_reset(data.get_size()[0]);
     values_.fill(zero<ValueType>());
     auto exec = this->get_executor();
     exec->run(diagonal::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data.nonzeros), this));
+        *make_temporary_clone(exec, &data), this));
 }
 
 
 template <typename ValueType>
 void Diagonal<ValueType>::read(const device_mat_data32& data)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(data.size);
-    this->set_size(data.size);
-    values_.resize_and_reset(data.size[0]);
+    GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
+    this->set_size(data.get_size());
+    values_.resize_and_reset(data.get_size()[0]);
     values_.fill(zero<ValueType>());
     auto exec = this->get_executor();
     exec->run(diagonal::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data.nonzeros), this));
+        *make_temporary_clone(exec, &data), this));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(device_mat_data&& data)
+{
+    this->read(data);
+    data.empty_out();
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(device_mat_data32&& data)
+{
+    this->read(data);
+    data.empty_out();
 }
 
 
 template <typename ValueType>
 void Diagonal<ValueType>::read(const mat_data& data)
 {
-    this->read(device_mat_data::create_view_from_host(
-        this->get_executor(), const_cast<mat_data&>(data)));
+    this->read(device_mat_data::create_from_host(this->get_executor(), data));
 }
 
 
 template <typename ValueType>
 void Diagonal<ValueType>::read(const mat_data32& data)
 {
-    this->read(device_mat_data32::create_view_from_host(
-        this->get_executor(), const_cast<mat_data32&>(data)));
+    this->read(device_mat_data32::create_from_host(this->get_executor(), data));
 }
 
 

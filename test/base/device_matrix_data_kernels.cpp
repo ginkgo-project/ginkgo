@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/device_matrix_data_kernels.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 
 
 #include <memory>
@@ -128,9 +128,9 @@ TYPED_TEST(DeviceMatrixData, DefaultConstructsCorrectly)
 
     gko::device_matrix_data<value_type, index_type> local_data{this->exec};
 
-    ASSERT_EQ((gko::dim<2>{0, 0}), local_data.size);
-    ASSERT_EQ(this->exec, local_data.nonzeros.get_executor());
-    ASSERT_EQ(local_data.nonzeros.get_num_elems(), 0);
+    ASSERT_EQ((gko::dim<2>{0, 0}), local_data.get_size());
+    ASSERT_EQ(this->exec, local_data.get_executor());
+    ASSERT_EQ(local_data.get_num_elems(), 0);
 }
 
 
@@ -142,9 +142,64 @@ TYPED_TEST(DeviceMatrixData, ConstructsCorrectly)
     gko::device_matrix_data<value_type, index_type> local_data{
         this->exec, gko::dim<2>{4, 3}, 10};
 
-    ASSERT_EQ((gko::dim<2>{4, 3}), local_data.size);
-    ASSERT_EQ(this->exec, local_data.nonzeros.get_executor());
-    ASSERT_EQ(local_data.nonzeros.get_num_elems(), 10);
+    ASSERT_EQ((gko::dim<2>{4, 3}), local_data.get_size());
+    ASSERT_EQ(this->exec, local_data.get_executor());
+    ASSERT_EQ(local_data.get_num_elems(), 10);
+}
+
+
+TYPED_TEST(DeviceMatrixData, CopyConstructsOnOtherExecutorCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto device_data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, this->host_data);
+
+    auto host_data = gko::device_matrix_data<value_type, index_type>{
+        this->exec->get_master(), device_data};
+
+    ASSERT_EQ(device_data.get_size(), host_data.get_size());
+    ASSERT_EQ(device_data.get_num_elems(), host_data.get_num_elems());
+    auto device_arrays = device_data.empty_out();
+    auto host_arrays = host_data.empty_out();
+    GKO_ASSERT_ARRAY_EQ(device_arrays.row_idxs, host_arrays.row_idxs);
+    GKO_ASSERT_ARRAY_EQ(device_arrays.col_idxs, host_arrays.col_idxs);
+    GKO_ASSERT_ARRAY_EQ(device_arrays.values, host_arrays.values);
+    ASSERT_EQ(device_arrays.row_idxs.get_executor(), this->exec);
+    ASSERT_EQ(device_arrays.col_idxs.get_executor(), this->exec);
+    ASSERT_EQ(device_arrays.values.get_executor(), this->exec);
+    ASSERT_EQ(host_arrays.row_idxs.get_executor(), this->exec->get_master());
+    ASSERT_EQ(host_arrays.col_idxs.get_executor(), this->exec->get_master());
+    ASSERT_EQ(host_arrays.values.get_executor(), this->exec->get_master());
+}
+
+
+TYPED_TEST(DeviceMatrixData, ResizesCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::device_matrix_data<value_type, index_type> local_data{
+        this->exec, gko::dim<2>{4, 3}, 10};
+
+    local_data.resize_and_reset(12);
+
+    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_size(), gko::dim<2>(4, 3));
+}
+
+
+TYPED_TEST(DeviceMatrixData, ResizesDimensionsCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::device_matrix_data<value_type, index_type> local_data{
+        this->exec, gko::dim<2>{4, 3}, 10};
+
+    local_data.resize_and_reset(gko::dim<2>{5, 4}, 12);
+
+    ASSERT_EQ(local_data.get_num_elems(), 12);
+    ASSERT_EQ(local_data.get_size(), gko::dim<2>(5, 4));
 }
 
 
@@ -152,17 +207,53 @@ TYPED_TEST(DeviceMatrixData, CreatesFromHost)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto host_array =
-        gko::Array<gko::matrix_data_entry<value_type, index_type>>::view(
-            this->exec->get_master(), this->host_data.nonzeros.size(),
-            this->host_data.nonzeros.data());
 
     auto data =
-        gko::device_matrix_data<value_type, index_type>::create_view_from_host(
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
             this->exec, this->host_data);
 
-    ASSERT_EQ(data.size, this->host_data.size);
-    GKO_ASSERT_ARRAY_EQ(data.nonzeros, host_array);
+    ASSERT_EQ(data.get_size(), this->host_data.size);
+    auto host_device_data = gko::device_matrix_data<value_type, index_type>(
+        this->exec->get_master(), data);
+    for (gko::size_type i = 0; i < data.get_num_elems(); i++) {
+        const auto entry = this->host_data.nonzeros[i];
+        ASSERT_EQ(host_device_data.get_const_row_idxs()[i], entry.row);
+        ASSERT_EQ(host_device_data.get_const_col_idxs()[i], entry.column);
+        ASSERT_EQ(host_device_data.get_const_values()[i], entry.value);
+    }
+}
+
+
+TYPED_TEST(DeviceMatrixData, EmptiesOut)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto data =
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
+            this->exec, this->host_data);
+    const auto original_ptr1 = data.get_const_row_idxs();
+    const auto original_ptr2 = data.get_const_col_idxs();
+    const auto original_ptr3 = data.get_const_values();
+
+    auto arrays = data.empty_out();
+
+    ASSERT_EQ(data.get_size(), gko::dim<2>{});
+    ASSERT_EQ(data.get_num_elems(), 0);
+    ASSERT_NE(data.get_const_row_idxs(), original_ptr1);
+    ASSERT_NE(data.get_const_col_idxs(), original_ptr2);
+    ASSERT_NE(data.get_const_values(), original_ptr3);
+    ASSERT_EQ(arrays.row_idxs.get_const_data(), original_ptr1);
+    ASSERT_EQ(arrays.col_idxs.get_const_data(), original_ptr2);
+    ASSERT_EQ(arrays.values.get_const_data(), original_ptr3);
+    arrays.row_idxs.set_executor(this->exec->get_master());
+    arrays.col_idxs.set_executor(this->exec->get_master());
+    arrays.values.set_executor(this->exec->get_master());
+    for (gko::size_type i = 0; i < arrays.values.get_num_elems(); i++) {
+        const auto entry = this->host_data.nonzeros[i];
+        ASSERT_EQ(arrays.row_idxs.get_const_data()[i], entry.row);
+        ASSERT_EQ(arrays.col_idxs.get_const_data()[i], entry.column);
+        ASSERT_EQ(arrays.values.get_const_data()[i], entry.value);
+    }
 }
 
 
@@ -172,7 +263,7 @@ TYPED_TEST(DeviceMatrixData, CopiesToHost)
     using index_type = typename TestFixture::index_type;
 
     auto local_data =
-        gko::device_matrix_data<value_type, index_type>::create_view_from_host(
+        gko::device_matrix_data<value_type, index_type>::create_from_host(
             this->exec, this->host_data)
             .copy_to_host();
 
@@ -187,13 +278,14 @@ TYPED_TEST(DeviceMatrixData, SortsRowMajor)
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
-        device_matrix_data::create_view_from_host(this->exec, this->host_data);
-    auto device_sorted_data = device_matrix_data::create_view_from_host(
+        device_matrix_data::create_from_host(this->exec, this->host_data);
+    auto device_sorted_data = device_matrix_data::create_from_host(
         this->exec, this->sorted_host_data);
 
     device_data.sort_row_major();
 
-    GKO_ASSERT_ARRAY_EQ(device_data.nonzeros, device_sorted_data.nonzeros);
+    ASSERT_EQ(device_data.copy_to_host().nonzeros,
+              device_sorted_data.copy_to_host().nonzeros);
 }
 
 
@@ -203,13 +295,14 @@ TYPED_TEST(DeviceMatrixData, RemovesZeros)
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
-        device_matrix_data::create_view_from_host(this->exec, this->host_data);
-    auto device_nonzero_data = device_matrix_data::create_view_from_host(
+        device_matrix_data::create_from_host(this->exec, this->host_data);
+    auto device_nonzero_data = device_matrix_data::create_from_host(
         this->exec, this->nonzero_host_data);
 
     device_data.remove_zeros();
 
-    GKO_ASSERT_ARRAY_EQ(device_data.nonzeros, device_nonzero_data.nonzeros);
+    ASSERT_EQ(device_data.copy_to_host().nonzeros,
+              device_nonzero_data.copy_to_host().nonzeros);
 }
 
 
@@ -218,65 +311,22 @@ TYPED_TEST(DeviceMatrixData, DoesntRemoveZerosIfThereAreNone)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
-    auto device_nonzero_data = device_matrix_data::create_view_from_host(
+    auto device_nonzero_data = device_matrix_data::create_from_host(
         this->exec, this->nonzero_host_data);
     auto original = device_nonzero_data;
-    auto original_ptr = device_nonzero_data.nonzeros.get_data();
+    auto original_ptr1 = device_nonzero_data.get_const_row_idxs();
+    auto original_ptr2 = device_nonzero_data.get_const_col_idxs();
+    auto original_ptr3 = device_nonzero_data.get_const_values();
 
     device_nonzero_data.remove_zeros();
 
     // no reallocation
-    ASSERT_EQ(device_nonzero_data.nonzeros.get_data(), original_ptr);
-    GKO_ASSERT_ARRAY_EQ(device_nonzero_data.nonzeros, original.nonzeros);
-}
-
-
-TYPED_TEST(DeviceMatrixData, BuildsCorrectRowPtrs)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
-    auto device_sorted_data = device_matrix_data::create_view_from_host(
-        this->exec, this->sorted_host_data);
-    gko::Array<index_type> row_ptrs(this->exec, device_sorted_data.size[0] + 1);
-
-    gko::kernels::EXEC_NAMESPACE::components::build_row_ptrs(
-        this->exec, device_sorted_data.nonzeros, device_sorted_data.size[0],
-        row_ptrs.get_data());
-
-    gko::Array<index_type> host_row_ptrs{this->exec->get_master(), row_ptrs};
-    const auto rp = host_row_ptrs.get_const_data();
-    ASSERT_EQ(rp[0], 0);
-    for (gko::size_type row = 0; row < device_sorted_data.size[0]; row++) {
-        SCOPED_TRACE(row);
-        ASSERT_LE(rp[row], rp[row + 1]);
-        ASSERT_LT(rp[row], device_sorted_data.nonzeros.get_num_elems());
-        ASSERT_LE(rp[row + 1], device_sorted_data.nonzeros.get_num_elems());
-        for (auto el = rp[row]; el < rp[row + 1]; el++) {
-            const auto entry = this->sorted_host_data.nonzeros[el];
-            ASSERT_EQ(entry.row, row);
-        }
-    }
-    ASSERT_EQ(rp[device_sorted_data.size[0]],
-              device_sorted_data.nonzeros.get_num_elems());
-}
-
-
-TYPED_TEST(DeviceMatrixData, BuildsEmptyRowPtrs)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
-    auto device_data = device_matrix_data{this->exec, gko::dim<2>{10, 10}};
-    gko::Array<index_type> row_ptrs(this->exec, device_data.size[0] + 1);
-    gko::Array<index_type> zeros(this->exec, device_data.size[0] + 1);
-    zeros.fill(0);
-
-    gko::kernels::EXEC_NAMESPACE::components::build_row_ptrs(
-        this->exec, device_data.nonzeros, device_data.size[0],
-        row_ptrs.get_data());
-
-    GKO_ASSERT_ARRAY_EQ(row_ptrs, zeros);
+    ASSERT_EQ(device_nonzero_data.get_const_row_idxs(), original_ptr1);
+    ASSERT_EQ(device_nonzero_data.get_const_col_idxs(), original_ptr2);
+    ASSERT_EQ(device_nonzero_data.get_const_values(), original_ptr3);
+    // unmodified data
+    ASSERT_EQ(device_nonzero_data.copy_to_host().nonzeros,
+              original.copy_to_host().nonzeros);
 }
 
 

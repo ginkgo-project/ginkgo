@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "accessor/block_col_major.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/block_sizes.hpp"
+#include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -153,13 +154,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, IndexType>>& data, int block_size,
-    Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
-    Array<ValueType>& values)
+void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
+                         device_matrix_data<ValueType, IndexType>& data,
+                         int block_size, Array<IndexType>& row_ptrs,
+                         Array<IndexType>& col_idxs, Array<ValueType>& values)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> block_ordered{exec, data};
+    Array<matrix_data_entry<ValueType, IndexType>> block_ordered{
+        exec, data.get_num_elems()};
+    components::soa_to_aos(exec, data, block_ordered);
     const auto in_nnz = data.get_num_elems();
     auto block_ordered_ptr = block_ordered.get_data();
     std::stable_sort(
