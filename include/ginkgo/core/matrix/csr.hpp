@@ -531,6 +531,12 @@ public:
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
         const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 25600 on Intel hardware */
+        const index_type intel_row_len_limit = 25600;
+        /* Use imbalance strategy when the matrix has more more than 3e8 on
+         * Intel hardware */
+        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
 
     public:
         /**
@@ -606,12 +612,8 @@ public:
             index_type nnz_limit = nvidia_nnz_limit;
             index_type row_len_limit = nvidia_row_len_limit;
             if (strategy_name_ == "intel") {
-                /* Use imbalance strategy when the maximum number of nonzero per
-                 * row is more than 25600 on Intel hardware. */
-                nnz_limit = 25600;
-                /* Use imbalance strategy when the matrix has more more than 3e8
-                 * on Intel hardware */
-                row_len_limit = 3e8;
+                nnz_limit = intel_nnz_limit;
+                row_len_limit = intel_row_len_limit;
             }
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
@@ -1115,7 +1117,7 @@ protected:
         } else if (hip_exec) {
             new_strategy = std::make_shared<automatical>(hip_exec);
         } else if (dpcpp_exec) {
-            new_strategy = std::make_shared<classical>();
+            new_strategy = std::make_shared<automatical>(dpcpp_exec);
         } else {
             new_strategy = std::make_shared<classical>();
         }
