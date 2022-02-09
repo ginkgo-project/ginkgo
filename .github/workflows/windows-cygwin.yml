@@ -49,6 +49,8 @@ jobs:
 
     - name: configure
       run: |
+        bcdedit /set IncreaseUserVa 3072
+        editbin /LARGEADDRESSAWARE "C:\ProgramData\Chocolatey\bin\cc1plus.exe"
         path C:\tools\cygwin\bin
         mkdir build
         cd build
