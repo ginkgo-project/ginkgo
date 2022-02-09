@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/batch.hpp"
 
 
 namespace {
@@ -357,6 +358,32 @@ TYPED_TEST(BatchCsr, GeneratesCorrectMatrixData)
     EXPECT_EQ(data[1].nonzeros[1], tpl(0, 1, value_type{5.0}));
     EXPECT_EQ(data[1].nonzeros[2], tpl(0, 2, value_type{1.0}));
     EXPECT_EQ(data[1].nonzeros[3], tpl(1, 1, value_type{1.0}));
+}
+
+
+TYPED_TEST(BatchCsr, NonZeroMatrixReadWriteIsReversible)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    using MtxType = typename TestFixture::Mtx;
+    using real_type = typename gko::remove_complex<value_type>;
+    const size_t batch_size = 7;
+    const int num_rows = 63;
+    const int num_cols = 31;
+    const int min_nnz_row = 8;
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<MtxType>(
+        batch_size, num_rows, num_cols,
+        std::uniform_int_distribution<>(min_nnz_row, num_cols),
+        std::uniform_real_distribution<real_type>(1.0, 2.0), std::ranlux48(42),
+        false, this->exec);
+    std::vector<gko::matrix_data<value_type, index_type>> data;
+    auto test_mtx = MtxType::create(this->exec);
+
+    mtx->write(data);
+    test_mtx->read(data);
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, test_mtx, 0.0);
 }
 
 
