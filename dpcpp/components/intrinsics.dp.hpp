@@ -62,11 +62,19 @@ __dpct_inline__ int popcnt(uint64 mask) { return sycl::popcount(mask); }
  * @internal
  * Returns the (1-based!) index of the first set bit in the given mask,
  * starting from the least significant bit.
+ *
+ * @note can not use length - clz because subgroup size is not always 32 or 64
  */
-__dpct_inline__ int ffs(uint32 mask) { return 32 - sycl::clz(mask); }
+__dpct_inline__ int ffs(uint32 mask)
+{
+    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+}
 
 /** @copydoc ffs */
-__dpct_inline__ int ffs(uint64 mask) { return 64 - sycl::clz(mask); }
+__dpct_inline__ int ffs(uint64 mask)
+{
+    return (mask == 0) ? 0 : (sycl::ext::intel::ctz(mask) + 1);
+}
 
 
 /**
