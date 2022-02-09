@@ -121,7 +121,8 @@ public:
     host_type copy_to_host() const;
 
     /**
-     * Creates a view of the given host data on the given executor.
+     * Creates a device_matrix_data object from the given host data on the given
+     * executor.
      *
      * @param exec  the executor to create the device_matrix_data on.
      * @param data  the data to be wrapped or copied into a device_matrix_data.

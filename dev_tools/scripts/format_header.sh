@@ -82,22 +82,43 @@ get_include_regex () {
     while IFS='' read -r line; do
         if [[ "$line" =~ $item_regex ]]; then
             file_regex="${BASH_REMATCH[1]}"
+            if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                echo "DEBUG: Checking pattern $line"
+            fi
             if [[ "$match" = "true" ]]; then
                 break
             elif [[ $file =~ $file_regex ]]; then
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Matching pattern $line for $file"
+                fi
                 match="true"
             fi
         elif [ "$match" = "true" ]; then
             if [[ "$line" =~ $path_prefix_regex ]]; then
                 path_prefix="${BASH_REMATCH[1]}"
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Path prefix set to $path_prefix"
+                fi
             elif [[ "$line" =~ $core_suffix_regex ]]; then
                 core_suffix="${BASH_REMATCH[1]}"
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Core suffix set to $core_suffix"
+                fi
             elif [[ "$line" =~ $path_ignore_regex ]]; then
                 path_ignore="${BASH_REMATCH[1]}"
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Ignoring $path_ignore top-level dirs"
+                fi
             elif [[ "$line" =~ $fix_include_regex ]]; then
                 fix_include="${BASH_REMATCH[1]}"
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Fixed include $fix_include"
+                fi
             elif [[ "$line" =~ $remove_test_regex ]]; then
                 remove_test="${BASH_REMATCH[1]}"
+                if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                    echo "DEBUG: Remove test $remove_test"
+                fi
             else
                 echo "Ignore unknow setting: \"${file_regex}\" - ${line}"
             fi
@@ -109,13 +130,28 @@ get_include_regex () {
         if [ ! -z "${path_prefix}" ]; then
             path_prefix="${path_prefix}/"
         fi
+        if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+            echo "DEBUG: Handling $file"
+        fi
         local_output=$(echo "${file}" | sed -E "s~\.(hip|dp)~~g;s~$path_regex~$path_prefix\2~g")
+        if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+            echo "DEBUG: After removing path_ignore and path_prefix: $local_output"
+        fi
         local_output=$(echo "${local_output}" | sed -E "s~$core_suffix$~~g")
+        if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+            echo "DEBUG: After removing core_suffix: $local_output"
+        fi
         local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|dp\.hpp|cuh)(\"|>)"
         if [ "${remove_test}" = "true" ]; then
             local_output=$(echo "${local_output}" | sed -E "s~test/~~g")
+            if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+                echo "DEBUG: After removing test: ${local_output}"
+            fi
         fi
     else
+        if [ "$FORMAT_HEADER_DEBUG" = "1" ]; then
+            echo "DEBUG: Fixing include $fix_include to the top"
+        fi
         local_output="#include (<|\")$fix_include(\"|>)"
     fi
 }

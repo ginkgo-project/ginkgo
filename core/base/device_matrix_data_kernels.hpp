@@ -34,10 +34,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_DEVICE_MATRIX_DATA_KERNELS_HPP_
 
 
+#include <ginkgo/core/base/device_matrix_data.hpp>
+
+
 #include <memory>
 
 
-#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 
