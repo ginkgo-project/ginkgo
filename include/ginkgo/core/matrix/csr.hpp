@@ -351,8 +351,11 @@ public:
     public:
         /**
          * Creates a load_balance strategy.
+         *
+         * @warning this is deprecated! Please rely on the new automatic
+         *          strategy instantiation or use one of the other constructors.
          */
-        load_balance()
+        [[deprecated]] load_balance()
             : load_balance(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
@@ -532,8 +535,11 @@ public:
     public:
         /**
          * Creates an automatical strategy.
+         *
+         * @warning this is deprecated! Please rely on the new automatic
+         *          strategy instantiation or use one of the other constructors.
          */
-        automatical()
+        [[deprecated]] automatical()
             : automatical(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
@@ -1102,11 +1108,14 @@ protected:
     {
         auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
         auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(exec);
         std::shared_ptr<strategy_type> new_strategy;
         if (cuda_exec) {
             new_strategy = std::make_shared<automatical>(cuda_exec);
         } else if (hip_exec) {
             new_strategy = std::make_shared<automatical>(hip_exec);
+        } else if (dpcpp_exec) {
+            new_strategy = std::make_shared<classical>();
         } else {
             new_strategy = std::make_shared<classical>();
         }
@@ -1204,17 +1213,11 @@ protected:
                                 this_dpcpp_exec);
                     }
                 } else {
+                    // FIXME: this changes strategies.
                     // We had a load balance or automatical strategy from a non
                     // HIP or Cuda executor and are moving to a non HIP or Cuda
                     // executor.
-                    // FIXME this creates a long delay
-                    if (lb) {
-                        new_strat =
-                            std::make_shared<typename CsrType::load_balance>();
-                    } else {
-                        new_strat =
-                            std::make_shared<typename CsrType::automatical>();
-                    }
+                    new_strat = std::make_shared<typename CsrType::classical>();
                 }
             }
         }
