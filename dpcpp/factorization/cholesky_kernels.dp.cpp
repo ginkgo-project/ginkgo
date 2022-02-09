@@ -96,7 +96,7 @@ void cholesky_symbolic_count(
             lower_ends[row] = lower_end;
         });
     });
-    // count nonzeros per row
+    // count nonzeros per row of L
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];

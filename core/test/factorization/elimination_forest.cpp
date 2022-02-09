@@ -139,6 +139,40 @@ TYPED_TEST(EliminationForest, WorksForSeparable)
 }
 
 
+TYPED_TEST(EliminationForest, WorksForPostOrderNotSelfInverse)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = gko::initialize<typename TestFixture::matrix_type>(
+        {
+            {1, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+            {0, 1, 0, 0, 1, 0, 0, 0, 0, 0},
+            {1, 0, 1, 0, 0, 0, 1, 0, 0, 0},
+            {0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+            {0, 1, 0, 0, 1, 1, 0, 0, 0, 0},
+            {0, 0, 0, 0, 1, 1, 1, 0, 0, 0},
+            {0, 0, 1, 0, 0, 1, 1, 1, 0, 0},
+            {0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
+            {0, 0, 0, 1, 0, 0, 0, 1, 1, 1},
+            {0, 0, 0, 0, 0, 0, 1, 0, 1, 1},
+        },
+        this->ref);
+    auto forest = gko::factorization::compute_elim_forest(mtx.get());
+    GKO_ASSERT_ARRAY_EQ(forest.parents,
+                        I<index_type>({2, 4, 6, 8, 5, 6, 7, 8, 9, 10}));
+    GKO_ASSERT_ARRAY_EQ(forest.child_ptrs,
+                        I<index_type>({0, 0, 0, 1, 1, 2, 3, 5, 6, 8, 9, 10}));
+    GKO_ASSERT_ARRAY_EQ(forest.children,
+                        I<index_type>({0, 1, 4, 2, 5, 6, 3, 7, 8, 9}));
+    GKO_ASSERT_ARRAY_EQ(forest.postorder,
+                        I<index_type>({3, 0, 2, 1, 4, 5, 6, 7, 8, 9}));
+    GKO_ASSERT_ARRAY_EQ(forest.inv_postorder,
+                        I<index_type>({1, 3, 2, 0, 4, 5, 6, 7, 8, 9}));
+    GKO_ASSERT_ARRAY_EQ(forest.postorder_parents,
+                        I<index_type>({8, 2, 6, 4, 5, 6, 7, 8, 9, 10}));
+}
+
+
 TYPED_TEST(EliminationForest, WorksForAni1)
 {
     using matrix_type = typename TestFixture::matrix_type;

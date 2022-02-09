@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/cholesky_kernels.hpp"
-
-
 #include <algorithm>
 #include <memory>
 
@@ -44,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"

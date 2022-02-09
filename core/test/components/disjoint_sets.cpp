@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <bitset>
 #include <type_traits>
 
 
@@ -125,12 +126,7 @@ TYPED_TEST(DisjointSets, SequentialMergesIntoSingleSet)
 
 int popcount(int i)
 {
-    int count{};
-    while (i) {
-        count += i & 1;
-        i >>= 1;
-    }
-    return count;
+    return std::bitset<32>(static_cast<unsigned>(i)).count();
 }
 
 

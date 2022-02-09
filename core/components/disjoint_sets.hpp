@@ -55,7 +55,6 @@ public:
      * singleton sets.
      *
      * @param size  the number of elements.
-     *              It must not exceed the max(IndexType) - num_bits(IndexType).
      * @param exec  the executor whose associated host executor will be used to
      *              allocate storage.
      */
@@ -91,7 +90,7 @@ public:
 
     /**
      * Returns the representative of the set containing element x.
-     * Also performs path-compresson on the corresponding path.
+     * Also performs path-compression on the corresponding path.
      *
      * @param x  the element
      * @return the element representing the set containing x

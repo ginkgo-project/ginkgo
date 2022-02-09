@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -47,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/elimination_forest.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "ginkgo/core/base/executor.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/executor.hpp"
 
