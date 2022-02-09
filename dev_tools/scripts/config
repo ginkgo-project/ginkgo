@@ -49,7 +49,7 @@
     - RemoveTest: "true"
     - PathIgnore: "1"
     - PathPrefix: "(cuda|hip|omp|dpcpp)"
-- "/base/.*_kernels"
+- "(cuda|hip|omp|dpcpp|reference)/base/.*_kernels"
     - RemoveTest: "true"
     - PathIgnore: "1"
     - PathPrefix: "core"
