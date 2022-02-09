@@ -821,8 +821,7 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 {
     auto automatical = std::make_shared<Mtx::automatical>(dpcpp);
-    auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
-                                  automatical->amd_row_len_limit);
+    auto row_len_limit = automatical->intel_row_len_limit;
     auto load_balance_mtx =
         gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
     auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
