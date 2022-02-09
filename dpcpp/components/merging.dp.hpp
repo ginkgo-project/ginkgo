@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "dpcpp/base/dpct.hpp"
-#include "dpcpp/base/math.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/searching.dp.hpp"
 
@@ -165,7 +164,7 @@ __dpct_inline__ void group_merge(const ValueType* __restrict__ a,
     IndexType a_begin{};
     IndexType b_begin{};
     auto lane = static_cast<IndexType>(group.thread_rank());
-    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto sentinel = std::numeric_limits<IndexType>::max();
     auto a_cur = checked_load(a, a_begin + lane, a_size, sentinel);
     auto b_cur = checked_load(b, b_begin + lane, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin += group_size) {
@@ -275,7 +274,7 @@ __dpct_inline__ void sequential_merge(const ValueType* __restrict__ a,
     auto c_size = a_size + b_size;
     IndexType a_begin{};
     IndexType b_begin{};
-    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto sentinel = std::numeric_limits<IndexType>::max();
     auto a_cur = checked_load(a, a_begin, a_size, sentinel);
     auto b_cur = checked_load(b, b_begin, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin++) {
