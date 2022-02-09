@@ -295,44 +295,6 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
 }
 
 
-template <typename Mtx>
-std::pair<bool, size_type> check_relative_difference(const Mtx* const a_ref,
-                                                     const Mtx* const b,
-                                                     const double tolerance)
-{
-    using value_type = typename Mtx::value_type;
-    using real_type = typename gko::remove_complex<value_type>;
-    auto ad = std::vector<matrix_data<value_type, int>>();
-    auto bd = std::vector<matrix_data<value_type, int>>();
-    a_ref->write(ad);
-    b->write(bd);
-    const auto batch_size = ad.size();
-    if (batch_size != bd.size()) {
-        return {false, static_cast<size_type>(-1)};
-    }
-    for (size_type ie = 0; ie < batch_size; ie++) {
-        const auto nnz = static_cast<int>(ad[ie].nonzeros.size());
-        if (nnz != bd[ie].nonzeros.size()) {
-            return {false, ie};
-        }
-        double diff = 0.0;
-        double ref_mag = 0.0;
-        for (int i = 0; i < nnz; i++) {
-            ref_mag += squared_norm(ad[ie].nonzeros[i].value);
-            diff += squared_norm(ad[ie].nonzeros[i].value -
-                                 bd[ie].nonzeros[i].value);
-        }
-        ref_mag = std::sqrt(ref_mag);
-        diff = std::sqrt(diff);
-        GKO_ASSERT_AWAY_FROM_ZERO(ref_mag, tolerance);
-        if (diff / ref_mag > tolerance) {
-            return {false, ie};
-        }
-    }
-    return {true, 0};
-}
-
-
 template <typename ValueType>
 void remove_diagonal_from_row(matrix::BatchCsr<ValueType>* const mtx,
                               const int row)

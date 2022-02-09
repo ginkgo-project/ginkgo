@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace {
@@ -63,7 +64,7 @@ protected:
     using ComplexMtx = gko::matrix::BatchCsr<std::complex<value_type>>;
     using Dense = gko::matrix::Dense<value_type>;
 
-    BatchCsr() : mtx_size(10, gko::dim<2>(62, 47)), rand_engine(42) {}
+    BatchCsr() : mtx_size(10, gko::dim<2>(12, 7)), rand_engine(42) {}
 
     void SetUp()
     {
@@ -82,10 +83,12 @@ protected:
     std::unique_ptr<MtxType> gen_mtx(size_t batch_size, int num_rows,
                                      int num_cols, int min_nnz_row)
     {
+        using real_type = typename gko::remove_complex<value_type>;
         return gko::test::generate_uniform_batch_random_matrix<MtxType>(
             batch_size, num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, false, ref);
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
+            ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)
@@ -93,10 +96,8 @@ protected:
         const size_t batch_size = mtx_size.get_num_batch_entries();
         const int nrows = mtx_size.at()[0];
         const int ncols = mtx_size.at()[1];
-        mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(batch_size, nrows, ncols, 1));
-        square_mtx = Mtx::create(ref);
-        square_mtx->copy_from(gen_mtx<Vec>(batch_size, nrows, nrows, 1));
+        mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, 1);
+        square_mtx = gen_mtx<Mtx>(batch_size, nrows, nrows, 1);
         expected = gen_mtx<Vec>(batch_size, nrows, num_vectors, 1);
         y = gen_mtx<Vec>(batch_size, ncols, num_vectors, 1);
         alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
@@ -233,8 +234,8 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
     const size_t nrows = mtx_size.at()[0];
     const size_t ncols = mtx_size.at()[1];
     const int nrhs = 3;
-    auto ref_left_scale = gen_mtx<BDiag>(batch_size, nrows, nrows, 1);
-    auto ref_right_scale = gen_mtx<BDiag>(batch_size, ncols, nrows, 1);
+    auto ref_left_scale = gen_mtx<BDiag>(batch_size, nrows, nrows, nrows);
+    auto ref_right_scale = gen_mtx<BDiag>(batch_size, ncols, ncols, ncols);
     auto ref_b = gen_mtx<Vec>(batch_size, nrows, nrhs, 2);
     auto d_left_scale = BDiag::create(omp);
     d_left_scale->copy_from(ref_left_scale.get());
@@ -250,8 +251,7 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
         omp, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(ref_b, d_b, 0.0);
-    gko::test::check_relative_difference(mtx.get(), dmtx.get(),
-                                         0.001 * r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
 }
 
 
