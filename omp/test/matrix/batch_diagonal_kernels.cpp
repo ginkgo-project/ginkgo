@@ -151,7 +151,7 @@ TEST_F(BatchDiagonal, SimpleApplyIsEquivalentToRef)
     gko::kernels::omp::batch_diagonal::apply_in_place(omp, ddiag.get(),
                                                       dx.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-15);
 }
 
 
@@ -163,9 +163,7 @@ TEST_F(BatchDiagonal, ApplyIsEquivalentToRef)
     nsdiag->apply(x.get(), expected.get());
     dnsdiag->apply(dx.get(), dresult.get());
 
-    auto res = gko::test::check_relative_difference(expected.get(),
-                                                    dresult.get(), 1e-14);
-    ASSERT_TRUE(std::get<0>(res));
+    GKO_ASSERT_BATCH_MTX_NEAR(expected, dresult, 1e-15);
 }
 
 
@@ -177,9 +175,7 @@ TEST_F(BatchDiagonal, ApplyMultipleVectorsIsEquivalentToRef)
     nsdiag->apply(x.get(), expected.get());
     dnsdiag->apply(dx.get(), dresult.get());
 
-    auto res = gko::test::check_relative_difference(expected.get(),
-                                                    dresult.get(), 1e-14);
-    ASSERT_TRUE(std::get<0>(res));
+    GKO_ASSERT_BATCH_MTX_NEAR(expected, dresult, 1e-15);
 }
 
 
@@ -192,7 +188,7 @@ TEST_F(BatchDiagonal, AdvancedApplyIsEquivalentToRef)
     nsdiag->apply(alpha.get(), x.get(), beta.get(), expected.get());
     dnsdiag->apply(dalpha.get(), dx.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 1e-15);
 }
 
 
