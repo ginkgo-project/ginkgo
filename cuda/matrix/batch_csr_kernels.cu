@@ -234,11 +234,12 @@ void pre_diag_transform_system(
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const int ncols = static_cast<int>(a->get_size().at()[1]);
     const size_type nnz = a->get_num_stored_elements() / nbatch;
     const int nrhs = static_cast<int>(b->get_size().at()[1]);
     const size_type b_stride = b->get_stride().at();
     pre_diag_scale_system<<<nbatch, default_block_size>>>(
-        nbatch, nrows, nnz, as_cuda_type(a->get_values()),
+        nbatch, nrows, ncols, nnz, as_cuda_type(a->get_values()),
         a->get_const_col_idxs(), a->get_const_row_ptrs(), nrhs, b_stride,
         as_cuda_type(b->get_values()),
         as_cuda_type(left_op->get_const_values()),
