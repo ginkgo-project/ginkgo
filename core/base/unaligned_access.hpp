@@ -32,8 +32,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
 #define GKO_CORE_BASE_UNALIGNED_ACCESS_HPP_
-
-
 #include <cstring>
 #include <functional>
 
@@ -46,7 +44,7 @@ namespace gko {
 
 /**
  * Copies the value in the m-th byte of ptr.
- *
+unsigned char *
  * @tparam T     the type of value
  *
  * @param ptr    the starting pointer
@@ -78,6 +76,26 @@ T get_value_chunk(const void* ptr, size_type start)
                 sizeof(T));
     return val;
 }
+
+
+/**
+ * Returns the address in the m-th byte of ptr, which is adjusting to T class.
+ *
+ * @tparam T     the type of the address
+ *
+ * @param ptr    the starting pointer
+ * @param start  the offset
+ *
+ * @return the address in the m-th byte of ptr, which is adjusting to T class.
+ */
+/*
+template <typename T>
+T* get_address_chunk(const void* ptr, size_type start)
+{
+    const unsigned char* ptr2 = static_cast<const unsigned char*>(ptr) + start;
+    return static_cast<T*>(ptr2);
+}
+*/
 
 
 }  // namespace gko

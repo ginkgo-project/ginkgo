@@ -137,13 +137,15 @@ void Bccoo<ValueType, IndexType>::convert_to(
     using new_precision = next_precision<ValueType>;
 
     auto exec = this->get_executor();
+    bool block_compression = this->get_block_compression();
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
     num_bytes += num_nonzeros * sizeof(new_precision);
     num_bytes -= num_nonzeros * sizeof(ValueType);
     auto tmp = Bccoo<new_precision, IndexType>::create(
-        exec, this->get_size(), num_nonzeros, block_size, num_bytes);
+        exec, this->get_size(), num_nonzeros, block_size, num_bytes,
+        block_compression);
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
     tmp->move_to(result);
 }
@@ -351,9 +353,11 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
+    bool block_compression = this->get_block_compression();
     auto exec = this->get_executor();
-    auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
-                                           block_size, num_bytes);
+    auto abs_bccoo =
+        absolute_type::create(exec, this->get_size(), num_nonzeros, block_size,
+                              num_bytes, block_compression);
     exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
     return abs_bccoo;
 }

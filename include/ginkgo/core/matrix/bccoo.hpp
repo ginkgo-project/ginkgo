@@ -173,6 +173,44 @@ public:
     }
 
     /**
+     * Returns the col index of the first element of each block.
+     *
+     * @return the col index of the first element of each block.
+     */
+    index_type* get_cols() noexcept { return cols_.get_data(); }
+
+    /**
+     * @copydoc Bccoo::get_cols()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant
+     *       version, so always prefer this version.
+     */
+    const index_type* get_const_cols() const noexcept
+    {
+        return cols_.get_const_data();
+    }
+
+    /**
+     * Returns the type index of the first element of each block.
+     *
+     * @return the type index of the first element of each block.
+     */
+    uint8* get_types() noexcept { return types_.get_data(); }
+
+    /**
+     * @copydoc Bccoo::get_types()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant
+     *       version, so always prefer this version.
+     */
+    const uint8* get_const_types() const noexcept
+    {
+        return types_.get_const_data();
+    }
+
+    /**
      * Returns the offset related to the first element of each block.
      *
      * @return the offset related to the first element of each block.
@@ -237,6 +275,13 @@ public:
      * @return the number of blocks used in the definition of the matrix.
      */
     size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
+
+    /**
+     * Returns the block compression used in the definition of the matrix.
+     *
+     * @return the block compression used in the definition of the matrix.
+     */
+    bool get_block_compression() const noexcept { return block_compression_; }
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -318,7 +363,7 @@ protected:
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0},
-          cpu_gpu_{false}
+          block_compression_{false}
     {}
 
     /**
@@ -329,18 +374,18 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      * @param num_bytes     number of bytes
-     * @param cpu_gpu     	CPU or GPU variant
+     * @param block_compression Use block (true) or element (false) compression
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type num_nonzeros, size_type block_size, size_type num_bytes,
-          boolean cpu_gpu)
+          bool block_compression)
         : EnableLinOp<Bccoo>(exec, size),
           rows_(exec,
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
-          cols_(exec, (cpu_gpu || (block_size <= 0))
+          cols_(exec, (!block_compression || (block_size <= 0))
                           ? 0
                           : ceildiv(num_nonzeros, block_size)),
-          types_(exec, (cpu_gpu || (block_size <= 0))
+          types_(exec, (!block_compression || (block_size <= 0))
                            ? 0
                            : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
@@ -349,12 +394,12 @@ protected:
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          cpu_gpu_{cpu_gpu}
+          block_compression_{block_compression}
     {}
 
     /**
-     * Creates a CPU variant of the BCCOO matrix from already allocated
-     * (and initialized) rows, offsets and chunk arrays.
+     * Creates an element compression variant of the BCCOO matrix from
+     * already allocated (and initialized) rows, offsets and chunk arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -381,14 +426,14 @@ protected:
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          cpu_gpu_{true}
+          block_compression_{false}
     {
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
 
     /**
-     * Creates a GPU variant of the BCCOO matrix from already allocated
-     * (and initialized) rows offsets and chunk arrays.
+     * Creates a block compression variant of the BCCOO matrix from already
+     * allocated (and initialized) rows, cols, types, offsets and chunk arrays.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -406,13 +451,13 @@ protected:
      *
      * @note If one of `chunk`, `offsets`, `types`, `cols` or `rows` is not
      * 			 an rvalue, not an array of uint8, IndexType, IndexType,
-     * IndexType or IndexType, respectively, or is on the wrong executor, an
-     * 			 internal copy of that array will be created, and the
-     * original array chunk will not be used in the matrix.
+     *       IndexType or IndexType, respectively, or is on the wrong executor,
+     *       an internal copy of that array will be created, and the original
+     *       array will not be used in the matrix.
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          Array<uint8> chunk, Array<IndexType> offsets, Array<IndexType> types,
-          Array<IndexType> cols, Array<IndexType> rows, size_type num_nonzeros,
+          array<uint8> chunk, array<IndexType> offsets, array<uint8> types,
+          array<IndexType> cols, array<IndexType> rows, size_type num_nonzeros,
           size_type block_size)
         : EnableLinOp<Bccoo>(exec, size),
           chunk_{exec, std::move(chunk)},
@@ -422,9 +467,11 @@ protected:
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          cpu_gpu_{false}
+          block_compression_{true}
     {
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
+        GKO_ASSERT_EQ(rows_.get_num_elems(), cols_.get_num_elems());
+        GKO_ASSERT_EQ(rows_.get_num_elems(), types_.get_num_elems());
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -439,12 +486,12 @@ protected:
 private:
     array<index_type> rows_;
     array<index_type> cols_;
-    array<index_type> types_;
+    array<uint8> types_;
     array<index_type> offsets_;
     array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;
-    boolean cpu_gpu_;
+    bool block_compression_;
 };
 
 

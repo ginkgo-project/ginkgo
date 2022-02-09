@@ -60,6 +60,11 @@ namespace reference {
 namespace bccoo {
 
 
+const int GKO_BCCOO_ROWS_MULTIPLE = 1;
+const int GKO_BCCOO_COLS_8BITS = 2;
+const int GKO_BCCOO_COLS_16BITS = 4;
+
+
 void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
                             size_type* block_size)
 {
@@ -113,7 +118,11 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = b->get_size()[1];
 
     // Computation of chunk
-    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type col = 0;
+    size_type row = 0;
+    size_type shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
@@ -145,7 +154,11 @@ void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = b->get_size()[1];
 
     // Computation of chunk
-    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type col = 0;
+    size_type row = 0;
+    size_type shf = 0;
     ValueType val;
     for (size_type i = 0; i < num_stored_elements; i++) {
         get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
@@ -173,7 +186,11 @@ void convert_to_next_precision(
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblk_src = 0, blk_src = 0, row_src = 0, col_src = 0, shf_src = 0;
+    size_type nblk_src = 0;
+    size_type blk_src = 0;
+    size_type row_src = 0;
+    size_type col_src = 0;
+    size_type shf_src = 0;
     size_type num_bytes_src = source->get_num_bytes();
 
     auto* rows_data_src = source->get_const_rows();
@@ -181,7 +198,11 @@ void convert_to_next_precision(
     auto* chunk_data_src = source->get_const_chunk();
     ValueType val_src;
 
-    size_type nblk_res = 0, blk_res = 0, row_res = 0, col_res = 0, shf_res = 0;
+    size_type nblk_res = 0;
+    size_type blk_res = 0;
+    size_type row_res = 0;
+    size_type col_res = 0;
+    size_type shf_res = 0;
     size_type num_bytes_res = result->get_num_bytes();
 
     auto* rows_data_res = result->get_rows();
@@ -192,22 +213,109 @@ void convert_to_next_precision(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data_src, offsets_data_src, nblk_src, blk_src,
-                            shf_src, row_src, col_src);
-        put_detect_newblock(chunk_data_res, rows_data_res, nblk_res, blk_res,
-                            shf_res, row_res, row_src - row_res, col_res);
-        uint8 ind_src = get_position_newrow_put(
-            chunk_data_src, shf_src, row_src, col_src, chunk_data_res, nblk_res,
-            blk_res, rows_data_res, shf_res, row_res, col_res);
-        get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
-                                col_src, val_src);
-        val_res = val_src;
-        put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
-                                shf_res, col_res, val_res);
-        get_detect_endblock(block_size, nblk_src, blk_src);
-        put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
-                            blk_res);
+    if (source->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
+                                blk_src, shf_src, row_src, col_src);
+            put_detect_newblock(chunk_data_res, rows_data_res, nblk_res,
+                                blk_res, shf_res, row_res, row_src - row_res,
+                                col_res);
+            uint8 ind_src = get_position_newrow_put(
+                chunk_data_src, shf_src, row_src, col_src, chunk_data_res,
+                nblk_res, blk_res, rows_data_res, shf_res, row_res, col_res);
+            get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                    col_src, val_src);
+            val_res = val_src;
+            put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
+                                    shf_res, col_res, val_res);
+            get_detect_endblock(block_size, nblk_src, blk_src);
+            put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
+                                blk_res);
+        }
+    } else {
+        auto* cols_data_src = source->get_const_cols();
+        auto* types_data_src = source->get_const_types();
+
+        auto* cols_data_res = result->get_cols();
+        auto* types_data_res = result->get_types();
+
+        blk_res = blk_src = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            rows_data_res[blk_res] = rows_data_src[blk_src];
+            cols_data_res[blk_res] = cols_data_src[blk_src];
+            types_data_res[blk_res] = types_data_src[blk_src];
+            auto type_blk = types_data_res[blk_res];
+            if (type_blk & GKO_BCCOO_ROWS_MULTIPLE) {
+                const uint8* rows_blk_src =
+                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                uint8* rows_blk_res =
+                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                for (size_type j = 0; j < block_size_local; j++) {
+                    rows_blk_res[j] = rows_blk_src[j];
+                }
+                shf_src += block_size_local;
+                shf_res += block_size_local;
+            }
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                const uint8* cols_blk_src =
+                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                uint8* cols_blk_res =
+                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                for (size_type j = 0; j < block_size_local; j++) {
+                    cols_blk_res[j] = cols_blk_src[j];
+                }
+                shf_src += block_size_local;
+                shf_res += block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                std::memcpy(
+                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
+                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    block_size_local * sizeof(uint16));
+                shf_src += block_size_local * sizeof(uint16);
+                shf_res += block_size_local * sizeof(uint16);
+            } else {
+                std::memcpy(
+                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
+                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    block_size_local * sizeof(uint32));
+                shf_src += block_size_local * sizeof(uint32);
+                shf_res += block_size_local * sizeof(uint32);
+            }
+            if (true) {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    val_src =
+                        get_value_chunk<ValueType>(chunk_data_src, shf_src);
+                    val_res = val_src;
+                    set_value_chunk<new_precision>(chunk_data_res, shf_res,
+                                                   val_res);
+                    shf_src += sizeof(ValueType);
+                    shf_res += sizeof(new_precision);
+                }
+            }
+            blk_src++;
+            blk_res++;
+            offsets_data_res[blk_res] = shf_res;
+            /*
+    for (size_type j = 0; j < block_size_local; j++) {
+    row_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
+                            shf_src += 2;
+    col_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
+                            shf_src += 2;
+    val_src += get_value_chunk<ValueType>(chunk_data_src, shf_src);
+                            shf_src += sizeof(ValueType);
+            set_value_chunk<uint16>(chunk_data_res, shf_res, row_src);
+                            shf_res += 2;
+            set_value_chunk<uint16>(chunk_data_res, shf_res, col_src);
+                            shf_res += 2;
+                            val_res = val_src;
+            set_value_chunk<new_precision>(chunk_data_res, shf_res, val_res);
+                            shf_res += sizeof(new_precision);
+                    }
+                    blk_src++; blk_res++;
+                    offsets_data_res[blk_res] = shf_res;
+            */
+        }
     }
 }
 
@@ -223,7 +331,11 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row = 0;
+    size_type col = 0;
+    size_type shf = 0;
     size_type num_bytes = source->get_num_bytes();
 
     auto* rows_data = source->get_const_rows();
@@ -235,14 +347,66 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        get_detect_endblock(block_size, nblk, blk);
-        row_idxs[i] = row;
-        col_idxs[i] = col;
-        values[i] = val;
+    if (source->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            get_detect_endblock(block_size, nblk, blk);
+            row_idxs[i] = row;
+            col_idxs[i] = col;
+            values[i] = val;
+        }
+    } else {
+        auto* cols_data = source->get_const_cols();
+        auto* types_data = source->get_const_types();
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+
+        blk = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            auto type_blk = types_data[blk];
+            bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+            bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+            bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+            row = rows_data[blk];
+            col = cols_data[blk];
+            shf_row = shf_col = shf;
+            if (mul_row) shf_col += block_size_local;
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                shf_val = shf_col + block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                shf_val = shf_col + block_size_local * 2;
+            } else {
+                shf_val = shf_col + block_size_local * 4;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                if (mul_row) {
+                    row += get_value_chunk<uint8>(chunk_data, shf_row);
+                    shf_row++;
+                }
+                if (col_8bits) {
+                    col += get_value_chunk<uint8>(chunk_data, shf_col);
+                    shf_col++;
+                } else if (col_16bits) {
+                    col += get_value_chunk<uint16>(chunk_data, shf_col);
+                    shf_col += 2;
+                } else {
+                    col += get_value_chunk<uint32>(chunk_data, shf_col);
+                    shf_col += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf_val);
+                shf_val += sizeof(ValueType);
+                row_idxs[i + j] = row;
+                col_idxs[i + j] = col;
+                values[i + j] = val;
+            }
+            blk++;
+            shf = shf_val;
+        }
     }
 }
 
@@ -258,7 +422,11 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row = 0;
+    size_type col = 0;
+    size_type shf = 0;
     size_type num_bytes = source->get_num_bytes();
 
     auto* rows_data = source->get_const_rows();
@@ -271,15 +439,68 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     auto values = result->get_values();
 
     row_ptrs[0] = 0;
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock_csr(rows_data, offsets_data, nblk, blk, row_ptrs, i,
-                                shf, row, col);
-        uint8 ind =
-            get_position_newrow_csr(chunk_data, row_ptrs, i, shf, row, col);
-        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        col_idxs[i] = col;
-        values[i] = val;
-        get_detect_endblock(block_size, nblk, blk);
+    if (source->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock_csr(rows_data, offsets_data, nblk, blk,
+                                    row_ptrs, i, shf, row, col);
+            uint8 ind =
+                get_position_newrow_csr(chunk_data, row_ptrs, i, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            col_idxs[i] = col;
+            values[i] = val;
+            get_detect_endblock(block_size, nblk, blk);
+        }
+    } else {
+        auto* cols_data = source->get_const_cols();
+        auto* types_data = source->get_const_types();
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+        size_type row_prv = 0;
+
+        blk = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            auto type_blk = types_data[blk];
+            bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+            bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+            bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+            row = rows_data[blk];
+            col = cols_data[blk];
+            shf_row = shf_col = shf;
+            if (mul_row) shf_col += block_size_local;
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                shf_val = shf_col + block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                shf_val = shf_col + block_size_local * 2;
+            } else {
+                shf_val = shf_col + block_size_local * 4;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                if (mul_row) {
+                    row += get_value_chunk<uint8>(chunk_data, shf_row);
+                    shf_row++;
+                }
+                if (col_8bits) {
+                    col += get_value_chunk<uint8>(chunk_data, shf_col);
+                    shf_col++;
+                } else if (col_16bits) {
+                    col += get_value_chunk<uint16>(chunk_data, shf_col);
+                    shf_col += 2;
+                } else {
+                    col += get_value_chunk<uint32>(chunk_data, shf_col);
+                    shf_col += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf_val);
+                shf_val += sizeof(ValueType);
+                if (row_prv < row) row_ptrs[row] = i + j;
+                col_idxs[i + j] = col;
+                values[i + j] = val;
+                row_prv = row;
+            }
+            blk++;
+            shf = shf_val;
+        }
     }
     if (num_stored_elements > 0) {
         row_ptrs[row + 1] = num_stored_elements;
@@ -298,7 +519,11 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row = 0;
+    size_type col = 0;
+    size_type shf = 0;
     size_type num_bytes = source->get_num_bytes();
 
     auto* rows_data = source->get_const_rows();
@@ -315,12 +540,62 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        get_detect_endblock(block_size, nblk, blk);
-        result->at(row, col) += val;
+    if (source->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            get_detect_endblock(block_size, nblk, blk);
+            result->at(row, col) += val;
+        }
+    } else {
+        auto* cols_data = source->get_const_cols();
+        auto* types_data = source->get_const_types();
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+
+        blk = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            auto type_blk = types_data[blk];
+            bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+            bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+            bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+            row = rows_data[blk];
+            col = cols_data[blk];
+            shf_row = shf_col = shf;
+            if (mul_row) shf_col += block_size_local;
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                shf_val = shf_col + block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                shf_val = shf_col + block_size_local * 2;
+            } else {
+                shf_val = shf_col + block_size_local * 4;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                if (mul_row) {
+                    row += get_value_chunk<uint8>(chunk_data, shf_row);
+                    shf_row++;
+                }
+                if (col_8bits) {
+                    col += get_value_chunk<uint8>(chunk_data, shf_col);
+                    shf_col++;
+                } else if (col_16bits) {
+                    col += get_value_chunk<uint16>(chunk_data, shf_col);
+                    shf_col += 2;
+                } else {
+                    col += get_value_chunk<uint32>(chunk_data, shf_col);
+                    shf_col += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf_val);
+                shf_val += sizeof(ValueType);
+                result->at(row, col) += val;
+            }
+            blk++;
+            shf = shf_val;
+        }
     }
 }
 
@@ -336,7 +611,11 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     size_type block_size = orig->get_block_size();
     size_type num_stored_elements = orig->get_num_stored_elements();
 
-    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row = 0;
+    size_type col = 0;
+    size_type shf = 0;
     size_type num_bytes = orig->get_num_bytes();
 
     auto* rows_data = orig->get_const_rows();
@@ -351,13 +630,65 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        get_detect_endblock(block_size, nblk, blk);
-        if (row == col) {
-            diag_values[row] = val;
+    if (orig->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            get_detect_endblock(block_size, nblk, blk);
+            if (row == col) {
+                diag_values[row] = val;
+            }
+        }
+    } else {
+        auto* cols_data = orig->get_const_cols();
+        auto* types_data = orig->get_const_types();
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+
+        blk = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            auto type_blk = types_data[blk];
+            bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+            bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+            bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+            row = rows_data[blk];
+            col = cols_data[blk];
+            shf_row = shf_col = shf;
+            if (mul_row) shf_col += block_size_local;
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                shf_val = shf_col + block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                shf_val = shf_col + block_size_local * 2;
+            } else {
+                shf_val = shf_col + block_size_local * 4;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                if (mul_row) {
+                    row += get_value_chunk<uint8>(chunk_data, shf_row);
+                    shf_row++;
+                }
+                if (col_8bits) {
+                    col += get_value_chunk<uint8>(chunk_data, shf_col);
+                    shf_col++;
+                } else if (col_16bits) {
+                    col += get_value_chunk<uint16>(chunk_data, shf_col);
+                    shf_col += 2;
+                } else {
+                    col += get_value_chunk<uint32>(chunk_data, shf_col);
+                    shf_col += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf_val);
+                shf_val += sizeof(ValueType);
+                if (row == col) {
+                    diag_values[row] = val;
+                }
+            }
+            blk++;
+            shf = shf_val;
         }
     }
 }
@@ -373,7 +704,11 @@ void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
     size_type block_size = matrix->get_block_size();
     size_type num_stored_elements = matrix->get_num_stored_elements();
 
-    size_type nblk = 0, blk = 0, row = 0, col = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row = 0;
+    size_type col = 0;
+    size_type shf = 0;
     size_type num_bytes = matrix->get_num_bytes();
 
     auto* rows_data = matrix->get_const_rows();
@@ -381,12 +716,63 @@ void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
     auto* chunk_data = matrix->get_chunk();
     ValueType val;
 
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value_put(chunk_data, nblk, ind, shf, col, val,
-                                    [](ValueType val) { return abs(val); });
-        get_detect_endblock(block_size, nblk, blk);
+    if (matrix->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value_put(chunk_data, nblk, ind, shf, col, val,
+                                        [](ValueType val) { return abs(val); });
+            get_detect_endblock(block_size, nblk, blk);
+        }
+    } else {
+        auto* cols_data = matrix->get_const_cols();
+        auto* types_data = matrix->get_const_types();
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+
+        blk = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            auto type_blk = types_data[blk];
+            bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+            bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+            bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+            row = rows_data[blk];
+            col = cols_data[blk];
+            shf_row = shf_col = shf;
+            if (mul_row) shf_col += block_size_local;
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                shf_val = shf_col + block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                shf_val = shf_col + block_size_local * 2;
+            } else {
+                shf_val = shf_col + block_size_local * 4;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                if (mul_row) {
+                    row += get_value_chunk<uint8>(chunk_data, shf_row);
+                    shf_row++;
+                }
+                if (col_8bits) {
+                    col += get_value_chunk<uint8>(chunk_data, shf_col);
+                    shf_col++;
+                } else if (col_16bits) {
+                    col += get_value_chunk<uint16>(chunk_data, shf_col);
+                    shf_col += 2;
+                } else {
+                    col += get_value_chunk<uint32>(chunk_data, shf_col);
+                    shf_col += 4;
+                }
+                val = get_value_chunk<ValueType>(chunk_data, shf_val);
+                val = abs(val);
+                set_value_chunk<ValueType>(chunk_data, shf, val);
+                shf_val += sizeof(ValueType);
+            }
+            blk++;
+            shf = shf_val;
+        }
     }
 }
 
@@ -403,7 +789,11 @@ void compute_absolute(
     size_type block_size = source->get_block_size();
     size_type num_stored_elements = source->get_num_stored_elements();
 
-    size_type nblk_src = 0, blk_src = 0, row_src = 0, col_src = 0, shf_src = 0;
+    size_type nblk_src = 0;
+    size_type blk_src = 0;
+    size_type row_src = 0;
+    size_type col_src = 0;
+    size_type shf_src = 0;
     size_type num_bytes_src = source->get_num_bytes();
 
     auto* rows_data_src = source->get_const_rows();
@@ -411,7 +801,11 @@ void compute_absolute(
     auto* chunk_data_src = source->get_const_chunk();
     ValueType val_src;
 
-    size_type nblk_res = 0, blk_res = 0, row_res = 0, col_res = 0, shf_res = 0;
+    size_type nblk_res = 0;
+    size_type blk_res = 0;
+    size_type row_res = 0;
+    size_type col_res = 0;
+    size_type shf_res = 0;
     size_type num_bytes_res = result->get_num_bytes();
 
     auto* rows_data_res = result->get_rows();
@@ -422,22 +816,109 @@ void compute_absolute(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data_src, offsets_data_src, nblk_src, blk_src,
-                            shf_src, row_src, col_src);
-        put_detect_newblock(chunk_data_res, rows_data_res, nblk_res, blk_res,
-                            shf_res, row_res, row_src - row_res, col_res);
-        uint8 ind_src = get_position_newrow_put(
-            chunk_data_src, shf_src, row_src, col_src, chunk_data_res, nblk_res,
-            blk_res, rows_data_res, shf_res, row_res, col_res);
-        get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
-                                col_src, val_src);
-        val_res = abs(val_src);
-        put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
-                                shf_res, col_res, val_res);
-        get_detect_endblock(block_size, nblk_src, blk_src);
-        put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
-                            blk_res);
+    if (source->get_block_compression()) {
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
+                                blk_src, shf_src, row_src, col_src);
+            put_detect_newblock(chunk_data_res, rows_data_res, nblk_res,
+                                blk_res, shf_res, row_res, row_src - row_res,
+                                col_res);
+            uint8 ind_src = get_position_newrow_put(
+                chunk_data_src, shf_src, row_src, col_src, chunk_data_res,
+                nblk_res, blk_res, rows_data_res, shf_res, row_res, col_res);
+            get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                    col_src, val_src);
+            val_res = abs(val_src);
+            put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
+                                    shf_res, col_res, val_res);
+            get_detect_endblock(block_size, nblk_src, blk_src);
+            put_detect_endblock(offsets_data_res, shf_res, block_size, nblk_res,
+                                blk_res);
+        }
+    } else {
+        auto* cols_data_src = source->get_const_cols();
+        auto* types_data_src = source->get_const_types();
+
+        auto* cols_data_res = result->get_cols();
+        auto* types_data_res = result->get_types();
+
+        blk_res = blk_src = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local = num_stored_elements - i;
+            rows_data_res[blk_res] = rows_data_src[blk_src];
+            cols_data_res[blk_res] = cols_data_src[blk_src];
+            types_data_res[blk_res] = types_data_src[blk_src];
+            auto type_blk = types_data_res[blk_res];
+            if (type_blk & GKO_BCCOO_ROWS_MULTIPLE) {
+                const uint8* rows_blk_src =
+                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                uint8* rows_blk_res =
+                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                for (size_type j = 0; j < block_size_local; j++) {
+                    rows_blk_res[j] = rows_blk_src[j];
+                }
+                shf_src += block_size_local;
+                shf_res += block_size_local;
+            }
+            if (type_blk & GKO_BCCOO_COLS_8BITS) {
+                const uint8* cols_blk_src =
+                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                uint8* cols_blk_res =
+                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                for (size_type j = 0; j < block_size_local; j++) {
+                    cols_blk_res[j] = cols_blk_src[j];
+                }
+                shf_src += block_size_local;
+                shf_res += block_size_local;
+            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
+                std::memcpy(
+                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
+                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    block_size_local * sizeof(uint16));
+                shf_src += block_size_local * sizeof(uint16);
+                shf_res += block_size_local * sizeof(uint16);
+            } else {
+                std::memcpy(
+                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
+                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    block_size_local * sizeof(uint32));
+                shf_src += block_size_local * sizeof(uint32);
+                shf_res += block_size_local * sizeof(uint32);
+            }
+            if (true) {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    val_src =
+                        get_value_chunk<ValueType>(chunk_data_src, shf_src);
+                    val_res = abs(val_src);
+                    set_value_chunk<ValueType>(chunk_data_res, shf_res,
+                                               val_res);
+                    shf_src += sizeof(ValueType);
+                    shf_res += sizeof(ValueType);
+                }
+            }
+            blk_src++;
+            blk_res++;
+            offsets_data_res[blk_res] = shf_res;
+            /*
+    for (size_type j = 0; j < block_size_local; j++) {
+    row_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
+                            shf_src += 2;
+    col_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
+                            shf_src += 2;
+    val_src += get_value_chunk<ValueType>(chunk_data_src, shf_src);
+                            shf_src += sizeof(ValueType);
+            set_value_chunk<uint16>(chunk_data_res, shf_res, row_src);
+                            shf_res += 2;
+            set_value_chunk<uint16>(chunk_data_res, shf_res, col_src);
+                            shf_res += 2;
+                            val_res = val_src;
+            set_value_chunk<new_precision>(chunk_data_res, shf_res, val_res);
+                            shf_res += sizeof(new_precision);
+                    }
+                    blk_src++; blk_res++;
+                    offsets_data_res[blk_res] = shf_res;
+            */
+        }
     }
 }
 
