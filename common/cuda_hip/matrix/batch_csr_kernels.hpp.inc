@@ -523,7 +523,7 @@ __global__
     int this_tile_has_diags = 1;
     for (int row = tile_rank; row < min_rows_cols; row += num_tiles) {
         const int row_sz = row_ptrs[row + 1] - row_ptrs[row];
-        int has_diag = 1;
+        int has_diag = 0;
         for (int iz = tile.thread_rank(); iz < row_sz; iz += warp_size) {
             has_diag = static_cast<int>(col_idxs[iz + row_ptrs[row]] == row);
             if (has_diag) {
