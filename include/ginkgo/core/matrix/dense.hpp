@@ -1141,12 +1141,12 @@ protected:
                                   Dense* output) const;
 
     template <typename OutputType, typename IndexType>
-    void row_gather_impl(const Array<IndexType>* row_indices,
+    void row_gather_impl(const Array<IndexType>* row_idxs,
                          Dense<OutputType>* row_collection) const;
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_indices,
+                         const Array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
 
