@@ -77,6 +77,14 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
              local_size[1])
 {}
 
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
+    std::shared_ptr<const Executor> exec)
+    : Vector(exec, mpi::communicator(MPI_COMM_NULL), {}, {}, 0)
+{}
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -93,25 +101,19 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const matrix_data<ValueType, GlobalIndexType>& data,
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
+    const matrix_data<ValueType, GlobalIndexType>& data)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data),
-        std::move(partition));
+            this->get_executor(), data));
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
+    const device_matrix_data<ValueType, GlobalIndexType>& data)
 {
     auto exec = this->get_executor();
-
-    GKO_ASSERT(partition->get_executor() == exec);
-    this->partition_ = std::move(partition);
 
     auto global_rows = static_cast<size_type>(this->partition_->get_size());
     auto global_cols = data.get_size()[1];
@@ -157,7 +159,10 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
 {
-    this->convert_to(result);
+    result->set_size(this->get_size());
+    result->set_communicator(this->get_communicator());
+    result->partition_ = this->partition_;
+    this->get_local()->move_to(result->get_local());
 }
 
 

@@ -114,32 +114,26 @@ public:
     using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
-     * Reads a vector from the matrix_data structure and a global row partition.
+     * Reads a vector from the matrix_data structure.
      *
      * The number of rows of the matrix data is ignored, only its number of
-     * columns is relevant. The number of rows is inferred from the partition.
+     * columns is relevant. The number of rows is inferred from the vector's
+     * partition.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
      *
      * @param data  The matrix_data structure
-     * @param partition  The global row partition
      */
-    void read_distributed(
-        const matrix_data<ValueType, GlobalIndexType>& data,
-        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-            partition);
+    void read_distributed(const matrix_data<ValueType, GlobalIndexType>& data);
 
     /**
-     * Reads a vector from the device_matrix_data structure and a global row
-     * partition.
+     * Reads a vector from the device_matrix_data structure.
      *
      * See @read_distributed
      */
     void read_distributed(
-        const device_matrix_data<ValueType, GlobalIndexType>& data,
-        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-            partition);
+        const device_matrix_data<ValueType, GlobalIndexType>& data);
 
     void convert_to(Vector<next_precision<ValueType>, LocalIndexType,
                            GlobalIndexType>* result) const override;
@@ -306,6 +300,27 @@ public:
 
 protected:
     /**
+     * Creates an empty distributed vector.
+     * @param exec  Executor associated with vector
+     */
+    explicit Vector(std::shared_ptr<const Executor> exec);
+
+    /**
+     * Creates an empty distributed vector with a specified size
+     * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector, the default is
+     *              MPI_COMM_WORLD
+     * @param partition  Partition of global rows
+     * @param global_size  Global size of the vector
+     * @param local_size  Processor-local size of the vector, uses local_size[1]
+     *                    as the stride
+     */
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+               partition,
+           dim<2> global_size = {}, dim<2> local_size = {});
+
+    /**
      * Creates an empty distributed vector with a specified size
      * @param exec  Executor associated with vector
      * @param comm  Communicator associated with vector, the default is
@@ -319,23 +334,6 @@ protected:
            std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
                partition,
            dim<2> global_size, dim<2> local_size, size_type stride);
-
-    /**
-     * Creates an empty distributed vector with a specified size
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector, the default is
-     *              MPI_COMM_WORLD
-     * @param partition  Partition of global rows
-     * @param global_size  Global size of the vector
-     * @param local_size  Processor-local size of the vector, uses local_size[1]
-     *                    as the stride
-     */
-    explicit Vector(
-        std::shared_ptr<const Executor> exec,
-        mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
-        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-            partition = nullptr,
-        dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp*, LinOp*) const override;
 
