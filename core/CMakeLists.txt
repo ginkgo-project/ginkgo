@@ -4,6 +4,7 @@ add_library(ginkgo "")
 target_sources(ginkgo
     PRIVATE
     base/array.cpp
+    base/cache.cpp
     base/combination.cpp
     base/composition.cpp
     base/device_matrix_data.cpp
