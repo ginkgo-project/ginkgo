@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
+#include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -342,6 +343,9 @@ private:
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
         partition_;
     local_vector_type local_;
+    mutable ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
+    mutable ::gko::detail::DenseCache<remove_complex<ValueType>>
+        host_norm_buffer_;
 };
 
 
