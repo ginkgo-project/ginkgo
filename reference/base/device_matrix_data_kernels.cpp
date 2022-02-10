@@ -118,8 +118,8 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     Array<ValueType>& values, Array<IndexType>& row_idxs,
                     Array<IndexType>& col_idxs)
 {
-    IndexType row{-1};
-    IndexType col{-1};
+    auto row = invalid_index<IndexType>();
+    auto col = invalid_index<IndexType>();
     const auto size = values.get_num_elems();
     size_type count_unique{};
     for (size_type i = 0; i < size; i++) {
@@ -135,8 +135,8 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
         Array<ValueType> new_values{exec, count_unique};
         Array<IndexType> new_row_idxs{exec, count_unique};
         Array<IndexType> new_col_idxs{exec, count_unique};
-        row = -1;
-        col = -1;
+        row = invalid_index<IndexType>();
+        col = invalid_index<IndexType>();
         int64 out_i = -1;
         for (size_type i = 0; i < size; i++) {
             const auto new_row = row_idxs.get_const_data()[i];
