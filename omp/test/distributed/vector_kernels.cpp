@@ -71,26 +71,27 @@ protected:
     {}
 
     void validate(
-        const gko::size_type num_cols,
         const gko::distributed::Partition<local_index_type, global_index_type>*
             partition,
         const gko::distributed::Partition<local_index_type, global_index_type>*
             d_partition,
-        gko::Array<global_entry> input)
+        gko::device_matrix_data<value_type, global_index_type> input)
     {
-        gko::Array<global_entry> d_input{exec, input};
+        gko::device_matrix_data<value_type, global_index_type> d_input{exec,
+                                                                       input};
         for (comm_index_type part = 0; part < partition->get_num_parts();
              ++part) {
             auto num_rows =
                 static_cast<gko::size_type>(partition->get_part_size(part));
-            auto output = mtx::create(ref, gko::dim<2>{num_rows, num_cols});
+            auto output =
+                mtx::create(ref, gko::dim<2>{num_rows, input.get_size()[1]});
             output->fill(gko::zero<value_type>());
             auto d_output = gko::clone(exec, output);
 
             gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition, part, output.get(), value_type{});
+                ref, input, partition, part, output.get());
             gko::kernels::omp::distributed_vector::build_local(
-                exec, d_input, d_partition, part, d_output.get(), value_type{});
+                exec, d_input, d_partition, part, d_output.get());
 
             GKO_ASSERT_MTX_NEAR(output, d_output, 0);
         }
@@ -103,21 +104,18 @@ protected:
 template <typename ValueType, typename IndexType, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine>
 
-gko::Array<gko::matrix_data_entry<ValueType, IndexType>>
-generate_random_matrix_data_array(gko::size_type num_rows,
-                                  gko::size_type num_cols,
-                                  NonzeroDistribution&& nonzero_dist,
-                                  ValueDistribution&& value_dist,
-                                  Engine&& engine,
-                                  std::shared_ptr<const gko::Executor> exec)
+gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
+    gko::size_type num_rows, gko::size_type num_cols,
+    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const gko::Executor> exec)
 {
     auto md = gko::test::generate_random_matrix_data<ValueType, IndexType>(
         num_rows, num_cols, std::forward<NonzeroDistribution>(nonzero_dist),
         std::forward<ValueDistribution>(value_dist),
         std::forward<Engine>(engine));
     md.ensure_row_major_order();
-    return gko::Array<gko::matrix_data_entry<ValueType, IndexType>>(
-        exec, md.nonzeros.begin(), md.nonzeros.end());
+    return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
+                                                                           md);
 }
 
 
@@ -126,9 +124,9 @@ TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
 
 TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
 {
+    using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    using global_entry = typename TestFixture::global_entry;
     gko::distributed::comm_index_type num_parts = 10;
     auto mapping =
         gko::test::generate_random_array<gko::distributed::comm_index_type>(
@@ -145,8 +143,9 @@ TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(0, partition.get(), d_partition.get(),
-                   gko::Array<global_entry>{this->ref});
+    this->validate(
+        partition.get(), d_partition.get(),
+        gko::device_matrix_data<value_type, global_index_type>{this->ref});
 }
 
 
@@ -181,7 +180,7 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(num_cols, partition.get(), d_partition.get(), input);
+    this->validate(partition.get(), d_partition.get(), input);
 }
 
 
@@ -216,7 +215,7 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(num_cols, partition.get(), d_partition.get(), input);
+    this->validate(partition.get(), d_partition.get(), input);
 }
 
 
