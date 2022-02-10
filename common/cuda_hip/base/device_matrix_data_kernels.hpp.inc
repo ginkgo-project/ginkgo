@@ -85,6 +85,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     Array<ValueType>& values, Array<IndexType>& row_idxs,
                     Array<IndexType>& col_idxs)
 {
+    using device_value_type = device_member_type<ValueType>;
     const auto size = values.get_num_elems();
     const auto rows = row_idxs.get_const_data();
     const auto cols = col_idxs.get_const_data();
@@ -108,12 +109,13 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
             thrust::make_tuple(thrust::device_pointer_cast(rows),
                                thrust::device_pointer_cast(cols)));
         auto in_vals = thrust::device_pointer_cast(
-            as_device_type(values.get_const_data()));
+            reinterpret_cast<const device_value_type*>(
+                values.get_const_data()));
         auto out_locs = thrust::make_zip_iterator(thrust::make_tuple(
             thrust::device_pointer_cast(new_row_idxs.get_data()),
             thrust::device_pointer_cast(new_col_idxs.get_data())));
-        auto out_vals =
-            thrust::device_pointer_cast(as_device_type(new_values.get_data()));
+        auto out_vals = thrust::device_pointer_cast(
+            reinterpret_cast<device_value_type*>(new_values.get_data()));
         thrust::reduce_by_key(thrust::device, in_locs, in_locs + size, in_vals,
                               out_locs, out_vals);
         // swap out storage
