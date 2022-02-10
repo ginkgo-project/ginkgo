@@ -351,8 +351,11 @@ public:
     public:
         /**
          * Creates a load_balance strategy.
+         *
+         * @warning this is deprecated! Please rely on the new automatic
+         *          strategy instantiation or use one of the other constructors.
          */
-        load_balance()
+        [[deprecated]] load_balance()
             : load_balance(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
@@ -528,12 +531,21 @@ public:
         /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
          * hardware */
         const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 25600 on Intel hardware */
+        const index_type intel_row_len_limit = 25600;
+        /* Use imbalance strategy when the matrix has more more than 3e8 on
+         * Intel hardware */
+        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
 
     public:
         /**
          * Creates an automatical strategy.
+         *
+         * @warning this is deprecated! Please rely on the new automatic
+         *          strategy instantiation or use one of the other constructors.
          */
-        automatical()
+        [[deprecated]] automatical()
             : automatical(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
@@ -600,12 +612,8 @@ public:
             index_type nnz_limit = nvidia_nnz_limit;
             index_type row_len_limit = nvidia_row_len_limit;
             if (strategy_name_ == "intel") {
-                /* Use imbalance strategy when the maximum number of nonzero per
-                 * row is more than 25600 on Intel hardware. */
-                nnz_limit = 25600;
-                /* Use imbalance strategy when the matrix has more more than 3e8
-                 * on Intel hardware */
-                row_len_limit = 3e8;
+                nnz_limit = intel_nnz_limit;
+                row_len_limit = intel_row_len_limit;
             }
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
@@ -963,7 +971,7 @@ public:
         gko::detail::ConstArrayView<ValueType>&& values,
         gko::detail::ConstArrayView<IndexType>&& col_idxs,
         gko::detail::ConstArrayView<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        std::shared_ptr<strategy_type> strategy)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -971,6 +979,20 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(values)),
             gko::detail::array_const_cast(std::move(col_idxs)),
             gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
+    }
+
+    /*
+     * This is version of create_const with a default strategy.
+     */
+    static std::unique_ptr<const Csr> create_const(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+    {
+        return Csr::create_const(exec, size, std::move(values),
+                                 std::move(col_idxs), std::move(row_ptrs),
+                                 Csr::make_default_strategy(exec));
     }
 
 protected:
@@ -986,16 +1008,16 @@ protected:
     {}
 
     /**
-     * Creates an uninitialized CSR matrix of the specified size.
+     * Creates an uninitialized CSR matrix of the specified size with a user
+     * chosen strategy.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      * @param strategy  the strategy of CSR
      */
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_nonzeros, std::shared_ptr<strategy_type> strategy)
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
@@ -1006,6 +1028,19 @@ protected:
         row_ptrs_.fill(0);
         this->make_srow();
     }
+
+    /**
+     * Creates an uninitialized CSR matrix of the specified size with a
+     * default strategy.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param size  size of the matrix
+     * @param num_nonzeros  number of nonzeros
+     */
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+        size_type num_nonzeros = {})
+        : Csr{exec, size, num_nonzeros, Csr::make_default_strategy(exec)}
+    {}
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
@@ -1020,6 +1055,7 @@ protected:
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
+     * @param strategy  the strategy the matrix uses for SpMV operations
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -1031,7 +1067,7 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        std::shared_ptr<strategy_type> strategy)
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -1044,10 +1080,49 @@ protected:
         this->make_srow();
     }
 
+    /**
+     * Creates a CSR matrix from already allocated (and initialized) row
+     * pointer, column index and value arrays.
+     *
+     * @note This is the same as the previous constructor but with a default
+     *       strategy.
+     */
+    template <typename ValuesArray, typename ColIdxsArray,
+              typename RowPtrsArray>
+    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+        ValuesArray&& values, ColIdxsArray&& col_idxs, RowPtrsArray&& row_ptrs)
+        : Csr{exec,
+              size,
+              std::forward<ValuesArray>(values),
+              std::forward<ColIdxsArray>(col_idxs),
+              std::forward<RowPtrsArray>(row_ptrs),
+              Csr::make_default_strategy(exec)}
+    {}
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    // TODO: This provides some more sane settings. Please fix this!
+    static std::shared_ptr<strategy_type> make_default_strategy(
+        std::shared_ptr<const Executor> exec)
+    {
+        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
+        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(exec);
+        std::shared_ptr<strategy_type> new_strategy;
+        if (cuda_exec) {
+            new_strategy = std::make_shared<automatical>(cuda_exec);
+        } else if (hip_exec) {
+            new_strategy = std::make_shared<automatical>(hip_exec);
+        } else if (dpcpp_exec) {
+            new_strategy = std::make_shared<automatical>(dpcpp_exec);
+        } else {
+            new_strategy = std::make_shared<classical>();
+        }
+        return new_strategy;
+    }
 
     // TODO clean this up as soon as we improve strategy_type
     template <typename CsrType>
@@ -1140,17 +1215,11 @@ protected:
                                 this_dpcpp_exec);
                     }
                 } else {
+                    // FIXME: this changes strategies.
                     // We had a load balance or automatical strategy from a non
                     // HIP or Cuda executor and are moving to a non HIP or Cuda
                     // executor.
-                    // FIXME this creates a long delay
-                    if (lb) {
-                        new_strat =
-                            std::make_shared<typename CsrType::load_balance>();
-                    } else {
-                        new_strat =
-                            std::make_shared<typename CsrType::automatical>();
-                    }
+                    new_strat = std::make_shared<typename CsrType::classical>();
                 }
             }
         }
