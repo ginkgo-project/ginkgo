@@ -1,1 +1,0 @@
-ginkgo_create_test(amgx_pgm_kernels)
