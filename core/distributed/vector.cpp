@@ -91,46 +91,15 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
 {}
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType,
-          typename LocalMtxType>
-void read_local_impl(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const Partition<LocalIndexType, GlobalIndexType>* partition,
-    const size_type num_cols,
-    const Array<matrix_data_entry<ValueType, GlobalIndexType>>& global_data,
-    LocalMtxType* local_mtx)
-{
-    auto rank = comm.rank();
-
-    auto num_rows = static_cast<size_type>(partition->get_part_size(rank));
-    if (local_mtx->get_size() != dim<2>{num_rows, num_cols}) {
-        auto stride =
-            local_mtx->get_stride() > 0 ? local_mtx->get_stride() : num_cols;
-        LocalMtxType::create(exec, dim<2>{num_rows, num_cols}, stride)
-            ->move_to(local_mtx);
-    }
-    local_mtx->fill(zero<ValueType>());
-    exec->run(vector::make_build_local(global_data, partition, rank, local_mtx,
-                                       ValueType{}));
-}
-
-
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
 {
-    GKO_ASSERT(partition->get_executor() == this->get_executor());
-    this->partition_ = std::move(partition);
-
-    auto exec = this->get_executor();
-    Array<matrix_data_entry<ValueType, GlobalIndexType>> global_data{
-        exec, data.nonzeros.begin(), data.nonzeros.end()};
-    read_local_impl(exec, this->get_communicator(), this->get_partition().get(),
-                    data.size[1], global_data, this->get_local());
-
-    auto global_rows = static_cast<size_type>(this->partition_->get_size());
-    this->set_size({global_rows, data.size[1]});
+    this->read_distributed(
+        device_matrix_data<value_type, global_index_type>::create_from_host(
+            this->get_executor(), data),
+        std::move(partition));
 }
 
 
@@ -139,15 +108,28 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
     std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition)
 {
-    GKO_ASSERT(partition->get_executor() == this->get_executor());
+    auto exec = this->get_executor();
+
+    GKO_ASSERT(partition->get_executor() == exec);
     this->partition_ = std::move(partition);
 
-    read_local_impl(this->get_executor(), this->get_communicator(),
-                    this->get_partition().get(), data.size[1], data.nonzeros,
-                    this->get_local());
-
     auto global_rows = static_cast<size_type>(this->partition_->get_size());
-    this->set_size({global_rows, data.size[1]});
+    auto global_cols = data.get_size()[1];
+    this->set_size({global_rows, global_cols});
+
+    auto rank = this->get_communicator().rank();
+    auto local_rows =
+        static_cast<size_type>(this->get_partition()->get_part_size(rank));
+    if (this->get_local()->get_size() != dim<2>{local_rows, global_cols}) {
+        auto stride = this->get_local()->get_stride() > 0
+                          ? this->get_local()->get_stride()
+                          : global_cols;
+        local_vector_type::create(exec, dim<2>{local_rows, global_cols}, stride)
+            ->move_to(this->get_local());
+    }
+    this->get_local()->fill(zero<ValueType>());
+    exec->run(vector::make_build_local(data, this->get_partition().get(), rank,
+                                       this->get_local()));
 }
 
 
