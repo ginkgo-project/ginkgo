@@ -89,13 +89,15 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
     const auto rows = row_idxs.get_const_data();
     const auto cols = col_idxs.get_const_data();
     auto iota = thrust::make_counting_iterator(size_type{});
-    const auto new_size = static_cast<size_type>(
-        thrust::count_if(thrust::device, iota, iota + size,
-                         [rows, cols] __device__(size_type i) {
-                             const auto prev_row = i > 0 ? rows[i - 1] : -1;
-                             const auto prev_col = i > 0 ? cols[i - 1] : -1;
-                             return rows[i] != prev_row || cols[i] != prev_col;
-                         }));
+    const auto new_size = static_cast<size_type>(thrust::count_if(
+        thrust::device, iota, iota + size,
+        [rows, cols] __device__(size_type i) {
+            const auto prev_row =
+                i > 0 ? rows[i - 1] : invalid_index<IndexType>();
+            const auto prev_col =
+                i > 0 ? cols[i - 1] : invalid_index<IndexType>();
+            return rows[i] != prev_row || cols[i] != prev_col;
+        }));
     if (new_size < size) {
         // allocate new storage
         Array<ValueType> new_values{exec, new_size};

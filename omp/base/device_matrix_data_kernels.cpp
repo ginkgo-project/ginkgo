@@ -116,24 +116,21 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
                                      row_idxs.get_num_elems(), num_rows,
                                      row_ptrs_array.get_data());
     const auto row_ptrs = row_ptrs_array.get_const_data();
-    {
-        const auto out_row_ptrs = out_row_ptrs_array.get_data();
+    const auto out_row_ptrs = out_row_ptrs_array.get_data();
 #pragma omp parallel for
-        for (IndexType row = 0; row < num_rows; row++) {
-            int64 count_unique{};
-            IndexType col = -1;
-            for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
-                const auto new_col = col_idxs.get_const_data()[i];
-                if (col != new_col) {
-                    col = new_col;
-                    count_unique++;
-                }
+    for (IndexType row = 0; row < num_rows; row++) {
+        int64 count_unique{};
+        auto col = invalid_index<IndexType>();
+        for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+            const auto new_col = col_idxs.get_const_data()[i];
+            if (col != new_col) {
+                col = new_col;
+                count_unique++;
             }
-            out_row_ptrs[row] = count_unique;
         }
-        components::prefix_sum(exec, out_row_ptrs, num_rows + 1);
+        out_row_ptrs[row] = count_unique;
     }
-    const auto out_row_ptrs = out_row_ptrs_array.get_const_data();
+    components::prefix_sum(exec, out_row_ptrs, num_rows + 1);
     const auto out_size = static_cast<size_type>(out_row_ptrs[num_rows]);
     if (out_size < size) {
         Array<ValueType> new_values{exec, out_size};
@@ -142,7 +139,7 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
         for (IndexType row = 0; row < num_rows; row++) {
             auto out_i = out_row_ptrs[row] - 1;
-            IndexType col = -1;
+            auto col = invalid_index<IndexType>();
             for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
                 const auto new_col = col_idxs.get_const_data()[i];
                 if (col != new_col) {
