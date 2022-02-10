@@ -45,12 +45,13 @@ namespace distributed_vector {
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,
+    const device_matrix_data<ValueType, GlobalIndexType>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,
-    ValueType deduction_help)
+    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx)
 {
-    auto input_data = input.get_const_data();
+    auto row_idxs = input.get_const_row_idxs();
+    auto col_idxs = input.get_const_col_idxs();
+    auto values = input.get_const_values();
     auto range_bounds = partition->get_range_bounds();
     auto range_parts = partition->get_part_ids();
     auto range_starting_indices = partition->get_range_starting_indices();
@@ -73,15 +74,13 @@ void build_local(
 
     size_type range_id_hint = 0;
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
-        auto entry = input_data[i];
-        auto range_id = find_range(entry.row, range_id_hint);
+        auto range_id = find_range(row_idxs[i], range_id_hint);
         range_id_hint = range_id;
         auto part_id = range_parts[range_id];
         // skip non-local rows
         if (part_id == local_part) {
-            local_mtx->at(map_to_local(entry.row, range_id),
-                          static_cast<LocalIndexType>(entry.column)) =
-                entry.value;
+            local_mtx->at(map_to_local(row_idxs[i], range_id),
+                          static_cast<LocalIndexType>(col_idxs[i])) = values[i];
         }
     }
 }
