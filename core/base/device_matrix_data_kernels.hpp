@@ -67,6 +67,13 @@ namespace kernels {
                       Array<ValueType>& values, Array<IndexType>& row_idxs, \
                       Array<IndexType>& col_idxs)
 
+#define GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL(ValueType, \
+                                                             IndexType) \
+    void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,    \
+                        size_type num_rows, Array<ValueType>& values,   \
+                        Array<IndexType>& row_idxs,                     \
+                        Array<IndexType>& col_idxs)
+
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, \
                                                              IndexType) \
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,    \
@@ -80,6 +87,9 @@ namespace kernels {
     GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL(ValueType,           \
+                                                         IndexType);          \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, IndexType)
 

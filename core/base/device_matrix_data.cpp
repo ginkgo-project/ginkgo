@@ -49,6 +49,7 @@ namespace {
 GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 GKO_REGISTER_OPERATION(soa_to_aos, components::soa_to_aos);
 GKO_REGISTER_OPERATION(remove_zeros, components::remove_zeros);
+GKO_REGISTER_OPERATION(sum_duplicates, components::sum_duplicates);
 GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
 
 
@@ -119,6 +120,15 @@ void device_matrix_data<ValueType, IndexType>::remove_zeros()
 {
     this->values_.get_executor()->run(components::make_remove_zeros(
         this->values_, this->row_idxs_, this->col_idxs_));
+}
+
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::sum_duplicates()
+{
+    this->sort_row_major();
+    this->values_.get_executor()->run(components::make_sum_duplicates(
+        this->size_[0], this->values_, this->row_idxs_, this->col_idxs_));
 }
 
 

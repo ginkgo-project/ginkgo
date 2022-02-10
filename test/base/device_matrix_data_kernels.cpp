@@ -101,6 +101,18 @@ protected:
                      rand);
         nonzero_host_data = host_data;
         nonzero_host_data.remove_zeros();
+        // create duplicate entries by randomly duplicating with random value
+        duplicate_data = host_data;
+        std::uniform_int_distribution<> loc_dist{
+            0, static_cast<int>(host_data.nonzeros.size() - 1)};
+        for (int i = 0; i < 1000; i++) {
+            duplicate_data.nonzeros.push_back(
+                host_data.nonzeros[loc_dist(rand)]);
+            duplicate_data.nonzeros.back().value =
+                gko::test::detail::get_rand_value<value_type>(val_distr, rand);
+        }
+        deduplicated_data = duplicate_data;
+        deduplicated_data.sum_duplicates();
     }
 
     void TearDown()
@@ -115,6 +127,8 @@ protected:
     gko::matrix_data<value_type, index_type> host_data;
     gko::matrix_data<value_type, index_type> sorted_host_data;
     gko::matrix_data<value_type, index_type> nonzero_host_data;
+    gko::matrix_data<value_type, index_type> duplicate_data;
+    gko::matrix_data<value_type, index_type> deduplicated_data;
 };
 
 TYPED_TEST_SUITE(DeviceMatrixData, gko::test::ValueIndexTypes,
@@ -279,13 +293,11 @@ TYPED_TEST(DeviceMatrixData, SortsRowMajor)
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
         device_matrix_data::create_from_host(this->exec, this->host_data);
-    auto device_sorted_data = device_matrix_data::create_from_host(
-        this->exec, this->sorted_host_data);
 
     device_data.sort_row_major();
 
     ASSERT_EQ(device_data.copy_to_host().nonzeros,
-              device_sorted_data.copy_to_host().nonzeros);
+              this->sorted_host_data.nonzeros);
 }
 
 
@@ -296,13 +308,11 @@ TYPED_TEST(DeviceMatrixData, RemovesZeros)
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_data =
         device_matrix_data::create_from_host(this->exec, this->host_data);
-    auto device_nonzero_data = device_matrix_data::create_from_host(
-        this->exec, this->nonzero_host_data);
 
     device_data.remove_zeros();
 
     ASSERT_EQ(device_data.copy_to_host().nonzeros,
-              device_nonzero_data.copy_to_host().nonzeros);
+              this->nonzero_host_data.nonzeros);
 }
 
 
@@ -313,7 +323,6 @@ TYPED_TEST(DeviceMatrixData, DoesntRemoveZerosIfThereAreNone)
     using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
     auto device_nonzero_data = device_matrix_data::create_from_host(
         this->exec, this->nonzero_host_data);
-    auto original = device_nonzero_data;
     auto original_ptr1 = device_nonzero_data.get_const_row_idxs();
     auto original_ptr2 = device_nonzero_data.get_const_col_idxs();
     auto original_ptr3 = device_nonzero_data.get_const_values();
@@ -326,7 +335,63 @@ TYPED_TEST(DeviceMatrixData, DoesntRemoveZerosIfThereAreNone)
     ASSERT_EQ(device_nonzero_data.get_const_values(), original_ptr3);
     // unmodified data
     ASSERT_EQ(device_nonzero_data.copy_to_host().nonzeros,
-              original.copy_to_host().nonzeros);
+              this->nonzero_host_data.nonzeros);
+}
+
+
+#ifndef GKO_COMPILING_DPCPP
+
+
+TYPED_TEST(DeviceMatrixData, SumsDuplicates)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
+    auto device_data =
+        device_matrix_data::create_from_host(this->exec, this->duplicate_data);
+    auto ref_device_data = device_matrix_data::create_from_host(
+        this->exec->get_master(), this->deduplicated_data);
+
+    device_data.sum_duplicates();
+
+    auto ref_arrays = ref_device_data.empty_out();
+    auto arrays = device_data.empty_out();
+    GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, ref_arrays.row_idxs);
+    GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, ref_arrays.col_idxs);
+    double max_error{};
+    arrays.values.set_executor(this->exec->get_master());
+    for (int i = 0; i < arrays.values.get_num_elems(); i++) {
+        max_error = std::max<double>(
+            max_error, std::abs(arrays.values.get_const_data()[i] -
+                                ref_arrays.values.get_const_data()[i]));
+    }
+    ASSERT_LT(max_error, r<value_type>::value);
+}
+
+
+#endif
+
+
+TYPED_TEST(DeviceMatrixData, DoesntSumDuplicatesIfThereAreNone)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using device_matrix_data = gko::device_matrix_data<value_type, index_type>;
+    auto device_data =
+        device_matrix_data::create_from_host(this->exec, this->host_data);
+    auto original_ptr1 = device_data.get_const_row_idxs();
+    auto original_ptr2 = device_data.get_const_col_idxs();
+    auto original_ptr3 = device_data.get_const_values();
+
+    device_data.sum_duplicates();
+
+    // no reallocation
+    ASSERT_EQ(device_data.get_const_row_idxs(), original_ptr1);
+    ASSERT_EQ(device_data.get_const_col_idxs(), original_ptr2);
+    ASSERT_EQ(device_data.get_const_values(), original_ptr3);
+    // sorted data
+    ASSERT_EQ(device_data.copy_to_host().nonzeros,
+              this->sorted_host_data.nonzeros);
 }
 
 
