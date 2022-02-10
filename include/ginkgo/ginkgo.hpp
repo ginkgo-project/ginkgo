@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/cache.hpp>
 #include <ginkgo/core/base/combination.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/device.hpp>
