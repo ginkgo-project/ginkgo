@@ -68,6 +68,9 @@ namespace distributed {
  * vector with specified global and local sizes and fill the local vectors using
  * the accessor get_local.
  *
+ * @note Operations between two vectors (axpy, dot product, etc.) are only valid
+ * if both vectors use the same partition.
+ *
  * @tparam ValueType  The precision of vector elements.
  * @tparam LocalIndexType The index type for local indices used by the
  * partition.
