@@ -45,10 +45,10 @@ namespace distributed_vector {
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local(
     std::shared_ptr<const DefaultExecutor> exec,
-    const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,
+    const device_matrix_data<ValueType, GlobalIndexType>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,
-    ValueType deduction_help) GKO_NOT_IMPLEMENTED;
+    comm_index_type local_part,
+    matrix::Dense<ValueType>* local_mtx) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL);
