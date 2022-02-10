@@ -416,7 +416,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<IndexType>* row_indices,
+                const Array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
@@ -425,8 +425,8 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
             gathered(row, col) = orig(rows[row], col);
         },
-        dim<2>{row_indices->get_num_elems(), orig->get_size()[1]}, orig,
-        *row_indices, row_collection);
+        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]}, orig, *row_idxs,
+        row_collection);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
@@ -436,7 +436,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_indices,
+                         const Array<IndexType>* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -451,8 +451,8 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                 static_cast<type>(beta[0]) *
                     static_cast<type>(gathered(row, col));
         },
-        dim<2>{row_indices->get_num_elems(), orig->get_size()[1]},
-        alpha->get_const_values(), orig, *row_indices, beta->get_const_values(),
+        dim<2>{row_idxs->get_num_elems(), orig->get_size()[1]},
+        alpha->get_const_values(), orig, *row_idxs, beta->get_const_values(),
         row_collection);
 }
 

@@ -150,7 +150,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_row_gather->get_row_indices());
+                    prolong_row_gather->get_row_idxs());
     auto prolong_csr = share(
         csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),

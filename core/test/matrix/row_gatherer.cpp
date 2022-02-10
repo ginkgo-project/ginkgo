@@ -77,7 +77,7 @@ protected:
     static void assert_equal_to_original_mtx(
         const gko::matrix::RowGatherer<i_type>* m)
     {
-        auto gather = m->get_const_row_indices();
+        auto gather = m->get_const_row_idxs();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
         ASSERT_EQ(gather[0], 1);
         ASSERT_EQ(gather[1], 0);
@@ -88,7 +88,7 @@ protected:
     static void assert_empty(gko::matrix::RowGatherer<i_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_const_row_indices(), nullptr);
+        ASSERT_EQ(m->get_const_row_idxs(), nullptr);
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -129,7 +129,7 @@ TYPED_TEST(RowGatherer, RowGathererCanBeConstructedFromExistingData)
         this->exec, gko::dim<2>{3, 5},
         gko::Array<i_type>::view(this->exec, 3, data));
 
-    ASSERT_EQ(m->get_const_row_indices(), data);
+    ASSERT_EQ(m->get_const_row_idxs(), data);
 }
 
 
@@ -154,11 +154,11 @@ TYPED_TEST(RowGatherer, KnowsItsSizeAndValues)
 TYPED_TEST(RowGatherer, CanBeCreatedFromExistingConstData)
 {
     using i_type = typename TestFixture::i_type;
-    const i_type row_indices[] = {1, 0, 2, 1};
+    const i_type row_idxs[] = {1, 0, 2, 1};
 
     auto const_mtx = gko::matrix::RowGatherer<i_type>::create_const(
         this->exec, gko::dim<2>{4, 3},
-        gko::Array<i_type>::const_view(this->exec, 4, row_indices));
+        gko::Array<i_type>::const_view(this->exec, 4, row_idxs));
 
     this->assert_equal_to_original_mtx(const_mtx.get());
 }
@@ -172,7 +172,7 @@ TYPED_TEST(RowGatherer, CanBeCopied)
     mtx_copy->copy_from(this->mtx.get());
 
     this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->get_row_indices()[0] = 3;
+    this->mtx->get_row_idxs()[0] = 3;
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
