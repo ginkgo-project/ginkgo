@@ -49,15 +49,12 @@ namespace {
 template <typename ValueLocalGlobalIndexType>
 class Vector : public ::testing::Test {
 public:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
     using md_type = gko::matrix_data<value_type, global_index_type>;
@@ -144,28 +141,20 @@ TYPED_TEST(Vector, CanReadGlobalMatrixDataSomeEmpty)
 
 TYPED_TEST(Vector, CanReadGlobalDeviceMatrixData)
 {
+    using it = typename TestFixture::global_index_type;
     using d_md_type = typename TestFixture::d_md_type;
     using part_type = typename TestFixture::part_type;
-    using value_type = typename TestFixture::value_type;
-    using nz_type = typename TestFixture::nz_type;
-    d_md_type md{gko::dim<2>{6, 2},
-                 gko::Array<nz_type>{this->ref, I<nz_type>{{0, 0, 0},
-                                                           {0, 1, 1},
-                                                           {1, 0, 2},
-                                                           {1, 1, 3},
-                                                           {2, 0, 4},
-                                                           {2, 1, 5},
-                                                           {3, 0, 6},
-                                                           {3, 1, 7},
-                                                           {4, 0, 8},
-                                                           {4, 1, 9},
-                                                           {5, 0, 10},
-                                                           {5, 1, 11}}}};
+    using vt = typename TestFixture::value_type;
+    d_md_type md{
+        this->ref, gko::dim<2>{6, 2},
+        gko::Array<it>{this->ref, I<it>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5}},
+        gko::Array<it>{this->ref, I<it>{0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}},
+        gko::Array<vt>{this->ref, I<vt>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}}};
     auto part = gko::share(
         part_type::build_from_contiguous(this->ref, {this->ref, {0, 2, 4, 6}}));
     auto vec = TestFixture::dist_vec_type::create(this->ref, this->comm);
     auto rank = this->comm.rank();
-    I<I<value_type>> ref_data[3] = {
+    I<I<vt>> ref_data[3] = {
         {{0, 1}, {2, 3}},
         {{4, 5}, {6, 7}},
         {{8, 9}, {10, 11}},
@@ -176,7 +165,7 @@ TYPED_TEST(Vector, CanReadGlobalDeviceMatrixData)
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<vt>::value);
 }
 
 TYPED_TEST(Vector, CanReadGlobalMatrixDataScattered)
