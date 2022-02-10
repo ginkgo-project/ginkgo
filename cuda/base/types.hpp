@@ -76,6 +76,15 @@ struct alignas(std::complex<T>) fake_complex {
         : real{val.real()}, imag{val.imag()}
     {}
 
+    friend GKO_INLINE GKO_ATTRIBUTES fake_complex operator+(fake_complex a,
+                                                            fake_complex b)
+    {
+        fake_complex result{};
+        result.real = a.real + b.real;
+        result.imag = a.imag + b.imag;
+        return result;
+    }
+
     friend bool GKO_INLINE GKO_ATTRIBUTES constexpr operator==(fake_complex a,
                                                                fake_complex b)
     {
