@@ -350,7 +350,7 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
     auto device_data =
         device_matrix_data::create_from_host(this->exec, this->duplicate_data);
     auto ref_device_data = device_matrix_data::create_from_host(
-        this->exec, this->deduplicated_data);
+        this->exec->get_master(), this->deduplicated_data);
 
     device_data.sum_duplicates();
 
@@ -359,6 +359,7 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
     GKO_ASSERT_ARRAY_EQ(arrays.row_idxs, ref_arrays.row_idxs);
     GKO_ASSERT_ARRAY_EQ(arrays.col_idxs, ref_arrays.col_idxs);
     double max_error{};
+    arrays.values.set_executor(this->exec->get_master());
     for (int i = 0; i < arrays.values.get_num_elems(); i++) {
         max_error = std::max<double>(
             max_error, std::abs(arrays.values.get_const_data()[i] -
