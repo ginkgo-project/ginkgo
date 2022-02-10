@@ -336,10 +336,11 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_dot(
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
-        auto dense_res_host =
-            make_temporary_clone(exec->get_master(), dense_res.get());
-        comm.all_reduce(dense_res_host->get_values(),
+        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_reduction_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_reduction_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+        dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
@@ -361,10 +362,11 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_conj_dot(
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
-        auto dense_res_host =
-            make_temporary_clone(exec->get_master(), dense_res.get());
-        comm.all_reduce(dense_res_host->get_values(),
+        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_reduction_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_reduction_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+        dense_res->copy_from(host_reduction_buffer_.get());
     } else {
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
@@ -387,10 +389,11 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
-        auto dense_res_host =
-            make_temporary_clone(exec->get_master(), dense_res.get());
-        comm.all_reduce(dense_res_host->get_values(),
+        host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_norm_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+        dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
@@ -413,10 +416,11 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm1(
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
-        auto dense_res_host =
-            make_temporary_clone(exec->get_master(), dense_res.get());
-        comm.all_reduce(dense_res_host->get_values(),
+        host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_norm_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+        dense_res->copy_from(host_norm_buffer_.get());
     } else {
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
