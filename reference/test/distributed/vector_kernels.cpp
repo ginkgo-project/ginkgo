@@ -67,17 +67,20 @@ protected:
     Vector() : ref(gko::ReferenceExecutor::create()), mapping{ref} {}
 
     void validate(
-        const gko::size_type num_cols,
+        const gko::dim<2> size,
         const gko::distributed::Partition<local_index_type, global_index_type>*
             partition,
-        std::initializer_list<global_entry> input_entries,
+        std::initializer_list<global_index_type> input_rows,
+        std::initializer_list<global_index_type> input_cols,
+        std::initializer_list<value_type> input_vals,
         std::initializer_list<
             std::initializer_list<std::initializer_list<value_type>>>
             output_entries)
     {
         std::vector<std::initializer_list<std::initializer_list<value_type>>>
             ref_outputs;
-        auto input = gko::Array<global_entry>{ref, input_entries};
+        auto input = gko::device_matrix_data<value_type, global_index_type>{
+            ref, size, input_rows, input_cols, input_vals};
         for (auto entry : output_entries) {
             ref_outputs.emplace_back(entry);
         }
@@ -85,11 +88,11 @@ protected:
              ++part) {
             auto num_rows =
                 static_cast<gko::size_type>(partition->get_part_size(part));
-            auto output = mtx::create(ref, gko::dim<2>{num_rows, num_cols});
+            auto output = mtx::create(ref, gko::dim<2>{num_rows, size[1]});
             output->fill(gko::zero<value_type>());
 
             gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition, part, output.get(), value_type{});
+                ref, input, partition, part, output.get());
 
             GKO_ASSERT_MTX_NEAR(output, ref_outputs[part], 0);
         }
@@ -113,7 +116,7 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(0, partition.get(), {},
+    this->validate(gko::dim<2>{0, 0}, partition.get(), {}, {}, {},
                    {{{}, {}}, {{}, {}, {}}, {{}, {}, {}}});
 }
 
@@ -129,9 +132,8 @@ TYPED_TEST(Vector, BuildsLocalSmall)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(2, partition.get(),
-                   {{0, 0, 1}, {0, 1, 2}, {1, 0, 3}, {1, 1, 4}},
-                   {{{3, 4}}, {{1, 2}}});
+    this->validate(gko::dim<2>{2, 2}, partition.get(), {0, 0, 1, 1},
+                   {0, 1, 0, 1}, {1, 2, 3, 4}, {{{3, 4}}, {{1, 2}}});
 }
 
 
@@ -146,15 +148,8 @@ TYPED_TEST(Vector, BuildsLocal)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(8, partition.get(),
-                   {{0, 0, 1},
-                    {0, 1, 2},
-                    {1, 2, 3},
-                    {1, 3, 4},
-                    {2, 4, 5},
-                    {3, 5, 6},
-                    {4, 6, 7},
-                    {5, 7, 8}},
+    this->validate(gko::dim<2>{6, 8}, partition.get(), {0, 0, 1, 1, 2, 3, 4, 5},
+                   {0, 1, 2, 3, 4, 5, 6, 7}, {1, 2, 3, 4, 5, 6, 7, 8},
                    {{{0, 0, 0, 0, 5, 0, 0, 0}, {0, 0, 0, 0, 0, 6, 0, 0}},
                     {{1, 2, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 8}},
                     {{0, 0, 3, 4, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 7, 0}}});

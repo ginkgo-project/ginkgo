@@ -53,11 +53,10 @@ namespace kernels {
                                                    GlobalIndexType)           \
     void build_local(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const Array<matrix_data_entry<ValueType, GlobalIndexType>>& input,    \
+        const device_matrix_data<ValueType, GlobalIndexType>& input,          \
         const distributed::Partition<LocalIndexType, GlobalIndexType>*        \
             partition,                                                        \
-        comm_index_type local_part, matrix::Dense<ValueType>* local_mtx,      \
-        ValueType deduction_help)
+        comm_index_type local_part, matrix::Dense<ValueType>* local_mtx)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
