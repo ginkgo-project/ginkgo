@@ -213,8 +213,12 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const dim3 block(spmv_block_size);
 
     const auto b_vals = gko::acc::range<input_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subgroup_size>(

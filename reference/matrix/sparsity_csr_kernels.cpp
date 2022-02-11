@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "reference/components/format_conversion.hpp"
 
 
 namespace gko {
