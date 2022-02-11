@@ -473,9 +473,9 @@ protected:
     std::shared_ptr<Mtx> b2;
     std::shared_ptr<Mtx> x2;
 };
-using VIT = ::testing::Types<std::tuple<double, gko::int32>>;
-TYPED_TEST_CASE(Multigrid, gko::test::ValueIndexTypes,
-                PairTypenameNameGenerator);
+
+TYPED_TEST_SUITE(Multigrid, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Multigrid, KCycleStep1)
