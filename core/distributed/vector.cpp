@@ -53,129 +53,117 @@ GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 }  // namespace vector
 
 
+namespace detail {
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const
+void read_distributed_impl(
+    const device_matrix_data<ValueType, GlobalIndexType>& data,
+    const Partition<LocalIndexType, GlobalIndexType>* partition,
+    Vector<ValueType>* result)
+{
+    auto exec = result->get_executor();
+
+    GKO_ASSERT(partition->get_executor() == exec);
+
+    auto global_rows = static_cast<size_type>(partition->get_size());
+    auto global_cols = data.get_size()[1];
+    auto tmp = Vector<ValueType>::create(exec, result->get_communicator(),
+                                         gko::dim<2>{global_rows, global_cols});
+
+    auto rank = tmp->get_communicator().rank();
+    auto local_rows = static_cast<size_type>(partition->get_part_size(rank));
+    if (tmp->get_local()->get_size() != dim<2>{local_rows, global_cols}) {
+        auto stride = tmp->get_local()->get_stride() > 0
+                          ? tmp->get_local()->get_stride()
+                          : global_cols;
+        Vector<ValueType>::local_vector_type::create(
+            exec, dim<2>{local_rows, global_cols}, stride)
+            ->move_to(tmp->get_local());
+    }
+    tmp->get_local()->fill(zero<ValueType>());
+    exec->run(
+        vector::make_build_local(data, partition, rank, tmp->get_local()));
+    tmp->move_to(result);
+}
+
+#define GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL(               \
+    ValueType, LocalIndexType, GlobalIndexType)                      \
+    void read_distributed_impl(                                      \
+        const device_matrix_data<ValueType, GlobalIndexType>& data,  \
+        const Partition<LocalIndexType, GlobalIndexType>* partition, \
+        Vector<ValueType>* storage)
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL);
+
+
+}  // namespace detail
+
+
+template <typename ValueType>
+void Vector<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     GKO_NOT_SUPPORTED(this);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
+template <typename ValueType>
+void Vector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                   const LinOp* beta, LinOp* x) const
 {
     GKO_NOT_SUPPORTED(this);
 }
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition,
-    dim<2> global_size, dim<2> local_size)
-    : Vector(exec, comm, std::move(partition), global_size, local_size,
-             local_size[1])
+template <typename ValueType>
+Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
+                          mpi::communicator comm, dim<2> global_size,
+                          dim<2> local_size)
+    : Vector(exec, comm, global_size, local_size, local_size[1])
 {}
 
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
-    std::shared_ptr<const Executor> exec)
-    : Vector(exec, mpi::communicator(MPI_COMM_NULL), {}, {}, 0)
-{}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::Vector(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>> partition,
-    dim<2> global_size, dim<2> local_size, size_type stride)
-    : EnableLinOp<
-          Vector<ValueType, LocalIndexType, GlobalIndexType>>{exec,
-                                                              global_size},
+template <typename ValueType>
+Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
+                          mpi::communicator comm, dim<2> global_size,
+                          dim<2> local_size, size_type stride)
+    : EnableLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
-      partition_{std::move(partition)},
       local_{exec, local_size, stride}
 {}
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const matrix_data<ValueType, GlobalIndexType>& data)
-{
-    this->read_distributed(
-        device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data));
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<ValueType, GlobalIndexType>& data)
-{
-    auto exec = this->get_executor();
-
-    auto global_rows = static_cast<size_type>(this->partition_->get_size());
-    auto global_cols = data.get_size()[1];
-    this->set_size({global_rows, global_cols});
-
-    auto rank = this->get_communicator().rank();
-    auto local_rows =
-        static_cast<size_type>(this->get_partition()->get_part_size(rank));
-    if (this->get_local()->get_size() != dim<2>{local_rows, global_cols}) {
-        auto stride = this->get_local()->get_stride() > 0
-                          ? this->get_local()->get_stride()
-                          : global_cols;
-        local_vector_type::create(exec, dim<2>{local_rows, global_cols}, stride)
-            ->move_to(this->get_local());
-    }
-    this->get_local()->fill(zero<ValueType>());
-    exec->run(vector::make_build_local(data, this->get_partition().get(), rank,
-                                       this->get_local()));
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::fill(
-    const ValueType value)
+template <typename ValueType>
+void Vector<ValueType>::fill(const ValueType value)
 {
     this->get_local()->fill(value);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
-    const
+template <typename ValueType>
+void Vector<ValueType>::convert_to(
+    Vector<next_precision<ValueType>>* result) const
 {
     result->set_size(this->get_size());
     result->set_communicator(this->get_communicator());
-    result->partition_ = this->partition_;
     this->get_const_local()->convert_to(result->get_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>* result)
+template <typename ValueType>
+void Vector<ValueType>::move_to(Vector<next_precision<ValueType>>* result)
 {
-    result->set_size(this->get_size());
-    result->set_communicator(this->get_communicator());
-    result->partition_ = this->partition_;
-    this->get_local()->move_to(result->get_local());
+    this->convert_to(result);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<
-    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::absolute_type>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_absolute() const
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::absolute_type>
+Vector<ValueType>::compute_absolute() const
 {
     auto exec = this->get_executor();
 
-    auto result = absolute_type::create(exec, this->get_communicator(),
-                                        this->get_partition(), this->get_size(),
-                                        this->get_const_local()->get_size());
+    auto result =
+        absolute_type::create(exec, this->get_communicator(), this->get_size(),
+                              this->get_const_local()->get_size());
 
     exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
                                                    result->get_local()));
@@ -184,134 +172,120 @@ Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_absolute() const
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType,
-            GlobalIndexType>::compute_absolute_inplace()
+template <typename ValueType>
+void Vector<ValueType>::compute_absolute_inplace()
 {
     this->get_local()->compute_absolute_inplace();
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-const typename Vector<ValueType, LocalIndexType,
-                      GlobalIndexType>::local_vector_type*
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_const_local() const
+template <typename ValueType>
+const typename Vector<ValueType>::local_vector_type*
+Vector<ValueType>::get_const_local() const
 {
     return &local_;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-typename Vector<ValueType, LocalIndexType, GlobalIndexType>::local_vector_type*
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_local()
+template <typename ValueType>
+typename Vector<ValueType>::local_vector_type* Vector<ValueType>::get_local()
 {
     return &local_;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<
-    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::complex_type>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::make_complex() const
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::complex_type>
+Vector<ValueType>::make_complex() const
 {
     auto result = complex_type::create(
-        this->get_executor(), this->get_communicator(), this->get_partition(),
-        this->get_size(), this->get_const_local()->get_size(),
+        this->get_executor(), this->get_communicator(), this->get_size(),
+        this->get_const_local()->get_size(),
         this->get_const_local()->get_stride());
     this->make_complex(result.get());
     return result;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::make_complex(
-    Vector::complex_type* result) const
+template <typename ValueType>
+void Vector<ValueType>::make_complex(Vector::complex_type* result) const
 {
     this->get_const_local()->make_complex(result->get_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<
-    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::real_type>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_real() const
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::get_real() const
 {
-    auto result = real_type::create(
-        this->get_executor(), this->get_communicator(), this->get_partition(),
-        this->get_size(), this->get_const_local()->get_size(),
-        this->get_const_local()->get_stride());
+    auto result =
+        real_type::create(this->get_executor(), this->get_communicator(),
+                          this->get_size(), this->get_const_local()->get_size(),
+                          this->get_const_local()->get_stride());
     this->get_real(result.get());
     return result;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::get_real(
-    Vector::real_type* result) const
+template <typename ValueType>
+void Vector<ValueType>::get_real(Vector::real_type* result) const
 {
     this->get_const_local()->get_real(result->get_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<
-    typename Vector<ValueType, LocalIndexType, GlobalIndexType>::real_type>
-Vector<ValueType, LocalIndexType, GlobalIndexType>::get_imag() const
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::get_imag() const
 {
-    auto result = real_type::create(
-        this->get_executor(), this->get_communicator(), this->get_partition(),
-        this->get_size(), this->get_const_local()->get_size(),
-        this->get_const_local()->get_stride());
+    auto result =
+        real_type::create(this->get_executor(), this->get_communicator(),
+                          this->get_size(), this->get_const_local()->get_size(),
+                          this->get_const_local()->get_stride());
     this->get_imag(result.get());
     return result;
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::get_imag(
-    Vector::real_type* result) const
+template <typename ValueType>
+void Vector<ValueType>::get_imag(Vector::real_type* result) const
 {
     this->get_const_local()->get_imag(result->get_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::scale(
-    const LinOp* alpha)
+template <typename ValueType>
+void Vector<ValueType>::scale(const LinOp* alpha)
 {
     this->get_local()->scale(alpha);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::inv_scale(
-    const LinOp* alpha)
+template <typename ValueType>
+void Vector<ValueType>::inv_scale(const LinOp* alpha)
 {
     this->get_local()->inv_scale(alpha);
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::add_scaled(
-    const LinOp* alpha, const LinOp* b)
+template <typename ValueType>
+void Vector<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
 {
-    auto dense_b = as<Vector<ValueType, LocalIndexType, GlobalIndexType>>(b);
+    auto dense_b = as<Vector<ValueType>>(b);
     this->get_local()->add_scaled(alpha, dense_b->get_const_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::sub_scaled(
-    const LinOp* alpha, const LinOp* b)
+template <typename ValueType>
+void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
 {
-    auto dense_b = as<Vector<ValueType, LocalIndexType, GlobalIndexType>>(b);
+    auto dense_b = as<Vector<ValueType>>(b);
     this->get_local()->sub_scaled(alpha, dense_b->get_const_local());
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_dot(
-    const LinOp* b, LinOp* result) const
+template <typename ValueType>
+void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -335,9 +309,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_dot(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_conj_dot(
-    const LinOp* b, LinOp* result) const
+template <typename ValueType>
+void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
@@ -361,9 +334,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_conj_dot(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
-    LinOp* result) const
+template <typename ValueType>
+void Vector<ValueType>::compute_norm2(LinOp* result) const
 {
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -389,9 +361,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm2(
 }
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm1(
-    LinOp* result) const
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1(LinOp* result) const
 {
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -415,11 +386,8 @@ void Vector<ValueType, LocalIndexType, GlobalIndexType>::compute_norm1(
 }
 
 
-#define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType, LocalIndexType, \
-                                       GlobalIndexType)           \
-    class Vector<ValueType, LocalIndexType, GlobalIndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_VECTOR);
+#define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
 
 }  // namespace distributed
