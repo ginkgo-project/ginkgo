@@ -747,21 +747,6 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 
 
 template <typename IndexType>
-void calculate_nnz_per_row(size_type num_rows,
-                           const IndexType* __restrict__ row_ptrs,
-                           size_type* __restrict__ nnz_per_row,
-                           sycl::nd_item<3> item_ct1)
-{
-    const auto tidx = thread::get_thread_id_flat(item_ct1);
-    if (tidx < num_rows) {
-        nnz_per_row[tidx] = row_ptrs[tidx + 1] - row_ptrs[tidx];
-    }
-}
-
-GKO_ENABLE_DEFAULT_HOST(calculate_nnz_per_row, calculate_nnz_per_row);
-
-
-template <typename IndexType>
 void check_unsorted(const IndexType* __restrict__ row_ptrs,
                     const IndexType* __restrict__ col_idxs, IndexType num_rows,
                     bool* flag, sycl::nd_item<3> item_ct1, bool* sh_flag)
