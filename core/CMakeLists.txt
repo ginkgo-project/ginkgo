@@ -69,6 +69,7 @@ if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
         PRIVATE
         mpi/exception.cpp
+        distributed/matrix.cpp
         distributed/vector.cpp)
 endif()
 
