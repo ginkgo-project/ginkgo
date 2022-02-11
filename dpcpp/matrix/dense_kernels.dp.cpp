@@ -109,7 +109,6 @@ void transpose(const size_type nrows, const size_type ncols,
 }
 
 template <std::uint32_t sg_size, typename ValueType>
-__WG_BOUND__(sg_size, sg_size)
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
@@ -134,7 +133,8 @@ void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             space_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
                 transpose<sg_size>(nrows, ncols, in, in_stride, out, out_stride,
                                    item_ct1, *space_acc_ct1.get_pointer());
             });
@@ -146,7 +146,6 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(transpose_call, transpose, subgroup_list);
 
 
 template <std::uint32_t sg_size, typename ValueType>
-__WG_BOUND__(sg_size, sg_size)
 void conj_transpose(const size_type nrows, const size_type ncols,
                     const ValueType* __restrict__ in, const size_type in_stride,
                     ValueType* __restrict__ out, const size_type out_stride,
@@ -172,7 +171,8 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             space_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
                 conj_transpose<sg_size>(nrows, ncols, in, in_stride, out,
                                         out_stride, item_ct1,
                                         *space_acc_ct1.get_pointer());
