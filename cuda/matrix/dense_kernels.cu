@@ -87,7 +87,7 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                         x->get_stride(), y->get_const_values(), y->get_stride(),
                         result->get_values());
         } else {
-            GKO_NOT_IMPLEMENTED;
+            compute_dot(exec, x, y, result);
         }
     } else {
         compute_dot(exec, x, y, result);
@@ -112,7 +112,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                              x->get_stride(), y->get_const_values(),
                              y->get_stride(), result->get_values());
         } else {
-            GKO_NOT_IMPLEMENTED;
+            compute_conj_dot(exec, x, y, result);
         }
     } else {
         compute_conj_dot(exec, x, y, result);
@@ -135,7 +135,7 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
             cublas::norm2(handle, x->get_size()[0], x->get_const_values(),
                           x->get_stride(), result->get_values());
         } else {
-            GKO_NOT_IMPLEMENTED;
+            compute_norm2(exec, x, result);
         }
     } else {
         compute_norm2(exec, x, result);
