@@ -106,6 +106,31 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
 
 
 /**
+ * Generates matrix data for a random matrix.
+ *
+ * @see generate_random_matrix_data
+ */
+template <typename ValueType, typename IndexType, typename NonzeroDistribution,
+          typename ValueDistribution, typename Engine>
+gko::device_matrix_data<ValueType, IndexType>
+generate_random_device_matrix_data(gko::size_type num_rows,
+                                   gko::size_type num_cols,
+                                   NonzeroDistribution&& nonzero_dist,
+                                   ValueDistribution&& value_dist,
+                                   Engine&& engine,
+                                   std::shared_ptr<const gko::Executor> exec)
+{
+    auto md = gko::test::generate_random_matrix_data<ValueType, IndexType>(
+        num_rows, num_cols, std::forward<NonzeroDistribution>(nonzero_dist),
+        std::forward<ValueDistribution>(value_dist),
+        std::forward<Engine>(engine));
+    md.ensure_row_major_order();
+    return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
+                                                                           md);
+}
+
+
+/**
  * Generates a random matrix.
  *
  * @tparam MatrixType  type of matrix to generate (must implement
