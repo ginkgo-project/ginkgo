@@ -50,6 +50,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace distributed {
 
+namespace detail {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void read_distributed_impl(
+    const device_matrix_data<ValueType, GlobalIndexType>& data,
+    const Partition<LocalIndexType, GlobalIndexType>* partition,
+    Vector<ValueType>* result);
+
+
+}
+
 
 /**
  * Vector is a format which explicitly stores (multiple) distributed column
@@ -69,77 +81,75 @@ namespace distributed {
  * the accessor get_local.
  *
  * @note Operations between two vectors (axpy, dot product, etc.) are only valid
- * if both vectors use the same partition.
+ * if both vectors where created using the same partition.
  *
  * @tparam ValueType  The precision of vector elements.
- * @tparam LocalIndexType The index type for local indices used by the
- * partition.
- * @tparam GlobalIndexType The index type for the global indices used by the
- * partition.
  *
  * @ingroup dist_vector
  * @ingroup distributed
  */
-template <typename ValueType = double, typename LocalIndexType = int32,
-          typename GlobalIndexType = int64>
+template <typename ValueType = double>
 class Vector
-    : public EnableLinOp<Vector<ValueType, LocalIndexType, GlobalIndexType>>,
-      public EnableCreateMethod<
-          Vector<ValueType, LocalIndexType, GlobalIndexType>>,
-      public ConvertibleTo<
-          Vector<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
-      public EnableAbsoluteComputation<
-          remove_complex<Vector<ValueType, LocalIndexType, GlobalIndexType>>>,
+    : public EnableLinOp<Vector<ValueType>>,
+      public EnableCreateMethod<Vector<ValueType>>,
+      public ConvertibleTo<Vector<next_precision<ValueType>>>,
+      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnableCreateMethod<
-        Vector<ValueType, LocalIndexType, GlobalIndexType>>;
-    friend class EnablePolymorphicObject<
-        Vector<ValueType, LocalIndexType, GlobalIndexType>, LinOp>;
-    friend class Vector<to_complex<ValueType>, LocalIndexType, GlobalIndexType>;
-    friend class Vector<next_precision<ValueType>, LocalIndexType,
-                        GlobalIndexType>;
+    friend class EnableCreateMethod<Vector<ValueType>>;
+    friend class EnablePolymorphicObject<Vector<ValueType>, LinOp>;
+    friend class Vector<to_complex<ValueType>>;
+    friend class Vector<next_precision<ValueType>>;
 
 public:
     using EnableLinOp<Vector>::convert_to;
     using EnableLinOp<Vector>::move_to;
 
     using value_type = ValueType;
-    using index_type = GlobalIndexType;
-    using local_index_type = LocalIndexType;
-    using global_index_type = GlobalIndexType;
     using absolute_type = remove_complex<Vector>;
     using real_type = absolute_type;
-    using complex_type =
-        Vector<to_complex<value_type>, local_index_type, global_index_type>;
+    using complex_type = Vector<to_complex<value_type>>;
     using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
-     * Reads a vector from the matrix_data structure.
+     * Reads a vector from the matrix_data structure and a global row partition.
      *
      * The number of rows of the matrix data is ignored, only its number of
-     * columns is relevant. The number of rows is inferred from the vector's
-     * partition.
+     * columns is relevant. The number of rows is inferred from the partition.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
      *
      * @param data  The matrix_data structure
+     * @param partition  The global row partition
      */
-    void read_distributed(const matrix_data<ValueType, GlobalIndexType>& data);
+    template <typename LocalIndexType, typename GlobalIndexType>
+    void read_distributed(
+        const matrix_data<ValueType, GlobalIndexType>& data,
+        const Partition<LocalIndexType, GlobalIndexType>* partition)
+    {
+        this->read_distributed(
+            device_matrix_data<value_type, GlobalIndexType>::create_from_host(
+                this->get_executor(), data),
+            std::move(partition));
+    }
 
     /**
-     * Reads a vector from the device_matrix_data structure.
+     * Reads a vector from the device_matrix_data structure and a global row
+     * partition.
      *
      * See @read_distributed
      */
+    template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
-        const device_matrix_data<ValueType, GlobalIndexType>& data);
+        const device_matrix_data<ValueType, GlobalIndexType>& data,
+        const Partition<LocalIndexType, GlobalIndexType>* partition)
+    {
+        detail::read_distributed_impl(data, partition, this);
+    }
 
-    void convert_to(Vector<next_precision<ValueType>, LocalIndexType,
-                           GlobalIndexType>* result) const override;
+    void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType>, LocalIndexType,
-                        GlobalIndexType>* result) override;
+    void move_to(Vector<next_precision<ValueType>>* result) override;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -287,39 +297,7 @@ public:
      */
     local_vector_type* get_local();
 
-    /**
-     * Access to the partition that defines these global vectors.
-     *
-     * @return a shared_ptr to the global row partition
-     */
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-    get_partition() const
-    {
-        return partition_;
-    }
-
 protected:
-    /**
-     * Creates an empty distributed vector.
-     * @param exec  Executor associated with vector
-     */
-    explicit Vector(std::shared_ptr<const Executor> exec);
-
-    /**
-     * Creates an empty distributed vector with a specified size
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector, the default is
-     *              MPI_COMM_WORLD
-     * @param partition  Partition of global rows
-     * @param global_size  Global size of the vector
-     * @param local_size  Processor-local size of the vector, uses local_size[1]
-     *                    as the stride
-     */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-               partition,
-           dim<2> global_size = {}, dim<2> local_size = {});
-
     /**
      * Creates an empty distributed vector with a specified size
      * @param exec  Executor associated with vector
@@ -331,9 +309,21 @@ protected:
      * @param stride  Stride of the local vector.
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-               partition,
            dim<2> global_size, dim<2> local_size, size_type stride);
+
+    /**
+     * Creates an empty distributed vector with a specified size
+     * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector, the default is
+     *              MPI_COMM_WORLD
+     * @param partition  Partition of global rows
+     * @param global_size  Global size of the vector
+     * @param local_size  Processor-local size of the vector, uses local_size[1]
+     *                    as the stride
+     */
+    explicit Vector(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
+                    dim<2> global_size = {}, dim<2> local_size = {});
 
     void apply_impl(const LinOp*, LinOp*) const override;
 
@@ -341,8 +331,6 @@ protected:
                     LinOp*) const override;
 
 private:
-    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
-        partition_;
     local_vector_type local_;
     mutable ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
     mutable ::gko::detail::DenseCache<remove_complex<ValueType>>
