@@ -71,7 +71,6 @@ protected:
     {}
 
     void validate(
-        const gko::dim<2> size,
         const gko::distributed::Partition<local_index_type, global_index_type>*
             partition,
         const gko::distributed::Partition<local_index_type, global_index_type>*
@@ -84,7 +83,8 @@ protected:
              ++part) {
             auto num_rows =
                 static_cast<gko::size_type>(partition->get_part_size(part));
-            auto output = mtx::create(ref, gko::dim<2>{num_rows, size[1]});
+            auto output =
+                mtx::create(ref, gko::dim<2>{num_rows, input.get_size()[1]});
             output->fill(gko::zero<value_type>());
             auto d_output = gko::clone(exec, output);
 
@@ -144,7 +144,7 @@ TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
                                                                  num_parts);
 
     this->validate(
-        gko::dim<2>{0, 0}, partition.get(), d_partition.get(),
+        partition.get(), d_partition.get(),
         gko::device_matrix_data<value_type, global_index_type>{this->ref});
 }
 
@@ -180,7 +180,7 @@ TYPED_TEST(Vector, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(num_cols, partition.get(), d_partition.get(), input);
+    this->validate(partition.get(), d_partition.get(), input);
 }
 
 
@@ -215,7 +215,7 @@ TYPED_TEST(Vector, BuildsLocalIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(num_cols, partition.get(), d_partition.get(), input);
+    this->validate(partition.get(), d_partition.get(), input);
 }
 
 

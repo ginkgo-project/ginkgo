@@ -132,8 +132,8 @@ TYPED_TEST(Vector, BuildsLocalSmall)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(2, partition.get(), {0, 0, 1, 1}, {0, 1, 0, 1}, {1, 2, 3, 4},
-                   {{{3, 4}}, {{1, 2}}});
+    this->validate(gko::dim<2>{2, 2}, partition.get(), {0, 0, 1, 1},
+                   {0, 1, 0, 1}, {1, 2, 3, 4}, {{{3, 4}}, {{1, 2}}});
 }
 
 
@@ -148,7 +148,7 @@ TYPED_TEST(Vector, BuildsLocal)
                                                                  this->mapping,
                                                                  num_parts);
 
-    this->validate(8, partition.get(), {0, 0, 1, 1, 2, 3, 4, 5},
+    this->validate(gko::dim<2>{6, 8}, partition.get(), {0, 0, 1, 1, 2, 3, 4, 5},
                    {0, 1, 2, 3, 4, 5, 6, 7}, {1, 2, 3, 4, 5, 6, 7, 8},
                    {{{0, 0, 0, 0, 5, 0, 0, 0}, {0, 0, 0, 0, 0, 6, 0, 0}},
                     {{1, 2, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 8}},
