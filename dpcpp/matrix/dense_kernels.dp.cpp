@@ -209,6 +209,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* y,
                                matrix::Dense<ValueType>* result)
 {
+    // TODO Add onemkl for single column ?
     compute_conj_dot(exec, x, y, result);
 }
 
@@ -221,6 +222,7 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
                             matrix::Dense<remove_complex<ValueType>>* result)
 {
+    // TODO Add onemkl for single column ?
     compute_norm2(exec, x, result);
 }
 
