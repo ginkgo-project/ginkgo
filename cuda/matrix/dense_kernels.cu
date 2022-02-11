@@ -82,7 +82,6 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
             auto handle = exec->get_cublas_handle();
-            cublas::pointer_mode_guard pm_guard(handle);
             cublas::dot(handle, x->get_size()[0], x->get_const_values(),
                         x->get_stride(), y->get_const_values(), y->get_stride(),
                         result->get_values());
@@ -107,7 +106,6 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
             auto handle = exec->get_cublas_handle();
-            cublas::pointer_mode_guard pm_guard(handle);
             cublas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
                              x->get_stride(), y->get_const_values(),
                              y->get_stride(), result->get_values());
@@ -131,7 +129,6 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     if (x->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
             auto handle = exec->get_cublas_handle();
-            cublas::pointer_mode_guard pm_guard(handle);
             cublas::norm2(handle, x->get_size()[0], x->get_const_values(),
                           x->get_stride(), result->get_values());
         } else {
