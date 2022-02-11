@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
+#include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
 #include <fstream>
@@ -46,15 +46,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/multigrid/amgx_pgm.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -62,9 +63,13 @@ namespace {
 
 class AmgxPgm : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif  // GINKGO_COMMON_SINGLE_MODE
     using index_type = gko::int32;
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
@@ -74,7 +79,14 @@ protected:
     void SetUp()
     {
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        init_executor(ref, exec);
+    }
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
     }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
@@ -82,7 +94,7 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     gko::Array<index_type> gen_array(gko::size_type num, index_type min_val,
@@ -139,26 +151,26 @@ protected:
         system_mtx = Csr::create(ref);
         system_dense->convert_to(system_mtx.get());
 
-        d_agg = gko::Array<index_type>(omp, agg);
-        d_unfinished_agg = gko::Array<index_type>(omp, unfinished_agg);
-        d_strongest_neighbor = gko::Array<index_type>(omp, strongest_neighbor);
-        d_coarse_vector = gko::clone(omp, coarse_vector);
-        d_fine_vector = gko::clone(omp, fine_vector);
-        d_weight_csr = gko::clone(omp, weight_csr);
-        d_weight_diag = gko::clone(omp, weight_diag);
-        d_system_mtx = gko::clone(omp, system_mtx);
+        d_agg = gko::Array<index_type>(exec, agg);
+        d_unfinished_agg = gko::Array<index_type>(exec, unfinished_agg);
+        d_strongest_neighbor = gko::Array<index_type>(exec, strongest_neighbor);
+        d_coarse_vector = gko::clone(exec, coarse_vector);
+        d_fine_vector = gko::clone(exec, fine_vector);
+        d_weight_csr = gko::clone(exec, weight_csr);
+        d_weight_diag = gko::clone(exec, weight_diag);
+        d_system_mtx = gko::clone(exec, system_mtx);
     }
 
     void make_weight(Mtx* mtx)
     {
         gko::test::make_symmetric(mtx);
-        // it is only works for real value case.
+        // only works for real value cases.
         mtx->compute_absolute_inplace();
         gko::test::make_diag_dominant(mtx);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -194,7 +206,8 @@ TEST_F(AmgxPgm, MatchEdgeIsEquivalentToRef)
     auto d_x = d_unfinished_agg;
 
     gko::kernels::reference::amgx_pgm::match_edge(ref, strongest_neighbor, x);
-    gko::kernels::omp::amgx_pgm::match_edge(omp, d_strongest_neighbor, d_x);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::match_edge(
+        exec, d_strongest_neighbor, d_x);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
@@ -208,8 +221,8 @@ TEST_F(AmgxPgm, CountUnaggIsEquivalentToRef)
 
     gko::kernels::reference::amgx_pgm::count_unagg(ref, unfinished_agg,
                                                    &num_unagg);
-    gko::kernels::omp::amgx_pgm::count_unagg(omp, d_unfinished_agg,
-                                             &d_num_unagg);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::count_unagg(exec, d_unfinished_agg,
+                                                        &d_num_unagg);
 
     ASSERT_EQ(d_num_unagg, num_unagg);
 }
@@ -222,7 +235,7 @@ TEST_F(AmgxPgm, RenumberIsEquivalentToRef)
     index_type d_num_agg;
 
     gko::kernels::reference::amgx_pgm::renumber(ref, agg, &num_agg);
-    gko::kernels::omp::amgx_pgm::renumber(omp, d_agg, &d_num_agg);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::renumber(exec, d_agg, &d_num_agg);
 
     ASSERT_EQ(d_num_agg, num_agg);
     GKO_ASSERT_ARRAY_EQ(d_agg, agg);
@@ -238,8 +251,8 @@ TEST_F(AmgxPgm, FindStrongestNeighborIsEquivalentToRef)
 
     gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
         ref, weight_csr.get(), weight_diag.get(), agg, snb);
-    gko::kernels::omp::amgx_pgm::find_strongest_neighbor(
-        omp, d_weight_csr.get(), d_weight_diag.get(), d_agg, d_snb);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::find_strongest_neighbor(
+        exec, d_weight_csr.get(), d_weight_diag.get(), d_agg, d_snb);
 
     GKO_ASSERT_ARRAY_EQ(d_snb, snb);
 }
@@ -255,8 +268,8 @@ TEST_F(AmgxPgm, AssignToExistAggIsEquivalentToRef)
 
     gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
         ref, weight_csr.get(), weight_diag.get(), x, intermediate_agg);
-    gko::kernels::omp::amgx_pgm::assign_to_exist_agg(
-        omp, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::assign_to_exist_agg(
+        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
@@ -266,12 +279,13 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 {
     initialize_data();
     auto d_x = d_unfinished_agg;
-    auto d_intermediate_agg = gko::Array<index_type>(omp, 0);
+    auto d_intermediate_agg = gko::Array<index_type>(exec, 0);
     index_type d_num_unagg;
 
-    gko::kernels::omp::amgx_pgm::assign_to_exist_agg(
-        omp, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
-    gko::kernels::omp::amgx_pgm::count_unagg(omp, d_agg, &d_num_unagg);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::assign_to_exist_agg(
+        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+    gko::kernels::EXEC_NAMESPACE::amgx_pgm::count_unagg(exec, d_agg,
+                                                        &d_num_unagg);
 
     // only test whether all elements are aggregated.
     GKO_ASSERT_EQ(d_num_unagg, 0);
@@ -281,14 +295,14 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
 {
     initialize_data();
-    auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+    auto mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
                                 .with_deterministic(true)
                                 .with_skip_sorting(true)
                                 .on(ref);
-    auto d_mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+    auto d_mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
                                   .with_deterministic(true)
                                   .with_skip_sorting(true)
-                                  .on(omp);
+                                  .on(exec);
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
@@ -302,9 +316,11 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
         d_row_gatherer->get_const_row_idxs());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
 
@@ -313,13 +329,13 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 {
     initialize_data();
     gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
-    d_system_mtx = gko::clone(omp, system_mtx);
-    auto mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+    d_system_mtx = gko::clone(exec, system_mtx);
+    auto mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
                                 .with_deterministic(true)
                                 .on(ref);
-    auto d_mg_level_factory = gko::multigrid::AmgxPgm<double, int>::build()
+    auto d_mg_level_factory = gko::multigrid::AmgxPgm<value_type, int>::build()
                                   .with_deterministic(true)
-                                  .on(omp);
+                                  .on(exec);
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
@@ -333,9 +349,11 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
         d_row_gatherer->get_const_row_idxs());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()), 1e-14);
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
 

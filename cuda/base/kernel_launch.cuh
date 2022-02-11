@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+#include <thrust/tuple.h>
+
+
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
@@ -43,6 +46,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
+namespace device_std = thrust;
 
 
 constexpr int default_block_size = 512;
