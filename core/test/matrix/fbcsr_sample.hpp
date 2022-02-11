@@ -114,10 +114,11 @@ public:
                 static_cast<gko::acc::size_type>(bs)},
             v);
 
-        if (mtx->get_size()[0] % bs != 0)
+        if (mtx->get_size()[0] % bs != 0) {
             throw gko::BadDimension(__FILE__, __LINE__, __func__, "test fbcsr",
                                     mtx->get_size()[0], mtx->get_size()[1],
                                     "block size does not divide the size!");
+        }
 
         for (index_type ibrow = 0; ibrow < mtx->get_num_block_rows(); ibrow++) {
             const index_type* const browptr = mtx->get_row_ptrs();
@@ -125,11 +126,13 @@ public:
                  inz++) {
                 const index_type bcolind = mtx->get_col_idxs()[inz];
                 const value_type base = (ibrow + 1) * (bcolind + 1);
-                for (int ival = 0; ival < bs; ival++)
-                    for (int jval = 0; jval < bs; jval++)
+                for (int ival = 0; ival < bs; ival++) {
+                    for (int jval = 0; jval < bs; jval++) {
                         vals(inz, ival, jval) =
                             base + static_cast<gko::remove_complex<value_type>>(
                                        ival * bs + jval);
+                    }
+                }
             }
         }
 
@@ -175,10 +178,12 @@ public:
         gko::Array<IndexType> colids(exec, nbnz);
         gko::Array<IndexType> rowptrs(exec, nbrows + 1);
         const std::unique_ptr<const Fbcsr> fbmat = generate_fbcsr();
-        for (index_type i = 0; i < nbrows + 1; i++)
+        for (index_type i = 0; i < nbrows + 1; i++) {
             rowptrs.get_data()[i] = fbmat->get_const_row_ptrs()[i];
-        for (index_type i = 0; i < nbnz; i++)
+        }
+        for (index_type i = 0; i < nbnz; i++) {
             colids.get_data()[i] = fbmat->get_const_col_idxs()[i];
+        }
         return SparCsr::create(exec, gko::dim<2>{nbrows, nbcols}, colids,
                                rowptrs);
     }
@@ -302,7 +307,9 @@ public:
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = 0.15 + fbcsr_test_offset;
+        }
 
         v[0] = 1;
         v[1] = 3;
@@ -328,7 +335,9 @@ public:
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = 0.15 + fbcsr_test_offset;
+        }
         v[0] = 1;
         v[1] = 2;
         v[2] = 3;
@@ -401,7 +410,9 @@ public:
         gko::Array<index_type> r(exec, {0, 1, 2});
         gko::Array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = i;
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = i;
+        }
 
         return Fbcsr::create(exec,
                              gko::dim<2>{static_cast<size_type>(nrows),
@@ -447,7 +458,9 @@ public:
         gko::Array<index_type> c(exec, {0, 0, 3, 2});
         gko::Array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = 0.15 + fbcsr_test_offset;
+        }
 
         using namespace std::complex_literals;
         v[0] = 1.0 + 1.15i;
@@ -474,7 +487,9 @@ public:
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
         gko::Array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
-        for (IndexType i = 0; i < nnz; i++) v[i] = 0.15 + fbcsr_test_offset;
+        for (IndexType i = 0; i < nnz; i++) {
+            v[i] = 0.15 + fbcsr_test_offset;
+        }
 
         using namespace std::complex_literals;
         v[0] = 1.0 + 1.15i;

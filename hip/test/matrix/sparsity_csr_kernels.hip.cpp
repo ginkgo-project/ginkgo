@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,10 +79,10 @@ protected:
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
                                      int min_nnz_row)
     {
-        return gko::test::generate_random_sparsity_matrix<MtxType>(
+        return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols), 1.0,
-            rand_engine, ref);
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<>(1.0, 0.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "accessor/hip_helper.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -73,18 +74,6 @@ using classical_kernels = syn::value_list<int, 2>;
 #include "common/cuda_hip/matrix/sparsity_csr_kernels.hpp.inc"
 
 
-template <int dim, typename Type1, typename Type2>
-GKO_INLINE auto as_hip_accessor(
-    const acc::range<acc::reduced_row_major<dim, Type1, Type2>>& acc)
-{
-    return acc::range<
-        acc::reduced_row_major<dim, hip_type<Type1>, hip_type<Type2>>>(
-        acc.get_accessor().get_size(),
-        as_hip_type(acc.get_accessor().get_stored_data()),
-        acc.get_accessor().get_stride());
-}
-
-
 namespace host_kernel {
 
 
@@ -110,21 +99,25 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     const dim3 block(spmv_block_size);
 
     const auto b_vals = gko::acc::range<input_accessor>(
-        std::array<size_type, 2>{{b->get_size()[0], b->get_size()[1]}},
-        b->get_const_values(), std::array<size_type, 1>{{b->get_stride()}});
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(b->get_size()[0]),
+             static_cast<acc::size_type>(b->get_size()[1])}},
+        b->get_const_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
             a->get_size()[0], as_hip_type(a->get_const_value()),
             a->get_const_col_idxs(), as_hip_type(a->get_const_row_ptrs()),
-            as_hip_accessor(b_vals), as_hip_type(c->get_values()),
+            acc::as_hip_range(b_vals), as_hip_type(c->get_values()),
             c->get_stride());
 
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
             a->get_size()[0], as_hip_type(alpha->get_const_values()),
             as_hip_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_hip_type(a->get_const_row_ptrs()), as_hip_accessor(b_vals),
+            as_hip_type(a->get_const_row_ptrs()), acc::as_hip_range(b_vals),
             as_hip_type(beta->get_const_values()), as_hip_type(c->get_values()),
             c->get_stride());
     } else {
