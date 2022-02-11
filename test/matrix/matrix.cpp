@@ -613,7 +613,7 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
-    std::ranlux48 rand_engine;
+    std::default_random_engine rand_engine;
 };
 
 using MatrixTypes = ::testing::Types<
