@@ -80,7 +80,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes);
+TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes,
+                 PairTypenameNameGenerator);
 
 
 TYPED_TEST(Partition, BuildsFromMapping)

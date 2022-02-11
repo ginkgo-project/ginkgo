@@ -124,7 +124,7 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
 };
 
-TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes);
+TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes, PairTypenameNameGenerator);
 
 
 TYPED_TEST(Partition, BuildsFromMapping)

@@ -250,7 +250,7 @@ void DpcppExecutor::set_device_property()
             for (auto& i : subgroup_sizes) {
                 this->get_exec_info().subgroup_sizes.push_back(i);
             }
-        } catch (cl::sycl::runtime_error& err) {
+        } catch (cl::sycl::exception& err) {
             GKO_NOT_SUPPORTED(device);
         }
     }
