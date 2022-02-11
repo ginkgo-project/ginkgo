@@ -132,7 +132,6 @@ TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 {
     using i_type = typename TestFixture::i_type;
-    using i_type = typename TestFixture::i_type;
     i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create(

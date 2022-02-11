@@ -35,17 +35,18 @@ target_sources(ginkgo
     matrix/permutation.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
+    matrix/row_gatherer.cpp
     multigrid/amgx_pgm.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
+    solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
     solver/fcg.cpp
     solver/gmres.cpp
-    solver/cb_gmres.cpp
     solver/idr.cpp
     solver/ir.cpp
     solver/lower_trs.cpp

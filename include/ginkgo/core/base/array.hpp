@@ -51,6 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+template <typename ValueType>
+class Array;
+
+
 namespace detail {
 
 
@@ -140,6 +144,13 @@ public:
      * Returns false, to be consistent with the Array interface.
      */
     bool is_owning() const noexcept { return false; }
+
+    /**
+     * Creates a array copied from ConstArrayView.
+     *
+     * @return an Array constructed from ConstArrayView data
+     */
+    Array<ValueType> copy_to_array() const;
 
 private:
     std::shared_ptr<const Executor> exec_;
@@ -819,6 +830,17 @@ Array<ValueType> array_const_cast(ConstArrayView<ValueType> view)
     return Array<ValueType>::view(
         view.get_executor(), view.get_num_elems(),
         const_cast<ValueType*>(view.get_const_data()));
+}
+
+
+template <typename ValueType>
+Array<ValueType> ConstArrayView<ValueType>::copy_to_array() const
+{
+    Array<ValueType> result(this->get_executor(), this->get_num_elems());
+    result.get_executor()->copy_from(this->get_executor().get(),
+                                     this->get_num_elems(),
+                                     this->get_const_data(), result.get_data());
+    return result;
 }
 
 

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
 
 
 #include "core/base/utils.hpp"
@@ -73,21 +74,21 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 template <typename ValueType, typename IndexType>
 void AmgxPgm<ValueType, IndexType>::generate()
 {
-    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using csr_type = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
-    using weight_matrix_type = remove_complex<matrix_type>;
+    using weight_csr_type = remove_complex<csr_type>;
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
     Array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
-    const matrix_type* amgxpgm_op =
-        dynamic_cast<const matrix_type*>(system_matrix_.get());
-    std::shared_ptr<const matrix_type> amgxpgm_op_shared_ptr{};
+    const csr_type* amgxpgm_op =
+        dynamic_cast<const csr_type*>(system_matrix_.get());
+    std::shared_ptr<const csr_type> amgxpgm_op_shared_ptr{};
     // If system matrix is not csr or need sorting, generate the csr.
     if (!parameters_.skip_sorting || !amgxpgm_op) {
-        amgxpgm_op_shared_ptr = convert_to_with_sorting<matrix_type>(
+        amgxpgm_op_shared_ptr = convert_to_with_sorting<csr_type>(
             exec, system_matrix_, parameters_.skip_sorting);
         amgxpgm_op = amgxpgm_op_shared_ptr.get();
         // keep the same precision data in fine_op
@@ -102,7 +103,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
     // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
     auto abs_mtx = amgxpgm_op->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
-    auto weight_mtx = gko::as<weight_matrix_type>(abs_mtx->transpose());
+    auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
     auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
@@ -142,27 +143,34 @@ void AmgxPgm<ValueType, IndexType>::generate()
 
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
-    // TODO: prolong_op can be done with lightway format
-    auto prolong_op = share(
-        matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
+    // prolong_row_gather is the lightway implementation for prolongation
+    // TODO: However, we still create the csr to process coarse/restrict matrix
+    // generation. It may be changed when we have the direct triple product from
+    // agg index.
+    auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
+        exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_op->get_col_idxs());
-    exec->run(amgx_pgm::make_fill_seq_array(prolong_op->get_row_ptrs(),
+                    prolong_row_gather->get_row_idxs());
+    auto prolong_csr = share(
+        csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
+    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+                    prolong_csr->get_col_idxs());
+    exec->run(amgx_pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(),
                                             fine_dim + 1));
-    exec->run(amgx_pgm::make_fill_array(prolong_op->get_values(), fine_dim,
+    exec->run(amgx_pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
                                         one<ValueType>()));
     // TODO: implement the restrict_op from aggregation.
-    auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
+    auto restrict_op = gko::as<csr_type>(share(prolong_csr->transpose()));
 
     // Construct the coarse matrix
     // TODO: use less memory footprint to improve it
     auto coarse_matrix =
-        share(matrix_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    auto tmp = matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    amgxpgm_op->apply(prolong_op.get(), tmp.get());
+        share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+    auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
+    amgxpgm_op->apply(prolong_csr.get(), tmp.get());
     restrict_op->apply(tmp.get(), coarse_matrix.get());
 
-    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
+    this->set_multigrid_level(prolong_row_gather, coarse_matrix, restrict_op);
 }
 
 

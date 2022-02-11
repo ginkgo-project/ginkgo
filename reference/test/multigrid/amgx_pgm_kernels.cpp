@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -68,6 +69,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
+    using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
     using WeightMtx = gko::matrix::Csr<real_type, index_type>;
@@ -507,7 +509,9 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
 TYPED_TEST(AmgxPgm, GenerateMgLevel)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
+    using RowGatherer = typename TestFixture::RowGatherer;
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
     // 0-2-4, 1-3
     prolong_op->read(
@@ -515,21 +519,28 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
     auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
+    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
+    auto row_gather_view = gko::Array<index_type>::const_view(
+        this->exec, row_gatherer->get_size()[0],
+        row_gatherer->get_const_row_idxs());
+    auto expected_row_gather =
+        gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
-                        r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
 }
 
 
 TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
 {
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
+    using RowGatherer = typename TestFixture::RowGatherer;
     auto mglevel_sort = MgLevel::build()
                             .with_max_iterations(2u)
                             .with_max_unassigned_ratio(0.1)
@@ -554,13 +565,18 @@ TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
     auto coarse_fine = mglevel_sort->generate(matrix);
+    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
+    auto row_gather_view = gko::Array<index_type>::const_view(
+        this->exec, row_gatherer->get_size()[0],
+        row_gatherer->get_const_row_idxs());
+    auto expected_row_gather =
+        gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
-                        r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
 }
 
 

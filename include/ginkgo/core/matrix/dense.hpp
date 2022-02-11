@@ -403,24 +403,68 @@ public:
     std::unique_ptr<Dense> row_gather(const Array<int64>* gather_indices) const;
 
     /**
-     * Copies the given rows from this matrix into `row_gathered`
+     * Copies the given rows from this matrix into `row_collection`
      *
      * @param gather_indices  pointer to an array containing row indices
      *                        from this matrix. It may contain duplicates.
-     * @param row_gathered  pointer to a Dense matrix that will store the
+     * @param row_collection  pointer to a Dense matrix that will store the
      *                      gathered rows:
-     *                      `output(i,j) = input(gather_indices(i), j)`
+     *                      `row_collection(i,j) = input(gather_indices(i), j)`
      *                      It must have the same number of columns as this
      *                      matrix and `gather_indices->get_num_elems()` rows.
      */
     void row_gather(const Array<int32>* gather_indices,
-                    Dense* row_gathered) const;
+                    Dense* row_collection) const;
 
     /**
      * @copydoc row_gather(const Array<int32>*, Dense*) const
      */
     void row_gather(const Array<int64>* gather_indices,
-                    Dense* row_gathered) const;
+                    Dense* row_collection) const;
+
+    /**
+     * Copies the given rows from this matrix into `row_collection`
+     *
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param row_collection  pointer to a LinOp that will store the gathered
+     *                        rows:
+     *                        `row_collection(i,j)
+     *                         = input(gather_indices(i), j)`
+     *                        It must have the same number of columns as this
+     *                        matrix and `gather_indices->get_num_elems()` rows.
+     */
+    void row_gather(const Array<int32>* gather_indices,
+                    LinOp* row_collection) const;
+
+    /**
+     * @copydoc row_gather(const Array<int32>*, LinOp*) const
+     */
+    void row_gather(const Array<int64>* gather_indices,
+                    LinOp* row_collection) const;
+
+    /**
+     * Copies the given rows from this matrix into `row_collection` with scaling
+     *
+     * @param alpha  scaling the result of row gathering
+     * @param gather_indices  pointer to an array containing row indices
+     *                        from this matrix. It may contain duplicates.
+     * @param beta  scaling the input row_collection
+     * @param row_collection  pointer to a LinOp that will store the
+     *             gathered rows:
+     *             `row_collection(i,j) = input(gather_indices(i), j)`
+     *             It must have the same number of columns as this
+     *             matrix and `gather_indices->get_num_elems()` rows.
+     */
+    void row_gather(const LinOp* alpha, const Array<int32>* gather_indices,
+                    const LinOp* beta, LinOp* row_collection) const;
+
+    /**
+     * @copydoc row_gather(const LinOp*, const Array<int32>*, const LinOp*,
+     * LinOp*) const
+     */
+    void row_gather(const LinOp* alpha, const Array<int64>* gather_indices,
+                    const LinOp* beta, LinOp* row_collection) const;
 
     std::unique_ptr<LinOp> column_permute(
         const Array<int32>* permutation_indices) const override;
@@ -1096,9 +1140,15 @@ protected:
     void inverse_row_permute_impl(const Array<IndexType>* permutation,
                                   Dense* output) const;
 
-    template <typename IndexType>
-    void row_gather_impl(const Array<IndexType>* row_indices,
-                         Dense* output) const;
+    template <typename OutputType, typename IndexType>
+    void row_gather_impl(const Array<IndexType>* row_idxs,
+                         Dense<OutputType>* row_collection) const;
+
+    template <typename OutputType, typename IndexType>
+    void row_gather_impl(const Dense<ValueType>* alpha,
+                         const Array<IndexType>* row_idxs,
+                         const Dense<ValueType>* beta,
+                         Dense<OutputType>* row_collection) const;
 
     template <typename IndexType>
     void column_permute_impl(const Array<IndexType>* permutation,

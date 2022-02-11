@@ -157,6 +157,34 @@ using ComplexValueIndexTypes =
 #endif
 
 
+using TwoValueIndexType =
+#if GINKGO_DPCPP_SINGLE_MODE
+    ::testing::Types<
+        std::tuple<float, float, gko::int32>,
+        std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
+        std::tuple<float, float, gko::int64>,
+        std::tuple<std::complex<float>, std::complex<float>, gko::int64>>;
+#else
+    ::testing::Types<
+        std::tuple<float, float, gko::int32>,
+        std::tuple<float, double, gko::int32>,
+        std::tuple<double, double, gko::int32>,
+        std::tuple<double, float, gko::int32>,
+        std::tuple<std::complex<float>, std::complex<float>, gko::int32>,
+        std::tuple<std::complex<float>, std::complex<double>, gko::int32>,
+        std::tuple<std::complex<double>, std::complex<double>, gko::int32>,
+        std::tuple<std::complex<double>, std::complex<float>, gko::int32>,
+        std::tuple<float, float, gko::int64>,
+        std::tuple<float, double, gko::int64>,
+        std::tuple<double, double, gko::int64>,
+        std::tuple<double, float, gko::int64>,
+        std::tuple<std::complex<float>, std::complex<float>, gko::int64>,
+        std::tuple<std::complex<float>, std::complex<double>, gko::int64>,
+        std::tuple<std::complex<double>, std::complex<double>, gko::int64>,
+        std::tuple<std::complex<double>, std::complex<float>, gko::int64>>;
+#endif
+
+
 template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
@@ -210,6 +238,25 @@ struct PairTypenameNameGenerator {
                ", " +
                gko::name_demangling::get_type_name(
                    typeid(typename std::tuple_element<1, T>::type)) +
+               ">";
+    }
+};
+
+
+struct TupleTypenameNameGenerator {
+    template <typename T>
+    static std::string GetName(int i)
+    {
+        static_assert(std::tuple_size<T>::value == 3, "expected a tuple");
+        return "<" +
+               gko::name_demangling::get_type_name(
+                   typeid(typename std::tuple_element<0, T>::type)) +
+               ", " +
+               gko::name_demangling::get_type_name(
+                   typeid(typename std::tuple_element<1, T>::type)) +
+               ", " +
+               gko::name_demangling::get_type_name(
+                   typeid(typename std::tuple_element<2, T>::type)) +
                ">";
     }
 };

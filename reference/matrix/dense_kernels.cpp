@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -805,22 +806,48 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
-                const Array<IndexType>* row_indices,
+                const Array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
-                matrix::Dense<ValueType>* row_gathered)
+                matrix::Dense<OutputType>* row_collection)
 {
-    auto rows = row_indices->get_const_data();
-    for (size_type i = 0; i < row_indices->get_num_elems(); ++i) {
+    auto rows = row_idxs->get_const_data();
+    for (size_type i = 0; i < row_idxs->get_num_elems(); ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            row_gathered->at(i, j) = orig->at(rows[i], j);
+            row_collection->at(i, j) = orig->at(rows[i], j);
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
+
+
+template <typename ValueType, typename OutputType, typename IndexType>
+void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
+                         const matrix::Dense<ValueType>* alpha,
+                         const Array<IndexType>* row_idxs,
+                         const matrix::Dense<ValueType>* orig,
+                         const matrix::Dense<ValueType>* beta,
+                         matrix::Dense<OutputType>* row_collection)
+{
+    using type = highest_precision<ValueType, OutputType>;
+    auto rows = row_idxs->get_const_data();
+    auto scalar_alpha = alpha->at(0, 0);
+    auto scalar_beta = beta->at(0, 0);
+    for (size_type i = 0; i < row_idxs->get_num_elems(); ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_collection->at(i, j) =
+                static_cast<type>(scalar_alpha * orig->at(rows[i], j)) +
+                static_cast<type>(scalar_beta) *
+                    static_cast<type>(row_collection->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
+    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

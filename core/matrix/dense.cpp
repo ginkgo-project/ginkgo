@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -92,6 +93,7 @@ GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
 GKO_REGISTER_OPERATION(inv_symm_permute, dense::inv_symm_permute);
 GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
+GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
 GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inverse_row_permute);
 GKO_REGISTER_OPERATION(inverse_column_permute, dense::inverse_column_permute);
@@ -898,17 +900,35 @@ void Dense<ValueType>::row_permute_impl(
 
 
 template <typename ValueType>
-template <typename IndexType>
-void Dense<ValueType>::row_gather_impl(const Array<IndexType>* row_indices,
-                                       Dense<ValueType>* row_gathered) const
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_gather_impl(const Array<IndexType>* row_idxs,
+                                       Dense<OutputType>* row_collection) const
 {
     auto exec = this->get_executor();
-    dim<2> expected_dim{row_indices->get_num_elems(), this->get_size()[1]};
-    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_gathered);
+    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
     exec->run(dense::make_row_gather(
-        make_temporary_clone(exec, row_indices).get(), this,
-        make_temporary_output_clone(exec, row_gathered).get()));
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_output_clone(exec, row_collection).get()));
+}
+
+template <typename ValueType>
+template <typename OutputType, typename IndexType>
+void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
+                                       const Array<IndexType>* row_idxs,
+                                       const Dense<ValueType>* beta,
+                                       Dense<OutputType>* row_collection) const
+{
+    auto exec = this->get_executor();
+    dim<2> expected_dim{row_idxs->get_num_elems(), this->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
+
+    exec->run(dense::make_advanced_row_gather(
+        make_temporary_clone(exec, alpha).get(),
+        make_temporary_clone(exec, row_idxs).get(), this,
+        make_temporary_clone(exec, beta).get(),
+        make_temporary_clone(exec, row_collection).get()));
 }
 
 
@@ -1067,41 +1087,112 @@ void Dense<ValueType>::row_permute(const Array<int64>* permutation_indices,
 
 template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
-    const Array<int32>* row_indices) const
+    const Array<int32>* row_idxs) const
 {
     auto exec = this->get_executor();
-    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
-    this->row_gather(row_indices, result.get());
+    this->row_gather(row_idxs, result.get());
     return result;
 }
-
 
 template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
-    const Array<int64>* row_indices) const
+    const Array<int64>* row_idxs) const
 {
     auto exec = this->get_executor();
-    dim<2> out_dim{row_indices->get_num_elems(), this->get_size()[1]};
+    dim<2> out_dim{row_idxs->get_num_elems(), this->get_size()[1]};
     auto result = Dense::create(exec, out_dim);
-    this->row_gather(row_indices, result.get());
+    this->row_gather(row_idxs, result.get());
     return result;
 }
 
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int32>* row_idxs,
+                                  Dense<ValueType>* row_collection) const
+{
+    this->row_gather_impl(row_idxs, row_collection);
+}
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(const Array<int32>* row_indices,
-                                  Dense<ValueType>* row_gathered) const
+void Dense<ValueType>::row_gather(const Array<int64>* row_idxs,
+                                  Dense<ValueType>* row_collection) const
 {
-    this->row_gather_impl(row_indices, row_gathered);
+    this->row_gather_impl(row_idxs, row_collection);
+}
+
+
+namespace {
+
+
+template <typename ValueType, typename Function>
+void gather_mixed_real_complex(Function fn, LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = matrix::Dense<ValueType>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    run<fst_type*, snd_type*>(out, fn);
+#else
+    precision_dispatch<ValueType>(fn, out);
+#endif
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const Array<int32>* row_idxs,
+                                  LinOp* row_collection) const
+{
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
+        row_collection);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(const Array<int64>* row_indices,
-                                  Dense<ValueType>* row_gathered) const
+void Dense<ValueType>::row_gather(const Array<int64>* row_idxs,
+                                  LinOp* row_collection) const
 {
-    this->row_gather_impl(row_indices, row_gathered);
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
+        row_collection);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const LinOp* alpha,
+                                  const Array<int32>* gather_indices,
+                                  const LinOp* beta, LinOp* out) const
+{
+    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+    auto dense_beta = make_temporary_conversion<ValueType>(beta);
+    GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) {
+            this->row_gather_impl(dense_alpha.get(), gather_indices,
+                                  dense_beta.get(), dense);
+        },
+        out);
+}
+
+template <typename ValueType>
+void Dense<ValueType>::row_gather(const LinOp* alpha,
+                                  const Array<int64>* gather_indices,
+                                  const LinOp* beta, LinOp* out) const
+{
+    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+    auto dense_beta = make_temporary_conversion<ValueType>(beta);
+    GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
+    gather_mixed_real_complex<ValueType>(
+        [&](auto dense) {
+            this->row_gather_impl(dense_alpha.get(), gather_indices,
+                                  dense_beta.get(), dense);
+        },
+        out);
 }
 
 
