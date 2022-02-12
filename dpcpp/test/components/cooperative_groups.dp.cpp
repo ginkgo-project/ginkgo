@@ -60,11 +60,11 @@ namespace {
 
 
 using namespace gko::kernels::dpcpp;
-using KCfg = gko::ConfigSet<11, 7>;
+using KCFG_1D = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
-    ::gko::syn::value_list<std::uint32_t, KCfg::encode(64, 64),
-                           KCfg::encode(32, 32), KCfg::encode(16, 16),
-                           KCfg::encode(8, 8), KCfg::encode(4, 4)>();
+    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
+                           KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
+                           KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>();
 
 
 class CooperativeGroups : public testing::TestWithParam<unsigned int> {
@@ -90,7 +90,7 @@ protected:
         auto queue = dpcpp->get_queue();
         if (gko::kernels::dpcpp::validate(queue, subgroup_size,
                                           subgroup_size)) {
-            const auto cfg = KCfg::encode(subgroup_size, subgroup_size);
+            const auto cfg = KCFG_1D::encode(subgroup_size, subgroup_size);
             for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
@@ -117,10 +117,9 @@ protected:
 
 // kernel implementation
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
 void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -139,10 +138,13 @@ void cg_shuffle_host(dim3 grid, dim3 block,
                      bool* s)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             cg_shuffle<config>(s, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(KCFG_1D::decode<1>(
+                    config))]] __WG_BOUND__(KCFG_1D::decode<0>(config)) {
+                    cg_shuffle<config>(s, item_ct1);
+                });
     });
 }
 
@@ -170,10 +172,9 @@ TEST_P(CooperativeGroups, Shuffle)
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
 void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -184,7 +185,21 @@ void cg_all(bool* s, sycl::nd_item<3> item_ct1)
         group.all(item_ct1.get_local_id(2) < 13) == sg_size < 13;
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_all, cg_all)
+template <std::uint32_t encoded, typename... InferredArgs>
+inline void cg_all(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
+                   InferredArgs... args)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(KCFG_1D::decode<1>(
+                    encoded))]] __WG_BOUND__(KCFG_1D::decode<0>(encoded)) {
+                    cg_all<encoded>(args..., item_ct1);
+                });
+    });
+}
+
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_all, cg_all)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 
@@ -192,12 +207,11 @@ TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
 void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
-    auto group = group::tiled_partition<KCfg::decode<1>(config)>(
-        group::this_thread_block(item_ct1));
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
+    auto group =
+        group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
 
     s[i] = group.any(true);
@@ -205,7 +219,21 @@ void cg_any(bool* s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = !group.any(false);
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_any, cg_any)
+template <std::uint32_t encoded, typename... InferredArgs>
+inline void cg_any(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
+                   InferredArgs... args)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(KCFG_1D::decode<1>(
+                    encoded))]] __WG_BOUND__(KCFG_1D::decode<0>(encoded)) {
+                    cg_any<encoded>(args..., item_ct1);
+                });
+    });
+}
+
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_any, cg_any)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, default_config_list)
 
@@ -213,10 +241,9 @@ TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
 template <std::uint32_t config>
-__WG_BOUND__(KCfg::decode<0>(config))
 void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = KCfg::decode<1>(config);
+    constexpr auto sg_size = KCFG_1D::decode<1>(config);
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto active = gko::detail::mask<sg_size, config::lane_mask_type>();
@@ -227,7 +254,21 @@ void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = group.ballot(item_ct1.get_local_id(2) < 4) == 0xf;
 }
 
-GKO_ENABLE_DEFAULT_HOST_CONFIG(cg_ballot, cg_ballot)
+template <std::uint32_t encoded, typename... InferredArgs>
+inline void cg_ballot(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
+                      InferredArgs... args)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1)
+                [[sycl::reqd_sub_group_size(KCFG_1D::decode<1>(
+                    encoded))]] __WG_BOUND__(KCFG_1D::decode<0>(encoded)) {
+                    cg_ballot<encoded>(args..., item_ct1);
+                });
+    });
+}
+
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_ballot, cg_ballot)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_call, cg_ballot, default_config_list)
 
