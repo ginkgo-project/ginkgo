@@ -999,7 +999,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     using T = double;
     using Csr = Mtx;
     auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
-    gko::test::modify_to_ensure_all_diagonal_entries(ref_mtx.get());
+    gko::test::ensure_all_diagonal_entries(ref_mtx.get());
     auto mtx = Csr::create(hip);
     mtx->copy_from(ref_mtx.get());
     bool has_diags = false;
@@ -1014,7 +1014,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
 TEST_F(Csr, AddScaledIdentityToNonSquare)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
-    gko::test::modify_to_ensure_all_diagonal_entries(mtx.get());
+    gko::test::ensure_all_diagonal_entries(mtx.get());
     dmtx->copy_from(mtx.get());
 
     mtx->add_scaled_identity(alpha.get(), beta.get());

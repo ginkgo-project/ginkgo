@@ -153,86 +153,47 @@ void make_hpd(matrix::Dense<ValueType>* mtx,
 
 
 /**
- * Changes the diagonal entry in the requested row, logically shrinking the
+ * Changes the diagonal entry in the requested row, shrinking the
  * matrix by 1 nonzero entry.
  *
- * @param mtx  The CSR matrix to remove a diagonal entry from.
+ * @param mtx  The matrix to remove a diagonal entry from.
  * @param row_to_process  The row from which to remove the diagonal entry.
  */
-template <typename ValueType, typename IndexType>
+template <typename MtxType>
 void remove_diagonal_entry_from_row(
-    matrix::Csr<ValueType, IndexType>* const mtx,
-    const IndexType row_to_process)
+    MtxType* const mtx, const typename MtxType::index_type row_to_process)
 {
-    auto ref_mtx = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
-    const auto rowptrs = ref_mtx->get_row_ptrs();
-    const auto colidxs = ref_mtx->get_col_idxs();
-    const auto values = ref_mtx->get_values();
-    IndexType diag_iz = -1;
-    for (IndexType j = rowptrs[row_to_process]; j < rowptrs[row_to_process + 1];
-         j++) {
-        if (colidxs[j] == row_to_process) {
-            diag_iz = j;
-        }
-    }
-    if (diag_iz >= 0) {
-        // remove diagonal
-        for (IndexType j = diag_iz; j < rowptrs[nrows]; j++) {
-            colidxs[j] = colidxs[j + 1];
-            values[j] = values[j + 1];
-        }
-        for (IndexType i = row_to_process + 1; i < nrows + 1; i++) {
-            rowptrs[i]--;
-        }
-    }
-    mtx->copy_from(ref_mtx.get());
+    using value_type = typename MtxType::value_type;
+    using index_type = typename MtxType::index_type;
+    matrix_data<value_type, index_type> mdata;
+    mtx->write(mdata);
+    auto it = std::remove_if(mdata.nonzeros.begin(), mdata.nonzeros.end(),
+                             [&](auto entry) {
+                                 return entry.row == row_to_process &&
+                                        entry.column == row_to_process;
+                             });
+    mdata.nonzeros.erase(it, mdata.nonzeros.end());
+    mtx->read(mdata);
 }
 
 
 /**
- * Ensures each row has a diagonal entry, but the matrix is mathematically
- * changed.
- *
- * The number of nonzeros is not increased; rather column indices are adjusted
- * to have the diagonal entry.
+ * Ensures each row has a diagonal entry.
  */
-template <typename ValueType, typename IndexType>
-void modify_to_ensure_all_diagonal_entries(
-    matrix::Csr<ValueType, IndexType>* const mtx)
+template <typename MtxType>
+void ensure_all_diagonal_entries(MtxType* const mtx)
 {
-    auto ref_mtx = make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
-    const auto rowptrs = ref_mtx->get_const_row_ptrs();
-    const auto colidxs = ref_mtx->get_col_idxs();
-    for (IndexType i = 0; i < nrows; i++) {
-        bool has_diag = false;
-        IndexType last_before_diag = rowptrs[i] - 1;
-        IndexType first_after_diag = rowptrs[i + 1];
-        for (IndexType j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
-            if (colidxs[j] == i) {
-                has_diag = true;
-                break;
-            }
-            if (colidxs[j] > i && first_after_diag > j) {
-                first_after_diag = j;
-            }
-            if (colidxs[j] < i && j > last_before_diag) {
-                last_before_diag = j;
-            }
-        }
-        if (!has_diag) {
-            if (last_before_diag >= rowptrs[i]) {
-                colidxs[last_before_diag] = i;
-            } else if (first_after_diag < rowptrs[i + 1]) {
-                colidxs[first_after_diag] = i;
-            } else {
-                throw std::runtime_error(
-                    "Invalid matrix - each row should have at least 1 nnz!");
-            }
-        }
+    using value_type = typename MtxType::value_type;
+    using index_type = typename MtxType::index_type;
+    matrix_data<value_type, index_type> mdata;
+    mtx->write(mdata);
+    const auto nrows = static_cast<index_type>(mtx->get_size()[0]);
+    mdata.nonzeros.reserve(mtx->get_num_stored_elements() + nrows);
+    for (index_type i = 0; i < nrows; i++) {
+        mdata.nonzeros.push_back({i, i, zero<value_type>()});
     }
-    mtx->copy_from(ref_mtx.get());
+    mdata.sum_duplicates();
+    mtx->read(mdata);
 }
 
 
