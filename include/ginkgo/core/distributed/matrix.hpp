@@ -84,10 +84,12 @@ public:
                      result) override;
 
     void read_distributed(
-        const matrix_data<ValueType, global_index_type>& data);
+        const matrix_data<value_type, global_index_type>& data,
+        const Partition<local_index_type, global_index_type>* partition);
 
     void read_distributed(
-        const device_matrix_data<ValueType, GlobalIndexType>& data);
+        const device_matrix_data<value_type, global_index_type>& data,
+        const Partition<local_index_type, global_index_type>* partition);
 
     std::shared_ptr<local_matrix_type> get_local_diag() { return diag_mtx_; }
 
@@ -106,18 +108,10 @@ public:
         return offdiag_mtx_;
     }
 
-    std::shared_ptr<const Partition<local_index_type, global_index_type>>
-    get_partition() const
-    {
-        return partition_;
-    }
-
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec);
 
-    Matrix(
-        std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> partition);
+    Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     mpi::request communicate(const local_vector_type* local_b) const;
 
@@ -132,7 +126,6 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     Array<local_index_type> gather_idxs_;
-    Array<global_index_type> local_to_global_inner_;
     Array<global_index_type> local_to_global_ghost_;
     ::gko::detail::DenseCache<value_type> one_scalar_;
     mutable ::gko::detail::DenseCache<value_type> host_send_buffer_;
@@ -141,8 +134,6 @@ private:
     mutable ::gko::detail::DenseCache<value_type> recv_buffer_;
     std::shared_ptr<local_matrix_type> diag_mtx_;
     std::shared_ptr<local_matrix_type> offdiag_mtx_;
-    std::shared_ptr<const Partition<local_index_type, global_index_type>>
-        partition_;
 };
 
 
