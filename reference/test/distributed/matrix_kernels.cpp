@@ -73,8 +73,7 @@ protected:
           offdiag{ref},
           gather_idxs{ref},
           recv_offsets{ref},
-          local_to_global_row{ref},
-          local_to_global_col{ref}
+          local_to_global_ghost{ref}
     {}
 
     void validate(
@@ -128,8 +127,7 @@ protected:
              ++part) {
             gko::kernels::reference::distributed_matrix::build_diag_offdiag(
                 ref, input, partition, part, diag, offdiag, gather_idxs,
-                recv_offsets.get_data(), local_to_global_row,
-                local_to_global_col);
+                recv_offsets.get_data(), local_to_global_ghost);
 
             assert_device_matrix_data_equal(diag, ref_diags[part]);
             assert_device_matrix_data_equal(offdiag, ref_offdiags[part]);
@@ -176,8 +174,7 @@ protected:
     gko::device_matrix_data<value_type, local_index_type> offdiag;
     gko::Array<local_index_type> gather_idxs;
     gko::Array<comm_index_type> recv_offsets;
-    gko::Array<global_index_type> local_to_global_row;
-    gko::Array<global_index_type> local_to_global_col;
+    gko::Array<global_index_type> local_to_global_ghost;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes);
@@ -276,87 +273,8 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagMixed)
         {{0}, {0, 1, 0}, {1, 1}}, {{0, 0, 0, 1}, {0, 2, 2, 3}, {0, 1, 2, 2}});
 }
 
-TYPED_TEST(Matrix, BuildRowMapContinuous)
-{
-    using value_type = typename TestFixture::value_type;
-    using local_index_type = typename TestFixture::local_index_type;
-    using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
-    constexpr comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
-        local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
-                                                                 num_parts);
-    this->recv_offsets.resize_and_reset(num_parts + 1);
-    gko::Array<global_index_type> result[num_parts] = {
-        {this->ref, {0, 1, 2}}, {this->ref, {3, 4}}, {this->ref, {5, 6}}};
 
-    for (int local_id = 0; local_id < num_parts; ++local_id) {
-        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
-            this->ref, this->create_input_full_rank(), partition.get(),
-            local_id, this->diag, this->offdiag, this->gather_idxs,
-            this->recv_offsets.get_data(), this->local_to_global_row,
-            this->local_to_global_col);
-
-        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
-    }
-}
-
-
-TYPED_TEST(Matrix, BuildRowMapScattered)
-{
-    using value_type = typename TestFixture::value_type;
-    using local_index_type = typename TestFixture::local_index_type;
-    using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {0, 1, 2, 0, 1, 2, 0}};
-    constexpr comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
-        local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
-                                                                 num_parts);
-    this->recv_offsets.resize_and_reset(num_parts + 1);
-    gko::Array<global_index_type> result[num_parts] = {
-        {this->ref, {0, 3, 6}}, {this->ref, {1, 4}}, {this->ref, {2, 5}}};
-
-    for (int local_id = 0; local_id < num_parts; ++local_id) {
-        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
-            this->ref, this->create_input_full_rank(), partition.get(),
-            local_id, this->diag, this->offdiag, this->gather_idxs,
-            this->recv_offsets.get_data(), this->local_to_global_row,
-            this->local_to_global_col);
-
-        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
-    }
-}
-
-TYPED_TEST(Matrix, BuildRowMapNotFullRank)
-{
-    using value_type = typename TestFixture::value_type;
-    using local_index_type = typename TestFixture::local_index_type;
-    using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {0, 0, 0, 1, 1, 2, 2}};
-    constexpr comm_index_type num_parts = 3;
-    auto partition = gko::distributed::Partition<
-        local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
-                                                                 num_parts);
-    this->recv_offsets.resize_and_reset(num_parts + 1);
-    gko::Array<global_index_type> result[num_parts] = {
-        {this->ref, {0, -1, 2}}, {this->ref, {3, 4}}, {this->ref, {5, 6}}};
-
-    for (int local_id = 0; local_id < num_parts; ++local_id) {
-        gko::kernels::reference::distributed_matrix::build_diag_offdiag(
-            this->ref, this->create_input_not_full_rank(), partition.get(),
-            local_id, this->diag, this->offdiag, this->gather_idxs,
-            this->recv_offsets.get_data(), this->local_to_global_row,
-            this->local_to_global_col);
-
-        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_row);
-    }
-}
-
-
-TYPED_TEST(Matrix, BuildColMapContinuous)
+TYPED_TEST(Matrix, BuildGhostMapContinuous)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -375,14 +293,13 @@ TYPED_TEST(Matrix, BuildColMapContinuous)
         gko::kernels::reference::distributed_matrix::build_diag_offdiag(
             this->ref, this->create_input_full_rank(), partition.get(),
             local_id, this->diag, this->offdiag, this->gather_idxs,
-            this->recv_offsets.get_data(), this->local_to_global_row,
-            this->local_to_global_col);
+            this->recv_offsets.get_data(), this->local_to_global_ghost);
 
-        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_col);
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_ghost);
     }
 }
 
-TYPED_TEST(Matrix, BuildColMapScattered)
+TYPED_TEST(Matrix, BuildGhostMapScattered)
 {
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -403,10 +320,9 @@ TYPED_TEST(Matrix, BuildColMapScattered)
         gko::kernels::reference::distributed_matrix::build_diag_offdiag(
             this->ref, this->create_input_full_rank(), partition.get(),
             local_id, this->diag, this->offdiag, this->gather_idxs,
-            this->recv_offsets.get_data(), this->local_to_global_row,
-            this->local_to_global_col);
+            this->recv_offsets.get_data(), this->local_to_global_ghost);
 
-        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_col);
+        GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_ghost);
     }
 }
 
