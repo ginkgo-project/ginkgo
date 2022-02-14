@@ -851,17 +851,17 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
     ValueType* const __restrict__ values)
 {
     constexpr int warp_size = config::warp_size;
-    auto warp_tile =
+    auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
     const auto warpid = thread::get_subwarp_id_flat<warp_size, IndexType>();
     const auto num_warps = thread::get_subwarp_num_flat<warp_size, IndexType>();
-    for (IndexType row = warpid; row < num_rows; row += num_warps) {
-        const auto tid_in_warp = warp_tile.thread_rank();
-        const IndexType row_start = row_ptrs[row];
-        const IndexType num_nz = row_ptrs[row + 1] - row_start;
+    if (warpid < num_rows) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const IndexType row_start = row_ptrs[warpid];
+        const IndexType num_nz = row_ptrs[warpid + 1] - row_start;
         for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
             values[iz + row_start] *= beta[0];
-            if (col_idxs[iz + row_start] == row) {
+            if (col_idxs[iz + row_start] == warpid) {
                 values[iz + row_start] += alpha[0];
             }
         }
@@ -877,7 +877,7 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     int* const __restrict__ block_reduced)
 {
     constexpr int warp_size = config::warp_size;
-    auto warp_tile =
+    auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
     const auto warpid = thread::get_subwarp_id_flat<warp_size, IndexType>();
     const auto num_warps = thread::get_subwarp_num_flat<warp_size, IndexType>();
@@ -889,7 +889,7 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     __syncthreads();
     const int warpid_in_block = threadIdx.x / warp_size;
     for (IndexType row = warpid; row < num_min_rows_cols; row += num_warps) {
-        const auto tid_in_warp = warp_tile.thread_rank();
+        const auto tid_in_warp = tile_grp.thread_rank();
         const IndexType row_start = row_ptrs[row];
         const IndexType num_nz = row_ptrs[row + 1] - row_start;
         int row_has_diag_local = 0;
@@ -900,8 +900,8 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
             }
         }
         const config::lane_mask_type row_has_diag =
-            warp_tile.ballot(row_has_diag_local);
-        if (warp_tile.thread_rank() == 0) {
+            tile_grp.ballot(row_has_diag_local);
+        if (tile_grp.thread_rank() == 0) {
             has_diag[warpid_in_block] =
                 static_cast<int>(has_diag[warpid_in_block] && row_has_diag);
         }
@@ -910,23 +910,23 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     if (warpid_in_block == 0) {
         // accumulate into one warp length
         for (uint32 i = 1; i <= warps_per_block / warp_size; i <<= 1) {
-            if (i * warp_size + warp_tile.thread_rank() < warps_per_block) {
-                has_diag[warp_tile.thread_rank()] = static_cast<int>(
-                    has_diag[warp_tile.thread_rank()] &&
-                    has_diag[i * warp_size + warp_tile.thread_rank()]);
+            if (i * warp_size + tile_grp.thread_rank() < warps_per_block) {
+                has_diag[tile_grp.thread_rank()] = static_cast<int>(
+                    has_diag[tile_grp.thread_rank()] &&
+                    has_diag[i * warp_size + tile_grp.thread_rank()]);
             }
         }
         // warp-reduce
-        int val = warp_tile.thread_rank() < warps_per_block
-                      ? has_diag[warp_tile.thread_rank()]
+        int val = tile_grp.thread_rank() < warps_per_block
+                      ? has_diag[tile_grp.thread_rank()]
                       : 1;
         // TODO: round up warps_per_block to a power of 2 below
         // (by default it already is)
         for (uint32 k = static_cast<uint32>(warps_per_block / 2); k >= 1;
              k >>= 1) {
-            val = static_cast<int>(val && warp_tile.shfl_down(val, k));
+            val = static_cast<int>(val && tile_grp.shfl_down(val, k));
         }
-        if (warp_tile.thread_rank() == 0) {
+        if (tile_grp.thread_rank() == 0) {
             block_reduced[blockIdx.x] = val;
         }
     }
