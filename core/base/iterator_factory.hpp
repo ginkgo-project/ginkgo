@@ -118,6 +118,23 @@ public:
  * to the individual tuple elements get translated to the corresponding
  * iterator's references.
  *
+ * @note Two zip_iterators can only be compared if each individual pair of
+ *       wrapped iterators has the same distance. Otherwise the behavior is
+ *       undefined. This means that the only guaranteed safe way to use multiple
+ *       zip_iterators is if they are all derived from the same iterator:
+ *       ```
+ *       Iterator i, j;
+ *       auto it1 = make_zip_iterator(i, j);
+ *       auto it2 = make_zip_iterator(i, j + 1);
+ *       auto it3 = make_zip_iterator(i + 1, j + 1);
+ *       auto it4 = it1 + 1;
+ *       it1 == it2; // undefined
+ *       it1 == it3; // well-defined false
+ *       it3 == it4; // well-defined true
+ *       ```
+ *       This property is checked automatically in Debug builds and assumed in
+ *       Release builds.
+ *
  * @see zip_iterator_reference
  * @tparam Iterators  the iterators to zip together
  */
