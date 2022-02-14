@@ -167,6 +167,7 @@ int main(int argc, char* argv[])
     // b->copy_from(b_host.get());
     // x->copy_from(x_host.get());
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto strat = std::make_shared<mtx::classical>();
     gko::size_type size = A->get_size()[0];
     gko::size_type num_rows = A->get_size()[0];
     auto x_host = gko::matrix::Dense<ValueType>::create(exec->get_master(),

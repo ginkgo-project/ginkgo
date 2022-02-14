@@ -112,11 +112,20 @@ int main(int argc, char* argv[])
              }},
             {"hip",
              [&] {
-                 // return gko::HipExecutor::create(
-                 //     0, gko::ReferenceExecutor::create(), true);
-                 return gko::HipExecutor::create(
-                     comm->node_local_rank(), gko::ReferenceExecutor::create(),
-                     true);
+                 if (gko::HipExecutor::get_num_devices() > 1) {
+                     std::cout << " Multiple GPU seen: "
+                               << gko::HipExecutor::get_num_devices()
+                               << std::endl;
+                     return gko::HipExecutor::create(
+                         comm->node_local_rank(),
+                         gko::ReferenceExecutor::create(), true);
+                 } else {
+                     std::cout << " One GPU seen: "
+                               << gko::HipExecutor::get_num_devices()
+                               << std::endl;
+                     return gko::HipExecutor::create(
+                         0, gko::ReferenceExecutor::create(), true);
+                 }
              }},
             {"dpcpp",
              [] {

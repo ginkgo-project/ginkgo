@@ -58,6 +58,7 @@ int main(int argc, char* argv[])
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
     using dist_vec = gko::distributed::Vector<ValueType, LocalIndexType>;
     using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, GlobalIndexType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
 
     // Print the ginkgo version information.
@@ -79,6 +80,8 @@ int main(int argc, char* argv[])
     // executor and all the other functions/ routines within Ginkgo should
     // automatically work and run on the executor with any other changes.
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const auto grid_dim =
+        static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 20);
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -102,13 +105,46 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     const auto comm = std::make_shared<gko::mpi::communicator>(MPI_COMM_WORLD);
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
 
-    std::ifstream a_stream{"data/A.mtx"};
-    std::ifstream x_stream{"data/x.mtx"};
-    std::ifstream b_stream{"data/b.mtx"};
-    auto A_data = gko::read_raw<ValueType, GlobalIndexType>(a_stream);
-    auto x_data = gko::read_raw<ValueType, GlobalIndexType>(x_stream);
-    auto b_data = gko::read_raw<ValueType, GlobalIndexType>(b_stream);
+    gko::matrix_data<ValueType, GlobalIndexType> A_data;
+    gko::matrix_data<ValueType, GlobalIndexType> b_data;
+    gko::matrix_data<ValueType, GlobalIndexType> x_data;
+    A_data.size = {num_rows, num_rows};
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                b_data.nonzeros.emplace_back(
+                    idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                // b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
+    }
+
+    auto A_seq = mtx::create(exec, A_data.size);
+    auto b_seq = vec::create(exec, b_data.size);
+    auto x_seq = vec::create(exec, x_data.size);
+    A_seq->read(A_data);
+    b_seq->read(b_data);
+    x_seq->read(x_data);
 
     // build partition: uniform number of rows per rank
     gko::Array<gko::int64> ranges_array{
@@ -131,18 +167,28 @@ int main(int argc, char* argv[])
     x2->read_distributed(x_data, partition);
     x3->read_distributed(x_data, partition);
     b->read_distributed(b_data, partition);
+    auto local_x_seq = x_seq->create_submatrix(
+        gko::span(ranges_array.get_data()[comm->rank()],
+                  ranges_array.get_data()[comm->rank() + 1]),
+        gko::span(0, x_seq->get_size()[1]));
 
     A->apply(lend(b), lend(x2));
     A->apply2(lend(b), lend(x3));
+    A_seq->apply(b_seq.get(), x_seq.get());
+
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    x3->add_scaled(lend(minus_one), lend(x2));
+
+    x3->get_local()->add_scaled(lend(minus_one), lend(local_x_seq));
     auto bresult = gko::initialize<vec>({0.0}, exec->get_master());
     x3->compute_norm2(lend(bresult));
 
-    A->apply(lend(one), lend(x), lend(minus_one), lend(b));
+    x2->get_local()->add_scaled(lend(minus_one), lend(local_x_seq));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b->compute_norm2(lend(result));
-    std::cout << "Spmv l2 error: " << *result->get_values()
-              << "\n block spmv error " << *bresult->get_values() << std::endl;
+    x2->compute_norm2(lend(result));
+
+    std::cout << "Matrix size " << A->get_size()
+              << "\n distributed Spmv l2 error: " << *result->get_values()
+              << "\n distributed block spmv error " << *bresult->get_values()
+              << std::endl;
 }

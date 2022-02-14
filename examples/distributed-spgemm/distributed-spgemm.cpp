@@ -118,9 +118,8 @@ int main(int argc, char* argv[])
                 if (i < grid_dim - 1)
                     A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
                                                  -1);
-                // b_data.nonzeros.emplace_back(
-                //     idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
-                b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                b_data.nonzeros.emplace_back(
+                    idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
                 x_data.nonzeros.emplace_back(idx, 0, 1.0);
             }
         }
@@ -169,14 +168,16 @@ int main(int argc, char* argv[])
 
     A->apply(lend(B), lend(X));
     std::cout << " Rank " << comm->rank() << " X Mat size " << X->get_size()
-              << " lmat size " << X->get_local_diag()->get_size() << std::endl;
+              << " lmat size " << X->get_local_diag()->get_size()
+              << " offdiag mat size " << X->get_local_offdiag()->get_size()
+              << std::endl;
     std::cout << " Rank " << comm->rank() << " b Vec size " << b->get_size()
               << std::endl;
     std::cout << " Rank " << comm->rank() << " x spgemm Vec size "
               << x_spgemm->get_size() << std::endl;
 
-    std::cout << "Here " << __LINE__ << std::endl;
     B->apply(lend(b), lend(y));
+
     std::cout << "Here " << __LINE__ << std::endl;
     A->apply(lend(y), lend(x));
     std::cout << "Here " << __LINE__ << std::endl;
@@ -184,8 +185,8 @@ int main(int argc, char* argv[])
     std::cout << "Here " << __LINE__ << std::endl;
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    B->apply(lend(one), lend(x), lend(minus_one), lend(b));
+    x_spgemm->add_scaled(lend(minus_one), lend(x));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b->compute_norm2(lend(result));
+    x_spgemm->compute_norm2(lend(result));
     std::cout << *result->get_values() << std::endl;
 }

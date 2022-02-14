@@ -331,6 +331,17 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
     exec->run(dense::make_compute_norm1(this, dense_res.get()));
 }
 
+
+// template <typename ValueType>
+// std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_local_view(
+//     std::shared_ptr<mpi::communicator> comm,
+//     std::shared_ptr<const Partition<int>> partition) const
+// {
+//     auto local_size = partition->get_part_size(comm->rank());
+//     return this->create_submatrix();
+// }
+
+
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
 {
