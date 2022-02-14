@@ -84,8 +84,12 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     const matrix::Dense<MatrixValueType>* alpha = nullptr,
                     const matrix::Dense<OutputValueType>* beta = nullptr)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using input_accessor =
-        gko::acc::reduced_row_major<2, OutputValueType, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+    using output_accessor =
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * classical_overweight;
@@ -93,7 +97,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
                  int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
-    const dim3 block(spmv_block_size);
+    const auto block = spmv_block_size;
 
     const auto b_vals = gko::acc::range<input_accessor>(
         std::array<acc::size_type, 2>{
@@ -102,21 +106,26 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         b->get_const_values(),
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(b->get_stride())}});
+    auto c_vals = gko::acc::range<output_accessor>(
+        std::array<acc::size_type, 2>{
+            {static_cast<acc::size_type>(c->get_size()[0]),
+             static_cast<acc::size_type>(c->get_size()[1])}},
+        c->get_values(),
+        std::array<acc::size_type, 1>{
+            {static_cast<acc::size_type>(c->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
             a->get_size()[0], as_cuda_type(a->get_const_value()),
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            acc::as_cuda_range(b_vals), as_cuda_type(c->get_values()),
-            c->get_stride());
+            acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
 
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
             a->get_size()[0], as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
             as_cuda_type(a->get_const_row_ptrs()), acc::as_cuda_range(b_vals),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
+            as_cuda_type(beta->get_const_values()), acc::as_cuda_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
     }

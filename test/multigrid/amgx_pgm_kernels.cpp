@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -71,6 +72,7 @@ protected:
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
 
@@ -315,8 +317,8 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
         d_row_gatherer->get_const_row_idxs());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()),
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(d_mg_level->get_restrict_op()),
+                        gko::as<SparsityCsr>(mg_level->get_restrict_op()),
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()),
@@ -348,8 +350,8 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
         d_row_gatherer->get_const_row_idxs());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()),
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(d_mg_level->get_restrict_op()),
+                        gko::as<SparsityCsr>(mg_level->get_restrict_op()),
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()),
