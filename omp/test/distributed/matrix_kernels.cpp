@@ -30,6 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
 #include <algorithm>
 #include <memory>
 
@@ -57,15 +58,12 @@ using comm_index_type = gko::distributed::comm_index_type;
 template <typename ValueLocalGlobalIndexType>
 class Matrix : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
@@ -206,8 +204,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), partition.get(), d_partition.get(),
-                   d_partition.get(), input);
+    this->validate(partition.get(), d_partition.get(), input);
 }
 
 
@@ -228,8 +225,8 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols)),
+        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
+                                           static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
