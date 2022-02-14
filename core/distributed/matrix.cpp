@@ -58,14 +58,13 @@ GKO_REGISTER_OPERATION(map_to_global_idxs,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec)
-    : Matrix(exec, mpi::communicator(MPI_COMM_NULL), nullptr)
+    : Matrix(exec, mpi::communicator(MPI_COMM_NULL))
 {}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> partition)
+    std::shared_ptr<const Executor> exec, mpi::communicator comm)
     : EnableLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
@@ -74,12 +73,10 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      local_to_global_inner_{exec},
       local_to_global_ghost_{exec},
       one_scalar_{},
       diag_mtx_{local_matrix_type::create(exec)},
-      offdiag_mtx_{local_matrix_type::create(exec)},
-      partition_(std::move(partition))
+      offdiag_mtx_{local_matrix_type::create(exec)}
 {
     one_scalar_.init(exec, dim<2>{1, 1});
     initialize<local_vector_type>({one<value_type>()}, exec)
@@ -99,9 +96,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
-    result->local_to_global_inner_ = this->local_to_global_inner_;
     result->local_to_global_ghost_ = this->local_to_global_ghost_;
-    result->partition_ = this->partition_;
     result->set_size(this->get_size());
 }
 
@@ -116,20 +111,22 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const matrix_data<ValueType, global_index_type>& data)
+    const matrix_data<ValueType, global_index_type>& data,
+    const Partition<local_index_type, global_index_type>* partition)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
-            this->get_executor(), data));
+            this->get_executor(), data),
+        partition);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
-    const device_matrix_data<ValueType, GlobalIndexType>& data)
+    const device_matrix_data<ValueType, GlobalIndexType>& data,
+    const Partition<local_index_type, global_index_type>* partition)
 {
     const auto comm = this->get_communicator();
-    auto partition = this->get_partition();
     GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
     GKO_ASSERT_EQ(data.get_size()[0], partition->get_size());
     GKO_ASSERT_EQ(comm.size(), partition->get_num_parts());
@@ -152,9 +149,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
-        data, partition.get(), local_part, diag_data, offdiag_data,
-        recv_gather_idxs, recv_offsets_array.get_data(), local_to_global_inner_,
-        local_to_global_ghost_));
+        data, partition, local_part, diag_data, offdiag_data, recv_gather_idxs,
+        recv_offsets_array.get_data(), local_to_global_ghost_));
 
     this->diag_mtx_->read(diag_data);
     this->offdiag_mtx_->read(offdiag_data);
