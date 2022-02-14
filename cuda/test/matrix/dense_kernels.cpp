@@ -226,7 +226,21 @@ TEST_F(Dense, MultipleVectorCudaComputeConjDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, CudaComputeNorm2IsEquivalentToRef)
+TEST_F(Dense, SingleVectorCudaComputeNorm2IsEquivalentToRef)
+{
+    set_up_vector_data(1);
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->cuda, norm_size);
+
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
+}
+
+
+TEST_F(Dense, MultipleVectorCudaComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
