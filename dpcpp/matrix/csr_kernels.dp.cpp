@@ -2190,7 +2190,7 @@ template <typename ValueType, typename IndexType>
 void check_diagonal_entries_exist(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* const mtx,
-    bool* const has_all_diags) GKO_NOT_IMPLEMENTED;
+    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);

@@ -687,8 +687,8 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
             "The matrix has one or more structurally zero diagonals!");
     }
     this->get_executor()->run(csr::make_add_scaled_identity(
-        make_temporary_conversion<ValueType>(a),
-        make_temporary_conversion<ValueType>(b), this));
+        make_temporary_conversion<ValueType>(a).get(),
+        make_temporary_conversion<ValueType>(b).get(), this));
 }
 
 
