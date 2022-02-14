@@ -250,6 +250,18 @@ TYPED_TEST(IteratorFactory, IncreasingIterator)
 #ifndef NDEBUG
 
 
+bool check_assertion_exit_code(int exit_code)
+{
+#ifdef _MSC_VER
+    // MSVC picks up the exit code incorrectly,
+    // so we can only check that it exits
+    return true;
+#else
+    return exit_code != 0;
+#endif
+}
+
+
 TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
 {
     using index_type = typename TestFixture::index_type;
@@ -261,13 +273,13 @@ TYPED_TEST(IteratorFactory, IncompatibleIteratorDeathTest)
 
     // a set of operations that return inconsistent results for the two
     // different iterators
-    EXPECT_DEATH(it2 - it1, "");
-    EXPECT_DEATH(it2 == it1, "");
-    EXPECT_DEATH(it2 != it1, "");
-    EXPECT_DEATH(it1 < it2, "");
-    EXPECT_DEATH(it2 <= it1, "");
-    EXPECT_DEATH(it2 > it1, "");
-    EXPECT_DEATH(it1 >= it2, "");
+    EXPECT_EXIT(it2 - it1, check_assertion_exit_code, "");
+    EXPECT_EXIT(it2 == it1, check_assertion_exit_code, "");
+    EXPECT_EXIT(it2 != it1, check_assertion_exit_code, "");
+    EXPECT_EXIT(it1 < it2, check_assertion_exit_code, "");
+    EXPECT_EXIT(it2 <= it1, check_assertion_exit_code, "");
+    EXPECT_EXIT(it2 > it1, check_assertion_exit_code, "");
+    EXPECT_EXIT(it1 >= it2, check_assertion_exit_code, "");
 }
 
 
