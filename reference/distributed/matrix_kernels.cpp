@@ -52,7 +52,6 @@ void build_diag_offdiag(
     device_matrix_data<ValueType, LocalIndexType>& diag_data,
     device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
     Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
-    Array<GlobalIndexType>& local_to_global_inner,
     Array<GlobalIndexType>& local_to_global_ghost)
 {
     auto input_row_idxs = input.get_const_row_idxs();
@@ -86,11 +85,6 @@ void build_diag_offdiag(
                range_starting_indices[range_id];
     };
 
-    const auto num_inner_elems =
-        static_cast<size_type>(partition->get_part_size(local_part));
-    local_to_global_inner.resize_and_reset(num_inner_elems);
-    local_to_global_inner.fill(invalid_index<GlobalIndexType>());
-
     // store offdiagonal columns and their range indices
     std::map<GlobalIndexType, range_index_type> offdiag_cols;
     // store offdiagonal entries with global column idxs
@@ -106,7 +100,6 @@ void build_diag_offdiag(
         if (part_ids[row_range_id] == local_part) {
             // map to part-local indices
             auto local_row = map_to_local(global_row, row_range_id);
-            local_to_global_inner.get_data()[local_row] = global_row;
 
             auto col_range_id = find_range(global_col, col_range_id_hint);
             col_range_id_hint = col_range_id;
@@ -128,7 +121,9 @@ void build_diag_offdiag(
         }
     }
     // store diagonal data to output
-    diag_data.resize_and_reset(gko::dim<2>{num_inner_elems, num_inner_elems},
+    const auto num_diag_elems =
+        static_cast<size_type>(partition->get_part_size(local_part));
+    diag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_diag_elems},
                                diag_entries.size());
     components::aos_to_soa(exec,
                            Array<local_nonzero>::view(exec, diag_entries.size(),
@@ -167,7 +162,7 @@ void build_diag_offdiag(
         recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
     }
     // map off-diag values to local column indices
-    offdiag_data.resize_and_reset(gko::dim<2>{num_inner_elems, num_ghost_elems},
+    offdiag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_ghost_elems},
                                   global_offdiag_entries.size());
     for (size_type i = 0; i < global_offdiag_entries.size(); i++) {
         auto global = global_offdiag_entries[i];
