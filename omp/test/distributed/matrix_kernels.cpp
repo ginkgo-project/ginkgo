@@ -97,25 +97,21 @@ protected:
             gko::Array<comm_index_type> d_recv_offsets{
                 exec,
                 static_cast<gko::size_type>(partition->get_num_parts() + 1)};
-            gko::Array<global_index_type> local_to_global_row{ref};
-            gko::Array<global_index_type> d_local_to_global_row{exec};
             gko::Array<global_index_type> local_to_global_col{ref};
             gko::Array<global_index_type> d_local_to_global_col{exec};
 
             gko::kernels::reference::distributed_matrix::build_diag_offdiag(
                 ref, input, partition, part, diag, offdiag, gather_idxs,
-                recv_offsets.get_data(), local_to_global_row,
-                local_to_global_col);
+                recv_offsets.get_data(), local_to_global_col);
             gko::kernels::omp::distributed_matrix::build_diag_offdiag(
                 exec, d_input, d_partition, part, d_diag, d_offdiag,
-                d_gather_idxs, d_recv_offsets.get_data(), d_local_to_global_row,
+                d_gather_idxs, d_recv_offsets.get_data(),
                 d_local_to_global_col);
 
             assert_device_matrix_data_equal(diag, d_diag);
             assert_device_matrix_data_equal(offdiag, d_offdiag);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, d_gather_idxs);
             GKO_ASSERT_ARRAY_EQ(recv_offsets, d_recv_offsets);
-            GKO_ASSERT_ARRAY_EQ(local_to_global_row, d_local_to_global_row);
             GKO_ASSERT_ARRAY_EQ(local_to_global_col, d_local_to_global_col);
         }
     }
