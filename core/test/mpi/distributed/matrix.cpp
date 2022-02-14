@@ -132,13 +132,13 @@ TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes);
 TYPED_TEST(Matrix, ReadsDistributedGlobalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm, this->part);
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
     I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
     I<I<value_type>> res_offdiag[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
-    dist_mat->read_distributed(this->mat_input);
+    dist_mat->read_distributed(this->mat_input, this->part.get());
 
     GKO_ASSERT_MTX_NEAR(dist_mat->get_local_diag(), res_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(dist_mat->get_local_offdiag(), res_offdiag[rank], 0);
@@ -148,13 +148,13 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
 TYPED_TEST(Matrix, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
-    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm, this->part);
+    auto dist_mat = TestFixture::Mtx::create(this->ref, this->comm);
     I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
     I<I<value_type>> res_offdiag[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
-    dist_mat->read_distributed(this->dist_input[rank]);
+    dist_mat->read_distributed(this->dist_input[rank], this->part.get());
 
     GKO_ASSERT_MTX_NEAR(dist_mat->get_local_diag(), res_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(dist_mat->get_local_offdiag(), res_offdiag[rank], 0);
@@ -166,13 +166,12 @@ TYPED_TEST(Matrix, CanApplyToSingleVector)
     using index_type = typename TestFixture::global_index_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
-    auto dist_mat =
-        TestFixture::Mtx ::create(this->ref, this->comm, this->part);
+    auto dist_mat = TestFixture::Mtx ::create(this->ref, this->comm);
     auto x = TestFixture::Vec ::create(this->ref, this->comm);
     auto y = TestFixture::Vec ::create(this->ref, this->comm);
     I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
     auto rank = this->comm.rank();
-    dist_mat->read_distributed(this->mat_input);
+    dist_mat->read_distributed(this->mat_input, this->part.get());
     x->read_distributed(vec_md, this->part.get());
     y->read_distributed(vec_md, this->part.get());
     y->fill(gko::zero<value_type>());
@@ -209,7 +208,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
     auto part = gko::share(
         gko::distributed::Partition<local_index_type, global_index_type>::
             build_from_mapping(this->ref, mapping, num_parts));
-    auto dist_mat = TestFixture::Mtx ::create(this->ref, this->comm, part);
+    auto dist_mat = TestFixture::Mtx ::create(this->ref, this->comm);
     auto csr_mat =
         gko::matrix::Csr<value_type, global_index_type>::create(this->ref);
     auto x = TestFixture::Vec ::create(this->ref, this->comm);
@@ -219,7 +218,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
     auto dense_x = gko::matrix::Dense<value_type>::create(this->ref);
     auto dense_y = gko::matrix::Dense<value_type>::create(
         this->ref, gko::dim<2>{num_rows, 1});
-    dist_mat->read_distributed(mat_md);
+    dist_mat->read_distributed(mat_md, part.get());
     csr_mat->read(mat_md);
     x->read_distributed(vec_md, part.get());
     dense_x->read(vec_md);
