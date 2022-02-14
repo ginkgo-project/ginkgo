@@ -81,10 +81,49 @@ struct device_config {
     static constexpr uint32 subgroup_size = subgroup;
 };
 
+
 using KCFG_1D = ConfigSet<11, 7>;
-using block_cfg_list_t =
-    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(512, 16),
-                           KCFG_1D::encode(256, 16), KCFG_1D::encode(128, 16)>;
+
+
+/**
+ * cfg_encode encodes the device_config to KCFG_1D encoded information.
+ *
+ * @tparam T  device_config type
+ *
+ * @return the encoded information
+ */
+template <typename T>
+constexpr uint32 cfg_encode()
+{
+    return KCFG_1D::encode(T::block_size, T::subgroup_size);
+};
+
+/**
+ * encode_list base type
+ *
+ * @tparam T  the input template
+ */
+template <typename T, typename = void>
+struct encode_list {};
+
+/**
+ * encode_list specializes for the type_list. It will convert the each type to
+ * encoded information.
+ *
+ * @tparam T  the input template
+ */
+template <typename... Types>
+struct encode_list<::gko::syn::type_list<Types...>> {
+    using type = ::gko::syn::value_list<uint32, cfg_encode<Types>()...>;
+};
+
+
+using block_cfg_type_list_t =
+    ::gko::syn::type_list<device_config<512, 16>, device_config<256, 16>,
+                          device_config<128, 16>>;
+
+using block_cfg_list_t = encode_list<block_cfg_type_list_t>::type;
+
 
 using kcfg_1d_list_t =
     ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
@@ -92,14 +131,13 @@ using kcfg_1d_list_t =
                            KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
                            KCFG_1D::encode(256, 8)>;
 
-using kcfg_sq_list_t =
-    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(4096, 64),
-                           KCFG_1D::encode(1024, 32), KCFG_1D::encode(256, 16),
-                           KCFG_1D::encode(64, 8)>;
 
 using kcfg_sq_type_list_t =
     ::gko::syn::type_list<device_config<4096, 64>, device_config<1024, 32>,
                           device_config<256, 16>, device_config<64, 8>>;
+
+using kcfg_sq_list_t = encode_list<kcfg_sq_type_list_t>::type;
+
 
 using kcfg_1sg_list_t =
     syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
