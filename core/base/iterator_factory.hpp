@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cassert>
 #include <cstddef>
+#include <initializer_list>
 #include <iterator>
 #include <tuple>
 #include <utility>
@@ -43,12 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace detail {
-
-
-/** Helper function to pass pack expansions to, whose values we don't need. */
-template <typename... Args>
-void tuple_unpack_sink(Args&&...)
-{}
 
 
 template <typename... Iterators>
@@ -95,8 +90,8 @@ class zip_iterator_reference
     template <std::size_t... idxs>
     void assign_impl(std::index_sequence<idxs...>, const value_type& other)
     {
-        tuple_unpack_sink(
-            (std::get<idxs>(*this) = std::get<idxs>(other), 0)...);
+        (void)std::initializer_list<int>{
+            (std::get<idxs>(*this) = std::get<idxs>(other), 0)...};
     }
 
     zip_iterator_reference(Iterators... it) : ref_tuple_type{*it...} {}
@@ -262,25 +257,27 @@ private:
     template <typename Functor, std::size_t... idxs>
     void forall_impl(Functor fn, std::index_sequence<idxs...>)
     {
-        tuple_unpack_sink((fn(std::get<idxs>(iterators_)), 0)...);
+        (void)std::initializer_list<int>{
+            (fn(std::get<idxs>(iterators_)), 0)...};
     }
 
     template <typename Functor, std::size_t... idxs>
     void forall_impl(const zip_iterator& other, Functor fn,
                      std::index_sequence<idxs...>) const
     {
-        tuple_unpack_sink(
+        (void)std::initializer_list<int>{
             (fn(std::get<idxs>(iterators_), std::get<idxs>(other.iterators_)),
-             0)...);
+             0)...};
     }
 
     template <typename Functor>
     auto forall_check_consistent(const zip_iterator& other, Functor fn) const
     {
-        auto result =
-            fn(std::get<0>(iterators_), std::get<0>(other.iterators_));
+        auto it = std::get<0>(iterators_);
+        auto other_it = std::get<0>(other.iterators_);
+        auto result = fn(it, other_it);
         forall_impl(
-            other, [&](auto a, auto b) { assert(fn(a, b) == result); },
+            other, [&](auto a, auto b) { assert(it - other_it == a - b); },
             index_sequence{});
         return result;
     }
@@ -308,7 +305,7 @@ zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(Iterators&&... it)
  * // now both a and b point to the same value that was originally at b
  * ```
  * It is modelled after the behavior of std::vector<bool> bit references.
- * To swap in generic code, use the pattern `using std::swap; swap(a, b)`
+ * To swap in generic code, use the pattern `using std::swap; swap(a, b);`
  *
  * @tparam Iterators  the iterator types inside the corresponding zip_iterator
  */
