@@ -113,19 +113,30 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
         c->get_values(),
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(c->get_stride())}});
-
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
     if (alpha == nullptr && beta == nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(a->get_const_value()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
-
+        if (grid.x > 0 && grid.y > 0) {
+            kernel::abstract_classical_spmv<subwarp_size>
+                <<<grid, block, 0, 0>>>(
+                    a->get_size()[0], as_cuda_type(a->get_const_value()),
+                    a->get_const_col_idxs(),
+                    as_cuda_type(a->get_const_row_ptrs()),
+                    acc::as_cuda_range(b_vals), acc::as_cuda_range(c_vals));
+        }
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_ptrs()), acc::as_cuda_range(b_vals),
-            as_cuda_type(beta->get_const_values()), acc::as_cuda_range(c_vals));
+        if (grid.x > 0 && grid.y > 0) {
+            kernel::abstract_classical_spmv<subwarp_size>
+                <<<grid, block, 0, 0>>>(
+                    a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+                    as_cuda_type(a->get_const_value()), a->get_const_col_idxs(),
+                    as_cuda_type(a->get_const_row_ptrs()),
+                    acc::as_cuda_range(b_vals),
+                    as_cuda_type(beta->get_const_values()),
+                    acc::as_cuda_range(c_vals));
+        }
     } else {
         GKO_KERNEL_NOT_FOUND;
     }

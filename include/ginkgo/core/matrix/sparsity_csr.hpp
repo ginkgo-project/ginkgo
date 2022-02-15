@@ -253,7 +253,9 @@ protected:
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
           value_(exec, {one<ValueType>()})
-    {}
+    {
+        row_ptrs_.fill(0);
+    }
 
     /**
      * Creates a SparsityCsr matrix from already allocated (and initialized) row
