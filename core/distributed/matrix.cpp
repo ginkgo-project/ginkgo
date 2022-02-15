@@ -57,13 +57,6 @@ GKO_REGISTER_OPERATION(map_to_global_idxs,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec)
-    : Matrix(exec, mpi::communicator(MPI_COMM_NULL))
-{}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
     : EnableLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
@@ -206,17 +199,19 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
         host_send_buffer_.init(exec->get_master(), send_dim);
     }
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
+    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
     if (needs_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-        return comm.i_all_to_all_v(host_send_buffer_->get_const_values(),
-                                   send_sizes_.data(), send_offsets_.data(),
-                                   host_recv_buffer_->get_values(),
-                                   recv_sizes_.data(), recv_offsets_.data());
+
+        return comm.i_all_to_all_v(
+            host_send_buffer_->get_const_values(), send_sizes_.data(),
+            send_offsets_.data(), type.get(), host_recv_buffer_->get_values(),
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
     } else {
-        return comm.i_all_to_all_v(send_buffer_->get_const_values(),
-                                   send_sizes_.data(), send_offsets_.data(),
-                                   recv_buffer_->get_values(),
-                                   recv_sizes_.data(), recv_offsets_.data());
+        return comm.i_all_to_all_v(
+            send_buffer_->get_const_values(), send_sizes_.data(),
+            send_offsets_.data(), type.get(), recv_buffer_->get_values(),
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
     }
 }
 

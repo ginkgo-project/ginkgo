@@ -51,12 +51,15 @@ using comm_index_type = gko::distributed::comm_index_type;
 template <typename ValueLocalGlobalIndexType>
 class Matrix : public ::testing::Test {
 protected:
-    using value_type = typename std::tuple_element<
-        0, decltype(ValueLocalGlobalIndexType())>::type;
-    using local_index_type = typename std::tuple_element<
-        1, decltype(ValueLocalGlobalIndexType())>::type;
-    using global_index_type = typename std::tuple_element<
-        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using value_type =
+        typename std::tuple_element<0, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using local_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<2, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::distributed::Matrix<value_type, local_index_type,
                                          global_index_type>;
     using Vec = gko::distributed::Vector<value_type>;
@@ -230,5 +233,80 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
                                                      part.get(), rank);
 }
 
+
+TYPED_TEST(Matrix, CanApplyToMultipleVectors)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::global_index_type;
+    auto vec_md = gko::matrix_data<value_type, index_type>{
+        I<I<value_type>>{{1, 11}, {2, 22}, {3, 33}, {4, 44}, {5, 55}}};
+    auto dist_mat = TestFixture::Mtx ::create(this->ref, this->comm);
+    auto x = TestFixture::Vec ::create(this->ref, this->comm);
+    auto y = TestFixture::Vec ::create(this->ref, this->comm);
+    I<I<value_type>> result[3] = {
+        {{10, 110}, {18, 198}}, {{28, 308}, {67, 737}}, {{59, 649}}};
+    auto rank = this->comm.rank();
+    dist_mat->read_distributed(this->mat_input, this->part.get());
+    x->read_distributed(vec_md, this->part.get());
+    y->read_distributed(vec_md, this->part.get());
+    y->fill(gko::zero<value_type>());
+
+    dist_mat->apply(x.get(), y.get());
+
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, CanApplyToMultipleVectorsLarge)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    auto rank = this->comm.rank();
+    gko::size_type num_rows = 100;
+    gko::size_type num_rhs = 17;
+    int num_parts = this->comm.size();
+    auto vec_md =
+        gko::test::generate_random_matrix_data<value_type, global_index_type>(
+            num_rows, num_rhs,
+            std::uniform_int_distribution<int>(static_cast<int>(num_rhs) - 1,
+                                               static_cast<int>(num_rhs) - 1),
+            std::normal_distribution<gko::remove_complex<value_type>>(),
+            this->engine);
+    auto mat_md =
+        gko::test::generate_random_matrix_data<value_type, global_index_type>(
+            num_rows, num_rows,
+            std::uniform_int_distribution<int>(0,
+                                               static_cast<int>(num_rows) - 1),
+            std::normal_distribution<gko::remove_complex<value_type>>(),
+            this->engine);
+    auto mapping = gko::test::generate_random_array<comm_index_type>(
+        num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
+        this->engine, this->ref);
+    auto part = gko::share(
+        gko::distributed::Partition<local_index_type, global_index_type>::
+            build_from_mapping(this->ref, mapping, num_parts));
+    auto dist_mat = TestFixture::Mtx ::create(this->ref, this->comm);
+    auto csr_mat =
+        gko::matrix::Csr<value_type, global_index_type>::create(this->ref);
+    auto x = TestFixture::Vec ::create(this->ref, this->comm);
+    auto y = TestFixture::Vec ::create(
+        this->ref, this->comm, gko::dim<2>{num_rows, num_rhs},
+        gko::dim<2>{static_cast<gko::size_type>(part->get_part_size(rank)),
+                    num_rhs});
+    auto dense_x = gko::matrix::Dense<value_type>::create(this->ref);
+    auto dense_y = gko::matrix::Dense<value_type>::create(
+        this->ref, gko::dim<2>{num_rows, num_rhs});
+    dist_mat->read_distributed(mat_md, part.get());
+    csr_mat->read(mat_md);
+    x->read_distributed(vec_md, part.get());
+    dense_x->read(vec_md);
+
+    dist_mat->apply(x.get(), y.get());
+    csr_mat->apply(dense_x.get(), dense_y.get());
+
+    this->assert_local_vector_equal_to_global_vector(y.get(), dense_y.get(),
+                                                     part.get(), rank);
+}
 
 }  // namespace
