@@ -237,11 +237,14 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    oneapi::mkl::blas::row_major::gemm(
-        *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-        c->get_size()[0], c->get_size()[1], a->get_size()[1], one<ValueType>(),
-        a->get_const_values(), a->get_stride(), b->get_const_values(),
-        b->get_stride(), zero<ValueType>(), c->get_values(), c->get_stride());
+    if (b->get_stride() != 0 && c->get_stride() != 0) {
+        oneapi::mkl::blas::row_major::gemm(
+            *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+            c->get_size()[0], c->get_size()[1], a->get_size()[1],
+            one<ValueType>(), a->get_const_values(), a->get_stride(),
+            b->get_const_values(), b->get_stride(), zero<ValueType>(),
+            c->get_values(), c->get_stride());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
@@ -254,13 +257,15 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
-    oneapi::mkl::blas::row_major::gemm(
-        *exec->get_queue(), transpose::nontrans, transpose::nontrans,
-        c->get_size()[0], c->get_size()[1], a->get_size()[1],
-        exec->copy_val_to_host(alpha->get_const_values()),
-        a->get_const_values(), a->get_stride(), b->get_const_values(),
-        b->get_stride(), exec->copy_val_to_host(beta->get_const_values()),
-        c->get_values(), c->get_stride());
+    if (b->get_stride() != 0 && c->get_stride() != 0) {
+        oneapi::mkl::blas::row_major::gemm(
+            *exec->get_queue(), transpose::nontrans, transpose::nontrans,
+            c->get_size()[0], c->get_size()[1], a->get_size()[1],
+            exec->copy_val_to_host(alpha->get_const_values()),
+            a->get_const_values(), a->get_stride(), b->get_const_values(),
+            b->get_stride(), exec->copy_val_to_host(beta->get_const_values()),
+            c->get_values(), c->get_stride());
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
