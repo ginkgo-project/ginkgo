@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
@@ -64,12 +65,35 @@ GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        amgx_pgm::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
+GKO_REGISTER_OPERATION(sort_agg, amgx_pgm::sort_agg);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 
 
 }  // anonymous namespace
 }  // namespace amgx_pgm
+
+namespace {
+
+
+template <typename IndexType>
+void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
+                     const gko::Array<IndexType>& agg, IndexType* row_ptrs,
+                     IndexType* col_idxs)
+{
+    const IndexType num = agg.get_num_elems();
+    gko::Array<IndexType> row_idxs(exec, agg);
+    exec->run(amgx_pgm::make_fill_seq_array(col_idxs, num));
+    // sort the pair (int, agg) to (row_idxs, col_idxs)
+    exec->run(amgx_pgm::make_sort_agg(num, row_idxs.get_data(), col_idxs));
+    // row_idxs->row_ptrs
+    exec->run(amgx_pgm::make_convert_idxs_to_ptrs(row_idxs.get_data(), num,
+                                                  num_agg, row_ptrs));
+}
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -166,11 +190,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
             exec, restrict_op->get_size(),
             restrict_op->get_num_stored_elements()));
-    exec->copy_from(exec.get(), static_cast<size_type>(num_agg + 1),
-                    restrict_op->get_const_row_ptrs(),
-                    restrict_sparsity->get_row_ptrs());
-    exec->copy_from(exec.get(), restrict_op->get_num_stored_elements(),
-                    restrict_op->get_const_col_idxs(),
+    agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
