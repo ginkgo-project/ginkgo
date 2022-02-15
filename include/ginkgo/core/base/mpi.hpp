@@ -95,6 +95,45 @@ GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
 
+class contiguous_type {
+public:
+    contiguous_type(int count, MPI_Datatype old_type)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_contiguous(count, old_type, &type_));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&type_));
+    }
+
+    contiguous_type(const contiguous_type&) = delete;
+
+    contiguous_type& operator=(const contiguous_type&) = delete;
+
+    contiguous_type(contiguous_type&& other) noexcept
+    {
+        *this = std::move(other);
+    }
+
+    contiguous_type& operator=(contiguous_type&& other) noexcept
+    {
+        if (this != &other) {
+            this->type_ = std::exchange(other.type_, MPI_DATATYPE_NULL);
+        }
+        return *this;
+    }
+
+    ~contiguous_type()
+    {
+        if (type_ != MPI_DATATYPE_NULL) {
+            MPI_Type_free(&type_);
+        }
+    }
+
+    MPI_Datatype get() { return type_; }
+
+private:
+    MPI_Datatype type_;
+};
+
+
 template <typename T>
 inline const T* in_place()
 {
@@ -976,6 +1015,34 @@ public:
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
      * @param send_offsets  the offsets for the send buffer
+     * @param send_type  the MPI_Datatype for the send buffer
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param recv_offsets  the offsets for the recv buffer
+     * @param recv_type  the MPI_Datatype for the recv buffer
+     *
+     * @return  the request handle for the call
+     */
+    request i_all_to_all_v(const void* send_buffer, const int* send_counts,
+                           const int* send_offsets, MPI_Datatype send_type,
+                           void* recv_buffer, const int* recv_counts,
+                           const int* recv_offsets,
+                           MPI_Datatype recv_type) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type, this->get(), req.get()));
+        return req;
+    }
+
+    /**
+     * Communicate data from all ranks to all other ranks with
+     * offsets (MPI_Alltoallv). See MPI documentation for more details.
+     *
+     * @param send_buffer  the buffer to send
+     * @param send_count  the number of elements to send
+     * @param send_offsets  the offsets for the send buffer
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
@@ -988,13 +1055,10 @@ public:
                            const int* recv_counts,
                            const int* recv_offsets) const
     {
-        request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
-            send_buffer, send_counts, send_offsets,
-            type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), this->get(),
-            req.get()));
-        return req;
+        return this->i_all_to_all_v(send_buffer, send_counts, send_offsets,
+                                    type_impl<SendType>::get_type(),
+                                    recv_buffer, recv_counts, recv_offsets,
+                                    type_impl<RecvType>::get_type());
     }
 
     /**
