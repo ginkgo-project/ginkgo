@@ -235,20 +235,16 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
         return;
     }
     if (alpha == nullptr && beta == nullptr) {
-        if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0],
-                a->get_const_value(), a->get_const_col_idxs(),
-                a->get_const_row_ptrs(), b_vals, c_vals);
-        }
+        kernel::abstract_classical_spmv<subgroup_size>(
+            grid, block, 0, exec->get_queue(), a->get_size()[0],
+            a->get_const_value(), a->get_const_col_idxs(),
+            a->get_const_row_ptrs(), b_vals, c_vals);
     } else if (alpha != nullptr && beta != nullptr) {
-        if (grid.x > 0 && grid.y > 0) {
-            kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0],
-                alpha->get_const_values(), a->get_const_value(),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
-                beta->get_const_values(), c_vals);
-        }
+        kernel::abstract_classical_spmv<subgroup_size>(
+            grid, block, 0, exec->get_queue(), a->get_size()[0],
+            alpha->get_const_values(), a->get_const_value(),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(), b_vals,
+            beta->get_const_values(), c_vals);
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
