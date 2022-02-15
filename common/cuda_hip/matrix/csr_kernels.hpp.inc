@@ -874,21 +874,13 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     const IndexType num_min_rows_cols,
     const IndexType* const __restrict__ row_ptrs,
     const IndexType* const __restrict__ col_idxs,
-    int* const __restrict__ block_reduced)
+    bool* const __restrict__ has_all_diags)
 {
     constexpr int warp_size = config::warp_size;
     auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
-    const auto warpid = thread::get_subwarp_id_flat<warp_size, IndexType>();
-    const auto num_warps = thread::get_subwarp_num_flat<warp_size, IndexType>();
-    constexpr int warps_per_block = default_block_size / warp_size;
-    __shared__ int has_diag[warps_per_block];
-    for (int i = threadIdx.x; i < warps_per_block; i += blockDim.x) {
-        has_diag[i] = 1;
-    }
-    __syncthreads();
-    const int warpid_in_block = threadIdx.x / warp_size;
-    for (IndexType row = warpid; row < num_min_rows_cols; row += num_warps) {
+    const auto row = thread::get_subwarp_id_flat<warp_size, IndexType>();
+    if (row < num_min_rows_cols) {
         const auto tid_in_warp = tile_grp.thread_rank();
         const IndexType row_start = row_ptrs[row];
         const IndexType num_nz = row_ptrs[row + 1] - row_start;
@@ -899,66 +891,13 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
                 break;
             }
         }
-        const config::lane_mask_type row_has_diag =
-            tile_grp.ballot(row_has_diag_local);
-        if (tile_grp.thread_rank() == 0) {
-            has_diag[warpid_in_block] =
-                static_cast<int>(has_diag[warpid_in_block] && row_has_diag);
-        }
-    }
-    __syncthreads();
-    if (warpid_in_block == 0) {
-        // accumulate into one warp length
-        for (uint32 i = 1; i <= warps_per_block / warp_size; i <<= 1) {
-            if (i * warp_size + tile_grp.thread_rank() < warps_per_block) {
-                has_diag[tile_grp.thread_rank()] = static_cast<int>(
-                    has_diag[tile_grp.thread_rank()] &&
-                    has_diag[i * warp_size + tile_grp.thread_rank()]);
+        int row_has_diag = tile_grp.any(row_has_diag_local == 1);
+        if (!row_has_diag) {
+            if (tile_grp.thread_rank() == 0) {
+                *has_all_diags = false;
             }
+            return;
         }
-        // warp-reduce
-        int val = tile_grp.thread_rank() < warps_per_block
-                      ? has_diag[tile_grp.thread_rank()]
-                      : 1;
-        // TODO: round up warps_per_block to a power of 2 below
-        // (by default it already is)
-        for (uint32 k = static_cast<uint32>(warps_per_block / 2); k >= 1;
-             k >>= 1) {
-            val = static_cast<int>(val && tile_grp.shfl_down(val, k));
-        }
-        if (tile_grp.thread_rank() == 0) {
-            block_reduced[blockIdx.x] = val;
-        }
-    }
-}
-
-
-// Meant to be called with a single thread-block for reducing a small array
-// but not necessarily smaller than default_block_size.
-template <typename IntType>
-__global__ __launch_bounds__(default_block_size) void reduce_and_array(
-    const size_type size, IntType* const __restrict__ source)
-{
-    __shared__ IntType block_sum[default_block_size];
-    if (threadIdx.x < size) {
-        block_sum[threadIdx.x] = source[threadIdx.x];
-    } else {
-        block_sum[threadIdx.x] = 1;
-    }
-    __syncthreads();
-    // reduce to 1 block-length
-    for (size_type i = blockDim.x + threadIdx.x; i < size; i += blockDim.x) {
-        block_sum[i % blockDim.x] =
-            static_cast<int>(block_sum[i % blockDim.x] && source[i]);
-    }
-    __syncthreads();
-    reduce(group::this_thread_block(), block_sum,
-           [](const IntType& a, const IntType& b) {
-               return static_cast<IntType>(a && b);
-           });
-    __syncthreads();
-    if (threadIdx.x == 0) {
-        source[0] = block_sum[0];
     }
 }
 
