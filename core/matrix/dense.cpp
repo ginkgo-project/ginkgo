@@ -156,7 +156,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     const auto num_rows = source->get_size()[0];
 
     array<int64> row_ptrs{exec, num_rows + 1};
-    bool block_compression = false;
+    bccoo::compression compression = bccoo::compression::block;
     size_type block_size = 10;
     exec->run(bccoo::make_get_default_block_size(&block_size));
     exec->run(dense::make_count_nonzeros_per_row(source, row_ptrs.get_data()));
@@ -167,7 +167,7 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     exec->run(dense::make_mem_size_bccoo(source, block_size, &mem_size));
     auto tmp = Bccoo<ValueType, IndexType>::create(
         exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
-        block_compression);
+        compression);
     exec->run(op(source, tmp.get()));
     tmp->move_to(result);
 }

@@ -74,7 +74,7 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
-void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
+void get_default_block_size(std::shared_ptr<const CudaExecutor> exec,
                             size_type* block_size) GKO_NOT_IMPLEMENTED;
 
 
@@ -120,8 +120,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_compression(std::shared_ptr<const CudaExecutor> exec,
+                            const matrix::Bccoo<ValueType, IndexType>* source,
+                            matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL);
+
+template <typename ValueType, typename IndexType>
 void convert_to_next_precision(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const CudaExecutor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
@@ -131,7 +140,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
+void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;

@@ -57,7 +57,7 @@ protected:
           mtx(gko::matrix::Bccoo<value_type, index_type>::create(
               exec, gko::dim<2>{2, 3}, index_type{4}, index_type{10},
               index_type{4 * (sizeof(value_type) + sizeof(index_type) + 1)},
-              false))
+              gko::matrix::bccoo::compression::element))
     {
         mtx->read({{2, 3},
                    {{0, 0, 1.0},

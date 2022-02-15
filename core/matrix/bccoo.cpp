@@ -62,6 +62,7 @@ GKO_REGISTER_OPERATION(spmv, bccoo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, bccoo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, bccoo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, bccoo::advanced_spmv2);
+GKO_REGISTER_OPERATION(convert_to_compression, bccoo::convert_to_compression);
 GKO_REGISTER_OPERATION(convert_to_next_precision,
                        bccoo::convert_to_next_precision);
 GKO_REGISTER_OPERATION(convert_to_coo, bccoo::convert_to_coo);
@@ -132,20 +133,43 @@ void Bccoo<ValueType, IndexType>::apply2_impl(const LinOp* alpha,
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
+    Bccoo<ValueType, IndexType>* result) const
+{
+    gko::matrix::bccoo::compression compression_src = this->get_compression();
+    /*
+        gko::matrix::bccoo::compression compression_res =
+       resource->get_compression(); auto exec = this->get_executor();
+        gko::matrix::bccoo::compression compression = this->get_compression();
+        size_type block_size = this->get_block_size();
+        size_type num_nonzeros = this->get_num_stored_elements();
+        size_type num_bytes = this->get_num_bytes();
+        num_bytes += num_nonzeros * sizeof(new_precision);
+        num_bytes -= num_nonzeros * sizeof(ValueType);
+        auto tmp = Bccoo<new_precision, IndexType>::create(
+            exec, this->get_size(), num_nonzeros, block_size, num_bytes,
+            compression);
+        exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
+        tmp->move_to(result);
+    */
+}
+
+
+template <typename ValueType, typename IndexType>
+void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
 {
     using new_precision = next_precision<ValueType>;
 
     auto exec = this->get_executor();
-    bool block_compression = this->get_block_compression();
+    gko::matrix::bccoo::compression compression = this->get_compression();
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
     num_bytes += num_nonzeros * sizeof(new_precision);
     num_bytes -= num_nonzeros * sizeof(ValueType);
-    auto tmp = Bccoo<new_precision, IndexType>::create(
-        exec, this->get_size(), num_nonzeros, block_size, num_bytes,
-        block_compression);
+    auto tmp = Bccoo<new_precision, IndexType>::create(exec, this->get_size(),
+                                                       num_nonzeros, block_size,
+                                                       num_bytes, compression);
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
     tmp->move_to(result);
 }
@@ -353,11 +377,10 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
-    bool block_compression = this->get_block_compression();
+    gko::matrix::bccoo::compression compression = this->get_compression();
     auto exec = this->get_executor();
-    auto abs_bccoo =
-        absolute_type::create(exec, this->get_size(), num_nonzeros, block_size,
-                              num_bytes, block_compression);
+    auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
+                                           block_size, num_bytes, compression);
     exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
     return abs_bccoo;
 }

@@ -60,6 +60,16 @@ class Csr;
 template <typename ValueType>
 class Dense;
 
+
+namespace bccoo {
+
+
+enum class compression { element, block };
+
+
+}
+
+
 /* // JIAE
 template <typename ValueType, typename IndexType>
 class BccooBuilder;
@@ -126,10 +136,46 @@ public:
 
     friend class Bccoo<next_precision<ValueType>, IndexType>;
 
+    void convert_to(Bccoo<ValueType, IndexType>* result) const override;
+    /*
+                    {
+                            // converts *this to *result
+                            // if they have different compressions, adjust one
+       of them
+                    }
+    */
+
+    void move_to(Bccoo<ValueType, IndexType>* result) override
+    {
+        // converts *this to *result
+    }
+
     void convert_to(
         Bccoo<next_precision<ValueType>, IndexType>* result) const override;
-
+    /*
+        {
+            if (this->get_compression() == result->get_compression()) {
+                // convert *this -> result
+            } else {
+                auto copy =
+       this->change_compression_to(result->get_compression());
+                // convert copy -> result
+            }
+        }
+    */
     void move_to(Bccoo<next_precision<ValueType>, IndexType>* result) override;
+    /*
+        {
+            if (this->get_compression() == result->get_compression()) {
+                // convert *this -> result
+            } else {
+                auto copy =
+       this->change_compression_to(result->get_compression());
+                // convert copy -> result
+                //*this = 0;
+            }
+        }
+    */
 
     void convert_to(Coo<ValueType, IndexType>* other) const override;
 
@@ -152,6 +198,14 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
+
+    /*
+        std::unique_ptr<Bccoo> change_compression_to(bccoo::compression comp)
+                                                                                                                                                                                                                            const override;
+        {
+            // TODO
+        }
+    */
 
     /**
      * Returns the row index of the first element of each block.
@@ -277,11 +331,31 @@ public:
     size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
 
     /**
-     * Returns the block compression used in the definition of the matrix.
+     * Returns the compression used in the definition of the matrix.
      *
-     * @return the block compression used in the definition of the matrix.
+     * @return the compression used in the definition of the matrix.
      */
-    bool get_block_compression() const noexcept { return block_compression_; }
+    bccoo::compression get_compression() const noexcept { return compression_; }
+
+    /**
+     * Returns if the element compression is used
+     *
+     * @returns if the element compression is used
+     */
+    bool use_element_compression() const noexcept
+    {
+        return compression_ == bccoo::compression::element;
+    }
+
+    /**
+     * Returns if the block compression is used
+     *
+     * @returns if the block compression is used
+     */
+    bool use_block_compression() const noexcept
+    {
+        return compression_ == bccoo::compression::block;
+    }
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -363,7 +437,7 @@ protected:
           chunk_(exec, 0),
           num_nonzeros_{0},
           block_size_{0},
-          block_compression_{false}
+          compression_{bccoo::compression::element}
     {}
 
     /**
@@ -374,18 +448,20 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      * @param num_bytes     number of bytes
-     * @param block_compression Use block (true) or element (false) compression
+     * @param compression   compression used in the definition
      */
     Bccoo(std::shared_ptr<const Executor> exec, const dim<2>& size,
           size_type num_nonzeros, size_type block_size, size_type num_bytes,
-          bool block_compression)
+          bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, size),
           rows_(exec,
                 (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
-          cols_(exec, (!block_compression || (block_size <= 0))
+          cols_(exec, ((compression == bccoo::compression::element) ||
+                       (block_size <= 0))
                           ? 0
                           : ceildiv(num_nonzeros, block_size)),
-          types_(exec, (!block_compression || (block_size <= 0))
+          types_(exec, ((compression == bccoo::compression::element) ||
+                        (block_size <= 0))
                            ? 0
                            : ceildiv(num_nonzeros, block_size)),
           offsets_(exec, (block_size <= 0)
@@ -394,7 +470,7 @@ protected:
           chunk_(exec, num_bytes),
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          block_compression_{block_compression}
+          compression_{compression}
     {}
 
     /**
@@ -426,7 +502,7 @@ protected:
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          block_compression_{false}
+          compression_{bccoo::compression::element}
     {
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
     }
@@ -467,7 +543,7 @@ protected:
           rows_{exec, std::move(rows)},
           num_nonzeros_{num_nonzeros},
           block_size_{block_size},
-          block_compression_{true}
+          compression_{bccoo::compression::block}
     {
         GKO_ASSERT_EQ(rows_.get_num_elems() + 1, offsets_.get_num_elems());
         GKO_ASSERT_EQ(rows_.get_num_elems(), cols_.get_num_elems());
@@ -491,7 +567,7 @@ private:
     array<uint8> chunk_;
     size_type block_size_;
     size_type num_nonzeros_;
-    bool block_compression_;
+    bccoo::compression compression_;
 };
 
 

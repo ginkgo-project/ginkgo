@@ -80,6 +80,12 @@ namespace kernels {
                         const matrix::Dense<ValueType>* b,            \
                         matrix::Dense<ValueType>* c)
 
+#define GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL(ValueType, IndexType) \
+    void convert_to_compression(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Bccoo<ValueType, IndexType>* source,                    \
+        matrix::Bccoo<ValueType, IndexType>* result)
+
 #define GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, \
                                                            IndexType) \
     void convert_to_next_precision(                                   \
@@ -128,6 +134,8 @@ namespace kernels {
     GKO_DECLARE_BCCOO_SPMV2_KERNEL(ValueType, IndexType);                     \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                         \

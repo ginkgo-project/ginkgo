@@ -65,7 +65,7 @@ const int GKO_BCCOO_COLS_8BITS = 2;
 const int GKO_BCCOO_COLS_16BITS = 4;
 
 
-void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec,
+void get_default_block_size(std::shared_ptr<const ReferenceExecutor> exec,
                             size_type* block_size)
 {
     *block_size = 10;
@@ -176,8 +176,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void convert_to_compression(std::shared_ptr<const ReferenceExecutor> exec,
+                            const matrix::Bccoo<ValueType, IndexType>* source,
+                            matrix::Bccoo<ValueType, IndexType>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL);
+
+template <typename ValueType, typename IndexType>
 void convert_to_next_precision(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
 {
@@ -213,7 +222,7 @@ void convert_to_next_precision(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    if (source->get_block_compression()) {
+    if (source->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
                                 blk_src, shf_src, row_src, col_src);
@@ -282,7 +291,7 @@ void convert_to_next_precision(
                 shf_src += block_size_local * sizeof(uint32);
                 shf_res += block_size_local * sizeof(uint32);
             }
-            if (true) {
+            if (true) {  // TODO: ILUT table managing
                 for (size_type j = 0; j < block_size_local; j++) {
                     val_src =
                         get_value_chunk<ValueType>(chunk_data_src, shf_src);
@@ -324,7 +333,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
+void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
 {
@@ -347,7 +356,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    if (source->get_block_compression()) {
+    if (source->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
                                 col);
@@ -439,7 +448,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     auto values = result->get_values();
 
     row_ptrs[0] = 0;
-    if (source->get_block_compression()) {
+    if (source->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock_csr(rows_data, offsets_data, nblk, blk,
                                     row_ptrs, i, shf, row, col);
@@ -540,7 +549,7 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 
-    if (source->get_block_compression()) {
+    if (source->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
                                 col);
@@ -630,7 +639,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
-    if (orig->get_block_compression()) {
+    if (orig->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
                                 col);
@@ -698,7 +707,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
+void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
 {
     size_type block_size = matrix->get_block_size();
@@ -716,7 +725,7 @@ void compute_absolute_inplace(std::shared_ptr<const DefaultExecutor> exec,
     auto* chunk_data = matrix->get_chunk();
     ValueType val;
 
-    if (matrix->get_block_compression()) {
+    if (matrix->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
                                 col);
@@ -782,7 +791,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_absolute(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
@@ -816,7 +825,7 @@ void compute_absolute(
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
     }
-    if (source->get_block_compression()) {
+    if (source->use_block_compression()) {
         for (size_type i = 0; i < num_stored_elements; i++) {
             get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
                                 blk_src, shf_src, row_src, col_src);
