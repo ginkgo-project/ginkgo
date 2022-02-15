@@ -58,12 +58,12 @@ class DistributedBase {
 public:
     virtual ~DistributedBase() = default;
 
+    DistributedBase& operator=(const DistributedBase&) { return *this; }
+
     mpi::communicator get_communicator() const { return comm_; }
 
-    explicit DistributedBase(mpi::communicator comm) : comm_{std::move(comm)} {}
-
 protected:
-    void set_communicator(mpi::communicator comm) { comm_ = std::move(comm); }
+    explicit DistributedBase(mpi::communicator comm) : comm_{std::move(comm)} {}
 
 private:
     mpi::communicator comm_;
