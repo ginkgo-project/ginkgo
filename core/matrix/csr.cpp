@@ -684,7 +684,7 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
         csr::make_check_diagonal_entries(this, has_diags));
     if (!has_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
-            "The matrix has one or more structurally zero diagonals!");
+            "The matrix has one or more structurally zero diagonal entries!");
     }
     this->get_executor()->run(csr::make_add_scaled_identity(
         make_temporary_conversion<ValueType>(a).get(),

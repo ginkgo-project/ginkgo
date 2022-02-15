@@ -1049,20 +1049,20 @@ void check_diagonal_entries_exist(
     const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
 {
     const size_type num_warps = mtx->get_size()[0];
-    const size_type num_blocks =
-        num_warps / (default_block_size / config::warp_size);
-    Array<bool> h_has_diags(exec->get_master(), 1);
-    h_has_diags.get_data()[0] = true;
-    Array<bool> has_diags(exec, 1);
-    has_diags = h_has_diags;
-    hipLaunchKernelGGL(kernel::check_diagonal_entries, num_blocks,
-                       default_block_size, 0, 0,
-                       static_cast<IndexType>(
-                           std::min(mtx->get_size()[0], mtx->get_size()[1])),
-                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-                       has_diags.get_data());
-    h_has_diags = has_diags;
-    has_all_diags = h_has_diags.get_data()[0];
+    if (num_warps > 0) {
+        const size_type num_blocks =
+            num_warps / (default_block_size / config::warp_size);
+        Array<bool> has_diags(exec, {true});
+        hipLaunchKernelGGL(kernel::check_diagonal_entries, num_blocks,
+                           default_block_size, 0, 0,
+                           static_cast<IndexType>(std::min(mtx->get_size()[0],
+                                                           mtx->get_size()[1])),
+                           mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                           has_diags.get_data());
+        has_all_diags = exec->copy_val_to_host(has_diags.get_const_data());
+    } else {
+        has_all_diags = true;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
