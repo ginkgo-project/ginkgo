@@ -67,6 +67,10 @@ namespace amgx_pgm {
     void renumber(std::shared_ptr<const DefaultExecutor> exec, \
                   Array<IndexType>& agg, IndexType* num_agg)
 
+#define GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL(IndexType)                       \
+    void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num, \
+                  IndexType* row_idxs, IndexType* col_idxs)
+
 #define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType) \
     void find_strongest_neighbor(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                       \
@@ -88,6 +92,8 @@ namespace amgx_pgm {
     GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL(IndexType);                 \
     template <typename IndexType>                                       \
     GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(IndexType);                    \
+    template <typename IndexType>                                       \
+    GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL(IndexType);                    \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                   \

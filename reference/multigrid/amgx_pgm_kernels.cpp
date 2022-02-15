@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <tuple>
 
@@ -47,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
@@ -122,6 +124,17 @@ void renumber(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
+
+
+template <typename IndexType>
+void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
+              IndexType* row_idxs, IndexType* col_idxs)
+{
+    auto it = detail::make_zip_iterator(row_idxs, col_idxs);
+    std::sort(it, it + num);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
