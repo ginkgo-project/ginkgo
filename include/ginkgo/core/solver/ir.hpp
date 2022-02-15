@@ -225,7 +225,7 @@ protected:
                           gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
-          stop_status(factory->get_executor())
+          stop_status_(factory->get_executor())
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
         if (parameters_.generated_solver) {
@@ -239,6 +239,10 @@ protected:
         }
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
+        one_op_ = gko::initialize<matrix::Dense<ValueType>>(
+            {one<ValueType>()}, this->get_executor());
+        neg_one_op_ = gko::initialize<matrix::Dense<ValueType>>(
+            {-one<ValueType>()}, this->get_executor());
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
     }
@@ -250,7 +254,9 @@ private:
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
     mutable std::shared_ptr<matrix::Dense<ValueType>> inner_solution_{};
     mutable std::shared_ptr<matrix::Dense<ValueType>> residual_op_{};
-    mutable Array<stopping_status> stop_status;
+    mutable Array<stopping_status> stop_status_;
+    mutable std::shared_ptr<matrix::Dense<ValueType>> one_op_{};
+    mutable std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_{};
 };
 
 

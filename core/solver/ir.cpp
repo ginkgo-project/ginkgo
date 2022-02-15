@@ -101,8 +101,6 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     bool zero_input = this->get_input_zero();
 
     auto exec = this->get_executor();
-    static auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    static auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     // TODO: add tempory output clone
     auto residual_cache =
@@ -113,7 +111,8 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     }
     if (!residual) {
         if (!residual_op_.get() ||
-            residual_op_->get_size() != dense_b->get_size()) {
+            residual_op_->get_size() != dense_b->get_size() ||
+            residual_op_->get_executor() != dense_b->get_executor()) {
             residual_op_ = Vector::create_with_config_of(dense_b);
         }
         residual = residual_op_.get();
@@ -123,11 +122,11 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         inner_solution_ = Vector::create_with_config_of(dense_b);
     }
     bool one_changed{};
-    stop_status.resize_and_reset(dense_b->get_size()[1]);
-    exec->run(ir::make_initialize(&stop_status));
+    stop_status_.resize_and_reset(dense_b->get_size()[1]);
+    exec->run(ir::make_initialize(&stop_status_));
     if (!zero_input) {
         residual->copy_from(dense_b);
-        system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+        system_matrix_->apply(lend(neg_one_op_), dense_x, lend(one_op_),
                               lend(residual));
     }
     const Vector* residual_ptr = zero_input ? dense_b : residual;
@@ -145,32 +144,36 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             this, iter, residual_ptr, dense_x);
 
         if (iter == 0) {
+            // It already prepared the residual for the first iteration
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .residual(residual_ptr)
                     .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
+                    .check(relative_stopping_id, true, &stop_status_,
                            &one_changed)) {
                 break;
             }
         } else {
+            // We check the iteration criterion first.
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .solution(dense_x)
-                    .check(relative_stopping_id, false, &stop_status,
+                    .check(relative_stopping_id, false, &stop_status_,
                            &one_changed)) {
                 break;
             }
+            // If it is not terminated due to iteration, prepare the residual
+            // for check or the further running.
             residual_ptr = residual;
             // residual = b - A * x
             residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+            system_matrix_->apply(lend(neg_one_op_), dense_x, lend(one_op_),
                                   lend(residual));
             if (stop_criterion->update()
                     .num_iterations(iter)
                     .residual(residual_ptr)
                     .solution(dense_x)
-                    .check(relative_stopping_id, true, &stop_status,
+                    .check(relative_stopping_id, true, &stop_status_,
                            &one_changed)) {
                 break;
             }
@@ -188,8 +191,8 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                 lend(inner_solution_));
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), residual_ptr, lend(one_op),
-                           dense_x);
+            solver_->apply(lend(relaxation_factor_), residual_ptr,
+                           lend(one_op_), dense_x);
         }
     }
 }
