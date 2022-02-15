@@ -34,353 +34,332 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_ITERATOR_FACTORY_HPP_
 
 
+#include <cassert>
+#include <cstddef>
+#include <initializer_list>
 #include <iterator>
-
-
-#include <ginkgo/core/base/types.hpp>
+#include <tuple>
+#include <utility>
 
 
 namespace gko {
 namespace detail {
 
 
+template <typename... Iterators>
+class zip_iterator;
+
+
 /**
- * @internal
- * @brief This class is used to sort two distinct arrays (`dominant_values` and
- * `secondary_values`) with the same number of elements (it can be different
- * types) according to the `dominant_values` in ascending order.
+ * A reference-like type pointing to a tuple of elements originating from a
+ * tuple of iterators. A few caveats related to its use:
  *
- * Stores the pointers of two arrays, one storing the type `SecondaryType`, and
- * one storing the type `ToSortType`. This class also provides an iterator
- * class, which can be used for `std::sort`. Without a custom iterator, memory
- * copies would be necessary to create, for example, one array of `std::pairs`
- * to use `std::sort`, or a self written sort function.
+ * 1. It should almost never be stored as a reference, i.e.
+ * `auto& ref = *it` leads to a dangling reference, since the
+ * `zip_iterator_reference` returned by `*it` is a temporary.
  *
- * Example of using this class to sort a list of people according to their age:
- * -----------------------------------------------------------------
- * ```cpp
- * std::vector<int> age{50, 44, 43, 42};
- * std::vector<std::string> person{"Karl", "Susanne", "Max", "Hannah"};
- * IteratorFactory<int, std::string> factory{age.data(), person.data(), 4};
- * std::sort(factory.begin(), factory.end());
- * ```
- * Here, `person` now contains: `{"Hannah", "Max", "Susanne", "Karl"}` and
- * `age` is now `{42, 43, 44, 50}`. Therefore, both arrays are now sorted
- * according to the values in ascending order of `age`.
+ * 2. Any copy of the object is itself a reference to the same entry, i.e.
+ * `auto ref_copy = ref` means that assigning values to `ref_copy` also changes
+ * the data referenced by `ref`
  *
- * @tparam ToSortType  Type of the values which will be used for sorting.
- *                     It must support `operator<`.
- * @tparam SecondaryType  Type of the values which will be moved synchronous
- *                        to the array of type `ToSortType`. No comparisons
- *                        with this type will be performed.
+ * 3. If you want to copy the data, assign it to a variable of value_type:
+ * `tuple<int, float> val = ref` or use the `copy` member function
+ * `auto val = ref.copy()`
+ *
+ * @see zip_iterator
+ * @tparam Iterators  the iterators that are zipped together
  */
-template <typename ToSortType, typename SecondaryType>
-class IteratorFactory {
-    // All nested classes are hidden, so they can't be misused
-private:
-    /**
-     * Helper struct, needed for the default construction and assignment inside
-     * `std::sort` through Reference. They are used as an intermediate data
-     * type for some of the swaps `std::sort` performs.
-     */
-    struct element {
-        ToSortType dominant;
-        SecondaryType secondary;
+template <typename... Iterators>
+class zip_iterator_reference
+    : public std::tuple<
+          typename std::iterator_traits<Iterators>::reference...> {
+    using ref_tuple_type =
+        std::tuple<typename std::iterator_traits<Iterators>::reference...>;
+    using value_type =
+        std::tuple<typename std::iterator_traits<Iterators>::value_type...>;
+    using index_sequence = std::index_sequence_for<Iterators...>;
 
-        friend bool operator<(const element& left, const element& right)
-        {
-            return left.dominant < right.dominant;
-        }
-    };
+    friend class zip_iterator<Iterators...>;
 
-    /**
-     * This class is used as a reference to a sorting target, which abstracts
-     * the existence of two distinct arrays.
-     * It meets the requirements of `MoveAssignable`, `MoveConstructible`
-     * In all comparisons, only the values of `dominant_values_` matter, while
-     * the corresponding value of `secondary_values_` will always be copied /
-     * moved / swapped to the same place.
-     */
-    class Reference {
-    public:
-        using array_index_type = int64;
+    template <std::size_t... idxs>
+    value_type cast_impl(std::index_sequence<idxs...>) const
+    {
+        return {std::get<idxs>(*this)...};
+    }
 
-        // An empty reference makes no sense, so is is disabled
-        Reference() = delete;
+    template <std::size_t... idxs>
+    void assign_impl(std::index_sequence<idxs...>, const value_type& other)
+    {
+        (void)std::initializer_list<int>{
+            (std::get<idxs>(*this) = std::get<idxs>(other), 0)...};
+    }
 
-        ~Reference() {}
-
-        Reference(IteratorFactory* parent, array_index_type array_index)
-            : parent_(parent), arr_index_(array_index)
-        {}
-
-        // Since it must be `MoveConstructible`
-        Reference(Reference&& other)
-            : parent_(other.parent_), arr_index_(std::move(other.arr_index_))
-        {}
-
-        Reference(const Reference& other)
-            : parent_(other.parent_), arr_index_(other.arr_index_)
-        {}
-
-
-        Reference& operator=(element other)
-        {
-            dominant() = other.dominant;
-            secondary() = other.secondary;
-            return *this;
-        }
-
-        Reference& operator=(const Reference& other)
-        {
-            dominant() = other.dominant();
-            secondary() = other.secondary();
-            return *this;
-        }
-
-        // Since it must be `MoveAssignable`
-        Reference& operator=(Reference&& other)
-        {
-            // In C++11, it is legal for a nested class to access private
-            // members of the parent class.
-            parent_->dominant_values_[arr_index_] =
-                std::move(other.parent_->dominant_values_[other.arr_index_]);
-            parent_->secondary_values_[arr_index_] =
-                std::move(other.parent_->secondary_values_[other.arr_index_]);
-            return *this;
-        }
-
-        // Conversion operator to `element`
-        operator element() const { return {dominant(), secondary()}; }
-
-        friend void swap(Reference a, Reference b)
-        {
-            std::swap(a.dominant(), b.dominant());
-            std::swap(a.secondary(), b.secondary());
-        }
-
-        friend bool operator<(const Reference& left, const Reference& right)
-        {
-            return left.dominant() < right.dominant();
-        }
-
-        friend bool operator<(const Reference& left, const element& right)
-        {
-            return left.dominant() < right.dominant;
-        }
-
-        friend bool operator<(const element& left, const Reference& right)
-        {
-            return left.dominant < right.dominant();
-        }
-
-        ToSortType& dominant() { return parent_->dominant_values_[arr_index_]; }
-
-        const ToSortType& dominant() const
-        {
-            return parent_->dominant_values_[arr_index_];
-        }
-
-        SecondaryType& secondary()
-        {
-            return parent_->secondary_values_[arr_index_];
-        }
-
-        const SecondaryType& secondary() const
-        {
-            return parent_->secondary_values_[arr_index_];
-        }
-
-    private:
-        IteratorFactory* parent_;
-        array_index_type arr_index_;
-    };
-
-    /**
-     * The iterator that can be used for `std::sort`. It meets the requirements
-     * of `LegacyRandomAccessIterator` and `ValueSwappable`.
-     * For performance reasons, it is expected that all iterators that are
-     * compared / used with each other have the same `parent`, so the check
-     * if they are the same can be omitted.
-     * This class uses a single variable to keep track of where the iterator
-     * points to both arrays.
-     */
-    class Iterator {
-    public:
-        // Needed to count as a `LegacyRandomAccessIterator`
-        using difference_type = typename Reference::array_index_type;
-        using value_type = element;
-        using pointer = Reference;
-        using reference = Reference;
-        using iterator_category = std::random_access_iterator_tag;
-
-        Iterator() = default;
-
-        ~Iterator() {}
-
-        Iterator(IteratorFactory* parent, difference_type array_index)
-            : parent_(parent), arr_index_(array_index)
-        {}
-
-        Iterator(const Iterator& other)
-            : parent_(other.parent_), arr_index_(other.arr_index_)
-        {}
-
-        Iterator& operator=(const Iterator& other)
-        {
-            arr_index_ = other.arr_index_;
-            return *this;
-        }
-
-        // Operators needed for the std::sort requirement of
-        // `LegacyRandomAccessIterator`
-        Iterator& operator+=(difference_type i)
-        {
-            arr_index_ += i;
-            return *this;
-        }
-
-        Iterator& operator-=(difference_type i)
-        {
-            arr_index_ -= i;
-            return *this;
-        }
-
-        Iterator& operator++()  // Prefix increment (++i)
-        {
-            ++arr_index_;
-            return *this;
-        }
-
-        Iterator operator++(int)  // Postfix increment (i++)
-        {
-            Iterator temp(*this);
-            ++arr_index_;
-            return temp;
-        }
-
-        Iterator& operator--()  // Prefix decrement (--i)
-        {
-            --arr_index_;
-            return *this;
-        }
-
-        Iterator operator--(int)  // Postfix decrement (i--)
-        {
-            Iterator temp(*this);
-            --arr_index_;
-            return temp;
-        }
-
-        Iterator operator+(difference_type i) const
-        {
-            return {parent_, arr_index_ + i};
-        }
-
-        friend Iterator operator+(difference_type i, const Iterator& iter)
-        {
-            return {iter.parent_, iter.arr_index_ + i};
-        }
-
-        Iterator operator-(difference_type i) const
-        {
-            return {parent_, arr_index_ - i};
-        }
-
-        difference_type operator-(const Iterator& other) const
-        {
-            return arr_index_ - other.arr_index_;
-        }
-
-        Reference operator*() const { return {parent_, arr_index_}; }
-
-        Reference operator[](difference_type idx) const
-        {
-            return {parent_, arr_index_ + idx};
-        }
-
-        // Comparable operators
-        bool operator==(const Iterator& other) const
-        {
-            return arr_index_ == other.arr_index_;
-        }
-
-        bool operator!=(const Iterator& other) const
-        {
-            return arr_index_ != other.arr_index_;
-        }
-
-        bool operator<(const Iterator& other) const
-        {
-            return arr_index_ < other.arr_index_;
-        }
-
-        bool operator<=(const Iterator& other) const
-        {
-            return arr_index_ <= other.arr_index_;
-        }
-
-        bool operator>(const Iterator& other) const
-        {
-            return arr_index_ > other.arr_index_;
-        }
-
-        bool operator>=(const Iterator& other) const
-        {
-            return arr_index_ >= other.arr_index_;
-        }
-
-    private:
-        IteratorFactory* parent_{};
-        difference_type arr_index_{};
-    };
+    zip_iterator_reference(Iterators... it) : ref_tuple_type{*it...} {}
 
 public:
-    /**
-     * Allows creating an iterator, which makes it look like the data consists
-     * of `size` `std::pair<ToSortType, SecondaryType>`s, which are also
-     * sortable (according to the value of `dominant_values`) as long as
-     * `ToSortType` can be comparable with `operator<`. No additional data is
-     * allocated, all operations performed through the Iterator object will be
-     * done on the given arrays. The iterators given by this object (through
-     * `begin()` and `end()`) can be used with `std::sort()`.
-     * @param dominant_values  Array of at least `size` values, which are the
-     * only values considered when comparing values (for example while sorting)
-     * @param secondary_values  Array of at least `size` values, which will not
-     * be considered when comparing. However, they will be moved / copied to the
-     * same place as their corresponding value in `dominant_values` (with the
-     * same index).
-     * @param size  Size of the arrays when constructiong the iterators.
-     * @note Both arrays must have at least `size` elements, otherwise, the
-     * behaviour is undefined.
-     */
-    IteratorFactory(ToSortType* dominant_values,
-                    SecondaryType* secondary_values, size_type size)
-        : dominant_values_(dominant_values),
-          secondary_values_(secondary_values),
-          size_(size)
-    {}
+    operator value_type() const { return cast_impl(index_sequence{}); }
 
-    /**
-     * Creates an iterator pointing to the beginning of both arrays
-     * @returns  an iterator pointing to the beginning of both arrays
-     */
-    Iterator begin() { return {this, 0}; }
-
-    /**
-     * Creates an iterator pointing to the (excluding) end of both arrays
-     * @returns  an iterator pointing to the (excluding) end of both arrays
-     */
-    Iterator end()
+    zip_iterator_reference& operator=(const value_type& other)
     {
-        return {this, static_cast<typename Iterator::difference_type>(size_)};
+        assign_impl(index_sequence{}, other);
+        return *this;
+    }
+
+    value_type copy() const { return *this; }
+};
+
+
+/**
+ * A generic iterator adapter that combines multiple separate random access
+ * iterators for types a, b, c, ... into an iterator over tuples of type
+ * (a, b, c, ...).
+ * Dereferencing it returns a reference-like zip_iterator_reference object,
+ * similar to std::vector<bool> bit references. Accesses through that reference
+ * to the individual tuple elements get translated to the corresponding
+ * iterator's references.
+ *
+ * @note Two zip_iterators can only be compared if each individual pair of
+ *       wrapped iterators has the same distance. Otherwise the behavior is
+ *       undefined. This means that the only guaranteed safe way to use multiple
+ *       zip_iterators is if they are all derived from the same iterator:
+ *       ```
+ *       Iterator i, j;
+ *       auto it1 = make_zip_iterator(i, j);
+ *       auto it2 = make_zip_iterator(i, j + 1);
+ *       auto it3 = make_zip_iterator(i + 1, j + 1);
+ *       auto it4 = it1 + 1;
+ *       it1 == it2; // undefined
+ *       it1 == it3; // well-defined false
+ *       it3 == it4; // well-defined true
+ *       ```
+ *       This property is checked automatically in Debug builds and assumed in
+ *       Release builds.
+ *
+ * @see zip_iterator_reference
+ * @tparam Iterators  the iterators to zip together
+ */
+template <typename... Iterators>
+class zip_iterator {
+    static_assert(sizeof...(Iterators) > 0, "Can't build empty zip iterator");
+
+public:
+    using difference_type = std::ptrdiff_t;
+    using value_type =
+        std::tuple<typename std::iterator_traits<Iterators>::value_type...>;
+    using pointer = value_type*;
+    using reference = zip_iterator_reference<Iterators...>;
+    using iterator_category = std::random_access_iterator_tag;
+    using index_sequence = std::index_sequence_for<Iterators...>;
+
+    explicit zip_iterator() = default;
+
+    explicit zip_iterator(Iterators... its) : iterators_{its...} {}
+
+    zip_iterator& operator+=(difference_type i)
+    {
+        forall([i](auto& it) { it += i; });
+        return *this;
+    }
+
+    zip_iterator& operator-=(difference_type i)
+    {
+        forall([i](auto& it) { it -= i; });
+        return *this;
+    }
+
+    zip_iterator& operator++()
+    {
+        forall([](auto& it) { it++; });
+        return *this;
+    }
+
+    zip_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    zip_iterator& operator--()
+    {
+        forall([](auto& it) { it--; });
+        return *this;
+    }
+
+    zip_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    zip_iterator operator+(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp += i;
+        return tmp;
+    }
+
+    friend zip_iterator operator+(difference_type i, const zip_iterator& iter)
+    {
+        return iter + i;
+    }
+
+    zip_iterator operator-(difference_type i) const
+    {
+        auto tmp = *this;
+        tmp -= i;
+        return tmp;
+    }
+
+    difference_type operator-(const zip_iterator& other) const
+    {
+        return forall_check_consistent(
+            other, [](const auto& a, const auto& b) { return a - b; });
+    }
+
+    reference operator*() const
+    {
+        return deref_impl(std::index_sequence_for<Iterators...>{});
+    }
+
+    reference operator[](difference_type i) const { return *(*this + i); }
+
+    bool operator==(const zip_iterator& other) const
+    {
+        return forall_check_consistent(
+            other, [](const auto& a, const auto& b) { return a == b; });
+    }
+
+    bool operator!=(const zip_iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    bool operator<(const zip_iterator& other) const
+    {
+        return forall_check_consistent(
+            other, [](const auto& a, const auto& b) { return a < b; });
+    }
+
+    bool operator<=(const zip_iterator& other) const
+    {
+        return forall_check_consistent(
+            other, [](const auto& a, const auto& b) { return a <= b; });
+    }
+
+    bool operator>(const zip_iterator& other) const
+    {
+        return !(*this <= other);
+    }
+
+    bool operator>=(const zip_iterator& other) const
+    {
+        return !(*this < other);
     }
 
 private:
-    ToSortType* dominant_values_;
-    SecondaryType* secondary_values_;
-    size_type size_;
+    template <std::size_t... idxs>
+    reference deref_impl(std::index_sequence<idxs...>) const
+    {
+        return reference{std::get<idxs>(iterators_)...};
+    }
+
+    template <typename Functor>
+    void forall(Functor fn)
+    {
+        forall_impl(fn, index_sequence{});
+    }
+
+    template <typename Functor, std::size_t... idxs>
+    void forall_impl(Functor fn, std::index_sequence<idxs...>)
+    {
+        (void)std::initializer_list<int>{
+            (fn(std::get<idxs>(iterators_)), 0)...};
+    }
+
+    template <typename Functor, std::size_t... idxs>
+    void forall_impl(const zip_iterator& other, Functor fn,
+                     std::index_sequence<idxs...>) const
+    {
+        (void)std::initializer_list<int>{
+            (fn(std::get<idxs>(iterators_), std::get<idxs>(other.iterators_)),
+             0)...};
+    }
+
+    template <typename Functor>
+    auto forall_check_consistent(const zip_iterator& other, Functor fn) const
+    {
+        auto it = std::get<0>(iterators_);
+        auto other_it = std::get<0>(other.iterators_);
+        auto result = fn(it, other_it);
+        forall_impl(
+            other, [&](auto a, auto b) { assert(it - other_it == a - b); },
+            index_sequence{});
+        return result;
+    }
+
+    std::tuple<Iterators...> iterators_;
 };
+
+
+template <typename... Iterators>
+zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(Iterators&&... it)
+{
+    return zip_iterator<std::decay_t<Iterators>...>{
+        std::forward<Iterators>(it)...};
+}
+
+
+/**
+ * Swap function for zip iterator references. It takes care of creating a
+ * non-reference temporary to avoid the problem of a normal std::swap():
+ * ```
+ * // a and b are reference-like objects pointing to different entries
+ * auto tmp = a; // tmp is a reference-like type, so this is not a copy!
+ * a = b;        // copies value at b to a, which also modifies tmp
+ * b = tmp;      // copies value at tmp (= a) to b
+ * // now both a and b point to the same value that was originally at b
+ * ```
+ * It is modelled after the behavior of std::vector<bool> bit references.
+ * To swap in generic code, use the pattern `using std::swap; swap(a, b);`
+ *
+ * @tparam Iterators  the iterator types inside the corresponding zip_iterator
+ */
+template <typename... Iterators>
+void swap(zip_iterator_reference<Iterators...> a,
+          zip_iterator_reference<Iterators...> b)
+{
+    auto tmp = a.copy();
+    a = b;
+    b = tmp;
+}
+
+
+/**
+ * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
+ */
+template <typename... Iterators>
+void swap(typename zip_iterator<Iterators...>::value_type& a,
+          zip_iterator_reference<Iterators...> b)
+{
+    auto tmp = a;
+    a = b;
+    b = tmp;
+}
+
+
+/**
+ * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
+ */
+template <typename... Iterators>
+void swap(zip_iterator_reference<Iterators...> a,
+          typename zip_iterator<Iterators...>::value_type& b)
+{
+    auto tmp = a.copy();
+    a = b;
+    b = tmp;
+}
 
 
 }  // namespace detail
