@@ -361,7 +361,7 @@ struct SparsityCsr
         using entry_type =
             gko::matrix_data<matrix_value_type, int>::nonzero_type;
         for (auto& entry : data.nonzeros) {
-            entry = entry_type{entry.row, entry.column, matrix_value_type{1}};
+            entry.value = gko::one<matrix_value_type>();
         }
     }
 };

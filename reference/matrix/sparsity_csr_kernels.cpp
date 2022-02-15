@@ -75,15 +75,13 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<OutputValueType>();
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += static_cast<OutputValueType>(
-                    val * static_cast<arithmetic_type>(b->at(col, j)));
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(temp_val);
         }
     }
 }
@@ -107,20 +105,20 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     const auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
-    const auto vbeta = static_cast<OutputValueType>(beta->at(0, 0));
+    const auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
     const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += static_cast<OutputValueType>(
-                    valpha * val * static_cast<arithmetic_type>(b->at(col, j)));
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(
+                vbeta * static_cast<arithmetic_type>(c->at(row, j)) +
+                valpha * temp_val);
         }
     }
 }
