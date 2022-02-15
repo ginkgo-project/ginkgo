@@ -143,7 +143,6 @@ void Vector<ValueType>::convert_to(
     Vector<next_precision<ValueType>>* result) const
 {
     result->set_size(this->get_size());
-    result->set_communicator(this->get_communicator());
     this->get_const_local()->convert_to(result->get_local());
 }
 
