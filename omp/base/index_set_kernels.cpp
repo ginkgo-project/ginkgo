@@ -156,7 +156,10 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < num_indices; ++i) {
         auto index = global_indices[i];
-        GKO_ASSERT(index < index_space_size);
+        if (index > index_space_size) {
+            local_indices[i] = invalid_index<IndexType>();
+            continue;
+        }
         const auto bucket = std::distance(
             subset_begin,
             std::upper_bound(subset_begin, subset_begin + num_subsets, index));
