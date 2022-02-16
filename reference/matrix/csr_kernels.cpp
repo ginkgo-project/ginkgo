@@ -637,13 +637,16 @@ void calculate_nonzeros_per_row_in_index_set(
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
     auto src_ptrs = source->get_const_row_ptrs();
+    size_type max_row_nnz = 0;
+    for (size_type i = 1; i < source->get_size()[0] + 1; i++) {
+        max_row_nnz =
+            std::max<size_type>(max_row_nnz, src_ptrs[i] - src_ptrs[i - 1]);
+    }
+    Array<IndexType> l_idxs(exec, max_row_nnz);
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             row_nnz->get_data()[res_row] = zero<IndexType>();
-            Array<IndexType> l_idxs(
-                exec,
-                static_cast<size_type>(src_ptrs[row + 1] - src_ptrs[row]));
             gko::kernels::reference::index_set::global_to_local(
                 exec, col_index_set.get_size(), col_index_set.get_num_subsets(),
                 col_index_set.get_subsets_begin(),
