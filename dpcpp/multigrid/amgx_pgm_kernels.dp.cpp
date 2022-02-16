@@ -112,8 +112,14 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto coarse_key_it = oneapi::dpl::make_zip_iterator(
         coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs());
 
-    oneapi::dpl::reduce_by_segment(policy, key_it, key_it + fine_nnz, vals,
-                                   coarse_key_it, coarse_coo->get_values());
+    oneapi::dpl::reduce_by_segment(
+        policy, key_it, key_it + fine_nnz, vals, coarse_key_it,
+        coarse_coo->get_values(),
+        [](auto a, auto b) {
+            return std::tie(std::get<0>(a), std::get<1>(a)) ==
+                   std::tie(std::get<0>(b), std::get<1>(b));
+        },
+        [](auto a, auto b) { return a + b; });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
