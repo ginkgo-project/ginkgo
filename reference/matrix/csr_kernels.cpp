@@ -610,7 +610,7 @@ void calculate_nonzeros_per_row_in_span(
     size_type res_row = 0;
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
         row_nnz->get_data()[res_row] = zero<IndexType>();
-        for (size_type nnz = source->get_const_row_ptrs()[row];
+        for (IndexType nnz = source->get_const_row_ptrs()[row];
              nnz < source->get_const_row_ptrs()[row + 1]; ++nnz) {
             if (source->get_const_col_idxs()[nnz] < col_span.end &&
                 source->get_const_col_idxs()[nnz] >= col_span.begin) {
@@ -652,7 +652,7 @@ void calculate_nonzeros_per_row_in_index_set(
                 static_cast<IndexType>(l_idxs.get_num_elems()),
                 source->get_const_col_idxs() + src_ptrs[row], l_idxs.get_data(),
                 false);
-            for (size_type nnz = 0; nnz < (src_ptrs[row + 1] - src_ptrs[row]);
+            for (IndexType nnz = 0; nnz < (src_ptrs[row + 1] - src_ptrs[row]);
                  ++nnz) {
                 auto l_idx = l_idxs.get_const_data()[nnz];
                 if (l_idx != invalid_index<IndexType>()) {
@@ -737,7 +737,7 @@ void compute_submatrix_from_index_set(
                 static_cast<IndexType>(l_idxs.get_num_elems()),
                 source->get_const_col_idxs() + src_row_ptrs[row],
                 l_idxs.get_data(), false);
-            for (size_type nnz = 0;
+            for (IndexType nnz = 0;
                  nnz < (src_row_ptrs[row + 1] - src_row_ptrs[row]); ++nnz) {
                 auto l_idx = l_idxs.get_const_data()[nnz];
                 if (l_idx != invalid_index<IndexType>()) {

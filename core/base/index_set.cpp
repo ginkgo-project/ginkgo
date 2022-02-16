@@ -108,10 +108,13 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
 template <typename IndexType>
 IndexType IndexSet<IndexType>::get_subset_id(const IndexType index) const
 {
-    auto exec = this->get_executor();
-    auto ss_end_host = Array<IndexType>(exec->get_master(), this->subsets_end_);
+    auto ss_end_host = make_temporary_clone<const Array<IndexType>>(
+        this->get_executor()->get_master(), &this->subsets_end_);
+    auto ss_begin_host = make_temporary_clone<const Array<IndexType>>(
+        this->get_executor()->get_master(), &this->subsets_begin_);
     for (size_type id = 0; id < this->get_num_subsets(); ++id) {
-        if (index <= ss_end_host.get_const_data()[id]) {
+        if (index < ss_end_host->get_const_data()[id] &&
+            index >= ss_begin_host->get_const_data()[id]) {
             return id;
         }
     }
@@ -128,9 +131,9 @@ Array<IndexType> IndexSet<IndexType>::to_global_indices() const
         this->superset_cumulative_indices_.get_num_elems() - 1);
     auto decomp_indices = gko::Array<IndexType>(exec, num_elems);
     exec->run(index_set::make_to_global_indices(
-        this->index_space_size_, this->get_num_subsets(),
-        this->get_subsets_begin(), this->get_subsets_end(),
-        this->get_superset_indices(), decomp_indices.get_data()));
+        this->get_num_subsets(), this->get_subsets_begin(),
+        this->get_subsets_end(), this->get_superset_indices(),
+        decomp_indices.get_data()));
 
     return decomp_indices;
 }
@@ -146,9 +149,8 @@ Array<IndexType> IndexSet<IndexType>::map_local_to_global(
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(index_set::make_local_to_global(
-        this->index_space_size_, this->get_num_subsets(),
-        this->get_subsets_begin(), this->get_subsets_end(),
-        this->get_superset_indices(),
+        this->get_num_subsets(), this->get_subsets_begin(),
+        this->get_subsets_end(), this->get_superset_indices(),
         static_cast<IndexType>(local_indices.get_num_elems()),
         local_indices.get_const_data(), global_indices.get_data(), is_sorted));
     return global_indices;

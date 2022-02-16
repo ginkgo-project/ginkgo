@@ -189,7 +189,7 @@ TYPED_TEST(IndexSet, CanBeConstructedFromIndices)
 }
 
 
-TYPED_TEST(IndexSet, CanBeTo_Global_IndicesedIntoIndices)
+TYPED_TEST(IndexSet, CanBeConvertedToGlobalIndices)
 {
     auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
