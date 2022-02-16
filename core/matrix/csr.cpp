@@ -156,6 +156,10 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         if (this->get_executor() != other.get_executor()) {
             detail::strategy_rebuild_helper(this);
         }
+        // restore other invariant
+        other.row_ptrs_.resize_and_reset(1);
+        other.row_ptrs_.fill(0);
+        other.make_srow();
     }
     return *this;
 }
