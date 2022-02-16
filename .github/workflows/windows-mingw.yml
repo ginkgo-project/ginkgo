@@ -2,6 +2,13 @@ name: Windows-MinGW
 
 on:
   push:
+    branches:
+      - 'master'
+      - 'develop'
+    tags:
+      - '**'
+  pull_request_target:
+    types: [opened,synchronize]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -10,7 +17,7 @@ on:
         default: false
 
 concurrency:
-  group: ${{ github.workflow}}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
   cancel-in-progress: true
 
 jobs:
