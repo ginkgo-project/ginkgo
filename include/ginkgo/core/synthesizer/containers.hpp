@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+#include <tuple>
 #include <type_traits>
 
 
@@ -46,7 +47,6 @@ namespace gko {
  */
 namespace syn {
 
-
 /**
  * value_list records several values with the same type in template.
  *
@@ -54,7 +54,7 @@ namespace syn {
  * @tparam Values  the values in the list
  */
 template <typename T, T... Values>
-struct value_list {};
+using value_list = std::integer_sequence<T, Values...>;
 
 
 /**
@@ -90,15 +90,17 @@ template <typename List1, typename List2>
 struct concatenate_impl;
 
 /**
- * concatenate_impl specializes for two value_list with the same value type.
+ * concatenate_impl specializes for two std::integer_sequence with the same
+ * value type.
  *
- * @tparam T  the value type of two value_list
+ * @tparam T  the value type of two std::integer_sequence
  * @tparam Values  the values of the first list
  * @tparam Values  the values of the second list
  */
 template <typename T, T... Values1, T... Values2>
-struct concatenate_impl<value_list<T, Values1...>, value_list<T, Values2...>> {
-    using type = value_list<T, Values1..., Values2...>;
+struct concatenate_impl<std::integer_sequence<T, Values1...>,
+                        std::integer_sequence<T, Values2...>> {
+    using type = std::integer_sequence<T, Values1..., Values2...>;
 };
 
 
@@ -106,7 +108,7 @@ struct concatenate_impl<value_list<T, Values1...>, value_list<T, Values2...>> {
 
 
 /**
- * concatenate combines two value_list into one value_list.
+ * concatenate combines two std::integer_sequence into one.
  *
  * @tparam List1  the first list
  * @tparam List2  the second list
@@ -127,14 +129,14 @@ template <typename T, typename = void>
 struct as_list_impl;
 
 /**
- * as_list_impl specializes for the value_list
+ * as_list_impl specializes for the std::integer_sequence
  *
- * @tparam T  the value_list type
- * @tparam Values  the values of value_list
+ * @tparam T  the std::integer_sequence type
+ * @tparam Values  the values of std::integer_sequence
  */
 template <typename T, T... Values>
-struct as_list_impl<value_list<T, Values...>> {
-    using type = value_list<T, Values...>;
+struct as_list_impl<std::integer_sequence<T, Values...>> {
+    using type = std::integer_sequence<T, Values...>;
 };
 
 /**
@@ -158,7 +160,7 @@ struct as_list_impl<type_list<Types...>> {
 template <int Start, int End, int Step>
 struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start < End)>> {
     using type = concatenate<
-        value_list<int, Start>,
+        std::integer_sequence<int, Start>,
         typename as_list_impl<range<Start + Step, End, Step>>::type>;
 };
 
@@ -171,7 +173,7 @@ struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start < End)>> {
  */
 template <int Start, int End, int Step>
 struct as_list_impl<range<Start, End, Step>, std::enable_if_t<(Start >= End)>> {
-    using type = value_list<int>;
+    using type = std::integer_sequence<int>;
 };
 
 
@@ -189,19 +191,21 @@ using as_list = typename detail::as_list_impl<T>::type;
 
 
 /**
- * as_array<T> returns the array from value_list. It will be helpful if using
- * for in runtime on the array.
+ * as_array<T> returns the array from std::integer_sequence. It will be helpful
+ * if using for in runtime on the array.
  *
- * @tparam T  the type of value_list
- * @tparam Value  the values of value_list
+ * @tparam T  the type of std::integer_sequence
+ * @tparam Value  the values of std::integer_sequence
  *
- * @param value_list  the input value_list
+ * @param vl  the input std::integer_sequence
  *
- * @return std::array  the std::array contains the values of value_list
+ * @return std::array  the std::array contains the values of vl
  */
 template <typename T, T... Value>
-constexpr std::array<T, sizeof...(Value)> as_array(value_list<T, Value...> vl)
+constexpr std::array<T, sizeof...(Value)> as_array(
+    std::integer_sequence<T, Value...> vl)
 {
+    std::ignore = vl;
     return std::array<T, sizeof...(Value)>{Value...};
 }
 

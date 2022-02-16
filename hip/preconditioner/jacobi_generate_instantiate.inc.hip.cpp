@@ -77,7 +77,7 @@ namespace jacobi {
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void generate(syn::value_list<int, max_block_size>,
+void generate(std::integer_sequence<int, max_block_size>,
               const matrix::Csr<ValueType, IndexType>* mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -120,7 +120,7 @@ void generate(syn::value_list<int, max_block_size>,
 #define DECLARE_JACOBI_GENERATE_INSTANTIATION(ValueType, IndexType)          \
     void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,        \
                   ValueType, IndexType>(                                     \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                         \
+        std::integer_sequence<int, GKO_JACOBI_BLOCK_SIZE>,                   \
         const matrix::Csr<ValueType, IndexType>*, remove_complex<ValueType>, \
         ValueType*,                                                          \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&,  \

@@ -70,7 +70,7 @@ constexpr int default_block_size = 512;
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
 using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/factorization/par_ilut_sweep_kernels.hpp.inc"
@@ -80,7 +80,7 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_l_u_factors(syn::value_list<int, subwarp_size>,
+void compute_l_u_factors(std::integer_sequence<int, subwarp_size>,
                          std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* a,
                          matrix::Csr<ValueType, IndexType>* l,
@@ -133,8 +133,8 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo, u, u_coo,
-        u_csc);
+        std::integer_sequence<int>(), syn::type_list<>(), exec, a, l, l_coo, u,
+        u_coo, u_csc);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

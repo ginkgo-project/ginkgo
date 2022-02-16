@@ -66,7 +66,7 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 
 template <int block_size, int remainder_cols, typename KernelFunction,
           typename... MappedKernelArgs>
-void run_kernel_sized_impl(syn::value_list<int, remainder_cols>,
+void run_kernel_sized_impl(std::integer_sequence<int, remainder_cols>,
                            std::shared_ptr<const OmpExecutor> exec,
                            KernelFunction fn, dim<2> size,
                            MappedKernelArgs... args)
@@ -124,8 +124,8 @@ void run_kernel_impl(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
     select_run_kernel_sized(
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
-        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, size,
-        args...);
+        std::integer_sequence<int, block_size>(), syn::type_list<>(), exec, fn,
+        size, args...);
 }
 
 

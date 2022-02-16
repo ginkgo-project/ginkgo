@@ -153,7 +153,7 @@ namespace {
 template <bool conjugate, int warps_per_block, int max_block_size,
           typename ValueType, typename IndexType>
 void transpose_jacobi(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    std::integer_sequence<int, max_block_size>, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -202,7 +202,7 @@ void transpose_jacobi(
         [&](int compiled_block_size) {
             return max_block_size <= compiled_block_size;
         },
-        syn::value_list<int, false, config::min_warps_per_block>(),
+        std::integer_sequence<int, false, config::min_warps_per_block>(),
         syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());
@@ -226,7 +226,7 @@ void conj_transpose_jacobi(
         [&](int compiled_block_size) {
             return max_block_size <= compiled_block_size;
         },
-        syn::value_list<int, true, config::min_warps_per_block>(),
+        std::integer_sequence<int, true, config::min_warps_per_block>(),
         syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
         block_pointers.get_const_data(), blocks.get_const_data(),
         storage_scheme, out_blocks.get_data());

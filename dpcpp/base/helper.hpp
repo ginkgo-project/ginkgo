@@ -124,8 +124,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         callable_(                                                            \
             list_,                                                            \
             [&desired_cfg](std::uint32_t cfg) { return cfg == desired_cfg; }, \
-            ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),    \
-            ::gko::syn::value_list<gko::size_type>(),                         \
+            std::integer_sequence<bool>(), std::integer_sequence<int>(),      \
+            std::integer_sequence<gko::size_type>(),                          \
             ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory,    \
             queue, std::forward<InferredArgs>(args)...);                      \
     }

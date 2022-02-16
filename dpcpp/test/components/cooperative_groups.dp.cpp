@@ -62,9 +62,9 @@ namespace {
 using namespace gko::kernels::dpcpp;
 using KCFG_1D = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
-    ::gko::syn::value_list<std::uint32_t, KCFG_1D::encode(64, 64),
-                           KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
-                           KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>();
+    std::integer_sequence<std::uint32_t, KCFG_1D::encode(64, 64),
+                          KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
+                          KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>();
 
 
 class CooperativeGroups : public testing::TestWithParam<unsigned int> {
@@ -160,8 +160,8 @@ void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
         default_config_list,
         // validate
         [&desired_cfg](std::uint32_t cfg) { return cfg == desired_cfg; },
-        ::gko::syn::value_list<bool>(), ::gko::syn::value_list<int>(),
-        ::gko::syn::value_list<gko::size_type>(), ::gko::syn::type_list<>(),
+        std::integer_sequence<bool>(), std::integer_sequence<int>(),
+        std::integer_sequence<gko::size_type>(), ::gko::syn::type_list<>(),
         grid, block, dynamic_shared_memory, queue, s);
 }
 

@@ -375,7 +375,7 @@ namespace {
 
 template <int mat_blk_sz, typename ValueType, typename IndexType>
 void sort_by_column_index_impl(
-    syn::value_list<int, mat_blk_sz>,
+    std::integer_sequence<int, mat_blk_sz>,
     matrix::Fbcsr<ValueType, IndexType>* const to_sort)
 {
     auto row_ptrs = to_sort->get_const_row_ptrs();
@@ -420,7 +420,7 @@ void sort_by_column_index(const std::shared_ptr<const OmpExecutor> exec,
     select_sort_col_idx(
         fixedblock::compiled_kernels(),
         [bs](int compiled_block_size) { return bs == compiled_block_size; },
-        syn::value_list<int>(), syn::type_list<>(), to_sort);
+        std::integer_sequence<int>(), syn::type_list<>(), to_sort);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

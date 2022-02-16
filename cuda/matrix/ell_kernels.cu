@@ -102,7 +102,7 @@ constexpr int max_thread_per_worker = 32;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
+using compiled_kernels = std::integer_sequence<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
 #include "common/cuda_hip/matrix/ell_kernels.hpp.inc"
@@ -113,7 +113,7 @@ namespace {
 
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
+void abstract_spmv(std::integer_sequence<int, info>, int num_worker_per_row,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
                    const matrix::Dense<InputValueType>* b,
                    matrix::Dense<OutputValueType>* c,
@@ -249,8 +249,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
-        c);
+        std::integer_sequence<int>(), syn::type_list<>(), num_worker_per_row, a,
+        b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -283,8 +283,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
-        alpha, beta);
+        std::integer_sequence<int>(), syn::type_list<>(), num_worker_per_row, a,
+        b, c, alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(

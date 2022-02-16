@@ -56,7 +56,7 @@ namespace jacobi {
 #endif
 
 
-using compiled_kernels = syn::value_list<int, GKO_HIP_JACOBI_BLOCK_SIZES_CODE>;
+using compiled_kernels = std::integer_sequence<int, GKO_HIP_JACOBI_BLOCK_SIZES_CODE>;
 
 
 constexpr int get_larger_power(int value, int guess = 1)

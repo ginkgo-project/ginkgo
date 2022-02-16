@@ -89,9 +89,10 @@ constexpr int classical_overweight = 32;
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 6>;
+using compiled_kernels = std::integer_sequence<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
+using classical_kernels =
+    std::integer_sequence<int, config::warp_size, 16, 8, 1>;
 
 
 namespace kernel {
@@ -1006,7 +1007,7 @@ namespace host_kernel {
 
 
 template <int items_per_thread, typename ValueType, typename IndexType>
-void merge_path_spmv(syn::value_list<int, items_per_thread>,
+void merge_path_spmv(std::integer_sequence<int, items_per_thread>,
                      std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Dense<ValueType>* b,
@@ -1076,7 +1077,7 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 
 
 template <int subgroup_size, typename ValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subgroup_size>,
+void classical_spmv(std::integer_sequence<int, subgroup_size>,
                     std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
@@ -1148,7 +1149,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
         IndexType max_length_per_row = 0;
         using Tcsr = matrix::Csr<ValueType, IndexType>;
@@ -1167,7 +1168,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (!is_complex<ValueType>()) {
@@ -1284,8 +1285,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
+            alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -1294,8 +1295,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
+            alpha, beta);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

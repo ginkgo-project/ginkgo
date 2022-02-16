@@ -72,7 +72,7 @@ constexpr int default_block_size = 512;
 
 // subwarp sizes for filter kernels
 using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/factorization/par_ilut_filter_kernels.hpp.inc"
@@ -82,7 +82,7 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void threshold_filter(syn::value_list<int, subwarp_size>,
+void threshold_filter(std::integer_sequence<int, subwarp_size>,
                       std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
@@ -156,8 +156,8 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, a, threshold, m_out,
-        m_out_coo, lower);
+        std::integer_sequence<int>(), syn::type_list<>(), exec, a, threshold,
+        m_out, m_out_coo, lower);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

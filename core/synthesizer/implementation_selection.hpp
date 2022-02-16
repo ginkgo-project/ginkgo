@@ -48,24 +48,24 @@ namespace syn {
 #define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                \
     template <typename Predicate, int... IntArgs, typename... TArgs,         \
               typename... InferredArgs>                                      \
-    inline void _name(::gko::syn::value_list<int>, Predicate,                \
-                      ::gko::syn::value_list<int, IntArgs...>,               \
+    inline void _name(std::integer_sequence<int>, Predicate,                 \
+                      std::integer_sequence<int, IntArgs...>,                \
                       ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
         GKO_KERNEL_NOT_FOUND;                                                \
                                                                              \
     template <int K, int... Rest, typename Predicate, int... IntArgs,        \
               typename... TArgs, typename... InferredArgs>                   \
     inline void _name(                                                       \
-        ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,      \
-        ::gko::syn::value_list<int, IntArgs...> int_args,                    \
+        std::integer_sequence<int, K, Rest...>, Predicate is_eligible,       \
+        std::integer_sequence<int, IntArgs...> int_args,                     \
         ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<IntArgs..., TArgs...>(                                 \
-                ::gko::syn::value_list<int, K>(),                            \
+                std::integer_sequence<int, K>(),                             \
                 std::forward<InferredArgs>(args)...);                        \
         } else {                                                             \
-            _name(::gko::syn::value_list<int, Rest...>(), is_eligible,       \
+            _name(std::integer_sequence<int, Rest...>(), is_eligible,        \
                   int_args, type_args, std::forward<InferredArgs>(args)...); \
         }                                                                    \
     }                                                                        \
@@ -77,10 +77,10 @@ namespace syn {
     template <typename Predicate, bool... BoolArgs, int... IntArgs,          \
               gko::size_type... SizeTArgs, typename... TArgs,                \
               typename... InferredArgs>                                      \
-    inline void _name(::gko::syn::value_list<std::uint32_t>, Predicate,      \
-                      ::gko::syn::value_list<bool, BoolArgs...>,             \
-                      ::gko::syn::value_list<int, IntArgs...>,               \
-                      ::gko::syn::value_list<gko::size_type, SizeTArgs...>,  \
+    inline void _name(std::integer_sequence<std::uint32_t>, Predicate,       \
+                      std::integer_sequence<bool, BoolArgs...>,              \
+                      std::integer_sequence<int, IntArgs...>,                \
+                      std::integer_sequence<gko::size_type, SizeTArgs...>,   \
                       ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
         GKO_KERNEL_NOT_FOUND;                                                \
                                                                              \
@@ -88,18 +88,18 @@ namespace syn {
               bool... BoolArgs, int... IntArgs, gko::size_type... SizeTArgs, \
               typename... TArgs, typename... InferredArgs>                   \
     inline void _name(                                                       \
-        ::gko::syn::value_list<std::uint32_t, K, Rest...>,                   \
+        std::integer_sequence<std::uint32_t, K, Rest...>,                    \
         Predicate is_eligible,                                               \
-        ::gko::syn::value_list<bool, BoolArgs...> bool_args,                 \
-        ::gko::syn::value_list<int, IntArgs...> int_args,                    \
-        ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,      \
+        std::integer_sequence<bool, BoolArgs...> bool_args,                  \
+        std::integer_sequence<int, IntArgs...> int_args,                     \
+        std::integer_sequence<gko::size_type, SizeTArgs...> size_args,       \
         ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K>(   \
                 std::forward<InferredArgs>(args)...);                        \
         } else {                                                             \
-            _name(::gko::syn::value_list<std::uint32_t, Rest...>(),          \
+            _name(std::integer_sequence<std::uint32_t, Rest...>(),           \
                   is_eligible, bool_args, int_args, size_args, type_args,    \
                   std::forward<InferredArgs>(args)...);                      \
         }                                                                    \

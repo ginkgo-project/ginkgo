@@ -253,8 +253,8 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
         });
     select_run_kernel_reduction(
         kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
-        syn::value_list<bool>(), syn::value_list<int>(),
-        syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
+        std::integer_sequence<bool>(), std::integer_sequence<int>(),
+        std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);
 }
 
@@ -274,8 +274,8 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
         });
     select_run_kernel_reduction(
         kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
-        syn::value_list<bool>(), syn::value_list<int>(),
-        syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
+        std::integer_sequence<bool>(), std::integer_sequence<int>(),
+        std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);
 }
 
@@ -286,7 +286,7 @@ namespace {
 template <std::uint32_t cfg, int ssg_size, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void generic_kernel_row_reduction_2d(syn::value_list<int, ssg_size>,
+void generic_kernel_row_reduction_2d(std::integer_sequence<int, ssg_size>,
                                      std::shared_ptr<const DpcppExecutor> exec,
                                      int64 rows, int64 cols, int64 col_blocks,
                                      KernelFunction fn, ReductionOp op,
@@ -486,7 +486,7 @@ void generic_kernel_reduction_finalize_2d(
 template <std::uint32_t cfg, int ssg_size, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
+void run_generic_col_reduction_small(std::integer_sequence<int, ssg_size>,
                                      std::shared_ptr<const DpcppExecutor> exec,
                                      int64 max_workgroups, KernelFunction fn,
                                      ReductionOp op, FinalizeOp finalize,
@@ -539,8 +539,8 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     using subsubgroup_sizes =
-        syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
-                        std::min<int>(32, sg_size), sg_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
+                              std::min<int>(32, sg_size), sg_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -552,8 +552,8 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
         Array<ValueType> partial{exec,
                                  static_cast<size_type>(col_blocks * rows)};
         generic_kernel_row_reduction_2d<cfg, sg_size>(
-            syn::value_list<int, sg_size>{}, exec, rows, cols, col_blocks, fn,
-            op, [](auto v) { return v; }, identity, partial.get_data(), 1,
+            std::integer_sequence<int, sg_size>{}, exec, rows, cols, col_blocks,
+            fn, op, [](auto v) { return v; }, identity, partial.get_data(), 1,
             args...);
         queue->submit([&](sycl::handler& cgh) {
             generic_kernel_reduction_finalize_2d(
@@ -568,8 +568,8 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
                 return compiled_ssg_size >= cols ||
                        compiled_ssg_size == sg_size;
             },
-            syn::value_list<int, cfg>(), syn::type_list<>(), exec, rows, cols,
-            1, fn, op, finalize, identity, result,
+            std::integer_sequence<int, cfg>(), syn::type_list<>(), exec, rows,
+            cols, 1, fn, op, finalize, identity, result,
             static_cast<int64>(result_stride), args...);
     }
 }
@@ -590,8 +590,8 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     using subsubgroup_sizes =
-        syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
-                        std::min<int>(32, sg_size), sg_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
+                              std::min<int>(32, sg_size), sg_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -604,8 +604,8 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
                 return compiled_ssg_size >= cols ||
                        compiled_ssg_size == sg_size;
             },
-            syn::value_list<int, cfg>(), syn::type_list<>(), exec, max_blocks,
-            fn, op, finalize, identity, result, size, args...);
+            std::integer_sequence<int, cfg>(), syn::type_list<>(), exec,
+            max_blocks, fn, op, finalize, identity, result, size, args...);
     } else {
         const auto col_blocks = ceildiv(cols, sg_size);
         const auto row_blocks = ceildiv(
@@ -658,8 +658,8 @@ void run_kernel_row_reduction(std::shared_ptr<const DpcppExecutor> exec,
         });
     select_kernel_row_reduction_stage1(
         kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
-        syn::value_list<bool>(), syn::value_list<int>(),
-        syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
+        std::integer_sequence<bool>(), std::integer_sequence<int>(),
+        std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, result_stride, size,
         map_to_device(args)...);
 }
@@ -680,8 +680,8 @@ void run_kernel_col_reduction(std::shared_ptr<const DpcppExecutor> exec,
         });
     select_kernel_col_reduction_stage1(
         kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
-        syn::value_list<bool>(), syn::value_list<int>(),
-        syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
+        std::integer_sequence<bool>(), std::integer_sequence<int>(),
+        std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);
 }
 

@@ -51,9 +51,10 @@ namespace fixedblock {
  * A compile-time list of block sizes for which dedicated fixed-block matrix
  * and corresponding preconditioner kernels should be compiled.
  */
-using compiled_kernels = syn::value_list<int, GKO_FIXED_BLOCK_CUSTOM_SIZES>;
+using compiled_kernels =
+    std::integer_sequence<int, GKO_FIXED_BLOCK_CUSTOM_SIZES>;
 #else
-using compiled_kernels = syn::value_list<int, 2, 3, 4, 7>;
+using compiled_kernels = std::integer_sequence<int, 2, 3, 4, 7>;
 #endif
 
 

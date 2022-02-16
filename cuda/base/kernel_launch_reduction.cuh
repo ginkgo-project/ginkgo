@@ -201,10 +201,10 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
-        int64 rows, int64 cols, int64 col_blocks, KernelFunction fn,
-        ReductionOp op, FinalizeOp finalize, ValueType identity,
-        ValueType* result, int64 result_stride, KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
+    int64 rows, int64 cols, int64 col_blocks, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    int64 result_stride, KernelArgs... args)
 {
     const auto idx = thread::get_subwarp_id_flat<subwarp_size, int64>();
     const auto row = idx % rows;
@@ -233,10 +233,10 @@ __global__
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     constexpr auto warps_per_block = default_block_size / warp_size;
@@ -296,10 +296,10 @@ __global__
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     __shared__ UninitializedArray<ValueType, default_block_size> block_partial;
@@ -335,10 +335,10 @@ __global__
 
 template <typename ValueType, typename ReductionOp, typename FinalizeOp>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
-        int64 num_results, int64 num_blocks, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, const ValueType* input,
-        int64 result_stride, ValueType* result)
+__launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
+    int64 num_results, int64 num_blocks, ReductionOp op, FinalizeOp finalize,
+    ValueType identity, const ValueType* input, int64 result_stride,
+    ValueType* result)
 {
     const auto idx = thread::get_thread_id_flat<int64>();
     if (idx >= num_results) {
@@ -357,7 +357,7 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
-void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
+void run_generic_kernel_row_reduction(std::integer_sequence<int, subwarp_size>,
                                       int64 rows, int64 cols, int64 col_blocks,
                                       KernelFunction fn, ReductionOp op,
                                       FinalizeOp finalize, ValueType identity,
@@ -382,7 +382,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
+void run_generic_col_reduction_small(std::integer_sequence<int, subwarp_size>,
                                      int64 max_blocks,
                                      std::shared_ptr<const CudaExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
@@ -433,7 +433,7 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
                               dim<2> size, KernelArgs&&... args)
 {
     using subwarp_sizes =
-        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -464,8 +464,8 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), rows, cols, 1, fn, op,
-            finalize, identity, result, static_cast<int64>(result_stride),
+            std::integer_sequence<int>(), syn::type_list<>(), rows, cols, 1, fn,
+            op, finalize, identity, result, static_cast<int64>(result_stride),
             map_to_device(args)...);
     }
 }
@@ -480,7 +480,7 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                               KernelArgs&&... args)
 {
     using subwarp_sizes =
-        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -493,8 +493,8 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
-            op, finalize, identity, result, size, map_to_device(args)...);
+            std::integer_sequence<int>(), syn::type_list<>(), max_blocks, exec,
+            fn, op, finalize, identity, result, size, map_to_device(args)...);
     } else {
         const auto col_blocks = ceildiv(cols, config::warp_size);
         const auto row_blocks =
