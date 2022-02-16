@@ -25,6 +25,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// force-top: on
+// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+// force-top: off
+
+
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
@@ -49,7 +56,13 @@ namespace amgx_pgm {
 
 template <typename IndexType>
 void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
-              IndexType* row_idxs, IndexType* col_idxs) GKO_NOT_IMPLEMENTED;
+              IndexType* row_idxs, IndexType* col_idxs)
+{
+    auto policy =
+        oneapi::dpl::execution::make_device_policy(*exec->get_queue());
+    auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
+    std::sort(thrust::device, it, it + num);
+}
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
 
