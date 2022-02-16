@@ -83,11 +83,24 @@ struct SimpleMatrixTest {
     static void check_property(const std::unique_ptr<matrix_type>&) {}
 
     static bool supports_strides() { return true; }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+    }
 };
 
 struct DenseWithDefaultStride
     : SimpleMatrixTest<gko::matrix::Dense<matrix_value_type>> {
     static bool preserves_zeros() { return false; }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_stride(), 0);
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
 };
 
 struct DenseWithCustomStride : DenseWithDefaultStride {
@@ -101,12 +114,43 @@ struct DenseWithCustomStride : DenseWithDefaultStride {
     {
         ASSERT_EQ(mtx->get_stride(), mtx->get_size()[0] + 10);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_stride(), 0);
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
 };
 
-struct Coo : SimpleMatrixTest<gko::matrix::Coo<matrix_value_type, int>> {};
+struct Coo : SimpleMatrixTest<gko::matrix::Coo<matrix_value_type, int>> {
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
+};
 
 struct CsrWithDefaultStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {};
+    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
+            mtx->get_strategy().get()));
+    }
+};
 
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
@@ -127,6 +171,20 @@ struct CsrWithClassicalStrategy
         ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
             mtx->get_strategy().get()));
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
+            mtx->get_strategy().get()));
+    }
 };
 
 struct CsrWithMergePathStrategy
@@ -143,6 +201,20 @@ struct CsrWithMergePathStrategy
         ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
             mtx->get_strategy().get()));
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
+            mtx->get_strategy().get()));
+    }
 };
 
 struct CsrWithSparselibStrategy
@@ -156,6 +228,20 @@ struct CsrWithSparselibStrategy
 
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
     {
+        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
+            mtx->get_strategy().get()));
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
         ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
             mtx->get_strategy().get()));
     }
@@ -176,6 +262,20 @@ struct CsrWithLoadBalanceStrategy
         ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
             mtx->get_strategy().get()));
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
+            mtx->get_strategy().get()));
+    }
 };
 
 struct CsrWithAutomaticalStrategy
@@ -193,13 +293,37 @@ struct CsrWithAutomaticalStrategy
         ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
             mtx->get_strategy().get()));
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
+            mtx->get_strategy().get()));
+    }
 };
 
 
 #endif
 
 
-struct Ell : SimpleMatrixTest<gko::matrix::Ell<matrix_value_type, int>> {};
+struct Ell : SimpleMatrixTest<gko::matrix::Ell<matrix_value_type, int>> {
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_stride(), 0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
+};
 
 
 template <int block_size>
@@ -217,6 +341,11 @@ struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
     {
         ASSERT_EQ(mtx->get_block_size(), block_size);
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
     }
 
     static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
@@ -239,6 +368,22 @@ struct SellpDefaultParameters
         ASSERT_EQ(mtx->get_stride_factor(), 1);
         ASSERT_EQ(mtx->get_slice_size(), 64);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_total_cols(), 0);
+        ASSERT_NE(mtx->get_const_slice_sets(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_slice_sets()),
+            0);
+        ASSERT_EQ(mtx->get_const_slice_lengths(), nullptr);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_EQ(mtx->get_stride_factor(), 1);
+        ASSERT_EQ(mtx->get_slice_size(), 64);
+    }
 };
 
 struct Sellp32Factor2
@@ -254,11 +399,43 @@ struct Sellp32Factor2
         ASSERT_EQ(mtx->get_stride_factor(), 2);
         ASSERT_EQ(mtx->get_slice_size(), 32);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_total_cols(), 0);
+        ASSERT_NE(mtx->get_const_slice_sets(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_slice_sets()),
+            0);
+        ASSERT_EQ(mtx->get_const_slice_lengths(), nullptr);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        ASSERT_EQ(mtx->get_stride_factor(), 2);
+        ASSERT_EQ(mtx->get_slice_size(), 32);
+    }
 };
 
 
 struct HybridDefaultStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {};
+    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+    }
+};
 
 struct HybridColumnLimitStrategy
     : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
@@ -275,6 +452,22 @@ struct HybridColumnLimitStrategy
             mtx->get_strategy().get());
         ASSERT_TRUE(strategy);
         ASSERT_EQ(strategy->get_num_columns(), 10);
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
     }
 };
 
@@ -293,6 +486,22 @@ struct HybridImbalanceLimitStrategy
             mtx->get_strategy().get());
         ASSERT_TRUE(strategy);
         ASSERT_EQ(strategy->get_percentage(), 0.5);
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
     }
 };
 
@@ -315,6 +524,22 @@ struct HybridImbalanceBoundedLimitStrategy
         ASSERT_EQ(strategy->get_percentage(), 0.5);
         ASSERT_EQ(strategy->get_ratio(), 0.01);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+    }
 };
 
 struct HybridMinStorageStrategy
@@ -333,6 +558,22 @@ struct HybridMinStorageStrategy
             mtx->get_strategy().get());
         ASSERT_TRUE(strategy);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+    }
 };
 
 struct HybridAutomaticStrategy
@@ -350,6 +591,22 @@ struct HybridAutomaticStrategy
             mtx->get_strategy().get());
         ASSERT_TRUE(strategy);
     }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_FALSE(mtx->get_coo()->get_size());
+        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
+        ASSERT_FALSE(mtx->get_ell()->get_size());
+        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
+        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(mtx->get_ell_stride(), 0);
+        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
+        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+    }
 };
 
 
@@ -362,6 +619,20 @@ struct SparsityCsr
         for (auto& entry : data.nonzeros) {
             entry.value = gko::one<matrix_value_type>();
         }
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_num_nonzeros(), 0);
+        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(
+            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
+            0);
+        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
+        ASSERT_NE(mtx->get_const_value(), nullptr);
+        ASSERT_EQ(mtx->get_executor()->copy_val_to_host(mtx->get_const_value()),
+                  gko::one<matrix_value_type>());
     }
 };
 
@@ -920,5 +1191,77 @@ TYPED_TEST(Matrix, DeviceReadMoveIsEquivalentToHostRef)
         ASSERT_EQ(ref_device_data.get_num_elems(), gko::dim<2>{});
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
+    });
+}
+
+
+TYPED_TEST(Matrix, CopyAssignIsCorrect)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto mtx = TestConfig::create(this->exec, data.size);
+        auto mtx2 = Mtx::create(this->exec);
+        mtx->read(data);
+
+        *mtx2 = *mtx;
+
+        GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
+    });
+}
+
+
+TYPED_TEST(Matrix, MoveAssignIsCorrect)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto mtx = TestConfig::create(this->exec, data.size);
+        auto mtx2 = Mtx::create(this->exec);
+        mtx->read(data);
+        auto orig_mtx = mtx->clone();
+
+        *mtx2 = std::move(*mtx);
+
+        GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
+        TestConfig::assert_empty_state(mtx.get());
+    });
+}
+
+
+TYPED_TEST(Matrix, CopyAssignToDifferentExecutorIsCorrect)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto mtx = TestConfig::create(this->exec, data.size);
+        auto mtx2 = Mtx::create(this->ref);
+        mtx->read(data);
+
+        *mtx2 = *mtx;
+
+        GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
+    });
+}
+
+
+TYPED_TEST(Matrix, MoveAssignToDifferentExecutorIsCorrect)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto mtx = TestConfig::create(this->exec, data.size);
+        auto mtx2 = Mtx::create(this->ref);
+        mtx->read(data);
+        auto orig_mtx = mtx->clone();
+
+        *mtx2 = std::move(*mtx);
+
+        GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
+        TestConfig::assert_empty_state(mtx.get());
     });
 }
