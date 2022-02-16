@@ -1,8 +1,10 @@
 on:
   pull_request_target:
     types: [opened,synchronize]
-
 name: OnSyncPR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check-format:
     runs-on: ubuntu-18.04
