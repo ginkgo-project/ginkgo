@@ -1699,6 +1699,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         this->exec);
     ASSERT_EQ(mat->get_num_stored_elements(), 23);
     {
+        SCOPED_TRACE("Left top corner: Square 2x2");
         auto sub_mat1 = mat->create_submatrix(gko::span(0, 2), gko::span(0, 2));
         auto ref1 =
             gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
@@ -1706,6 +1707,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Left boundary: Square 2x2");
         auto sub_mat2 = mat->create_submatrix(gko::span(2, 4), gko::span(0, 2));
         auto ref2 =
             gko::initialize<Mtx>({I<T>{0.0, 3.0}, I<T>{0.0, -1.0}}, this->exec);
@@ -1713,6 +1715,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat2.get(), ref2.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Right boundary: Square 2x2");
         auto sub_mat3 = mat->create_submatrix(gko::span(0, 2), gko::span(3, 5));
         auto ref3 =
             gko::initialize<Mtx>({I<T>{0.0, 2.0}, I<T>{7.5, 3.0}}, this->exec);
@@ -1720,6 +1723,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat3.get(), ref3.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Non-square 5x2");
         auto sub_mat4 = mat->create_submatrix(gko::span(1, 6), gko::span(2, 4));
         /*
            4.5, 7.5
@@ -1779,6 +1783,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
         this->exec);
     ASSERT_EQ(mat->get_num_stored_elements(), 23);
     {
+        SCOPED_TRACE("Small square 2x2");
         auto row_set = gko::IndexSet<index_type>(this->exec, {0, 1});
         auto col_set = gko::IndexSet<index_type>(this->exec, {0, 1});
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
@@ -1789,6 +1794,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
     }
 
     {
+        SCOPED_TRACE("Non-square 4x2");
         auto row_set = gko::IndexSet<index_type>(this->exec, {1, 2, 3, 4});
         auto col_set = gko::IndexSet<index_type>(this->exec, {1, 3});
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
@@ -1800,6 +1806,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
     }
 
     {
+        SCOPED_TRACE("Square 3x3");
         auto row_set = gko::IndexSet<index_type>(this->exec, {1, 3, 4});
         auto col_set = gko::IndexSet<index_type>(this->exec, {1, 3, 0});
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
@@ -1811,6 +1818,7 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
     }
 
     {
+        SCOPED_TRACE("Square 4x4");
         auto row_set = gko::IndexSet<index_type>(this->exec, {1, 4, 5, 6});
         auto col_set = gko::IndexSet<index_type>(this->exec, {4, 3, 0, 1});
         auto sub_mat1 = mat->create_submatrix(row_set, col_set);
