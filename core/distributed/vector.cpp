@@ -64,27 +64,11 @@ void read_distributed_impl(
 {
     auto exec = result->get_executor();
 
-    GKO_ASSERT(partition->get_executor() == exec);
-
-    auto global_rows = static_cast<size_type>(partition->get_size());
-    auto global_cols = data.get_size()[1];
-    auto tmp = Vector<ValueType>::create(exec, result->get_communicator(),
-                                         gko::dim<2>{global_rows, global_cols});
-
-    auto rank = tmp->get_communicator().rank();
-    auto local_rows = static_cast<size_type>(partition->get_part_size(rank));
-    if (tmp->get_local()->get_size() != dim<2>{local_rows, global_cols}) {
-        auto stride = tmp->get_local()->get_stride() > 0
-                          ? tmp->get_local()->get_stride()
-                          : global_cols;
-        Vector<ValueType>::local_vector_type::create(
-            exec, dim<2>{local_rows, global_cols}, stride)
-            ->move_to(tmp->get_local());
-    }
-    tmp->get_local()->fill(zero<ValueType>());
-    exec->run(
-        vector::make_build_local(data, partition, rank, tmp->get_local()));
-    tmp->move_to(result);
+    auto rank = result->get_communicator().rank();
+    result->get_local()->fill(zero<ValueType>());
+    exec->run(vector::make_build_local(
+        data, make_temporary_clone(exec, partition).get(), rank,
+        result->get_local()));
 }
 
 #define GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL(               \
@@ -142,6 +126,8 @@ template <typename ValueType>
 void Vector<ValueType>::convert_to(
     Vector<next_precision<ValueType>>* result) const
 {
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
     result->set_size(this->get_size());
     this->get_const_local()->convert_to(result->get_local());
 }
@@ -382,6 +368,16 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
+{
+    if (this->get_size() != global_size) {
+        this->set_size(global_size);
+    }
+    this->get_local()->resize(local_size);
 }
 
 

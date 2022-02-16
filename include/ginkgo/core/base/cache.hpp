@@ -57,7 +57,8 @@ namespace detail {
 /**
  * Manages a Dense vector that is buffered and reused internally to avoid
  * repeated allocations. Copying an instance will only yield an empty object
- * since copying the cached vector would not make sense.
+ * since copying the cached vector would not make sense. The stored object is
+ * always mutable, so the cache can be used in a const-context.
  *
  * @internal  The struct is present to wrap cache-like buffer storage that will
  *            not be copied when the outer object gets copied.
@@ -67,10 +68,10 @@ struct DenseCache {
     DenseCache() = default;
     ~DenseCache() = default;
     DenseCache(const DenseCache&) {}
-    DenseCache(DenseCache&&) {}
+    DenseCache(DenseCache&&) noexcept {}
     DenseCache& operator=(const DenseCache&) { return *this; }
-    DenseCache& operator=(DenseCache&&) { return *this; }
-    std::unique_ptr<matrix::Dense<ValueType>> vec{};
+    DenseCache& operator=(DenseCache&&) noexcept { return *this; }
+    mutable std::unique_ptr<matrix::Dense<ValueType>> vec{};
 
 
     /**
@@ -85,7 +86,7 @@ struct DenseCache {
      * @param template_vec  Defines the configuration (executor, size, stride)
      *                      of the buffered vector.
      */
-    void init_from(const matrix::Dense<ValueType>* template_vec);
+    void init_from(const matrix::Dense<ValueType>* template_vec) const;
 
     /**
      * Initializes the buffered vector, if
@@ -96,15 +97,25 @@ struct DenseCache {
      * @param exec  Executor of the buffered vector.
      * @param size  Size of the buffered vector.
      */
-    void init(std::shared_ptr<const Executor> exec, dim<2> size);
+    void init(std::shared_ptr<const Executor> exec, dim<2> size) const;
 
-    matrix::Dense<ValueType>& operator*() { return *vec; }
+    /**
+     * Reference access to the underlying vector.
+     * @return  Reference to the stored vector.
+     */
+    matrix::Dense<ValueType>& operator*() const { return *vec; }
 
-    matrix::Dense<ValueType>* operator->() { return vec.get(); }
+    /**
+     * Pointer access to the underlying vector.
+     * @return  Pointer to the stored vector.
+     */
+    matrix::Dense<ValueType>* operator->() const { return vec.get(); }
 
-    matrix::Dense<ValueType>* get() { return vec.get(); }
-
-    const matrix::Dense<ValueType>* get() const { return vec.get(); }
+    /**
+     * Pointer access to the underlying vector.
+     * @return  Pointer to the stored vector.
+     */
+    matrix::Dense<ValueType>* get() const { return vec.get(); }
 };
 
 

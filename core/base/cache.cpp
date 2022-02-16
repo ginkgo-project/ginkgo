@@ -42,7 +42,7 @@ namespace detail {
 
 template <typename ValueType>
 void DenseCache<ValueType>::init(std::shared_ptr<const Executor> exec,
-                                 dim<2> size)
+                                 dim<2> size) const
 {
     if (!vec || vec->get_size() != size || vec->get_executor() != exec) {
         vec = matrix::Dense<ValueType>::create(exec, size);
@@ -52,7 +52,7 @@ void DenseCache<ValueType>::init(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 void DenseCache<ValueType>::init_from(
-    const matrix::Dense<ValueType>* template_vec)
+    const matrix::Dense<ValueType>* template_vec) const
 {
     if (!vec || vec->get_size() != template_vec->get_size() ||
         vec->get_executor() != template_vec->get_executor()) {
