@@ -104,9 +104,8 @@ public:
      * Creates an index set on the specified executor from the initializer list.
      *
      * @param exec  the Executor where the index set data will be allocated
-     * @param size  the maximum index the index set it allowed to hold. This
-     *              is the size of the index space.
-     * @param indices  the indices that the index set should hold.
+     * @param init_list  the indices that the index set should hold in an
+     *                   initializer_list.
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */

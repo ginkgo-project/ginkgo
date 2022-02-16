@@ -83,7 +83,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename IndexType>
 void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
-                       const IndexType index_space_size,
                        const IndexType num_subsets,
                        const IndexType* subset_begin,
                        const IndexType* subset_end,
@@ -182,7 +181,7 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
             shifted_bucket = 0;
         }
         auto index = global_indices[i];
-        if (index > index_space_size) {
+        if (index >= index_space_size) {
             local_indices[i] = invalid_index<IndexType>();
             continue;
         }
@@ -206,7 +205,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
-                     const IndexType index_space_size,
                      const IndexType num_subsets, const IndexType* subset_begin,
                      const IndexType* subset_end,
                      const IndexType* superset_indices,
@@ -223,7 +221,10 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
             shifted_bucket = 0;
         }
         auto index = local_indices[i];
-        GKO_ASSERT(index <= (superset_indices[num_subsets]));
+        if (index >= superset_indices[num_subsets]) {
+            global_indices[i] = invalid_index<IndexType>();
+            continue;
+        }
         const auto shifted_superset = &superset_indices[shifted_bucket];
         auto bucket = std::distance(
             superset_indices,
