@@ -105,6 +105,7 @@ TYPED_TEST(IndexSet, CanBeCopyConstructed)
 
     gko::IndexSet<TypeParam> idx_set2(idx_set);
 
+    ASSERT_EQ(this->exec, idx_set2.get_executor());
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
 
@@ -120,6 +121,7 @@ TYPED_TEST(IndexSet, CanBeMoveConstructed)
 
     gko::IndexSet<TypeParam> idx_set2(std::move(idx_set));
 
+    ASSERT_EQ(this->exec, idx_set2.get_executor());
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
 
@@ -135,6 +137,7 @@ TYPED_TEST(IndexSet, CanBeCopyAssigned)
 
     gko::IndexSet<TypeParam> idx_set2 = idx_set;
 
+    ASSERT_EQ(this->exec, idx_set2.get_executor());
     this->assert_equal_index_sets(idx_set2, idx_set);
 }
 
@@ -150,6 +153,7 @@ TYPED_TEST(IndexSet, CanBeMoveAssigned)
 
     gko::IndexSet<TypeParam> idx_set2 = std::move(idx_set);
 
+    ASSERT_EQ(this->exec, idx_set2.get_executor());
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
 

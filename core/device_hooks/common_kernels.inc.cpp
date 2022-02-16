@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/constraints/utility_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
@@ -225,6 +226,17 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace index_set
+
+
+namespace cons {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_FILL_SUBSET);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_COPY_SUBSET);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONS_SET_UNIT_ROWS);
+
+
+}  // namespace cons
 
 
 namespace partition {

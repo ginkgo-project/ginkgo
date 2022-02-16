@@ -4,6 +4,7 @@ option(GINKGO_RUN_EXAMPLES " Compile run and validation targets for the examples
 set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
     cb-gmres
+    dirichlet-constraints
     custom-logger
     ginkgo-ranges
     ilu-preconditioned-solver

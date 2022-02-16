@@ -12,7 +12,10 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    constraints/constraints_handler.cpp
+    constraints/zero_rows.cpp
     distributed/partition.cpp
+    factorization/ic.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
     factorization/par_ic.cpp

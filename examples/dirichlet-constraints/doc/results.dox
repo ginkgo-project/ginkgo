@@ -1,0 +1,11 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+
+Solve complete.
+The average relative error is 0.00249685
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
