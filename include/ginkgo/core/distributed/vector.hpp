@@ -111,7 +111,8 @@ public:
     using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
-     * Reads a vector from the matrix_data structure and a global row partition.
+     * Reads a vector from the device_matrix_data structure and a global row
+     * partition.
      *
      * The number of rows of the matrix data is ignored, only its number of
      * columns is relevant. The number of rows is inferred from the partition.
@@ -119,8 +120,30 @@ public:
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
      *
-     * @param data  The matrix_data structure
+     * @param data  The device_matrix_data structure
      * @param partition  The global row partition
+     */
+    template <typename LocalIndexType, typename GlobalIndexType>
+    void read_distributed(
+        const device_matrix_data<ValueType, GlobalIndexType>& data,
+        const Partition<LocalIndexType, GlobalIndexType>* partition)
+    {
+        auto global_cols = data.get_size()[1];
+        this->resize(
+            dim<2>(partition->get_size(), global_cols),
+            dim<2>(partition->get_part_size(this->get_communicator().rank()),
+                   global_cols));
+        detail::read_distributed_impl(data, partition, this);
+    }
+
+    /**
+     * Reads a vector from the matrix_data structure and a global row
+     * partition.
+     *
+     * See @read_distributed
+     *
+     * @note For efficiency it is advised to use the device_matrix_data
+     * overload.
      */
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
@@ -133,19 +156,6 @@ public:
             std::move(partition));
     }
 
-    /**
-     * Reads a vector from the device_matrix_data structure and a global row
-     * partition.
-     *
-     * See @read_distributed
-     */
-    template <typename LocalIndexType, typename GlobalIndexType>
-    void read_distributed(
-        const device_matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition)
-    {
-        detail::read_distributed_impl(data, partition, this);
-    }
 
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
@@ -325,6 +335,8 @@ protected:
                     mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
                     dim<2> global_size = {}, dim<2> local_size = {});
 
+    void resize(dim<2> global_size, dim<2> local_size);
+
     void apply_impl(const LinOp*, LinOp*) const override;
 
     void apply_impl(const LinOp*, const LinOp*, const LinOp*,
@@ -332,9 +344,8 @@ protected:
 
 private:
     local_vector_type local_;
-    mutable ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
-    mutable ::gko::detail::DenseCache<remove_complex<ValueType>>
-        host_norm_buffer_;
+    ::gko::detail::DenseCache<ValueType> host_reduction_buffer_;
+    ::gko::detail::DenseCache<remove_complex<ValueType>> host_norm_buffer_;
 };
 
 
