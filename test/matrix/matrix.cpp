@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -73,6 +74,11 @@ struct SimpleMatrixTest {
     {
         return matrix_type::create(exec->get_master(), size);
     }
+
+    static void modify_data(
+        gko::matrix_data<typename MtxType::value_type,
+                         typename MtxType::index_type>& data)
+    {}
 
     static void check_property(const std::unique_ptr<matrix_type>&) {}
 };
@@ -344,6 +350,19 @@ struct HybridAutomaticStrategy
         auto strategy = dynamic_cast<const matrix_type::automatic*>(
             mtx->get_strategy().get());
         ASSERT_TRUE(strategy);
+    }
+};
+
+
+struct SparsityCsr
+    : SimpleMatrixTest<gko::matrix::SparsityCsr<matrix_value_type, int>> {
+    static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
+    {
+        using entry_type =
+            gko::matrix_data<matrix_value_type, int>::nonzero_type;
+        for (auto& entry : data.nonzeros) {
+            entry.value = gko::one<matrix_value_type>();
+        }
     }
 };
 
@@ -633,7 +652,7 @@ using MatrixTypes = ::testing::Types<
     SellpDefaultParameters, Sellp32Factor2, HybridDefaultStrategy,
     HybridColumnLimitStrategy, HybridImbalanceLimitStrategy,
     HybridImbalanceBoundedLimitStrategy, HybridMinStorageStrategy,
-    HybridAutomaticStrategy>;
+    HybridAutomaticStrategy, SparsityCsr>;
 
 TYPED_TEST_SUITE(Matrix, MatrixTypes, TypenameNameGenerator);
 
@@ -794,6 +813,7 @@ TYPED_TEST(Matrix, ReadWriteRoundtrip)
         auto new_mtx = TestConfig::create(this->exec, data.size);
         gko::matrix_data<value_type, index_type> out_data;
 
+        TestConfig::modify_data(data);
         new_mtx->read(data);
         new_mtx->write(out_data);
 

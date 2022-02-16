@@ -43,7 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -58,62 +60,70 @@ namespace reference {
 namespace sparsity_csr {
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::SparsityCsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+          const matrix::Dense<InputValueType>* b,
+          matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto val = a->get_const_value()[0];
+    const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) = zero<ValueType>();
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += val * b->at(col, j);
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(temp_val);
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::SparsityCsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   const matrix::Dense<MatrixValueType>* alpha,
+                   const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+                   const matrix::Dense<InputValueType>* b,
+                   const matrix::Dense<OutputValueType>* beta,
+                   matrix::Dense<OutputValueType>* c)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
-    auto val = a->get_const_value()[0];
+    const auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
+    const auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
+    const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
-            c->at(row, j) *= vbeta;
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto col = col_idxs[k];
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) += valpha * val * b->at(col, j);
+            auto temp_val = gko::zero<arithmetic_type>();
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                temp_val +=
+                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
             }
+            c->at(row, j) = static_cast<OutputValueType>(
+                vbeta * static_cast<arithmetic_type>(c->at(row, j)) +
+                valpha * temp_val);
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 

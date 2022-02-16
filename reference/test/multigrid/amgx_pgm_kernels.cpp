@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -68,6 +69,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using MgLevel = gko::multigrid::AmgxPgm<value_type, index_type>;
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
@@ -511,6 +513,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
     using RowGatherer = typename TestFixture::RowGatherer;
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
     // 0-2-4, 1-3
@@ -526,7 +529,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
     auto expected_row_gather =
         gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
@@ -539,6 +542,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
     using MgLevel = typename TestFixture::MgLevel;
     using RowGatherer = typename TestFixture::RowGatherer;
     auto mglevel_sort = MgLevel::build()
@@ -572,7 +576,7 @@ TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
     auto expected_row_gather =
         gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
