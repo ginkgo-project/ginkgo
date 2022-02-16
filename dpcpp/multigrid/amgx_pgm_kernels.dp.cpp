@@ -1,17 +1,22 @@
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
+
 1. Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
+
 2. Redistributions in binary form must reproduce the above copyright
 notice, this list of conditions and the following disclaimer in the
 documentation and/or other materials provided with the distribution.
+
 3. Neither the name of the copyright holder nor the names of its
 contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
 IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
 TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
@@ -65,6 +70,25 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
+                    IndexType* row_idxs, IndexType* col_idxs,
+                    ValueType* vals) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_AMGX_PGM_SORT_ROW_MAJOR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_coarse_coo(
+    std::shared_ptr<const DefaultExecutor> exec, size_type fine_nnz,
+    const IndexType* row_idxs, const IndexType* col_idxs, const ValueType* vals,
+    matrix::Coo<ValueType, IndexType>* coarse_coo) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_AMGX_PGM_COMPUTE_COARSE_COO);
 
 
 }  // namespace amgx_pgm
