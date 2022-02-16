@@ -508,7 +508,7 @@ public:
         }
         if (exec_ == nullptr) {
             exec_ = other.get_executor();
-            data_ = data_manager{nullptr, other.data_.get_deleter()};
+            data_ = data_manager{nullptr, default_deleter{exec_}};
         }
         if (other.get_executor() == nullptr) {
             this->clear();
@@ -516,13 +516,13 @@ public:
         }
         if (exec_ == other.get_executor()) {
             // same device, only move the pointer
-            using std::swap;
-            swap(data_, other.data_);
-            swap(num_elems_, other.num_elems_);
-            other.clear();
+            data_ = std::exchange(
+                other.data_, data_manager{nullptr, default_deleter{exec_}});
+            num_elems_ = std::exchange(other.num_elems_, 0);
         } else {
             // different device, copy the data
             *this = other;
+            other.clear();
         }
         return *this;
     }
