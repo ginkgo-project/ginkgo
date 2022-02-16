@@ -5,9 +5,10 @@ on:
     branches:
       - 'master'
       - 'develop'
+      - 'release/**'
     tags:
       - '**'
-  pull_request_target:
+  pull_request:
     types: [opened,synchronize]
   workflow_dispatch:
     inputs:
