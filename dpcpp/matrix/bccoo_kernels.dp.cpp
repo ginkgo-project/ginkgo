@@ -107,6 +107,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
+                    const matrix::Bccoo<ValueType, IndexType>* source,
+                    matrix::bccoo
+                    : compression commpress_res,
+                      size_type* mem_size) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
+
+template <typename ValueType, typename IndexType>
 void convert_to_compression(std::shared_ptr<const DpcppExecutor> exec,
                             const matrix::Bccoo<ValueType, IndexType>* source,
                             matrix::Bccoo<ValueType, IndexType>* result)

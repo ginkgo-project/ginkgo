@@ -176,6 +176,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Bccoo<ValueType, IndexType>* source,
+                    matrix::bccoo
+                    : compression commpress_res,
+                      size_type* mem_size) GKO_NOT_IMPLEMENTED;
+/*
+{
+    auto num_blk_src = source->get_num_blocks();
+    if (source->get_block_size() == source->get_block_size()) {
+                        *mem_size = source->num_bytes();
+                } else if (source->get_block_size() ==
+matrix::Bccoo::compression::block) { for (size_type blk_src = 0; blk_src <
+num_blk_src; blk_src++) {
+
+                                }
+                } else {
+                          for (size_type blk_src = 0; blk_src < num_blk_src;
+blk_src++) {
+
+                                }
+                }
+}
+*/
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
+
+template <typename ValueType, typename IndexType>
 void convert_to_compression(std::shared_ptr<const ReferenceExecutor> exec,
                             const matrix::Bccoo<ValueType, IndexType>* source,
                             matrix::Bccoo<ValueType, IndexType>* result)
