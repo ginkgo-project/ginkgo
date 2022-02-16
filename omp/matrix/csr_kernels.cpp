@@ -755,12 +755,11 @@ void calculate_nonzeros_per_row_in_index_set(
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
     auto src_ptrs = source->get_const_row_ptrs();
-#pragma omp parallel for
+    size_type res_row = 0;
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
-            row_nnz->get_data()[row - row_subset_begin[set]] =
-                zero<IndexType>();
+            row_nnz->get_data()[res_row] = zero<IndexType>();
             Array<IndexType> l_idxs(
                 exec,
                 static_cast<size_type>(src_ptrs[row + 1] - src_ptrs[row]));
@@ -776,9 +775,10 @@ void calculate_nonzeros_per_row_in_index_set(
                  ++nnz) {
                 auto l_idx = l_idxs.get_const_data()[nnz];
                 if (l_idx != invalid_index<IndexType>()) {
-                    row_nnz->get_data()[row - row_subset_begin[set]]++;
+                    row_nnz->get_data()[res_row]++;
                 }
             }
+            res_row++;
         }
     }
 }
