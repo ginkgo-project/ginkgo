@@ -751,15 +751,16 @@ void calculate_nonzeros_per_row_in_index_set(
     const IndexSet<IndexType>& row_index_set,
     const IndexSet<IndexType>& col_index_set, Array<IndexType>* row_nnz)
 {
-    size_type res_row = 0;
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
     auto src_ptrs = source->get_const_row_ptrs();
+#pragma omp parallel for
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
-            row_nnz->get_data()[res_row] = zero<IndexType>();
+            row_nnz->get_data()[row - row_subset_begin[set]] =
+                zero<IndexType>();
             Array<IndexType> l_idxs(
                 exec,
                 static_cast<size_type>(src_ptrs[row + 1] - src_ptrs[row]));
@@ -775,10 +776,9 @@ void calculate_nonzeros_per_row_in_index_set(
                  ++nnz) {
                 auto l_idx = l_idxs.get_const_data()[nnz];
                 if (l_idx != invalid_index<IndexType>()) {
-                    row_nnz->get_data()[res_row]++;
+                    row_nnz->get_data()[row - row_subset_begin[set]]++;
                 }
             }
-            res_row++;
         }
     }
 }
@@ -840,10 +840,11 @@ void compute_submatrix_from_index_set(
     const auto src_col_idxs = source->get_const_col_idxs();
     const auto src_values = source->get_const_values();
 
-    size_type res_nnz = 0;
+#pragma omp parallel for
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
+            size_type res_nnz = res_row_ptrs[row - row_subset_begin[set]];
             Array<IndexType> l_idxs(
                 exec, static_cast<size_type>(src_row_ptrs[row + 1] -
                                              src_row_ptrs[row]));
