@@ -104,6 +104,56 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
+    const SparsityCsr<ValueType, IndexType>& other)
+{
+    if (&other != this) {
+        EnableLinOp<SparsityCsr>::operator=(other);
+        value_ = other.value_;
+        col_idxs_ = other.col_idxs_;
+        row_ptrs_ = other.row_ptrs_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
+    SparsityCsr<ValueType, IndexType>&& other)
+{
+    if (&other != this) {
+        EnableLinOp<SparsityCsr>::operator=(std::move(other));
+        value_ = other.value_;
+        col_idxs_ = std::move(other.col_idxs_);
+        row_ptrs_ = std::move(other.row_ptrs_);
+        // restore other invariant
+        other.row_ptrs_.resize_and_reset(1);
+        other.row_ptrs_.fill(0);
+        other.value_.fill(one<ValueType>());
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    const SparsityCsr<ValueType, IndexType>& other)
+    : SparsityCsr{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    SparsityCsr<ValueType, IndexType>&& other)
+    : SparsityCsr{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {

@@ -239,6 +239,14 @@ public:
             gko::detail::array_const_cast(std::move(row_ptrs)), value});
     }
 
+    SparsityCsr& operator=(const SparsityCsr& other);
+
+    SparsityCsr& operator=(SparsityCsr&& other);
+
+    SparsityCsr(const SparsityCsr& other);
+
+    SparsityCsr(SparsityCsr&& other);
+
 protected:
     /**
      * Creates an uninitialized SparsityCsr matrix of the specified size.

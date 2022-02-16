@@ -100,7 +100,7 @@ Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
     Sellp&& other)
 {
     if (&other != this) {
-        EnableLinOp<Sellp>::operator=(other);
+        EnableLinOp<Sellp>::operator=(std::move(other));
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         slice_lengths_ = std::move(other.slice_lengths_);
@@ -108,6 +108,9 @@ Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
         // slice_size and stride_factor are immutable
         slice_size_ = other.slice_size_;
         stride_factor_ = other.stride_factor_;
+        // restore other invariant
+        other.slice_sets_.resize_and_reset(1);
+        other.slice_sets_.fill(0);
     }
     return *this;
 }

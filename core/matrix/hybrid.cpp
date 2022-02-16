@@ -109,8 +109,8 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<Hybrid>::operator=(std::move(other));
         auto exec = this->get_executor();
-        coo_ = std::move(other.coo_);
-        ell_ = std::move(other.ell_);
+        coo_ = std::exchange(other.coo_, coo_type::create(exec));
+        ell_ = std::exchange(other.ell_, ell_type::create(exec));
         strategy_ =
             std::exchange(other.strategy_, std::make_shared<automatic>());
         if (other.get_executor() != exec) {
