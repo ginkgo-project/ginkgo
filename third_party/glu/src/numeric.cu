@@ -639,6 +639,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
         err << "LU data check: " << " NaN found!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
 #endif
 
+    cudaFree(tmpMem);
     cudaFree(sym_c_ptr_dev);
     cudaFree(sym_r_idx_dev);
     cudaFree(val_dev);
