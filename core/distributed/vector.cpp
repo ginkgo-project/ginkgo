@@ -280,7 +280,7 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
                                          dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
-        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
@@ -305,7 +305,7 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
                                               dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
-        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
@@ -331,7 +331,7 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
                                              dense_res.get()));
     exec->synchronize();
     auto use_host_buffer =
-        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
@@ -357,7 +357,7 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
     this->get_const_local()->compute_norm1(dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
-        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
