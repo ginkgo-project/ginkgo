@@ -884,14 +884,14 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
         const auto tid_in_warp = tile_grp.thread_rank();
         const IndexType row_start = row_ptrs[row];
         const IndexType num_nz = row_ptrs[row + 1] - row_start;
-        int row_has_diag_local = 0;
+        bool row_has_diag_local{false};
         for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
             if (col_idxs[iz + row_start] == row) {
-                row_has_diag_local = 1;
+                row_has_diag_local = true;
                 break;
             }
         }
-        int row_has_diag = tile_grp.any(row_has_diag_local == 1);
+        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
         if (!row_has_diag) {
             if (tile_grp.thread_rank() == 0) {
                 *has_all_diags = false;
