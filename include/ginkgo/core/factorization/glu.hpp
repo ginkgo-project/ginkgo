@@ -94,24 +94,6 @@ public:
             this->get_operators()[1]);
     }
 
-    std::shared_ptr<const diag> get_row_scaling() const { return row_scaling_; }
-
-    std::shared_ptr<const diag> get_col_scaling() const { return col_scaling_; }
-
-    std::shared_ptr<const index_array> get_permutation() const
-    {
-        return permutation_;
-    }
-
-    std::shared_ptr<const index_array> get_inv_permutation() const
-    {
-        return inv_permutation_;
-    }
-
-    std::shared_ptr<const index_array> get_pivot() const { return pivot_; }
-
-    unsigned get_mc64_scale() const { return mc64_scale_; }
-
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
@@ -191,12 +173,6 @@ public:
 
     public:
         std::shared_ptr<Symbolic_Matrix> A_sym_;
-        unsigned mc64_scale_;
-        std::shared_ptr<diag> row_scaling_;
-        std::shared_ptr<diag> col_scaling_;
-        std::shared_ptr<const index_array> permutation_;
-        std::shared_ptr<const index_array> inv_permutation_;
-        std::shared_ptr<const index_array> pivot_;
     };
 
     friend EnableDefaultFactory<ReusableFactory, Glu, ReusableFactoryParameters,
@@ -222,12 +198,6 @@ protected:
         }
         auto reusable = Glu::build_reusable().on(factory->get_executor(),
                                                  system_matrix.get());
-        mc64_scale_ = reusable->mc64_scale_;
-        row_scaling_ = reusable->row_scaling_;
-        col_scaling_ = reusable->col_scaling_;
-        permutation_ = reusable->permutation_;
-        inv_permutation_ = reusable->inv_permutation_;
-        pivot_ = reusable->pivot_;
         generate_l_u(system_matrix, reusable->A_sym_, parameters_.skip_sorting)
             ->move_to(this);
     }
@@ -245,12 +215,6 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        mc64_scale_ = factory->mc64_scale_;
-        row_scaling_ = factory->row_scaling_;
-        col_scaling_ = factory->col_scaling_;
-        permutation_ = factory->permutation_;
-        inv_permutation_ = factory->inv_permutation_;
-        pivot_ = factory->pivot_;
         generate_l_u(system_matrix, factory->A_sym_, parameters_.skip_sorting)
             ->move_to(this);
     }
@@ -273,14 +237,6 @@ protected:
     std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
         const std::shared_ptr<Symbolic_Matrix>& A_sym, bool skip_sorting);
-
-private:
-    unsigned mc64_scale_;
-    std::shared_ptr<diag> row_scaling_;
-    std::shared_ptr<diag> col_scaling_;
-    std::shared_ptr<const index_array> permutation_;
-    std::shared_ptr<const index_array> inv_permutation_;
-    std::shared_ptr<const index_array> pivot_;
 };
 
 
