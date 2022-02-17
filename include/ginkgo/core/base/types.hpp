@@ -152,7 +152,7 @@ using uint64 = std::uint64_t;
 
 
 /**
- *
+ * Unsigned integer type capable of holding a pointer to void
  */
 using uintptr = std::uintptr_t;
 
