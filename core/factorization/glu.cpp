@@ -118,52 +118,6 @@ Glu<double, int>::ReusableFactory::symbolic_factorization(
         }
     }
 
-    // MC64 and AMD reorderings + scaling to make diagonal elements dominant and
-    // reduce fill-in
-    SNicsLU* nicslu = (SNicsLU*)malloc(sizeof(SNicsLU));
-    NicsLU_Initialize(nicslu);
-    NicsLU_CreateMatrix(nicslu, num_rows, nnz, values, u_row_idxs, u_col_ptrs);
-    nicslu->cfgi[0] = 1;
-    nicslu->cfgf[1] = 0;
-    NicsLU_Analyze(nicslu);
-    DumpA(nicslu, values, u_row_idxs, u_col_ptrs);
-
-    // Store scalings and permutations to solve linear system later
-    mc64_scale_ = nicslu->cfgi[1];
-    auto rp = nicslu->col_perm;
-    auto irp = nicslu->row_perm_inv;
-    auto piv = nicslu->pivot;
-    auto rs = nicslu->col_scale_perm;
-    auto cs = nicslu->row_scale;
-
-    Array<double> row_scaling_array{exec->get_master(), num_rows};
-    Array<double> col_scaling_array{exec->get_master(), num_rows};
-    index_array perm_array{exec->get_master(), num_rows};
-    index_array inv_perm_array{exec->get_master(), num_rows};
-    index_array pivot_array{exec->get_master(), num_rows};
-    for (auto i = 0; i < num_rows; i++) {
-        perm_array.get_data()[i] = int(rp[i]);
-        inv_perm_array.get_data()[i] = int(irp[i]);
-        pivot_array.get_data()[i] = int(piv[i]);
-        row_scaling_array.get_data()[i] = rs[i];
-        col_scaling_array.get_data()[i] = cs[i];
-    }
-
-    row_scaling_array.set_executor(exec);
-    col_scaling_array.set_executor(exec);
-    perm_array.set_executor(exec);
-    inv_perm_array.set_executor(exec);
-    pivot_array.set_executor(exec);
-
-    permutation_ = std::make_shared<const index_array>(std::move(perm_array));
-    inv_permutation_ =
-        std::make_shared<const index_array>(std::move(inv_perm_array));
-    pivot_ = std::make_shared<const index_array>(std::move(pivot_array));
-    row_scaling_ =
-        gko::share(diag::create(exec, num_rows, std::move(row_scaling_array)));
-    col_scaling_ =
-        gko::share(diag::create(exec, num_rows, std::move(col_scaling_array)));
-
     // Symbolic factorization on the CPU
     Symbolic_Matrix A_sym(num_rows, cout, cerr);
     A_sym.fill_in(u_row_idxs, u_col_ptrs);
@@ -195,13 +149,7 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
         ->convert_to(local_system_matrix.get());
 
     // Apply MC64 permutation and scaling and AMD reordering to system matrix
-    local_system_matrix =
-        as<matrix_type>(local_system_matrix->row_permute(permutation_.get()));
-    row_scaling_->apply(local_system_matrix.get(), local_system_matrix.get());
     auto transp = as<matrix_type>(local_system_matrix->transpose());
-    col_scaling_->apply(transp.get(), transp.get());
-    transp =
-        as<matrix_type>(transp->inverse_row_permute(inv_permutation_.get()));
 
     auto host_transp = gko::clone(exec->get_master(), transp);
     auto vals = host_transp->get_values();

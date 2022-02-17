@@ -91,10 +91,39 @@ int main(int argc, char* argv[])
     // Read data
     auto A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
 
+    // Create MC64 and AMD reordering and scaling
+    auto preprocessing_fact =
+        gko::share(gko::reorder::Mc64<ValueType, IndexType>::build().on(exec));
+    auto preprocessing = preprocessing_fact->generate(A);
+    const auto perm = preprocessing->get_permutation();
+    const auto inv_perm = preprocessing->get_inverse_permutation();
+    const auto row_scale = preprocessing->get_row_scaling();
+    const auto col_scale = preprocessing->get_col_scaling();
+
+    auto PA = gko::share(gko::as<mtx>(A->row_permute(perm.get())));
+    row_scale->apply(PA.get(), PA.get());
+    col_scale->rapply(PA.get(), PA.get());
+    PA = gko::as<mtx>(PA->inverse_column_permute(inv_perm.get()));
+
     // Create reusable GLU factory for first matrix
-    auto lu_fact =
+    auto lu_fact = gko::share(
         gko::factorization::Glu<ValueType, IndexType>::build_reusable().on(
-            exec, A.get());
+            exec, PA.get()));
+    auto inner_solver_fact = gko::share(gko::preconditioner::Ilu<>::build()
+                                            .with_factorization_factory(lu_fact)
+                                            .on(exec));
+    auto solver_fact =
+        gko::solver::Gmres<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
+                gko::stop::ResidualNorm<>::build()
+                    .with_baseline(gko::stop::mode::absolute)
+                    .with_reduction_factor(1e-8)
+                    .on(exec))
+            .with_krylov_dim(5u)
+            .with_preconditioner(inner_solver_fact)
+            .on(exec);
+
 
     auto n = A->get_size()[0];
     auto host_b = vec::create(exec->get_master(), gko::dim<2>{n, 1});
@@ -103,85 +132,27 @@ int main(int argc, char* argv[])
         host_b->at(i, 0) = 1.;
         host_x->at(i, 0) = 0.;
     }
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+    auto res = gko::initialize<real_vec>({1e10}, exec->get_master());
 
     for (auto i = 0; i <= argc - 3; i++) {
-        // Calculate residual
-        auto one = gko::initialize<vec>({1.0}, exec);
-        auto neg_one = gko::initialize<vec>({-1.0}, exec);
-        auto res = gko::initialize<real_vec>({1e10}, exec->get_master());
-        auto oldres = gko::initialize<real_vec>({1e25}, exec->get_master());
         auto x = vec::create(exec);
         x->copy_from(host_b.get());
         auto b = vec::create_with_config_of(x.get());
-        auto y = vec::create_with_config_of(x.get());
-        auto z = vec::create_with_config_of(x.get());
-        auto dx = vec::create_with_config_of(x.get());
         A->apply(x.get(), b.get());
         x->copy_from(host_x.get());
 
-        auto r = vec::create(exec);
-        r->copy_from(b.get());
+        auto solver = solver_fact->generate(PA);
 
-        // Generate LU factorization with GLU
-        auto lu = lu_fact->generate(A);
+        auto pb = gko::as<vec>(b->row_permute(perm.get()));
+        row_scale->apply(pb.get(), pb.get());
+        auto px = pb->clone();
 
-        // Extract factors
-        auto l = lu->get_l_factor();
-        auto u = lu->get_u_factor();
+        solver->apply(pb.get(), px.get());
 
-        // Generate triangular solvers
-        auto lower = lower_trs::build().on(exec)->generate(l);
-        auto upper = upper_trs::build().on(exec)->generate(u);
-
-        // Apply diagonal scaling and row permutation according to preprocessing
-        // done in GLU
-        auto row_scal = lu->get_row_scaling();
-        auto rp = lu->get_permutation();
-        auto piv = lu->get_pivot();
-
-        int iter = 0;
-
-        // Iterative Refinement
-        while (res->at(0, 0) > 1e-10 &&
-               res->at(0, 0) <= 0.75 * oldres->at(0, 0)) {
-            oldres->copy_from(res.get());
-            if (lu->get_mc64_scale()) {
-                r->row_permute(rp.get(), z.get());
-                row_scal->apply(z.get(), y.get());
-                y->row_permute(piv.get(), z.get());
-            } else {
-                r->row_permute(rp.get(), z.get());
-            }
-
-            // Solve the triangular systems
-            lower->apply(gko::lend(z), gko::lend(y));
-            upper->apply(gko::lend(y), gko::lend(z));
-
-            // Apply final scaling and permutation on solution update vector
-            auto col_scal = lu->get_col_scaling();
-            auto cp = lu->get_inv_permutation();
-            if (lu->get_mc64_scale()) {
-                z->row_permute(cp.get(), y.get());
-                col_scal->apply(y.get(), dx.get());
-            } else {
-                z->row_permute(cp.get(), dx.get());
-            }
-
-            // Add update to solution vector
-            x->add_scaled(one.get(), dx.get());
-
-            // Compute error norm
-            dx->copy_from(x.get());
-            dx->add_scaled(neg_one.get(), host_b.get());
-            dx->compute_norm2(gko::lend(res));
-
-            // Update residual
-            r->copy_from(b.get());
-            A->apply(gko::lend(neg_one), gko::lend(x), gko::lend(one),
-                     gko::lend(r));
-            r->compute_norm2(gko::lend(res));
-            iter++;
-        }
+        px->row_permute(inv_perm.get(), x.get());
+        col_scale->apply(x.get(), x.get());
 
         // Print solution
         // std::ofstream x_out{"x.mtx"};
@@ -189,12 +160,15 @@ int main(int argc, char* argv[])
 
         x->add_scaled(neg_one.get(), host_b.get());
         x->compute_norm2(gko::lend(res));
-        std::cout << "Final error norm sqrt(r^T r) after " << iter
-                  << " IR iterations:\n";
+        std::cout << "Final error norm sqrt(r^T r):\n";
         write(std::cout, gko::lend(res));
 
         if (3 + i == argc) break;
         mat_string = argv[3 + i];
         A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
+        PA = gko::as<mtx>(A->row_permute(perm.get()));
+        row_scale->apply(PA.get(), PA.get());
+        col_scale->rapply(PA.get(), PA.get());
+        PA = gko::as<mtx>(PA->inverse_column_permute(inv_perm.get()));
     }
 }
