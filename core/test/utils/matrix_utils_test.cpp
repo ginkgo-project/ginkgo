@@ -216,30 +216,15 @@ TEST(MatrixUtils, RemoveDiagonalEntry)
 
     const auto rowptrs = b->get_const_row_ptrs();
     const auto colidxs = b->get_const_col_idxs();
-    bool all_diags = true;
-    for (int i = 0; i < 3; i++) {
-        if (i == row_to_remove) {
-            continue;
-        }
+    for (int i = 0; i < 4; i++) {
         bool has_diag = false;
         for (int j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
             if (colidxs[j] == i) {
                 has_diag = true;
             }
         }
-        if (!has_diag) {
-            all_diags = false;
-            break;
-        }
+        ASSERT_EQ(has_diag, i != row_to_remove);
     }
-    ASSERT_TRUE(all_diags);
-    bool has_diag = false;
-    for (int j = rowptrs[row_to_remove]; j < rowptrs[row_to_remove + 1]; j++) {
-        if (colidxs[j] == row_to_remove) {
-            has_diag = true;
-        }
-    }
-    ASSERT_FALSE(has_diag);
 }
 
 
