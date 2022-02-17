@@ -87,91 +87,114 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    const auto mat_string = argc >= 3 ? argv[2] : "data/A.mtx";
+    auto mat_string = argc >= 3 ? argv[2] : "data/A.mtx";
     // Read data
     auto A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
+
+    // Create reusable GLU factory for first matrix
+    auto lu_fact =
+        gko::factorization::Glu<ValueType, IndexType>::build_reusable().on(
+            exec, A.get());
+
     auto n = A->get_size()[0];
     auto host_b = vec::create(exec->get_master(), gko::dim<2>{n, 1});
+    auto host_x = vec::create(exec->get_master(), gko::dim<2>{n, 1});
     for (auto i = 0; i < n; i++) {
         host_b->at(i, 0) = 1.;
-    }
-    auto x = vec::create(exec);
-    x->copy_from(host_b.get());
-    auto b = vec::create_with_config_of(x.get());
-    auto y = vec::create_with_config_of(x.get());
-    auto z = vec::create_with_config_of(x.get());
-    A->apply(x.get(), b.get());
-    // Generate LU factorization with GLU
-    auto lu_fact =
-        gko::factorization::Glu<ValueType, IndexType>::build().on(exec);
-    auto lu = lu_fact->generate(A);
-
-    // Extract factors
-    auto l = lu->get_l_factor();
-    auto u = lu->get_u_factor();
-
-    std::ofstream l_out{"L.mtx"};
-    gko::write(l_out, l.get(), gko::layout_type::coordinate);
-    std::ofstream u_out{"U.mtx"};
-    gko::write(u_out, u.get(), gko::layout_type::coordinate);
-    // Apply diagonal scaling and row permutation according to preprocessing
-    // done in GLU
-    auto row_scal = lu->get_row_scaling();
-    auto rp = lu->get_permutation();
-    auto piv = lu->get_pivot();
-    if (lu->get_mc64_scale()) {
-        std::cout << "SCALE" << std::endl;
-        for (auto i = 0; i < n; i++) {
-            auto p = piv->get_const_data()[i];
-            z->at(i, 0) = b->at(rp->get_const_data()[p], 0) *
-                          row_scal->get_const_values()[p];
-        }
-    } else {
-        for (auto i = 0; i < n; n++) {
-            auto p = piv->get_const_data()[i];
-            z->at(i, 0) = b->at(rp->get_const_data()[p]);
-        }
+        host_x->at(i, 0) = 0.;
     }
 
-    std::ofstream out1{"x1.mtx"};
-    gko::write(out1, z.get());
+    for (auto i = 0; i <= argc - 3; i++) {
+        // Calculate residual
+        auto one = gko::initialize<vec>({1.0}, exec);
+        auto neg_one = gko::initialize<vec>({-1.0}, exec);
+        auto res = gko::initialize<real_vec>({1e10}, exec->get_master());
+        auto oldres = gko::initialize<real_vec>({1e25}, exec->get_master());
+        auto x = vec::create(exec);
+        x->copy_from(host_b.get());
+        auto b = vec::create_with_config_of(x.get());
+        auto y = vec::create_with_config_of(x.get());
+        auto z = vec::create_with_config_of(x.get());
+        auto dx = vec::create_with_config_of(x.get());
+        A->apply(x.get(), b.get());
+        x->copy_from(host_x.get());
 
-    // Solve the triangular systems
-    auto lower = lower_trs::build().on(exec)->generate(l);
-    auto upper = upper_trs::build().on(exec)->generate(u);
-    lower->apply(gko::lend(z), gko::lend(y));
-    std::ofstream out2{"x2.mtx"};
-    gko::write(out2, y.get());
-    upper->apply(gko::lend(y), gko::lend(z));
+        auto r = vec::create(exec);
+        r->copy_from(b.get());
 
-    std::ofstream out3{"x3.mtx"};
-    gko::write(out3, z.get());
-    // Apply final scaling and permutation on solution vector
-    auto col_scal = lu->get_col_scaling();
-    auto cp = lu->get_inv_permutation();
-    if (lu->get_mc64_scale()) {
-        for (auto i = 0; i < n; i++) {
-            x->at(i, 0) = z->at(cp->get_const_data()[i]) *
-                          col_scal->get_const_values()[i];
+        // Generate LU factorization with GLU
+        auto lu = lu_fact->generate(A);
+
+        // Extract factors
+        auto l = lu->get_l_factor();
+        auto u = lu->get_u_factor();
+
+        // Generate triangular solvers
+        auto lower = lower_trs::build().on(exec)->generate(l);
+        auto upper = upper_trs::build().on(exec)->generate(u);
+
+        // Apply diagonal scaling and row permutation according to preprocessing
+        // done in GLU
+        auto row_scal = lu->get_row_scaling();
+        auto rp = lu->get_permutation();
+        auto piv = lu->get_pivot();
+
+        int iter = 0;
+
+        // Iterative Refinement
+        while (res->at(0, 0) > 1e-10 &&
+               res->at(0, 0) <= 0.75 * oldres->at(0, 0)) {
+            oldres->copy_from(res.get());
+            if (lu->get_mc64_scale()) {
+                r->row_permute(rp.get(), z.get());
+                row_scal->apply(z.get(), y.get());
+                y->row_permute(piv.get(), z.get());
+            } else {
+                r->row_permute(rp.get(), z.get());
+            }
+
+            // Solve the triangular systems
+            lower->apply(gko::lend(z), gko::lend(y));
+            upper->apply(gko::lend(y), gko::lend(z));
+
+            // Apply final scaling and permutation on solution update vector
+            auto col_scal = lu->get_col_scaling();
+            auto cp = lu->get_inv_permutation();
+            if (lu->get_mc64_scale()) {
+                z->row_permute(cp.get(), y.get());
+                col_scal->apply(y.get(), dx.get());
+            } else {
+                z->row_permute(cp.get(), dx.get());
+            }
+
+            // Add update to solution vector
+            x->add_scaled(one.get(), dx.get());
+
+            // Compute error norm
+            dx->copy_from(x.get());
+            dx->add_scaled(neg_one.get(), host_b.get());
+            dx->compute_norm2(gko::lend(res));
+
+            // Update residual
+            r->copy_from(b.get());
+            A->apply(gko::lend(neg_one), gko::lend(x), gko::lend(one),
+                     gko::lend(r));
+            r->compute_norm2(gko::lend(res));
+            iter++;
         }
-    } else {
-        for (auto i = 0; i < n; i++) {
-            x->at(i, 0) = z->at(cp->get_const_data()[i]);
-        }
+
+        // Print solution
+        // std::ofstream x_out{"x.mtx"};
+        // write(x_out, gko::lend(x));
+
+        x->add_scaled(neg_one.get(), host_b.get());
+        x->compute_norm2(gko::lend(res));
+        std::cout << "Final error norm sqrt(r^T r) after " << iter
+                  << " IR iterations:\n";
+        write(std::cout, gko::lend(res));
+
+        if (3 + i == argc) break;
+        mat_string = argv[3 + i];
+        A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
     }
-
-    // Print solution
-    std::ofstream x_out{"x.mtx"};
-    write(x_out, gko::lend(x));
-
-    // Calculate residual
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<real_vec>({0.0}, exec);
-    // A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    // b->compute_norm2(gko::lend(res));
-    x->add_scaled(neg_one.get(), host_b.get());
-    x->compute_norm2(gko::lend(res));
-    std::cout << "Error norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
 }

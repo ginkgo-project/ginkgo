@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
+#include "third_party/glu/include/symbolic.h"
+
+
 namespace gko {
 /**
  * @brief The Factorization namespace.
@@ -146,6 +149,64 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Glu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    class ReusableFactory;
+    class ReusableFactoryParameters : public parameters_type {
+    public:
+        std::unique_ptr<ReusableFactory> on(
+            std::shared_ptr<const Executor> exec) const = delete;
+        std::unique_ptr<ReusableFactory> on(
+            std::shared_ptr<const Executor> exec, const LinOp* A) const
+        {
+            return std::unique_ptr<ReusableFactory>(
+                new ReusableFactory(exec, A, *self()));
+        }
+
+    protected:
+        GKO_ENABLE_SELF(ReusableFactoryParameters);
+    };
+
+    class ReusableFactory
+        : public EnableDefaultFactory<ReusableFactory, Glu,
+                                      ReusableFactoryParameters, LinOpFactory> {
+        friend class EnablePolymorphicObject<ReusableFactory, LinOpFactory>;
+        friend class ReusableFactoryParameters;
+        ReusableFactoryParameters reusable_parameters_;
+        explicit ReusableFactory(std::shared_ptr<const Executor> exec)
+            : EnableDefaultFactory<ReusableFactory, Glu,
+                                   ReusableFactoryParameters, LinOpFactory>(
+                  std::move(exec))
+        {}
+        explicit ReusableFactory(std::shared_ptr<const Executor> exec,
+                                 const LinOp* A,
+                                 const ReusableFactoryParameters& parameters)
+            : EnableDefaultFactory<ReusableFactory, Glu,
+                                   ReusableFactoryParameters, LinOpFactory>(
+                  std::move(exec), parameters)
+        {
+            A_sym_ = share(symbolic_factorization(A));
+        }
+
+        std::unique_ptr<Symbolic_Matrix> symbolic_factorization(
+            const LinOp* system_matrix);
+
+    public:
+        std::shared_ptr<Symbolic_Matrix> A_sym_;
+        unsigned mc64_scale_;
+        std::shared_ptr<diag> row_scaling_;
+        std::shared_ptr<diag> col_scaling_;
+        std::shared_ptr<const index_array> permutation_;
+        std::shared_ptr<const index_array> inv_permutation_;
+        std::shared_ptr<const index_array> pivot_;
+    };
+
+    friend EnableDefaultFactory<ReusableFactory, Glu, ReusableFactoryParameters,
+                                LinOpFactory>;
+
+    static auto build_reusable() -> decltype(ReusableFactory::create())
+    {
+        return ReusableFactory::create();
+    }
+
 protected:
     Glu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
         : Composition<ValueType>{factory->get_executor()},
@@ -159,7 +220,39 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
+        auto reusable = Glu::build_reusable().on(factory->get_executor(),
+                                                 system_matrix.get());
+        mc64_scale_ = reusable->mc64_scale_;
+        row_scaling_ = reusable->row_scaling_;
+        col_scaling_ = reusable->col_scaling_;
+        permutation_ = reusable->permutation_;
+        inv_permutation_ = reusable->inv_permutation_;
+        pivot_ = reusable->pivot_;
+        generate_l_u(system_matrix, reusable->A_sym_, parameters_.skip_sorting)
+            ->move_to(this);
+    }
+
+    Glu(const ReusableFactory* factory,
+        std::shared_ptr<const gko::LinOp> system_matrix)
+        : Composition<ValueType>{factory->get_executor()},
+          parameters_{factory->get_parameters()}
+    {
+        if (parameters_.l_strategy == nullptr) {
+            parameters_.l_strategy =
+                std::make_shared<typename matrix_type::classical>();
+        }
+        if (parameters_.u_strategy == nullptr) {
+            parameters_.u_strategy =
+                std::make_shared<typename matrix_type::classical>();
+        }
+        mc64_scale_ = factory->mc64_scale_;
+        row_scaling_ = factory->row_scaling_;
+        col_scaling_ = factory->col_scaling_;
+        permutation_ = factory->permutation_;
+        inv_permutation_ = factory->inv_permutation_;
+        pivot_ = factory->pivot_;
+        generate_l_u(system_matrix, factory->A_sym_, parameters_.skip_sorting)
+            ->move_to(this);
     }
 
     /**
@@ -178,7 +271,8 @@ protected:
      *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting);
+        const std::shared_ptr<const LinOp>& system_matrix,
+        const std::shared_ptr<Symbolic_Matrix>& A_sym, bool skip_sorting);
 
 private:
     unsigned mc64_scale_;

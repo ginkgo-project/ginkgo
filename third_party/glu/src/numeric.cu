@@ -398,7 +398,6 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
         TMPMEMNUM = A_sym.level_ptr[1];
     else {
         TMPMEMNUM = MaxtmpMemSize / n / sizeof(REAL);
-        std::cout << "HITTING THIS, TMPMEMNUM: " << TMPMEMNUM << std::endl;
     }
 
     const size_t tmpMemChoice = sizeof(REAL) * size_t(n) * size_t(TMPMEMNUM);
@@ -423,12 +422,11 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
             if (norm_A < tmp)
                 norm_A = tmp;
         }
-        pert = 3.45e-4 * norm_A;
+        pert = 1e-8 * norm_A;
         out << "Gaussian elimination with static pivoting (GESP)..." << endl;
         out << "1-Norm of A matrix is " << norm_A << ", Perturbation value is " << pert << endl;
     }
 
-    std::cout << "STARTING NUMERICAL FACTORIZATION" << std::endl;
 
     for (int i = 0; i < num_lev; ++i)
     {
@@ -444,7 +442,6 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
             while(lev_size > 0) {
                 unsigned restCol = lev_size > TMPMEMNUM ? TMPMEMNUM : lev_size;
                 dim3 dimGrid(restCol, 1);
-                std::cout << "LEVEL SIZE: " << lev_size << ", GRID SIZE: " << restCol << std::endl;
                 if (!PERTURB)
                     RL<<<dimGrid, dimBlock, MemSize>>>(sym_c_ptr_dev,
                                         sym_r_idx_dev,
