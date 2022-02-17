@@ -15,8 +15,6 @@ function(ginkgo_create_gtest_mpi_main)
 endfunction(ginkgo_create_gtest_mpi_main)
 
 function(ginkgo_set_test_target_default_properties test_name test_target_name)
-    file(RELATIVE_PATH REL_BINARY_DIR
-        ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES
         OUTPUT_NAME ${test_name})
     if (GINKGO_FAST_TESTS)
@@ -33,6 +31,8 @@ function(ginkgo_set_test_target_default_properties test_name test_target_name)
 endfunction(ginkgo_set_test_target_default_properties)
 
 function(ginkgo_internal_add_test test_name test_target_name)
+    file(RELATIVE_PATH REL_BINARY_DIR
+        ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     ginkgo_set_test_target_default_properties(${test_name} ${test_target_name})
     add_test(NAME ${REL_BINARY_DIR}/${test_name}
         COMMAND ${test_target_name}
@@ -41,6 +41,8 @@ function(ginkgo_internal_add_test test_name test_target_name)
 endfunction(ginkgo_internal_add_test)
 
 function(ginkgo_internal_add_mpi_test test_name test_target_name num_mpi_procs)
+    file(RELATIVE_PATH REL_BINARY_DIR
+        ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     ginkgo_set_test_target_default_properties(${test_name} ${test_target_name})
     if(NOT TARGET gtest_mpi_main)
         ginkgo_create_gtest_mpi_main()
