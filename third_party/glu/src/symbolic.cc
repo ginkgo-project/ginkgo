@@ -81,6 +81,7 @@ void Symbolic_Matrix :: csr()
 //Construct val vector (including filled in zeros) of symbolic_matrix
 void Symbolic_Matrix :: predictLU (unsigned *ai, unsigned *ap, double *ax)
 {
+    val.clear();
     val.reserve(nnz);
     for (unsigned i = 0; i < n; ++i)
     {

@@ -72,29 +72,26 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 }  // anonymous namespace
 }  // namespace glu_factorization
 
+
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>> Glu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp>& system_matrix,
-    bool skip_sorting) GKO_NOT_IMPLEMENTED;
+std::unique_ptr<Symbolic_Matrix>
+Glu<ValueType, IndexType>::ReusableFactory::symbolic_factorization(
+    const LinOp* system_matrix) GKO_NOT_IMPLEMENTED;
 
 
 template <>
-std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
-    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting)
+std::unique_ptr<Symbolic_Matrix>
+Glu<double, int>::ReusableFactory::symbolic_factorization(
+    const LinOp* system_matrix)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
     const auto exec = this->get_executor();
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
     auto local_system_matrix = matrix_type::create(exec->get_master());
-    as<ConvertibleTo<matrix_type>>(system_matrix.get())
+    as<ConvertibleTo<matrix_type>>(system_matrix)
         ->convert_to(local_system_matrix.get());
-
-    if (!skip_sorting) {
-        local_system_matrix->sort_by_column_index();
-    }
 
     auto v = local_system_matrix->get_values();
     auto r = local_system_matrix->get_row_ptrs();
@@ -112,8 +109,8 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
 
     // Convert index arrays to unsigned int as this is what GLU uses for
     // indices.
-    unsigned int u_col_ptrs[num_rows + 1];
-    unsigned int u_row_idxs[nnz];
+    unsigned int* u_col_ptrs = new unsigned int[num_rows + 1];
+    unsigned int* u_row_idxs = new unsigned int[nnz];
     for (auto i = 0; i < nnz; i++) {
         u_row_idxs[i] = (unsigned int)(row_idxs[i]);
         if (i <= num_rows) {
@@ -152,41 +149,96 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
         col_scaling_array.get_data()[i] = cs[i];
     }
 
+    row_scaling_array.set_executor(exec);
+    col_scaling_array.set_executor(exec);
+    perm_array.set_executor(exec);
+    inv_perm_array.set_executor(exec);
+    pivot_array.set_executor(exec);
+
     permutation_ = std::make_shared<const index_array>(std::move(perm_array));
     inv_permutation_ =
         std::make_shared<const index_array>(std::move(inv_perm_array));
     pivot_ = std::make_shared<const index_array>(std::move(pivot_array));
-    row_scaling_ = gko::share(diag::create(exec->get_master(), num_rows,
-                                           std::move(row_scaling_array)));
-    col_scaling_ = gko::share(diag::create(exec->get_master(), num_rows,
-                                           std::move(col_scaling_array)));
+    row_scaling_ =
+        gko::share(diag::create(exec, num_rows, std::move(row_scaling_array)));
+    col_scaling_ =
+        gko::share(diag::create(exec, num_rows, std::move(col_scaling_array)));
 
     // Symbolic factorization on the CPU
     Symbolic_Matrix A_sym(num_rows, cout, cerr);
     A_sym.fill_in(u_row_idxs, u_col_ptrs);
     A_sym.csr();
-    A_sym.predictLU(u_row_idxs, u_col_ptrs, values);
     A_sym.leveling();
 
+    return std::make_unique<Symbolic_Matrix>(A_sym);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Composition<ValueType>> Glu<ValueType, IndexType>::generate_l_u(
+    const std::shared_ptr<const LinOp>& system_matrix,
+    const std::shared_ptr<Symbolic_Matrix>& A_sym,
+    bool skip_sorting) GKO_NOT_IMPLEMENTED;
+
+
+template <>
+std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
+    const std::shared_ptr<const LinOp>& system_matrix,
+    const std::shared_ptr<Symbolic_Matrix>& A_sym, bool skip_sorting)
+{
+    auto exec = system_matrix->get_executor();
+    const auto matrix_size = system_matrix->get_size();
+    const auto num_rows = matrix_size[0];
+
+    auto local_system_matrix = gko::share(matrix_type::create(exec));
+    as<ConvertibleTo<matrix_type>>(system_matrix.get())
+        ->convert_to(local_system_matrix.get());
+
+    // Apply MC64 permutation and scaling and AMD reordering to system matrix
+    local_system_matrix =
+        as<matrix_type>(local_system_matrix->row_permute(permutation_.get()));
+    row_scaling_->apply(local_system_matrix.get(), local_system_matrix.get());
+    auto transp = as<matrix_type>(local_system_matrix->transpose());
+    col_scaling_->apply(transp.get(), transp.get());
+    transp =
+        as<matrix_type>(transp->inverse_row_permute(inv_permutation_.get()));
+
+    auto host_transp = gko::clone(exec->get_master(), transp);
+    auto vals = host_transp->get_values();
+    auto col_ptrs = host_transp->get_row_ptrs();
+    auto row_idxs = host_transp->get_col_idxs();
+    const auto nnz = transp->get_num_stored_elements();
+    unsigned int* u_col_ptrs = new unsigned int[num_rows + 1];
+    unsigned int* u_row_idxs = new unsigned int[nnz];
+    for (auto i = 0; i < nnz; i++) {
+        u_row_idxs[i] = (unsigned int)(row_idxs[i]);
+        if (i <= num_rows) {
+            u_col_ptrs[i] = (unsigned int)(col_ptrs[i]);
+        }
+    }
+
+    // Fill in system matrix values into factorization sparsity pattern
+    A_sym->predictLU(u_row_idxs, u_col_ptrs, vals);
+
     // Numeric factorization on the GPU
-    LUonDevice(A_sym, cout, cerr, false);
+    LUonDevice(*A_sym.get(), cout, cerr, true);
     // Convert unsigned indices back to int
-    const auto res_nnz = A_sym.nnz;
+    const auto res_nnz = A_sym->nnz;
     Array<int> res_row_ptrs{exec->get_master(), num_rows + 1};
     Array<int> res_col_idxs{exec->get_master(), res_nnz};
     for (auto i = 0; i < res_nnz; i++) {
-        res_col_idxs.get_data()[i] = int(A_sym.sym_r_idx[i]);
+        res_col_idxs.get_data()[i] = int(A_sym->sym_r_idx[i]);
         if (i <= num_rows) {
-            res_row_ptrs.get_data()[i] = int(A_sym.sym_c_ptr[i]);
+            res_row_ptrs.get_data()[i] = int(A_sym->sym_c_ptr[i]);
         }
     }
     auto res_values =
-        Array<double>::view(exec->get_master(), res_nnz, &A_sym.val[0]);
+        Array<double>::view(exec->get_master(), res_nnz, &A_sym->val[0]);
 
     // Put factorized matrix into ginkgo CSR
     auto host_result =
-        matrix_type::create(exec->get_master(), local_system_matrix->get_size(),
-                            res_values, res_col_idxs, res_row_ptrs);
+        matrix_type::create(exec->get_master(), matrix_size, res_values,
+                            res_col_idxs, res_row_ptrs);
     auto result = matrix_type::create(exec);
     result->copy_from(host_result->transpose().get());
 

@@ -33,9 +33,9 @@ int__t _I_NicsLU_MC64ad(uint__t n, uint__t nnz, uint__t *ai, uint__t *ap, real__
 		end = ap[j+1];
 		for (i=start; i<end; ++i)
 		{
-			d = ax[i];
-			dw_abs[i] = ABS(d);
-			d = dw_abs[i];
+			d = ABS(ax[i]);
+			dw_abs[i] = d;
+			//d = dw_abs[i];
 			if (d > fact)
 			{
 				fact = d;
