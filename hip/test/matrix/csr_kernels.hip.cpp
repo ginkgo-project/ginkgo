@@ -983,8 +983,7 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
     const auto colidxs = ref_mtx->get_col_idxs();
     const int testrow = 15;
     gko::test::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
-    auto mtx = Csr::create(hip);
-    mtx->copy_from(ref_mtx.get());
+    auto mtx = gko::clone(hip, ref_mtx);
     bool has_diags = true;
 
     gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),
@@ -1000,8 +999,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     using Csr = Mtx;
     auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
     gko::test::ensure_all_diagonal_entries(ref_mtx.get());
-    auto mtx = Csr::create(hip);
-    mtx->copy_from(ref_mtx.get());
+    auto mtx = gko::clone(hip, ref_mtx);
     bool has_diags = false;
 
     gko::kernels::hip::csr::check_diagonal_entries_exist(hip, mtx.get(),

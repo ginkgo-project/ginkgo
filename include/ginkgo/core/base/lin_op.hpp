@@ -788,41 +788,16 @@ public:
     /**
      * Scales this and adds another scalar times the identity to it.
      *
-     * @param a  Scalar to multiply the identity operator by before adding.
+     * @param a  Scalar to multiply the identity operator before adding.
      * @param b  Scalar to multiply this before adding the scaled identity to
-     *   it.
+     *           it.
      */
-    virtual void add_scaled_identity(const LinOp* const a,
-                                     const LinOp* const b) = 0;
-};
-
-
-/**
- * Implements common checks for the operation M <- a I + b M for matrix M,
- * identity operator I and scalars a and b, where M is the calling object.
- *
- * @tparam ConcreteType  The concrete type that should have this operation
- *                       (the CRTP parameter).
- */
-template <typename ConcreteType>
-class EnableScaledIdentityAddition : public ScaledIdentityAddable {
-public:
-    /**
-     * Scales this and adds another scalar times the identity to it.
-     *
-     * @param a  Scalar to multiply the identity operator by before adding.
-     * @param b  Scalar to multiply this before adding the scaled identity to
-     *   it.
-     */
-    void add_scaled_identity(const LinOp* const a,
-                             const LinOp* const b) override
+    void add_scaled_identity(const LinOp* const a, const LinOp* const b)
     {
         GKO_ASSERT_IS_SCALAR(a);
         GKO_ASSERT_IS_SCALAR(b);
-        auto ae = make_temporary_clone(
-            static_cast<ConcreteType*>(this)->get_executor(), a);
-        auto be = make_temporary_clone(
-            static_cast<ConcreteType*>(this)->get_executor(), b);
+        auto ae = make_temporary_clone(as<LinOp>(this)->get_executor(), a);
+        auto be = make_temporary_clone(as<LinOp>(this)->get_executor(), b);
         add_scaled_identity_impl(ae.get(), be.get());
     }
 
