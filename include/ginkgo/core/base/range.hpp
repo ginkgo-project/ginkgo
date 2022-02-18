@@ -80,7 +80,7 @@ struct span {
      *
      * @param point  the point which the span represents
      */
-    GKO_ATTRIBUTES constexpr span(size_type point) noexcept
+    GKO_ATTRIBUTES explicit constexpr span(size_type point) noexcept
         : span{point, point + 1}
     {}
 
@@ -97,9 +97,9 @@ struct span {
     /**
      * Checks if a span is valid.
      *
-     * @return true if and only if `this->begin < this->end`
+     * @return true if and only if `this->begin <= this->end`
      */
-    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
+    GKO_ATTRIBUTES constexpr bool is_valid() const { return begin <= end; }
 
     /**
      * Returns the length of a span.
