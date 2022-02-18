@@ -23,8 +23,9 @@ build
 # Visual studio code
 .vscode
 
-### Generated header file
+### Generated header files
 include/config.hpp
+dpcpp/base/config.hpp
 
 ### C++
 # Prerequisites

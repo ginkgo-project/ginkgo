@@ -197,7 +197,6 @@ if(GINKGO_BUILD_HWLOC)
     set(GINKGO_HAVE_HWLOC 1)
 else()
     set(GINKGO_HAVE_HWLOC 0)
-    message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
 if(GINKGO_BUILD_MPI)

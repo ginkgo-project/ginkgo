@@ -39,13 +39,13 @@ include(hwloc_helpers)
 
 find_path(HWLOC_INCLUDE_DIRS
     NAMES "hwloc.h"
-    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR}
+    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR} ${HWLOC_ROOT} $ENV{HWLOC_ROOT}
     PATH_SUFFIXES include
     DOC "Find the hwloc.h main header"
     )
 
 find_library(HWLOC_LIBRARIES "hwloc"
-    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR}
+    HINTS ${HWLOC_DIR} $ENV{HWLOC_DIR} ${HWLOC_ROOT} $ENV{HWLOC_ROOT}
     PATH_SUFFIXES lib lib64
     DOC "Find the hwloc library"
     )
