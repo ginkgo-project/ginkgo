@@ -114,6 +114,9 @@ DEFINE_string(
     "`random`, `rhs`, `0`. `random` uses a random vector, `rhs` uses the right "
     "hand side, and `0 uses a zero vector as the initial guess.");
 
+DEFINE_bool(use_abs_residual, false,
+            "If true, uses absolute residual convergence criterion.");
+
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
 // solvers or using the argument --solvers=overhead, a minimal solver will be
@@ -292,6 +295,9 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::string& description,
     const gko::preconditioner::batch::type prec_type)
 {
+    const auto toltype = FLAGS_use_abs_residual
+                             ? gko::stop::batch::ToleranceType::absolute
+                             : gko::stop::batch::ToleranceType::relative;
     if (description == "richardson") {
         using Solver = gko::solver::BatchRichardson<etype>;
         return Solver::build()
@@ -301,6 +307,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_preconditioner(prec_type)
             .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
                 FLAGS_relaxation_factor))
+            .with_tolerance_type(toltype)
             .on(exec);
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
@@ -309,7 +316,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_type)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_tolerance_type(toltype)
             .on(exec);
     } else if (description == "gmres") {
         using Solver = gko::solver::BatchGmres<etype>;
@@ -318,7 +325,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_type)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_tolerance_type(toltype)
             .with_restart(FLAGS_gmres_restart)
             .on(exec);
     } else if (description == "direct") {
