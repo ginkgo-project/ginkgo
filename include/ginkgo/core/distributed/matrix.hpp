@@ -163,7 +163,7 @@ protected:
      *              The default is the invalid MPI_COMM_NULL.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm = mpi::communicator(MPI_COMM_NULL));
+                    mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
 
     /**
      * Asynchronously communicates the values of b that are shared with other
