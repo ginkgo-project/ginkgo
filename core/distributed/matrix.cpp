@@ -83,7 +83,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     result->diag_mtx_->copy_from(this->diag_mtx_.get());
     result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-    result->one_scalar_.init_from(this->one_scalar_.get());
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
@@ -111,8 +110,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
                result->get_communicator().size());
     result->diag_mtx_->copy_from(this->diag_mtx_.get());
     result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-    result->one_scalar_.init(this->one_scalar_->get_executor(),
-                             this->one_scalar_->get_size());
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
@@ -193,7 +190,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto needs_host_buffer =
-        exec->get_master() != exec /* || comm.is_gpu_aware() */;
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (needs_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
