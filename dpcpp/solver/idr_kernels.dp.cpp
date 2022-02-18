@@ -97,6 +97,9 @@ void initialize_m_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                          size_type nrhs, ValueType* m_values,
                          size_type m_stride, stopping_status* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -269,6 +272,9 @@ void step_1_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                    ValueType* v_values, size_type v_stride,
                    const stopping_status* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -317,6 +323,9 @@ void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                    size_type c_stride, ValueType* u_values, size_type u_stride,
                    const stopping_status* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -434,6 +443,9 @@ void update_g_k_and_u_kernel(dim3 grid, dim3 block,
                              ValueType* u_values, size_type u_stride,
                              const stopping_status* stop_status)
 {
+    if (g_k_stride == 0) {
+        return;
+    }
     stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
@@ -475,6 +487,9 @@ void update_g_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      size_type g_k_stride, ValueType* g_values,
                      size_type g_stride, const stopping_status* stop_status)
 {
+    if (g_k_stride == 0) {
+        return;
+    }
     stream->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -820,6 +835,9 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
             const Array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 

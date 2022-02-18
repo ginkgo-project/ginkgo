@@ -148,6 +148,9 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType>* u,
                     const Array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
 
@@ -194,6 +197,9 @@ void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
               const Array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -298,6 +304,9 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
             const Array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 

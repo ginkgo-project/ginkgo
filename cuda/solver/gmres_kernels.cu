@@ -141,6 +141,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
                     const stopping_status* stop_status)
 {
+    if (hessenberg_iter->get_size()[1] == 0) {
+        return;
+    }
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     auto cublas_handle = exec->get_cublas_handle();
