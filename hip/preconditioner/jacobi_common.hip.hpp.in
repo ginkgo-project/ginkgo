@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <utility>
 
 
@@ -59,7 +58,8 @@ namespace jacobi {
 #endif
 
 
-using compiled_kernels = std::integer_sequence<int, GKO_HIP_JACOBI_BLOCK_SIZES_CODE>;
+using compiled_kernels =
+    std::integer_sequence<int, GKO_HIP_JACOBI_BLOCK_SIZES_CODE>;
 
 
 constexpr int get_larger_power(int value, int guess = 1)

@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <dpcpp/base/config.hpp>
+
+
 #include <CL/sycl.hpp>
 #include <oneapi/mkl.hpp>
 
@@ -49,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/prefix_sum_kernels.hpp"
-#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
