@@ -115,8 +115,8 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    gko::mpi::communicator comm)
 {
     ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    ASSERT_LE(comm.size(), gko::CudaExecutor::get_num_devices());
-    exec = gko::CudaExecutor::create(comm.node_local_rank(), ref);
+    auto device_id = comm.node_local_rank() % gko::CudaExecutor::get_num_devices();
+    exec = gko::CudaExecutor::create(device_id, ref);
 }
 
 
@@ -125,8 +125,8 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    gko::mpi::communicator comm)
 {
     ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    ASSERT_LE(comm.size(), gko::HipExecutor::get_num_devices());
-    exec = gko::HipExecutor::create(comm.node_local_rank(), ref);
+    auto device_id = comm.node_local_rank() % gko::HipExecutor::get_num_devices();
+    exec = gko::HipExecutor::create(device_id, ref);
 }
 
 
@@ -135,11 +135,11 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    gko::mpi::communicator comm)
 {
     if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        ASSERT_LE(comm.size(), gko::DpcppExecutor::get_num_devices("gpu"));
-        exec = gko::DpcppExecutor::create(comm.node_local_rank(), ref, "gpu");
+        auto device_id = comm.node_local_rank() % gko::DpcppExecutor::get_num_devices("gpu");
+        exec = gko::DpcppExecutor::create(device_id, ref);
     } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        ASSERT_LE(comm.size(), gko::DpcppExecutor::get_num_devices("cpu"));
-        exec = gko::DpcppExecutor::create(comm.node_local_rank(), ref, "cpu");
+        auto device_id = comm.node_local_rank() % gko::DpcppExecutor::get_num_devices("cpu");
+        exec = gko::DpcppExecutor::create(device_id, ref);
     } else {
         FAIL() << "No suitable DPC++ devices";
     }
