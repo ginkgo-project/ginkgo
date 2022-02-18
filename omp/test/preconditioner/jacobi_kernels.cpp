@@ -57,6 +57,8 @@ protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
     using mtx_data = gko::matrix_data<>;
+    using value_type = typename Mtx::value_type;
+    using index_type = typename Mtx::index_type;
 
     void SetUp()
     {
@@ -400,10 +402,13 @@ TEST_F(Jacobi, OmpScalarApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::test::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
@@ -463,10 +468,13 @@ TEST_F(Jacobi, OmpScalarLinearCombinationApplyEquivalentToRef)
 {
     gko::size_type dim = 5;
     std::default_random_engine engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::test::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
