@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_BLOCK_SIZES_HPP_
 
 
+#include <utility>
+
+
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 namespace gko {

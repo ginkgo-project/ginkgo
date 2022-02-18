@@ -247,7 +247,7 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
                           ValueType* result, dim<2> size, KernelArgs&&... args)
 {
     const auto desired_cfg =
-        get_first_cfg(as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
+        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
             return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
                             KCFG_1D::decode<1>(cfg));
         });
@@ -268,7 +268,7 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
                           KernelArgs&&... args)
 {
     const auto desired_cfg =
-        get_first_cfg(as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
+        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
             return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
                             KCFG_1D::decode<1>(cfg));
         });
@@ -652,7 +652,7 @@ void run_kernel_row_reduction(std::shared_ptr<const DpcppExecutor> exec,
                               dim<2> size, KernelArgs&&... args)
 {
     const auto desired_cfg =
-        get_first_cfg(as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
+        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
             return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
                             KCFG_1D::decode<1>(cfg));
         });
@@ -674,7 +674,7 @@ void run_kernel_col_reduction(std::shared_ptr<const DpcppExecutor> exec,
                               KernelArgs&&... args)
 {
     const auto desired_cfg =
-        get_first_cfg(as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
+        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
             return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
                             KCFG_1D::decode<1>(cfg));
         });

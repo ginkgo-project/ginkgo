@@ -68,7 +68,7 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
     // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
         auto queue = exec->get_queue();
-        constexpr auto block_cfg_array = as_array(block_cfg_list);
+        constexpr auto block_cfg_array = syn::as_array(block_cfg_list);
         const std::uint32_t cfg =
             get_first_cfg(block_cfg_array, [&queue](std::uint32_t cfg) {
                 return validate(queue, BlockCfg::decode<0>(cfg), 16);

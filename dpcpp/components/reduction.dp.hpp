@@ -259,7 +259,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = Array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
     const std::uint32_t cfg =
         get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
             return validate(queue, KCFG_1D::decode<0>(cfg),
