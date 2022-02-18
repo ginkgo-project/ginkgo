@@ -515,6 +515,14 @@ protected:
                        gen_out_vec<VecType>(solver, 1, 1));
         }
         {
+            SCOPED_TRACE("Single vector with correct initial guess");
+            auto in = gen_in_vec<VecType>(solver, 1, 1);
+            auto out = gen_out_vec<VecType>(solver, 1, 1);
+            solver.ref->get_system_matrix()->apply(out.ref.get(), in.ref.get());
+            solver.dev->get_system_matrix()->apply(out.dev.get(), in.dev.get());
+            guarded_fn(std::move(in), std::move(out));
+        }
+        {
             SCOPED_TRACE("Single strided vector");
             guarded_fn(gen_in_vec<VecType>(solver, 1, 2),
                        gen_out_vec<VecType>(solver, 1, 3));
