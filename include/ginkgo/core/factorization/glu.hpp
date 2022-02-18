@@ -42,7 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-
+#include <ginkgo/core/reorder/mc64.hpp>
+#include <ginkgo/core/reorder/reordering_base.hpp>
 
 #include "third_party/glu/include/symbolic.h"
 
@@ -142,6 +143,13 @@ public:
             return std::unique_ptr<ReusableFactory>(
                 new ReusableFactory(exec, A, *self()));
         }
+        std::unique_ptr<ReusableFactory> on(
+            std::shared_ptr<const Executor> exec, const LinOp* A,
+            const reorder::ReorderingBase* reordering) const
+        {
+            return std::unique_ptr<ReusableFactory>(
+                new ReusableFactory(exec, A, reordering, *self()));
+        }
 
     protected:
         GKO_ENABLE_SELF(ReusableFactoryParameters);
@@ -166,6 +174,27 @@ public:
                   std::move(exec), parameters)
         {
             A_sym_ = share(symbolic_factorization(A));
+        }
+        explicit ReusableFactory(std::shared_ptr<const Executor> exec,
+                                 const LinOp* A,
+                                 const reorder::ReorderingBase* reordering,
+                                 const ReusableFactoryParameters& parameters)
+            : EnableDefaultFactory<ReusableFactory, Glu,
+                                   ReusableFactoryParameters, LinOpFactory>(
+                  std::move(exec), parameters)
+        {
+            auto mc64 =
+                dynamic_cast<const reorder::Mc64<ValueType, IndexType>*>(
+                    reordering);
+            if (mc64) {
+                auto PA = as<matrix_type>(as<matrix_type>(A)->row_permute(
+                    mc64->get_permutation().get()));
+                PA = as<matrix_type>(PA->inverse_column_permute(
+                    mc64->get_inverse_permutation().get()));
+                A_sym_ = share(symbolic_factorization(PA.get()));
+            } else {
+                A_sym_ = share(symbolic_factorization(A));
+            }
         }
 
         std::unique_ptr<Symbolic_Matrix> symbolic_factorization(
