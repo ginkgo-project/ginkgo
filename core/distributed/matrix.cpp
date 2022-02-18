@@ -107,6 +107,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     Matrix<next_precision<value_type>, local_index_type, global_index_type>*
         result) const
 {
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
     result->diag_mtx_->copy_from(this->diag_mtx_.get());
     result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
     result->one_scalar_.init(this->one_scalar_->get_executor(),
