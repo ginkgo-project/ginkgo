@@ -83,36 +83,85 @@ public:
     void move_to(Matrix<value_type, local_index_type, global_index_type>*
                      result) override;
 
-    void read_distributed(
-        const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
-
+    /**
+     * Reads a matrix from the matrix_data structure and a global row partition.
+     *
+     * The number of rows of the matrix_data is ignored, only its number of
+     * columns is relevant. Both the number of local and global rows are
+     * inferred from the row partition.
+     *
+     * @note The matrix data can contain entries for rows other than those owned
+     *        by the process. Entries for those rows are discarded.
+     *
+     * @param data  The matrix_data structure.
+     * @param partition  The global row partition.
+     */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* partition);
 
+    /**
+     * Reads a matrix from the matrix_data structure and a global row partition.
+     *
+     * @see read_distributed
+     *
+     * @note For efficiency it is advised to use the device_matrix_data
+     * overload.
+     */
+    void read_distributed(
+        const matrix_data<value_type, global_index_type>& data,
+        const Partition<local_index_type, global_index_type>* partition);
+
+    /**
+     * Get read/write access to the local diagonal matrix
+     * @return  Shared pointer to the local diagonal matrix
+     */
     std::shared_ptr<local_matrix_type> get_local_diag() { return diag_mtx_; }
 
+    /**
+     * Get read access to the local diagonal matrix
+     * @return  Shared pointer to the local diagonal matrix
+     */
     std::shared_ptr<const local_matrix_type> get_const_local_diag() const
     {
         return diag_mtx_;
     }
 
+    /**
+     * Get read/write access to the local off-diagonal matrix
+     * @return  Shared pointer to the local off-diagonal matrix
+     */
     std::shared_ptr<local_matrix_type> get_local_offdiag()
     {
         return offdiag_mtx_;
     }
 
+    /**
+     * Get read access to the local off-diagonal matrix
+     * @return  Shared pointer to the local off-diagonal matrix
+     */
     std::shared_ptr<const local_matrix_type> get_const_local_offdiag() const
     {
         return offdiag_mtx_;
     }
 
 protected:
-    explicit Matrix(std::shared_ptr<const Executor> exec);
+    /**
+     * Creates an empty distributed matrix.
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     *              The default is the invalid MPI_COMM_NULL.
+     */
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm = mpi::communicator(MPI_COMM_NULL));
 
-    Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm);
-
+    /**
+     * Asynchronously communicates the values of b that are shared with other
+     * processors.
+     * @param local_b  The full local vector to be communicated. The subset of
+     *                 shared values is automatically extracted.
+     * @return  MPI request for the async communication.
+     */
     mpi::request communicate(const local_vector_type* local_b) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
