@@ -98,7 +98,35 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     Matrix<value_type, local_index_type, global_index_type>* result)
 {
-    EnableLinOp<Matrix>::move_to(result);
+    convert_to(result);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result) const
+{
+    result->diag_mtx_->copy_from(this->diag_mtx_.get());
+    result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
+    result->one_scalar_.init(this->one_scalar_->get_executor(),
+                             this->one_scalar_->get_size());
+    result->gather_idxs_ = this->gather_idxs_;
+    result->send_offsets_ = this->send_offsets_;
+    result->recv_offsets_ = this->recv_offsets_;
+    result->recv_sizes_ = this->recv_sizes_;
+    result->send_sizes_ = this->send_sizes_;
+    result->local_to_global_ghost_ = this->local_to_global_ghost_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
+    Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+        result)
+{
+    convert_to(result);
 }
 
 
