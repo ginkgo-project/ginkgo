@@ -63,6 +63,7 @@ protected:
 #else
     using value_type = double;
 #endif
+    using index_type = int;
     using Mtx = gko::matrix::Dense<value_type>;
 
     Cg() : rand_engine(30) {}
@@ -214,8 +215,12 @@ TEST_F(Cg, CgStep2IsEquivalentToRef)
 
 TEST_F(Cg, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53);
-    gko::test::make_hpd(mtx.get());
+    auto data = gko::matrix_data<value_type, index_type>(
+        gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
+        rand_engine);
+    gko::test::make_hpd(data);
+    auto mtx = Mtx::create(ref, data.size, 53);
+    mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);
     auto d_mtx = gko::clone(exec, mtx);
