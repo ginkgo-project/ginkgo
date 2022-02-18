@@ -107,9 +107,12 @@ public:
 
     contiguous_type& operator=(const contiguous_type&) = delete;
 
-    contiguous_type(contiguous_type&& other) { *this = std::move(other); }
+    contiguous_type(contiguous_type&& other) noexcept
+    {
+        *this = std::move(other);
+    }
 
-    contiguous_type& operator=(contiguous_type&& other)
+    contiguous_type& operator=(contiguous_type&& other) noexcept
     {
         if (this != &other) {
             this->type_ = std::exchange(other.type_, MPI_DATATYPE_NULL);
