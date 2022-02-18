@@ -62,11 +62,15 @@ class Matrix
     : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<
           Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+      public ConvertibleTo<
+          Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
     friend class EnableCreateMethod<
         Matrix<ValueType, LocalIndexType, GlobalIndexType>>;
     friend class EnablePolymorphicObject<
         Matrix<ValueType, LocalIndexType, GlobalIndexType>, LinOp>;
+    friend class Matrix<next_precision<ValueType>, LocalIndexType,
+                        GlobalIndexType>;
 
 public:
     using value_type = ValueType;
@@ -82,6 +86,12 @@ public:
 
     void move_to(Matrix<value_type, local_index_type, global_index_type>*
                      result) override;
+
+    void convert_to(Matrix<next_precision<value_type>, local_index_type,
+                           global_index_type>* result) const override;
+
+    void move_to(Matrix<next_precision<value_type>, local_index_type,
+                        global_index_type>* result) override;
 
     /**
      * Reads a matrix from the matrix_data structure and a global row partition.
