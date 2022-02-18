@@ -96,6 +96,9 @@ void LowerTrs<ValueType, IndexType>::generate()
 template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
@@ -135,6 +138,9 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                                 const LinOp* beta,
                                                 LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
