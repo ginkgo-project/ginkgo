@@ -91,8 +91,7 @@ constexpr int classical_overweight = 32;
  */
 using compiled_kernels = std::integer_sequence<int, 6>;
 
-using classical_kernels =
-    std::integer_sequence<int, config::warp_size, 16, 8, 1>;
+using classical_kernels = subgroup_list_desc_t;
 
 
 namespace kernel {
@@ -618,7 +617,7 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType,
+template <int subgroup_size, typename ValueType, typename IndexType,
           typename Closure>
 void device_classical_spmv(const size_type num_rows,
                            const ValueType* __restrict__ val,
@@ -655,7 +654,7 @@ void device_classical_spmv(const size_type num_rows,
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType* __restrict__ val,
     const IndexType* __restrict__ col_idxs,
@@ -668,7 +667,7 @@ void abstract_classical_spmv(
         [](const ValueType& x, const ValueType& y) { return x; }, item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue* queue, const size_type num_rows,
@@ -690,7 +689,7 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType* __restrict__ alpha,
     const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
@@ -709,7 +708,7 @@ void abstract_classical_spmv(
         item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue* queue, const size_type num_rows,
@@ -720,12 +719,14 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              ValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_classical_spmv<subgroup_size>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, b,
-                                 b_stride, beta, c, c_stride, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                abstract_classical_spmv<subgroup_size>(
+                    num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride, beta,
+                    c, c_stride, item_ct1);
+            });
     });
 }
 
@@ -900,7 +901,9 @@ void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -947,7 +950,9 @@ void inv_row_permute_kernel(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 inv_row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -995,7 +1000,9 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 inv_symm_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -1149,7 +1156,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
         IndexType max_length_per_row = 0;
         using Tcsr = matrix::Csr<ValueType, IndexType>;
@@ -1168,7 +1175,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (!is_complex<ValueType>()) {
@@ -1285,8 +1292,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
-            alpha, beta);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -1295,8 +1301,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
-            alpha, beta);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c, alpha, beta);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

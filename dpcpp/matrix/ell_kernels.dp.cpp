@@ -92,26 +92,32 @@ constexpr double ratio = 1e-2;
 
 
 /**
- * max_thread_per_worker is the max number of thread per worker. The
- * `compiled_kernels` must be a list <0, 1, 2, ..., max_thread_per_worker>
- */
-constexpr int max_thread_per_worker = 32;
-
-
-/**
  * A compile-time list of sub-warp sizes for which the spmv kernels should be
  * compiled.
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = std::integer_sequence<int, 0, 8, 16, 32>;
+using compiled_kernels =
+    syn::concatenate<std::integer_sequence<int, 0>, subgroup_list_t>;
+
+
+/**
+ * max_thread_per_worker is the max number of thread per worker. The
+ * `compiled_kernels` must be a list <0, 1, 2, ..., max_thread_per_worker>
+ */
+constexpr auto max_thread_per_worker =
+    syn::as_value(syn::max<subgroup_list_t>{});
+
+
+constexpr auto min_thread_per_worker =
+    syn::as_value(syn::min<subgroup_list_t>{});
 
 
 namespace kernel {
 namespace {
 
 
-template <int num_thread_per_worker, bool atomic, typename b_accessor,
+template <int subgroup_size, bool atomic, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType,
           typename Closure>
 void spmv_kernel(
@@ -120,13 +126,13 @@ void spmv_kernel(
     const size_type stride, const size_type num_stored_elements_per_row,
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+    UninitializedArray<OutputValueType, default_block_size / subgroup_size>&
+        storage)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const decltype(tidx) column_id = item_ct1.get_group(1);
-    if (num_thread_per_worker == 1) {
-        // Specialize the num_thread_per_worker = 1. It doesn't need the shared
+    if (subgroup_size == 1) {
+        // Specialize the subgroup_size = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
             auto temp = zero<OutputValueType>();
@@ -147,7 +153,7 @@ void spmv_kernel(
         const auto idx_in_worker = item_ct1.get_local_id(1);
         const auto x = tidx % num_rows;
         const auto worker_id = tidx / num_rows;
-        const auto step_size = num_worker_per_row * num_thread_per_worker;
+        const auto step_size = num_worker_per_row * subgroup_size;
 
         if (runnable && idx_in_worker == 0) {
             storage[item_ct1.get_local_id(2)] = 0;
@@ -156,8 +162,7 @@ void spmv_kernel(
         item_ct1.barrier(sycl::access::fence_space::local_space);
         auto temp = zero<OutputValueType>();
         if (runnable) {
-            for (size_type idx =
-                     worker_id * num_thread_per_worker + idx_in_worker;
+            for (size_type idx = worker_id * subgroup_size + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {
                 const auto ind = x + idx * stride;
                 const auto col_idx = col[ind];
@@ -175,8 +180,9 @@ void spmv_kernel(
         if (runnable && idx_in_worker == 0) {
             const auto c_ind = x * c_stride + column_id;
             if (atomic) {
-                atomic_add(&(c[c_ind]),
-                           op(storage[item_ct1.get_local_id(2)], c[c_ind]));
+                atomic_add<atomic::global_space>(
+                    &(c[c_ind]),
+                    op(storage[item_ct1.get_local_id(2)], c[c_ind]));
             } else {
                 c[c_ind] = op(storage[item_ct1.get_local_id(2)], c[c_ind]);
             }
@@ -185,25 +191,24 @@ void spmv_kernel(
 }
 
 
-template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+template <int subgroup_size, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> val, const IndexType* __restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> val, const IndexType* __restrict__ col,
+          const size_type stride, const size_type num_stored_elements_per_row,
+          acc::range<b_accessor> b, OutputValueType* __restrict__ c,
+          const size_type c_stride, sycl::nd_item<3> item_ct1,
+          UninitializedArray<OutputValueType,
+                             default_block_size / subgroup_size>& storage)
 {
-    spmv_kernel<num_thread_per_worker, atomic>(
+    spmv_kernel<subgroup_size, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
         num_stored_elements_per_row, b, c, c_stride,
         [](const OutputValueType& x, const OutputValueType& y) { return x; },
         item_ct1, storage);
 }
 
-template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+template <int subgroup_size, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
 void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           sycl::queue* queue, const size_type num_rows,
@@ -213,34 +218,36 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            UninitializedArray<OutputValueType,
-                               default_block_size / num_thread_per_worker>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+        sycl::accessor<UninitializedArray<OutputValueType,
+                                          default_block_size / subgroup_size>,
+                       0, sycl::access_mode::read_write,
+                       sycl::access::target::local>
             storage_acc_ct1(cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             spmv<num_thread_per_worker, atomic>(
-                                 num_rows, num_worker_per_row, val, col, stride,
-                                 num_stored_elements_per_row, b, c, c_stride,
-                                 item_ct1, *storage_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                spmv<subgroup_size, atomic>(
+                    num_rows, num_worker_per_row, val, col, stride,
+                    num_stored_elements_per_row, b, c, c_stride, item_ct1,
+                    *storage_acc_ct1.get_pointer());
+            });
     });
 }
 
 
-template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+template <int subgroup_size, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> alpha, acc::range<a_accessor> val,
-    const IndexType* __restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
-    const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> alpha, acc::range<a_accessor> val,
+          const IndexType* __restrict__ col, const size_type stride,
+          const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
+          const OutputValueType* __restrict__ beta,
+          OutputValueType* __restrict__ c, const size_type c_stride,
+          sycl::nd_item<3> item_ct1,
+          UninitializedArray<OutputValueType,
+                             default_block_size / subgroup_size>& storage)
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
@@ -250,7 +257,7 @@ void spmv(
         // operation. The beta * c needs to be done before calling this kernel.
         // Then, this kernel only adds alpha * a * b when it uses atomic
         // operation.
-        spmv_kernel<num_thread_per_worker, atomic>(
+        spmv_kernel<subgroup_size, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
             [&alpha_val](const OutputValueType& x, const OutputValueType& y) {
@@ -258,7 +265,7 @@ void spmv(
             },
             item_ct1, storage);
     } else {
-        spmv_kernel<num_thread_per_worker, atomic>(
+        spmv_kernel<subgroup_size, atomic>(
             num_rows, num_worker_per_row, val, col, stride,
             num_stored_elements_per_row, b, c, c_stride,
             [&alpha_val, &beta_val](const OutputValueType& x,
@@ -269,7 +276,7 @@ void spmv(
     }
 }
 
-template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
+template <int subgroup_size, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
 void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           sycl::queue* queue, const size_type num_rows,
@@ -280,15 +287,17 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            UninitializedArray<OutputValueType,
-                               default_block_size / num_thread_per_worker>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
+        sycl::accessor<UninitializedArray<OutputValueType,
+                                          default_block_size / subgroup_size>,
+                       0, sycl::access_mode::read_write,
+                       sycl::access::target::local>
             storage_acc_ct1(cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spmv<num_thread_per_worker, atomic>(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                spmv<subgroup_size, atomic>(
                     num_rows, num_worker_per_row, alpha, val, col, stride,
                     num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
                     *storage_acc_ct1.get_pointer());
@@ -325,11 +334,9 @@ void abstract_spmv(std::integer_sequence<int, info>,
     const auto num_stored_elements_per_row =
         a->get_num_stored_elements_per_row();
 
-    constexpr int num_thread_per_worker =
-        (info == 0) ? max_thread_per_worker : info;
+    constexpr auto subgroup_size = (info == 0) ? config::warp_size : info;
     constexpr bool atomic = (info == 0);
-    const dim3 block_size(default_block_size / num_thread_per_worker,
-                          num_thread_per_worker, 1);
+    const dim3 block_size(default_block_size / subgroup_size, subgroup_size, 1);
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
                          b->get_size()[1], 1);
 
@@ -346,7 +353,7 @@ void abstract_spmv(std::integer_sequence<int, info>,
             {static_cast<acc::size_type>(b->get_stride())}});
 
     if (alpha == nullptr && beta == nullptr) {
-        kernel::spmv<num_thread_per_worker, atomic>(
+        kernel::spmv<subgroup_size, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
             num_worker_per_row, a_vals, a->get_const_col_idxs(), stride,
             num_stored_elements_per_row, b_vals, c->get_values(),
@@ -354,7 +361,7 @@ void abstract_spmv(std::integer_sequence<int, info>,
     } else if (alpha != nullptr && beta != nullptr) {
         const auto alpha_val = gko::acc::range<a_accessor>(
             std::array<acc::size_type, 1>{1}, alpha->get_const_values());
-        kernel::spmv<num_thread_per_worker, atomic>(
+        kernel::spmv<subgroup_size, atomic>(
             grid_size, block_size, 0, exec->get_queue(), nrows,
             num_worker_per_row, alpha_val, a_vals, a->get_const_col_idxs(),
             stride, num_stored_elements_per_row, b_vals,
@@ -372,7 +379,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a)
 {
-    int num_thread_per_worker = 8;
+    int num_thread_per_worker = min_thread_per_worker;
     int atomic = 0;
     int num_worker_per_row = 1;
 
@@ -391,8 +398,8 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
     // decided according to the number of worker allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
         while (num_thread_per_worker < max_thread_per_worker &&
-               (num_thread_per_worker << 1) <= ell_ncols) {
-            num_thread_per_worker <<= 1;
+               (num_thread_per_worker * 2) <= ell_ncols) {
+            num_thread_per_worker *= 2;
         }
         if (num_thread_per_worker == max_thread_per_worker) {
             num_worker_per_row =
@@ -436,8 +443,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        std::integer_sequence<int>(), syn::type_list<>(), exec,
-        num_worker_per_row, a, b, c);
+        empty_list_t{}, syn::type_list<>(), exec, num_worker_per_row, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
@@ -470,8 +476,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        std::integer_sequence<int>(), syn::type_list<>(), exec,
-        num_worker_per_row, a, b, c, alpha, beta);
+        empty_list_t{}, syn::type_list<>(), exec, num_worker_per_row, a, b, c,
+        alpha, beta);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(

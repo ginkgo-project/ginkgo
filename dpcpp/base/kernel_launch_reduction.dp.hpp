@@ -53,7 +53,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
@@ -102,7 +102,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
 }
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
@@ -153,7 +153,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
 }
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
@@ -193,7 +193,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
@@ -246,13 +246,12 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
                           FinalizeOp finalize, ValueType identity,
                           ValueType* result, dim<2> size, KernelArgs&&... args)
 {
-    const auto desired_cfg =
-        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
+    const auto desired_cfg = get_first_cfg(kcfg_1d_array, [&](int cfg) {
+        return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
+                        KCFG_1D::decode<1>(cfg));
+    });
     select_run_kernel_reduction(
-        kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
+        kcfg_1d_list, [&](int cfg) { return cfg == desired_cfg; },
         std::integer_sequence<bool>(), std::integer_sequence<int>(),
         std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);
@@ -267,13 +266,12 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
                           ValueType* result, size_type size,
                           KernelArgs&&... args)
 {
-    const auto desired_cfg =
-        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
+    const auto desired_cfg = get_first_cfg(kcfg_1d_array, [&](int cfg) {
+        return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
+                        KCFG_1D::decode<1>(cfg));
+    });
     select_run_kernel_reduction(
-        kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
+        kcfg_1d_list, [&](int cfg) { return cfg == desired_cfg; },
         std::integer_sequence<bool>(), std::integer_sequence<int>(),
         std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);
@@ -283,8 +281,8 @@ void run_kernel_reduction(std::shared_ptr<const DpcppExecutor> exec,
 namespace {
 
 
-template <std::uint32_t cfg, int ssg_size, typename ValueType,
-          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+template <int cfg, int ssg_size, typename ValueType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_row_reduction_2d(std::integer_sequence<int, ssg_size>,
                                      std::shared_ptr<const DpcppExecutor> exec,
@@ -339,8 +337,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generic_kernel_row_reduction_2d,
                                     generic_kernel_row_reduction_2d);
 
 
-template <std::uint32_t cfg, int ssg_size, typename ValueType,
-          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+template <int cfg, int ssg_size, typename ValueType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_col_reduction_2d_small(
     sycl::handler& cgh, int64 rows, int64 cols, int64 row_blocks,
@@ -414,7 +412,7 @@ void generic_kernel_col_reduction_2d_small(
 }
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_col_reduction_2d_blocked(
@@ -483,8 +481,8 @@ void generic_kernel_reduction_finalize_2d(
 }
 
 
-template <std::uint32_t cfg, int ssg_size, typename ValueType,
-          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+template <int cfg, int ssg_size, typename ValueType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_generic_col_reduction_small(std::integer_sequence<int, ssg_size>,
                                      std::shared_ptr<const DpcppExecutor> exec,
@@ -527,7 +525,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generic_col_reduction_small,
                                     run_generic_col_reduction_small);
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
@@ -578,7 +576,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(select_kernel_row_reduction_stage1,
                                            run_kernel_row_reduction_stage1);
 
 
-template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
+template <int cfg, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
@@ -651,13 +649,12 @@ void run_kernel_row_reduction(std::shared_ptr<const DpcppExecutor> exec,
                               ValueType* result, size_type result_stride,
                               dim<2> size, KernelArgs&&... args)
 {
-    const auto desired_cfg =
-        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
+    const auto desired_cfg = get_first_cfg(kcfg_1d_array, [&](int cfg) {
+        return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
+                        KCFG_1D::decode<1>(cfg));
+    });
     select_kernel_row_reduction_stage1(
-        kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
+        kcfg_1d_list, [&](int cfg) { return cfg == desired_cfg; },
         std::integer_sequence<bool>(), std::integer_sequence<int>(),
         std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, result_stride, size,
@@ -673,13 +670,12 @@ void run_kernel_col_reduction(std::shared_ptr<const DpcppExecutor> exec,
                               ValueType* result, dim<2> size,
                               KernelArgs&&... args)
 {
-    const auto desired_cfg =
-        get_first_cfg(syn::as_array(kcfg_1d_list), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
+    const auto desired_cfg = get_first_cfg(kcfg_1d_array, [&](int cfg) {
+        return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
+                        KCFG_1D::decode<1>(cfg));
+    });
     select_kernel_col_reduction_stage1(
-        kcfg_1d_list, [&](std::uint32_t cfg) { return cfg == desired_cfg; },
+        kcfg_1d_list, [&](int cfg) { return cfg == desired_cfg; },
         std::integer_sequence<bool>(), std::integer_sequence<int>(),
         std::integer_sequence<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, identity, result, size, map_to_device(args)...);

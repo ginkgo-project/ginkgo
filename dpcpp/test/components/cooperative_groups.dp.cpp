@@ -62,9 +62,9 @@ namespace {
 using namespace gko::kernels::dpcpp;
 using KCFG_1D = gko::ConfigSet<11, 7>;
 constexpr auto default_config_list =
-    std::integer_sequence<std::uint32_t, KCFG_1D::encode(64, 64),
-                          KCFG_1D::encode(32, 32), KCFG_1D::encode(16, 16),
-                          KCFG_1D::encode(8, 8), KCFG_1D::encode(4, 4)>();
+    std::integer_sequence<int, KCFG_1D::encode(64, 64), KCFG_1D::encode(32, 32),
+                          KCFG_1D::encode(16, 16), KCFG_1D::encode(8, 8),
+                          KCFG_1D::encode(4, 4)>();
 
 
 class CooperativeGroups : public testing::TestWithParam<unsigned int> {
@@ -116,7 +116,7 @@ protected:
 
 
 // kernel implementation
-template <std::uint32_t config>
+template <int config>
 void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(config);
@@ -152,14 +152,14 @@ void cg_shuffle_host(dim3 grid, dim3 block,
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(cg_shuffle_config, cg_shuffle_host)
 
 // the call
-void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
+void cg_shuffle_config_call(int desired_cfg, dim3 grid, dim3 block,
                             gko::size_type dynamic_shared_memory,
                             sycl::queue* queue, bool* s)
 {
     cg_shuffle_config(
         default_config_list,
         // validate
-        [&desired_cfg](std::uint32_t cfg) { return cfg == desired_cfg; },
+        [&desired_cfg](int cfg) { return cfg == desired_cfg; },
         std::integer_sequence<bool>(), std::integer_sequence<int>(),
         std::integer_sequence<gko::size_type>(), ::gko::syn::type_list<>(),
         grid, block, dynamic_shared_memory, queue, s);
@@ -171,7 +171,7 @@ TEST_P(CooperativeGroups, Shuffle)
 }
 
 
-template <std::uint32_t config>
+template <int config>
 void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(config);
@@ -185,7 +185,7 @@ void cg_all(bool* s, sycl::nd_item<3> item_ct1)
         group.all(item_ct1.get_local_id(2) < 13) == sg_size < 13;
 }
 
-template <std::uint32_t encoded, typename... InferredArgs>
+template <int encoded, typename... InferredArgs>
 inline void cg_all(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
                    InferredArgs... args)
 {
@@ -206,7 +206,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
-template <std::uint32_t config>
+template <int config>
 void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(config);
@@ -219,7 +219,7 @@ void cg_any(bool* s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = !group.any(false);
 }
 
-template <std::uint32_t encoded, typename... InferredArgs>
+template <int encoded, typename... InferredArgs>
 inline void cg_any(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
                    InferredArgs... args)
 {
@@ -240,7 +240,7 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, default_config_list)
 TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
 
 
-template <std::uint32_t config>
+template <int config>
 void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
 {
     constexpr auto sg_size = KCFG_1D::decode<1>(config);
@@ -254,7 +254,7 @@ void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
     s[i + sg_size * 2] = group.ballot(item_ct1.get_local_id(2) < 4) == 0xf;
 }
 
-template <std::uint32_t encoded, typename... InferredArgs>
+template <int encoded, typename... InferredArgs>
 inline void cg_ballot(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
                       InferredArgs... args)
 {

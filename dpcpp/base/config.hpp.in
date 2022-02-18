@@ -51,7 +51,8 @@ namespace dpcpp {
 // clang-format off
 using subgroup_list_t =
     syn::sort<true,
-         std::integer_sequence<uint32, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>>;
+         std::integer_sequence<int, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>>;
+using subgroup_list_desc_t = syn::sort<false, subgroup_list_t>;
 constexpr auto subgroup_list = subgroup_list_t{};
 // clang-format on
 
@@ -59,11 +60,12 @@ constexpr auto subgroup_list = subgroup_list_t{};
 // clang-format off
 using workgroup_list_t =
     syn::sort<true,
-         std::integer_sequence<uint32, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>>;
+         std::integer_sequence<int, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>>;
+using workgroup_list_desc_t = syn::sort<false, workgroup_list_t>;
 constexpr auto workgroup_list = workgroup_list_t{};
 // clang-format on
 
-using empty_list_t = std::integer_sequence<uint32>;
+using empty_list_t = std::integer_sequence<int>;
 
 struct config {
     /**
@@ -101,10 +103,10 @@ constexpr auto kcfg_1d_list =
     syn::merge<KCFG_1D, workgroup_list_t, subgroup_list_t>{};
 constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 
-
 using BlockCfg = ConfigSet<11>;
 constexpr auto block_cfg_list =
     syn::merge<BlockCfg, workgroup_list_t, empty_list_t>{};
+constexpr auto block_cfg_array = syn::as_array(block_cfg_list);
 
 
 }  // namespace dpcpp

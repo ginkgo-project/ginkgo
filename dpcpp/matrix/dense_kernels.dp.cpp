@@ -76,7 +76,7 @@ constexpr int default_block_size = 256;
 namespace kernel {
 
 
-template <std::uint32_t sg_size, typename ValueType, typename Closure>
+template <int sg_size, typename ValueType, typename Closure>
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
@@ -99,7 +99,7 @@ void transpose(const size_type nrows, const size_type ncols,
     }
 }
 
-template <std::uint32_t sg_size, typename ValueType>
+template <int sg_size, typename ValueType>
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
@@ -111,7 +111,7 @@ void transpose(const size_type nrows, const size_type ncols,
         [](ValueType val) { return val; }, item_ct1, space);
 }
 
-template <std::uint32_t sg_size = 32, typename ValueType>
+template <int sg_size = 32, typename ValueType>
 void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                sycl::queue* queue, const size_type nrows, const size_type ncols,
                const ValueType* in, const size_type in_stride, ValueType* out,
@@ -136,7 +136,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(transpose, transpose);
 GKO_ENABLE_DEFAULT_CONFIG_CALL(transpose_call, transpose, subgroup_list);
 
 
-template <std::uint32_t sg_size, typename ValueType>
+template <int sg_size, typename ValueType>
 void conj_transpose(const size_type nrows, const size_type ncols,
                     const ValueType* __restrict__ in, const size_type in_stride,
                     ValueType* __restrict__ out, const size_type out_stride,
@@ -148,7 +148,7 @@ void conj_transpose(const size_type nrows, const size_type ncols,
         [](ValueType val) { return conj(val); }, item_ct1, space);
 }
 
-template <std::uint32_t sg_size = 16, typename ValueType>
+template <int sg_size = 16, typename ValueType>
 void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     sycl::queue* queue, const size_type nrows,
                     const size_type ncols, const ValueType* in,
@@ -530,10 +530,9 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
     auto size = orig->get_size();
     auto sg_array = syn::as_array(subgroup_list);
     auto queue = exec->get_queue();
-    const std::uint32_t cfg =
-        get_first_cfg(sg_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, cfg * cfg, cfg);
-        });
+    const int cfg = get_first_cfg(sg_array, [&queue](int cfg) {
+        return validate(queue, cfg * cfg, cfg);
+    });
     dim3 grid(ceildiv(size[1], cfg), ceildiv(size[0], cfg));
     dim3 block(cfg, cfg);
     kernel::transpose_call(cfg, grid, block, 0, queue, size[0], size[1],
@@ -552,10 +551,9 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     auto size = orig->get_size();
     auto sg_array = syn::as_array(subgroup_list);
     auto queue = exec->get_queue();
-    const std::uint32_t cfg =
-        get_first_cfg(sg_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, cfg * cfg, cfg);
-        });
+    const int cfg = get_first_cfg(sg_array, [&queue](int cfg) {
+        return validate(queue, cfg * cfg, cfg);
+    });
     dim3 grid(ceildiv(size[1], cfg), ceildiv(size[0], cfg));
     dim3 block(cfg, cfg);
     kernel::conj_transpose_call(cfg, grid, block, 0, queue, size[0], size[1],

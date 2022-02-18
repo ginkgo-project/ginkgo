@@ -81,7 +81,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @param kernel_  the kernel name
  */
 #define GKO_ENABLE_DEFAULT_HOST_CONFIG(name_, kernel_)                    \
-    template <std::uint32_t encoded, typename... InferredArgs>            \
+    template <int encoded, typename... InferredArgs>                      \
     inline void name_(dim3 grid, dim3 block, gko::size_type,              \
                       sycl::queue* queue, InferredArgs... args)           \
     {                                                                     \
@@ -115,19 +115,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *               available to decode<0> for blocksize and decode<1> for
  *               subgroup_size by cfg_
  */
-#define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, list_)               \
-    template <typename... InferredArgs>                                       \
-    void name_(std::uint32_t desired_cfg, dim3 grid, dim3 block,              \
-               gko::size_type dynamic_shared_memory, sycl::queue* queue,      \
-               InferredArgs... args)                                          \
-    {                                                                         \
-        callable_(                                                            \
-            list_,                                                            \
-            [&desired_cfg](std::uint32_t cfg) { return cfg == desired_cfg; }, \
-            std::integer_sequence<bool>(), std::integer_sequence<int>(),      \
-            std::integer_sequence<gko::size_type>(),                          \
-            ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory,    \
-            queue, std::forward<InferredArgs>(args)...);                      \
+#define GKO_ENABLE_DEFAULT_CONFIG_CALL(name_, callable_, list_)            \
+    template <typename... InferredArgs>                                    \
+    void name_(int desired_cfg, dim3 grid, dim3 block,                     \
+               gko::size_type dynamic_shared_memory, sycl::queue* queue,   \
+               InferredArgs... args)                                       \
+    {                                                                      \
+        callable_(                                                         \
+            list_, [&desired_cfg](int cfg) { return cfg == desired_cfg; }, \
+            std::integer_sequence<bool>(), std::integer_sequence<int>(),   \
+            std::integer_sequence<gko::size_type>(),                       \
+            ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory, \
+            queue, std::forward<InferredArgs>(args)...);                   \
     }
 
 // __WG_BOUND__ gives the cuda-like launch bound in cuda ordering
@@ -178,7 +177,7 @@ bool validate(sycl::queue* queue, unsigned workgroup_size,
  * @return the first valid config
  */
 template <typename IterArr, typename Validate>
-std::uint32_t get_first_cfg(const IterArr& arr, Validate verify)
+int get_first_cfg(const IterArr& arr, Validate verify)
 {
     for (auto& cfg : arr) {
         if (verify(cfg)) {
