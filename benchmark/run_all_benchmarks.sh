@@ -172,6 +172,14 @@ else
     exit 1
 fi
 
+# Control whether absolute residual tolerance is used as convergence criterion.
+# Currently only affects batch solvers.
+if  [ ! "${SOLVERS_USE_ABS_RESIDUAL}" ] || [ "${SOLVERS_USE_ABS_RESIDUAL}" -eq 0 ]; then
+    SOLVERS_USE_ABS_RESIDUAL_STR="--use_abs_residual=false"
+else
+    SOLVERS_USE_ABS_RESIDUAL_STR="--use_abs_residual=true"
+fi
+
 if [ ! "${GPU_TIMER}" ]; then
     GPU_TIMER="false"
     print_default GPU_TIMER
@@ -419,7 +427,7 @@ run_batch_solver_benchmarks() {
                     --num_duplications="${NUM_BATCH_DUP}" "${BATCH_SCALING_STR}" \
                     "${PRINT_RES_ITER_STR}" "${COMPUTE_BATCH_ERRORS_STR}" \
                     --num_batches="${NUM_BATCH_ENTRIES}" "${SS_STR}" \
-                    --num_shared_vecs="${NUM_SHARED_VECS}" \
+                    --num_shared_vecs="${NUM_SHARED_VECS}" "${SOLVERS_USE_ABS_RESIDUAL_STR}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
                     --gpu_timer=${GPU_TIMER} \
