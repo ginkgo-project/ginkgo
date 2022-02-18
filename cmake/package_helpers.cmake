@@ -57,3 +57,15 @@ function(ginkgo_download_file url filename hash_type hash)
         message(FATAL_ERROR "Download of ${filename} failed.")
     endif()
 endfunction(ginkgo_download_file)
+
+#   Find package with a protection. To not find library foo, set the CMake
+#   variable GINKGO_DOWNLOAD_FOO=ON
+#
+#   \param hash         The name of the package
+#   \param ARGN         Extra arguments to give to find_package
+macro(ginkgo_find_package name)
+    string(TOUPPER "${name}" GKO_TPL_PKG_NAME)
+    if(NOT GINKGO_DOWNLOAD_${GKO_TPL_PKG_NAME})
+        find_package(${name} ${ARGN})
+    endif()
+endmacro()
