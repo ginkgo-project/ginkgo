@@ -144,6 +144,9 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
                 Array<stopping_status>* stop_status)
 {
 #pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
+    if (nrhs == 0) {
+        return;
+    }
 
     // Initialize M
 #pragma omp parallel for

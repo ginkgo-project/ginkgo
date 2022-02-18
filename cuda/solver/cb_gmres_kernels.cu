@@ -200,6 +200,10 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
                         stopping_status* reorth_status,
                         Array<size_type>* num_reorth)
 {
+    const auto dim_size = next_krylov_basis->get_size();
+    if (dim_size[1] == 0) {
+        return;
+    }
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
@@ -209,7 +213,6 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
@@ -482,6 +485,9 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType>* before_preconditioner,
             const Array<size_type>* final_iter_nums)
 {
+    if (before_preconditioner->get_size()[1] == 0) {
+        return;
+    }
     // since hessenberg has dims:  iters x iters * num_rhs
     // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs
     const auto iters =
