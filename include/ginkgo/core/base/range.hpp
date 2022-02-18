@@ -80,7 +80,7 @@ struct span {
      *
      * @param point  the point which the span represents
      */
-    GKO_ATTRIBUTES explicit constexpr span(size_type point) noexcept
+    GKO_ATTRIBUTES constexpr span(size_type point) noexcept
         : span{point, point + 1}
     {}
 
