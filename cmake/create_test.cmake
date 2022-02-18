@@ -227,11 +227,11 @@ function(ginkgo_internal_create_common_test_template test_name)
 endfunction(ginkgo_internal_create_common_test_template)
 
 function(ginkgo_create_common_test test_name)
-    ginkgo_internal_create_common_test_template(${test_name} TEST_TYPE default)
+    ginkgo_internal_create_common_test_template(${test_name} TEST_TYPE default ${ARGN})
 endfunction(ginkgo_create_common_test)
 
 function(ginkgo_create_common_mpi_test test_name num_mpi_procs)
-    ginkgo_internal_create_common_test_template(${test_name} TEST_TYPE mpi ADDITIONAL_TEST_PARAMETERS ${num_mpi_procs})
+    ginkgo_internal_create_common_test_template(${test_name} TEST_TYPE mpi ADDITIONAL_TEST_PARAMETERS ${num_mpi_procs} ${ARGN})
 endfunction(ginkgo_create_common_mpi_test)
 
 function(ginkgo_create_common_and_reference_test test_name)
