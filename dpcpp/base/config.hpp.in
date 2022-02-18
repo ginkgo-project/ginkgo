@@ -47,6 +47,24 @@ namespace kernels {
 namespace dpcpp {
 
 
+// CMake generated subgroup list. We sort by ascending order.
+// clang-format off
+using subgroup_list_t =
+    syn::sort<true,
+         std::integer_sequence<uint32, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>>;
+constexpr auto subgroup_list = subgroup_list_t{};
+// clang-format on
+
+// CMake generated workgroup list. We sort by ascending order.
+// clang-format off
+using workgroup_list_t =
+    syn::sort<true,
+         std::integer_sequence<uint32, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>>;
+constexpr auto workgroup_list = workgroup_list_t{};
+// clang-format on
+
+using empty_list_t = std::integer_sequence<uint32>;
+
 struct config {
     /**
      * The type containing a bitmask over all lanes of a warp.
@@ -56,7 +74,8 @@ struct config {
     /**
      * The number of threads within a Dpcpp subgroup.
      */
-    static constexpr uint32 warp_size = @GINKGO_DPCPP_BIGGEST_SUBGROUP@;
+    static constexpr uint32 warp_size =
+        syn::as_value(syn::median<subgroup_list_t>{});
 
     /**
      * The bitmask of the entire warp.
@@ -72,20 +91,20 @@ struct config {
     /**
      * The default maximal number of threads allowed in DPCPP group
      */
-    static constexpr uint32 max_block_size = @GINKGO_DPCPP_BIGGEST_WORKGROUP@;
+    static constexpr uint32 max_block_size =
+        syn::as_value(syn::max<workgroup_list_t>{});
 };
 
 
 using KCFG_1D = ConfigSet<11, 7>;
 constexpr auto kcfg_1d_list =
-    std::integer_sequence<std::uint32_t, @GINKGO_DPCPP_1D_CFG@>();
-constexpr auto subgroup_list = std::integer_sequence<std::uint32_t, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>();
+    syn::merge<KCFG_1D, workgroup_list_t, subgroup_list_t>{};
 constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
 
 
 using BlockCfg = ConfigSet<11>;
 constexpr auto block_cfg_list =
-    std::integer_sequence<std::uint32_t, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>();
+    syn::merge<BlockCfg, workgroup_list_t, empty_list_t>{};
 
 
 }  // namespace dpcpp

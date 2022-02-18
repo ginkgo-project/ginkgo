@@ -599,6 +599,189 @@ template <typename T, T... Values>
 using max = front<sort<false, T, Values...>>;
 
 
+namespace detail {
+
+/**
+ * This is the base type of a helper to merge_impl. It merges two lists of
+ * std::integer_sequence by applying EncodingType::encode() on every pair of
+ * values. In this case, the first list is a single element. This helps
+ * logically split the double recursion needed for merging two general lists.
+ *
+ * For example, when considering
+ * ```
+ *    struct int_encoder {
+ *        using can_encode = std::true_type;
+ *        static constexpr auto encode(int v1, int v2) { return v1*v2; }
+ *    };
+ *    using idx1 = std::integer_sequence<int, 2>;
+ *    using idx2 = std::integer_sequence<int, 4, 8>;
+ *    using merged = typename merge_one_impl<int_encoder, idx1, idx2>::type;
+ *    // Then effectively:
+ *    // merged = std::integer_sequence<int, 8, 16>
+ * ```
+ *
+ * @tparam EncodingType  the type used to encode values. It must at least look
+ *                       like the encoder in the example above. ConfigSet is a
+ *                       Ginkgo type which can encode.
+ * @tparam Lists  the lists to merge and encode
+ */
+template <typename EncodingType, typename... Lists>
+struct merge_one_impl;
+
+/**
+ * This is the base case for merge_one_impl's recursion. The second list is
+ * empty.
+ *
+ * @tparam EncodingType  the type used to encode values
+ * @tparam T  the type of the values
+ * @tparam T  v1 the value from the first list
+ */
+template <typename EncodingType, typename T, T v1>
+struct merge_one_impl<EncodingType, std::integer_sequence<T, v1>,
+                      std::integer_sequence<T>> {
+    using type = std::integer_sequence<T>;
+};
+
+/**
+ * This is the recursive case for merge_one_impl. We merge and encode v1
+ * with every subsequent v2 from the second std::integer_sequence.
+ *
+ * @tparam EncodingType  the type used to encode values
+ * @tparam T  the type of the values
+ * @tparam T  v1 the value from the first list being merged
+ * @tparam T  v2 the value from the second list being merged
+ * @tparam Values  the values not yet processed from the second list
+ */
+template <typename EncodingType, typename T, T v1, T v2, T... Values>
+struct merge_one_impl<EncodingType, std::integer_sequence<T, v1>,
+                      std::integer_sequence<T, v2, Values...>> {
+    static_assert(
+        std::is_same<typename EncodingType::can_encode, std::true_type>::value,
+        "EncodingType must have encoding functionality.");
+
+    using v1_as_seq = std::integer_sequence<T, v1>;
+    using values_as_seq = std::integer_sequence<T, Values...>;
+    using recurse = merge_one_impl<EncodingType, v1_as_seq, values_as_seq>;
+    using type =
+        concatenate<std::integer_sequence<T, EncodingType::encode(v1, v2)>,
+                    typename recurse::type>;
+};
+
+
+/**
+ * This is the base type of merge_impl. It merges two
+ * std::integer_sequence and calls EncodingType::encode() on every pair of
+ * values.
+ *
+ * For example, when considering
+ * ```
+ *    struct int_encoder {
+ *        using can_encode = std::true_type;
+ *        static constexpr auto encode(int v1, int v2) { return v1*v2; }
+ *    };
+ *    using idx1 = std::integer_sequence<int, 2, 3>;
+ *    using idx2 = std::integer_sequence<int, 4, 8>;
+ *    using merged = typename merge_impl<int_encoder, idx1, idx2>::type;
+ *    // Then effectively:
+ *    // merged = std::integer_sequence<int, 8, 16, 12, 24>
+ * ```
+ *
+ * @see detail::merge_one_impl<typename EncodingType, typename ...Lists>
+ *
+ * @tparam EncodingType  the type used to encode values. It must at least look
+ *                       like the encoder in the example above. ConfigSet is a
+ *                       Ginkgo type which can encode.
+ * @tparam Lists  the lists to merge and encode
+ */
+template <typename EncodingType, typename... Lists>
+struct merge_impl;
+
+/**
+ * This is the base case for merge_impl's recursion. The first list has been
+ * completely consumed.
+ *
+ * @tparam EncodingType  the type used to encode values
+ * @tparam T  the type of the values
+ * @tparam T  Values2 the values of the second list
+ */
+template <typename EncodingType, typename T, T... Values2>
+struct merge_impl<EncodingType, std::integer_sequence<T>,
+                  std::integer_sequence<T, Values2...>> {
+    using type = std::integer_sequence<T>;
+};
+
+/**
+ * This is the first recursive case for merge_impl. In this case, the second
+ * list is empty. We only encode v1 one after the other.
+ *
+ * @tparam EncodingType  the type used to encode values
+ * @tparam T  the type of the values
+ * @tparam T  v1 the value from the first list being merged
+ * @tparam Values1  the values left to consume from the first list
+ * @tparam Values2  the values of the second list
+ */
+template <typename EncodingType, typename T, T v1, T... Values1>
+struct merge_impl<EncodingType, std::integer_sequence<T, v1, Values1...>,
+                  std::integer_sequence<T>> {
+    using v1_as_seq = std::integer_sequence<T, v1>;
+    using empty = std::integer_sequence<T>;
+    using val1_as_seq = std::integer_sequence<T, Values1...>;
+    using processed_v1 = std::integer_sequence<T, EncodingType::encode(v1)>;
+    // move to the next v1
+    using recurse = merge_impl<EncodingType, val1_as_seq, empty>;
+    using type = concatenate<processed_v1, typename recurse::type>;
+};
+
+/**
+ * This is the recursive case for merge_impl with a non empty Values2 list. We
+ * call merge_one_impl for every v1 and element of Values2 until Values1 is
+ * completely consumed.
+ *
+ * @tparam EncodingType  the type used to encode values
+ * @tparam T  the type of the values
+ * @tparam T  v1 the value from the first list being merged
+ * @tparam Values1  the values left to consume from the first list
+ * @tparam Values2  the values of the second list
+ */
+template <typename EncodingType, typename T, T v1, T... Values1, T... Values2>
+struct merge_impl<EncodingType, std::integer_sequence<T, v1, Values1...>,
+                  std::integer_sequence<T, Values2...>> {
+    using v1_as_seq = std::integer_sequence<T, v1>;
+    using val1_as_seq = std::integer_sequence<T, Values1...>;
+    using val2_as_seq = std::integer_sequence<T, Values2...>;
+    using process_v1 = merge_one_impl<EncodingType, v1_as_seq, val2_as_seq>;
+    // move to the next v1
+    using recurse = merge_impl<EncodingType, val1_as_seq, val2_as_seq>;
+    using type = concatenate<typename process_v1::type, typename recurse::type>;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * This is a helper interface for merging two lists of std::integer_sequence
+ * using EncodingType as an encoder. It only merges two lists at once.
+ * EncodingType must look like ConfigSet or the following:
+ *
+ * ```
+ *    struct int_encoder {
+ *        using can_encode = std::true_type;
+ *        static constexpr auto encode(int v1, int v2) { return v1*v2; }
+ *    };
+ * ```
+ *
+ * @see detail::merge_impl<typename EncodingType, typename ...Lists>
+ *
+ * @tparam EncodingType  the type used to encode values. It must at least look
+ *                       like the encoder in the example above. ConfigSet is a
+ *                       Ginkgo type which can encode.
+ * @tparam Lists  the lists to merge and encode
+ */
+template <typename EncodingType, typename... Lists>
+using merge = typename detail::merge_impl<EncodingType, Lists...>::type;
+
+
 }  // namespace syn
 }  // namespace gko
 

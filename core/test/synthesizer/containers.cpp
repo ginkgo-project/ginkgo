@@ -207,5 +207,74 @@ TEST_F(IntegerSequenceExtensions, EmptyTests)
     StaticAssertTypeEq<test9, empty>();
 }
 
+struct int_encoder {
+    using can_encode = std::true_type;
+
+    static constexpr int encode() { return 1; }
+
+    template <typename... Rest>
+    static constexpr int encode(int v1, Rest&&... rest)
+    {
+        return v1 * encode(std::forward<Rest>(rest)...);
+    }
+};
+
+
+TEST_F(IntegerSequenceExtensions, CanMergeEmptyList)
+{
+    StaticAssertTypeEq<gko::syn::merge<int_encoder, empty, empty>, empty>();
+}
+
+
+TEST_F(IntegerSequenceExtensions, CanMergeOneList)
+{
+    StaticAssertTypeEq<gko::syn::merge<int_encoder, test, empty>, test>();
+}
+
+
+TEST_F(IntegerSequenceExtensions, CanMergeTwoLists)
+{
+    using list1 = std::integer_sequence<int, 2, 3>;
+    using list2 = std::integer_sequence<int, 4, 8>;
+    using expected = std::integer_sequence<int, 8, 16, 12, 24>;
+
+    using res = gko::syn::merge<int_encoder, list1, list2>;
+
+    StaticAssertTypeEq<res, expected>();
+}
+
+
+TEST_F(IntegerSequenceExtensions, CanMergeThreeLists)
+{
+    using list1 = std::integer_sequence<int, 2, 3>;
+    using list2 = std::integer_sequence<int, 4, 8>;
+    using list3 = std::integer_sequence<int, 2, 3>;
+    using expected1 = std::integer_sequence<int, 8, 16, 12, 24>;
+    using expected2 =
+        std::integer_sequence<int, 16, 32, 24, 48, 24, 48, 36, 72>;
+
+    using res1 = gko::syn::merge<int_encoder, list1, list2>;
+    using res2 = gko::syn::merge<int_encoder, list3, res1>;
+
+    StaticAssertTypeEq<res1, expected1>();
+    StaticAssertTypeEq<res2, expected2>();
+}
+
+
+TEST_F(IntegerSequenceExtensions, CanMergeThreeListsOtherOrder)
+{
+    using list1 = std::integer_sequence<int, 2, 3>;
+    using list2 = std::integer_sequence<int, 4, 8>;
+    using list3 = std::integer_sequence<int, 2, 3>;
+    using expected1 = std::integer_sequence<int, 8, 16, 12, 24>;
+    using expected2 =
+        std::integer_sequence<int, 16, 24, 32, 48, 24, 36, 48, 72>;
+
+    using res1 = gko::syn::merge<int_encoder, list1, list2>;
+    using res2 = gko::syn::merge<int_encoder, res1, list3>;
+
+    StaticAssertTypeEq<res1, expected1>();
+    StaticAssertTypeEq<res2, expected2>();
+}
 
 }  // namespace

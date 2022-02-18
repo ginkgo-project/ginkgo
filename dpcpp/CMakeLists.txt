@@ -11,6 +11,14 @@ set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
 set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
+# Reverse the subgroup list, replace ; to , from the user strings
+string(REPLACE ";" "," GINKGO_DPCPP_SUBGROUPS_FORMATTED "${GINKGO_DPCPP_SUBGROUPS}")
+string(REPLACE ";" "," GINKGO_DPCPP_WORKGROUPS_FORMATTED "${GINKGO_DPCPP_WORKGROUPS}")
+# Generate the DPC++ Configuration file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp @ONLY)
+
+
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -50,38 +58,6 @@ target_sources(ginkgo_dpcpp
     stop/residual_norm_kernels.dp.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
-
-## Parse the subgroup and workgroup lists
-# 1. Sort from smallest element to the biggest
-insertionSortRecursive(GINKGO_DPCPP_SUBGROUPS)
-insertionSortRecursive(GINKGO_DPCPP_WORKGROUPS)
-# 2. Extract the two biggest elements
-list(GET GINKGO_DPCPP_SUBGROUPS -1 GINKGO_DPCPP_BIGGEST_SUBGROUP)
-list(GET GINKGO_DPCPP_WORKGROUPS -1 GINKGO_DPCPP_BIGGEST_WORKGROUP)
-# 3. Combine the two lists, also format the workgroup list
-set(GINKGO_DPCPP_1D_CFG "")
-set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "")
-foreach(workgroup ${GINKGO_DPCPP_WORKGROUPS})
-    foreach(subgroup ${GINKGO_DPCPP_SUBGROUPS})
-        if (GINKGO_DPCPP_1D_CFG STREQUAL "")
-            set(GINKGO_DPCPP_1D_CFG "KCFG_1D::encode(${workgroup}, ${subgroup})")
-        else()
-            set(GINKGO_DPCPP_1D_CFG "${GINKGO_DPCPP_1D_CFG}, KCFG_1D::encode(${workgroup}, ${subgroup})")
-        endif()
-    endforeach()
-    if (GINKGO_DPCPP_WORKGROUPS_FORMATTED STREQUAL "")
-        set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "BlockCfg::encode(${workgroup})")
-    else()
-        set(GINKGO_DPCPP_WORKGROUPS_FORMATTED "BlockCfg::encode(${workgroup}), ${GINKGO_DPCPP_WORKGROUPS_FORMATTED}, ")
-    endif()
-endforeach()
-# 4. Reverse the subgroup list, replace ; to ,
-list(REVERSE GINKGO_DPCPP_SUBGROUPS)
-string(REPLACE ";" "," GINKGO_DPCPP_SUBGROUPS_FORMATTED "${GINKGO_DPCPP_SUBGROUPS}")
-
-## Now we can generate the DPC++ Configure file
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp @ONLY)
 
 
 ginkgo_compile_features(ginkgo_dpcpp)
