@@ -94,25 +94,16 @@ int main(int argc, char* argv[])
     // Create MC64 and AMD reordering and scaling
     auto preprocessing_fact =
         gko::share(gko::reorder::Mc64<ValueType, IndexType>::build().on(exec));
-    auto preprocessing = preprocessing_fact->generate(A);
-    const auto perm = preprocessing->get_permutation();
-    const auto inv_perm = preprocessing->get_inverse_permutation();
-    const auto row_scale = preprocessing->get_row_scaling();
-    const auto col_scale = preprocessing->get_col_scaling();
-
-    auto PA = gko::share(gko::as<mtx>(A->row_permute(perm.get())));
-    row_scale->apply(PA.get(), PA.get());
-    col_scale->rapply(PA.get(), PA.get());
-    PA = gko::as<mtx>(PA->inverse_column_permute(inv_perm.get()));
+    auto preprocessing = gko::share(preprocessing_fact->generate(A));
 
     // Create reusable GLU factory for first matrix
     auto lu_fact = gko::share(
         gko::factorization::Glu<ValueType, IndexType>::build_reusable().on(
-            exec, PA.get()));
+            exec, A.get(), preprocessing.get()));
     auto inner_solver_fact = gko::share(gko::preconditioner::Ilu<>::build()
                                             .with_factorization_factory(lu_fact)
                                             .on(exec));
-    auto solver_fact =
+    auto solver_fact = gko::share(
         gko::solver::Gmres<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
@@ -122,8 +113,12 @@ int main(int argc, char* argv[])
                     .on(exec))
             .with_krylov_dim(5u)
             .with_preconditioner(inner_solver_fact)
-            .on(exec);
+            .on(exec));
 
+    auto reordered_solver_fact = gko::solver::ScaledReordered<>::build()
+                                     .with_solver(solver_fact)
+                                     .with_reordering(preprocessing)
+                                     .on(exec);
 
     auto n = A->get_size()[0];
     auto host_b = vec::create(exec->get_master(), gko::dim<2>{n, 1});
@@ -143,16 +138,9 @@ int main(int argc, char* argv[])
         A->apply(x.get(), b.get());
         x->copy_from(host_x.get());
 
-        auto solver = solver_fact->generate(PA);
+        auto solver = reordered_solver_fact->generate(A);
 
-        auto pb = gko::as<vec>(b->row_permute(perm.get()));
-        row_scale->apply(pb.get(), pb.get());
-        auto px = pb->clone();
-
-        solver->apply(pb.get(), px.get());
-
-        px->row_permute(inv_perm.get(), x.get());
-        col_scale->apply(x.get(), x.get());
+        solver->apply(b.get(), x.get());
 
         // Print solution
         // std::ofstream x_out{"x.mtx"};
@@ -166,9 +154,5 @@ int main(int argc, char* argv[])
         if (3 + i == argc) break;
         mat_string = argv[3 + i];
         A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
-        PA = gko::as<mtx>(A->row_permute(perm.get()));
-        row_scale->apply(PA.get(), PA.get());
-        col_scale->rapply(PA.get(), PA.get());
-        PA = gko::as<mtx>(PA->inverse_column_permute(inv_perm.get()));
     }
 }
