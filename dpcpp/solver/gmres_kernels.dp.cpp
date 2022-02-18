@@ -112,6 +112,9 @@ void initialize_2_2_kernel(dim3 grid, dim3 block,
                            ValueType* krylov_bases, size_type stride_krylov,
                            size_type* final_iter_nums)
 {
+    if (num_rhs == 0) {
+        return;
+    }
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -252,6 +255,9 @@ void update_next_krylov_kernel(
     size_type stride_krylov, const ValueType* hessenberg_iter,
     size_type stride_hessenberg, const stopping_status* stop_status)
 {
+    if (stride_krylov == 0) {
+        return;
+    }
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -416,6 +422,9 @@ void calculate_Qy_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          size_type stride_preconditioner,
                          const size_type* final_iter_nums)
 {
+    if (stride_preconditioner == 0) {
+        return;
+    }
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -494,6 +503,9 @@ void finish_arnoldi(std::shared_ptr<const DpcppExecutor> exec,
                     matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
                     const stopping_status* stop_status)
 {
+    if (hessenberg_iter->get_size()[1] == 0) {
+        return;
+    }
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     // auto cublas_handle = exec->get_cublas_handle();

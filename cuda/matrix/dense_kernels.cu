@@ -401,7 +401,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        {
+        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
@@ -426,7 +426,7 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        {
+        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
