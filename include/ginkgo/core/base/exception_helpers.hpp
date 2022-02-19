@@ -652,6 +652,21 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
 
 
 /**
+ * Throws an @ref UnsupportedMatrixProperty exception in case of an unmet
+ * matrix property requirement.
+ *
+ * @param _message  A message describing the matrix property required.
+ */
+#define GKO_UNSUPPORTED_MATRIX_PROPERTY(_message)                             \
+    {                                                                         \
+        throw ::gko::UnsupportedMatrixProperty(__FILE__, __LINE__, _message); \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+
+/**
  * Ensures that a given size, typically of a linear algebraic object,
  * is divisible by a given block size.
  *
@@ -668,6 +683,26 @@ inline T ensure_allocated_impl(T ptr, const std::string& file, int line,
     }                                                                          \
     static_assert(true,                                                        \
                   "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+/**
+ * Checks that the operator is a scalar, ie., has size 1x1.
+ *
+ * @param _op  Operator to be checked.
+ *
+ * @throw  BadDimension  if _op does not have size 1x1.
+ */
+#define GKO_ASSERT_IS_SCALAR(_op)                                            \
+    {                                                                        \
+        auto sz = gko::detail::get_size(_op);                                \
+        if (sz[0] != 1 || sz[1] != 1) {                                      \
+            throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op,    \
+                                      sz[0], sz[1], "expected scalar");      \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 

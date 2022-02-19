@@ -2186,6 +2186,27 @@ void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx,
+    bool& has_all_diags) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
+                         const matrix::Dense<ValueType>* const alpha,
+                         const matrix::Dense<ValueType>* const beta,
+                         matrix::Csr<ValueType, IndexType>* const mtx)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace csr
 }  // namespace dpcpp
 }  // namespace kernels

@@ -842,4 +842,64 @@ __global__
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void add_scaled_identity(
+    const ValueType* const __restrict__ alpha,
+    const ValueType* const __restrict__ beta, const IndexType num_rows,
+    const IndexType* const __restrict__ row_ptrs,
+    const IndexType* const __restrict__ col_idxs,
+    ValueType* const __restrict__ values)
+{
+    constexpr int warp_size = config::warp_size;
+    auto tile_grp =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto warpid = thread::get_subwarp_id_flat<warp_size, IndexType>();
+    const auto num_warps = thread::get_subwarp_num_flat<warp_size, IndexType>();
+    if (warpid < num_rows) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const IndexType row_start = row_ptrs[warpid];
+        const IndexType num_nz = row_ptrs[warpid + 1] - row_start;
+        for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
+            values[iz + row_start] *= beta[0];
+            if (col_idxs[iz + row_start] == warpid) {
+                values[iz + row_start] += alpha[0];
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
+    const IndexType num_min_rows_cols,
+    const IndexType* const __restrict__ row_ptrs,
+    const IndexType* const __restrict__ col_idxs,
+    bool* const __restrict__ has_all_diags)
+{
+    constexpr int warp_size = config::warp_size;
+    auto tile_grp =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto row = thread::get_subwarp_id_flat<warp_size, IndexType>();
+    if (row < num_min_rows_cols) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const IndexType row_start = row_ptrs[row];
+        const IndexType num_nz = row_ptrs[row + 1] - row_start;
+        bool row_has_diag_local{false};
+        for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
+            if (col_idxs[iz + row_start] == row) {
+                row_has_diag_local = true;
+                break;
+            }
+        }
+        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
+        if (!row_has_diag) {
+            if (tile_grp.thread_rank() == 0) {
+                *has_all_diags = false;
+            }
+            return;
+        }
+    }
+}
+
+
 }  // namespace kernel

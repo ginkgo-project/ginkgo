@@ -41,6 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/csr.hpp>
+
+
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 
@@ -195,6 +198,64 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixWithRatioCorrectly)
     gko::test::make_diag_dominant(gko::lend(cpy_mtx), ratio);
 
     GKO_ASSERT_MTX_NEAR(this->mtx, cpy_mtx, r<T>::value);
+}
+
+
+TEST(MatrixUtils, RemoveDiagonalEntry)
+{
+    using T = float;
+    using Csr = gko::matrix::Csr<T, int>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto b = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0, 1.1, 0.0}, I<T>{1.0, 2.4, 0.0, -1.0},
+         I<T>{0.0, -4.0, 2.2, -2.0}, I<T>{0.0, -3.0, 1.5, 1.0}},
+        exec);
+    const int row_to_remove = 2;
+
+    gko::test::remove_diagonal_entry_from_row(b.get(), row_to_remove);
+
+    const auto rowptrs = b->get_const_row_ptrs();
+    const auto colidxs = b->get_const_col_idxs();
+    for (int i = 0; i < 4; i++) {
+        bool has_diag = false;
+        for (int j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
+            if (colidxs[j] == i) {
+                has_diag = true;
+            }
+        }
+        ASSERT_EQ(has_diag, i != row_to_remove);
+    }
+}
+
+
+TEST(MatrixUtils, ModifyToEnsureAllDiagonalEntries)
+{
+    using T = float;
+    using Csr = gko::matrix::Csr<T, int>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto b = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0, 1.1, 0.0}, I<T>{1.0, 2.4, 0.0, -1.0},
+         I<T>{0.0, -4.0, 2.2, -2.0}, I<T>{0.0, -3.0, 1.5, 1.0}},
+        exec);
+
+    gko::test::ensure_all_diagonal_entries(b.get());
+
+    const auto rowptrs = b->get_const_row_ptrs();
+    const auto colidxs = b->get_const_col_idxs();
+    bool all_diags = true;
+    for (int i = 0; i < 3; i++) {
+        bool has_diag = false;
+        for (int j = rowptrs[i]; j < rowptrs[i + 1]; j++) {
+            if (colidxs[j] == i) {
+                has_diag = true;
+            }
+        }
+        if (!has_diag) {
+            all_diags = false;
+            break;
+        }
+    }
+    ASSERT_TRUE(all_diags);
 }
 
 

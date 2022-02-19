@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 
 
@@ -764,6 +765,54 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
     auto sdmat1 = this->dmtx2->create_submatrix(rspan, cspan);
 
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
+}
+
+
+TEST_F(Csr, CanDetectMissingDiagonalEntry)
+{
+    using T = double;
+    using Csr = Mtx;
+    auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
+    const auto rowptrs = ref_mtx->get_row_ptrs();
+    const auto colidxs = ref_mtx->get_col_idxs();
+    const int testrow = 15;
+    gko::test::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
+    auto mtx = gko::clone(omp, ref_mtx);
+    bool has_diags = true;
+
+    gko::kernels::omp::csr::check_diagonal_entries_exist(omp, mtx.get(),
+                                                         has_diags);
+
+    ASSERT_FALSE(has_diags);
+}
+
+
+TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
+{
+    using T = double;
+    using Csr = Mtx;
+    auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
+    gko::test::ensure_all_diagonal_entries(ref_mtx.get());
+    auto mtx = gko::clone(omp, ref_mtx);
+    bool has_diags = true;
+
+    gko::kernels::omp::csr::check_diagonal_entries_exist(omp, mtx.get(),
+                                                         has_diags);
+
+    ASSERT_TRUE(has_diags);
+}
+
+
+TEST_F(Csr, AddScaledIdentityToNonSquare)
+{
+    set_up_apply_data();
+    gko::test::ensure_all_diagonal_entries(mtx.get());
+    dmtx->copy_from(mtx.get());
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+    dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<double>::value);
 }
 
 

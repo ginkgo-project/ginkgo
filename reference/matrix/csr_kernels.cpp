@@ -966,6 +966,56 @@ void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx, bool& has_all_diags)
+{
+    has_all_diags = true;
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const size_type minsize = std::min(mtx->get_size()[0], mtx->get_size()[1]);
+    for (size_type row = 0; row < minsize; row++) {
+        bool row_diag = false;
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            if (col_idxs[iz] == row) {
+                row_diag = true;
+            }
+        }
+        if (!row_diag) {
+            has_all_diags = false;
+            break;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
+                         const matrix::Dense<ValueType>* const alpha,
+                         const matrix::Dense<ValueType>* const beta,
+                         matrix::Csr<ValueType, IndexType>* const mtx)
+{
+    const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto vals = mtx->get_values();
+    for (IndexType row = 0; row < nrows; row++) {
+        for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
+            vals[iz] *= beta->get_const_values()[0];
+            if (row == mtx->get_const_col_idxs()[iz]) {
+                vals[iz] += alpha->get_const_values()[0];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace csr
 }  // namespace reference
 }  // namespace kernels

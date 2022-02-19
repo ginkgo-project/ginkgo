@@ -105,6 +105,9 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 GKO_REGISTER_OPERATION(scale, csr::scale);
 GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
+GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
+GKO_REGISTER_OPERATION(check_diagonal_entries,
+                       csr::check_diagonal_entries_exist);
 
 
 }  // anonymous namespace
@@ -669,6 +672,23 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
     auto exec = this->get_executor();
     exec->run(csr::make_inv_scale(
         make_temporary_conversion<ValueType>(alpha).get(), this));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* const a,
+                                                         const LinOp* const b)
+{
+    bool has_diags{false};
+    this->get_executor()->run(
+        csr::make_check_diagonal_entries(this, has_diags));
+    if (!has_diags) {
+        GKO_UNSUPPORTED_MATRIX_PROPERTY(
+            "The matrix has one or more structurally zero diagonal entries!");
+    }
+    this->get_executor()->run(csr::make_add_scaled_identity(
+        make_temporary_conversion<ValueType>(a).get(),
+        make_temporary_conversion<ValueType>(b).get(), this));
 }
 
 
