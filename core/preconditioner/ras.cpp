@@ -56,20 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace preconditioner {
-namespace ras {
-
-
-GKO_REGISTER_OPERATION(simple_apply, ras::simple_apply);
-GKO_REGISTER_OPERATION(apply, ras::apply);
-GKO_REGISTER_OPERATION(find_blocks, ras::find_blocks);
-GKO_REGISTER_OPERATION(generate, ras::generate);
-GKO_REGISTER_OPERATION(transpose_ras, ras::transpose_ras);
-GKO_REGISTER_OPERATION(conj_transpose_ras, ras::conj_transpose_ras);
-GKO_REGISTER_OPERATION(convert_to_dense, ras::convert_to_dense);
-GKO_REGISTER_OPERATION(initialize_precisions, ras::initialize_precisions);
-
-
-}  // namespace ras
+namespace ras {}  // namespace ras
 
 
 template <typename ValueType, typename IndexType>
