@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/ras_kernels.hpp"
+#include "core/preconditioner/schwarz_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -44,18 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
-// #include "cuda/preconditioner/ras_common.hpp"
+// #include "cuda/preconditioner/schwarz_common.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The Ras preconditioner namespace.
- * @ref Ras
- * @ingroup ras
+ * @brief The Schwarz preconditioner namespace.
+ * @ref Schwarz
+ * @ingroup schwarz
  */
-namespace ras {}  // namespace ras
+namespace schwarz {}  // namespace schwarz
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

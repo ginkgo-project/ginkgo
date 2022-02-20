@@ -30,72 +30,33 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_RAS_KERNELS_HPP_
-#define GKO_CORE_PRECONDITIONER_RAS_KERNELS_HPP_
+#include "core/preconditioner/schwarz_kernels.hpp"
 
 
-#include <ginkgo/core/preconditioner/ras.hpp>
+#include <hip/hip_runtime.h>
 
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "core/base/extended_float.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/math.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-namespace omp {
-namespace ras {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ras
-}  // namespace omp
-
-
-namespace cuda {
-namespace ras {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ras
-}  // namespace cuda
-
-
-namespace reference {
-namespace ras {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ras
-}  // namespace reference
-
-
 namespace hip {
-namespace ras {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ras
+/**
+ * @brief The Schwarz preconditioner namespace.
+ * @ref Schwarz
+ * @ingroup schwarz
+ */
+namespace schwarz {}  // namespace schwarz
 }  // namespace hip
-
-
-namespace dpcpp {
-namespace ras {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace ras
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_CORE_PRECONDITIONER_RAS_KERNELS_HPP_

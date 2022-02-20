@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     using cg = gko::solver::Cg<ValueType>;
     using fcg = gko::solver::Fcg<ValueType>;
     using bicgstab = gko::solver::Bicgstab<ValueType>;
-    using ras = gko::preconditioner::Ras<ValueType, IndexType>;
+    using schwarz = gko::preconditioner::Schwarz<ValueType, IndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using LowerSolver = gko::solver::LowerTrs<ValueType, IndexType>;
     using UpperSolver = gko::solver::UpperTrs<ValueType, IndexType>;
@@ -146,8 +146,8 @@ int main(int argc, char* argv[])
                                             : gko::Overlap<gko::size_type>{});
 
     const RealValueType inner_reduction_factor{1e-5};
-    auto ras_precond =
-        ras::build()
+    auto schwarz_precond =
+        schwarz::build()
             .with_inner_solver(
                 // bj::build().on(exec))
                 // ilu::build().on(exec))
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
             .with_criteria(combined_stop)
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            .with_generated_preconditioner(gko::share(ras_precond))
+            .with_generated_preconditioner(gko::share(schwarz_precond))
             // .with_preconditioner(ilu::build().on(exec))
             .on(exec);
     // Create solver

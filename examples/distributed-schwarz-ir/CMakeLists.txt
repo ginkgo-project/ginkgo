@@ -1,5 +1,5 @@
-add_executable(distributed-ras-ir distributed-ras-ir.cpp)
-target_link_libraries(distributed-ras-ir Ginkgo::ginkgo)
+add_executable(distributed-schwarz-ir distributed-schwarz-ir.cpp)
+target_link_libraries(distributed-schwarz-ir Ginkgo::ginkgo)
 configure_file(data/A.mtx data/A.mtx COPYONLY)
 configure_file(data/b.mtx data/b.mtx COPYONLY)
 configure_file(data/x0.mtx data/x0.mtx COPYONLY)

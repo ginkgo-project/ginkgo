@@ -14,8 +14,8 @@ set(EXAMPLES_EXEC_LIST
     nine-pt-stencil-solver
     poisson-solver
     preconditioned-solver
-    ras-precond-solver
-    ras-ir
+    schwarz-precond-solver
+    schwarz-ir
     simple-solver
     three-pt-stencil-solver)
 
@@ -42,7 +42,7 @@ if(GINKGO_BUILD_EXTLIB_EXAMPLE)
 endif()
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND EXAMPLES_LIST distributed-spmv distributed-spgemm distributed-solver distributed-ras-ir)
+    list(APPEND EXAMPLES_LIST distributed-spmv distributed-spgemm distributed-solver distributed-schwarz-ir)
 endif()
 
 find_package(OpenCV QUIET)

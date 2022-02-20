@@ -41,7 +41,7 @@ target_sources(ginkgo_dpcpp
     matrix/sparsity_csr_kernels.dp.cpp
     preconditioner/isai_kernels.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
-    preconditioner/ras_kernels.dp.cpp
+    preconditioner/schwarz_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/gmres_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp

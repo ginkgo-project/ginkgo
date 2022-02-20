@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     using ir = gko::solver::Ir<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
-    using ras = gko::preconditioner::Ras<ValueType, LocalIndexType>;
+    using schwarz = gko::preconditioner::Schwarz<ValueType, LocalIndexType>;
     using solver = gko::solver::Cg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
@@ -238,12 +238,12 @@ int main(int argc, char* argv[])
                                .with_reduction_factor(inner_reduction_factor)
                                .on(exec))
             .on(exec));
-    auto ras_precond = ras::build()
-                           // .with_coarse_relaxation_factors(rel_fac)
-                           // .with_generated_coarse_solvers(coarse_solver)
-                           .with_inner_solver(inner_solver)
-                           .on(exec)
-                           ->generate(A);
+    auto schwarz_precond = schwarz::build()
+                               // .with_coarse_relaxation_factors(rel_fac)
+                               .with_generated_coarse_solvers(coarse_solver)
+                               .with_inner_solver(inner_solver)
+                               .on(exec)
+                               ->generate(A);
     MPI_Barrier(MPI_COMM_WORLD);
     ValueType t_prec_setup_end = MPI_Wtime();
 
@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
 
     auto solver_gen =
         ir::build()
-            .with_generated_solver(share(ras_precond))
+            .with_generated_solver(share(schwarz_precond))
             // .with_relaxation_factor(relax_fac)
             // .with_solver(
             //     cg::build()
@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
     // Create solver
     auto Ainv = solver_gen->generate(A);
     // auto Ainv = solver::build()
-    //                 .with_generated_preconditioner(gko::share(ras_precond))
+    //                 .with_generated_preconditioner(gko::share(schwarz_precond))
     //                 .with_criteria(combined_stop)
     //                 .on(exec)
     //                 ->generate(A);

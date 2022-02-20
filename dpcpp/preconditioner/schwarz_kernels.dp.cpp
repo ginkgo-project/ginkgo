@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/ras_kernels.hpp"
+#include "core/preconditioner/schwarz_kernels.hpp"
 
 
 #include <algorithm>
@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-#include <omp.h>
+#include <CL/sycl.hpp>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -52,18 +52,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/allocator.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
-#include "omp/components/matrix_operations.hpp"
+#include "dpcpp/components/matrix_operations.dp.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace dpcpp {
 /**
- * @brief The Ras preconditioner namespace.
+ * @brief The Schwarz preconditioner namespace.
  *
- * @ingroup ras
+ * @ingroup schwarz
  */
-namespace ras {}  // namespace ras
-}  // namespace omp
+namespace schwarz {}  // namespace schwarz
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

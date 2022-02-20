@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_RAS_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_RAS_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_SCHWARZ_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_SCHWARZ_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -53,10 +53,10 @@ namespace preconditioner {
 
 
 /**
- * A block-Ras preconditioner is a block-diagonal linear operator, obtained
+ * A block-Schwarz preconditioner is a block-diagonal linear operator, obtained
  * by inverting the diagonal blocks of the source operator.
  *
- * The Ras class implements the inversion of the diagonal blocks using
+ * The Schwarz class implements the inversion of the diagonal blocks using
  * Gauss-Jordan elimination with column pivoting, and stores the inverse
  * explicitly in a customized format.
  *
@@ -71,11 +71,11 @@ namespace preconditioner {
  * / columns.
  *
  * The implementation also includes an improved, adaptive version of the
- * block-Ras preconditioner, which can store some of the blocks in lower
+ * block-Schwarz preconditioner, which can store some of the blocks in lower
  * precision and thus improve the performance of preconditioner application by
  * reducing the amount of memory transfers. This variant can be enabled by
- * setting the Ras::Factory's `storage_optimization` parameter.  Refer to the
- * documentation of the parameter for more details.
+ * setting the Schwarz::Factory's `storage_optimization` parameter.  Refer to
+ * the documentation of the parameter for more details.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
@@ -86,20 +86,21 @@ namespace preconditioner {
  *       slightly longer preconditioner generation due to extra work required to
  *       detect the optimal precision of the blocks.
  *
- * @ingroup ras
+ * @ingroup schwarz
  * @ingroup precond
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ras : public EnableLinOp<Ras<ValueType, IndexType>>, public Transposable {
-    friend class EnableLinOp<Ras>;
-    friend class EnablePolymorphicObject<Ras, LinOp>;
+class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>>,
+                public Transposable {
+    friend class EnableLinOp<Schwarz>;
+    friend class EnablePolymorphicObject<Schwarz, LinOp>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
-    using transposed_type = Ras<ValueType, IndexType>;
+    using transposed_type = Schwarz<ValueType, IndexType>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -150,31 +151,32 @@ public:
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
             generated_inner_solvers, nullptr);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Ras, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     bool is_distributed() const { return this->is_distributed_; }
 
 protected:
     /**
-     * Creates an empty Ras preconditioner.
+     * Creates an empty Schwarz preconditioner.
      *
      * @param exec  the executor this object is assigned to
      */
-    explicit Ras(std::shared_ptr<const Executor> exec) : EnableLinOp<Ras>(exec)
+    explicit Schwarz(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Schwarz>(exec)
     {}
 
     /**
-     * Creates a Ras preconditioner from a matrix using a Ras::Factory.
+     * Creates a Schwarz preconditioner from a matrix using a Schwarz::Factory.
      *
      * @param factory  the factory to use to create the preconditoner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit Ras(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Ras>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+    explicit Schwarz(const Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Schwarz>(factory->get_executor(),
+                               gko::transpose(system_matrix->get_size())),
           system_matrix_{std::move(system_matrix)},
           parameters_{factory->get_parameters()}
     {
@@ -256,4 +258,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_RAS_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_SCHWARZ_HPP_

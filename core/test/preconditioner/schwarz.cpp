@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/ras.hpp>
+#include <ginkgo/core/preconditioner/schwarz.hpp>
 
 
 #include <gtest/gtest.h>
@@ -49,17 +49,17 @@ namespace {
 
 
 template <typename ValueIndexType>
-class RasFactory : public ::testing::Test {
+class SchwarzFactory : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
-    using Ras = gko::preconditioner::Ras<value_type, index_type>;
+    using Schwarz = gko::preconditioner::Schwarz<value_type, index_type>;
     using Cg = gko::solver::Cg<value_type>;
 
-    RasFactory()
+    SchwarzFactory()
         : exec(gko::ReferenceExecutor::create()),
           csr_mtx(gko::initialize<CsrMtx>({{1.0, 2.0, 0.0, 0.0, 3.0},
                                            {0.0, 3.0, 0.0, 0.0, 0.0},
@@ -72,14 +72,15 @@ protected:
               gko::matrix::
                   BlockApprox<gko::matrix::Csr<value_type, index_type>>::create(
                       exec, csr_mtx.get(), block_sizes)),
-          ras_factory(Ras::build()
-                          .with_inner_solver(
-                              Cg::build()
-                                  .with_criteria(gko::stop::Iteration::build()
-                                                     .with_max_iters(3u)
-                                                     .on(exec))
-                                  .on(exec))
+          schwarz_factory(
+              Schwarz::build()
+                  .with_inner_solver(
+                      Cg::build()
+                          .with_criteria(gko::stop::Iteration::build()
+                                             .with_max_iters(3u)
+                                             .on(exec))
                           .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -88,21 +89,21 @@ protected:
     std::shared_ptr<
         gko::matrix::BlockApprox<gko::matrix::Csr<value_type, index_type>>>
         block_mtx;
-    std::unique_ptr<typename Ras::Factory> ras_factory;
+    std::unique_ptr<typename Schwarz::Factory> schwarz_factory;
 };
 
-TYPED_TEST_SUITE(RasFactory, gko::test::ValueIndexTypes);
+TYPED_TEST_SUITE(SchwarzFactory, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(RasFactory, KnowsItsExecutor)
+TYPED_TEST(SchwarzFactory, KnowsItsExecutor)
 {
-    ASSERT_EQ(this->ras_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->schwarz_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(RasFactory, KnowsItsSize)
+TYPED_TEST(SchwarzFactory, KnowsItsSize)
 {
-    auto solver = this->ras_factory->generate(this->block_mtx);
+    auto solver = this->schwarz_factory->generate(this->block_mtx);
     ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
 }
 

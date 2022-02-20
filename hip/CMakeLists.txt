@@ -188,7 +188,7 @@ set(GINKGO_HIP_SOURCES
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
     preconditioner/jacobi_simple_apply_kernel.hip.cpp
-    preconditioner/ras_kernels.hip.cpp
+    preconditioner/schwarz_kernels.hip.cpp
     reorder/rcm_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/cb_gmres_kernels.hip.cpp

@@ -30,33 +30,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/ras_kernels.hpp"
+#include "core/preconditioner/schwarz_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
+#include <algorithm>
+#include <cmath>
+#include <iterator>
+#include <numeric>
+#include <vector>
+
+
+#include <omp.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/extended_float.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/config.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "omp/components/matrix_operations.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace omp {
 /**
- * @brief The Ras preconditioner namespace.
- * @ref Ras
- * @ingroup ras
+ * @brief The Schwarz preconditioner namespace.
+ *
+ * @ingroup schwarz
  */
-namespace ras {}  // namespace ras
-}  // namespace hip
+namespace schwarz {}  // namespace schwarz
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

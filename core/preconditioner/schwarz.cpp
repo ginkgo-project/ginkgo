@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/ras.hpp>
+#include <ginkgo/core/preconditioner/schwarz.hpp>
 
 
 #include <memory>
@@ -51,16 +51,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
 #include "core/distributed/helpers.hpp"
-#include "core/preconditioner/ras_kernels.hpp"
+#include "core/preconditioner/schwarz_kernels.hpp"
 
 
 namespace gko {
 namespace preconditioner {
-namespace ras {}  // namespace ras
+namespace schwarz {}  // namespace schwarz
 
 
 template <typename ValueType, typename IndexType>
-void Ras<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -72,8 +72,8 @@ void Ras<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
 template <typename ValueType, typename IndexType>
 template <typename VectorType>
-void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
-                                                 VectorType* dense_x) const
+void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
+                                                     VectorType* dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
     if (is_distributed()) {
@@ -135,8 +135,10 @@ void Ras<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 
 
 template <typename ValueType, typename IndexType>
-void Ras<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                           const LinOp* beta, LinOp* x) const
+void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                               const LinOp* b,
+                                               const LinOp* beta,
+                                               LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -150,17 +152,17 @@ void Ras<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Ras<ValueType, IndexType>::transpose() const
+std::unique_ptr<LinOp> Schwarz<ValueType, IndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Ras<ValueType, IndexType>::conj_transpose() const
+std::unique_ptr<LinOp> Schwarz<ValueType, IndexType>::conj_transpose() const
     GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
-void Ras<ValueType, IndexType>::generate(const LinOp* system_matrix)
+void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix)
 {
     using base_mat = matrix::Csr<ValueType, IndexType>;
     using block_t = matrix::BlockApprox<base_mat>;
@@ -247,8 +249,9 @@ void Ras<ValueType, IndexType>::generate(const LinOp* system_matrix)
 }
 
 
-#define GKO_DECLARE_RAS(ValueType, IndexType) class Ras<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RAS);
+#define GKO_DECLARE_SCHWARZ(ValueType, IndexType) \
+    class Schwarz<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
 
 
 }  // namespace preconditioner

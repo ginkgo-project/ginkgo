@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/ras.hpp>
+#include <ginkgo/core/preconditioner/schwarz.hpp>
 
 
 #include <gtest/gtest.h>
@@ -50,7 +50,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class RasPrecond : public ::testing::Test {
+class SchwarzPrecond : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -59,10 +59,10 @@ protected:
     using T = value_type;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
-    using Ras = gko::preconditioner::Ras<value_type, index_type>;
+    using Schwarz = gko::preconditioner::Schwarz<value_type, index_type>;
     using Cg = gko::solver::Cg<value_type>;
 
-    RasPrecond()
+    SchwarzPrecond()
         : exec(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create(),
                                          false, gko::allocation_mode::device)),
           csr_mtx(gko::initialize<CsrMtx>({{4.0, 1.0, 0.0, 0.0, 0.0},
@@ -99,14 +99,15 @@ protected:
                       gko::stop::Iteration::build().with_max_iters(30u).on(
                           exec))
                   .on(exec)),
-          ras_factory(Ras::build()
-                          .with_inner_solver(
-                              Cg::build()
-                                  .with_criteria(gko::stop::Iteration::build()
-                                                     .with_max_iters(30u)
-                                                     .on(exec))
-                                  .on(exec))
+          schwarz_factory(
+              Schwarz::build()
+                  .with_inner_solver(
+                      Cg::build()
+                          .with_criteria(gko::stop::Iteration::build()
+                                             .with_max_iters(30u)
+                                             .on(exec))
                           .on(exec))
+                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -123,34 +124,34 @@ protected:
     std::shared_ptr<
         gko::matrix::BlockApprox<gko::matrix::Csr<value_type, index_type>>>
         ov_block_mtx;
-    std::unique_ptr<typename Ras::Factory> ras_factory;
+    std::unique_ptr<typename Schwarz::Factory> schwarz_factory;
     std::unique_ptr<typename Cg::Factory> cg_factory;
 };
 
 
 // FIXME: Some bug with complex float.
-TYPED_TEST_SUITE(RasPrecond, gko::test::RealValueSingleIndexTypes);
+TYPED_TEST_SUITE(SchwarzPrecond, gko::test::RealValueSingleIndexTypes);
 
 
-TYPED_TEST(RasPrecond, KnowsItsExecutor)
+TYPED_TEST(SchwarzPrecond, KnowsItsExecutor)
 {
-    ASSERT_EQ(this->ras_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->schwarz_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(RasPrecond, KnowsItsSize)
+TYPED_TEST(SchwarzPrecond, KnowsItsSize)
 {
-    auto solver = this->ras_factory->generate(this->block_mtx);
+    auto solver = this->schwarz_factory->generate(this->block_mtx);
     ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
 }
 
 
-TYPED_TEST(RasPrecond, CanApply)
+TYPED_TEST(SchwarzPrecond, CanApply)
 {
     using DenseMtx = typename TestFixture::DenseMtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto solver = this->ras_factory->generate(this->block_mtx);
+    auto solver = this->schwarz_factory->generate(this->block_mtx);
     ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
 
     auto solver0 = this->cg_factory->generate(this->csr_mtx0);
@@ -183,12 +184,12 @@ TYPED_TEST(RasPrecond, CanApply)
 }
 
 
-TYPED_TEST(RasPrecond, CanApplyWithOverlap)
+TYPED_TEST(SchwarzPrecond, CanApplyWithOverlap)
 {
     using DenseMtx = typename TestFixture::DenseMtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto solver = this->ras_factory->generate(this->ov_block_mtx);
+    auto solver = this->schwarz_factory->generate(this->ov_block_mtx);
     ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
 
     auto solver0 = this->cg_factory->generate(this->ov_csr_mtx0);
@@ -221,12 +222,12 @@ TYPED_TEST(RasPrecond, CanApplyWithOverlap)
 }
 
 
-TYPED_TEST(RasPrecond, CanAdvancedApply)
+TYPED_TEST(SchwarzPrecond, CanAdvancedApply)
 {
     using DenseMtx = typename TestFixture::DenseMtx;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto solver = this->ras_factory->generate(this->block_mtx);
+    auto solver = this->schwarz_factory->generate(this->block_mtx);
     ASSERT_EQ(solver->get_size(), gko::dim<2>(5, 5));
 
     auto solver0 = this->cg_factory->generate(this->csr_mtx0);

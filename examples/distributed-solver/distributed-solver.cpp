@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
         gko::distributed::BlockApprox<ValueType, LocalIndexType>;
     using vec = gko::matrix::Dense<ValueType>;
     using part_type = gko::distributed::Partition<LocalIndexType>;
-    using ras = gko::preconditioner::Ras<ValueType, LocalIndexType>;
+    using schwarz = gko::preconditioner::Schwarz<ValueType, LocalIndexType>;
     using solver = gko::solver::Cg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
     //                            .on(exec))
     //         .on(exec)
     //         ->generate(A));
-    // auto ras_precond = ras::build()
+    // auto schwarz_precond = schwarz::build()
     //                        .with_generated_inner_solvers(inner_solvers)
     //                        .with_generated_coarse_solvers(coarse_solver)
     //                        .on(exec)
@@ -299,7 +299,7 @@ int main(int argc, char* argv[])
 
     auto solver_gen =
         solver::build()
-            // .with_generated_preconditioner(gko::share(ras_precond))
+            // .with_generated_preconditioner(gko::share(schwarz_precond))
             .with_criteria(combined_stop)
             .on(exec);
     auto Ainv = solver_gen->generate(A);

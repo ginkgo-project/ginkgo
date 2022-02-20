@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
     using ir = gko::solver::Ir<ValueType>;
     using fcg = gko::solver::Fcg<ValueType>;
     using bicgstab = gko::solver::Bicgstab<ValueType>;
-    using ras = gko::preconditioner::Ras<ValueType, IndexType>;
+    using schwarz = gko::preconditioner::Schwarz<ValueType, IndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using paric = gko::preconditioner::Ic<ValueType, IndexType>;
     using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
@@ -207,8 +207,8 @@ int main(int argc, char* argv[])
                                                 .on(exec))
                              .on(exec)
                              ->generate(A);
-    auto ras_precond =
-        ras::build()
+    auto schwarz_precond =
+        schwarz::build()
             .with_block_dimensions(block_sizes)
             .with_coarse_relaxation_factors(c_relax_fac)
             .with_generated_coarse_solvers(gko::share(coarse_solver))
@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
             .on(exec)
             ->generate(A);
     auto solver_gen = ir::build()
-                          .with_generated_solver(gko::share(ras_precond))
+                          .with_generated_solver(gko::share(schwarz_precond))
                           .with_criteria(combined_stop)
                           .on(exec);
     // Create solver
