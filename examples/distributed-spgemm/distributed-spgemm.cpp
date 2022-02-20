@@ -188,5 +188,5 @@ int main(int argc, char* argv[])
     x_spgemm->add_scaled(lend(minus_one), lend(x));
     auto result = gko::initialize<vec>({0.0}, exec->get_master());
     x_spgemm->compute_norm2(lend(result));
-    std::cout << *result->get_values() << std::endl;
+    std::cout << "Spgemm error: " << *result->get_values() << std::endl;
 }

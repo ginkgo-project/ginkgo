@@ -189,7 +189,7 @@ void Matrix<ValueType, LocalIndexType>::read_distributed(
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer =
-        exec->get_master() != exec /* || comm.is_gpu_aware() */;
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
@@ -603,10 +603,16 @@ void Matrix<ValueType, LocalIndexType>::apply2(const LinOp* b, LinOp* x) const
                     local_mtx_blocks_[i]->get_size()[0],
                     dense_x->get_local()->get_values() + x_offset),
                 dense_x->get_size()[1]);
+            GKO_ASSERT(local_mtx_blocks_[i]->get_size()[0] != 0 &&
+                       local_mtx_blocks_[i]->get_size()[1] != 0);
+            GKO_ASSERT(x_view->get_size()[0] != 0 &&
+                       x_view->get_size()[1] != 0);
+            GKO_ASSERT(recv_buf_view->get_size()[0] != 0 &&
+                       recv_buf_view->get_size()[1] != 0);
             local_mtx_blocks_[i]->apply(&one_scalar_, recv_buf_view.get(),
                                         &one_scalar_, x_view.get());
-            offset += part->get_part_size(i);
             x_offset += local_mtx_blocks_[i]->get_size()[0];
+            offset += part->get_part_size(i);
         }
     }
 }
