@@ -187,10 +187,10 @@ private:
     Array<local_index_type> gather_idxs_;
     Array<global_index_type> local_to_global_ghost_;
     ::gko::detail::DenseCache<value_type> one_scalar_;
-    mutable ::gko::detail::DenseCache<value_type> host_send_buffer_;
-    mutable ::gko::detail::DenseCache<value_type> host_recv_buffer_;
-    mutable ::gko::detail::DenseCache<value_type> send_buffer_;
-    mutable ::gko::detail::DenseCache<value_type> recv_buffer_;
+    ::gko::detail::DenseCache<value_type> host_send_buffer_;
+    ::gko::detail::DenseCache<value_type> host_recv_buffer_;
+    ::gko::detail::DenseCache<value_type> send_buffer_;
+    ::gko::detail::DenseCache<value_type> recv_buffer_;
     std::shared_ptr<local_matrix_type> diag_mtx_;
     std::shared_ptr<local_matrix_type> offdiag_mtx_;
 };
