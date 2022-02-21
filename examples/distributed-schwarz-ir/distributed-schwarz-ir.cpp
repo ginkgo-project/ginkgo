@@ -113,8 +113,8 @@ int main(int argc, char* argv[])
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(
+                     0, gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
              [] {
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
             .on(exec));
     auto schwarz_precond = schwarz::build()
                                // .with_coarse_relaxation_factors(rel_fac)
-                               .with_generated_coarse_solvers(coarse_solver)
+                               // .with_generated_coarse_solvers(coarse_solver)
                                .with_inner_solver(inner_solver)
                                .on(exec)
                                ->generate(A);
