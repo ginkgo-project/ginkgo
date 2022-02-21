@@ -106,22 +106,32 @@ public:
 
     void convert_to(Matrix<value_type, local_index_type>* result) const override
     {
-        result->diag_mtx_->copy_from(this->diag_mtx_.get());
-        result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-        // FIXME
-        if (result->local_mtx_blocks_.size() > 0) {
-            for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
-                result->local_mtx_blocks_[i]->copy_from(
-                    this->local_mtx_blocks_[i].get());
-            }
-        }
+        result->set_size(this->get_size());
+        result->one_scalar_.copy_from(&this->one_scalar_);
         result->gather_idxs_ = this->gather_idxs_;
+        result->local_to_global_row = this->local_to_global_row;
+        result->local_to_global_offdiag_col = this->local_to_global_offdiag_col;
         result->partition_ = this->partition_;
         result->send_offsets_ = this->send_offsets_;
         result->recv_offsets_ = this->recv_offsets_;
         result->recv_sizes_ = this->recv_sizes_;
         result->send_sizes_ = this->send_sizes_;
-        result->set_size(this->get_size());
+        result->send_sizes_ = this->send_sizes_;
+        // FIXME
+        result->init_local_mtx_blocks();
+        if (this->local_mtx_blocks_.size() > 0 &&
+            result->local_mtx_blocks_.size() > 0) {
+            for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
+                result->local_mtx_blocks_[i]->copy_from(
+                    this->local_mtx_blocks_[i].get());
+            }
+            result->usable_block_apply_ = true;
+        } else {
+            result->usable_block_apply_ = false;
+            GKO_NOT_IMPLEMENTED;
+        }
+        result->diag_mtx_->copy_from(this->diag_mtx_.get());
+        result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
     }
 
     void move_to(Matrix<value_type, local_index_type>* result) override
@@ -240,6 +250,9 @@ public:
 
     void apply2(const LinOp* b, LinOp* x) const;
 
+    void apply2(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                LinOp* x) const;
+
 protected:
     Matrix(std::shared_ptr<const Executor> exec, const gko::dim<2>& size = {},
            std::shared_ptr<mpi::communicator> comm =
@@ -272,6 +285,7 @@ protected:
                     LinOp* x) const override;
 
 private:
+    bool usable_block_apply_;
     std::vector<comm_index_type> send_offsets_;
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -148,6 +149,36 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
+#if GINKGO_BUILD_MPI
+        auto dist_mat =
+            gko::as<const gko::distributed::Matrix<ValueType, int32>>(
+                system_matrix_);
+
+        if (solver_->apply_uses_initial_guess()) {
+            // Use the inner solver to solve
+            // A * inner_solution = residual
+            // with residual as initial guess.
+            inner_solution->copy_from(lend(residual));
+            solver_->apply(lend(residual), lend(inner_solution));
+
+            // x = x + relaxation_factor * inner_solution
+            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            dist_mat->apply2(lend(neg_one_op), dense_x, lend(one_op),
+                             lend(residual));
+        } else {
+            // x = x + relaxation_factor * A \ residual
+            solver_->apply(lend(relaxation_factor_), lend(residual),
+                           lend(one_op), dense_x);
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            dist_mat->apply2(lend(neg_one_op), dense_x, lend(one_op),
+                             lend(residual));
+        }
+#else
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
@@ -172,6 +203,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
                                   lend(residual));
         }
+#endif
     }
 }
 
