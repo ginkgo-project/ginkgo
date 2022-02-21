@@ -604,8 +604,6 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
 int read_data_and_launch_benchmark(int argc, char* argv[],
                                    const bool io_from_std)
 {
-    // Set the default repetitions = 1.
-    FLAGS_repetitions = "1";
     std::string header =
         "A benchmark for measuring performance of Ginkgo's batch solvers.\n";
     std::string format =
