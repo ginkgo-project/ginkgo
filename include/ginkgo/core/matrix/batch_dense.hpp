@@ -77,18 +77,17 @@ class BatchCsr;
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class BatchDense
-    : public EnableBatchLinOp<BatchDense<ValueType>>,
-      public EnableCreateMethod<BatchDense<ValueType>>,
-      public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
-      public ConvertibleTo<BatchCsr<ValueType, int32>>,
-      public ConvertibleTo<BatchDiagonal<ValueType>>,
-      public BatchReadableFromMatrixData<ValueType, int32>,
-      public BatchReadableFromMatrixData<ValueType, int64>,
-      public BatchWritableToMatrixData<ValueType, int32>,
-      public BatchWritableToMatrixData<ValueType, int64>,
-      public BatchTransposable,
-      public EnableBatchScaledIdentityAddition<BatchDense<ValueType>> {
+class BatchDense : public EnableBatchLinOp<BatchDense<ValueType>>,
+                   public EnableCreateMethod<BatchDense<ValueType>>,
+                   public ConvertibleTo<BatchDense<next_precision<ValueType>>>,
+                   public ConvertibleTo<BatchCsr<ValueType, int32>>,
+                   public ConvertibleTo<BatchDiagonal<ValueType>>,
+                   public BatchReadableFromMatrixData<ValueType, int32>,
+                   public BatchReadableFromMatrixData<ValueType, int64>,
+                   public BatchWritableToMatrixData<ValueType, int32>,
+                   public BatchWritableToMatrixData<ValueType, int64>,
+                   public BatchTransposable,
+                   public BatchScaledIdentityAddable {
     friend class EnableCreateMethod<BatchDense>;
     friend class EnablePolymorphicObject<BatchDense, BatchLinOp>;
     friend class BatchDense<to_complex<ValueType>>;
