@@ -75,7 +75,7 @@ class BatchCsr
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
       public BatchTransposable,
-      public EnableBatchScaledIdentityAddition<BatchCsr<ValueType, IndexType>> {
+      public BatchScaledIdentityAddable {
     friend class EnableCreateMethod<BatchCsr>;
     friend class EnablePolymorphicObject<BatchCsr, BatchLinOp>;
     friend class BatchCsr<to_complex<ValueType>, IndexType>;
