@@ -182,7 +182,7 @@ void build_diag_offdiag(
     const auto num_diag_elems =
         static_cast<size_type>(partition->get_part_size(local_part));
     diag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_diag_elems},
-                               diag_entries.size());
+                               static_cast<size_type>(diag_entries.size()));
     components::aos_to_soa(exec,
                            Array<local_nonzero>::view(exec, diag_entries.size(),
                                                       diag_entries.data()),
@@ -211,7 +211,9 @@ void build_diag_offdiag(
     }
     // build local-to-global map for offdiag columns
     local_to_global_ghost.resize_and_reset(num_ghost_elems);
-    local_to_global_ghost.fill(invalid_index<GlobalIndexType>());
+    std::fill_n(local_to_global_ghost.get_data(),
+                local_to_global_ghost.get_num_elems(),
+                invalid_index<GlobalIndexType>());
     for (const auto& key_value : offdiag_global_to_local) {
         const auto global_idx = key_value.first;
         const auto local_idx = key_value.second;
@@ -223,8 +225,9 @@ void build_diag_offdiag(
         recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
     }
     // map off-diag values to local column indices
-    offdiag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_ghost_elems},
-                                  global_offdiag_entries.size());
+    offdiag_data.resize_and_reset(
+        gko::dim<2>{num_diag_elems, num_ghost_elems},
+        static_cast<size_type>(global_offdiag_entries.size()));
 #pragma omp for
     for (size_type i = 0; i < global_offdiag_entries.size(); i++) {
         auto global = global_offdiag_entries[i];
