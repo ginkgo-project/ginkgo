@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <algorithm>
 #include <memory>
 
@@ -58,12 +57,15 @@ using comm_index_type = gko::distributed::comm_index_type;
 template <typename ValueLocalGlobalIndexType>
 class Matrix : public ::testing::Test {
 protected:
-    using value_type = typename std::tuple_element<
-        0, decltype(ValueLocalGlobalIndexType())>::type;
-    using local_index_type = typename std::tuple_element<
-        1, decltype(ValueLocalGlobalIndexType())>::type;
-    using global_index_type = typename std::tuple_element<
-        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using value_type =
+        typename std::tuple_element<0, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using local_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<2, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
