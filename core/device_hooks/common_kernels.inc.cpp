@@ -263,7 +263,6 @@ namespace distributed_matrix {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_DIAG_OFFDIAG);
-GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
 
 
 }  // namespace distributed_matrix
