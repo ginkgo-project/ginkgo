@@ -148,9 +148,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_IS_SQUARE_MATRIX(data.get_size());
     GKO_ASSERT_EQ(data.get_size()[0], partition->get_size());
     GKO_ASSERT_EQ(comm.size(), partition->get_num_parts());
-    using nonzero_type = matrix_data_entry<value_type, local_index_type>;
     auto exec = this->get_executor();
-    // TODO: after update move data to correct executor
     auto local_part = comm.rank();
 
     // set up LinOp sizes
@@ -167,7 +165,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
-        data, partition, local_part, diag_data, offdiag_data, recv_gather_idxs,
+        data, make_temporary_clone(exec, partition).get(), local_part,
+        diag_data, offdiag_data, recv_gather_idxs,
         recv_offsets_array.get_data(), local_to_global_ghost_));
 
     this->diag_mtx_->read(diag_data);
@@ -177,10 +176,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     exec->get_master()->copy_from(exec.get(), num_parts + 1,
                                   recv_offsets_array.get_data(),
                                   recv_offsets_.data());
-    // TODO clean this up a bit
-    for (size_type i = 0; i < num_parts; i++) {
-        recv_sizes_[i] = recv_offsets_[i + 1] - recv_offsets_[i];
-    }
+    std::adjacent_difference(recv_offsets_.begin() + 1, recv_offsets_.end(),
+                             recv_sizes_.begin());
     comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
