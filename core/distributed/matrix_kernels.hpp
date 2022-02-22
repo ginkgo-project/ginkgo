@@ -63,20 +63,11 @@ namespace kernels {
         Array<GlobalIndexType>& local_to_global_ghost)
 
 
-#define GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)           \
-    void map_to_global_idxs(std::shared_ptr<const DefaultExecutor> exec, \
-                            const SourceType* input, size_t n,           \
-                            TargetType* output, const TargetType* map)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    using comm_index_type = distributed::comm_index_type;     \
-    template <typename ValueType, typename LocalIndexType,    \
-              typename GlobalIndexType>                       \
-    GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType, \
-                                   GlobalIndexType);          \
-    template <typename SourceType, typename TargetType>       \
-    GKO_DECLARE_MAP_TO_GLOBAL_IDXS(SourceType, TargetType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                       \
+    using comm_index_type = distributed::comm_index_type;  \
+    template <typename ValueType, typename LocalIndexType, \
+              typename GlobalIndexType>                    \
+    GKO_DECLARE_BUILD_DIAG_OFFDIAG(ValueType, LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,
