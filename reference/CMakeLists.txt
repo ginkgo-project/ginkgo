@@ -53,6 +53,7 @@ target_sources(ginkgo_reference
 if(GINKGO_BUILD_MPI)
     target_sources(ginkgo_reference
         PRIVATE
+    distributed/coarse_gen_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/vector_kernels.cpp)
 endif()

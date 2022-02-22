@@ -68,7 +68,7 @@ namespace distributed {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class CoarseGen : public EnableLinOp<CoarseGen<ValueType, IndexType>>,
-                  public EnableMultigridLevel<ValueType> {
+                  public multigrid::EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<CoarseGen>;
     friend class EnablePolymorphicObject<CoarseGen, LinOp>;
 
@@ -95,7 +95,10 @@ public:
      *
      * @return the aggregate group.
      */
-    IndexType* get_agg() noexcept { return agg_.get_data(); }
+    IndexType* get_coarse_indices_map() noexcept
+    {
+        return coarse_indices_map_.get_data();
+    }
 
     /**
      * @copydoc CoarseGen::get_agg()
@@ -104,13 +107,21 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const IndexType* get_const_agg() const noexcept
+    const IndexType* get_const_coarse_indices_map() const noexcept
     {
-        return agg_.get_const_data();
+        return coarse_indices_map_.get_const_data();
     }
+
+    enum class strategy_type { aggregation, selection };
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * The strategy to generate the coarse matrix
+         */
+        strategy_type GKO_FACTORY_PARAMETER_SCALAR(strategy,
+                                                   strategy_type::selection);
+
         /**
          * If the system matrix is Hermitian, then optimizations allow for easy
          * generation of the weight matrix.
@@ -176,28 +187,33 @@ protected:
                        std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<CoarseGen>(factory->get_executor(),
                                  system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
+          multigrid::EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
-          agg_(factory->get_executor(),
-               as<distributed::Matrix<ValueType, IndexType>>(
-                   system_matrix_.get())
-                   ->get_local_diag()
-                   ->get_size()[0])
+          coarse_indices_map_(factory->get_executor(),
+                              as<distributed::Matrix<ValueType, IndexType>>(
+                                  system_matrix_.get())
+                                  ->get_local_diag()
+                                  ->get_size()[0])
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
+            if (parameters_.strategy == strategy_type::aggregation) {
+                this->generate_with_aggregation();
+            } else if (parameters_.strategy == strategy_type::selection) {
+                this->generate_with_selection();
+            }
         }
     }
 
-    void generate();
+    void generate_with_aggregation();
+
+    void generate_with_selection();
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    Array<IndexType> agg_;
+    Array<IndexType> coarse_indices_map_;
 };
 
 

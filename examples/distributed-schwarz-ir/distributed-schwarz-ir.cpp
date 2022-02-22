@@ -65,6 +65,7 @@ int main(int argc, char* argv[])
     using part_type = gko::distributed::Partition<LocalIndexType>;
     using schwarz = gko::preconditioner::Schwarz<ValueType, LocalIndexType>;
     using solver = gko::solver::Cg<ValueType>;
+    using coarse_gen = gko::distributed::CoarseGen<ValueType, LocalIndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     using paric = gko::preconditioner::Ic<
@@ -212,6 +213,11 @@ int main(int argc, char* argv[])
     ValueType t_read_setup_end = MPI_Wtime();
 
     gko::remove_complex<ValueType> inner_reduction_factor = 1e-10;
+
+    auto coarse_A_fac = coarse_gen::build()
+                            .with_strategy(coarse_gen::strategy_type::selection)
+                            .on(exec);
+    auto coarse_A_op = gko::share(coarse_A_fac->generate(A));
     auto coarse_solver = gko::share(
         cg::build()
             // .with_preconditioner(bj::build().on(exec))
@@ -224,6 +230,7 @@ int main(int argc, char* argv[])
                            )
             .on(exec)
             ->generate(A));
+    // ->generate(coarse_A));
     auto inner_solver = gko::share(
         // bj::build().on(exec));
         // paric::build().on(exec))

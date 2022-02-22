@@ -71,6 +71,7 @@ if (GINKGO_BUILD_MPI)
         PRIVATE
         mpi/exception.cpp
         distributed/block_approx.cpp
+        distributed/coarse_gen.cpp
         distributed/matrix.cpp
         distributed/vector.cpp)
 endif()

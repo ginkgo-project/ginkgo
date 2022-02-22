@@ -202,7 +202,7 @@ set(GINKGO_HIP_SOURCES
     )
 
 if(GINKGO_BUILD_MPI)
-    list(APPEND GINKGO_HIP_SOURCES distributed/matrix_kernels.hip.cpp distributed/vector_kernels.hip.cpp)
+    list(APPEND GINKGO_HIP_SOURCES distributed/matrix_kernels.hip.cpp distributed/coarse_gen_kernels.hip.cpp distributed/vector_kernels.hip.cpp )
 endif()
 
 if(hipfft_FOUND)

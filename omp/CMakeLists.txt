@@ -44,6 +44,7 @@ target_sources(ginkgo_omp
 if(GINKGO_BUILD_MPI)
     target_sources(ginkgo_omp
         PRIVATE
+    distributed/coarse_gen_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/vector_kernels.cpp)
 endif()

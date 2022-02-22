@@ -121,6 +121,7 @@ target_sources(ginkgo_cuda
 if(GINKGO_BUILD_MPI)
     target_sources(ginkgo_cuda
         PRIVATE
+        distributed/coarse_gen_kernels.cu
         distributed/matrix_kernels.cu
         distributed/vector_kernels.cu)
 endif()

@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/coarse_gen_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
@@ -644,6 +645,19 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL);
 
 
 }  // namespace distributed_vector
+
+
+namespace coarse_gen {
+
+
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COARSE_GEN_FIND_STRONGEST_NEIGHBOR);
+
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG);
+
+
+}  // namespace coarse_gen
 
 
 namespace jacobi {

@@ -42,16 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/base/utils.hpp"
-#include "core/components/fill_array.hpp"
+#include "core/components/fill_array_kernels.hpp"
+#include "core/distributed/coarse_gen_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
 namespace gko {
-namespace multigrid {
+namespace distributed {
 namespace coarse_gen {
 namespace {
 
@@ -60,8 +63,8 @@ GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
 GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
-                       amgx_pgm::find_strongest_neighbor);
-GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
+                       coarse_gen::find_strongest_neighbor);
+GKO_REGISTER_OPERATION(assign_to_exist_agg, coarse_gen::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
@@ -71,9 +74,10 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 template <typename ValueType, typename IndexType>
-void CoarseGen<ValueType, IndexType>::generate()
+void CoarseGen<ValueType, IndexType>::generate_with_aggregation()
 {
     using matrix_type = distributed::Matrix<ValueType, IndexType>;
+    using csr = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
@@ -83,6 +87,7 @@ void CoarseGen<ValueType, IndexType>::generate()
 
     const auto global_num_rows = this->system_matrix_->get_size()[0];
     const auto local_num_rows = coarsegen_op->get_local_diag()->get_size()[0];
+    auto agg_ = coarse_indices_map_;
     Array<IndexType> strongest_neighbor(this->get_executor(), local_num_rows);
     Array<IndexType> intermediate_agg(
         this->get_executor(), parameters_.deterministic * local_num_rows);
@@ -113,8 +118,10 @@ void CoarseGen<ValueType, IndexType>::generate()
     auto diag = weight_mtx->get_local_diag()->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {
         // Find the strongest neighbor of each row
-        // exec->run(coarse_gen::make_find_strongest_neighbor(
-        //     weight_mtx.get(), diag.get(), agg_, strongest_neighbor));
+        exec->run(coarse_gen::make_find_strongest_neighbor(
+            weight_mtx->get_local_diag().get(),
+            weight_mtx->get_local_offdiag().get(), diag.get(), agg_,
+            strongest_neighbor));
         // Match edges
         exec->run(coarse_gen::make_match_edge(strongest_neighbor, agg_));
         // Get the num_unagg
@@ -134,8 +141,10 @@ void CoarseGen<ValueType, IndexType>::generate()
     }
     if (num_unagg != 0) {
         // Assign all left points
-        // exec->run(coarse_gen::make_assign_to_exist_agg(
-        //     weight_mtx.get(), diag.get(), agg_, intermediate_agg));
+        exec->run(coarse_gen::make_assign_to_exist_agg(
+            weight_mtx->get_local_diag().get(),
+            weight_mtx->get_local_offdiag().get(), diag.get(), agg_,
+            intermediate_agg));
     }
     IndexType num_agg = 0;
     // Renumber the index
@@ -143,27 +152,62 @@ void CoarseGen<ValueType, IndexType>::generate()
 
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
-    // TODO: prolong_op can be done with lightway format
-    auto prolong_op = share(
-        matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
-    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_op->get_col_idxs());
-    exec->run(coarse_gen::make_fill_seq_array(prolong_op->get_row_ptrs(),
-                                              fine_dim + 1));
-    exec->run(coarse_gen::make_fill_array(prolong_op->get_values(), fine_dim,
-                                          one<ValueType>()));
-    // TODO: implement the restrict_op from aggregation.
-    auto restrict_op = gko::as<matrix_type>(share(prolong_op->transpose()));
+    // prolong_row_gather is the lightway implementation for prolongation
+    // TODO: However, we still create the csr to process coarse/restrict matrix
+    // generation. It may be changed when we have the direct triple product from
+    // agg index.
+    // auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
+    //     exec, gko::dim<2>{fine_dim, coarse_dim}));
+    // exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+    //                 prolong_row_gather->get_row_idxs());
+    // auto prolong_csr = share(
+    //     csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
+    // exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
+    //                 prolong_csr->get_col_idxs());
+    // exec->run(amgx_pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(),
+    //                                         fine_dim + 1));
+    // exec->run(amgx_pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
+    //                                     one<ValueType>()));
+    // // TODO: implement the restrict_op from aggregation.
+    // auto restrict_op = gko::as<csr_type>(share(prolong_csr->transpose()));
+    // auto restrict_sparsity =
+    //     share(matrix::SparsityCsr<ValueType, IndexType>::create(
+    //         exec, restrict_op->get_size(),
+    //         restrict_op->get_num_stored_elements()));
+    // exec->copy_from(exec.get(), static_cast<size_type>(num_agg + 1),
+    //                 restrict_op->get_const_row_ptrs(),
+    //                 restrict_sparsity->get_row_ptrs());
+    // exec->copy_from(exec.get(), restrict_op->get_num_stored_elements(),
+    //                 restrict_op->get_const_col_idxs(),
+    //                 restrict_sparsity->get_col_idxs());
 
-    // Construct the coarse matrix
-    // TODO: use less memory footprint to improve it
-    auto coarse_matrix =
-        share(matrix_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    auto tmp = matrix_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    coarsegen_op->apply(prolong_op.get(), tmp.get());
-    restrict_op->apply(tmp.get(), coarse_matrix.get());
+    // // Construct the coarse matrix
+    // // TODO: use less memory footprint to improve it
+    // auto coarse_matrix =
+    //     share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+    // auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
+    // amgxpgm_op->apply(prolong_csr.get(), tmp.get());
+    // restrict_op->apply(tmp.get(), coarse_matrix.get());
 
-    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
+    // this->set_multigrid_level(prolong_row_gather, coarse_matrix,
+    //                           restrict_sparsity);
+}
+
+
+template <typename ValueType, typename IndexType>
+void CoarseGen<ValueType, IndexType>::generate_with_selection()
+{
+    using matrix_type = distributed::Matrix<ValueType, IndexType>;
+    using csr = matrix::Csr<ValueType, IndexType>;
+    using real_type = remove_complex<ValueType>;
+    using weight_matrix_type = remove_complex<matrix_type>;
+    auto exec = this->get_executor();
+    const matrix_type* dist_mat =
+        dynamic_cast<const matrix_type*>(system_matrix_.get());
+
+    const auto partition = dist_mat->get_partition();
+    const auto global_num_rows = dist_mat->get_size()[0];
+    const auto local_num_rows = dist_mat->get_local_diag()->get_size()[0];
 }
 
 
@@ -171,5 +215,5 @@ void CoarseGen<ValueType, IndexType>::generate()
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSE_GEN);
 
 
-}  // namespace multigrid
+}  // namespace distributed
 }  // namespace gko
