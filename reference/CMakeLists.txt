@@ -37,6 +37,7 @@ target_sources(ginkgo_reference
     multigrid/pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
+    reorder/mc64_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
