@@ -108,21 +108,19 @@ inline void batch_scale(
  * Scales a matrix from the left and right, and a vector from the right.
  */
 template <typename ValueType>
-inline void pre_diag_scale_system(const size_type batch_id,
-                                  const size_type a_batch_stride,
-                                  const int num_rows, ValueType* const a_values,
-                                  const int* const col_idxs,
-                                  const int* const row_ptrs, const int num_rhs,
-                                  const size_type b_stride, ValueType* const b,
-                                  const ValueType* const left_scale,
-                                  const ValueType* const right_scale)
+inline void pre_diag_scale_system(
+    const size_type batch_id, const size_type a_batch_stride,
+    const int num_rows, const int num_cols, ValueType* const a_values,
+    const int* const col_idxs, const int* const row_ptrs, const int num_rhs,
+    const size_type b_stride, ValueType* const b,
+    const ValueType* const left_scale, const ValueType* const right_scale)
 {
     auto ab = a_values + a_batch_stride * batch_id;
     auto bb = gko::batch::batch_entry_ptr(b, b_stride, num_rows, batch_id);
     auto left_scaleb =
         gko::batch::batch_entry_ptr(left_scale, 1, num_rows, batch_id);
     auto right_scaleb =
-        gko::batch::batch_entry_ptr(right_scale, 1, num_rows, batch_id);
+        gko::batch::batch_entry_ptr(right_scale, 1, num_cols, batch_id);
     for (int irow = 0; irow < num_rows; irow++) {
         const ValueType left_scale_value = left_scaleb[irow];
         for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
@@ -151,6 +149,45 @@ inline void convert_csr_to_dense(const int num_rows, const int num_cols,
         for (int iz = row_ptrs[i_row]; iz < row_ptrs[i_row + 1]; iz++) {
             const int colidx = col_idxs[iz];
             dense_vals[i_row * dense_stride + colidx] = values[iz];
+        }
+    }
+}
+
+
+inline void check_diagonal_entries_exist(const int nrows,
+                                         const int* const row_ptrs,
+                                         const int* const col_idxs,
+                                         bool& has_all_diags)
+{
+    has_all_diags = true;
+    for (int irow = 0; irow < nrows; irow++) {
+        bool has_diag = false;
+        for (int iz = row_ptrs[irow]; iz < row_ptrs[irow + 1]; iz++) {
+            if (col_idxs[iz] == irow) {
+                has_diag = true;
+                break;
+            }
+        }
+        if (!has_diag) {
+            has_all_diags = false;
+            break;
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void add_scaled_identity(const int nrows, const int* const row_ptrs,
+                                const int* const col_idxs,
+                                ValueType* const values, const ValueType& alpha,
+                                const ValueType& beta)
+{
+    for (int i = 0; i < nrows; i++) {
+        for (int jz = row_ptrs[i]; jz < row_ptrs[i + 1]; jz++) {
+            values[jz] *= beta;
+            if (i == col_idxs[jz]) {
+                values[jz] += alpha;
+            }
         }
     }
 }

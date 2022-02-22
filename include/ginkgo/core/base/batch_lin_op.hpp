@@ -782,6 +782,35 @@ public:
 };
 
 
+/**
+ * Adds the operation M <- a I + b M for batch matrix M,
+ * batch identity operator I and batch scalars a and b.
+ * M is the calling object.
+ */
+class BatchScaledIdentityAddable {
+public:
+    /**
+     * Scales this and adds another scalar times the identity to it.
+     *
+     * @param a  Scalar to multiply the identity operator by before adding.
+     * @param b  Scalar to multiply this before adding the scaled identity to
+     *   it.
+     */
+    virtual void add_scaled_identity(const BatchLinOp* a, const BatchLinOp* b)
+    {
+        GKO_ASSERT_IS_BATCH_SCALAR(a);
+        GKO_ASSERT_IS_BATCH_SCALAR(b);
+        auto ae = make_temporary_clone(as<BatchLinOp>(this)->get_executor(), a);
+        auto be = make_temporary_clone(as<BatchLinOp>(this)->get_executor(), b);
+        add_scaled_identity_impl(ae.get(), be.get());
+    }
+
+private:
+    virtual void add_scaled_identity_impl(const BatchLinOp* a,
+                                          const BatchLinOp* b) = 0;
+};
+
+
 }  // namespace gko
 
 

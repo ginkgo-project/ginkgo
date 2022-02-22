@@ -149,13 +149,14 @@ void pre_diag_transform_system(
 {
     const size_type nbatch = a->get_num_batch_entries();
     const int nrows = static_cast<int>(a->get_size().at()[0]);
+    const int ncols = static_cast<int>(a->get_size().at()[1]);
     const size_type nnz = a->get_num_stored_elements() / nbatch;
     const int nrhs = static_cast<int>(b->get_size().at()[1]);
     const size_type b_stride = b->get_stride().at();
 #pragma omp parallel for
     for (size_type ib = 0; ib < nbatch; ib++) {
         pre_diag_scale_system(
-            ib, nnz, nrows, a->get_values(), a->get_const_col_idxs(),
+            ib, nnz, nrows, ncols, a->get_values(), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), nrhs, b_stride, b->get_values(),
             left_op->get_const_values(), right_op->get_const_values());
     }
@@ -286,6 +287,53 @@ void convert_to_batch_dense(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CONVERT_TO_BATCH_DENSE);
+
+
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const mtx,
+    bool& has_all_diags)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    check_diagonal_entries_exist(nrows, row_ptrs, col_idxs, has_all_diags);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchCsr<ValueType, IndexType>* const mtx)
+{
+    if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    const auto batch_size = mtx->get_num_batch_entries();
+    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const IndexType nnz = mtx->get_const_row_ptrs()[nrows];
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto a_stride = a->get_stride().at();
+    const auto b_stride = b->get_stride().at();
+#pragma omp parallel for
+    for (size_type batch = 0; batch < batch_size; batch++) {
+        const auto values = mtx->get_values() + batch * nnz;
+        const auto aptr =
+            batch::batch_entry_ptr(a->get_const_values(), a_stride, 1, batch);
+        const auto bptr =
+            batch::batch_entry_ptr(b->get_const_values(), b_stride, 1, batch);
+        add_scaled_identity(nrows, row_ptrs, col_idxs, values, aptr[0],
+                            bptr[0]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace batch_csr
