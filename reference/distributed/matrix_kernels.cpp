@@ -180,19 +180,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_DIAG_OFFDIAG);
 
 
-template <typename SourceType, typename TargetType>
-void map_to_global_idxs(std::shared_ptr<const DefaultExecutor> exec,
-                        const SourceType* input, size_t n, TargetType* output,
-                        const TargetType* map)
-{
-    std::transform(input, input + n, output,
-                   [&](const auto& idx) { return map[idx]; });
-}
-
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_MAP_TO_GLOBAL_IDXS);
-
-
 }  // namespace distributed_matrix
 }  // namespace reference
 }  // namespace kernels
