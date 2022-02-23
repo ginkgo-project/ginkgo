@@ -251,6 +251,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       <td> Use multigrid with different precision multigrid_level as a
  *            solver.
  *       </td></tr>
+
+ *   <tr valign="top">
+ *       <td>@ref distributed_solver</td>
+ *       <td> Use a distributed solver to solve a 1D Laplace equation.
+ *       </td></tr>
  *
  * </table>
  *
@@ -403,6 +408,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     </td>
  *     <td>@ref multigrid_preconditioned_solver
  *         @ref mixed_multigrid_solver
+ *     </td>
+ *   </tr>
+
+ *   <tr valign="top">
+ *     <td> Distributed
+ *     </td>
+ *     <td>@ref distributed_solver
  *     </td>
  *   </tr>
  * </table>
