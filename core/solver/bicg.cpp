@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/bicg_kernels.hpp"
 
 
@@ -123,8 +124,9 @@ void Bicg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                       matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                       VectorType* dense_x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
