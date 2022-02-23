@@ -54,11 +54,14 @@ int main(int argc, char* argv[])
     using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
+    using selection = gko::multigrid::Selection<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
+    const unsigned num_jumps = argc >= 3 ? std::atoi(argv[2]) : 2u;
+    const unsigned grid_dim = argc >= 4 ? std::atoi(argv[3]) : 10u;
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -82,9 +85,43 @@ int main(int argc, char* argv[])
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
+    const auto num_rows = grid_dim * grid_dim * grid_dim;
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    gko::matrix_data<ValueType, IndexType> A_data;
+    gko::matrix_data<ValueType, IndexType> b_data;
+    gko::matrix_data<ValueType, IndexType> x_data;
+    A_data.size = {num_rows, num_rows};
+    b_data.size = {num_rows, 1};
+    x_data.size = {num_rows, 1};
+    for (int i = 0; i < grid_dim; i++) {
+        for (int j = 0; j < grid_dim; j++) {
+            for (int k = 0; k < grid_dim; k++) {
+                auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
+                if (i > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
+                                                 -1);
+                if (j > 0)
+                    A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
+                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                A_data.nonzeros.emplace_back(idx, idx, 8);
+                if (k < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + 1, -1);
+                if (j < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
+                if (i < grid_dim - 1)
+                    A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
+                                                 -1);
+                b_data.nonzeros.emplace_back(
+                    idx, 0, std::sin(i * 0.01 + j * 0.14 + k * 0.056));
+                // b_data.nonzeros.emplace_back(idx, 0, 1.0);
+                x_data.nonzeros.emplace_back(idx, 0, 1.0);
+            }
+        }
+    }
+
+    auto A = share(mtx::create(exec, A_data.size));
+    A->read(A_data);
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
@@ -135,6 +172,11 @@ int main(int argc, char* argv[])
     // Create MultigridLevel factory
     auto mg_level_gen =
         gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
+    // Create MultigridLevel factory
+    auto coarse_select =
+        gko::share(selection::build().with_num_jumps(num_jumps).on(exec));
+    auto coarse_op = coarse_select->generate(A)->get_coarse_op();
+    std::cout << "Coarse op size " << coarse_op->get_size() << std::endl;
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()
@@ -150,7 +192,8 @@ int main(int argc, char* argv[])
             .with_min_coarse_rows(10u)
             .with_pre_smoother(smoother_gen)
             .with_post_uses_pre(true)
-            .with_mg_level(mg_level_gen)
+            .with_mg_level(coarse_select)
+            // .with_mg_level(mg_level_gen)
             .with_coarsest_solver(coarsest_gen)
             .with_zero_guess(true)
             .with_criteria(
@@ -184,6 +227,7 @@ int main(int argc, char* argv[])
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
+    std::cout << "Problem size: " << A->get_size() << std::endl;
     std::cout << "Initial residual norm sqrt(r^T r): \n";
     write(std::cout, lend(initres));
     std::cout << "Final residual norm sqrt(r^T r): \n";
