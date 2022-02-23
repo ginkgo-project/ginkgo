@@ -118,7 +118,8 @@ void DpcppExecutor::raw_free(void* ptr) const noexcept
 #endif  // GKO_VERBOSE_LEVEL >= 1
         // OpenCL error code use 0 for CL_SUCCESS and negative number for others
         // error. if the error is not from OpenCL, it will return CL_SUCCESS.
-        int err_code = err.get_cl_code();
+        // TODO: check whether error
+        int err_code = err.code().value();
         // if return CL_SUCCESS, exit 1 as DPCPP error.
         if (err_code == 0) {
             err_code = 1;
