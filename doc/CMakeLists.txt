@@ -9,6 +9,13 @@ if(GINKGO_DOC_GENERATE_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+if(GINKGO_BUILD_MPI)
+    set(predefined_build_mpi 1)
+else()
+    set(predefined_build_mpi 0)
+endif()
+set(default_predefined_macros "GKO_HAVE_PAPI_SDE=1 GINKGO_BUILD_MPI=${predefined_build_mpi}")
+
 if (GINKGO_DOC_GENERATE_PDF)
     find_package(LATEX COMPONENTS PDFLATEX REQUIRED)
 endif()
