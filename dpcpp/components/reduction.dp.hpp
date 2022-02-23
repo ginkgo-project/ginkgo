@@ -197,13 +197,12 @@ void reduce_array(size_type size, const ValueType* __restrict__ source,
  * an array larger than `block_size`.
  */
 template <int cfg, typename ValueType>
-void reduce_add_array(
-    size_type size, const ValueType* __restrict__ source,
-    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
+void reduce_add_array(size_type size, const ValueType* __restrict__ source,
+                      ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+                      ValueType* __restrict__ block_sum)
 {
     reduce_array<KCFG_1D::decode<1>(cfg)>(
-        size, source, static_cast<ValueType*>(block_sum), item_ct1,
+        size, source, block_sum, item_ct1,
         [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -218,17 +217,17 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
-                       0, sycl::access::mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
-            block_sum_acc_ct1(cgh);
+            block_sum_acc_ct1(sycl::range<1>(KCFG_1D::decode<0>(cfg)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                                             KCFG_1D::decode<1>(cfg))]] {
-                reduce_add_array<cfg>(size, source, result, item_ct1,
-                                      *block_sum_acc_ct1.get_pointer());
+                reduce_add_array<cfg>(
+                    size, source, result, item_ct1,
+                    static_cast<ValueType*>(block_sum_acc_ct1.get_pointer()));
             });
     });
 }

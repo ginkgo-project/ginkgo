@@ -140,14 +140,15 @@ GKO_ENABLE_DEFAULT_HOST(increase_final_iteration_numbers_kernel,
 
 
 template <typename ValueType>
-void multidot_kernel(
-    size_type k, size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ krylov_bases,
-    const ValueType* __restrict__ next_krylov_basis, size_type stride_krylov,
-    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+void multidot_kernel(size_type k, size_type num_rows, size_type num_cols,
+                     const ValueType* __restrict__ krylov_bases,
+                     const ValueType* __restrict__ next_krylov_basis,
+                     size_type stride_krylov,
+                     ValueType* __restrict__ hessenberg_iter,
+                     size_type stride_hessenberg,
+                     const stopping_status* __restrict__ stop_status,
+                     sycl::nd_item<3> item_ct1,
+                     ValueType* __restrict__ reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto tidy = item_ct1.get_local_id(1);
@@ -160,7 +161,7 @@ void multidot_kernel(
 
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    ValueType* __restrict__ reduction_helper = (*reduction_helper_array);
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -197,11 +198,10 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, default_dot_dim*(
-                                                         default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(
+                sycl::range<1>(default_dot_dim * (default_dot_dim + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -211,9 +211,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     k, num_rows, num_cols, krylov_bases, next_krylov_basis,
                     stride_krylov, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    (UninitializedArray<ValueType,
-                                        default_dot_dim*(default_dot_dim + 1)>*)
-                        reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
@@ -267,13 +266,15 @@ void update_next_krylov_kernel(
 // Must be called with at least `num_cols` blocks, each with `block_size`
 // threads. `block_size` must be a power of 2.
 template <int block_size, typename ValueType>
-void update_hessenberg_2_kernel(
-    size_type iter, size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov, ValueType* __restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size>& reduction_helper_array)
+void update_hessenberg_2_kernel(size_type iter, size_type num_rows,
+                                size_type num_cols,
+                                const ValueType* __restrict__ next_krylov_basis,
+                                size_type stride_next_krylov,
+                                ValueType* __restrict__ hessenberg_iter,
+                                size_type stride_hessenberg,
+                                const stopping_status* __restrict__ stop_status,
+                                sycl::nd_item<3> item_ct1,
+                                ValueType* __restrict__ reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto col_idx = item_ct1.get_group(2);
@@ -314,10 +315,9 @@ void update_hessenberg_2_kernel(
     const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(sycl::range<1>(block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -327,7 +327,8 @@ void update_hessenberg_2_kernel(
                     iter, num_rows, num_cols, next_krylov_basis,
                     stride_next_krylov, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    *reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }

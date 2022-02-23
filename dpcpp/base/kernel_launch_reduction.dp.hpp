@@ -65,16 +65,17 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
-        subgroup_partial_acc(cgh);
+    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                   sycl::access::target::local>
+        subgroup_partial_acc(sycl::range<1>(num_partials), cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
         range, [=
     ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
-            auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
+            ValueType* __restrict__ subgroup_partial =
+                static_cast<ValueType*>(subgroup_partial_acc.get_pointer());
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
             auto subgroup =
@@ -114,16 +115,17 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
-        subgroup_partial_acc(cgh);
+    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                   sycl::access::target::local>
+        subgroup_partial_acc(sycl::range<1>(num_partials), cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
     const auto global_size = num_workgroups * wg_size;
 
     cgh.parallel_for(
         range, [=
     ](sycl::nd_item<3> idx) [[sycl::reqd_sub_group_size(sg_size)]] {
-            auto subgroup_partial = &(*subgroup_partial_acc.get_pointer())[0];
+            ValueType* __restrict__ subgroup_partial =
+                static_cast<ValueType*>(subgroup_partial_acc.get_pointer());
             const auto tidx = thread::get_thread_id_flat<int64>(idx);
             const auto local_tidx = static_cast<int64>(tidx % wg_size);
             auto subgroup =
@@ -351,13 +353,14 @@ void generic_kernel_col_reduction_2d_small(
     constexpr auto subgroups_per_workgroup = wg_size / sg_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = subgroups_per_workgroup * ssg_size;
-    sycl::accessor<UninitializedArray<ValueType, shared_storage>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
-        block_partial_acc(cgh);
+    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                   sycl::access::target::local>
+        block_partial_acc(sycl::range<1>(shared_storage), cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
     cgh.parallel_for(
         range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
-            auto block_partial = &(*block_partial_acc.get_pointer())[0];
+            ValueType* __restrict__ block_partial =
+                static_cast<ValueType*>(block_partial_acc.get_pointer());
             const auto ssg_id =
                 thread::get_subwarp_id_flat<ssg_size, int64>(id);
             const auto local_sg_id = id.get_local_id(2) / sg_size;
@@ -424,9 +427,9 @@ void generic_kernel_col_reduction_2d_blocked(
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     const auto range =
         sycl_nd_range(dim3(row_blocks, col_blocks), dim3(wg_size));
-    sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
-                   sycl::access_mode::read_write, sycl::access::target::local>
-        block_partial_acc(cgh);
+    sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
+                   sycl::access::target::local>
+        block_partial_acc(sycl::range<1>(wg_size), cgh);
     cgh.parallel_for(
         range, [=](sycl::nd_item<3> id) [[sycl::reqd_sub_group_size(sg_size)]] {
             const auto sg_id = thread::get_subwarp_id_flat<sg_size, int64>(id);
@@ -437,7 +440,8 @@ void generic_kernel_col_reduction_2d_blocked(
             const auto sg_rank = subgroup.thread_rank();
             const auto col =
                 sg_rank + static_cast<int64>(id.get_group(1)) * sg_size;
-            auto block_partial = &(*block_partial_acc.get_pointer())[0];
+            ValueType* __restrict__ block_partial =
+                static_cast<ValueType*>(block_partial_acc.get_pointer());
             auto partial = identity;
             // accumulate within a thread
             if (col < cols) {

@@ -215,14 +215,13 @@ GKO_ENABLE_DEFAULT_HOST(increase_final_iteration_numbers_kernel,
 
 
 template <typename ValueType>
-void multinorm2_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+void multinorm2_kernel(size_type num_rows, size_type num_cols,
+                       const ValueType* __restrict__ next_krylov_basis,
+                       size_type stride_next_krylov,
+                       remove_complex<ValueType>* __restrict__ norms,
+                       const stopping_status* __restrict__ stop_status,
+                       sycl::nd_item<3> item_ct1,
+                       remove_complex<ValueType>* reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -236,7 +235,7 @@ void multinorm2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_res = zero<rc_vtype>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -270,20 +269,21 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::accessor<remove_complex<ValueType>, 1,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            reduction_helper_array_acc_ct1(
+                sycl::range<1>(default_dot_dim * (default_dot_dim + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                                             default_dot_dim)]] {
-                multinorm2_kernel(num_rows, num_cols, next_krylov_basis,
-                                  stride_next_krylov, norms, stop_status,
-                                  item_ct1,
-                                  reduction_helper_array_acc_ct1.get_pointer());
+                multinorm2_kernel(
+                    num_rows, num_cols, next_krylov_basis, stride_next_krylov,
+                    norms, stop_status, item_ct1,
+                    static_cast<remove_complex<ValueType>*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
@@ -295,9 +295,7 @@ void multinorminf_without_stop_kernel(
     const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
     size_type stride_norms, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+    remove_complex<ValueType>* reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -311,7 +309,7 @@ void multinorminf_without_stop_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_max = zero<rc_vtype>();
     if (col_idx < num_cols) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -347,11 +345,11 @@ void multinorminf_without_stop_kernel(
     size_type stride_norms)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::accessor<remove_complex<ValueType>, 1,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            reduction_helper_array_acc_ct1(
+                sycl::range<1>(default_dot_dim * (default_dot_dim + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -360,7 +358,8 @@ void multinorminf_without_stop_kernel(
                 multinorminf_without_stop_kernel(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms, stride_norms, item_ct1,
-                    reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<remove_complex<ValueType>*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
@@ -368,17 +367,14 @@ void multinorminf_without_stop_kernel(
 
 // ONLY computes the inf-norm (into norms2) when compute_inf is true
 template <bool compute_inf, typename ValueType>
-void multinorm2_inf_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov,
-    remove_complex<ValueType>* __restrict__ norms1,
-    remove_complex<ValueType>* __restrict__ norms2,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<remove_complex<ValueType>,
-                       (1 + compute_inf) *
-                           default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+void multinorm2_inf_kernel(size_type num_rows, size_type num_cols,
+                           const ValueType* __restrict__ next_krylov_basis,
+                           size_type stride_next_krylov,
+                           remove_complex<ValueType>* __restrict__ norms1,
+                           remove_complex<ValueType>* __restrict__ norms2,
+                           const stopping_status* __restrict__ stop_status,
+                           sycl::nd_item<3> item_ct1,
+                           remove_complex<ValueType>* reduction_helper_array)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -392,9 +388,9 @@ void multinorm2_inf_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
 
-    rc_vtype* __restrict__ reduction_helper_add = (*reduction_helper_array);
+    rc_vtype* __restrict__ reduction_helper_add = reduction_helper_array;
     rc_vtype* __restrict__ reduction_helper_max =
-        static_cast<rc_vtype*>((*reduction_helper_array)) +
+        static_cast<rc_vtype*>(reduction_helper_array) +
         default_dot_dim * (default_dot_dim + 1);
     rc_vtype local_res = zero<rc_vtype>();
     rc_vtype local_max = zero<rc_vtype>();
@@ -449,12 +445,12 @@ void multinorm2_inf_kernel(
     remove_complex<ValueType>* norms2, const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<
-            UninitializedArray<remove_complex<ValueType>,
-                               (1 + compute_inf) *
-                                   default_dot_dim*(default_dot_dim + 1)>,
-            0, sycl::access_mode::read_write, sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::accessor<remove_complex<ValueType>, 1,
+                       sycl::access_mode::read_write,
+                       sycl::access::target::local>
+            reduction_helper_array_acc_ct1(
+                (1 + compute_inf) * default_dot_dim * (default_dot_dim + 1),
+                cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -463,20 +459,23 @@ void multinorm2_inf_kernel(
                 multinorm2_inf_kernel<compute_inf>(
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     norms1, norms2, stop_status, item_ct1,
-                    reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<remove_complex<ValueType>*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
 
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
-void multidot_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, dot_dim * dot_dim>& reduction_helper_array)
+void multidot_kernel(size_type num_rows, size_type num_cols,
+                     const ValueType* __restrict__ next_krylov_basis,
+                     size_type stride_next_krylov,
+                     const Accessor3d krylov_bases,
+                     ValueType* __restrict__ hessenberg_iter,
+                     size_type stride_hessenberg,
+                     const stopping_status* __restrict__ stop_status,
+                     sycl::nd_item<3> item_ct1,
+                     ValueType* reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -543,10 +542,10 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, dot_dim * dot_dim>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(sycl::range<1>(dot_dim * dot_dim),
+                                           cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -555,7 +554,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     num_rows, num_cols, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    *reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
@@ -567,7 +567,7 @@ void singledot_kernel(
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size>& reduction_helper_array)
+    ValueType* __restrict__ reduction_helper_array)
 {
     /*
      * In general in this kernel:
@@ -624,10 +624,9 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(sycl::range<1>(block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -637,7 +636,8 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     num_rows, next_krylov_basis, stride_next_krylov,
                     krylov_bases, hessenberg_iter, stride_hessenberg,
                     stop_status, item_ct1,
-                    *reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }

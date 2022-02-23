@@ -83,7 +83,7 @@ void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
                Closure op, sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
+               ValueType* __restrict__ space)
 {
     auto local_x = item_ct1.get_local_id(2);
     auto local_y = item_ct1.get_local_id(1);
@@ -105,8 +105,7 @@ template <int sg_size, typename ValueType>
 void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
-               sycl::nd_item<3> item_ct1,
-               UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
+               sycl::nd_item<3> item_ct1, ValueType* __restrict__ space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -120,16 +119,16 @@ void transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                const size_type out_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            space_acc_ct1(cgh);
+            space_acc_ct1(sycl::range<1>(sg_size * (sg_size + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
-                transpose<sg_size>(nrows, ncols, in, in_stride, out, out_stride,
-                                   item_ct1, *space_acc_ct1.get_pointer());
+                transpose<sg_size>(
+                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
+                    static_cast<ValueType*>(space_acc_ct1.get_pointer()));
             });
     });
 }
@@ -142,8 +141,7 @@ template <int sg_size, typename ValueType>
 void conj_transpose(const size_type nrows, const size_type ncols,
                     const ValueType* __restrict__ in, const size_type in_stride,
                     ValueType* __restrict__ out, const size_type out_stride,
-                    sycl::nd_item<3> item_ct1,
-                    UninitializedArray<ValueType, sg_size*(sg_size + 1)>& space)
+                    sycl::nd_item<3> item_ct1, ValueType* __restrict__ space)
 {
     transpose<sg_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -158,17 +156,16 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     const size_type out_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, sg_size*(sg_size + 1)>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            space_acc_ct1(cgh);
+            space_acc_ct1(sycl::range<1>(sg_size * (sg_size + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
-                conj_transpose<sg_size>(nrows, ncols, in, in_stride, out,
-                                        out_stride, item_ct1,
-                                        *space_acc_ct1.get_pointer());
+                conj_transpose<sg_size>(
+                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
+                    static_cast<ValueType*>(space_acc_ct1.get_pointer()));
             });
     });
 }

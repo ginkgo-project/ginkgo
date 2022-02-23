@@ -324,8 +324,8 @@ void merge_path_reduce(const IndexType nwarps,
                        const IndexType* __restrict__ last_row,
                        ValueType* __restrict__ c, const size_type c_stride,
                        Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-                       UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                       UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                       IndexType* __restrict__ tmp_ind,
+                       ValueType* __restrict__ tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -351,9 +351,7 @@ void merge_path_reduce(const IndexType nwarps,
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
-    bool last =
-        block_segment_scan_reverse(static_cast<IndexType*>(tmp_ind),
-                                   static_cast<ValueType*>(tmp_val), item_ct1);
+    bool last = block_segment_scan_reverse(tmp_ind, tmp_val, item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
         c[row * c_stride] += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
@@ -538,9 +536,8 @@ void abstract_reduce(const IndexType nwarps,
                      const ValueType* __restrict__ last_val,
                      const IndexType* __restrict__ last_row,
                      ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     sycl::nd_item<3> item_ct1, IndexType* __restrict__ tmp_ind,
+                     ValueType* __restrict__ tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c, c_stride, [](ValueType& x) { return x; },
@@ -554,20 +551,19 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      ValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+            tmp_ind_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_val_acc_ct1(cgh);
+            tmp_val_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, c, c_stride, item_ct1,
+                    static_cast<IndexType*>(tmp_ind_acc_ct1.get_pointer()),
+                    static_cast<ValueType*>(tmp_val_acc_ct1.get_pointer()));
             });
     });
 }
@@ -579,9 +575,8 @@ void abstract_reduce(const IndexType nwarps,
                      const IndexType* __restrict__ last_row,
                      const ValueType* __restrict__ alpha,
                      ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     sycl::nd_item<3> item_ct1, IndexType* __restrict__ tmp_ind,
+                     ValueType* __restrict__ tmp_val)
 {
     const auto alpha_val = alpha[0];
     merge_path_reduce(
@@ -598,20 +593,19 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+            tmp_ind_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_val_acc_ct1(cgh);
+            tmp_val_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, alpha, c, c_stride, item_ct1,
+                    static_cast<IndexType*>(tmp_ind_acc_ct1.get_pointer()),
+                    static_cast<ValueType*>(tmp_val_acc_ct1.get_pointer()));
             });
     });
 }
