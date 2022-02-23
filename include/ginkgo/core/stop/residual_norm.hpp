@@ -81,8 +81,9 @@ class ResidualNormBase
                                          Criterion>;
 
 protected:
+    using absolute_type = remove_complex<ValueType>;
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using NormVector = matrix::Dense<absolute_type>;
     using Vector = matrix::Dense<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,
@@ -95,84 +96,7 @@ protected:
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
                               const CriterionArgs& args,
-                              remove_complex<ValueType> reduction_factor,
-                              mode baseline)
-        : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2},
-          reduction_factor_{reduction_factor},
-          baseline_{baseline},
-          system_matrix_{args.system_matrix},
-          b_{args.b},
-          one_{gko::initialize<Vector>({1}, exec)},
-          neg_one_{gko::initialize<Vector>({-1}, exec)}
-    {
-        switch (baseline_) {
-        case mode::initial_resnorm: {
-            if (args.initial_residual == nullptr) {
-                if (args.system_matrix == nullptr || args.b == nullptr ||
-                    args.x == nullptr) {
-                    GKO_NOT_SUPPORTED(nullptr);
-                } else {
-                    this->starting_tau_ = NormVector::create(
-                        exec, dim<2>{1, args.b->get_size()[1]});
-                    auto b_clone = share(args.b->clone());
-                    args.system_matrix->apply(neg_one_.get(), args.x,
-                                              one_.get(), b_clone.get());
-                    if (auto vec =
-                            std::dynamic_pointer_cast<const ComplexVector>(
-                                b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else if (auto vec =
-                                   std::dynamic_pointer_cast<const Vector>(
-                                       b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else {
-                        GKO_NOT_SUPPORTED(nullptr);
-                    }
-                }
-            } else {
-                this->starting_tau_ = NormVector::create(
-                    exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector*>(args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                }
-            }
-            break;
-        }
-        case mode::rhs_norm: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector*>(args.b.get())) {
-                auto dense_rhs = as<ComplexVector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            } else {
-                auto dense_rhs = as<Vector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            }
-            break;
-        }
-        case mode::absolute: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            this->starting_tau_->fill(gko::one<remove_complex<ValueType>>());
-            break;
-        }
-        default:
-            GKO_NOT_SUPPORTED(nullptr);
-        }
-        this->u_dense_tau_ =
-            NormVector::create_with_config_of(this->starting_tau_.get());
-    }
+                              absolute_type reduction_factor, mode baseline);
 
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
