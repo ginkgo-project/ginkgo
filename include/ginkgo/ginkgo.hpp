@@ -82,6 +82,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/lin_op.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
 
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>

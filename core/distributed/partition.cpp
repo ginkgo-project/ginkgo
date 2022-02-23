@@ -91,40 +91,6 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
 
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
-Partition<LocalIndexType, GlobalIndexType>::build_from_local_range(
-    std::shared_ptr<const Executor> exec, LocalIndexType local_start,
-    LocalIndexType local_end, std::shared_ptr<const communicator> comm)
-{
-    GlobalIndexType range[2] = {static_cast<GlobalIndexType>(local_start),
-                                static_cast<GlobalIndexType>(local_end)};
-
-    // make all range_ends available on each rank
-    Array<GlobalIndexType> ranges_start_end(exec->get_master(),
-                                            comm->size() * 2);
-    ranges_start_end.fill(0);
-    // comm->all_gather(range, 2, ranges_start_end.get_data(), 2);
-    mpi::all_gather(range, 2, ranges_start_end.get_data(), 2, comm);
-
-    // remove duplicates
-    Array<GlobalIndexType> ranges(exec->get_master(), comm->size() + 1);
-    auto ranges_se_data = ranges_start_end.get_const_data();
-    ranges.get_data()[0] = ranges_se_data[0];
-    for (int i = 1; i < ranges_start_end.get_num_elems() - 1; i += 2) {
-        GKO_ASSERT_EQ(ranges_se_data[i], ranges_se_data[i + 1]);
-        ranges.get_data()[i / 2 + 1] = ranges_se_data[i];
-    }
-    ranges.get_data()[ranges.get_num_elems() - 1] =
-        ranges_se_data[ranges_start_end.get_num_elems() - 1];
-
-    // move data to correct executor
-    ranges.set_executor(exec);
-
-    return Partition::build_from_contiguous(exec, ranges);
-}
-
-
-template <typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 Partition<LocalIndexType, GlobalIndexType>::build_from_global_size_uniform(
     std::shared_ptr<const Executor> exec, comm_index_type num_parts,
     GlobalIndexType global_size)
