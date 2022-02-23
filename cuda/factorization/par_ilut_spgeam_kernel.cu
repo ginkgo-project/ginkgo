@@ -70,7 +70,7 @@ constexpr int default_block_size = 512;
 
 // subwarp sizes for add_candidates kernels
 using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/factorization/par_ilut_spgeam_kernels.hpp.inc"
@@ -80,7 +80,7 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void add_candidates(syn::value_list<int, subwarp_size>,
+void add_candidates(std::integer_sequence<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* lu,
                     const matrix::Csr<ValueType, IndexType>* a,
@@ -172,8 +172,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u, l_new,
-        u_new);
+        std::integer_sequence<int>(), syn::type_list<>(), exec, lu, a, l, u,
+        l_new, u_new);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

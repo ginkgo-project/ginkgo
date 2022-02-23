@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 
 
+#include <dpcpp/base/config.hpp>
+
+
 #include <CL/sycl.hpp>
 
 
@@ -49,12 +52,6 @@ namespace kernels {
 namespace dpcpp {
 namespace components {
 
-
-using BlockCfg = ConfigSet<11>;
-
-constexpr auto block_cfg_list =
-    ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
-                           BlockCfg::encode(256), BlockCfg::encode(128)>();
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(start_prefix_sum_call, start_prefix_sum,
@@ -73,11 +70,9 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
     // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
         auto queue = exec->get_queue();
-        constexpr auto block_cfg_array = as_array(block_cfg_list);
-        const std::uint32_t cfg =
-            get_first_cfg(block_cfg_array, [&queue](std::uint32_t cfg) {
-                return validate(queue, BlockCfg::decode<0>(cfg), 16);
-            });
+        const int cfg = get_first_cfg(block_cfg_array, [&queue](int cfg) {
+            return validate(queue, BlockCfg::decode<0>(cfg), 16);
+        });
         const auto wg_size = BlockCfg::decode<0>(cfg);
         auto num_blocks = ceildiv(num_entries, wg_size);
         Array<IndexType> block_sum_array(exec, num_blocks - 1);

@@ -111,7 +111,7 @@ template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
     size_type stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size>& reduction_helper_array)
+    ValueType* __restrict__ reduction_helper_array)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
@@ -168,10 +168,9 @@ void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* values, size_type stride)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(sycl::range<1>(block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
@@ -179,7 +178,8 @@ void orthonormalize_subspace_vectors_kernel(
                                             config::warp_size)]] {
                 orthonormalize_subspace_vectors_kernel<block_size>(
                     num_rows, num_cols, values, stride, item_ct1,
-                    *reduction_helper_array_acc_ct1.get_pointer());
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }
@@ -329,13 +329,13 @@ void step_2_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
 
 template <typename ValueType>
-void multidot_kernel(
-    size_type num_rows, size_type nrhs, const ValueType* __restrict__ p_i,
-    const ValueType* __restrict__ g_k, size_type g_k_stride,
-    ValueType* __restrict__ alpha,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>&
-        reduction_helper_array)
+void multidot_kernel(size_type num_rows, size_type nrhs,
+                     const ValueType* __restrict__ p_i,
+                     const ValueType* __restrict__ g_k, size_type g_k_stride,
+                     ValueType* __restrict__ alpha,
+                     const stopping_status* __restrict__ stop_status,
+                     sycl::nd_item<3> item_ct1,
+                     ValueType* __restrict__ reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
     const auto tidy = item_ct1.get_local_id(1);
@@ -379,19 +379,20 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, default_dot_dim*(
-                                                         default_dot_dim + 1)>,
-                       0, sycl::access_mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            reduction_helper_array_acc_ct1(cgh);
+            reduction_helper_array_acc_ct1(
+                sycl::range<1>(default_dot_dim * (default_dot_dim + 1)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                                             default_dot_dim)]] {
-                multidot_kernel(num_rows, nrhs, p_i, g_k, g_k_stride, alpha,
-                                stop_status, item_ct1,
-                                *reduction_helper_array_acc_ct1.get_pointer());
+                multidot_kernel(
+                    num_rows, nrhs, p_i, g_k, g_k_stride, alpha, stop_status,
+                    item_ct1,
+                    static_cast<ValueType*>(
+                        reduction_helper_array_acc_ct1.get_pointer()));
             });
     });
 }

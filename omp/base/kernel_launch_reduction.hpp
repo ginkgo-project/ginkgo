@@ -87,7 +87,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
 template <int block_size, int remainder_cols, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
+void run_kernel_reduction_sized_impl(std::integer_sequence<int, remainder_cols>,
                                      std::shared_ptr<const OmpExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
@@ -183,8 +183,8 @@ void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
     select_run_kernel_reduction_sized(
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
-        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, map_to_device(args)...);
+        std::integer_sequence<int, block_size>(), syn::type_list<>(), exec, fn,
+        op, finalize, identity, result, size, map_to_device(args)...);
 }
 
 
@@ -287,7 +287,7 @@ template <int block_size, int remainder_cols, typename ValueType,
           typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_col_reduction_sized_impl(
-    syn::value_list<int, remainder_cols>,
+    std::integer_sequence<int, remainder_cols>,
     std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
     FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
     MappedKernelArgs... args)
@@ -395,8 +395,8 @@ void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
     select_run_kernel_col_reduction_sized(
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
-        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, map_to_device(args)...);
+        std::integer_sequence<int, block_size>(), syn::type_list<>(), exec, fn,
+        op, finalize, identity, result, size, map_to_device(args)...);
 }
 
 

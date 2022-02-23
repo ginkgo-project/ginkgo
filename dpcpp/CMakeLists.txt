@@ -11,6 +11,14 @@ set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
 set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
+# Reverse the subgroup list, replace ; to , from the user strings
+string(REPLACE ";" "," GINKGO_DPCPP_SUBGROUPS_FORMATTED "${GINKGO_DPCPP_SUBGROUPS}")
+string(REPLACE ";" "," GINKGO_DPCPP_WORKGROUPS_FORMATTED "${GINKGO_DPCPP_WORKGROUPS}")
+# Generate the DPC++ Configuration file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/base/config.hpp @ONLY)
+
+
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
@@ -51,25 +59,35 @@ target_sources(ginkgo_dpcpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
 
+
 ginkgo_compile_features(ginkgo_dpcpp)
 target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMPILE_KERNEL=0)
 
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
+target_compile_features(ginkgo_dpcpp PUBLIC cxx_std_17)
+
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
 target_compile_options(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_COMPILE_OPTIONS>)
-target_compile_features(ginkgo_dpcpp PRIVATE cxx_std_17)
 target_include_directories(ginkgo_dpcpp PRIVATE $<TARGET_PROPERTY:MKL::MKL_DPCPP,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(ginkgo_dpcpp PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/core>)
+
 target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
-# When building ginkgo as a static library, we need to use dpcpp and per_kernel
-# link option when the program uses a dpcpp related function.
-if (BUILD_SHARED_LIBS)
-    target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_kernel)
-else ()
-    target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_kernel)
+
+if (NOT GINKGO_DPCPP_AOT_TARGETS STREQUAL "")
+    string(REPLACE ";" "," GINKGO_DPCPP_AOT_TARGETS_FORMATTED "${GINKGO_DPCPP_AOT_TARGETS}")
+    target_compile_options(ginkgo_dpcpp PRIVATE -fsycl-targets=${GINKGO_DPCPP_AOT_TARGETS_FORMATTED})
+else()
+    # When building ginkgo as a static library, we need to use dpcpp and per_source
+    # link option when the program uses a dpcpp related function.
+    if (BUILD_SHARED_LIBS)
+        target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-code-split=per_source)
+    else ()
+        target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_source)
+    endif()
 endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
 target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)

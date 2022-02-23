@@ -88,13 +88,13 @@ constexpr int classical_overweight = 32;
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+using compiled_kernels = std::integer_sequence<int, 3, 4, 6, 7, 8, 12, 14>;
 
 using classical_kernels =
-    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
+    std::integer_sequence<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
 
 using spgeam_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
@@ -105,7 +105,7 @@ namespace {
 
 
 template <int items_per_thread, typename ValueType, typename IndexType>
-void merge_path_spmv(syn::value_list<int, items_per_thread>,
+void merge_path_spmv(std::integer_sequence<int, items_per_thread>,
                      std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Dense<ValueType>* b,
@@ -213,7 +213,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subwarp_size>,
+void classical_spmv(std::integer_sequence<int, subwarp_size>,
                     std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
@@ -429,7 +429,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
         if (a->get_strategy()->get_name() == "sparselib" ||
@@ -459,7 +459,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 [&max_length_per_row](int compiled_info) {
                     return max_length_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+                std::integer_sequence<int>(), syn::type_list<>(), exec, a, b,
+                c);
         }
     }
 }
@@ -487,8 +488,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
+            alpha, beta);
     } else {
         bool use_classical = true;
         if (a->get_strategy()->get_name() == "sparselib" ||
@@ -519,7 +520,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 [&max_length_per_row](int compiled_info) {
                     return max_length_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                std::integer_sequence<int>(), syn::type_list<>(), exec, a, b, c,
                 alpha, beta);
         }
     }
@@ -658,7 +659,7 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void spgeam(syn::value_list<int, subwarp_size>,
+void spgeam(std::integer_sequence<int, subwarp_size>,
             std::shared_ptr<const DefaultExecutor> exec, const ValueType* alpha,
             const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
             const ValueType* a_vals, const ValueType* beta,
@@ -836,7 +837,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec,
+        std::integer_sequence<int>(), syn::type_list<>(), exec,
         alpha->get_const_values(), c_tmp_row_ptrs_array.get_const_data(),
         c_tmp_col_idxs_array.get_const_data(),
         c_tmp_vals_array.get_const_data(), beta->get_const_values(), d_row_ptrs,
@@ -865,7 +866,7 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec,
+        std::integer_sequence<int>(), syn::type_list<>(), exec,
         alpha->get_const_values(), a->get_const_row_ptrs(),
         a->get_const_col_idxs(), a->get_const_values(),
         beta->get_const_values(), b->get_const_row_ptrs(),

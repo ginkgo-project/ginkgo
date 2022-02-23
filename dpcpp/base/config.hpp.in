@@ -30,18 +30,42 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#ifndef GKO_DPCPP_BASE_CONFIG_HPP_IN_
+#define GKO_DPCPP_BASE_CONFIG_HPP_IN_
 
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
+
+
+#include "core/base/types.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace dpcpp {
 
+
+// CMake generated subgroup list. We sort by ascending order.
+// clang-format off
+using subgroup_list_t =
+    syn::sort<true,
+         std::integer_sequence<int, @GINKGO_DPCPP_SUBGROUPS_FORMATTED@>>;
+using subgroup_list_desc_t = syn::sort<false, subgroup_list_t>;
+constexpr auto subgroup_list = subgroup_list_t{};
+// clang-format on
+
+// CMake generated workgroup list. We sort by ascending order.
+// clang-format off
+using workgroup_list_t =
+    syn::sort<true,
+         std::integer_sequence<int, @GINKGO_DPCPP_WORKGROUPS_FORMATTED@>>;
+using workgroup_list_desc_t = syn::sort<false, workgroup_list_t>;
+constexpr auto workgroup_list = workgroup_list_t{};
+// clang-format on
+
+using empty_list_t = std::integer_sequence<int>;
 
 struct config {
     /**
@@ -52,7 +76,8 @@ struct config {
     /**
      * The number of threads within a Dpcpp subgroup.
      */
-    static constexpr uint32 warp_size = 16;
+    static constexpr uint32 warp_size =
+        syn::as_value(syn::median<subgroup_list_t>{});
 
     /**
      * The bitmask of the entire warp.
@@ -68,8 +93,20 @@ struct config {
     /**
      * The default maximal number of threads allowed in DPCPP group
      */
-    static constexpr uint32 max_block_size = 256;
+    static constexpr uint32 max_block_size =
+        syn::as_value(syn::max<workgroup_list_t>{});
 };
+
+
+using KCFG_1D = ConfigSet<11, 7>;
+constexpr auto kcfg_1d_list =
+    syn::merge<KCFG_1D, workgroup_list_t, subgroup_list_t>{};
+constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
+
+using BlockCfg = ConfigSet<11>;
+constexpr auto block_cfg_list =
+    syn::merge<BlockCfg, workgroup_list_t, empty_list_t>{};
+constexpr auto block_cfg_array = syn::as_array(block_cfg_list);
 
 
 }  // namespace dpcpp
@@ -77,4 +114,4 @@ struct config {
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+#endif  // GKO_DPCPP_BASE_CONFIG_HPP_IN_

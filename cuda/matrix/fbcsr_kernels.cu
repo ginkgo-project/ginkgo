@@ -261,7 +261,7 @@ namespace {
 
 
 template <int mat_blk_sz, typename ValueType, typename IndexType>
-void transpose_blocks_impl(syn::value_list<int, mat_blk_sz>,
+void transpose_blocks_impl(std::integer_sequence<int, mat_blk_sz>,
                            matrix::Fbcsr<ValueType, IndexType>* const mat)
 {
     constexpr int subwarp_size = config::warp_size;
@@ -310,7 +310,7 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
         select_transpose_blocks(
             fixedblock::compiled_kernels(),
             [bs](int compiled_block_size) { return bs == compiled_block_size; },
-            syn::value_list<int>(), syn::type_list<>(), trans);
+            std::integer_sequence<int>(), syn::type_list<>(), trans);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

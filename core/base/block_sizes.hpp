@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_BLOCK_SIZES_HPP_
 
 
+#include <utility>
+
+
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 namespace gko {
@@ -51,9 +53,10 @@ namespace fixedblock {
  * A compile-time list of block sizes for which dedicated fixed-block matrix
  * and corresponding preconditioner kernels should be compiled.
  */
-using compiled_kernels = syn::value_list<int, GKO_FIXED_BLOCK_CUSTOM_SIZES>;
+using compiled_kernels =
+    std::integer_sequence<int, GKO_FIXED_BLOCK_CUSTOM_SIZES>;
 #else
-using compiled_kernels = syn::value_list<int, 2, 3, 4, 7>;
+using compiled_kernels = std::integer_sequence<int, 2, 3, 4, 7>;
 #endif
 
 

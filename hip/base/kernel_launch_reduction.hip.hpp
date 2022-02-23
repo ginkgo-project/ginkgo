@@ -362,7 +362,7 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
-void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
+void run_generic_kernel_row_reduction(std::integer_sequence<int, subwarp_size>,
                                       int64 rows, int64 cols, int64 col_blocks,
                                       KernelFunction fn, ReductionOp op,
                                       FinalizeOp finalize, ValueType identity,
@@ -387,7 +387,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
+void run_generic_col_reduction_small(std::integer_sequence<int, subwarp_size>,
                                      int64 max_blocks,
                                      std::shared_ptr<const HipExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
@@ -441,7 +441,7 @@ void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
                               dim<2> size, KernelArgs&&... args)
 {
     using subwarp_sizes =
-        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -472,8 +472,8 @@ void run_kernel_row_reduction(std::shared_ptr<const HipExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), rows, cols, 1, fn, op,
-            finalize, identity, result, static_cast<int64>(result_stride),
+            std::integer_sequence<int>(), syn::type_list<>(), rows, cols, 1, fn,
+            op, finalize, identity, result, static_cast<int64>(result_stride),
             map_to_device(args)...);
     }
 }
@@ -488,7 +488,7 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
                               KernelArgs&&... args)
 {
     using subwarp_sizes =
-        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+        std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
     constexpr int oversubscription = 16;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -501,8 +501,8 @@ void run_kernel_col_reduction(std::shared_ptr<const HipExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
-            op, finalize, identity, result, size, map_to_device(args)...);
+            std::integer_sequence<int>(), syn::type_list<>(), max_blocks, exec,
+            fn, op, finalize, identity, result, size, map_to_device(args)...);
     } else {
         const auto col_blocks = ceildiv(cols, config::warp_size);
         const auto row_blocks =

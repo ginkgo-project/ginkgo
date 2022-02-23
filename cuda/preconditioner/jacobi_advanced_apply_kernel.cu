@@ -55,7 +55,7 @@ namespace jacobi {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void advanced_apply(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    std::integer_sequence<int, max_block_size>, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -86,7 +86,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
             [&](int compiled_block_size) {
                 return max_block_size <= compiled_block_size;
             },
-            syn::value_list<int, config::min_warps_per_block>(),
+            std::integer_sequence<int, config::min_warps_per_block>(),
             syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
             block_pointers.get_const_data(), blocks.get_const_data(),
             storage_scheme, alpha->get_const_values(),

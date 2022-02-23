@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_DPCPP_COMPONENTS_REDUCTION_DP_HPP_
 
 
+#include <dpcpp/base/config.hpp>
 #include <type_traits>
 
 
@@ -47,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
@@ -62,13 +62,7 @@ namespace dpcpp {
 
 
 constexpr int default_block_size = 256;
-using KCFG_1D = ConfigSet<11, 7>;
-constexpr auto kcfg_1d_list =
-    syn::value_list<std::uint32_t, KCFG_1D::encode(512, 64),
-                    KCFG_1D::encode(512, 32), KCFG_1D::encode(512, 16),
-                    KCFG_1D::encode(256, 32), KCFG_1D::encode(256, 16),
-                    KCFG_1D::encode(256, 8)>();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+
 
 /**
  * @internal
@@ -202,14 +196,13 @@ void reduce_array(size_type size, const ValueType* __restrict__ source,
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.
  */
-template <std::uint32_t cfg, typename ValueType>
-void reduce_add_array(
-    size_type size, const ValueType* __restrict__ source,
-    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
+template <int cfg, typename ValueType>
+void reduce_add_array(size_type size, const ValueType* __restrict__ source,
+                      ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+                      ValueType* __restrict__ block_sum)
 {
     reduce_array<KCFG_1D::decode<1>(cfg)>(
-        size, source, static_cast<ValueType*>(block_sum), item_ct1,
+        size, source, block_sum, item_ct1,
         [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
@@ -217,23 +210,24 @@ void reduce_add_array(
     }
 }
 
-template <std::uint32_t cfg = KCFG_1D::encode(256, 16), typename ValueType>
+template <int cfg = KCFG_1D::encode(config::max_block_size, config::warp_size),
+          typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, size_type size,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
-                       0, sycl::access::mode::read_write,
+        sycl::accessor<ValueType, 1, sycl::access::mode::read_write,
                        sycl::access::target::local>
-            block_sum_acc_ct1(cgh);
+            block_sum_acc_ct1(sycl::range<1>(KCFG_1D::decode<0>(cfg)), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                                             KCFG_1D::decode<1>(cfg))]] {
-                reduce_add_array<cfg>(size, source, result, item_ct1,
-                                      *block_sum_acc_ct1.get_pointer());
+                reduce_add_array<cfg>(
+                    size, source, result, item_ct1,
+                    static_cast<ValueType*>(block_sum_acc_ct1.get_pointer()));
             });
     });
 }
@@ -242,7 +236,7 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(reduce_add_array_config,
                                            reduce_add_array);
 
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
-                               kcfg_1d_list);
+                               kcfg_1d_array);
 
 
 /**
@@ -263,12 +257,10 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = Array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
-    const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
-        });
+    const int cfg = get_first_cfg(kcfg_1d_array, [&queue](int cfg) {
+        return validate(queue, KCFG_1D::decode<0>(cfg),
+                        KCFG_1D::decode<1>(cfg));
+    });
     const auto wg_size = KCFG_1D::decode<0>(cfg);
     const auto sg_size = KCFG_1D::decode<1>(cfg);
 

@@ -55,7 +55,7 @@ namespace jacobi {
 
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
-void generate(syn::value_list<int, max_block_size>,
+void generate(std::integer_sequence<int, max_block_size>,
               const matrix::Csr<ValueType, IndexType>* mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -85,9 +85,9 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
         [&](int compiled_block_size) {
             return max_block_size <= compiled_block_size;
         },
-        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
-        system_matrix, accuracy, blocks.get_data(), storage_scheme,
-        conditioning.get_data(), block_precisions.get_data(),
+        std::integer_sequence<int, config::min_warps_per_block>(),
+        syn::type_list<>(), system_matrix, accuracy, blocks.get_data(),
+        storage_scheme, conditioning.get_data(), block_precisions.get_data(),
         block_pointers.get_const_data(), num_blocks);
 }
 

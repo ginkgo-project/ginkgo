@@ -75,7 +75,7 @@ namespace jacobi {
 template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void advanced_apply(
-    syn::value_list<int, max_block_size>, size_type num_blocks,
+    std::integer_sequence<int, max_block_size>, size_type num_blocks,
     const precision_reduction* block_precisions,
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -112,7 +112,7 @@ void advanced_apply(
 #define DECLARE_JACOBI_ADVANCED_APPLY_INSTANTIATION(ValueType, IndexType)   \
     void advanced_apply<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE, \
                         ValueType, IndexType>(                              \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>, size_type,             \
+        std::integer_sequence<int, GKO_JACOBI_BLOCK_SIZE>, size_type,       \
         const precision_reduction*, const IndexType* block_pointers,        \
         const ValueType*,                                                   \
         const preconditioner::block_interleaved_storage_scheme<IndexType>&, \

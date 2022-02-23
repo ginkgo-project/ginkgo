@@ -95,9 +95,20 @@ else()
     option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is ON. If a system HWLOC is not found, then we try to build it ourselves. Switch this OFF to disable HWLOC." ON)
 endif()
 option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ backend." OFF)
+set(GINKGO_DPCPP_AOT_TARGETS "" CACHE STRING
+    "Uses DPC++ AOT with set targets (e.g., spir64_gen;spir64_x86_64). The default is '' (use JIT).")
+set(GINKGO_DPCPP_SUBGROUPS "8;16;32" CACHE STRING
+    "The subgroup sizes to generate DPC++ kernels for. The default is '8;16;32'.")
+set(GINKGO_DPCPP_WORKGROUPS "256;512" CACHE STRING
+    "The max workgroup sizes to generate DPC++ kernels for. The default is '256;512'.")
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+# Third party libraries
+option(GINKGO_DOWNLOAD_GFLAGS "Force Ginkgo to download gflags." OFF)
+option(GINKGO_DOWNLOAD_GTEST "Force Ginkgo to download GTest." OFF)
+option(GINKGO_DOWNLOAD_HWLOC "Force Ginkgo to download HWLOC." OFF)
+option(GINKGO_DOWNLOAD_RAPIDJSON "Force Ginkgo to download RapidJSON." OFF)
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -186,7 +197,6 @@ if(GINKGO_BUILD_HWLOC)
     set(GINKGO_HAVE_HWLOC 1)
 else()
     set(GINKGO_HAVE_HWLOC 0)
-    message(STATUS "HWLOC is being forcibly switched off")
 endif()
 
 if(GINKGO_BUILD_MPI)
@@ -223,14 +233,14 @@ endif()
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 if(GINKGO_BUILD_TESTS)
-    find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
+    ginkgo_find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
 endif()
 if(GINKGO_BUILD_BENCHMARKS)
-    find_package(gflags 2.2.2 QUIET)
-    find_package(RapidJSON 1.1.0 QUIET)
+    ginkgo_find_package(gflags 2.2.2 QUIET)
+    ginkgo_find_package(RapidJSON 1.1.0 QUIET)
 endif()
 if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
+    ginkgo_find_package(HWLOC 2.1) # No need for QUIET as we ship FindHWLOC
 endif()
 add_subdirectory(third_party)    # Third-party tools and libraries
 

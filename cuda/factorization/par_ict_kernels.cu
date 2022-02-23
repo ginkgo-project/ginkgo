@@ -70,7 +70,7 @@ constexpr int default_block_size = 512;
 
 // subwarp sizes for all warp-parallel kernels (filter, add_candidates)
 using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    std::integer_sequence<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/factorization/par_ict_spgeam_kernels.hpp.inc"
@@ -81,7 +81,7 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void add_candidates(syn::value_list<int, subwarp_size>,
+void add_candidates(std::integer_sequence<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* llh,
                     const matrix::Csr<ValueType, IndexType>* a,
@@ -137,7 +137,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_factor(syn::value_list<int, subwarp_size>,
+void compute_factor(std::integer_sequence<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     matrix::Csr<ValueType, IndexType>* l,
@@ -180,7 +180,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
+        std::integer_sequence<int>(), syn::type_list<>(), exec, llh, a, l,
+        l_new);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -202,7 +203,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo);
+        std::integer_sequence<int>(), syn::type_list<>(), exec, a, l, l_coo);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

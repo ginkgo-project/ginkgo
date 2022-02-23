@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <dpcpp/base/config.hpp>
 
 
 #include <CL/sycl.hpp>
@@ -56,7 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"
 #include "dpcpp/base/helper.hpp"
@@ -89,9 +89,9 @@ constexpr int classical_overweight = 32;
  * A compile-time list of the number items per threads for which spmv kernel
  * should be compiled.
  */
-using compiled_kernels = syn::value_list<int, 6>;
+using compiled_kernels = std::integer_sequence<int, 6>;
 
-using classical_kernels = syn::value_list<int, config::warp_size, 16, 8, 1>;
+using classical_kernels = subgroup_list_desc_t;
 
 
 namespace kernel {
@@ -324,8 +324,8 @@ void merge_path_reduce(const IndexType nwarps,
                        const IndexType* __restrict__ last_row,
                        ValueType* __restrict__ c, const size_type c_stride,
                        Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-                       UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                       UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                       IndexType* __restrict__ tmp_ind,
+                       ValueType* __restrict__ tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -351,9 +351,7 @@ void merge_path_reduce(const IndexType nwarps,
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
-    bool last =
-        block_segment_scan_reverse(static_cast<IndexType*>(tmp_ind),
-                                   static_cast<ValueType*>(tmp_val), item_ct1);
+    bool last = block_segment_scan_reverse(tmp_ind, tmp_val, item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
         c[row * c_stride] += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
@@ -538,9 +536,8 @@ void abstract_reduce(const IndexType nwarps,
                      const ValueType* __restrict__ last_val,
                      const IndexType* __restrict__ last_row,
                      ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     sycl::nd_item<3> item_ct1, IndexType* __restrict__ tmp_ind,
+                     ValueType* __restrict__ tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c, c_stride, [](ValueType& x) { return x; },
@@ -554,20 +551,19 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      ValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+            tmp_ind_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_val_acc_ct1(cgh);
+            tmp_val_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, c, c_stride, item_ct1,
+                    static_cast<IndexType*>(tmp_ind_acc_ct1.get_pointer()),
+                    static_cast<ValueType*>(tmp_val_acc_ct1.get_pointer()));
             });
     });
 }
@@ -579,9 +575,8 @@ void abstract_reduce(const IndexType nwarps,
                      const IndexType* __restrict__ last_row,
                      const ValueType* __restrict__ alpha,
                      ValueType* __restrict__ c, const size_type c_stride,
-                     sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     sycl::nd_item<3> item_ct1, IndexType* __restrict__ tmp_ind,
+                     ValueType* __restrict__ tmp_val)
 {
     const auto alpha_val = alpha[0];
     merge_path_reduce(
@@ -598,26 +593,25 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+        sycl::accessor<IndexType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
-                       sycl::access_mode::read_write,
+            tmp_ind_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
+        sycl::accessor<ValueType, 1, sycl::access_mode::read_write,
                        sycl::access::target::local>
-            tmp_val_acc_ct1(cgh);
+            tmp_val_acc_ct1(sycl::range<1>(spmv_block_size), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, c_stride,
-                                item_ct1, *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, alpha, c, c_stride, item_ct1,
+                    static_cast<IndexType*>(tmp_ind_acc_ct1.get_pointer()),
+                    static_cast<ValueType*>(tmp_val_acc_ct1.get_pointer()));
             });
     });
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType,
+template <int subgroup_size, typename ValueType, typename IndexType,
           typename Closure>
 void device_classical_spmv(const size_type num_rows,
                            const ValueType* __restrict__ val,
@@ -654,7 +648,7 @@ void device_classical_spmv(const size_type num_rows,
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType* __restrict__ val,
     const IndexType* __restrict__ col_idxs,
@@ -667,7 +661,7 @@ void abstract_classical_spmv(
         [](const ValueType& x, const ValueType& y) { return x; }, item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue* queue, const size_type num_rows,
@@ -689,7 +683,7 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
 }
 
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(
     const size_type num_rows, const ValueType* __restrict__ alpha,
     const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
@@ -708,7 +702,7 @@ void abstract_classical_spmv(
         item_ct1);
 }
 
-template <size_type subgroup_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void abstract_classical_spmv(dim3 grid, dim3 block,
                              size_type dynamic_shared_memory,
                              sycl::queue* queue, const size_type num_rows,
@@ -719,12 +713,14 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              ValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_classical_spmv<subgroup_size>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, b,
-                                 b_stride, beta, c, c_stride, item_ct1);
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
+                abstract_classical_spmv<subgroup_size>(
+                    num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride, beta,
+                    c, c_stride, item_ct1);
+            });
     });
 }
 
@@ -899,7 +895,9 @@ void row_permute_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -946,7 +944,9 @@ void inv_row_permute_kernel(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 inv_row_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -994,7 +994,9 @@ void inv_symm_permute_kernel(dim3 grid, dim3 block,
 {
     queue->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            subgroup_size)]] {
                 inv_symm_permute_kernel<subgroup_size>(
                     num_rows, permutation, in_row_ptrs, in_cols, in_vals,
                     out_row_ptrs, out_cols, out_vals, item_ct1);
@@ -1006,7 +1008,7 @@ namespace host_kernel {
 
 
 template <int items_per_thread, typename ValueType, typename IndexType>
-void merge_path_spmv(syn::value_list<int, items_per_thread>,
+void merge_path_spmv(std::integer_sequence<int, items_per_thread>,
                      std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Dense<ValueType>* b,
@@ -1076,7 +1078,7 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 
 
 template <int subgroup_size, typename ValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subgroup_size>,
+void classical_spmv(std::integer_sequence<int, subgroup_size>,
                     std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
@@ -1148,7 +1150,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
         IndexType max_length_per_row = 0;
         using Tcsr = matrix::Csr<ValueType, IndexType>;
@@ -1167,7 +1169,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (!is_complex<ValueType>()) {
@@ -1284,8 +1286,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&max_length_per_row](int compiled_info) {
                 return max_length_per_row >= compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -1294,8 +1295,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            empty_list_t{}, syn::type_list<>(), exec, a, b, c, alpha, beta);
     } else {
         GKO_NOT_IMPLEMENTED;
     }

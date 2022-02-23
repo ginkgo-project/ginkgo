@@ -143,6 +143,7 @@ class ConfigSet {
 public:
     static constexpr unsigned num_groups = sizeof...(num_bits);
     static constexpr std::array<unsigned char, num_groups> bits{num_bits...};
+    using can_encode = std::true_type;
 
     /**
      * Decodes the `position` information from encoded
