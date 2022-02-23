@@ -40,6 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The distributed namespace.
+ *
+ * @ingroup distributed
+ */
 namespace distributed {
 
 
@@ -87,6 +92,7 @@ namespace distributed {
  * for(int i = 0; i < r[3] - r[2]; ++i){
  *   data[starting_index[2] + i] = val;
  * }
+ * ```
  *
  * @tparam LocalIndexType  The index type used for part-local indices.
  *                         To prevent overflows, no single part's size may
