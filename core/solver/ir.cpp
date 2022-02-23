@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -162,7 +163,7 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -171,8 +172,9 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                     matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                     VectorType* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
@@ -248,7 +250,7 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
