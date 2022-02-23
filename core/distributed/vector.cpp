@@ -173,6 +173,37 @@ void Vector<ValueType>::read_distributed(
 
 template <typename ValueType>
 template <typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::from_local(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    const gko::Array<ValueType>& data,
+    const Partition<LocalIndexType, GlobalIndexType>* partition)
+{
+    const auto local_size = partition->get_part_size(comm.rank());
+    const dim<2> local_dim{local_size, 1};
+    const dim<2> global_dim{partition->get_size(), 1};
+    auto result = Vector<ValueType>::create(exec, comm);
+    result->resize(global_dim, local_dim);
+
+    auto values_view = gko::Array<ValueType>::view(
+        exec, local_size, result->get_local()->get_values());
+
+    values_view = data;
+    return result;
+}
+
+#define GKO_DECLARE_DISTRIBUTED_FROM_LOCAL(ValueType, LocalIndexType, \
+                                           GlobalIndexType)           \
+    std::unique_ptr<Vector<ValueType>> Vector<ValueType>::from_local( \
+        std::shared_ptr<const Executor> exec, mpi::communicator comm, \
+        const gko::Array<ValueType>& data,                            \
+        const Partition<LocalIndexType, GlobalIndexType>* partition)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DISTRIBUTED_FROM_LOCAL);
+
+
+template <typename ValueType>
+template <typename LocalIndexType, typename GlobalIndexType>
 void Vector<ValueType>::read_distributed(
     const matrix_data<ValueType, GlobalIndexType>& data,
     const Partition<LocalIndexType, GlobalIndexType>* partition)

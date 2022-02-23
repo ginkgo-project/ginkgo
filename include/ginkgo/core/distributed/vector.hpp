@@ -101,6 +101,20 @@ public:
     using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
+     * Builds a Vector from an existing Array.
+     *
+     * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector
+     * @param data  The Array of existing data
+     * @param partition  The global row partition
+     */
+    template <typename LocalIndexType, typename GlobalIndexType>
+    static std::unique_ptr<Vector<ValueType>> from_local(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        const gko::Array<ValueType>& data,
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
+
+    /**
      * Reads a vector from the device_matrix_data structure and a global row
      * partition.
      *
