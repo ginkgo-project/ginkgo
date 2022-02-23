@@ -419,6 +419,14 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _enable_macro(CudaExecutor, cuda)
 
 
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_ADAPT_SINGLE(_macro) \
+    template <>                  \
+    _macro GKO_NOT_IMPLEMENTED
+#else
+#define GKO_ADAPT_SINGLE(_macro) template _macro
+#endif
+
 /**
  * Instantiates a template for each non-complex value type compiled by Ginkgo.
  *
@@ -427,16 +435,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
     template _macro(float);                                     \
-    template <>                                                 \
-    _macro(double) GKO_NOT_IMPLEMENTED
-#else
-#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
-    template _macro(float);                                     \
-    template _macro(double)
-#endif
+    GKO_ADAPT_SINGLE(_macro(double))
 
 
 /**
@@ -447,18 +448,10 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
     template _macro(std::complex<float>);                    \
-    template <>                                              \
-    _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
-#else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
-    template _macro(std::complex<float>);                    \
-    template _macro(std::complex<double>)
-#endif
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>))
 
 
 /**
@@ -471,26 +464,14 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and scalar type, respectively.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)              \
-    template _macro(float, float);                                          \
-    template <>                                                             \
-    _macro(double, double) GKO_NOT_IMPLEMENTED;                             \
-    template _macro(std::complex<float>, std::complex<float>);              \
-    template <>                                                             \
-    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
-    template _macro(std::complex<float>, float);                            \
-    template <>                                                             \
-    _macro(std::complex<double>, double) GKO_NOT_IMPLEMENTED;
-#else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)   \
-    template _macro(float, float);                               \
-    template _macro(double, double);                             \
-    template _macro(std::complex<float>, std::complex<float>);   \
-    template _macro(std::complex<double>, std::complex<double>); \
-    template _macro(std::complex<float>, float);                 \
-    template _macro(std::complex<double>, double)
-#endif
+
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)            \
+    template _macro(float, float);                                        \
+    GKO_ADAPT_SINGLE(_macro(double, double));                             \
+    template _macro(std::complex<float>, std::complex<float>);            \
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, std::complex<double>)); \
+    template _macro(std::complex<float>, float);                          \
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, double))
 
 
 /**
@@ -515,21 +496,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
     template _macro(float, int32);                                        \
-    template <>                                                           \
-    _macro(double, int32) GKO_NOT_IMPLEMENTED;                            \
+    GKO_ADAPT_SINGLE(_macro(double, int32));                              \
     template _macro(float, int64);                                        \
-    template <>                                                           \
-    _macro(double, int64) GKO_NOT_IMPLEMENTED
-#else
-#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
-    template _macro(float, int32);                                        \
-    template _macro(double, int32);                                       \
-    template _macro(float, int64);                                        \
-    template _macro(double, int64)
-#endif
+    GKO_ADAPT_SINGLE(_macro(double, int64))
 
 
 /**
@@ -540,46 +511,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
     template _macro(std::complex<float>, int32);                       \
-    template <>                                                        \
-    _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED;           \
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, int32));             \
     template _macro(std::complex<float>, int64);                       \
-    template <>                                                        \
-    _macro(std::complex<double>, int64) GKO_NOT_IMPLEMENTED
-#else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro); \
-    template _macro(std::complex<float>, int32);                       \
-    template _macro(std::complex<double>, int32);                      \
-    template _macro(std::complex<float>, int64);                       \
-    template _macro(std::complex<double>, int64)
-#endif
-
-
-#if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
-    template <>                                                            \
-    _macro(float, double) GKO_NOT_IMPLEMENTED;                             \
-    template <>                                                            \
-    _macro(double, float) GKO_NOT_IMPLEMENTED;                             \
-    template <>                                                            \
-    _macro(std::complex<float>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
-    template <>                                                            \
-    _macro(std::complex<double>, std::complex<float>) GKO_NOT_IMPLEMENTED
-
-
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro) \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);            \
-    template _macro(float, float);                                \
-    template <>                                                   \
-    _macro(double, double) GKO_NOT_IMPLEMENTED;                   \
-    template _macro(std::complex<float>, std::complex<float>);    \
-    template <>                                                   \
-    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED
-#else
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, int64))
 
 
 /**
@@ -591,11 +528,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments `src` and `dst`, which
  *                are replaced by the source and destination value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
-    template _macro(float, double);                             \
-    template _macro(double, float);                             \
-    template _macro(std::complex<float>, std::complex<double>); \
-    template _macro(std::complex<double>, std::complex<float>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                \
+    GKO_ADAPT_SINGLE(_macro(float, double));                             \
+    GKO_ADAPT_SINGLE(_macro(double, float));                             \
+    GKO_ADAPT_SINGLE(_macro(std::complex<float>, std::complex<double>)); \
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, std::complex<float>))
 
 
 /**
@@ -610,10 +547,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);            \
     template _macro(float, float);                                \
-    template _macro(double, double);                              \
+    GKO_ADAPT_SINGLE(_macro(double, double));                     \
     template _macro(std::complex<float>, std::complex<float>);    \
-    template _macro(std::complex<double>, std::complex<double>)
-#endif
+    GKO_ADAPT_SINGLE(_macro(std::complex<double>, std::complex<double>))
 
 
 /**

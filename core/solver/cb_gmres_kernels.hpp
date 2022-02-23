@@ -63,27 +63,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *                const accessor, or not.
  */
 #define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, _const)          \
-    template _macro(                                                           \
+    GKO_ADAPT_SINGLE(_macro(                                                   \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, double, _const double>>));    \
-    template _macro(                                                           \
+            acc::range<acc::reduced_row_major<3, double, _const double>>)));   \
+    GKO_ADAPT_SINGLE(_macro(                                                   \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, double, _const float>>));     \
-    template _macro(                                                           \
+            acc::range<acc::reduced_row_major<3, double, _const float>>)));    \
+    GKO_ADAPT_SINGLE(_macro(                                                   \
         double,                                                                \
         GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, double, _const half>>));      \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int64, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int32, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int16, 0b101>>));         \
+            acc::range<acc::reduced_row_major<3, double, _const half>>)));     \
+    GKO_ADAPT_SINGLE(                                                          \
+        _macro(double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<    \
+                                      3, double, _const int64, 0b101>>)));     \
+    GKO_ADAPT_SINGLE(                                                          \
+        _macro(double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<    \
+                                      3, double, _const int32, 0b101>>)));     \
+    GKO_ADAPT_SINGLE(                                                          \
+        _macro(double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<    \
+                                      3, double, _const int16, 0b101>>)));     \
     template _macro(                                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
@@ -98,16 +98,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(float,                                                     \
                     GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
                                    3, float, _const int16, 0b101>>));          \
-    template _macro(                                                           \
+    GKO_ADAPT_SINGLE(_macro(                                                   \
+        std::complex<double>,                                                  \
+        GKO_UNPACK(                                                            \
+            acc::range<acc::reduced_row_major<                                 \
+                3, std::complex<double>, _const std::complex<double>>>)));     \
+    GKO_ADAPT_SINGLE(_macro(                                                   \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, std::complex<double>,         \
-                                              _const std::complex<double>>>)); \
-    template _macro(                                                           \
-        std::complex<double>,                                                  \
-        GKO_UNPACK(                                                            \
-            acc::range<acc::reduced_row_major<3, std::complex<double>,         \
-                                              _const std::complex<float>>>));  \
+                                              _const std::complex<float>>>))); \
     template _macro(                                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
