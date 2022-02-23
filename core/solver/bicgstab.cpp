@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -95,7 +96,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -104,12 +105,11 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Bicgstab<ValueType>::apply_dense_impl(
-    const matrix::Dense<ValueType>* dense_b,
-    matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                           VectorType* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -141,9 +141,13 @@ void Bicgstab<ValueType>::apply_dense_impl(
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
-    exec->run(bicgstab::make_initialize(dense_b, r, rr, y, s, t, z, v, p,
-                                        prev_rho, rho, alpha, beta, gamma,
-                                        omega, &stop_status));
+    exec->run(bicgstab::make_initialize(
+        gko::detail::get_local(dense_b), gko::detail::get_local(r),
+        gko::detail::get_local(rr), gko::detail::get_local(y),
+        gko::detail::get_local(s), gko::detail::get_local(t),
+        gko::detail::get_local(z), gko::detail::get_local(v),
+        gko::detail::get_local(p), prev_rho, rho, alpha, beta, gamma, omega,
+        &stop_status));
 
     // r = b - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
@@ -183,8 +187,10 @@ void Bicgstab<ValueType>::apply_dense_impl(
 
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        exec->run(bicgstab::make_step_1(r, p, v, rho, prev_rho, alpha, omega,
-                                        &stop_status));
+        exec->run(bicgstab::make_step_1(gko::detail::get_local(r),
+                                        gko::detail::get_local(p),
+                                        gko::detail::get_local(v), rho,
+                                        prev_rho, alpha, omega, &stop_status));
 
         // y = preconditioner * p
         this->get_preconditioner()->apply(p, y);
@@ -194,8 +200,9 @@ void Bicgstab<ValueType>::apply_dense_impl(
         rr->compute_conj_dot(v, beta, reduction_tmp);
         // alpha = rho / beta
         // s = r - alpha * v
-        exec->run(
-            bicgstab::make_step_2(r, s, v, rho, alpha, beta, &stop_status));
+        exec->run(bicgstab::make_step_2(
+            gko::detail::get_local(r), gko::detail::get_local(s),
+            gko::detail::get_local(v), rho, alpha, beta, &stop_status));
 
         auto all_converged =
             stop_criterion->update()
@@ -205,7 +212,9 @@ void Bicgstab<ValueType>::apply_dense_impl(
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(dense_x, y, alpha, &stop_status));
+            exec->run(bicgstab::make_finalize(gko::detail::get_local(dense_x),
+                                              gko::detail::get_local(y), alpha,
+                                              &stop_status));
         }
         if (all_converged) {
             break;
@@ -222,8 +231,11 @@ void Bicgstab<ValueType>::apply_dense_impl(
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
-        exec->run(bicgstab::make_step_3(dense_x, r, s, t, y, z, alpha, beta,
-                                        gamma, omega, &stop_status));
+        exec->run(bicgstab::make_step_3(
+            gko::detail::get_local(dense_x), gko::detail::get_local(r),
+            gko::detail::get_local(s), gko::detail::get_local(t),
+            gko::detail::get_local(y), gko::detail::get_local(z), alpha, beta,
+            gamma, omega, &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -236,7 +248,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
