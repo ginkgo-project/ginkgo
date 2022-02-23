@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -94,7 +95,7 @@ void Cgs<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -103,11 +104,12 @@ void Cgs<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                      matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                      VectorType* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -139,9 +141,13 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // rho = 0.0
     // prev_rho = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
-    exec->run(cgs::make_initialize(dense_b, r, r_tld, p, q, u, u_hat, v_hat, t,
-                                   alpha, beta, gamma, prev_rho, rho,
-                                   &stop_status));
+    exec->run(cgs::make_initialize(
+        gko::detail::get_local(dense_b), gko::detail::get_local(r),
+        gko::detail::get_local(r_tld), gko::detail::get_local(p),
+        gko::detail::get_local(q), gko::detail::get_local(u),
+        gko::detail::get_local(u_hat), gko::detail::get_local(v_hat),
+        gko::detail::get_local(t), alpha, beta, gamma, prev_rho, rho,
+        &stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -178,22 +184,29 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // beta = rho / prev_rho
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
-        exec->run(
-            cgs::make_step_1(r, u, p, q, beta, rho, prev_rho, &stop_status));
+        exec->run(cgs::make_step_1(
+            gko::detail::get_local(r), gko::detail::get_local(u),
+            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
+            prev_rho, &stop_status));
         this->get_preconditioner()->apply(p, t);
         this->get_system_matrix()->apply(t, v_hat);
         r_tld->compute_conj_dot(v_hat, gamma, reduction_tmp);
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        exec->run(
-            cgs::make_step_2(u, v_hat, q, t, alpha, rho, gamma, &stop_status));
+        exec->run(cgs::make_step_2(
+            gko::detail::get_local(u), gko::detail::get_local(v_hat),
+            gko::detail::get_local(q), gko::detail::get_local(t), alpha, rho,
+            gamma, &stop_status));
 
         this->get_preconditioner()->apply(t, u_hat);
         this->get_system_matrix()->apply(u_hat, t);
         // r = r - alpha * t
         // x = x + alpha * u_hat
-        exec->run(cgs::make_step_3(t, u_hat, r, dense_x, alpha, &stop_status));
+        exec->run(cgs::make_step_3(
+            gko::detail::get_local(t), gko::detail::get_local(u_hat),
+            gko::detail::get_local(r), gko::detail::get_local(dense_x), alpha,
+            &stop_status));
 
         swap(prev_rho, rho);
     }
@@ -207,7 +220,7 @@ void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
