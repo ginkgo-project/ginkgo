@@ -49,6 +49,10 @@ if(GINKGO_HAVE_PAPI_SDE)
     list(APPEND EXAMPLES_LIST papi-logging)
 endif()
 
+if(GINKGO_BUILD_MPI)
+    list(APPEND EXAMPLES_LIST distributed-solver)
+endif()
+
 foreach(example ${EXAMPLES_LIST})
     add_subdirectory(${example})
 endforeach()
