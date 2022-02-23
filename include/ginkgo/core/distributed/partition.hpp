@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -285,21 +284,6 @@ public:
     static std::unique_ptr<Partition> build_from_global_size_uniform(
         std::shared_ptr<const Executor> exec, comm_index_type num_parts,
         global_index_type global_size);
-
-    /**
-     * Builds a partition from the local range
-     *
-     * @param exec  the Executor on which the partition should be built
-     * @param local_start the start index of the local range
-     * @param local_end the end index of the local range
-     *
-     * @return a Partition where each range has the individual local_start
-     * and local_ends
-     */
-    static std::unique_ptr<Partition> build_from_local_range(
-        std::shared_ptr<const Executor> exec, local_index_type local_start,
-        local_index_type local_end,
-        std::shared_ptr<const mpi::communicator> comm);
 
 private:
     /**
