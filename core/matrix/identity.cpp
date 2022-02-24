@@ -54,7 +54,7 @@ template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, dense_b);
