@@ -119,14 +119,14 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto r = detail::create_with_same_size(dense_b);
-    auto r_tld = detail::create_with_same_size(dense_b);
-    auto p = detail::create_with_same_size(dense_b);
-    auto q = detail::create_with_same_size(dense_b);
-    auto u = detail::create_with_same_size(dense_b);
-    auto u_hat = detail::create_with_same_size(dense_b);
-    auto v_hat = detail::create_with_same_size(dense_b);
-    auto t = detail::create_with_same_size(dense_b);
+    auto r = detail::create_with_config_of(dense_b);
+    auto r_tld = detail::create_with_config_of(dense_b);
+    auto p = detail::create_with_config_of(dense_b);
+    auto q = detail::create_with_config_of(dense_b);
+    auto u = detail::create_with_config_of(dense_b);
+    auto u_hat = detail::create_with_config_of(dense_b);
+    auto v_hat = detail::create_with_config_of(dense_b);
+    auto t = detail::create_with_config_of(dense_b);
 
     auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto beta = LocalVector::create_with_config_of(alpha.get());
