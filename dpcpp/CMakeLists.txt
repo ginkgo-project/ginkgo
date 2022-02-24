@@ -79,7 +79,8 @@ target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
 
 if (NOT GINKGO_DPCPP_AOT_TARGETS STREQUAL "")
     string(REPLACE ";" "," GINKGO_DPCPP_AOT_TARGETS_FORMATTED "${GINKGO_DPCPP_AOT_TARGETS}")
-    target_compile_options(ginkgo_dpcpp PRIVATE -fsycl-targets=${GINKGO_DPCPP_AOT_TARGETS_FORMATTED})
+    target_compile_options(ginkgo_dpcpp PUBLIC -fsycl-targets=${GINKGO_DPCPP_AOT_TARGETS_FORMATTED})
+    target_link_options(ginkgo_dpcpp PUBLIC -fsycl-targets=${GINKGO_DPCPP_AOT_TARGETS_FORMATTED})
 else()
     # When building ginkgo as a static library, we need to use dpcpp and per_source
     # link option when the program uses a dpcpp related function.

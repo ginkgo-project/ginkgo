@@ -54,54 +54,20 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace dense {
 
 
-template <typename InValueType, typename OutValueType>
-void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<InValueType>* input,
-          matrix::Dense<OutValueType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) = input(row, col);
-        },
-        input->get_size(), input, output);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
-    GKO_DECLARE_DENSE_COPY_KERNEL);
-
-
 template <typename ValueType>
-void fill(std::shared_ptr<const DefaultExecutor> exec,
-          matrix::Dense<ValueType>* mat, ValueType value)
+void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
+                   const matrix::Dense<ValueType>* x,
+                   matrix::Dense<remove_complex<ValueType>>* result)
 {
-    run_kernel(
+    run_kernel_col_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto mat, auto value) {
-            mat(row, col) = value;
-        },
-        mat->get_size(), mat, value);
+        [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
+        result->get_values(), x->get_size(), x);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
-                         const device_matrix_data<ValueType, IndexType>& data,
-                         matrix::Dense<ValueType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
-            output(row[i], col[i]) = val[i];
-        },
-        data.get_num_elems(), data.get_const_row_idxs(),
-        data.get_const_col_idxs(), data.get_const_values(), output);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 
 }  // namespace dense

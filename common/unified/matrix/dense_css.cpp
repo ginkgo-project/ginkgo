@@ -54,54 +54,36 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace dense {
 
 
-template <typename InValueType, typename OutValueType>
-void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<InValueType>* input,
-          matrix::Dense<OutValueType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) = input(row, col);
-        },
-        input->get_size(), input, output);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
-    GKO_DECLARE_DENSE_COPY_KERNEL);
-
-
 template <typename ValueType>
-void fill(std::shared_ptr<const DefaultExecutor> exec,
-          matrix::Dense<ValueType>* mat, ValueType value)
+void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Dense<ValueType>* source,
+                        size_type slice_size, size_type stride_factor,
+                        size_type* slice_sets, size_type* slice_lengths)
 {
-    run_kernel(
+    const auto num_rows = source->get_size()[0];
+    Array<size_type> row_nnz{exec, num_rows};
+    count_nonzeros_per_row(exec, source, row_nnz.get_data());
+    const auto num_slices =
+        static_cast<size_type>(ceildiv(num_rows, slice_size));
+    run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto mat, auto value) {
-            mat(row, col) = value;
+        [] GKO_KERNEL(auto slice, auto local_row, auto row_nnz, auto slice_size,
+                      auto stride_factor, auto num_rows) {
+            const auto row = slice * slice_size + local_row;
+            return row < num_rows ? static_cast<size_type>(
+                                        ceildiv(row_nnz[row], stride_factor) *
+                                        stride_factor)
+                                  : size_type{};
         },
-        mat->get_size(), mat, value);
+        GKO_KERNEL_REDUCE_MAX(size_type), slice_lengths, 1,
+        gko::dim<2>{num_slices, slice_size}, row_nnz, slice_size, stride_factor,
+        num_rows);
+    exec->copy(num_slices, slice_lengths, slice_sets);
+    components::prefix_sum(exec, slice_sets, num_slices + 1);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
-                         const device_matrix_data<ValueType, IndexType>& data,
-                         matrix::Dense<ValueType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
-            output(row[i], col[i]) = val[i];
-        },
-        data.get_num_elems(), data.get_const_row_idxs(),
-        data.get_const_col_idxs(), data.get_const_values(), output);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL);
 
 
 }  // namespace dense

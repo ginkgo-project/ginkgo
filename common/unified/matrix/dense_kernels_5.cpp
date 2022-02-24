@@ -54,55 +54,59 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace dense {
 
 
-template <typename InValueType, typename OutValueType>
-void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<InValueType>* input,
-          matrix::Dense<OutValueType>* output)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-            output(row, col) = input(row, col);
-        },
-        input->get_size(), input, output);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
-    GKO_DECLARE_DENSE_COPY_KERNEL);
-
-
-template <typename ValueType>
-void fill(std::shared_ptr<const DefaultExecutor> exec,
-          matrix::Dense<ValueType>* mat, ValueType value)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto mat, auto value) {
-            mat(row, col) = value;
-        },
-        mat->get_size(), mat, value);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
-void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
-                         const device_matrix_data<ValueType, IndexType>& data,
-                         matrix::Dense<ValueType>* output)
+void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Dense<ValueType>* mtx,
+                            IndexType* result)
 {
-    run_kernel(
+    run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto row, auto col, auto val, auto output) {
-            output(row[i], col[i]) = val[i];
+        [] GKO_KERNEL(auto i, auto j, auto mtx) {
+            return is_nonzero(mtx(i, j)) ? 1 : 0;
         },
-        data.get_num_elems(), data.get_const_row_idxs(),
-        data.get_const_col_idxs(), data.get_const_values(), output);
+        GKO_KERNEL_REDUCE_SUM(IndexType), result, 1, mtx->get_size(), mtx);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T);
 
+
+template <typename ValueType, typename IndexType>
+void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
+                  const Array<IndexType>* permutation_indices,
+                  const matrix::Dense<ValueType>* orig,
+                  matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+            permuted(row, col) = orig(perm[row], perm[col]);
+        },
+        orig->get_size(), orig, *permutation_indices, permuted);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
+                      const Array<IndexType>* permutation_indices,
+                      const matrix::Dense<ValueType>* orig,
+                      matrix::Dense<ValueType>* permuted)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto orig, auto perm, auto permuted) {
+            permuted(perm[row], perm[col]) = orig(row, col);
+        },
+        orig->get_size(), orig, *permutation_indices, permuted);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
 
 }  // namespace dense
 }  // namespace GKO_DEVICE_NAMESPACE
