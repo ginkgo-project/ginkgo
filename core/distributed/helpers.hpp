@@ -43,7 +43,7 @@ namespace detail {
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size(
+std::unique_ptr<matrix::Dense<ValueType>> create_with_config_of(
     const matrix::Dense<ValueType>* mtx)
 {
     return matrix::Dense<ValueType>::create(mtx->get_executor(),
@@ -69,7 +69,7 @@ matrix::Dense<ValueType>* get_local(matrix::Dense<ValueType>* mtx)
 
 
 template <typename ValueType>
-std::unique_ptr<distributed::Vector<ValueType>> create_with_same_size(
+std::unique_ptr<distributed::Vector<ValueType>> create_with_config_of(
     const distributed::Vector<ValueType>* mtx)
 {
     return distributed::Vector<ValueType>::create(
