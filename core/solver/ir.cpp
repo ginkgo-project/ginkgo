@@ -181,8 +181,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
-    auto residual = detail::create_with_same_size(dense_b);
-    auto inner_solution = detail::create_with_same_size(dense_b);
+    auto residual = detail::create_with_config_of(dense_b);
+    auto inner_solution = detail::create_with_config_of(dense_b);
 
     bool one_changed{};
     array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
