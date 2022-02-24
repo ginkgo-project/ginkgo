@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
@@ -63,7 +64,24 @@ GKO_REGISTER_OPERATION(implicit_residual_norm,
 }  // namespace implicit_residual_norm
 
 
+template <typename ValueType>
+bool any_is_complex()
+{
+    return false;
+}
+
+
 #if GINKGO_BUILD_MPI
+
+
+template <typename ValueType, typename LinOp, typename... Rest>
+bool any_is_complex(const LinOp* in, Rest&&... rest)
+{
+    return !(is_complex<ValueType>() ||
+             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in) ||
+             dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in)) ||
+           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
+}
 
 
 template <typename Arg>
@@ -83,29 +101,49 @@ bool use_distributed(Arg* linop, Rest*... rest)
 }
 
 
-template <typename ValueType, typename Function, typename... LinOps>
-void norm_dispatch(Function&& fn, LinOps*... linops)
-{
-    if (use_distributed(linops...)) {
-        precision_dispatch_distributed<ValueType>(std::forward<Function>(fn),
-                                                  linops...);
-    } else {
-        precision_dispatch<ValueType>(std::forward<Function>(fn), linops...);
-    }
-}
-
-
 #else
 
 
-template <typename ValueType, typename Function, typename... LinOps>
-void norm_dispatch(Function&& fn, LinOps*... linops)
+template <typename ValueType, typename LinOp, typename... Rest>
+bool any_is_complex(const LinOp* in, Rest&&... rest)
 {
-    precision_dispatch<ValueType>(std::forward<Function>(fn), linops...);
+    return !(is_complex<ValueType>() ||
+             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
+           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
+}
+
+
+template <typename... Args>
+bool use_distributed(Args*...)
+{
+    return false;
 }
 
 
 #endif
+
+
+template <typename ValueType, typename Function, typename... LinOps>
+void norm_dispatch(Function&& fn, LinOps*... linops)
+{
+    if (use_distributed(linops...)) {
+        if (any_is_complex<ValueType>(linops...)) {
+            precision_dispatch_distributed<to_complex<ValueType>>(
+                std::forward<Function>(fn), linops...);
+        } else {
+            precision_dispatch_distributed<ValueType>(
+                std::forward<Function>(fn), linops...);
+        }
+    } else {
+        if (any_is_complex<ValueType>(linops...)) {
+            precision_dispatch<to_complex<ValueType>>(
+                std::forward<Function>(fn), linops...);
+        } else {
+            precision_dispatch<ValueType>(std::forward<Function>(fn),
+                                          linops...);
+        }
+    }
+}
 
 
 template <typename ValueType>
