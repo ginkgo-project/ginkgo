@@ -1,0 +1,1 @@
+ginkgo_create_common_mpi_test(solver 3)
