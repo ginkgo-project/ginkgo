@@ -749,4 +749,26 @@ TYPED_TEST(VectorLocalOp, SubScaleSameAsLocal)
 }
 
 
+TYPED_TEST(VectorLocalOp, CreateRealViewSameAsLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+
+    auto real_view = this->vec_a->create_real_view();
+    auto local_real_view = this->vec_a->get_const_local()->create_real_view();
+
+    if (gko::is_complex<value_type>()) {
+        EXPECT_EQ(real_view->get_size()[0], this->vec_a->get_size()[0]);
+        EXPECT_EQ(real_view->get_size()[1], 2 * this->vec_a->get_size()[1]);
+        EXPECT_EQ(real_view->get_const_local()->get_stride(),
+                  2 * this->vec_a->get_const_local()->get_stride());
+        GKO_ASSERT_MTX_NEAR(real_view->get_const_local(), local_real_view, 0.);
+    } else {
+        EXPECT_EQ(real_view->get_size()[0], this->vec_a->get_size()[0]);
+        EXPECT_EQ(real_view->get_size()[1], this->vec_a->get_size()[1]);
+        GKO_ASSERT_MTX_NEAR(real_view->get_const_local(), local_real_view, 0.);
+    }
+}
+
+
 }  // namespace
