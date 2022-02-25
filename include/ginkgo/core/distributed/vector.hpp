@@ -310,6 +310,7 @@ public:
 protected:
     /**
      * Creates an empty distributed vector with a specified size
+     *
      * @param exec  Executor associated with vector
      * @param comm  Communicator associated with vector, the default is
      *              MPI_COMM_WORLD
@@ -323,6 +324,7 @@ protected:
 
     /**
      * Creates an empty distributed vector with a specified size
+     *
      * @param exec  Executor associated with vector
      * @param comm  Communicator associated with vector, the default is
      *              MPI_COMM_WORLD
@@ -334,6 +336,31 @@ protected:
     explicit Vector(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
                     dim<2> global_size = {}, dim<2> local_size = {});
+
+    /**
+     * Creates a distributed vector from local vectors with a specified size.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param global_size  The global size of the vector
+     * @param local_vector  The underlying local vector, the date will be moved
+     *                      into this
+     */
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           dim<2> global_size, local_vector_type* local_vector);
+
+    /**
+     * Creates a distributed vector from local vectors. The global size will
+     * be deduced from the local sizes, which will incur a collective
+     * communication.
+     *
+     * @param exec  Executor associated with this vector
+     * @param comm  Communicator associated with this vector
+     * @param local_vector  The underlying local vector, the date will be moved
+     *                      into this
+     */
+    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
+           local_vector_type* local_vector);
 
     void resize(dim<2> global_size, dim<2> local_size);
 
