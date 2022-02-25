@@ -84,6 +84,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 }  // namespace detail
 
 
+dim<2> compute_global_size(mpi::communicator comm, dim<2> local_size)
+{
+    size_type num_global_rows = local_size[0];
+    comm.all_reduce(&num_global_rows, 1, MPI_SUM);
+    return {num_global_rows, local_size[1]};
+}
+
+
 template <typename ValueType>
 void Vector<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
@@ -105,6 +113,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
     : Vector(exec, comm, global_size, local_size, local_size[1])
 {}
 
+
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
@@ -112,6 +121,28 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
     : EnableLinOp<Vector<ValueType>>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
+{
+    GKO_ASSERT_EQUAL_COLS(global_size, local_size);
+}
+
+template <typename ValueType>
+Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
+                          mpi::communicator comm, dim<2> global_size,
+                          local_vector_type* local_vector)
+    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+      DistributedBase{comm},
+      local_{exec}
+{
+    local_vector->move_to(&local_);
+}
+
+
+template <typename ValueType>
+Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
+                          mpi::communicator comm,
+                          local_vector_type* local_vector)
+    : Vector(std::move(exec), comm,
+             compute_global_size(comm, local_vector->get_size()), local_vector)
 {}
 
 
