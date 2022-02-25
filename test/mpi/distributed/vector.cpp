@@ -542,4 +542,20 @@ TEST_F(VectorLocalOps, SubScaleSameAsLocal)
 }
 
 
+TEST_F(VectorLocalOps, CreateRealViewSameAsLocal)
+{
+    using real_type = gko::remove_complex<value_type>;
+    init_vectors();
+
+    auto rv = x->create_real_view();
+    auto drv = dx->create_real_view();
+
+    EXPECT_EQ(rv->get_size()[0], drv->get_size()[0]);
+    EXPECT_EQ(rv->get_size()[1], drv->get_size()[1]);
+    EXPECT_EQ(rv->get_const_local()->get_stride(),
+              drv->get_const_local()->get_stride());
+    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), drv->get_const_local(), 0.);
+}
+
+
 }  // namespace
