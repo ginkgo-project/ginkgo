@@ -74,6 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/reorder/mc64_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
@@ -906,6 +907,21 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
+
+
+namespace mc64 {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL);
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL);
+GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL);
+
+
+}  // namespace mc64
+
+
 namespace rcm {
 
 

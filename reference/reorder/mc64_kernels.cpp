@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iterator>
 #include <memory>
 #include <queue>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -128,7 +129,8 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType* col_idxs,
                       const Array<ValueType>& workspace,
                       Array<IndexType>& permutation,
-                      Array<IndexType>& inv_permutation)
+                      Array<IndexType>& inv_permutation,
+                      std::list<IndexType>& unmatched_rows)
 {
     const auto nnz = row_ptrs[num_rows];
     const auto c = workspace.get_const_data();
@@ -154,6 +156,7 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
                 break;
             }
         }
+        if (p[row] == -1) unmatched_rows.push_back(row);
     }
 
     // For remaining unmatched rows, look for a matched column with weight(row,
@@ -161,40 +164,142 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
     // column col_1 with weight(row_1, col_1) = 0 that is not yet matched,
     // replace the matched edge (row_1, col) with the two new matched edges
     // (row, col) and (row_1, col_1).
-    for (IndexType row = 0; row < num_rows; row++) {
-        if (p[row] == -1) {
-            const auto row_begin = row_ptrs[row];
-            const auto row_end = row_ptrs[row + 1];
-            for (IndexType idx = row_begin; idx < row_end; idx++) {
-                const auto col = col_idxs[idx];
-                if (weight(row, col, idx) == zero<ValueType>()) {
-                    const auto row_1 = ip[col];
-                    const auto row_1_begin = row_ptrs[row_1];
-                    const auto row_1_end = row_ptrs[row_1 + 1];
-                    bool found = false;
-                    for (IndexType idx_1 = row_1_begin; idx_1 < row_1_end;
-                         idx_1++) {
-                        const auto col_1 = col_idxs[idx_1];
-                        if (weight(row_1, col_1, idx_1) == zero<ValueType>() &&
-                            ip[col_1] == -1) {
-                            p[row] = col;
-                            ip[col] = row;
-                            p[row_1] = col_1;
-                            ip[col_1] = row_1;
-                            found = true;
-                            break;
-                        }
+    auto it = unmatched_rows.begin();
+    while (it != unmatched_rows.end()) {
+        const auto row = *it;
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        bool found = false;
+        for (IndexType idx = row_begin; idx < row_end; idx++) {
+            const auto col = col_idxs[idx];
+            if (weight(row, col, idx) == zero<ValueType>()) {
+                const auto row_1 = ip[col];
+                const auto row_1_begin = row_ptrs[row_1];
+                const auto row_1_end = row_ptrs[row_1 + 1];
+                for (IndexType idx_1 = row_1_begin; idx_1 < row_1_end;
+                     idx_1++) {
+                    const auto col_1 = col_idxs[idx_1];
+                    if (weight(row_1, col_1, idx_1) == zero<ValueType>() &&
+                        ip[col_1] == -1) {
+                        p[row] = col;
+                        ip[col] = row;
+                        p[row_1] = col_1;
+                        ip[col_1] = row_1;
+                        found = true;
+                        break;
                     }
-                    if (found) break;
                 }
+                if (found) break;
             }
         }
+        if (found)
+            it = unmatched_rows.erase(it);
+        else
+            it++;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL);
 
+
+template <typename ValueType, typename IndexType>
+void shortest_augmenting_path(std::shared_ptr<const DefaultExecutor> exec,
+                              size_type num_rows, const IndexType* row_ptrs,
+                              const IndexType* col_idxs,
+                              Array<ValueType>& workspace,
+                              Array<IndexType>& permutation,
+                              Array<IndexType>& inv_permutation, IndexType root,
+                              Array<IndexType>& parents)
+{
+    const auto nnz = row_ptrs[num_rows];
+    auto c = workspace.get_data();
+    auto u = c + nnz;
+    auto v = u + num_rows;
+    auto weight = [c, u, v](IndexType row, IndexType col, IndexType idx) {
+        return c[idx] - u[col] - v[row];
+    };
+    auto p = permutation.get_data();
+    auto ip = inv_permutation.get_data();
+    parents.fill(-one<IndexType>());
+    auto parents_ = parents.get_data();
+
+    std::vector<ValueType> distance(num_rows, -one<ValueType>());
+    auto cmp = [distance](IndexType a, IndexType b) {
+        return (distance[b] == -one<IndexType>()) ||
+               (distance[a] <= distance[b]);
+    };
+    std::set<IndexType> marked_cols;
+    std::set<IndexType, decltype(cmp)> Q(cmp);
+    ValueType lsp = 0;
+    ValueType lsap = -1;
+    IndexType jsap;
+
+    auto row = root;
+
+    while (true) {
+        const auto row_begin = row_ptrs[row];
+        const auto row_end = row_ptrs[row + 1];
+        for (IndexType idx = row_begin; idx < row_end; idx++) {
+            const auto col = col_idxs[idx];
+            if (marked_cols.find(col) != marked_cols.end()) continue;
+            ValueType dnew = lsp + weight(row, col, idx);
+            if (lsap < 0 || dnew < lsap) {
+                if (ip[col] == -1) {
+                    lsap = dnew;
+                    jsap = col;
+                    parents_[col] = row;
+                } else {
+                    if (distance[col] == -1 || dnew < distance[col]) {
+                        bool new_col = false;
+                        if (distance[col] == -1) new_col = true;
+                        distance[col] = dnew;
+                        parents_[col] = row;
+                        if (!new_col) Q.erase(col);
+                        Q.insert(col);
+                    }
+                }
+            }
+        }
+
+        if (Q.empty()) break;
+        auto col_pos = Q.begin();
+        auto col = *col_pos;
+        lsp = distance[col];
+        if (lsap >= 0 && lsap <= lsp) break;
+        Q.erase(col_pos);
+        marked_cols.insert(col);
+        row = ip[col];
+    }
+    if (lsap != -1) {
+        auto row = -1;
+        auto col = -1;
+        auto next_col = jsap;
+        while (row != root) {
+            col = next_col;
+            row = parents_[col];
+            next_col = p[row];
+            p[row] = col;
+            ip[col] = row;
+        }
+
+        for (auto marked_col : marked_cols) {
+            u[marked_col] += distance[marked_col] - lsap;
+        }
+
+        for (size_type row = 0; row < num_rows; row++) {
+            if (p[row] != -1) {
+                auto col = p[row];
+                auto idx = row_ptrs[row];
+                while (col_idxs[idx] != col) idx++;
+                v[row] = c[idx] - u[col];
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL);
 }  // namespace mc64
 }  // namespace reference
 }  // namespace kernels
