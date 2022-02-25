@@ -61,7 +61,10 @@ int main(int argc, char* argv[])
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned num_jumps = argc >= 3 ? std::atoi(argv[2]) : 2u;
-    const unsigned grid_dim = argc >= 4 ? std::atoi(argv[3]) : 10u;
+    const std::string coarse_select = argc >= 4 ? std::string(argv[3]) : "none";
+    const unsigned grid_dim = argc >= 5 ? std::atoi(argv[4]) : 20u;
+    const bool use_coarse_select = !coarse_select.compare("coarse");
+
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -120,8 +123,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    auto A = share(mtx::create(exec, A_data.size));
-    A->read(A_data);
+    // auto A = share(mtx::create(exec, A_data.size));
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    A->set_strategy(std::make_shared<mtx::sparselib>());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
@@ -167,7 +171,7 @@ int main(int argc, char* argv[])
             .with_solver(inner_solver_gen)
             .with_relaxation_factor(0.9)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec));
     // Create MultigridLevel factory
     auto mg_level_gen =
@@ -175,8 +179,10 @@ int main(int argc, char* argv[])
     // Create MultigridLevel factory
     auto coarse_select =
         gko::share(selection::build().with_num_jumps(num_jumps).on(exec));
-    auto coarse_op = coarse_select->generate(A)->get_coarse_op();
-    std::cout << "Coarse op size " << coarse_op->get_size() << std::endl;
+    std::cout << "Selection coarse size "
+              << coarse_select_gen->generate(A)->get_coarse_op()->get_size()
+              << std::endl;
+
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
         ir::build()
@@ -186,24 +192,38 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec));
     // Create multigrid factory
-    auto multigrid_gen = gko::share(
-        mg::build()
-            .with_max_levels(9u)
-            .with_min_coarse_rows(10u)
-            .with_pre_smoother(smoother_gen)
-            .with_post_uses_pre(true)
-            .with_mg_level(coarse_select)
-            // .with_mg_level(mg_level_gen)
-            .with_coarsest_solver(coarsest_gen)
-            .with_zero_guess(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
-            .on(exec));
+    auto multigrid_gen = gko::share(mg::build()
+                                        .with_max_levels(10u)
+                                        .with_min_coarse_rows(64u)
+                                        .with_pre_smoother(smoother_gen)
+                                        .with_post_uses_pre(true)
+                                        .with_mg_level(gko::share(mg_level_gen))
+                                        .with_coarsest_solver(coarsest_gen)
+                                        .with_zero_guess(true)
+                                        .with_criteria(iter_stop, tol_stop)
+                                        .on(exec));
+    if (use_coarse_select) {
+        std::cout << "Using Selection" << std::endl;
+        multigrid_gen =
+            gko::share(mg::build()
+                           .with_max_levels(10u)
+                           .with_min_coarse_rows(64u)
+                           .with_pre_smoother(smoother_gen)
+                           .with_post_uses_pre(true)
+                           .with_mg_level(gko::share(coarse_select_gen))
+                           .with_coarsest_solver(coarsest_gen)
+                           .with_zero_guess(true)
+                           .with_criteria(iter_stop, tol_stop)
+                           .on(exec));
+    } else {
+        std::cout << "Using AMGX " << std::endl;
+    }
     // Create solver factory
-    auto solver_gen = cg::build()
-                          .with_criteria(iter_stop, tol_stop)
-                          .with_preconditioner(multigrid_gen)
-                          .on(exec);
+    auto solver_gen = multigrid_gen;
+    // cg::build()
+    //     .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+    //     .with_preconditioner(gko::share(multigrid_gen))
+    //     .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();

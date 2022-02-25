@@ -1,0 +1,264 @@
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (50746, 50746)
+Using AMGX 
+Problem size: (101492, 101492)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+318.578
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+9.12515e-09
+CG iteration count:     81
+CG generation time [ms]: 66.2003
+CG execution time [ms]: 617.4
+CG execution time per iteraion[ms]: 7.62223
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (50746, 50746)
+Using Selection
+Problem size: (101492, 101492)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+318.578
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+6.97465e-09
+CG iteration count:     46
+CG generation time [ms]: 43.7246
+CG execution time [ms]: 342.511
+CG execution time per iteraion[ms]: 7.44588
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (222658, 222658)
+Using Selection
+Problem size: (445315, 445315)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+667.319
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+5.70468e-09
+CG iteration count:     21
+CG generation time [ms]: 54.8508
+CG execution time [ms]: 215.405
+CG execution time per iteraion[ms]: 10.2574
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (222658, 222658)
+Using AMGX 
+Problem size: (445315, 445315)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+667.319
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+6.10171e-09
+CG iteration count:     16
+CG generation time [ms]: 108.051
+CG execution time [ms]: 202.472
+CG execution time per iteraion[ms]: 12.6545
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (752893, 752893)
+Using AMGX 
+Problem size: (1505785, 1505785)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+1227.1
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+9.49289e-09
+CG iteration count:     12
+CG generation time [ms]: 201.832
+CG execution time [ms]: 240.195
+CG execution time per iteraion[ms]: 20.0162
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (752893, 752893)
+Using Selection
+Problem size: (1505785, 1505785)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+1227.1
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+6.69824e-09
+CG iteration count:     21
+CG generation time [ms]: 79.2691
+CG execution time [ms]: 293.727
+CG execution time per iteraion[ms]: 13.987
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (129895, 129895)
+Using Selection
+Problem size: (259789, 259789)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+509.695
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+inf
+CG iteration count:     1000
+CG generation time [ms]: 46.0313
+CG execution time [ms]: 7012.09
+CG execution time per iteraion[ms]: 7.01209
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (129895, 129895)
+Using AMGX 
+Problem size: (259789, 259789)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+509.695
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+-nan
+CG iteration count:     1000
+CG generation time [ms]: 79.9695
+CG execution time [ms]: 8011.35
+CG execution time per iteraion[ms]: 8.01135
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (614023, 614023)
+Using AMGX 
+Problem size: (1228045, 1228045)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+1108.17
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+913.083
+CG iteration count:     1000
+CG generation time [ms]: 105.974
+CG execution time [ms]: 8720.44
+CG execution time per iteraion[ms]: 8.72044
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (614023, 614023)
+Using Selection
+Problem size: (1228045, 1228045)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+1108.17
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+1135.49
+CG iteration count:     1000
+CG generation time [ms]: 70.442
+CG execution time [ms]: 9177.58
+CG execution time per iteraion[ms]: 9.17758
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (363357, 363357)
+Using AMGX 
+Problem size: (726713, 726713)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+852.475
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+857.604
+CG iteration count:     1000
+CG generation time [ms]: 87.6366
+CG execution time [ms]: 8188.93
+CG execution time per iteraion[ms]: 8.18893
+This is Ginkgo 1.5.0 (develop)
+    running with core module 1.5.0 (develop)
+    the reference module is  1.5.0 (develop)
+    the OpenMP    module is  1.5.0 (develop)
+    the CUDA      module is  not compiled
+    the HIP       module is  1.5.0 (develop)
+    the DPCPP     module is  not compiled
+Selection coarse size (363357, 363357)
+Using Selection
+Problem size: (726713, 726713)
+Initial residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+852.475
+Final residual norm sqrt(r^T r): 
+%%MatrixMarket matrix array real general
+1 1
+968.563
+CG iteration count:     1000
+CG generation time [ms]: 54.699
+CG execution time [ms]: 8362.3
+CG execution time per iteraion[ms]: 8.3623

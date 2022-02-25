@@ -106,8 +106,9 @@ void Selection<ValueType, IndexType>::generate()
     // TODO: However, we still create the csr to process coarse/restrict matrix
     // generation. It may be changed when we have the direct triple product from
     // agg index.
-    auto restrict_op = share(
-        csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim));
+    auto restrict_op =
+        share(csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim},
+                               coarse_dim, selection_op->get_strategy()));
     exec->run(
         selection::make_fill_restrict_op(&coarse_rows_, restrict_op.get()));
     exec->run(selection::make_fill_array(restrict_op->get_values(), coarse_dim,
@@ -115,13 +116,14 @@ void Selection<ValueType, IndexType>::generate()
     exec->run(selection::make_fill_seq_array(restrict_op->get_row_ptrs(),
                                              coarse_dim + 1));
 
-
     auto prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 
     // TODO: Can be done with submatrix index_set.
     auto coarse_matrix =
         share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+    coarse_matrix->set_strategy(selection_op->get_strategy());
     auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
+    tmp->set_strategy(selection_op->get_strategy());
     selection_op->apply(prolong_op.get(), tmp.get());
     restrict_op->apply(tmp.get(), coarse_matrix.get());
 
