@@ -50,6 +50,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_generate_kernel.dp.cpp
     preconditioner/jacobi_kernels.dp.cpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
+    reorder/mc64_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
     solver/cb_gmres_kernels.dp.cpp
     solver/idr_kernels.dp.cpp
