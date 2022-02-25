@@ -332,7 +332,7 @@ protected:
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
      * @param global_size  The global size of the vector
-     * @param local_vector  The underlying local vector, the date will be moved
+     * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
@@ -345,7 +345,7 @@ protected:
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
-     * @param local_vector  The underlying local vector, the date will be moved
+     * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
      */
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
