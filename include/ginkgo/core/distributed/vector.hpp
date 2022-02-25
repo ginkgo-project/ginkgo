@@ -50,18 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace distributed {
 
-namespace detail {
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void read_distributed_impl(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
-    const Partition<LocalIndexType, GlobalIndexType>* partition,
-    Vector<ValueType>* result);
-
-
-}
-
 
 /**
  * Vector is a format which explicitly stores (multiple) distributed column
@@ -115,7 +103,8 @@ public:
      * partition.
      *
      * The number of rows of the matrix data is ignored, only its number of
-     * columns is relevant. The number of rows is inferred from the partition.
+     * columns is relevant. Both the number of local and global rows are
+     * inferred from the row partition.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
@@ -126,15 +115,7 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const device_matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition)
-    {
-        auto global_cols = data.get_size()[1];
-        this->resize(
-            dim<2>(partition->get_size(), global_cols),
-            dim<2>(partition->get_part_size(this->get_communicator().rank()),
-                   global_cols));
-        detail::read_distributed_impl(data, partition, this);
-    }
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     /**
      * Reads a vector from the matrix_data structure and a global row
@@ -148,13 +129,7 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition)
-    {
-        this->read_distributed(
-            device_matrix_data<value_type, GlobalIndexType>::create_from_host(
-                this->get_executor(), data),
-            std::move(partition));
-    }
+        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
 
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
