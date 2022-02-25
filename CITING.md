@@ -5,7 +5,7 @@ available through the following reference:
 
 ``` bibtex
 @article{ginkgo-toms-2022,
-title = {Ginkgo: {A} {Modern} {Linear} {Operator} {Algebra} {Framework} for {High} {Performance} {Computing}},
+title = {{Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing}},
 volume = {48},
 copyright = {All rights reserved},
 issn = {0098-3500},
@@ -19,7 +19,7 @@ author = {Anzt, Hartwig and Cojean, Terry and Flegar, Goran and Göbel, Fritz an
 month = feb,
 year = {2022},
 keywords = {ginkgo, healthy software lifecycle, High performance computing, multi-core and manycore architectures},
-pages = {2:1--2:33},
+pages = {2:1--2:33}
 }
 ```
 
