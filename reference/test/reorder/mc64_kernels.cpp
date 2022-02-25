@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/reorder/mc64.hpp>
 
 
 #include "core/reorder/mc64_kernels.hpp"
@@ -107,13 +108,112 @@ TYPED_TEST(Mc64, InitialMatchingExample)
                              I<index_type>({-1, -1, -1, -1, -1, -1})};
     gko::Array<index_type> ip{this->ref,
                               I<index_type>({-1, -1, -1, -1, -1, -1})};
+    std::list<index_type> unmatched_rows{};
 
     gko::kernels::reference::mc64::initial_matching(
         this->ref, this->mtx->get_size()[0], this->mtx->get_const_row_ptrs(),
-        this->mtx->get_const_col_idxs(), this->expected_workspace, p, ip);
+        this->mtx->get_const_col_idxs(), this->expected_workspace, p, ip,
+        unmatched_rows);
 
     GKO_ASSERT_ARRAY_EQ(p, this->expected_perm);
     GKO_ASSERT_ARRAY_EQ(ip, this->expected_inv_perm);
+    GKO_ASSERT_EQ(unmatched_rows.size(), 1u);
+    GKO_ASSERT_EQ(unmatched_rows.front(), 4 * gko::one<index_type>());
+}
+
+
+TYPED_TEST(Mc64, ShortestAugmentingPathExample)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    gko::Array<index_type> expected_perm{this->ref,
+                                         I<index_type>{1, 0, 3, 5, 4, 2}};
+    gko::Array<index_type> expected_inv_perm{this->ref,
+                                             I<index_type>{1, 0, 5, 2, 4, 3}};
+    gko::Array<index_type> parents{this->ref,
+                                   I<index_type>{-1, -1, -1, -1, -1, -1}};
+    gko::Array<index_type> expected_parents{this->ref,
+                                            I<index_type>{-1, -1, 3, 4, 4, 2}};
+
+    gko::kernels::reference::mc64::shortest_augmenting_path(
+        this->ref, this->mtx->get_size()[0], this->mtx->get_const_row_ptrs(),
+        this->mtx->get_const_col_idxs(), this->expected_workspace,
+        this->expected_perm, this->expected_inv_perm,
+        4 * gko::one<index_type>(), parents);
+
+    GKO_ASSERT_ARRAY_EQ(expected_perm, this->expected_perm);
+    GKO_ASSERT_ARRAY_EQ(expected_inv_perm, this->expected_inv_perm);
+    GKO_ASSERT_ARRAY_EQ(parents, expected_parents);
+}
+
+
+TYPED_TEST(Mc64, ShortestAugmentingPathExample2)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    gko::Array<index_type> row_ptrs{
+        this->ref, I<index_type>{0, 2, 6, 7, 10, 12, 15, 19, 21}};
+    gko::Array<index_type> col_idxs{
+        this->ref, I<index_type>{0, 1, 0, 1, 4, 6, 2, 3, 4, 5, 4,
+                                 7, 4, 5, 6, 1, 3, 5, 7, 0, 2}};
+    gko::Array<real_type> workspace{
+        this->ref,
+        I<real_type>{1., 0., 0., 0., 2., 4., 0., 0., 4., 2., 0., 1., 8.,
+                     0., 6., 2., 4., 1., 8., 6., 4., 0., 0., 0., 0., 0.,
+                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}};
+    gko::Array<real_type> expected_workspace{
+        this->ref,
+        I<real_type>{1.,  0., 0., 0., 2., 4., 0., 0., 4.,  2.,  0., 1.,  8.,
+                     0.,  6., 2., 4., 1., 8., 6., 4., -3., -4., 0., -2., -1.,
+                     -5., 0., 0., 4., 3., 0., 2., 1., 5.,  6.,  0.}};
+    gko::Array<index_type> perm{this->ref,
+                                I<index_type>{1, 0, 2, 3, 4, 5, -1, -1}};
+    gko::Array<index_type> inv_perm{this->ref,
+                                    I<index_type>{1, 0, 2, 3, 4, 5, -1, -1}};
+    gko::Array<index_type> expected_perm{
+        this->ref, I<index_type>{0, 4, 2, 3, 7, 5, 1, -1}};
+    gko::Array<index_type> expected_inv_perm{
+        this->ref, I<index_type>{0, 6, 2, 3, 1, 5, -1, 4}};
+    gko::Array<index_type> parents{
+        this->ref, I<index_type>{-1, -1, -1, -1, -1, -1, -1, -1}};
+    gko::Array<index_type> expected_parents{
+        this->ref, I<index_type>{0, 6, -1, 6, 1, 6, 5, 4}};
+
+    gko::kernels::reference::mc64::shortest_augmenting_path(
+        this->ref, 8u, row_ptrs.get_data(), col_idxs.get_data(), workspace,
+        perm, inv_perm, 6 * gko::one<index_type>(), parents);
+
+    GKO_ASSERT_ARRAY_EQ(perm, expected_perm);
+    GKO_ASSERT_ARRAY_EQ(inv_perm, expected_inv_perm);
+    GKO_ASSERT_ARRAY_EQ(parents, expected_parents);
+    GKO_ASSERT_ARRAY_EQ(workspace, expected_workspace);
+}
+
+
+TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExample)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using value_type = typename TestFixture::value_type;
+
+    auto mc64_factory =
+        gko::reorder::Mc64<value_type, index_type>::build().on(this->ref);
+    auto mc64 = mc64_factory->generate(this->mtx);
+
+    auto perm = mc64->get_permutation()->get_const_permutation();
+    auto inv_perm = mc64->get_inverse_permutation()->get_const_permutation();
+    GKO_ASSERT_EQ(perm[0], 1);
+    GKO_ASSERT_EQ(perm[1], 0);
+    GKO_ASSERT_EQ(perm[2], 3);
+    GKO_ASSERT_EQ(perm[3], 5);
+    GKO_ASSERT_EQ(perm[4], 4);
+    GKO_ASSERT_EQ(perm[5], 2);
+    GKO_ASSERT_EQ(inv_perm[0], 1);
+    GKO_ASSERT_EQ(inv_perm[1], 0);
+    GKO_ASSERT_EQ(inv_perm[2], 5);
+    GKO_ASSERT_EQ(inv_perm[3], 2);
+    GKO_ASSERT_EQ(inv_perm[4], 4);
+    GKO_ASSERT_EQ(inv_perm[5], 3);
 }
 
 
