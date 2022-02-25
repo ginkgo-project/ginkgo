@@ -43,10 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/matrix_utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -88,7 +88,7 @@ struct SimpleSolverTest {
 
     static double tolerance() { return 10 * reduction_factor(); }
 
-    static gko::size_type iteration_count() { return 100u; }
+    static gko::size_type iteration_count() { return 200u; }
 
     static value_type reduction_factor() { return 1e-4; }
 
@@ -143,7 +143,9 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 };
 
 
-struct Bicgstab : SimpleSolverTest<gko::solver::Bicgstab<solver_value_type>> {};
+struct Bicgstab : SimpleSolverTest<gko::solver::Bicgstab<solver_value_type>> {
+    static double tolerance() { return 300 * reduction_factor(); }
+};
 
 
 struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
@@ -185,6 +187,8 @@ protected:
     using mixed_value_type = gko::next_precision<value_type>;
     using Vec = typename T::dist_vector_type;
     using LocalVec = typename T::non_dist_vector_type;
+    using MixedVec = typename T::mixed_dist_vector_type;
+    using MixedLocalVec = typename T::mixed_non_dist_vector_type;
     using Part = typename T::partition_type;
 
     Solver()
@@ -208,7 +212,7 @@ protected:
     }
 
     std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols, int min_cols,
-                                     int max_cols)
+                                 int max_cols)
     {
         auto mapping =
             gko::test::generate_random_array<gko::distributed::comm_index_type>(
@@ -225,7 +229,7 @@ protected:
         Config::preprocess(data);
         auto dist_mtx = Mtx::create(ref, comm);
         dist_mtx->read_distributed(data, part.get());
-        return gko::share(dist_mtx);
+        return gko::share(gko::clone(exec, dist_mtx));
     }
 
     template <typename ValueType, typename IndexType>
@@ -252,7 +256,7 @@ protected:
             gen_dense_data<typename DistVecType::value_type, global_index_type>(
                 global_size),
             part.get());
-        return gko::share(dist_result);
+        return gko::share(gko::clone(exec, dist_result));
     }
 
     template <typename VecType = LocalVec>
@@ -264,7 +268,7 @@ protected:
                     gko::remove_complex<typename VecType::value_type>>(0.0,
                                                                        1.0),
                 rand_engine)},
-            ref));
+            exec));
     }
 
     template <typename DistVecType = Vec>
@@ -282,13 +286,21 @@ protected:
             gen_dense_data<typename DistVecType::value_type, global_index_type>(
                 global_size),
             part.get());
-        return gko::share(dist_result);
+        return gko::share(gko::clone(exec, dist_result));
     }
 
     template <typename VecType>
     double tol(const std::shared_ptr<VecType>& x)
     {
         return Config::tolerance() * std::sqrt(x->get_size()[1]);
+    }
+
+    template <typename VecType>
+    double mixed_tol(const std::shared_ptr<VecType>& x)
+    {
+        return std::max(r_mixed<value_type, mixed_value_type>() *
+                            std::sqrt(x->get_size()[1]),
+                        tol(x));
     }
 
     template <typename TestFunction>
@@ -330,8 +342,8 @@ protected:
         }
     }
 
-    template <typename DistVecType = Vec,
-              typename NonDistVecType = LocalVec, typename TestFunction>
+    template <typename DistVecType = Vec, typename NonDistVecType = LocalVec,
+              typename TestFunction>
     void forall_vector_scenarios(const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
@@ -386,6 +398,21 @@ protected:
             guarded_fn(gen_in_vec<DistVecType>(solver, 17, 21),
                        gen_out_vec<DistVecType>(solver, 17, 21));
         }
+        if (!gko::is_complex<value_type>()) {
+            // check application of real matrix to complex vector
+            // viewed as interleaved real/imag vector
+            using complex_vec = gko::to_complex<DistVecType>;
+            {
+                SCOPED_TRACE("Single strided complex vector");
+                guarded_fn(gen_in_vec<complex_vec>(solver, 1, 2),
+                           gen_out_vec<complex_vec>(solver, 1, 3));
+            }
+            {
+                SCOPED_TRACE("Strided complex multivector with 2 columns");
+                guarded_fn(gen_in_vec<complex_vec>(solver, 2, 3),
+                           gen_out_vec<complex_vec>(solver, 2, 4));
+            }
+        }
     }
 
     template <typename M1, typename DistVecType>
@@ -397,7 +424,7 @@ protected:
         auto one = gko::initialize<LocalVec>({gko::one<value_type>()}, exec);
         auto neg_one =
             gko::initialize<LocalVec>({-gko::one<value_type>()}, exec);
-        auto norm = DistVecType::local_vector_type::create(
+        auto norm = DistVecType::local_vector_type::absolute_type::create(
             ref, gko::dim<2>{1, b->get_size()[1]});
         auto dist_res = gko::clone(b);
         mtx->apply(neg_one.get(), x.get(), one.get(), dist_res.get());
@@ -421,7 +448,7 @@ protected:
         auto one = gko::initialize<LocalVec>({gko::one<value_type>()}, exec);
         auto neg_one =
             gko::initialize<LocalVec>({-gko::one<value_type>()}, exec);
-        auto norm = DistVecType::local_vector_type::create(
+        auto norm = DistVecType::local_vector_type::absolute_type::create(
             ref, gko::dim<2>{1, b->get_size()[1]});
         auto dist_res = gko::clone(b);
         // compute rx = (x_sol - beta * x_old) / alpha, since A * rx = b
@@ -483,3 +510,42 @@ TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
         });
     });
 }
+
+#if !(GINKGO_DPCPP_SINGLE_MODE)
+TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->forall_solver_scenarios(mtx, [&](auto solver) {
+            this->template forall_vector_scenarios<MixedVec>(
+                solver, [&](auto b, auto x) {
+                    solver->apply(b.get(), x.get());
+
+                    this->assert_residual_near(mtx, x, b, this->mixed_tol(x));
+                });
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
+{
+    using MixedVec = typename TestFixture::MixedVec;
+    using MixedLocalVec = typename TestFixture::MixedLocalVec;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        this->forall_solver_scenarios(mtx, [&](auto solver) {
+            this->template forall_vector_scenarios<MixedVec>(
+                solver, [&](auto b, auto x) {
+                    auto alpha = this->template gen_scalar<MixedLocalVec>();
+                    auto beta = this->template gen_scalar<MixedLocalVec>();
+                    auto x_old = gko::share(gko::clone(x));
+
+                    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+
+                    this->assert_residual_near(mtx, x, x_old, b, alpha, beta,
+                                               10 * this->mixed_tol(x));
+                });
+        });
+    });
+}
+#endif
