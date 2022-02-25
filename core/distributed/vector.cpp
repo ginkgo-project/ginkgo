@@ -412,6 +412,36 @@ void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
 }
 
 
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view()
+{
+    const auto num_global_rows = this->get_size()[0];
+    const auto num_cols =
+        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
+
+    return Vector<remove_complex<ValueType>>::create(
+        this->get_executor(), this->get_communicator(),
+        dim<2>{num_global_rows, num_cols}, local_.create_real_view().get());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view() const
+{
+    const auto num_global_rows = this->get_size()[0];
+    const auto num_cols =
+        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
+
+    return Vector<remove_complex<ValueType>>::create(
+        this->get_executor(), this->get_communicator(),
+        dim<2>{num_global_rows, num_cols},
+        const_cast<typename real_type::local_vector_type*>(
+            local_.create_real_view().get()));
+}
+
+
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 
