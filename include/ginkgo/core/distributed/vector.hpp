@@ -307,6 +307,20 @@ public:
      */
     local_vector_type* get_local();
 
+    /**
+     * Create a real view of the (potentially) complex original multi-vector.
+     * If the original vector is real, nothing changes. If the original vector
+     * is complex, the result is created by viewing the complex vector with as
+     * real with a reinterpret_cast with twice the number of columns and
+     * double the stride.
+     */
+    std::unique_ptr<real_type> create_real_view();
+
+    /**
+     * @copydoc create_real_view()
+     */
+    std::unique_ptr<const real_type> create_real_view() const;
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
