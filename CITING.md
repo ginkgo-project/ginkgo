@@ -4,13 +4,22 @@ The main Ginkgo paper describing Ginkgo's purpose, design and interface is
 available through the following reference:
 
 ``` bibtex
-@misc{anzt2020ginkgo,
-    title={Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing},
-    author={Hartwig Anzt and Terry Cojean and Goran Flegar and Fritz Göbel and Thomas Grützmacher and Pratik Nayak and Tobias Ribizel and Yuhsiang Mike Tsai and Enrique S. Quintana-Ortí},
-    year={2020},
-    eprint={2006.16852},
-    archivePrefix={arXiv},
-    primaryClass={cs.MS}
+@article{ginkgo-toms-2022,
+title = {Ginkgo: {A} {Modern} {Linear} {Operator} {Algebra} {Framework} for {High} {Performance} {Computing}},
+volume = {48},
+copyright = {All rights reserved},
+issn = {0098-3500},
+shorttitle = {Ginkgo},
+url = {https://doi.org/10.1145/3480935},
+doi = {10/gphfsq},
+number = {1},
+urldate = {2022-02-17},
+journal = {ACM Transactions on Mathematical Software},
+author = {Anzt, Hartwig and Cojean, Terry and Flegar, Goran and Göbel, Fritz and Grützmacher, Thomas and Nayak, Pratik and Ribizel, Tobias and Tsai, Yuhsiang Mike and Quintana-Ortí, Enrique S.},
+month = feb,
+year = {2022},
+keywords = {ginkgo, healthy software lifecycle, High performance computing, multi-core and manycore architectures},
+pages = {2:1--2:33},
 }
 ```
 
