@@ -86,6 +86,69 @@ private:
 };
 
 
+class VectorCreation : public ::testing::Test {
+public:
+    using value_type = float;
+    using dist_vec_type = gko::distributed::Vector<value_type>;
+    using dense_type = dist_vec_type::local_vector_type;
+
+    VectorCreation()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(),
+          comm(MPI_COMM_WORLD),
+          local_size{4, 11},
+          size{local_size[1] * comm.size(), 11},
+          engine(42)
+    {
+        init_executor(ref, exec, comm);
+    }
+
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
+
+    gko::mpi::communicator comm;
+
+    gko::dim<2> local_size;
+    gko::dim<2> size;
+
+    std::default_random_engine engine;
+};
+
+
+TEST_F(VectorCreation, CanCreateFromLocalVectorAndSize)
+{
+    auto local_vec = gko::test::generate_random_matrix<dense_type>(
+        local_size[0], local_size[1],
+        std::uniform_int_distribution<gko::size_type>(0, local_size[1]),
+        std::normal_distribution<value_type>(), engine, ref);
+    auto dlocal_vec = gko::clone(exec, local_vec);
+
+    auto vec = dist_vec_type::create(ref, comm, size, local_vec.get());
+    auto dvec = dist_vec_type::create(exec, comm, size, local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
+}
+
+
+TEST_F(VectorCreation, CanCreateFromLocalVectorWithoutSize)
+{
+    auto local_vec = gko::test::generate_random_matrix<dense_type>(
+        local_size[0], local_size[1],
+        std::uniform_int_distribution<gko::size_type>(0, local_size[1]),
+        std::normal_distribution<value_type>(), engine, ref);
+    auto dlocal_vec = gko::clone(exec, local_vec);
+
+    auto vec = dist_vec_type::create(ref, comm, local_vec.get());
+    auto dvec = dist_vec_type::create(exec, comm, local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
+}
+
+
 class VectorReductions : public ::testing::Test {
 public:
     using value_type = float;
