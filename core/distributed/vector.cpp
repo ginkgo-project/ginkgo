@@ -141,9 +141,13 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           local_vector_type* local_vector)
-    : Vector(std::move(exec), comm,
-             compute_global_size(comm, local_vector->get_size()), local_vector)
-{}
+    : EnableLinOp<Vector<ValueType>>{exec, {}},
+      DistributedBase{comm},
+      local_{exec}
+{
+    this->set_size(compute_global_size(comm, local_vector->get_size()));
+    local_vector->move_to(&local_);
+}
 
 
 template <typename ValueType>
@@ -455,9 +459,9 @@ Vector<ValueType>::create_real_view()
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return Vector<remove_complex<ValueType>>::create(
-        this->get_executor(), this->get_communicator(),
-        dim<2>{num_global_rows, num_cols}, local_.create_real_view().get());
+    return real_type ::create(this->get_executor(), this->get_communicator(),
+                              dim<2>{num_global_rows, num_cols},
+                              local_.create_real_view().get());
 }
 
 
@@ -469,7 +473,7 @@ Vector<ValueType>::create_real_view() const
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return Vector<remove_complex<ValueType>>::create(
+    return real_type ::create(
         this->get_executor(), this->get_communicator(),
         dim<2>{num_global_rows, num_cols},
         const_cast<typename real_type::local_vector_type*>(
