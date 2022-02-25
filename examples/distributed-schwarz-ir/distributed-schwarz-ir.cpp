@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
     using GlobalIndexType = gko::distributed::global_index_type;
     using LocalIndexType = int;  // GlobalIndexType;
     using dist_mtx = gko::distributed::Matrix<ValueType, LocalIndexType>;
+    using csr_mtx = gko::matrix::Csr<ValueType, LocalIndexType>;
     using dist_vec = gko::distributed::Vector<ValueType>;
     using block_approx =
         gko::distributed::BlockApprox<ValueType, LocalIndexType>;
@@ -201,6 +202,7 @@ int main(int argc, char* argv[])
     A->copy_from(A_host.get());
     b->copy_from(b_host.get());
     x->copy_from(x_host.get());
+    A->set_strategy(std::make_shared<csr_mtx::sparselib>());
 
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);

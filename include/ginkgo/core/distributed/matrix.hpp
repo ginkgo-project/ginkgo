@@ -134,6 +134,18 @@ public:
         result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
     }
 
+    void set_strategy(
+        std::shared_ptr<typename LocalMtx::strategy_type> strategy)
+    {
+        this->diag_mtx_->set_strategy(strategy);
+        this->offdiag_mtx_->set_strategy(strategy);
+        if (this->local_mtx_blocks_.size() > 0) {
+            for (auto i = 0; i < this->local_mtx_blocks_.size(); ++i) {
+                this->local_mtx_blocks_[i]->set_strategy(strategy);
+            }
+        }
+    }
+
     void move_to(Matrix<value_type, local_index_type>* result) override
     {
         EnableLinOp<Matrix>::move_to(result);
