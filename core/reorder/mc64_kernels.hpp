@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_REORDER_MC64_KERNELS_HPP_
 
 
+#include <list>
 #include <memory>
 
 
@@ -60,13 +61,25 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,  \
         const IndexType* row_ptrs, const IndexType* col_idxs,             \
         const Array<ValueType>& workspace, Array<IndexType>& permutation, \
-        Array<IndexType>& inv_permutation)
+        Array<IndexType>& inv_permutation,                                \
+        std::list<IndexType>& unmatched_rows)
+
+
+#define GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType) \
+    void shortest_augmenting_path(                                             \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,       \
+        const IndexType* row_ptrs, const IndexType* col_idxs,                  \
+        Array<ValueType>& workspace, Array<IndexType>& permutation,            \
+        Array<IndexType>& inv_permutation, IndexType root,                     \
+        Array<IndexType>& parents)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(mc64, GKO_DECLARE_ALL_AS_TEMPLATES);
