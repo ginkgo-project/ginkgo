@@ -47,7 +47,7 @@ namespace {
 
 
 template <typename ValueLocalGlobalIndexType>
-class VectorRead : public ::testing::Test {
+class VectorCreation : public ::testing::Test {
 public:
     using value_type =
         typename std::tuple_element<0, decltype(
@@ -64,14 +64,14 @@ public:
     using d_md_type = gko::device_matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
-    using nz_type = gko::matrix_data_entry<value_type, global_index_type>;
 
-    VectorRead()
+    VectorCreation()
         : ref(gko::ReferenceExecutor::create()),
           comm(MPI_COMM_WORLD),
           part(gko::share(part_type::build_from_contiguous(
               this->ref, {ref, {0, 2, 4, 6}}))),
-          md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}
+          md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
+          md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {}
 
     void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
@@ -81,13 +81,14 @@ public:
     std::shared_ptr<part_type> part;
 
     md_type md;
+    md_type md_localized[3];
 };
 
 
-TYPED_TEST_SUITE(VectorRead, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
 
-TYPED_TEST(VectorRead, CanReadGlobalMatrixData)
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
 {
     using part_type = typename TestFixture::part_type;
     using value_type = typename TestFixture::value_type;
@@ -108,7 +109,7 @@ TYPED_TEST(VectorRead, CanReadGlobalMatrixData)
 }
 
 
-TYPED_TEST(VectorRead, CanReadGlobalMatrixDataSomeEmpty)
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
 {
     using part_type = typename TestFixture::part_type;
     using value_type = typename TestFixture::value_type;
@@ -134,7 +135,7 @@ TYPED_TEST(VectorRead, CanReadGlobalMatrixDataSomeEmpty)
 }
 
 
-TYPED_TEST(VectorRead, CanReadGlobalDeviceMatrixData)
+TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
 {
     using it = typename TestFixture::global_index_type;
     using d_md_type = typename TestFixture::d_md_type;
@@ -164,7 +165,7 @@ TYPED_TEST(VectorRead, CanReadGlobalDeviceMatrixData)
 }
 
 
-TYPED_TEST(VectorRead, CanReadGlobalMatrixDataScattered)
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataScattered)
 {
     using md_type = typename TestFixture::md_type;
     using part_type = typename TestFixture::part_type;
@@ -189,7 +190,7 @@ TYPED_TEST(VectorRead, CanReadGlobalMatrixDataScattered)
 }
 
 
-TYPED_TEST(VectorRead, CanReadLocalMatrixData)
+TYPED_TEST(VectorCreation, CanReadLocalMatrixData)
 {
     using md_type = typename TestFixture::md_type;
     using part_type = typename TestFixture::part_type;
@@ -217,7 +218,7 @@ TYPED_TEST(VectorRead, CanReadLocalMatrixData)
 }
 
 
-TYPED_TEST(VectorRead, CanReadLocalMatrixDataSomeEmpty)
+TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
 {
     using md_type = typename TestFixture::md_type;
     using part_type = typename TestFixture::part_type;
@@ -253,6 +254,37 @@ TYPED_TEST(VectorRead, CanReadLocalMatrixDataSomeEmpty)
         GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                     gko::dim<2>(0, 2));
     }
+}
+
+
+TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->ref);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+    auto clone_local_vec = gko::clone(local_vec);
+
+    auto vec = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{6, 2},
+                                     local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
+}
+
+
+TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->ref);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+    auto clone_local_vec = gko::clone(local_vec);
+
+    auto vec = dist_vec_type::create(this->ref, this->comm, local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
 }
 
 
