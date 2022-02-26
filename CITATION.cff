@@ -1,0 +1,63 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Anzt"
+  given-names: "Hartwig"
+- family-names: "Chen"
+  given-names: "Yenchen"
+- family-names: "Cojean"
+  given-names: "Terry"
+- family-names: "Flegar"
+  given-names: "Goran"
+- family-names: "Göbel"
+  given-names: "Fritz"
+- family-names: "Grützmacher"
+  given-names: "Thomas"
+- family-names: "Kashi"
+  given-names: "Aditya"
+- family-names: "Koch"
+  given-names: "Marcel"
+- family-names: "Nayak"
+  given-names: "Pratik"
+- family-names: "Olenik"
+  given-names: "Gregor"
+- family-names: "Ribizel"
+  given-names: "Tobias"
+- family-names: "Riemer"
+  given-names: "Lukas"
+- family-names: "Tsai"
+  given-names: "Yuhsiang"
+title: "Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing"
+version: 1.4.0
+date-released: 2021-08-23
+url: "https://github.com/ginkgo-project/ginkgo"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Anzt"
+    given-names: "Hartwig"
+  - family-names: "Cojean"
+    given-names: "Terry"
+  - family-names: "Flegar"
+    given-names: "Goran"
+  - family-names: "Göbel"
+    given-names: "Fritz"
+  - family-names: "Grützmacher"
+    given-names: "Thomas"
+  - family-names: "Nayak"
+    given-names: "Pratik"
+  - family-names: "Ribizel"
+    given-names: "Tobias"
+  - family-names: "Tsai"
+    given-names: "Yuhsiang"
+  - family-names: "Quintana-Ortí"
+    given-names: "Enrique S."
+  doi: "10.1145/3480935"
+  journal: "ACM Transactions on Mathematical Software"
+  month: 3
+  start: 1 # First page number
+  end: 33 # Last page number
+  title: "Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing"
+  issue: 1
+  volume: 48
+  year: 2022
