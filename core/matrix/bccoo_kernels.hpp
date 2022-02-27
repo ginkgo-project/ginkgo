@@ -83,8 +83,8 @@ namespace kernels {
 #define GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)      \
     void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,       \
                         const matrix::Bccoo<ValueType, IndexType>* source, \
-                        matrix::bccoo                                      \
-                        : compression compress_res, size_type* mem_size)
+                        matrix::bccoo::compression compress_res,           \
+                        size_type* mem_size)
 
 #define GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL(ValueType, IndexType) \
     void convert_to_compression(                                              \
