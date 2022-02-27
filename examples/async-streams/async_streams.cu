@@ -86,7 +86,7 @@ protected:
     using vec = gko::matrix::Dense<ValueType>;
     using coef_type = gko::Array<ValueType>;
 
-    struct stencil_operation : gko::Operation {
+    struct stencil_operation : gko::AsyncOperation {
         stencil_operation(const coef_type& coefficients, const vec* b, vec* x,
                           vec* x2)
             : coefficients{coefficients}, b{b}, x{x}, x2{x2}
@@ -94,7 +94,8 @@ protected:
 
         // OpenMP implementation
         std::shared_ptr<gko::AsyncHandle> run(
-            std::shared_ptr<const gko::OmpExecutor>) const override
+            std::shared_ptr<const gko::OmpExecutor>,
+            std::shared_ptr<gko::AsyncHandle> handle) const override
         {
             auto l = [=]() {
                 auto b_values = b->get_const_values();
@@ -118,18 +119,19 @@ protected:
 
         // CUDA implementation
         std::shared_ptr<gko::AsyncHandle> run(
-            std::shared_ptr<const gko::CudaExecutor> exec) const override
+            std::shared_ptr<const gko::CudaExecutor> exec,
+            std::shared_ptr<gko::AsyncHandle> handle) const override
         {
-            auto handle = exec->get_default_exec_stream();
-            auto handle2 = gko::CudaAsyncHandle::create(
-                gko::CudaAsyncHandle::create_type::non_blocking);
-            constexpr int num_streams = 5;
-            std::vector<std::shared_ptr<gko::CudaAsyncHandle>> streams;
+            // auto handle = exec->get_default_exec_stream();
+            // auto handle2 = gko::CudaAsyncHandle::create(
+            //     gko::CudaAsyncHandle::create_type::non_blocking);
+            int num_streams = 1;
+            // std::vector<std::shared_ptr<gko::CudaAsyncHandle>> streams;
             auto N = x->get_size()[0];
             ValueType* data[num_streams];
             for (int i = 0; i < num_streams; i++) {
                 streams.emplace_back(gko::CudaAsyncHandle::create(
-                    gko::CudaAsyncHandle::create_type::legacy_blocking));
+                    gko::CudaAsyncHandle::create_type::non_blocking));
                 // auto* data = exec->alloc<ValueType>(N);
                 cudaMalloc(&data[i], N * sizeof(ValueType));
                 // constexpr int block_size = 64;
@@ -340,15 +342,15 @@ int main(int argc, char* argv[])
     auto mat = StencilMatrix<ValueType>::create(exec, discretization_points, -1,
                                                 2, -1);
 
-    for (auto i = 0; i < 3; ++i) {
-        mat->apply(lend(rhs), lend(u));
-    }
+    // for (auto i = 0; i < 3; ++i) {
+    mat->apply(lend(rhs), lend(u));
+    // }
 
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::steady_clock::now();
-    for (auto i = 0; i < num_reps; ++i) {
-        mat->apply(lend(rhs), lend(u));
-    }
+    // for (auto i = 0; i < num_reps; ++i) {
+    //     mat->apply(lend(rhs), lend(u));
+    // }
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 

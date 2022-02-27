@@ -283,6 +283,30 @@ public:
 };
 
 
+class AsyncOperation {
+public:
+#define GKO_DECLARE_RUN_OVERLOAD(_type, ...)  \
+    virtual std::shared_ptr<AsyncHandle> run( \
+        std::shared_ptr<const _type>, std::shared_ptr<AsyncHandle>) const
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
+
+#undef GKO_DECLARE_RUN_OVERLOAD
+
+    // ReferenceExecutor overload can be defaulted to OmpExecutor's
+    virtual std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const ReferenceExecutor> executor,
+        std::shared_ptr<AsyncHandle> handle) const;
+
+    /**
+     * Returns the operation's name.
+     *
+     * @return the operation's name
+     */
+    virtual const char* get_name() const noexcept;
+};
+
+
 namespace detail {
 
 
@@ -365,6 +389,79 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                                                      int num_params, Closure op)
 {
     return RegisteredOperation<Closure>{name, num_params, std::move(op)};
+}
+
+
+template <typename Closure>
+class RegisteredAsyncOperation : public AsyncOperation {
+public:
+    /**
+     * Creates a RegisteredOperation object from a functor and a name.
+     *
+     * @param name  the name to be used for this operation
+     * @param op  a functor object which will be called with the executor.
+     */
+    RegisteredAsyncOperation(const char* name, int num_params, Closure op)
+        : name_(name), num_params_(num_params), op_(std::move(op))
+    {}
+
+    const char* get_name() const noexcept override
+    {
+        static auto name = [this] {
+            std::ostringstream oss;
+            oss << name_ << '#' << num_params_;
+            return oss.str();
+        }();
+        return name.c_str();
+    }
+
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const ReferenceExecutor> exec,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op_(exec, handle);
+    }
+
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const OmpExecutor> exec,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op_(exec, handle);
+    }
+
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const CudaExecutor> exec,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op_(exec, handle);
+    }
+
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const HipExecutor> exec,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op_(exec, handle);
+    }
+
+    std::shared_ptr<AsyncHandle> run(
+        std::shared_ptr<const DpcppExecutor> exec,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op_(exec, handle);
+    }
+
+private:
+    const char* name_;
+    int num_params_;
+    Closure op_;
+};
+
+
+template <typename Closure>
+RegisteredAsyncOperation<Closure> make_register_async_operation(
+    const char* name, int num_params, Closure op)
+{
+    return RegisteredAsyncOperation<Closure>{name, num_params, std::move(op)};
 }
 
 
@@ -488,6 +585,74 @@ RegisteredOperation<Closure> make_register_operation(const char* name,
                     ::gko::kernels::dpcpp::_kernel(                            \
                         std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
                             exec),                                             \
+                        std::forward<Args>(args)...);                          \
+                } else {                                                       \
+                    GKO_NOT_IMPLEMENTED;                                       \
+                }                                                              \
+            });                                                                \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+#define GKO_REGISTER_ASYNC_OPERATION(_name, _kernel)                           \
+    template <typename... Args>                                                \
+    auto make_##_name(Args&&... args)                                          \
+    {                                                                          \
+        return ::gko::detail::make_register_async_operation(                   \
+            #_name, sizeof...(Args), [&args...](auto exec, auto handle) {      \
+                using exec_type = decltype(exec);                              \
+                using handle_type = decltype(handle);                          \
+                if (std::is_same<                                              \
+                        exec_type,                                             \
+                        std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
+                        value) {                                               \
+                    ::gko::kernels::reference::_kernel(                        \
+                        std::dynamic_pointer_cast<                             \
+                            const ::gko::ReferenceExecutor>(exec),             \
+                        std::dynamic_pointer_cast<                             \
+                            ::gko::HostAsyncHandle<void>>(handle),             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::OmpExecutor>>::    \
+                               value) {                                        \
+                    ::gko::kernels::omp::_kernel(                              \
+                        std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
+                            exec),                                             \
+                        std::dynamic_pointer_cast<                             \
+                            ::gko::HostAsyncHandle<void>>(handle),             \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::CudaExecutor>>::   \
+                               value) {                                        \
+                    ::gko::kernels::cuda::_kernel(                             \
+                        std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
+                            exec),                                             \
+                        std::dynamic_pointer_cast<::gko::CudaAsyncHandle>(     \
+                            handle),                                           \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::HipExecutor>>::    \
+                               value) {                                        \
+                    ::gko::kernels::hip::_kernel(                              \
+                        std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
+                            exec),                                             \
+                        std::dynamic_pointer_cast<::gko::HipAsyncHandle>(      \
+                            handle),                                           \
+                        std::forward<Args>(args)...);                          \
+                } else if (std::is_same<                                       \
+                               exec_type,                                      \
+                               std::shared_ptr<const ::gko::DpcppExecutor>>::  \
+                               value) {                                        \
+                    ::gko::kernels::dpcpp::_kernel(                            \
+                        std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
+                            exec),                                             \
+                        std::dynamic_pointer_cast<::gko::DpcppAsyncHandle>(    \
+                            handle),                                           \
                         std::forward<Args>(args)...);                          \
                 } else {                                                       \
                     GKO_NOT_IMPLEMENTED;                                       \
