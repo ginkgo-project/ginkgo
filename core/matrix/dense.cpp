@@ -345,7 +345,11 @@ void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(Dense<ValueType>* result)
 {
-    this->convert_to(result);
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->stride_ = this->stride_;
+        result->set_size(this->get_size());
+    }
 }
 
 
