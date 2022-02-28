@@ -50,7 +50,9 @@ namespace distributed {
 /**
  * A base class for distributed objects.
  *
- * This class gives access to the used mpi::communicator object.
+ * This class stores and gives access to the used mpi::communicator object.
+ *
+ * @note The communicator is not changed on assignment.
  *
  * @ingroup distributed
  */
