@@ -85,9 +85,10 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
         to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
-        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
-             ++i) {
-            c->get_values()[i] = zero<ValueType>();
+        for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
+            for (IndexType rhs = 0; rhs < nvecs; rhs++) {
+                c->at(row, rhs) = zero<ValueType>();
+            }
         }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
@@ -128,9 +129,11 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
         to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
-        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
-             ++i)
-            c->get_values()[i] *= vbeta;
+        for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
+            for (IndexType rhs = 0; rhs < nvecs; rhs++) {
+                c->at(row, rhs) *= vbeta;
+            }
+        }
 
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {

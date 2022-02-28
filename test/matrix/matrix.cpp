@@ -646,13 +646,10 @@ using MatrixTypes = ::testing::Types<
         CsrWithAutomaticalStrategy,
     #endif
     */
-    Ell,
-    // Fbcsr is slightly broken
-    /*FbcsrBlocksize1, FbcsrBlocksize2,*/
-    SellpDefaultParameters, Sellp32Factor2, HybridDefaultStrategy,
-    HybridColumnLimitStrategy, HybridImbalanceLimitStrategy,
-    HybridImbalanceBoundedLimitStrategy, HybridMinStorageStrategy,
-    HybridAutomaticStrategy, SparsityCsr>;
+    Ell, FbcsrBlocksize1, FbcsrBlocksize2, SellpDefaultParameters,
+    Sellp32Factor2, HybridDefaultStrategy, HybridColumnLimitStrategy,
+    HybridImbalanceLimitStrategy, HybridImbalanceBoundedLimitStrategy,
+    HybridMinStorageStrategy, HybridAutomaticStrategy, SparsityCsr>;
 
 TYPED_TEST_SUITE(Matrix, MatrixTypes, TypenameNameGenerator);
 
