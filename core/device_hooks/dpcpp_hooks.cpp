@@ -149,6 +149,15 @@ std::shared_ptr<AsyncHandle> DpcppExecutor::run(const Operation& op) const
 }
 
 
+std::shared_ptr<AsyncHandle> DpcppExecutor::run(
+    const AsyncOperation& op, std::shared_ptr<AsyncHandle> handle) const
+{
+    return op.run(
+        std::static_pointer_cast<const DpcppExecutor>(this->shared_from_this()),
+        handle);
+}
+
+
 int DpcppExecutor::get_num_devices(std::string) { return 0; }
 
 

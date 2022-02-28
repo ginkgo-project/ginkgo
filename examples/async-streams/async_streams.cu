@@ -122,18 +122,20 @@ protected:
             std::shared_ptr<const gko::CudaExecutor> exec,
             std::shared_ptr<gko::AsyncHandle> handle) const override
         {
-            // auto handle = exec->get_default_exec_stream();
-            // auto handle2 = gko::CudaAsyncHandle::create(
-            //     gko::CudaAsyncHandle::create_type::non_blocking);
-            int num_streams = 1;
+            auto handle2 = exec->get_default_exec_stream();
+            int num_streams = 2;
             // std::vector<std::shared_ptr<gko::CudaAsyncHandle>> streams;
             auto N = x->get_size()[0];
-            ValueType* data[num_streams];
+
+            ValueType* data[2 * num_streams];
+            cudaMalloc(&data[0], N * sizeof(ValueType));
+            cudaMalloc(&data[1], N * sizeof(ValueType));
+            cudaMalloc(&data[2], N * sizeof(ValueType));
+            cudaMalloc(&data[3], N * sizeof(ValueType));
             for (int i = 0; i < num_streams; i++) {
-                streams.emplace_back(gko::CudaAsyncHandle::create(
-                    gko::CudaAsyncHandle::create_type::non_blocking));
+                // streams.emplace_back(gko::CudaAsyncHandle::create(
+                //     gko::CudaAsyncHandle::create_type::non_blocking));
                 // auto* data = exec->alloc<ValueType>(N);
-                cudaMalloc(&data[i], N * sizeof(ValueType));
                 // constexpr int block_size = 64;
                 // const auto grid_size =
                 //     (x->get_size()[0] + block_size - 1) / block_size;
@@ -141,8 +143,12 @@ protected:
                 // sqrt_kernel(x->get_size()[0], x->get_values(), handle2);
                 // sqrt_kernel(x2->get_size()[0], x2->get_values(), handle3);
 
-                sqrt_kernel_impl<<<1, 64, 0, streams[i]->get_handle()>>>(
-                    N, data[i]);
+                sqrt_kernel_impl<<<1, 64, 0,
+                                   gko::as<gko::CudaAsyncHandle>(handle2)
+                                       ->get_handle()>>>(N, data[i]);
+                sqrt_kernel_impl<<<1, 64, 0,
+                                   gko::as<gko::CudaAsyncHandle>(handle)
+                                       ->get_handle()>>>(N, data[i + 2]);
             }
             // sqrt_kernel_impl<<<1, 1>>>(0, NULL);
             //
@@ -179,9 +185,14 @@ protected:
 
         // we need separate implementations depending on the executor, so we
         // create an operation which maps the call to the correct implementation
-        auto handle = this->get_executor()->run(
-            stencil_operation(coefficients, dense_b, dense_x, dense_x2.get()));
-        handle->wait();
+        auto exec = this->get_executor();
+        auto handle = gko::CudaAsyncHandle::create(
+            gko::CudaAsyncHandle::create_type::legacy_blocking);
+
+        auto handle2 = exec->run(
+            stencil_operation(coefficients, dense_b, dense_x, dense_x2.get()),
+            handle);
+        handle2->wait();
     }
 
     // There is also a version of the apply function which does the operation

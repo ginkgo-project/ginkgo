@@ -61,6 +61,15 @@ struct CUstream_st;
 struct ihipStream_t;
 
 
+inline namespace cl {
+namespace sycl {
+
+class queue;
+
+}  // namespace sycl
+}  // namespace cl
+
+
 namespace gko {
 
 
@@ -104,8 +113,6 @@ public:
         const std::chrono::time_point<std::chrono::steady_clock>& time) = 0;
 
     virtual std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) = 0;
-
-    virtual std::shared_ptr<AsyncHandle> run(const Operation& op) = 0;
 };
 
 
@@ -134,11 +141,6 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
     {
         return self()->then(handle);
-    }
-
-    std::shared_ptr<AsyncHandle> run(const Operation& op) override
-    {
-        return self()->run(op);
     }
 
 private:
@@ -195,8 +197,8 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) override
-        GKO_NOT_IMPLEMENTED;
+    template <typename Closure>
+    std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
 
 protected:
     HostAsyncHandle() : handle_() {}
@@ -243,8 +245,8 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) override
-        GKO_NOT_IMPLEMENTED;
+    template <typename Closure>
+    std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
 
 protected:
     CudaAsyncHandle(create_type c_type);
@@ -293,8 +295,8 @@ public:
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) override
-        GKO_NOT_IMPLEMENTED;
+    template <typename Closure>
+    std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
 
 protected:
     HipAsyncHandle(create_type c_type);
@@ -307,6 +309,46 @@ private:
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<ihipStream_t> handle_;
+};
+
+
+class DpcppAsyncHandle : public detail::AsyncHandleBase<DpcppAsyncHandle>,
+                         public std::enable_shared_from_this<DpcppAsyncHandle> {
+    friend class detail::AsyncHandleBase<DpcppAsyncHandle>;
+
+public:
+    static std::shared_ptr<DpcppAsyncHandle> create(::cl::sycl::queue* handle)
+    {
+        return std::shared_ptr<DpcppAsyncHandle>(
+            new DpcppAsyncHandle(std::move(handle)));
+    }
+
+    ::cl::sycl::queue* get_handle() { return this->handle_.get(); }
+
+    void get_result();
+
+    void wait() override;
+
+    void wait_for(const std::chrono::duration<int>& time) override;
+
+    void wait_until(const std::chrono::time_point<std::chrono::steady_clock>&
+                        time) override;
+
+    std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
+        GKO_NOT_IMPLEMENTED;
+
+    template <typename Closure>
+    std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
+
+protected:
+    DpcppAsyncHandle(::cl::sycl::queue* input_handle)
+        : handle_(std::move(input_handle))
+    {}
+
+private:
+    template <typename T>
+    using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
+    handle_manager<::cl::sycl::queue> handle_;
 };
 
 

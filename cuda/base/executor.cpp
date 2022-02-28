@@ -116,6 +116,18 @@ std::shared_ptr<AsyncHandle> CudaExecutor::run(const Operation& op) const
 }
 
 
+std::shared_ptr<AsyncHandle> CudaExecutor::run(
+    const AsyncOperation& op, std::shared_ptr<AsyncHandle> handle) const
+{
+    cuda::device_guard g(this->get_device_id());
+    return op.run(
+        std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()),
+        handle);
+    // FIXME
+    // this->template log<log::Logger::operation_completed>(this, &op);
+}
+
+
 int CudaExecutor::get_num_devices()
 {
     int deviceCount = 0;

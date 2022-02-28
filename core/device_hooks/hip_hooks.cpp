@@ -165,6 +165,15 @@ std::shared_ptr<AsyncHandle> HipExecutor::run(const Operation& op) const
 }
 
 
+std::shared_ptr<AsyncHandle> HipExecutor::run(
+    const AsyncOperation& op, std::shared_ptr<AsyncHandle> handle) const
+{
+    return op.run(
+        std::static_pointer_cast<const HipExecutor>(this->shared_from_this()),
+        handle);
+}
+
+
 std::string HipError::get_error(int64)
 {
     return "ginkgo HIP module is not compiled";

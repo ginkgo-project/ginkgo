@@ -64,7 +64,43 @@ std::shared_ptr<AsyncHandle> Operation::run(
 }
 
 
+std::shared_ptr<AsyncHandle> AsyncOperation::run(
+    std::shared_ptr<const OmpExecutor> executor,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
+
+std::shared_ptr<AsyncHandle> AsyncOperation::run(
+    std::shared_ptr<const CudaExecutor> executor,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
+
+std::shared_ptr<AsyncHandle> AsyncOperation::run(
+    std::shared_ptr<const HipExecutor> executor,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
+
+std::shared_ptr<AsyncHandle> AsyncOperation::run(
+    std::shared_ptr<const DpcppExecutor> executor,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
+
+std::shared_ptr<AsyncHandle> AsyncOperation::run(
+    std::shared_ptr<const ReferenceExecutor> executor,
+    std::shared_ptr<AsyncHandle> handle) const
+{
+    return this->run(static_cast<std::shared_ptr<const OmpExecutor>>(executor),
+                     handle);
+}
+
+
 const char* Operation::get_name() const noexcept
+{
+    static auto name = name_demangling::get_dynamic_type(*this);
+    return name.c_str();
+}
+
+
+const char* AsyncOperation::get_name() const noexcept
 {
     static auto name = name_demangling::get_dynamic_type(*this);
     return name.c_str();

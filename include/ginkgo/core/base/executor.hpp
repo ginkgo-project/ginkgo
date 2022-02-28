@@ -776,6 +776,10 @@ public:
      */
     virtual std::shared_ptr<AsyncHandle> run(const Operation& op) const = 0;
 
+    virtual std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const = 0;
+
     /**
      * Runs one of the passed in functors, depending on the Executor type.
      *
@@ -800,6 +804,19 @@ public:
         LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
             op_omp, op_cuda, op_hip, op_dpcpp);
         return this->run(op);
+    }
+
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
+              typename ClosureDpcpp>
+    std::shared_ptr<AsyncHandle> run(const ClosureOmp& op_omp,
+                                     const ClosureCuda& op_cuda,
+                                     const ClosureHip& op_hip,
+                                     const ClosureDpcpp& op_dpcpp,
+                                     std::shared_ptr<AsyncHandle> handle) const
+    {
+        LambdaAsyncOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp>
+            op(op_omp, op_cuda, op_hip, op_dpcpp);
+        return this->run(op, handle);
     }
 
     std::shared_ptr<AsyncHandle> get_default_exec_stream() const
@@ -1109,6 +1126,66 @@ private:
         ClosureHip op_hip_;
         ClosureDpcpp op_dpcpp_;
     };
+
+
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
+              typename ClosureDpcpp>
+    class LambdaAsyncOperation : public AsyncOperation {
+    public:
+        /**
+         * Creates an LambdaOperation object from four functors.
+         *
+         * @param op_omp  a functor object which will be called by OmpExecutor
+         *                and ReferenceExecutor
+         * @param op_cuda  a functor object which will be called by CudaExecutor
+         * @param op_hip  a functor object which will be called by HipExecutor
+         * @param op_dpcpp  a functor object which will be called by
+         *                  DpcppExecutor
+         */
+        LambdaAsyncOperation(const ClosureOmp& op_omp,
+                             const ClosureCuda& op_cuda,
+                             const ClosureHip& op_hip,
+                             const ClosureDpcpp& op_dpcpp)
+            : op_omp_(op_omp),
+              op_cuda_(op_cuda),
+              op_hip_(op_hip),
+              op_dpcpp_(op_dpcpp)
+        {}
+
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const OmpExecutor>,
+            std::shared_ptr<AsyncHandle> handle) const override
+        {
+            return gko::as<HostAsyncHandle<void>>(handle)->queue(op_omp_);
+        }
+
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const CudaExecutor>,
+            std::shared_ptr<AsyncHandle> handle) const override
+        {
+            return gko::as<CudaAsyncHandle>(handle)->queue(op_cuda_);
+        }
+
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const HipExecutor>,
+            std::shared_ptr<AsyncHandle> handle) const override
+        {
+            return gko::as<HipAsyncHandle>(handle)->queue(op_hip_);
+        }
+
+        std::shared_ptr<AsyncHandle> run(
+            std::shared_ptr<const DpcppExecutor>,
+            std::shared_ptr<AsyncHandle> handle) const override
+        {
+            return gko::as<DpcppAsyncHandle>(handle)->queue(op_dpcpp_);
+        }
+
+    private:
+        ClosureOmp op_omp_;
+        ClosureCuda op_cuda_;
+        ClosureHip op_hip_;
+        ClosureDpcpp op_dpcpp_;
+    };
 };
 
 
@@ -1125,6 +1202,16 @@ public:
     {
         this->template log<log::Logger::operation_launched>(this, &op);
         return op.run(self()->shared_from_this());
+        // FIXME
+        // this->template log<log::Logger::operation_completed>(this, &op);
+    }
+
+
+    std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op.run(self()->shared_from_this(), handle);
         // FIXME
         // this->template log<log::Logger::operation_completed>(this, &op);
     }
@@ -1310,6 +1397,17 @@ public:
         // this->template log<log::Logger::operation_completed>(this, &op);
     }
 
+    std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        return op.run(std::static_pointer_cast<const ReferenceExecutor>(
+                          this->shared_from_this()),
+                      handle);
+        // FIXME
+        // this->template log<log::Logger::operation_completed>(this, &op);
+    }
+
     std::shared_ptr<MemorySpace> get_mem_space() noexcept override
     {
         return this->mem_space_instance_;
@@ -1423,6 +1521,10 @@ public:
     void synchronize() const override;
 
     std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
+
+    std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1677,6 +1779,10 @@ public:
 
     std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
 
+    std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
     /**
      * Get the HIP device id of the device associated to this executor.
      */
@@ -1920,6 +2026,10 @@ public:
     void synchronize() const override;
 
     std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
+
+    std::shared_ptr<AsyncHandle> run(
+        const AsyncOperation& op,
+        std::shared_ptr<AsyncHandle> handle) const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
