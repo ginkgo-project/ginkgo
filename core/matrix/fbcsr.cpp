@@ -232,9 +232,12 @@ void Fbcsr<ValueType, IndexType>::read(device_mat_data&& data)
     this->set_size(data.get_size());
     row_ptrs_.resize_and_reset(row_blocks + 1);
     auto exec = this->get_executor();
-    auto local_data = make_temporary_clone(exec, &data);
-    exec->run(fbcsr::make_fill_in_matrix_data(*local_data, bs_, row_ptrs_,
-                                              col_idxs_, values_));
+    {
+        auto local_data = make_temporary_clone(exec, &data);
+        exec->run(fbcsr::make_fill_in_matrix_data(*local_data, bs_, row_ptrs_,
+                                                  col_idxs_, values_));
+    }
+    // this needs to happen after the temporary clone copy-back
     data.empty_out();
 }
 
