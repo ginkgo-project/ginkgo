@@ -204,14 +204,14 @@ public:
         dy = gko::clone(exec, y);
     }
 
-    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     void init_result()
     {
         res = dense_type::create(ref, gko::dim<2>{1, size[1]});
         dres = dense_type::create(exec, gko::dim<2>{1, size[1]});
-        res->fill(0.);
-        dres->fill(0.);
+        res->fill(0.0);
+        dres->fill(0.0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -369,7 +369,7 @@ public:
         part = part_type::build_from_mapping(ref, mapping, num_parts);
     }
 
-    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     template <typename VectorType>
     void generate_vector_pair(std::unique_ptr<VectorType>& host,
@@ -617,7 +617,7 @@ TEST_F(VectorLocalOps, CreateRealViewSameAsLocal)
     EXPECT_EQ(rv->get_size()[1], drv->get_size()[1]);
     EXPECT_EQ(rv->get_const_local()->get_stride(),
               drv->get_const_local()->get_stride());
-    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), drv->get_const_local(), 0.);
+    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), drv->get_const_local(), 0.0);
 }
 
 
