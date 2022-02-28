@@ -74,7 +74,7 @@ public:
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {}
 
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
+    void SetUp() override { ASSERT_GE(this->comm.size(), 3); }
 
     std::shared_ptr<gko::Executor> ref;
     gko::mpi::communicator comm;
@@ -315,7 +315,7 @@ public:
         vec_b->read_distributed(md_b, part.get());
     }
 
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
+    void SetUp() override { ASSERT_GE(this->comm.size(), 3); }
 
     std::shared_ptr<gko::Executor> ref;
     gko::mpi::communicator comm;
@@ -352,10 +352,12 @@ TYPED_TEST(VectorReductions, ComputesConjDot)
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto md_a = gko::test::generate_random_matrix_data<value_type, index_type>(
         6, 2, std::uniform_int_distribution<int>(2, 2),
-        std::normal_distribution<real_type>(0, 1), std::ranlux48{42});
+        std::normal_distribution<real_type>(0, 1),
+        std::default_random_engine{42});
     auto md_b = gko::test::generate_random_matrix_data<value_type, index_type>(
         6, 2, std::uniform_int_distribution<int>(2, 2),
-        std::normal_distribution<real_type>(0, 1), std::ranlux48{42});
+        std::normal_distribution<real_type>(0, 1),
+        std::default_random_engine{42});
     auto dist_vec_a = dist_vec_type::create(this->ref, this->comm);
     auto dist_vec_b = dist_vec_type::create(this->ref, this->comm);
     auto dense_vec_a = dense_type::create(this->ref);
@@ -374,7 +376,7 @@ TYPED_TEST(VectorReductions, ComputesConjDot)
 }
 
 
-TYPED_TEST(VectorReductions, ComputesNorm)
+TYPED_TEST(VectorReductions, ComputesNorm2)
 {
     using dense_type = typename TestFixture::dense_type;
     using value_type = typename TestFixture::value_type;
@@ -385,6 +387,20 @@ TYPED_TEST(VectorReductions, ComputesNorm)
         this->ref);
 
     this->vec_a->compute_norm2(res.get());
+
+    GKO_ASSERT_MTX_NEAR(res, ref_res, r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputesNorm1)
+{
+    using dense_type = typename TestFixture::dense_type;
+    using value_type = typename TestFixture::value_type;
+    auto res = dense_type::absolute_type::create(this->ref, gko::dim<2>{1, 2});
+    auto ref_res = gko::initialize<typename dense_type::absolute_type>(
+        {{30, 36}}, this->ref);
+
+    this->vec_a->compute_norm1(res.get());
 
     GKO_ASSERT_MTX_NEAR(res, ref_res, r<value_type>::value);
 }
@@ -418,7 +434,7 @@ public:
         vec_b->read_distributed(md_b, part.get());
     }
 
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
+    void SetUp() override { ASSERT_GE(this->comm.size(), 3); }
 
     auto generate_local_and_global_pair(gko::dim<2> local_size)
     {
@@ -455,11 +471,11 @@ TYPED_TEST(VectorLocalOp, ApplyNotSupported)
 {
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto a = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
     auto b = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
     auto c = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
 
     ASSERT_THROW(a->apply(b.get(), c.get()), gko::NotSupported);
 }
@@ -469,15 +485,16 @@ TYPED_TEST(VectorLocalOp, AdvancedApplyNotSupported)
 {
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto a = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
     auto b = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{1, 1},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{1, 1});
     auto c = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
     auto d = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{1, 1},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{1, 1});
     auto e = dist_vec_type::create(this->ref, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{});
+                                   gko::dim<2>{2, 2});
+
     ASSERT_THROW(a->apply(b.get(), c.get(), d.get(), e.get()),
                  gko::NotSupported);
 }
