@@ -820,4 +820,45 @@ TYPED_TEST(VectorLocalOp, CreateRealViewSameAsLocal)
 }
 
 
+class AllocCounter : public gko::log::Logger {
+public:
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        count_++;
+    }
+
+    int get_count() const { return count_; }
+
+    static std::unique_ptr<AllocCounter> create(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return std::unique_ptr<AllocCounter>(new AllocCounter(std::move(exec)));
+    }
+
+private:
+    explicit AllocCounter(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(std::move(exec),
+                           gko::log::Logger::allocation_started_mask),
+          count_(0)
+    {}
+
+    mutable int count_;
+};
+
+
+TYPED_TEST(VectorLocalOp, CreateRealViewIsView)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    auto log = gko::share(AllocCounter::create(this->ref));
+
+    this->ref->add_logger(log);
+    auto real_view = this->vec_a->create_real_view();
+    this->ref->remove_logger(log.get());
+
+    ASSERT_EQ(log->get_count(), 0);
+}
+
+
 }  // namespace
