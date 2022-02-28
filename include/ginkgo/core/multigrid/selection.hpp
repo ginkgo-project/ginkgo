@@ -114,6 +114,7 @@ public:
         return coarse_rows_.get_const_data();
     }
 
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

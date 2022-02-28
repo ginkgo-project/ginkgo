@@ -59,6 +59,8 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(fill_restrict_op, selection::fill_restrict_op);
+GKO_REGISTER_OPERATION(fill_incremental_indices,
+                       selection::fill_incremental_indices);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
@@ -90,22 +92,16 @@ void Selection<ValueType, IndexType>::generate()
         this->set_fine_op(selection_op_shared_ptr);
     }
     // Use -1 as sentinel value
-    auto diag_select = std::vector<IndexType>(num_rows, -1);
+    coarse_rows_ = Array<IndexType>(exec, num_rows);
+    coarse_rows_.fill(-one<IndexType>());
 
     // Fill with incremental local indices.
-    size_type num_coarse_rows = 0;
-    for (auto i = 0; i < num_rows; i += parameters_.num_jumps) {
-        diag_select[i] = num_coarse_rows++;
-    }
-    coarse_rows_ = Array<IndexType>(exec, diag_select.data(),
-                                    diag_select.data() + num_rows);
+    exec->run(selection::make_fill_incremental_indices(parameters_.num_jumps,
+                                                       &coarse_rows_));
 
-    gko::dim<2>::dimension_type coarse_dim = num_coarse_rows;
+    gko::dim<2>::dimension_type coarse_dim =
+        (coarse_rows_.get_num_elems() + 1) / parameters_.num_jumps;
     auto fine_dim = system_matrix_->get_size()[0];
-    // prolong_row_gather is the lightway implementation for prolongation
-    // TODO: However, we still create the csr to process coarse/restrict matrix
-    // generation. It may be changed when we have the direct triple product from
-    // agg index.
     auto restrict_op =
         share(csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim},
                                coarse_dim, selection_op->get_strategy()));

@@ -73,6 +73,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELECTION_FILL_RESTRICT_OP);
 
 
+template <typename IndexType>
+void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
+                              size_type num_jumps,
+                              Array<IndexType>* coarse_rows)
+{
+    IndexType num_elems = (coarse_rows->get_num_elems() + 1) / num_jumps;
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto tidx, auto num_jumps, auto coarse_data) {
+            coarse_data[tidx] = tidx / num_jumps;
+        },
+        num_elems * num_jumps, num_jumps, coarse_rows->get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_SELECTION_FILL_INCREMENTAL_INDICES);
+
+
 }  // namespace selection
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

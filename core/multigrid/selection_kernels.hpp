@@ -57,9 +57,17 @@ namespace selection {
                           const Array<IndexType>* coarse_rows,         \
                           matrix::Csr<ValueType, IndexType>* restrict_op)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_SELECTION_FILL_RESTRICT_OP(ValueType, IndexType)
+#define GKO_DECLARE_SELECTION_FILL_INCREMENTAL_INDICES(IndexType)              \
+    void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec, \
+                                  size_type num_jumps,                         \
+                                  Array<IndexType>* coarse_rows)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                              \
+    template <typename ValueType, typename IndexType>             \
+    GKO_DECLARE_SELECTION_FILL_RESTRICT_OP(ValueType, IndexType); \
+    template <typename IndexType>                                 \
+    GKO_DECLARE_SELECTION_FILL_INCREMENTAL_INDICES(IndexType)
 
 
 }  // namespace selection

@@ -123,8 +123,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    // auto A = share(mtx::create(exec, A_data.size));
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(mtx::create(exec, A_data.size));
+    A->read(A_data);
+    // auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     A->set_strategy(std::make_shared<mtx::sparselib>());
     // Create RHS as 1 and initial guess as 0
     gko::size_type size = A->get_size()[0];
@@ -202,6 +203,9 @@ int main(int argc, char* argv[])
                                         .with_zero_guess(true)
                                         .with_criteria(iter_stop, tol_stop)
                                         .on(exec));
+    std::cout << "MG num levels: "
+              << multigrid_gen->generate(A)->get_parameters().mg_level.size()
+              << std::endl;
     if (use_coarse_select) {
         std::cout << "Using Selection" << std::endl;
         multigrid_gen =
