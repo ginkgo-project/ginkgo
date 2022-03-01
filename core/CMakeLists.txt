@@ -46,6 +46,7 @@ target_sources(ginkgo
     multigrid/fixed_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
+    reorder/mc64.cpp
     reorder/rcm.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
