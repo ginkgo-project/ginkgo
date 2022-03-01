@@ -45,8 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 
-#include "third_party/glu/include/symbolic.h"
-
 
 namespace gko {
 /**
@@ -173,7 +171,7 @@ public:
                                    ReusableFactoryParameters, LinOpFactory>(
                   std::move(exec), parameters)
         {
-            A_sym_ = share(symbolic_factorization(A));
+            symbolic_factorization(A);
         }
         explicit ReusableFactory(std::shared_ptr<const Executor> exec,
                                  const LinOp* A,
@@ -191,17 +189,26 @@ public:
                     mc64->get_permutation().get()));
                 PA = as<matrix_type>(PA->inverse_column_permute(
                     mc64->get_inverse_permutation().get()));
-                A_sym_ = share(symbolic_factorization(PA.get()));
+                symbolic_factorization(PA.get());
             } else {
-                A_sym_ = share(symbolic_factorization(A));
+                symbolic_factorization(A);
             }
         }
 
-        std::unique_ptr<Symbolic_Matrix> symbolic_factorization(
-            const LinOp* system_matrix);
+        void symbolic_factorization(const LinOp* system_matrix);
 
     public:
-        std::shared_ptr<Symbolic_Matrix> A_sym_;
+        std::vector<unsigned> row_ptrs_;
+        std::vector<unsigned> col_idxs_;
+        std::vector<int> level_idx_;
+        std::vector<int> level_ptr_;
+        unsigned num_lev_;
+        unsigned sym_nnz_;
+        std::vector<unsigned> csr_r_ptr;
+        std::vector<unsigned> csr_c_idx;
+        std::vector<unsigned> csr_diag_ptr;
+        std::vector<unsigned> l_col_ptr;
+        std::vector<value_type> csr_val;
     };
 
     friend EnableDefaultFactory<ReusableFactory, Glu, ReusableFactoryParameters,
@@ -227,7 +234,12 @@ protected:
         }
         auto reusable = Glu::build_reusable().on(factory->get_executor(),
                                                  system_matrix.get());
-        generate_l_u(system_matrix, reusable->A_sym_, parameters_.skip_sorting)
+        generate_l_u(system_matrix, reusable->row_ptrs_, reusable->col_idxs_,
+                     reusable->level_idx_, reusable->level_ptr_,
+                     reusable->csr_r_ptr, reusable->csr_c_idx,
+                     reusable->csr_diag_ptr, reusable->l_col_ptr,
+                     reusable->csr_val, reusable->sym_nnz_, reusable->num_lev_,
+                     parameters_.skip_sorting)
             ->move_to(this);
     }
 
@@ -244,7 +256,12 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate_l_u(system_matrix, factory->A_sym_, parameters_.skip_sorting)
+        generate_l_u(system_matrix, factory->row_ptrs_, factory->col_idxs_,
+                     factory->level_idx_, factory->level_ptr_,
+                     factory->csr_r_ptr, factory->csr_c_idx,
+                     factory->csr_diag_ptr, factory->l_col_ptr,
+                     factory->csr_val, factory->sym_nnz_, factory->num_lev_,
+                     parameters_.skip_sorting)
             ->move_to(this);
     }
 
@@ -265,7 +282,15 @@ protected:
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
-        const std::shared_ptr<Symbolic_Matrix>& A_sym, bool skip_sorting);
+        const std::vector<unsigned>& row_ptrs,
+        const std::vector<unsigned>& col_idxs,
+        const std::vector<int>& level_idx, const std::vector<int>& level_ptr,
+        const std::vector<unsigned>& csr_r_ptr,
+        const std::vector<unsigned>& csr_c_idx,
+        const std::vector<unsigned>& csr_diag_ptr,
+        const std::vector<unsigned>& l_col_ptr,
+        const std::vector<ValueType>& csr_val, unsigned sym_nnz,
+        unsigned num_lev, bool skip_sorting);
 };
 
 

@@ -52,13 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/reordering_base.hpp>
 
 
-#include "third_party/glu/include/numeric.h"
-#include "third_party/glu/include/symbolic.h"
-#include "third_party/glu/src/nicslu/include/nics_config.h"
-#include "third_party/glu/src/nicslu/include/nicslu.h"
-#include "third_party/glu/src/preprocess/preprocess.h"
-
-
 namespace gko {
 /**
  * @brief The Reorder namespace.
@@ -174,81 +167,11 @@ protected:
 
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
-        // Converts the system matrix to CSR.
-        // Throws an exception if it is not convertible.
-        auto local_system_matrix = matrix_type::create(cpu_exec);
-        as<ConvertibleTo<matrix_type>>(system_matrix)
-            ->convert_to(local_system_matrix.get());
-
-        auto v = local_system_matrix->get_values();
-        auto r = local_system_matrix->get_row_ptrs();
-        auto c = local_system_matrix->get_col_idxs();
-
-        // Transpose system matrix as GLU starts off with a CSC matrix.
-        auto transp = as<matrix_type>(local_system_matrix->transpose());
-        auto values = transp->get_values();
-        auto col_ptrs = transp->get_row_ptrs();
-        auto row_idxs = transp->get_col_idxs();
-
-        const auto matrix_size = local_system_matrix->get_size();
-        const auto num_rows = matrix_size[0];
-        const auto nnz = local_system_matrix->get_num_stored_elements();
-
-        // Convert index arrays to unsigned int as this is what GLU uses for
-        // indices.
-        unsigned int* u_col_ptrs = new unsigned int[num_rows + 1];
-        unsigned int* u_row_idxs = new unsigned int[nnz];
-        for (auto i = 0; i < nnz; i++) {
-            u_row_idxs[i] = (unsigned int)(row_idxs[i]);
-            if (i <= num_rows) {
-                u_col_ptrs[i] = (unsigned int)(col_ptrs[i]);
-            }
-        }
-
-        // MC64 and AMD reorderings + scaling to make diagonal elements dominant
-        // and reduce fill-in
-        SNicsLU* nicslu = (SNicsLU*)malloc(sizeof(SNicsLU));
-        NicsLU_Initialize(nicslu);
-        NicsLU_CreateMatrix(nicslu, num_rows, nnz, values, u_row_idxs,
-                            u_col_ptrs);
-        nicslu->cfgi[0] = 1;
-        nicslu->cfgf[1] = 0;
-        NicsLU_Analyze(nicslu);
-        DumpA(nicslu, values, u_row_idxs, u_col_ptrs);
-
-        // Store scalings and permutations to solve linear system later
-        auto mc64_scale = nicslu->cfgi[1];
-        auto rp = nicslu->col_perm;
-        auto irp = nicslu->row_perm_inv;
-        auto piv = nicslu->pivot;
-        auto rs = nicslu->col_scale_perm;
-        auto cs = nicslu->row_scale;
-
-        Array<double> row_scaling_array{cpu_exec, num_rows};
-        Array<double> col_scaling_array{cpu_exec, num_rows};
-        index_array perm_array{cpu_exec, num_rows};
-        index_array inv_perm_array{cpu_exec, num_rows};
-        index_array pivot_array{cpu_exec, num_rows};
-        for (auto i = 0; i < num_rows; i++) {
-            perm_array.get_data()[i] = int(rp[i]);
-            inv_perm_array.get_data()[i] = int(irp[i]);
-            pivot_array.get_data()[i] = int(piv[i]);
-            row_scaling_array.get_data()[i] = rs[i];
-            col_scaling_array.get_data()[i] = cs[i];
-        }
-
-        row_scaling_array.set_executor(exec);
-        col_scaling_array.set_executor(exec);
-        perm_array.set_executor(exec);
-        inv_perm_array.set_executor(exec);
-
-        permutation_ = std::make_shared<index_array>(perm_array);
-        inv_permutation_ = std::make_shared<index_array>(inv_perm_array);
-        row_scaling_ = gko::share(ScalingMatrix::create(
-            exec, num_rows, std::move(row_scaling_array)));
-        col_scaling_ = gko::share(ScalingMatrix::create(
-            exec, num_rows, std::move(col_scaling_array)));
+        this->generate(exec, system_matrix);
     }
+
+    void generate(std::shared_ptr<const Executor>& exec,
+                  std::shared_ptr<LinOp> system_matrix);
 
 private:
     std::shared_ptr<index_array> permutation_;
