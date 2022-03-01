@@ -200,35 +200,27 @@ struct CsrWithAutomaticalStrategy
 struct Ell : SimpleMatrixTest<gko::matrix::Ell<matrix_value_type, int>> {};
 
 
-struct FbcsrBlocksize1
-    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
+template <int block_size>
+struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static bool preserves_zeros() { return false; }
 
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
-        return matrix_type::create(exec, size, 0, 1);
+        size[0] = gko::ceildiv(size[0], block_size) * block_size;
+        size[1] = gko::ceildiv(size[1], block_size) * block_size;
+        return matrix_type::create(exec, size, 0, block_size);
     }
 
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
     {
-        ASSERT_EQ(mtx->get_block_size(), 1);
-    }
-};
-
-struct FbcsrBlocksize2
-    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
-    static bool preserves_zeros() { return false; }
-
-    static std::unique_ptr<matrix_type> create(
-        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
-    {
-        return matrix_type::create(exec, size, 0, 2);
+        ASSERT_EQ(mtx->get_block_size(), block_size);
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
     {
-        ASSERT_EQ(mtx->get_block_size(), 2);
+        data.size[0] = gko::ceildiv(data.size[0], block_size) * block_size;
+        data.size[1] = gko::ceildiv(data.size[1], block_size) * block_size;
     }
 };
 
@@ -484,9 +476,10 @@ protected:
     template <typename TestFunction>
     void forall_matrix_data_scenarios(TestFunction fn)
     {
-        auto guarded_fn = [&](auto mtx) {
+        auto guarded_fn = [&](auto data) {
             try {
-                fn(std::move(mtx));
+                Config::modify_data(data);
+                fn(std::move(data));
             } catch (std::exception& e) {
                 FAIL() << e.what();
             }
@@ -506,6 +499,14 @@ protected:
         {
             SCOPED_TRACE("Zero matrix (200x100)");
             guarded_fn(gen_mtx_data(200, 100, 0, 0));
+        }
+        {
+            SCOPED_TRACE("Small Sparse Matrix with variable row nnz (10x10)");
+            guarded_fn(gen_mtx_data(10, 10, 1, 5));
+        }
+        {
+            SCOPED_TRACE("Small Dense Matrix (10x10)");
+            guarded_fn(gen_mtx_data(10, 10, 10, 10));
         }
         {
             SCOPED_TRACE("Sparse Matrix with some zeros rows (200x100)");
@@ -637,19 +638,25 @@ protected:
 
 using MatrixTypes = ::testing::Types<
     DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
-    // The strategies have issues with zero rows
-    /*
-    #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-        defined(GKO_COMPILING_DPCPP)
-        CsrWithClassicalStrategy, CsrWithMergePathStrategy,
-        CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
-        CsrWithAutomaticalStrategy,
-    #endif
-    */
-    Ell, FbcsrBlocksize1, FbcsrBlocksize2, SellpDefaultParameters,
-    Sellp32Factor2, HybridDefaultStrategy, HybridColumnLimitStrategy,
-    HybridImbalanceLimitStrategy, HybridImbalanceBoundedLimitStrategy,
-    HybridMinStorageStrategy, HybridAutomaticStrategy, SparsityCsr>;
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
+    CsrWithClassicalStrategy, CsrWithMergePathStrategy,
+    CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
+    CsrWithAutomaticalStrategy,
+#endif
+    Ell,
+#ifdef GKO_COMPILING_OMP
+    // CUDA doesn't allow blocksize 1
+    Fbcsr<1>,
+#endif
+#if defined(GKO_COMPILING_OMP) || defined(GKO_COMPILING_CUDA)
+    // Fbcsr is broken on ROCm
+    Fbcsr<2>, Fbcsr<3>,
+#endif
+    SellpDefaultParameters, Sellp32Factor2, HybridDefaultStrategy,
+    HybridColumnLimitStrategy, HybridImbalanceLimitStrategy,
+    HybridImbalanceBoundedLimitStrategy, HybridMinStorageStrategy,
+    HybridAutomaticStrategy, SparsityCsr>;
 
 TYPED_TEST_SUITE(Matrix, MatrixTypes, TypenameNameGenerator);
 
@@ -810,7 +817,6 @@ TYPED_TEST(Matrix, ReadWriteRoundtrip)
         auto new_mtx = TestConfig::create(this->exec, data.size);
         gko::matrix_data<value_type, index_type> out_data;
 
-        TestConfig::modify_data(data);
         new_mtx->read(data);
         new_mtx->write(out_data);
 

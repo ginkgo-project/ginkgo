@@ -93,9 +93,9 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
     if (block_row == 0 && lane == 0) {
         row_ptrs[0] = 0;
     }
-    if (lane < block_size) {
-        row_ptrs[first_row + lane + 1] =
-            block_row_begin + num_blocks * block_size * (lane + 1);
+    for (auto i = lane; i < block_size; i += config::warp_size) {
+        row_ptrs[first_row + i + 1] =
+            block_row_begin + num_blocks * block_size * (i + 1);
     }
     for (IndexType i = lane; i < num_blocks * block_size * block_size;
          i += config::warp_size) {
@@ -154,19 +154,20 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
-                         int block_size, Array<IndexType>& row_ptr_array,
-                         Array<IndexType>& col_idx_array,
-                         Array<ValueType>& value_array)
+                         int block_size, Array<IndexType>& block_row_ptr_array,
+                         Array<IndexType>& block_col_idx_array,
+                         Array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = data.get_num_elems();
     const auto bs = block_size;
-    auto row_ptrs = row_ptr_array.get_data();
-    auto num_rows = row_ptr_array.get_num_elems() - 1;
+    auto block_row_ptrs = block_row_ptr_array.get_data();
+    auto num_block_rows = block_row_ptr_array.get_num_elems() - 1;
     if (nnz == 0) {
-        components::fill_array(exec, row_ptrs, num_rows + 1, IndexType{});
-        col_idx_array.resize_and_reset(0);
-        value_array.resize_and_reset(0);
+        components::fill_array(exec, block_row_ptrs, num_block_rows + 1,
+                               IndexType{});
+        block_col_idx_array.resize_and_reset(0);
+        block_value_array.resize_and_reset(0);
         return;
     }
     auto in_rows = data.get_row_idxs();
@@ -200,13 +201,13 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = static_cast<size_type>(
         thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
     // allocate storage
-    Array<IndexType> row_idx_array{exec, num_blocks};
+    Array<IndexType> block_row_idx_array{exec, num_blocks};
     Array<size_type> block_ptr_array{exec, num_blocks};
-    col_idx_array.resize_and_reset(num_blocks);
-    value_array.resize_and_reset(num_blocks * bs * bs);
-    auto row_idxs = row_idx_array.get_data();
-    auto col_idxs = col_idx_array.get_data();
-    auto values = as_device_type(value_array.get_data());
+    block_col_idx_array.resize_and_reset(num_blocks);
+    block_value_array.resize_and_reset(num_blocks * bs * bs);
+    auto row_idxs = block_row_idx_array.get_data();
+    auto col_idxs = block_col_idx_array.get_data();
+    auto values = as_device_type(block_value_array.get_data());
     auto block_ptrs = block_ptr_array.get_data();
     auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
     // write (block_row, block_col, block_start_idx) tuples for each block
@@ -221,12 +222,12 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             return thrust::make_tuple(in_rows[i] / bs, in_cols[i] / bs);
         });
     // build row pointers from row indices
-    components::convert_idxs_to_ptrs(exec, row_idx_array.get_const_data(),
-                                     row_idx_array.get_num_elems(), num_rows,
-                                     row_ptrs);
+    components::convert_idxs_to_ptrs(exec, block_row_idx_array.get_const_data(),
+                                     block_row_idx_array.get_num_elems(),
+                                     num_block_rows, block_row_ptrs);
     // fill in values
-    components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
-                           zero<ValueType>());
+    components::fill_array(exec, block_value_array.get_data(),
+                           num_blocks * bs * bs, zero<ValueType>());
     thrust::for_each_n(
         thrust::device, iota, num_blocks,
         [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,

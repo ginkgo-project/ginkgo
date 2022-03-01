@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
@@ -70,25 +71,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/merging.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
-
-
-namespace csr_reuse {
-
-
-constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int default_block_size{512};
-
-
-#include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
-
-
-}  // namespace csr_reuse
 
 
 /**
@@ -102,7 +90,7 @@ namespace fbcsr {
 constexpr int default_block_size{512};
 
 
-#include "common/cuda_hip/components/uninitialized_array.hpp.inc"
+#include "common/cuda_hip/matrix/csr_common.hpp.inc"
 #include "common/cuda_hip/matrix/fbcsr_kernels.hpp.inc"
 
 
@@ -114,6 +102,9 @@ void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
                      const size_type orig_stride, const ValueType* const orig,
                      const size_type trans_stride, ValueType* const trans)
 {
+    if (nrows == 0) {
+        return;
+    }
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
         {
@@ -121,8 +112,7 @@ void dense_transpose(std::shared_ptr<const CudaExecutor> exec,
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
             cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, nrows, ncols, &alpha,
-                         orig, orig_stride, &beta,
-                         static_cast<ValueType*>(nullptr), nrows, trans,
+                         orig, orig_stride, &beta, trans, trans_stride, trans,
                          trans_stride);
         }
     } else {
@@ -139,6 +129,15 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType>* const b,
           matrix::Dense<ValueType>* const c)
 {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
+        // empty input: fill output with zero
+        dense::fill(exec, c, zero<ValueType>());
+        return;
+    }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
         cusparse::pointer_mode_guard pm_guard(handle);
@@ -153,21 +152,24 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nb = a->get_num_block_cols();
         const auto nnzb = static_cast<IndexType>(a->get_num_stored_blocks());
         const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
-        assert(nrhs == c->get_size()[1]);
-        if (nrhs == 1) {
+        const auto nrows = a->get_size()[0];
+        const auto ncols = a->get_size()[1];
+        const auto in_stride = b->get_stride();
+        const auto out_stride = c->get_stride();
+        if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
                             nnzb, &alpha, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), &beta, c->get_values());
         } else {
-            auto trans_c =
-                Array<ValueType>(exec, c->get_size()[0] * c->get_size()[1]);
+            const auto trans_stride = nrows;
+            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                             &alpha, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), nrhs, &beta,
-                            trans_c.get_data(), mb * bs);
-            dense_transpose(exec, nrhs, mb * bs, mb * bs, trans_c.get_data(),
-                            c->get_stride(), c->get_values());
+                            b->get_const_values(), in_stride, &beta,
+                            trans_c.get_data(), trans_stride);
+            dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
+                            out_stride, c->get_values());
         }
         cusparse::destroy(descr);
     } else {
@@ -186,6 +188,15 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* const beta,
                    matrix::Dense<ValueType>* const c)
 {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
+        // empty input: scale output
+        dense::scale(exec, beta, c);
+        return;
+    }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
         const auto alphp = alpha->get_const_values();
@@ -199,23 +210,26 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nb = a->get_num_block_cols();
         const auto nnzb = static_cast<IndexType>(a->get_num_stored_blocks());
         const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
-        assert(nrhs == c->get_size()[1]);
-        if (nrhs == 1) {
+        const auto nrows = a->get_size()[0];
+        const auto ncols = a->get_size()[1];
+        const auto in_stride = b->get_stride();
+        const auto out_stride = c->get_stride();
+        if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             cusparse::bsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, mb, nb,
                             nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
                             b->get_const_values(), betap, c->get_values());
         } else {
-            auto trans_c =
-                Array<ValueType>(exec, c->get_size()[0] * c->get_size()[1]);
-            dense_transpose(exec, mb * bs, nrhs, c->get_stride(),
-                            c->get_values(), mb * bs, trans_c.get_data());
+            const auto trans_stride = nrows;
+            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
+            dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
+                            trans_stride, trans_c.get_data());
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                             alphp, descr, values, row_ptrs, col_idxs, bs,
-                            b->get_const_values(), nrhs, betap,
-                            trans_c.get_data(), mb * bs);
-            dense_transpose(exec, nrhs, mb * bs, mb * bs, trans_c.get_data(),
-                            c->get_stride(), c->get_values());
+                            b->get_const_values(), in_stride, betap,
+                            trans_c.get_data(), trans_stride);
+            dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
+                            out_stride, c->get_values());
         }
         cusparse::destroy(descr);
     } else {
@@ -341,7 +355,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
     if (grid_size > 0) {
-        csr_reuse::conjugate_kernel<<<grid_size, default_block_size>>>(
+        kernel::conjugate<<<grid_size, default_block_size>>>(
             trans->get_num_stored_elements(),
             as_cuda_type(trans->get_values()));
     }
@@ -367,7 +381,7 @@ void is_sorted_by_column_index(
         static_cast<IndexType>(to_check->get_num_block_rows());
     const auto num_blocks = ceildiv(num_brows, block_size);
     if (num_blocks > 0) {
-        csr_reuse::kernel::check_unsorted<<<num_blocks, block_size>>>(
+        kernel::check_unsorted<<<num_blocks, block_size>>>(
             to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
             num_brows, gpu_array.get_data());
     }

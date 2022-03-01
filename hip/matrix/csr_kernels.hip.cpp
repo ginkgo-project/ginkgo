@@ -37,6 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_runtime.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/device_ptr.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_output_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sort.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -50,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -99,6 +107,7 @@ using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
+#include "common/cuda_hip/matrix/csr_common.hpp.inc"
 #include "common/cuda_hip/matrix/csr_kernels.hpp.inc"
 
 
@@ -296,8 +305,6 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()),
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -392,8 +399,6 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()),
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -731,16 +736,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
-                      Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
@@ -790,7 +785,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
 
         if (grid_size > 0) {
-            hipLaunchKernelGGL(conjugate_kernel, grid_size, block_size, 0, 0,
+            hipLaunchKernelGGL(kernel::conjugate, grid_size, block_size, 0, 0,
                                trans->get_num_stored_elements(),
                                as_hip_type(trans->get_values()));
         }
@@ -812,7 +807,7 @@ void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::inv_row_ptr_permute),
                            count_num_blocks, default_block_size, 0, 0, num_rows,
                            perm, orig->get_const_row_ptrs(),
                            permuted->get_row_ptrs());
@@ -822,7 +817,7 @@ void inv_symm_permute(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(inv_symm_permute_kernel<config::warp_size>),
+            HIP_KERNEL_NAME(kernel::inv_symm_permute<config::warp_size>),
             copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
             as_hip_type(orig->get_const_values()), permuted->get_row_ptrs(),
@@ -842,7 +837,7 @@ void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType* perm,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(row_ptr_permute_kernel),
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::row_ptr_permute),
                            count_num_blocks, default_block_size, 0, 0, num_rows,
                            perm, orig->get_const_row_ptrs(),
                            row_permuted->get_row_ptrs());
@@ -852,7 +847,7 @@ void row_permute(std::shared_ptr<const HipExecutor> exec, const IndexType* perm,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(row_permute_kernel<config::warp_size>),
+            HIP_KERNEL_NAME(kernel::row_permute<config::warp_size>),
             copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
             as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
@@ -874,7 +869,7 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
     auto num_rows = orig->get_size()[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
     if (count_num_blocks > 0) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(inv_row_ptr_permute_kernel),
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::inv_row_ptr_permute),
                            count_num_blocks, default_block_size, 0, 0, num_rows,
                            perm, orig->get_const_row_ptrs(),
                            row_permuted->get_row_ptrs());
@@ -884,7 +879,7 @@ void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (copy_num_blocks > 0) {
         hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(inv_row_permute_kernel<config::warp_size>),
+            HIP_KERNEL_NAME(kernel::inv_row_permute<config::warp_size>),
             copy_num_blocks, default_block_size, 0, 0, num_rows, perm,
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
             as_hip_type(orig->get_const_values()), row_permuted->get_row_ptrs(),

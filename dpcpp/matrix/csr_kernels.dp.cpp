@@ -1139,8 +1139,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -1235,8 +1233,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
