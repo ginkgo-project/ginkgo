@@ -101,28 +101,6 @@ bool use_distributed(Arg* linop, Rest*... rest)
 }
 
 
-#else
-
-
-template <typename ValueType, typename LinOp, typename... Rest>
-bool any_is_complex(const LinOp* in, Rest&&... rest)
-{
-    return !(is_complex<ValueType>() ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
-           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
-}
-
-
-template <typename... Args>
-bool use_distributed(Args*...)
-{
-    return false;
-}
-
-
-#endif
-
-
 template <typename ValueType, typename Function, typename... LinOps>
 void norm_dispatch(Function&& fn, LinOps*... linops)
 {
@@ -144,6 +122,33 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
         }
     }
 }
+
+
+#else
+
+
+template <typename ValueType, typename LinOp, typename... Rest>
+bool any_is_complex(const LinOp* in, Rest&&... rest)
+{
+    return !(is_complex<ValueType>() ||
+             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
+           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
+}
+
+
+template <typename ValueType, typename Function, typename... LinOps>
+void norm_dispatch(Function&& fn, LinOps*... linops)
+{
+    if (any_is_complex<ValueType>(linops...)) {
+        precision_dispatch<to_complex<ValueType>>(std::forward<Function>(fn),
+                                                  linops...);
+    } else {
+        precision_dispatch<ValueType>(std::forward<Function>(fn), linops...);
+    }
+}
+
+
+#endif
 
 
 template <typename ValueType>

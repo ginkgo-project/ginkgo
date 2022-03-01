@@ -477,21 +477,10 @@ void precision_dispatch_real_complex_distributed(Function fn,
 #else
 
 
-template <typename ValueType, typename Function>
-void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
-                                                 LinOp* out)
+template <typename ValueType, typename Function, typename... Args>
+void precision_dispatch_real_complex_distributed(Function fn, Args*... args)
 {
-    precision_dispatch_real_complex<ValueType>(fn, in, out);
-}
-
-
-template <typename ValueType, typename Function>
-void precision_dispatch_real_complex_distributed(Function fn,
-                                                 const LinOp* alpha,
-                                                 const LinOp* in,
-                                                 const LinOp* beta, LinOp* out)
-{
-    precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
+    precision_dispatch_real_complex<ValueType>(fn, args...);
 }
 
 
