@@ -116,6 +116,38 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    const IndexType* block_row_ptrs, const IndexType* block_col_idxs,
+    const ValueType* blocks, ValueType* values, size_type stride,
+    size_type num_block_rows, int block_size)
+{
+    const auto block_row = thread::get_subwarp_id_flat<config::warp_size>();
+    if (block_row >= num_block_rows) {
+        return;
+    }
+    const auto block_begin = block_row_ptrs[block_row];
+    const auto block_end = block_row_ptrs[block_row + 1];
+    const auto num_blocks = block_end - block_begin;
+    const auto block_row_begin = block_begin * block_size * block_size;
+    const auto num_entries = num_blocks * block_size * block_size;
+    const auto bs_sq = block_size * block_size;
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    for (IndexType nz = lane; nz < num_entries; nz += config::warp_size) {
+        const auto local_id = nz % bs_sq;
+        const auto block = nz / bs_sq;
+        const auto local_row = local_id % block_size;
+        const auto local_col = local_id / block_size;
+        const auto col =
+            block_col_idxs[block + block_begin] * block_size + local_col;
+        const auto row = block_row * block_size + local_row;
+        values[row * stride + col] = blocks[nz + block_row_begin];
+    }
+}
+
+
 }  // namespace kernel
 
 

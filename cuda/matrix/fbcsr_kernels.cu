@@ -230,7 +230,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* result)
+{
+    constexpr auto warps_per_block = default_block_size / config::warp_size;
+    const auto num_blocks =
+        ceildiv(source->get_num_block_rows(), warps_per_block);
+    if (num_blocks > 0) {
+        kernel::fill_in_dense<<<num_blocks, default_block_size>>>(
+            source->get_const_row_ptrs(), source->get_const_col_idxs(),
+            as_cuda_type(source->get_const_values()),
+            as_cuda_type(result->get_values()), result->get_stride(),
+            source->get_num_block_rows(), source->get_block_size());
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL);
