@@ -60,11 +60,23 @@ class DistributedBase {
 public:
     virtual ~DistributedBase() = default;
 
+    /**
+     * Copy assignment that doesn't change the used mpi::communicator.
+     * @return  unmodified *this
+     */
     DistributedBase& operator=(const DistributedBase&) { return *this; }
 
+    /**
+     * Access the used mpi::communicator.
+     * @return  used mpi::communicator
+     */
     mpi::communicator get_communicator() const { return comm_; }
 
 protected:
+    /**
+     * Creates a new DistributedBase with the specified mpi::communicator.
+     * @param comm  used mpi::communicator
+     */
     explicit DistributedBase(mpi::communicator comm) : comm_{std::move(comm)} {}
 
 private:
