@@ -203,9 +203,9 @@ void CudaAsyncHandle::CudaAsyncHandle::wait_until(
     const std::chrono::time_point<std::chrono::steady_clock>& time)
     GKO_NOT_IMPLEMENTED;
 
-std::shared_ptr<AsyncHandle> CudaExecutor::run(const Operation& op) const
+void CudaExecutor::run(const Operation& op) const
 {
-    return op.run(
+    op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
 }
 

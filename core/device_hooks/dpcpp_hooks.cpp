@@ -142,9 +142,9 @@ void DpcppMemorySpace::synchronize() const GKO_NOT_COMPILED(dpcpp);
 void DpcppExecutor::synchronize() const GKO_NOT_COMPILED(dpcpp);
 
 
-std::shared_ptr<AsyncHandle> DpcppExecutor::run(const Operation& op) const
+void DpcppExecutor::run(const Operation& op) const
 {
-    return op.run(std::static_pointer_cast<const DpcppExecutor>(
+    op.run(std::static_pointer_cast<const DpcppExecutor>(
         this->shared_from_this()));
 }
 

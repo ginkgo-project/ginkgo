@@ -91,11 +91,21 @@ void DpcppExecutor::synchronize() const
 }
 
 
-std::shared_ptr<AsyncHandle> DpcppExecutor::run(const Operation& op) const
+void DpcppExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
-    return op.run(std::static_pointer_cast<const DpcppExecutor>(
+    op.run(std::static_pointer_cast<const DpcppExecutor>(
         this->shared_from_this()));
+    this->template log<log::Logger::operation_completed>(this, &op);
+}
+
+
+std::shared_ptr<AsyncHandle> DpcppExecutor::run(
+    const AsyncOperation& op, std::shared_ptr<AsyncHandle> handle) const
+{
+    return op.run(
+        std::static_pointer_cast<const DpcppExecutor>(this->shared_from_this()),
+        handle);
     // FIXME
     // this->template log<log::Logger::operation_completed>(this, &op);
 }

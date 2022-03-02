@@ -232,8 +232,6 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
     auto dense_res =
         // make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
         as<matrix::Dense<ValueType>>(result);
-    std::cout << " loc b size " << as<Vector>(b)->get_local()->get_size()
-              << " This size " << this->get_local()->get_size() << std::endl;
 
     this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(), dense_res);
     exec->synchronize();

@@ -264,15 +264,14 @@ class ExecutorBase;
 class Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
-    virtual std::shared_ptr<AsyncHandle> run(std::shared_ptr<const _type>) const
+    virtual void run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
 
 #undef GKO_DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
-    virtual std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const ReferenceExecutor> executor) const;
+    virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
 
     /**
      * Returns the operation's name.
@@ -342,39 +341,29 @@ public:
         return name.c_str();
     }
 
-    std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const ReferenceExecutor> exec) const override
+    void run(std::shared_ptr<const ReferenceExecutor> exec) const override
     {
-        return HostAsyncHandle<void>::create(
-            std::async(std::launch::async, op_, (exec)));
+        op_(exec);
     }
 
-    std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const OmpExecutor> exec) const override
+    void run(std::shared_ptr<const OmpExecutor> exec) const override
     {
-        return HostAsyncHandle<void>::create(
-            std::async(std::launch::async, op_, (exec)));
+        op_(exec);
     }
 
-    std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const CudaExecutor> exec) const override
+    void run(std::shared_ptr<const CudaExecutor> exec) const override
     {
-        return HostAsyncHandle<void>::create(
-            std::async(std::launch::async, op_, (exec)));
+        op_(exec);
     }
 
-    std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const HipExecutor> exec) const override
+    void run(std::shared_ptr<const HipExecutor> exec) const override
     {
-        return HostAsyncHandle<void>::create(
-            std::async(std::launch::async, op_, (exec)));
+        op_(exec);
     }
 
-    std::shared_ptr<AsyncHandle> run(
-        std::shared_ptr<const DpcppExecutor> exec) const override
+    void run(std::shared_ptr<const DpcppExecutor> exec) const override
     {
-        return HostAsyncHandle<void>::create(
-            std::async(std::launch::async, op_, (exec)));
+        op_(exec);
     }
 
 private:
@@ -774,7 +763,7 @@ public:
      *
      * @param op  the operation to run
      */
-    virtual std::shared_ptr<AsyncHandle> run(const Operation& op) const = 0;
+    virtual void run(const Operation& op) const = 0;
 
     virtual std::shared_ptr<AsyncHandle> run(
         const AsyncOperation& op,
@@ -796,14 +785,12 @@ public:
      */
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
               typename ClosureDpcpp>
-    std::shared_ptr<AsyncHandle> run(const ClosureOmp& op_omp,
-                                     const ClosureCuda& op_cuda,
-                                     const ClosureHip& op_hip,
-                                     const ClosureDpcpp& op_dpcpp) const
+    void run(const ClosureOmp& op_omp, const ClosureCuda& op_cuda,
+             const ClosureHip& op_hip, const ClosureDpcpp& op_dpcpp) const
     {
         LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip, ClosureDpcpp> op(
             op_omp, op_cuda, op_hip, op_dpcpp);
-        return this->run(op);
+        this->run(op);
     }
 
     template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip,
@@ -1092,32 +1079,24 @@ private:
               op_dpcpp_(op_dpcpp)
         {}
 
-        std::shared_ptr<AsyncHandle> run(
-            std::shared_ptr<const OmpExecutor>) const override
+        void run(std::shared_ptr<const OmpExecutor>) const override
         {
-            return HostAsyncHandle<void>::create(
-                std::async(std::launch::async, op_omp_));
+            op_omp_();
         }
 
-        std::shared_ptr<AsyncHandle> run(
-            std::shared_ptr<const CudaExecutor>) const override
+        void run(std::shared_ptr<const CudaExecutor>) const override
         {
-            return HostAsyncHandle<void>::create(
-                std::async(std::launch::async, op_cuda_));
+            op_cuda_();
         }
 
-        std::shared_ptr<AsyncHandle> run(
-            std::shared_ptr<const HipExecutor>) const override
+        void run(std::shared_ptr<const HipExecutor>) const override
         {
-            return HostAsyncHandle<void>::create(
-                std::async(std::launch::async, op_hip_));
+            op_hip_();
         }
 
-        std::shared_ptr<AsyncHandle> run(
-            std::shared_ptr<const DpcppExecutor>) const override
+        void run(std::shared_ptr<const DpcppExecutor>) const override
         {
-            return HostAsyncHandle<void>::create(
-                std::async(std::launch::async, op_dpcpp_));
+            op_dpcpp_();
         }
 
     private:
@@ -1198,12 +1177,11 @@ class ExecutorBase : public Executor {
     friend class ReferenceExecutor;
 
 public:
-    std::shared_ptr<AsyncHandle> run(const Operation& op) const override
+    void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
-        return op.run(self()->shared_from_this());
-        // FIXME
-        // this->template log<log::Logger::operation_completed>(this, &op);
+        op.run(self()->shared_from_this());
+        this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 
@@ -1388,13 +1366,12 @@ public:
             new ReferenceExecutor(memory_space));
     }
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) const override
+    void run(const Operation& op) const override
     {
         this->template log<log::Logger::operation_launched>(this, &op);
-        return op.run(std::static_pointer_cast<const ReferenceExecutor>(
+        op.run(std::static_pointer_cast<const ReferenceExecutor>(
             this->shared_from_this()));
-        // FIXME
-        // this->template log<log::Logger::operation_completed>(this, &op);
+        this->template log<log::Logger::operation_completed>(this, &op);
     }
 
     std::shared_ptr<AsyncHandle> run(
@@ -1520,7 +1497,7 @@ public:
 
     void synchronize() const override;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
+    void run(const Operation& op) const override;
 
     std::shared_ptr<AsyncHandle> run(
         const AsyncOperation& op,
@@ -1777,7 +1754,7 @@ public:
 
     void synchronize() const override;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
+    void run(const Operation& op) const override;
 
     std::shared_ptr<AsyncHandle> run(
         const AsyncOperation& op,
@@ -2025,7 +2002,7 @@ public:
 
     void synchronize() const override;
 
-    std::shared_ptr<AsyncHandle> run(const Operation& op) const override;
+    void run(const Operation& op) const override;
 
     std::shared_ptr<AsyncHandle> run(
         const AsyncOperation& op,

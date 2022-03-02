@@ -60,23 +60,54 @@ namespace {
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int& val) : value(val) {}
+    void run(std::shared_ptr<const gko::OmpExecutor>) const override
+    {
+        value = -1;
+    }
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    {
+        value = -2;
+    }
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    {
+        hipGetDevice(&value);
+    }
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = -3;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = -4;
+    }
+
+    int& value;
+};
+
+
+class ExampleAsyncOperation : public gko::AsyncOperation {
+public:
+    explicit ExampleAsyncOperation(int& val) : value(val) {}
 
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::OmpExecutor>) const override
+        std::shared_ptr<const gko::OmpExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = -1; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::CudaExecutor>) const override
+        std::shared_ptr<const gko::CudaExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = -2; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::HipExecutor> exec) const override
+        std::shared_ptr<const gko::HipExecutor> exec,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() {
             gko::hip::device_guard g(exec->get_device_id());
@@ -86,14 +117,16 @@ public:
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::DpcppExecutor>) const override
+        std::shared_ptr<const gko::DpcppExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = -3; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::ReferenceExecutor>) const override
+        std::shared_ptr<const gko::ReferenceExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = -4; };
         return gko::HostAsyncHandle<void>::create(
@@ -179,8 +212,7 @@ TEST_F(HipExecutor, RunsOnProperDevice)
     int value = -1;
 
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
-    auto hand = hip2->run(ExampleOperation(value));
-    hand->wait();
+    hip2->run(ExampleOperation(value));
 
     ASSERT_EQ(value, hip2->get_device_id());
 }

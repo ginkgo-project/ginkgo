@@ -57,36 +57,69 @@ using exec_ptr = std::shared_ptr<gko::Executor>;
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int& val) : value(val) {}
+    void run(std::shared_ptr<const gko::OmpExecutor>) const override
+    {
+        value = 1;
+    }
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    {
+        value = 2;
+    }
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    {
+        value = 3;
+    }
+    void run(std::shared_ptr<const gko::DpcppExecutor>) const override
+    {
+        value = 4;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = 5;
+    }
+
+    int& value;
+};
+
+
+class ExampleAsyncOperation : public gko::AsyncOperation {
+public:
+    explicit ExampleAsyncOperation(int& val) : value(val) {}
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::OmpExecutor>) const override
+        std::shared_ptr<const gko::OmpExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = 1; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::CudaExecutor>) const override
+        std::shared_ptr<const gko::CudaExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = 2; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::HipExecutor>) const override
+        std::shared_ptr<const gko::HipExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = 3; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::DpcppExecutor>) const override
+        std::shared_ptr<const gko::DpcppExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = 4; };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }
     std::shared_ptr<gko::AsyncHandle> run(
-        std::shared_ptr<const gko::ReferenceExecutor>) const override
+        std::shared_ptr<const gko::ReferenceExecutor>,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
     {
         auto l = [=]() { value = 5; };
         return gko::HostAsyncHandle<void>::create(
@@ -102,8 +135,7 @@ TEST(OmpExecutor, RunsCorrectOperation)
     int value = 0;
     exec_ptr omp = gko::OmpExecutor::create();
 
-    auto hand = omp->run(ExampleOperation(value));
-    hand->wait();
+    omp->run(ExampleOperation(value));
 
     ASSERT_EQ(1, value);
 }

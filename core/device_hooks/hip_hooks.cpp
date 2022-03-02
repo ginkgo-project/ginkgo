@@ -158,9 +158,9 @@ void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
 void HipMemorySpace::synchronize() const GKO_NOT_COMPILED(hip);
 
 
-std::shared_ptr<AsyncHandle> HipExecutor::run(const Operation& op) const
+void HipExecutor::run(const Operation& op) const
 {
-    return op.run(
+    op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
 }
 

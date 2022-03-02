@@ -105,14 +105,13 @@ void CudaExecutor::synchronize() const
 }
 
 
-std::shared_ptr<AsyncHandle> CudaExecutor::run(const Operation& op) const
+void CudaExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
     cuda::device_guard g(this->get_device_id());
-    return op.run(
+    op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
-    // FIXME
-    // this->template log<log::Logger::operation_completed>(this, &op);
+    this->template log<log::Logger::operation_completed>(this, &op);
 }
 
 
