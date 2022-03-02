@@ -110,7 +110,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+    dispatcher.apply(a, nullptr, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);
