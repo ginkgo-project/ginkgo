@@ -225,16 +225,25 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
+
+    if (exec != result->get_executor()) {
+        GKO_NOT_IMPLEMENTED;
+    }
     auto dense_res =
-        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
-                                        dense_res.get());
+        // make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
+        as<matrix::Dense<ValueType>>(result);
+    std::cout << " loc b size " << as<Vector>(b)->get_local()->get_size()
+              << " This size " << this->get_local()->get_size() << std::endl;
+
+    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(), dense_res);
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         auto dense_res_host =
-            make_temporary_clone(exec->get_master(), dense_res.get());
+            matrix::Dense<ValueType>::create(exec->get_master());
+        dense_res_host->copy_from(dense_res);
+        // make_temporary_clone(exec->get_master(), dense_res);
         comm->all_reduce(dense_res_host->get_values(),
                          static_cast<int>(this->get_size()[1]), MPI_SUM);
     } else {

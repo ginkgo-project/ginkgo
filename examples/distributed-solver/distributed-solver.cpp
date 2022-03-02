@@ -104,10 +104,12 @@ int main(int argc, char* argv[])
                  if (gko::CudaExecutor::get_num_devices() > 1) {
                      return gko::CudaExecutor::create(
                          comm->node_local_rank(),
-                         gko::ReferenceExecutor::create(), true);
+                         gko::ReferenceExecutor::create(), true,
+                         gko::allocation_mode::device);
                  } else {
                      return gko::CudaExecutor::create(
-                         0, gko::ReferenceExecutor::create(), true);
+                         0, gko::ReferenceExecutor::create(), true,
+                         gko::allocation_mode::device);
                  }
              }},
             {"hip",
@@ -312,12 +314,12 @@ int main(int argc, char* argv[])
     ValueType t_solver_generate_end = MPI_Wtime();
     ValueType t_solver_apply_end = t_solver_generate_end;
     for (auto i = 0; i < num_reps; ++i) {
+        x->copy_from(x_host.get());
         ValueType t_loop_st = MPI_Wtime();
         Ainv->apply(lend(b), lend(x));
         MPI_Barrier(MPI_COMM_WORLD);
         ValueType t_loop_end = MPI_Wtime();
         t_solver_apply_end += t_loop_end - t_loop_st;
-        x->copy_from(x_host.get());
     }
 
     // Ainv->remove_logger(logger.get());

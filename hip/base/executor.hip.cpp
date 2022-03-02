@@ -122,6 +122,18 @@ std::shared_ptr<AsyncHandle> HipExecutor::run(const Operation& op) const
 }
 
 
+std::shared_ptr<AsyncHandle> HipExecutor::run(
+    const AsyncOperation& op, std::shared_ptr<AsyncHandle> handle) const
+{
+    hip::device_guard g(this->get_device_id());
+    return op.run(
+        std::static_pointer_cast<const HipExecutor>(this->shared_from_this()),
+        handle);
+    // FIXME
+    // this->template log<log::Logger::operation_completed>(this, &op);
+}
+
+
 int HipExecutor::get_num_devices()
 {
     int deviceCount = 0;

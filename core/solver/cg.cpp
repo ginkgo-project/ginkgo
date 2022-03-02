@@ -156,10 +156,12 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
     this->system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                 r.get());
+    std::cout << " Here " << __LINE__ << std::endl;
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
+
 
     int iter = -1;
     /* Memory movement summary:
@@ -173,6 +175,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
+        std::cout << " Here " << __LINE__ << std::endl;
         r->compute_conj_dot(z.get(), rho.get());
 
         ++iter;
@@ -194,6 +197,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                   prev_rho.get(), &stop_status));
         system_matrix_->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
+        std::cout << " Here " << __LINE__ << std::endl;
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q

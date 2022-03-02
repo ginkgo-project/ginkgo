@@ -162,6 +162,55 @@ ginkgo_build_test_name(${test_name} test_target_name)
     ginkgo_set_test_target_properties(${test_name} ${test_target_name})
 endfunction(ginkgo_create_hip_test)
 
+function(ginkgo_create_hip_thread_test test_name)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    ginkgo_build_test_name(${test_name} test_target_name)
+    set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
+    set(GINKGO_TEST_HIP_DEFINES)
+    if (GINKGO_FAST_TESTS)
+        set(GINKGO_TEST_HIP_DEFINES -DGINKGO_FAST_TESTS)
+    endif()
+
+    # NOTE: With how HIP works, passing the flags `HIPCC_OPTIONS` etc. here
+    # creates a redefinition of all flags. This creates some issues with `nvcc`,
+    # but `clang` seems fine with the redefinitions.
+    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+        hip_add_executable(${test_target_name} ${test_name}.hip.cpp
+            # If `FindHIP.cmake`, namely `HIP_PARSE_HIPCC_OPTIONS` macro and
+            # call gets fixed, uncomment this.
+            HIPCC_OPTIONS ${GINKGO_TEST_HIP_DEFINES} # ${GINKGO_HIPCC_OPTIONS}
+            # NVCC_OPTIONS  ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_NVCC_OPTIONS}
+            # CLANG_OPTIONS ${GINKGO_TEST_HIP_DEFINES} ${GINKGO_HIP_CLANG_OPTIONS}
+            --expt-relaxed-constexpr --expt-extended-lambda
+            )
+    else() # hcc/clang
+        hip_add_executable(${test_target_name} ${test_name}.hip.cpp
+            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} ${GINKGO_TEST_HIP_DEFINES}
+            NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
+            CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
+            )
+    endif()
+
+    # Let's use a normal compiler for linking
+    set_target_properties(${test_target_name} PROPERTIES LINKER_LANGUAGE CXX)
+
+    target_include_directories(${test_target_name}
+        PRIVATE
+        # Only `math` requires it so far, but it's much easier
+        # to put these this way.
+        ${GINKGO_HIP_THRUST_PATH}
+        # Only `exception_helpers` requires these so far, but it's much easier
+        # to put these this way.
+        ${HIPBLAS_INCLUDE_DIRS}
+        ${HIPFFT_INCLUDE_DIRS}
+        ${hiprand_INCLUDE_DIRS}
+        ${HIPSPARSE_INCLUDE_DIRS}
+        )
+    target_link_libraries(${test_target_name} PRIVATE Threads::Threads ${ARGN})
+    ginkgo_set_test_target_properties(${test_name} ${test_target_name})
+endfunction(ginkgo_create_hip_thread_test)
+
 function(ginkgo_create_common_test test_name)
     cmake_parse_arguments(PARSE_ARGV 1 common_test "" "" "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES")
     set(executors)
