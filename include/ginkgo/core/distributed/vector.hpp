@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
-#include <ginkgo/core/base/cache.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
