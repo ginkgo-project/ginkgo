@@ -40,9 +40,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(double);
 
 
-#define STENCIL_KERNEL(_type)                                                 \
-    void stencil_kernel(std::size_t size, const _type* coefs, const _type* b, \
-                        _type* x, std::shared_ptr<gko::AsyncHandle> handle);
+#define STENCIL_KERNEL(_type)                                           \
+    std::shared_ptr<gko::AsyncHandle> stencil_kernel(                   \
+        std::size_t size, const _type* coefs, const _type* b, _type* x, \
+        std::shared_ptr<gko::AsyncHandle> handle);
 
 
 namespace {
@@ -74,15 +75,16 @@ __global__ void stencil_kernel_impl(std::size_t size,
 
 
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
-                    const ValueType* b, ValueType* x,
-                    std::shared_ptr<gko::AsyncHandle> handle)
+std::shared_ptr<gko::AsyncHandle> stencil_kernel(
+    std::size_t size, const ValueType* coefs, const ValueType* b, ValueType* x,
+    std::shared_ptr<gko::AsyncHandle> handle)
 {
     constexpr int block_size = 64;
     const auto grid_size = (size + block_size - 1) / block_size;
     stencil_kernel_impl<<<grid_size, block_size, 0,
                           gko::as<gko::CudaAsyncHandle>(handle)
                               ->get_handle()>>>(size, coefs, b, x);
+    return handle;
 }
 
 INSTANTIATE_FOR_EACH_VALUE_TYPE(STENCIL_KERNEL);

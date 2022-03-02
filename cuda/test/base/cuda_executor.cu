@@ -94,10 +94,7 @@ public:
         std::shared_ptr<const gko::CudaExecutor> exec,
         std::shared_ptr<gko::AsyncHandle> handle) const override
     {
-        auto l = [=]() {
-            gko::cuda::device_guard g(exec->get_device_id());
-            cudaGetDevice(&value);
-        };
+        auto l = [=]() { cudaGetDevice(&value); };
         return gko::HostAsyncHandle<void>::create(
             std::async(std::launch::async, l));
     }

@@ -230,18 +230,16 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
         GKO_NOT_IMPLEMENTED;
     }
     auto dense_res =
-        // make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-        as<matrix::Dense<ValueType>>(result);
+        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
 
-    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(), dense_res);
+    this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
+                                        dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
         auto dense_res_host =
-            matrix::Dense<ValueType>::create(exec->get_master());
-        dense_res_host->copy_from(dense_res);
-        // make_temporary_clone(exec->get_master(), dense_res);
+            make_temporary_clone(exec->get_master(), dense_res.get());
         comm->all_reduce(dense_res_host->get_values(),
                          static_cast<int>(this->get_size()[1]), MPI_SUM);
     } else {

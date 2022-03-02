@@ -43,9 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
 template <typename ValueType>
-void stencil_kernel(std::size_t size, const ValueType* coefs,
-                    const ValueType* b, ValueType* x,
-                    std::shared_ptr<gko::AsyncHandle> handle);
+std::shared_ptr<gko::AsyncHandle> stencil_kernel(
+    std::size_t size, const ValueType* coefs, const ValueType* b, ValueType* x,
+    std::shared_ptr<gko::AsyncHandle> handle);
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
@@ -76,15 +76,15 @@ protected:
     using vec = gko::matrix::Dense<ValueType>;
     using coef_type = gko::Array<ValueType>;
 
-    struct stencil_operation : gko::Operation {
-        stencil_operation(const coef_type& coefficients, const vec* b, vec* x,
-                          vec* x2)
-            : coefficients{coefficients}, b{b}, x{x}, x2{x2}
+    struct stencil_operation : gko::AsyncOperation {
+        stencil_operation(const coef_type& coefficients, const vec* b, vec* x)
+            : coefficients{coefficients}, b{b}, x{x}
         {}
 
         // OpenMP implementation
         std::shared_ptr<gko::AsyncHandle> run(
-            std::shared_ptr<const gko::OmpExecutor>) const override
+            std::shared_ptr<const gko::OmpExecutor>,
+            std::shared_ptr<gko::AsyncHandle> handle) const override
         {
             auto l = [=]() {
                 auto b_values = b->get_const_values();
@@ -102,29 +102,19 @@ protected:
                     x_values[i] = result;
                 }
             };
-            return gko::HostAsyncHandle<void>::create(
+
+            return gko::as<gko::HostAsyncHandle<void>>(handle)->queue(
                 std::async(std::launch::async, l));
         }
 
         // CUDA implementation
         std::shared_ptr<gko::AsyncHandle> run(
-            std::shared_ptr<const gko::CudaExecutor> exec) const override
+            std::shared_ptr<const gko::CudaExecutor> exec,
+            std::shared_ptr<gko::AsyncHandle> handle) const override
         {
-            auto handle = exec->get_default_exec_stream();
-            auto handle2 = gko::CudaAsyncHandle::create(
-                gko::CudaAsyncHandle::create_type::non_blocking);
-            auto handle3 = gko::CudaAsyncHandle::create(
-                gko::CudaAsyncHandle::create_type::non_blocking);
-            for (auto i = 0; i < 100; ++i) {
-                stencil_kernel(x->get_size()[0], coefficients.get_const_data(),
-                               b->get_const_values(), x->get_values(), handle2);
-                stencil_kernel(x2->get_size()[0], coefficients.get_const_data(),
-                               b->get_const_values(), x2->get_values(),
-                               handle3);
-            }
-            handle2->wait();
-            handle3->wait();
-            return handle;
+            return stencil_kernel(
+                x->get_size()[0], coefficients.get_const_data(),
+                b->get_const_values(), x->get_values(), handle);
         }
 
         // We do not provide an implementation for reference executor.
@@ -134,7 +124,6 @@ protected:
         const coef_type& coefficients;
         const vec* b;
         vec* x;
-        vec* x2;
     };
 
     // Here we implement the application of the linear operator, x = A * b.
@@ -149,16 +138,23 @@ protected:
     {
         // we only implement the operator for dense RHS.
         // gko::as will throw an exception if its argument is not Dense.
+        auto exec = this->get_executor();
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);
 
-        auto dense_x2 = vec::create(this->get_executor());
+        auto dense_x2 = vec::create(exec);
         dense_x2->copy_from(dense_x);
 
         // we need separate implementations depending on the executor, so we
         // create an operation which maps the call to the correct implementation
-        auto handle = this->get_executor()->run(
-            stencil_operation(coefficients, dense_b, dense_x, dense_x2.get()));
+        auto handle1 = gko::CudaAsyncHandle::create(
+            gko::CudaAsyncHandle::create_type::non_blocking);
+        auto handle2 = exec->run(
+            stencil_operation(coefficients, dense_b, dense_x), handle1);
+        auto handle =
+            exec->run(stencil_operation(coefficients, dense_b, dense_x2.get()),
+                      exec->get_default_exec_stream());
+        handle2->wait();
         handle->wait();
     }
 
@@ -276,7 +272,7 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
         argc >= 3 ? std::atoi(argv[2]) : 25u;
-    const unsigned int num_reps = argc >= 4 ? std::atoi(argv[5]) : 25u;
+    const unsigned int num_reps = argc >= 4 ? std::atoi(argv[3]) : 10u;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -333,7 +329,7 @@ int main(int argc, char* argv[])
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     std::cout << "\nApply complete."
-              << "\nMatrix size: " << mat->get_size() << "\n Total time:"
+              << "\nMatrix size: " << mat->get_size() << "\n Total time (ms):"
               << static_cast<double>(time.count() / num_reps) / 1000000.0
               << std::endl;
 }

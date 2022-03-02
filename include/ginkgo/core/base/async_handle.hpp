@@ -200,6 +200,9 @@ public:
     template <typename Closure>
     std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
 
+    std::shared_ptr<AsyncHandle> queue(std::future<T> new_op)
+        GKO_NOT_IMPLEMENTED;
+
 protected:
     HostAsyncHandle() : handle_() {}
 
