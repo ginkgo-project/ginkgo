@@ -126,7 +126,7 @@ TEST_F(VectorCreation, CanCreateFromLocalVectorAndSize)
     auto dlocal_vec = gko::clone(exec, local_vec);
 
     auto vec = dist_vec_type::create(ref, comm, size, local_vec.get());
-    auto dvec = dist_vec_type::create(exec, comm, size, local_vec.get());
+    auto dvec = dist_vec_type::create(exec, comm, size, dlocal_vec.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
     GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
@@ -142,7 +142,7 @@ TEST_F(VectorCreation, CanCreateFromLocalVectorWithoutSize)
     auto dlocal_vec = gko::clone(exec, local_vec);
 
     auto vec = dist_vec_type::create(ref, comm, local_vec.get());
-    auto dvec = dist_vec_type::create(exec, comm, local_vec.get());
+    auto dvec = dist_vec_type::create(exec, comm, dlocal_vec.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
     GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
