@@ -65,7 +65,7 @@ protected:
 
     DeviceMatrixData() : rand{82754} {}
 
-    void SetUp()
+    void SetUp() override
     {
         init_executor(gko::ReferenceExecutor::create(), exec);
         host_data.size = {100, 200};
@@ -115,7 +115,7 @@ protected:
         deduplicated_data.sum_duplicates();
     }
 
-    void TearDown()
+    void TearDown() override
     {
         if (exec != nullptr) {
             ASSERT_NO_THROW(exec->synchronize());
