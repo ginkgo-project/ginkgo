@@ -86,72 +86,274 @@ private:
 };
 
 
+template <typename ValueLocalGlobalIndexType>
 class VectorCreation : public ::testing::Test {
 public:
-    using value_type = float;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using part_type =
+        gko::distributed::Partition<local_index_type, global_index_type>;
+    using md_type = gko::matrix_data<value_type, global_index_type>;
+    using d_md_type = gko::device_matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
-    using dense_type = dist_vec_type::local_vector_type;
+    using dense_type = gko::matrix::Dense<value_type>;
 
     VectorCreation()
         : ref(gko::ReferenceExecutor::create()),
-          exec(),
           comm(MPI_COMM_WORLD),
+          part(gko::share(part_type::build_from_contiguous(
+              this->ref, {ref, {0, 2, 4, 6}}))),
           local_size{4, 11},
           size{local_size[1] * comm.size(), 11},
-          engine(42)
+          md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
+          md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
+    {}
+
+    void SetUp() override
     {
-        init_executor(ref, exec, comm);
+        ASSERT_GE(this->comm.size(), 3);
+        init_executor(gko::ReferenceExecutor::create(), exec);
     }
 
-    void SetUp() override { ASSERT_GT(comm.size(), 0); }
+    void TearDown() override
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::Executor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
-
     gko::mpi::communicator comm;
+    std::shared_ptr<part_type> part;
 
     gko::dim<2> local_size;
     gko::dim<2> size;
 
+    md_type md;
+    md_type md_localized[3];
+
     std::default_random_engine engine;
 };
 
+TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
-TEST_F(VectorCreation, CanCreateFromLocalVectorAndSize)
+
+#ifdef GKO_COMPILING_REFERENCE
+
+
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
 {
-    auto local_vec = gko::test::generate_random_matrix<dense_type>(
-        local_size[0], local_size[1],
-        std::uniform_int_distribution<gko::size_type>(0, local_size[1]),
-        std::normal_distribution<value_type>(), engine, ref);
-    auto dlocal_vec = gko::clone(exec, local_vec);
+    using part_type = typename TestFixture::part_type;
+    using value_type = typename TestFixture::value_type;
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
+    I<I<value_type>> ref_data[3] = {
+        {{0, 1}, {2, 3}},
+        {{4, 5}, {6, 7}},
+        {{8, 9}, {10, 11}},
+    };
 
-    auto vec = dist_vec_type::create(ref, comm, size, local_vec.get());
-    auto dvec = dist_vec_type::create(exec, comm, size, dlocal_vec.get());
+    vec->read_distributed(this->md, this->part.get());
 
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                gko::dim<2>(2, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
 }
 
 
-TEST_F(VectorCreation, CanCreateFromLocalVectorWithoutSize)
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
 {
-    auto local_vec = gko::test::generate_random_matrix<dense_type>(
-        local_size[0], local_size[1],
-        std::uniform_int_distribution<gko::size_type>(0, local_size[1]),
-        std::normal_distribution<value_type>(), engine, ref);
-    auto dlocal_vec = gko::clone(exec, local_vec);
+    using part_type = typename TestFixture::part_type;
+    using value_type = typename TestFixture::value_type;
+    auto part = gko::share(part_type::build_from_contiguous(
+        this->exec, {this->exec, {0, 0, 6, 6}}));
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
 
-    auto vec = dist_vec_type::create(ref, comm, local_vec.get());
-    auto dvec = dist_vec_type::create(exec, comm, dlocal_vec.get());
+    vec->read_distributed(this->md, part.get());
 
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec, dvec);
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), dvec->get_local(), 0);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    if (rank == 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                    gko::dim<2>(6, 2));
+        GKO_ASSERT_MTX_NEAR(
+            vec->get_local(),
+            l({{0., 1.}, {2., 3.}, {4., 5.}, {6., 7.}, {8., 9.}, {10., 11.}}),
+            0.0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                    gko::dim<2>(0, 2));
+    }
 }
 
 
+TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
+{
+    using it = typename TestFixture::global_index_type;
+    using d_md_type = typename TestFixture::d_md_type;
+    using part_type = typename TestFixture::part_type;
+    using vt = typename TestFixture::value_type;
+    d_md_type md{
+        this->exec, gko::dim<2>{6, 2},
+        gko::Array<it>{this->exec, I<it>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5}},
+        gko::Array<it>{this->exec, I<it>{0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}},
+        gko::Array<vt>{this->exec,
+                       I<vt>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}}};
+    auto part = gko::share(part_type::build_from_contiguous(
+        this->exec, {this->exec, {0, 2, 4, 6}}));
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
+    I<I<vt>> ref_data[3] = {
+        {{0, 1}, {2, 3}},
+        {{4, 5}, {6, 7}},
+        {{8, 9}, {10, 11}},
+    };
+
+    vec->read_distributed(md, part.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                gko::dim<2>(2, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+}
+
+
+TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataScattered)
+{
+    using md_type = typename TestFixture::md_type;
+    using part_type = typename TestFixture::part_type;
+    using value_type = typename TestFixture::value_type;
+    md_type md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}};
+    auto part = gko::share(part_type::build_from_mapping(
+        this->exec, {this->exec, {0, 1, 2, 0, 2, 0}}, 3));
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
+    gko::dim<2> ref_size[3] = {{3, 2}, {1, 2}, {2, 2}};
+    I<I<value_type>> ref_data[3] = {
+        {{0, 1}, {6, 7}, {10, 11}},
+        {{2, 3}},
+        {{4, 5}, {8, 9}},
+    };
+
+    vec->read_distributed(md, part.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(), ref_size[rank]);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+}
+
+
+TYPED_TEST(VectorCreation, CanReadLocalMatrixData)
+{
+    using md_type = typename TestFixture::md_type;
+    using part_type = typename TestFixture::part_type;
+    using value_type = typename TestFixture::value_type;
+    md_type md[3] = {
+        {gko::dim<2>{6, 2}, {{0, 0, 0}, {0, 1, 1}, {1, 0, 2}, {1, 1, 3}}},
+        {gko::dim<2>{6, 2}, {{2, 0, 4}, {2, 1, 5}, {3, 0, 6}, {3, 1, 7}}},
+        {gko::dim<2>{6, 2}, {{4, 0, 8}, {4, 1, 9}, {5, 0, 10}, {5, 1, 11}}}};
+    auto part = gko::share(part_type::build_from_contiguous(
+        this->exec, {this->exec, {0, 2, 4, 6}}));
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
+    I<I<value_type>> ref_data[3] = {
+        {{0, 1}, {2, 3}},
+        {{4, 5}, {6, 7}},
+        {{8, 9}, {10, 11}},
+    };
+
+    vec->read_distributed(md[rank], part.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                gko::dim<2>(2, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+}
+
+
+TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
+{
+    using md_type = typename TestFixture::md_type;
+    using part_type = typename TestFixture::part_type;
+    using value_type = typename TestFixture::value_type;
+    md_type md[3] = {{gko::dim<2>{6, 2}, {}},
+                     {gko::dim<2>{6, 2},
+                      // clang-format off
+                      {{0, 0, 0}, {0, 1, 1},
+                       {1, 0, 2}, {1, 1, 3},
+                       {2, 0, 4}, {2, 1, 5},
+                       {3, 0, 6}, {3, 1, 7},
+                       {4, 0, 8}, {4, 1, 9},
+                       {5, 0, 10}, {5, 1, 11}}},
+                     // clang-format on
+                     {gko::dim<2>{6, 2}, {}}};
+    auto part = gko::share(part_type::build_from_contiguous(
+        this->exec, {this->exec, {0, 0, 6, 6}}));
+    auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
+    auto rank = this->comm.rank();
+
+    vec->read_distributed(md[rank], part.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
+    if (rank == 1) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                    gko::dim<2>(6, 2));
+        GKO_ASSERT_MTX_NEAR(
+            vec->get_local(),
+            I<I<value_type>>(
+                {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}),
+            0.0);
+    } else {
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+                                    gko::dim<2>(0, 2));
+    }
+}
+
+
+#endif
+
+
+TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->exec);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+    auto clone_local_vec = gko::clone(local_vec);
+
+    auto vec = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{6, 2},
+                                     local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
+}
+
+
+TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    using dense_type = typename TestFixture::dense_type;
+    auto local_vec = dense_type::create(this->exec);
+    local_vec->read(this->md_localized[this->comm.rank()]);
+    auto clone_local_vec = gko::clone(local_vec);
+
+    auto vec = dist_vec_type::create(this->exec, this->comm, local_vec.get());
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
+}
+
+
+template <typename ValueType>
 class VectorReductions : public ::testing::Test {
 public:
-    using value_type = float;
+    using value_type = ValueType;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using part_type =
@@ -159,21 +361,28 @@ public:
     using md_type = gko::matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
+    using real_dense_type = typename dense_type::real_type;
 
     VectorReductions()
         : ref(gko::ReferenceExecutor::create()),
           exec(),
           comm(MPI_COMM_WORLD),
           size{53, 11},
-          x(dist_vec_type::create(ref, comm)),
-          dx(dist_vec_type::create(exec, comm)),
-          y(dist_vec_type::create(ref, comm)),
-          dy(dist_vec_type::create(exec, comm)),
-          logger(gko::share(HostToDeviceLogger::create(exec))),
           engine(42)
     {
         init_executor(ref, exec, comm);
+
+        logger = gko::share(HostToDeviceLogger::create(exec));
         exec->add_logger(logger);
+
+        dense_x = dense_type::create(exec);
+        dense_y = dense_type::create(exec);
+        x = dist_vec_type::create(exec, comm);
+        y = dist_vec_type::create(exec, comm);
+        dense_res = dense_type ::create(exec);
+        res = dense_type ::create(exec);
+        dense_real_res = real_dense_type ::create(exec);
+        real_res = real_dense_type ::create(exec);
 
         auto num_parts =
             static_cast<gko::distributed::comm_index_type>(comm.size());
@@ -191,8 +400,10 @@ public:
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
             std::normal_distribution<gko::remove_complex<value_type>>(),
             engine);
-        x->read_distributed(md_x, part.get());
-        dx = gko::clone(exec, x);
+        dense_x->read(md_x);
+        auto tmp_x = dist_vec_type::create(ref, comm);
+        tmp_x->read_distributed(md_x, part.get());
+        x = gko::clone(exec, tmp_x);
 
         auto md_y = gko::test::generate_random_matrix_data<value_type,
                                                            global_index_type>(
@@ -200,18 +411,35 @@ public:
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
             std::normal_distribution<gko::remove_complex<value_type>>(),
             engine);
-        y->read_distributed(md_y, part.get());
-        dy = gko::clone(exec, y);
+        dense_y->read(md_y);
+        auto tmp_y = dist_vec_type::create(ref, comm);
+        tmp_y->read_distributed(md_y, part.get());
+        y = gko::clone(exec, tmp_y);
     }
 
-    void SetUp() override { ASSERT_GT(comm.size(), 0); }
+    void SetUp() override
+    {
+        ASSERT_GT(comm.size(), 0);
+        init_executor(gko::ReferenceExecutor::create(), exec);
+    }
+
+    void TearDown() override
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
 
     void init_result()
     {
-        res = dense_type::create(ref, gko::dim<2>{1, size[1]});
-        dres = dense_type::create(exec, gko::dim<2>{1, size[1]});
+        res = dense_type::create(exec, gko::dim<2>{1, size[1]});
+        dense_res = dense_type::create(exec, gko::dim<2>{1, size[1]});
+        real_res = real_dense_type::create(exec, gko::dim<2>{1, size[1]});
+        dense_real_res = real_dense_type::create(exec, gko::dim<2>{1, size[1]});
         res->fill(0.0);
-        dres->fill(0.0);
+        dense_res->fill(0.0);
+        real_res->fill(0.0);
+        dense_real_res->fill(0.0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -221,403 +449,468 @@ public:
 
     gko::dim<2> size;
 
+    std::unique_ptr<dense_type> dense_x;
+    std::unique_ptr<dense_type> dense_y;
     std::unique_ptr<dist_vec_type> x;
-    std::unique_ptr<dist_vec_type> dx;
     std::unique_ptr<dist_vec_type> y;
-    std::unique_ptr<dist_vec_type> dy;
+    std::unique_ptr<dense_type> dense_res;
     std::unique_ptr<dense_type> res;
-    std::unique_ptr<dense_type> dres;
+    std::unique_ptr<real_dense_type> dense_real_res;
+    std::unique_ptr<real_dense_type> real_res;
 
     std::shared_ptr<HostToDeviceLogger> logger;
 
     std::default_random_engine engine;
 };
 
+TYPED_TEST_SUITE(VectorReductions, gko::test::ValueTypes);
 
-TEST_F(VectorReductions, ComputesDotProductIsSameAsRef)
+
+TYPED_TEST(VectorReductions, ComputesDotProductIsSameAsDense)
 {
-    init_result();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
 
-    x->compute_dot(y.get(), res.get());
-    dx->compute_dot(dy.get(), dres.get());
+    this->x->compute_dot(this->y.get(), this->res.get());
+    this->dense_x->compute_dot(this->dense_y.get(), this->dense_res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, dres, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
 
 
-TEST_F(VectorReductions, ComputesConjDotProductIsSameAsRef)
+TYPED_TEST(VectorReductions, ComputesConjDotProductIsSameAsDense)
 {
-    init_result();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
 
-    x->compute_conj_dot(y.get(), res.get());
-    dx->compute_conj_dot(dy.get(), dres.get());
+    this->x->compute_conj_dot(this->y.get(), this->res.get());
+    this->dense_x->compute_conj_dot(this->dense_y.get(), this->dense_res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, dres, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
 
 
-TEST_F(VectorReductions, ComputesNorm2IsSameAsRef)
+TYPED_TEST(VectorReductions, ComputesNorm2IsSameAsDense)
 {
-    init_result();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
 
-    x->compute_norm2(res.get());
-    dx->compute_norm2(dres.get());
+    this->x->compute_norm2(this->real_res.get());
+    this->dense_x->compute_norm2(this->dense_real_res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, dres, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorReductions, ComputesNorm1IsSameAsRef)
+TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
 {
-    init_result();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
 
-    x->compute_norm1(res.get());
-    dx->compute_norm1(dres.get());
+    this->x->compute_norm1(this->real_res.get());
+    this->dense_x->compute_norm1(this->dense_real_res.get());
 
-    GKO_ASSERT_MTX_NEAR(res, dres, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
+TYPED_TEST(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
 {
-    init_result();
-    auto transfer_count_before = logger->get_transfer_count();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+    auto transfer_count_before = this->logger->get_transfer_count();
 
-    dx->compute_dot(dy.get(), dres.get());
+    this->x->compute_dot(this->y.get(), this->res.get());
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
-              needs_transfers(exec));
+    ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
+              needs_transfers(this->exec));
 }
 
 
-TEST_F(VectorReductions, ComputeConjDotCopiesToHostOnlyIfNecessary)
+TYPED_TEST(VectorReductions, ComputeConjDotCopiesToHostOnlyIfNecessary)
 {
-    init_result();
-    auto transfer_count_before = logger->get_transfer_count();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+    auto transfer_count_before = this->logger->get_transfer_count();
 
-    dx->compute_conj_dot(dy.get(), dres.get());
+    this->x->compute_conj_dot(this->y.get(), this->res.get());
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
-              needs_transfers(exec));
+    ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
+              needs_transfers(this->exec));
 }
 
 
-TEST_F(VectorReductions, ComputeNorm2CopiesToHostOnlyIfNecessary)
+TYPED_TEST(VectorReductions, ComputeNorm2CopiesToHostOnlyIfNecessary)
 {
-    init_result();
-    auto transfer_count_before = logger->get_transfer_count();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+    auto transfer_count_before = this->logger->get_transfer_count();
 
-    dx->compute_norm2(dres.get());
+    this->x->compute_norm2(this->real_res.get());
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
-              needs_transfers(exec));
+    ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
+              needs_transfers(this->exec));
 }
 
 
-TEST_F(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
+TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
 {
-    init_result();
-    auto transfer_count_before = logger->get_transfer_count();
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+    auto transfer_count_before = this->logger->get_transfer_count();
 
-    dx->compute_norm1(dres.get());
+    this->x->compute_norm1(this->real_res.get());
 
-    ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
-              needs_transfers(exec));
+    ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
+              needs_transfers(this->exec));
 }
 
-
+template <typename ValueType>
 class VectorLocalOps : public ::testing::Test {
 public:
-    using value_type = float;
-    using mixed_type = double;
+    using value_type = ValueType;
+    using mixed_type = gko::next_precision<value_type>;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
-    using md_type = gko::matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
-    using complex_dist_vec_type =
-        gko::distributed::Vector<value_type>::complex_type;
+    using complex_dist_vec_type = typename dist_vec_type::complex_type;
+    using real_dist_vec_type = typename dist_vec_type ::real_type;
     using dense_type = gko::matrix::Dense<value_type>;
+    using complex_dense_type = typename dense_type::complex_type;
+    using real_dense_type = typename dense_type ::real_type;
 
     VectorLocalOps()
         : ref(gko::ReferenceExecutor::create()),
           exec(),
           comm(MPI_COMM_WORLD),
-          size{53, 11},
+          local_size{4, 11},
+          size{local_size[0] * comm.size(), 11},
           engine(42)
     {
         init_executor(ref, exec, comm);
 
-        x = dist_vec_type::create(ref, comm);
-        dx = dist_vec_type::create(exec, comm);
-        y = dist_vec_type::create(ref, comm);
-        dy = dist_vec_type::create(exec, comm);
-        alpha = dense_type ::create(ref);
-        dalpha = dense_type ::create(exec);
-        complex = complex_dist_vec_type::create(ref, comm);
-        dcomplex = complex_dist_vec_type::create(exec, comm);
-
-        auto num_parts =
-            static_cast<gko::distributed::comm_index_type>(comm.size());
-        auto mapping =
-            gko::test::generate_random_array<gko::distributed::comm_index_type>(
-                size[0],
-                std::uniform_int_distribution<
-                    gko::distributed::comm_index_type>(0, num_parts - 1),
-                engine, ref);
-        part = part_type::build_from_mapping(ref, mapping, num_parts);
+        x = dist_vec_type::create(exec, comm);
+        y = dist_vec_type::create(exec, comm);
+        alpha = dense_type ::create(exec);
+        local_complex = complex_dense_type ::create(exec);
+        complex = complex_dist_vec_type::create(exec, comm);
     }
 
-    void SetUp() override { ASSERT_GT(comm.size(), 0); }
-
-    template <typename VectorType>
-    void generate_vector_pair(std::unique_ptr<VectorType>& host,
-                              std::unique_ptr<VectorType>& device)
+    void SetUp() override
     {
-        using vtype = typename VectorType::value_type;
-        auto md =
-            gko::test::generate_random_matrix_data<vtype, global_index_type>(
-                size[0], size[1],
-                std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-                std::normal_distribution<gko::remove_complex<vtype>>(), engine);
-        host->read_distributed(md, part.get());
-        device = gko::clone(exec, host);
+        ASSERT_GT(comm.size(), 0);
+        init_executor(gko::ReferenceExecutor::create(), exec);
+    }
+
+    void TearDown() override
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
+    template <typename LocalVectorType, typename DistVectorType>
+    void generate_vector_pair(std::unique_ptr<LocalVectorType>& local,
+                              std::unique_ptr<DistVectorType>& dist)
+    {
+        using vtype = typename LocalVectorType::value_type;
+        local = gko::test::generate_random_matrix<LocalVectorType>(
+            local_size[0], local_size[1],
+            std::uniform_int_distribution<gko::size_type>(local_size[1],
+                                                          local_size[1]),
+            std::normal_distribution<gko::remove_complex<vtype>>(), engine,
+            exec);
+        dist =
+            DistVectorType::create(exec, comm, size, gko::clone(local).get());
     }
 
     void init_vectors()
     {
-        generate_vector_pair(x, dx);
-        generate_vector_pair(y, dy);
+        generate_vector_pair(local_x, x);
+        generate_vector_pair(local_y, y);
 
         alpha = gko::test::generate_random_matrix<dense_type>(
             1, size[1],
             std::uniform_int_distribution<gko::size_type>(size[1], size[1]),
-            std::normal_distribution<value_type>(), engine, ref);
-        dalpha = gko::clone(exec, alpha);
+            std::normal_distribution<gko::remove_complex<value_type>>(), engine,
+            exec);
     }
 
-    void init_complex_vectors() { generate_vector_pair(complex, dcomplex); }
+    void init_complex_vectors()
+    {
+        generate_vector_pair(local_real, real);
+        generate_vector_pair(local_complex, complex);
+    }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
     gko::mpi::communicator comm;
 
+    gko::dim<2> local_size;
     gko::dim<2> size;
 
-    std::unique_ptr<part_type> part;
-
+    std::unique_ptr<dense_type> local_x;
+    std::unique_ptr<dense_type> local_y;
+    std::unique_ptr<complex_dense_type> local_complex;
+    std::unique_ptr<real_dense_type> local_real;
     std::unique_ptr<dist_vec_type> x;
-    std::unique_ptr<dist_vec_type> dx;
     std::unique_ptr<dist_vec_type> y;
-    std::unique_ptr<dist_vec_type> dy;
     std::unique_ptr<dense_type> alpha;
-    std::unique_ptr<dense_type> dalpha;
     std::unique_ptr<complex_dist_vec_type> complex;
-    std::unique_ptr<complex_dist_vec_type> dcomplex;
+    std::unique_ptr<real_dist_vec_type> real;
 
     std::default_random_engine engine;
 };
 
+TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes);
 
-TEST_F(VectorLocalOps, ConvertsToPrecision)
+
+TYPED_TEST(VectorLocalOps, ApplyNotSupported)
 {
-    using OtherVector = typename gko::distributed::Vector<mixed_type>;
-    auto tmp = OtherVector::create(ref, comm);
-    auto dtmp = OtherVector::create(exec, comm);
-    init_vectors();
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto a = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
+    auto b = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
+    auto c = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
 
-    x->convert_to(tmp.get());
-    dx->convert_to(dtmp.get());
+    ASSERT_THROW(a->apply(b.get(), c.get()), gko::NotSupported);
+}
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local(), dtmp->get_local(),
+
+TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
+{
+    using dist_vec_type = typename TestFixture::dist_vec_type;
+    auto a = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
+    auto b = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{1, 1},
+                                   gko::dim<2>{1, 1});
+    auto c = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
+    auto d = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{1, 1},
+                                   gko::dim<2>{1, 1});
+    auto e = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
+                                   gko::dim<2>{2, 2});
+
+    ASSERT_THROW(a->apply(b.get(), c.get(), d.get(), e.get()),
+                 gko::NotSupported);
+}
+
+
+TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
+{
+    using Vector = typename TestFixture::dist_vec_type;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherVector = typename gko::distributed::Vector<OtherT>;
+    auto local_tmp = OtherVector::local_vector_type::create(this->exec);
+    auto tmp = OtherVector::create(this->exec, this->comm);
+    this->init_vectors();
+
+    this->local_x->convert_to(local_tmp.get());
+    this->x->convert_to(tmp.get());
+
+    GKO_ASSERT_MTX_NEAR(tmp->get_local(), local_tmp, 0.0);
+}
+
+
+TYPED_TEST(VectorLocalOps, MovesToPrecision)
+{
+    using Vector = typename TestFixture::dist_vec_type;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherVector = typename gko::distributed::Vector<OtherT>;
+    auto local_tmp = OtherVector::local_vector_type::create(this->exec);
+    auto tmp = OtherVector::create(this->exec, this->comm);
+    this->init_vectors();
+
+    this->local_x->move_to(local_tmp.get());
+    this->x->move_to(tmp.get());
+
+    GKO_ASSERT_MTX_NEAR(tmp->get_local(), local_tmp, 0.0);
+}
+
+
+TYPED_TEST(VectorLocalOps, ComputeAbsoluteSameAsLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
+
+    auto local_abs = this->local_x->compute_absolute();
+    auto abs = this->x->compute_absolute();
+
+    GKO_ASSERT_MTX_NEAR(abs->get_local(), local_abs, r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorLocalOps, ComputeAbsoluteInplaceSameAsLocal)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
+
+    this->local_x->compute_absolute_inplace();
+    this->x->compute_absolute_inplace();
+
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
                         r<value_type>::value);
 }
 
 
-TEST_F(VectorLocalOps, MovesToPrecision)
+TYPED_TEST(VectorLocalOps, MakeComplexSameAsLocal)
 {
-    using OtherVector = typename gko::distributed::Vector<mixed_type>;
-    auto tmp = OtherVector::create(ref, comm);
-    auto dtmp = OtherVector::create(exec, comm);
-    init_vectors();
+    this->init_vectors();
+    this->init_complex_vectors();
 
-    x->move_to(tmp.get());
-    dx->move_to(dtmp.get());
+    this->complex = this->x->make_complex();
+    this->local_complex = this->local_x->make_complex();
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local(), dtmp->get_local(),
-                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local(), this->local_complex, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, ComputeAbsoluteSameAsLocal)
+TYPED_TEST(VectorLocalOps, MakeComplexInplaceSameAsLocal)
 {
-    init_vectors();
+    this->init_vectors();
+    this->init_complex_vectors();
 
-    auto abs = x->compute_absolute();
-    auto dabs = dx->compute_absolute();
+    this->x->make_complex(this->complex.get());
+    this->local_x->make_complex(this->local_complex.get());
 
-    GKO_ASSERT_MTX_NEAR(abs->get_local(), dabs->get_local(),
-                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local(), this->local_complex, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, ComputeAbsoluteInplaceSameAsLocal)
+TYPED_TEST(VectorLocalOps, GetRealSameAsLocal)
 {
-    init_vectors();
+    this->init_vectors();
+    this->init_complex_vectors();
 
-    x->compute_absolute_inplace();
-    dx->compute_absolute_inplace();
+    this->real = this->complex->get_real();
+    this->local_real = this->local_complex->get_real();
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, MakeComplexSameAsLocal)
+TYPED_TEST(VectorLocalOps, GetRealInplaceSameAsLocal)
 {
-    init_vectors();
-    init_complex_vectors();
+    this->init_vectors();
+    this->init_complex_vectors();
 
-    complex = x->make_complex();
-    dcomplex = dx->make_complex();
+    this->complex->get_real(this->real.get());
+    this->local_complex->get_real(this->local_real.get());
 
-    GKO_ASSERT_MTX_NEAR(complex->get_local(), dcomplex->get_local(),
-                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, MakeComplexInplaceSameAsLocal)
+TYPED_TEST(VectorLocalOps, GetImagSameAsLocal)
 {
-    init_vectors();
-    init_complex_vectors();
+    this->init_complex_vectors();
 
-    x->make_complex(complex.get());
-    dx->make_complex(dcomplex.get());
+    this->real = this->complex->get_imag();
+    this->local_real = this->local_complex->get_imag();
 
-    GKO_ASSERT_MTX_NEAR(complex->get_local(), dcomplex->get_local(),
-                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, GetRealSameAsLocal)
+TYPED_TEST(VectorLocalOps, GetImagInplaceSameAsLocal)
 {
-    init_vectors();
-    init_complex_vectors();
+    this->init_complex_vectors();
 
-    x = complex->get_real();
-    dx = dcomplex->get_real();
+    this->complex->get_imag(this->real.get());
+    this->local_complex->get_imag(this->local_real.get());
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, GetRealInplaceSameAsLocal)
+TYPED_TEST(VectorLocalOps, FillSameAsLocal)
 {
-    init_vectors();
-    init_complex_vectors();
-
-    complex->get_real(x.get());
-    dcomplex->get_real(dx.get());
-
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
-}
-
-
-TEST_F(VectorLocalOps, GetImagSameAsLocal)
-{
-    init_vectors();
-    init_complex_vectors();
-
-    x = complex->get_imag();
-    dx = dcomplex->get_imag();
-
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
-}
-
-
-TEST_F(VectorLocalOps, GetImagInplaceSameAsLocal)
-{
-    init_vectors();
-    init_complex_vectors();
-
-    complex->get_imag(x.get());
-    dcomplex->get_imag(dx.get());
-
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
-}
-
-
-TEST_F(VectorLocalOps, FillSameAsLocal)
-{
-    init_vectors();
+    using value_type = typename TestFixture::value_type;
     auto value = gko::test::detail::get_rand_value<value_type>(
-        std::normal_distribution<gko::remove_complex<value_type>>(), engine);
+        std::normal_distribution<gko::remove_complex<value_type>>(),
+        this->engine);
+    this->init_vectors();
 
-    x->fill(value);
-    dx->fill(value);
+    this->x->fill(value);
+    this->local_x->fill(value);
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x, 0.0);
 }
 
 
-TEST_F(VectorLocalOps, ScaleSameAsLocal)
+TYPED_TEST(VectorLocalOps, ScaleSameAsLocal)
 {
-    init_vectors();
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
 
-    x->scale(alpha.get());
-    dx->scale(dalpha.get());
+    this->x->scale(this->alpha.get());
+    this->local_x->scale(this->alpha.get());
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorLocalOps, InvScaleSameAsLocal)
+TYPED_TEST(VectorLocalOps, InvScaleSameAsLocal)
 {
-    init_vectors();
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
 
-    x->inv_scale(alpha.get());
-    dx->inv_scale(dalpha.get());
+    this->x->inv_scale(this->alpha.get());
+    this->local_x->inv_scale(this->alpha.get());
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorLocalOps, AddScaleSameAsLocal)
+TYPED_TEST(VectorLocalOps, AddScaleSameAsLocal)
 {
-    init_vectors();
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
 
-    x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
+    this->x->add_scaled(this->alpha.get(), this->y.get());
+    this->local_x->add_scaled(this->alpha.get(), this->local_y.get());
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorLocalOps, SubScaleSameAsLocal)
+TYPED_TEST(VectorLocalOps, SubScaleSameAsLocal)
 {
-    init_vectors();
+    using value_type = typename TestFixture::value_type;
+    this->init_vectors();
 
-    x->sub_scaled(alpha.get(), y.get());
-    dx->sub_scaled(dalpha.get(), dy.get());
+    this->x->sub_scaled(this->alpha.get(), this->y.get());
+    this->local_x->sub_scaled(this->alpha.get(), this->local_y.get());
 
-    GKO_ASSERT_MTX_NEAR(x->get_local(), dx->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+                        r<value_type>::value);
 }
 
 
-TEST_F(VectorLocalOps, CreateRealViewSameAsLocal)
+TYPED_TEST(VectorLocalOps, CreateRealViewSameAsLocal)
 {
-    using real_type = gko::remove_complex<value_type>;
-    init_vectors();
+    this->init_vectors();
 
-    auto rv = x->create_real_view();
-    auto drv = dx->create_real_view();
+    auto rv = this->x->create_real_view();
+    auto local_rv = this->local_x->create_real_view();
 
-    EXPECT_EQ(rv->get_size()[0], drv->get_size()[0]);
-    EXPECT_EQ(rv->get_size()[1], drv->get_size()[1]);
-    EXPECT_EQ(rv->get_const_local()->get_stride(),
-              drv->get_const_local()->get_stride());
-    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), drv->get_const_local(), 0.0);
+    GKO_ASSERT_EQUAL_ROWS(rv, this->x);
+    GKO_ASSERT_EQUAL_ROWS(rv->get_local(), local_rv);
+    GKO_ASSERT_EQUAL_COLS(rv->get_local(), local_rv);
+    EXPECT_EQ(rv->get_const_local()->get_stride(), local_rv->get_stride());
+    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), local_rv, 0.0);
 }
 
 
