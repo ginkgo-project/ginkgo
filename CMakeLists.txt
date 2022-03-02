@@ -31,12 +31,14 @@ endif()
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
-option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
+option(GINKGO_BUILD_TESTS "Generate build files for unit tests" OFF)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
-option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
+option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" OFF)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
-option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
-option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
+#option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ON)
+#option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
+option(GINKGO_BUILD_MPI "Compile the MPI module" OFF)
 option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
