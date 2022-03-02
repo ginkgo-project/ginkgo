@@ -628,6 +628,7 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
         exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
     tmp->col_idxs_.resize_and_reset(nnz_blocks);
     tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
+    tmp->values_.fill(zero<ValueType>());
     tmp->set_size(this->get_size());
     exec->run(dense::make_convert_to_fbcsr(this, tmp.get()));
 }
