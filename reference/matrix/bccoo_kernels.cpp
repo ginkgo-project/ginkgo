@@ -206,11 +206,10 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         bool mul_row = false;
         for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
             size_type block_size_local =
-                std::min(block_size_src, num_stored_elements - i);
+                std::min(block_size_res, num_stored_elements - i);
             size_type row_frs = row_src;
             size_type col_frs = col_src;
             size_type col_dif = 0;
-            //            uint8 type_blk = 0;
             for (size_type j = 0; j < block_size_local; j++) {
                 get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
                                     blk_src, shf_src, row_src, col_src);
@@ -238,15 +237,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
             shf_res += sizeof(ValueType) * block_size_local;
             /*
-                                                            size_type type_blk =
-               (mul_row)? 1: 0; if (mul_row) {
-                                                            }
-                                                            if (col_dif < 256) {
-                                                                    type_blk |=
-               GKO_BCCOO_COLS_8BITS; } else if (col_dif < 65536) { type_blk |=
-               GKO_BCCOO_COLS_16BITS; } else {
-                                                            }
-                                                            type
+               uint8 type_blk = (mul_row)? 1: 0;
+                                                         if (mul_row) { }
+               if (col_dif < 256) {
+                   type_blk |= GKO_BCCOO_COLS_8BITS;
+                                                         } else if (col_dif <
+               65536) { type_blk |= GKO_BCCOO_COLS_16BITS; } else { }
             */
         }
         *mem_size = shf_res;
@@ -285,16 +281,6 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             size_type row_src;
             size_type col_src;
             ValueType val_src;
-            /*
-                        auto type_blk = types_data_src[blk_src];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-                                                            init_block_indices(rows_data_src,
-               cols_data_src, block_size_local, blk_src, shf_src, mul_row,
-               col_8bits, col_16bits, row_frs, col_frs, shf_row, shf_col,
-               shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -532,32 +518,8 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            /*
-                        auto type_blk = types_data[blk];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-            */
-            /*
-                        row = rows_data[blk];
-                        col = cols_data[blk];
-                        shf_row = shf_col = shf;
-                        if (mul_row) shf_col += block_size_local;
-                        if (type_blk & GKO_BCCOO_COLS_8BITS) {
-                            shf_val = shf_col + block_size_local;
-                        } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
-                            shf_val = shf_col + block_size_local * 2;
-                        } else {
-                            shf_val = shf_col + block_size_local * 4;
-                        }
-            */
             size_type row_frs;
             size_type col_frs;
-            /*
-                                                            init_block_indices(rows_data,
-               cols_data, block_size_local, blk, shf, mul_row, col_8bits,
-               col_16bits, row_frs, col_frs, shf_row, shf_col, shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -565,22 +527,6 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                                types_data[blk], mul_row, col_8bits, col_16bits,
                                row_frs, col_frs, shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
-                /*
-                                if (mul_row) {
-                                    row += get_value_chunk<uint8>(chunk_data,
-                   shf_row); shf_row++;
-                                }
-                                if (col_8bits) {
-                                    col += get_value_chunk<uint8>(chunk_data,
-                   shf_col); shf_col++; } else if (col_16bits) { col +=
-                   get_value_chunk<uint16>(chunk_data, shf_col); shf_col += 2;
-                                } else {
-                                    col += get_value_chunk<uint32>(chunk_data,
-                   shf_col); shf_col += 4;
-                                }
-                                val = get_value_chunk<ValueType>(chunk_data,
-                   shf_val); shf_val += sizeof(ValueType);
-                */
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row, col, val, shf_row, shf_col, shf_val);
@@ -646,33 +592,8 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            /*
-                        auto type_blk = types_data[blk];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-            */
-            /*
-                        row = rows_data[blk];
-                        col = cols_data[blk];
-                        shf_row = shf_col = shf;
-                        if (mul_row) shf_col += block_size_local;
-                        if (type_blk & GKO_BCCOO_COLS_8BITS) {
-                            shf_val = shf_col + block_size_local;
-                        } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
-                            shf_val = shf_col + block_size_local * 2;
-                        } else {
-                            shf_val = shf_col + block_size_local * 4;
-                        }
-            */
             size_type row_frs;
             size_type col_frs;
-            /*
-                        init_block_indices(rows_data, cols_data,
-               block_size_local, blk, shf, mul_row, col_8bits, col_16bits,
-                                           row_frs, col_frs, shf_row, shf_col,
-               shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -680,22 +601,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                                types_data[blk], mul_row, col_8bits, col_16bits,
                                row_frs, col_frs, shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
-                /*
-                                if (mul_row) {
-                                    row += get_value_chunk<uint8>(chunk_data,
-                   shf_row); shf_row++;
-                                }
-                                if (col_8bits) {
-                                    col += get_value_chunk<uint8>(chunk_data,
-                   shf_col); shf_col++; } else if (col_16bits) { col +=
-                   get_value_chunk<uint16>(chunk_data, shf_col); shf_col += 2;
-                                } else {
-                                    col += get_value_chunk<uint32>(chunk_data,
-                   shf_col); shf_col += 4;
-                                }
-                                val = get_value_chunk<ValueType>(chunk_data,
-                   shf_val); shf_val += sizeof(ValueType);
-                */
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row, col, val, shf_row, shf_col, shf_val);
@@ -766,33 +671,8 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            /*
-                        auto type_blk = types_data[blk];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-            */
-            /*
-                        row = rows_data[blk];
-                        col = cols_data[blk];
-                        shf_row = shf_col = shf;
-                        if (mul_row) shf_col += block_size_local;
-                        if (type_blk & GKO_BCCOO_COLS_8BITS) {
-                            shf_val = shf_col + block_size_local;
-                        } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
-                            shf_val = shf_col + block_size_local * 2;
-                        } else {
-                            shf_val = shf_col + block_size_local * 4;
-                        }
-            */
             size_type row_frs;
             size_type col_frs;
-            /*
-                        init_block_indices(rows_data, cols_data,
-               block_size_local, blk, shf, mul_row, col_8bits, col_16bits,
-                                           row_frs, col_frs, shf_row, shf_col,
-               shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -800,22 +680,6 @@ void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                                types_data[blk], mul_row, col_8bits, col_16bits,
                                row_frs, col_frs, shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
-                /*
-                                if (mul_row) {
-                                    row += get_value_chunk<uint8>(chunk_data,
-                   shf_row); shf_row++;
-                                }
-                                if (col_8bits) {
-                                    col += get_value_chunk<uint8>(chunk_data,
-                   shf_col); shf_col++; } else if (col_16bits) { col +=
-                   get_value_chunk<uint16>(chunk_data, shf_col); shf_col += 2;
-                                } else {
-                                    col += get_value_chunk<uint32>(chunk_data,
-                   shf_col); shf_col += 4;
-                                }
-                                val = get_value_chunk<ValueType>(chunk_data,
-                   shf_val); shf_val += sizeof(ValueType);
-                */
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row, col, val, shf_row, shf_col, shf_val);
@@ -880,33 +744,8 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            /*
-                        auto type_blk = types_data[blk];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-            */
-            /*
-                        row = rows_data[blk];
-                        col = cols_data[blk];
-                        shf_row = shf_col = shf;
-                        if (mul_row) shf_col += block_size_local;
-                        if (type_blk & GKO_BCCOO_COLS_8BITS) {
-                            shf_val = shf_col + block_size_local;
-                        } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
-                            shf_val = shf_col + block_size_local * 2;
-                        } else {
-                            shf_val = shf_col + block_size_local * 4;
-                        }
-            */
             size_type row_frs;
             size_type col_frs;
-            /*
-                        init_block_indices(rows_data, cols_data,
-               block_size_local, blk, shf, mul_row, col_8bits, col_16bits,
-                                           row_frs, col_frs, shf_row, shf_col,
-               shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -914,22 +753,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                                types_data[blk], mul_row, col_8bits, col_16bits,
                                row_frs, col_frs, shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
-                /*
-                                if (mul_row) {
-                                    row += get_value_chunk<uint8>(chunk_data,
-                   shf_row); shf_row++;
-                                }
-                                if (col_8bits) {
-                                    col += get_value_chunk<uint8>(chunk_data,
-                   shf_col); shf_col++; } else if (col_16bits) { col +=
-                   get_value_chunk<uint16>(chunk_data, shf_col); shf_col += 2;
-                                } else {
-                                    col += get_value_chunk<uint32>(chunk_data,
-                   shf_col); shf_col += 4;
-                                }
-                                val = get_value_chunk<ValueType>(chunk_data,
-                   shf_val); shf_val += sizeof(ValueType);
-                */
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row, col, val, shf_row, shf_col, shf_val);
@@ -986,34 +809,8 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements; i += block_size) {
             size_type block_size_local =
                 std::min(block_size, num_stored_elements - i);
-            /*
-                        auto type_blk = types_data[blk];
-                        bool mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-                        bool col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-                        bool col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
-            */
-            /*
-                        row = rows_data[blk];
-                        col = cols_data[blk];
-                        shf_row = shf_col = shf;
-                        if (mul_row) shf_col += block_size_local;
-            //            if (type_blk & GKO_BCCOO_COLS_8BITS) {
-                        if (col_8bits) {
-                            shf_val = shf_col + block_size_local;
-            //            } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
-                        } else if (col_16bits) {
-                            shf_val = shf_col + block_size_local * 2;
-                        } else {
-                            shf_val = shf_col + block_size_local * 4;
-                        }
-            */
             size_type row_frs;
             size_type col_frs;
-            /*
-                                                            init_block_indices(rows_data,
-               cols_data, block_size_local, blk, shf, mul_row, col_8bits,
-               col_16bits, row_frs, col_frs, shf_row, shf_col, shf_val);
-            */
             bool mul_row;
             bool col_8bits;
             bool col_16bits;
@@ -1021,24 +818,6 @@ void compute_absolute_inplace(std::shared_ptr<const ReferenceExecutor> exec,
                                types_data[blk], mul_row, col_8bits, col_16bits,
                                row_frs, col_frs, shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
-                /*
-                                if (mul_row) {
-                                    row += get_value_chunk<uint8>(chunk_data,
-                   shf_row); shf_row++;
-                                }
-                                if (col_8bits) {
-                                    col += get_value_chunk<uint8>(chunk_data,
-                   shf_col); shf_col++; } else if (col_16bits) { col +=
-                   get_value_chunk<uint16>(chunk_data, shf_col); shf_col += 2;
-                                } else {
-                                    col += get_value_chunk<uint32>(chunk_data,
-                   shf_col); shf_col += 4;
-                                }
-                                val = get_value_chunk<ValueType>(chunk_data,
-                   shf_val); val = abs(val);
-                                set_value_chunk<ValueType>(chunk_data, shf,
-                   val); shf_val += sizeof(ValueType);
-                */
                 get_block_position_value_put<IndexType, ValueType>(
                     chunk_data, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row, col, val, shf_row, shf_col, shf_val,

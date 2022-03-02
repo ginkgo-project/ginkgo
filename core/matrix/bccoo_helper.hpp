@@ -366,7 +366,7 @@ inline void get_block_features(const uint8 type_blk, bool& mul_row,
     col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
     col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
 }
-*/
+
 
 template <typename IndexType>
 inline void init_block_indices(const IndexType* rows_data,
@@ -390,7 +390,7 @@ inline void init_block_indices(const IndexType* rows_data,
         shf_val = shf_col + block_size * 4;
     }
 }
-
+*/
 
 template <typename IndexType>
 inline void init_block_indices(const IndexType* rows_data,
