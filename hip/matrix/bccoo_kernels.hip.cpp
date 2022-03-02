@@ -126,6 +126,7 @@ template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::bccoo::compression commpress_res,
+                    const size_type block_size_res,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

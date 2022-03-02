@@ -47,6 +47,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+const int GKO_BCCOO_ROWS_MULTIPLE = 1;
+const int GKO_BCCOO_COLS_8BITS = 2;
+const int GKO_BCCOO_COLS_16BITS = 4;
+
+
 inline void cnt_next_position(const size_type col_src_res, size_type& shf,
                               size_type& col)
 {
@@ -348,6 +353,131 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
         nblk = 0;
         blk++;
     }
+}
+
+
+// ===============================================
+
+/*
+inline void get_block_features(const uint8 type_blk, bool& mul_row,
+                                                                                                                         bool& col_8bits, bool& col_16bits)
+{
+    mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+    col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+    col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+}
+*/
+
+template <typename IndexType>
+inline void init_block_indices(const IndexType* rows_data,
+                               const IndexType* cols_data,
+                               const size_type block_size, const size_type blk,
+                               const size_type shf, const bool mul_row,
+                               const bool col_8bits, const bool col_16bits,
+                               size_type& row_frs, size_type& col_frs,
+                               size_type& shf_row, size_type& shf_col,
+                               size_type& shf_val)
+{
+    row_frs = rows_data[blk];
+    col_frs = cols_data[blk];
+    shf_row = shf_col = shf;
+    if (mul_row) shf_col += block_size;
+    if (col_8bits) {
+        shf_val = shf_col + block_size;
+    } else if (col_16bits) {
+        shf_val = shf_col + block_size * 2;
+    } else {
+        shf_val = shf_col + block_size * 4;
+    }
+}
+
+
+template <typename IndexType>
+inline void init_block_indices(const IndexType* rows_data,
+                               const IndexType* cols_data,
+                               const size_type block_size, const size_type blk,
+                               const size_type shf, const uint8 type_blk,
+                               bool mul_row, bool col_8bits, bool col_16bits,
+                               size_type& row_frs, size_type& col_frs,
+                               size_type& shf_row, size_type& shf_col,
+                               size_type& shf_val)
+{
+    mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
+    col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
+    col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+
+    row_frs = rows_data[blk];
+    col_frs = cols_data[blk];
+    shf_row = shf_col = shf;
+    if (mul_row) shf_col += block_size;
+    if (col_8bits) {
+        shf_val = shf_col + block_size;
+    } else if (col_16bits) {
+        shf_val = shf_col + block_size * 2;
+    } else {
+        shf_val = shf_col + block_size * 4;
+    }
+}
+
+
+template <typename IndexType, typename ValueType>
+inline void get_block_position_value(const uint8* chunk_data, bool mul_row,
+                                     bool col_8bits, bool col_16bits,
+                                     size_type row_frs, size_type col_frs,
+                                     size_type& row, size_type& col,
+                                     ValueType& val, size_type& shf_row,
+                                     size_type& shf_col, size_type& shf_val)
+{
+    row = row_frs;
+    col = col_frs;
+    if (mul_row) {
+        row += get_value_chunk<uint8>(chunk_data, shf_row);
+        shf_row++;
+    }
+    if (col_8bits) {
+        col += get_value_chunk<uint8>(chunk_data, shf_col);
+        shf_col++;
+    } else if (col_16bits) {
+        col += get_value_chunk<uint16>(chunk_data, shf_col);
+        shf_col += 2;
+    } else {
+        col += get_value_chunk<uint32>(chunk_data, shf_col);
+        shf_col += 4;
+    }
+    val = get_value_chunk<ValueType>(chunk_data, shf_val);
+    shf_val += sizeof(ValueType);
+}
+
+
+template <typename IndexType, typename ValueType, typename Callable>
+inline void get_block_position_value_put(uint8* chunk_data, bool mul_row,
+                                         bool col_8bits, bool col_16bits,
+                                         size_type row_frs, size_type col_frs,
+                                         size_type& row, size_type& col,
+                                         ValueType& val, size_type& shf_row,
+                                         size_type& shf_col, size_type& shf_val,
+                                         Callable finalize_op)
+{
+    row = row_frs;
+    col = col_frs;
+    if (mul_row) {
+        row += get_value_chunk<uint8>(chunk_data, shf_row);
+        shf_row++;
+    }
+    if (col_8bits) {
+        col += get_value_chunk<uint8>(chunk_data, shf_col);
+        shf_col++;
+    } else if (col_16bits) {
+        col += get_value_chunk<uint16>(chunk_data, shf_col);
+        shf_col += 2;
+    } else {
+        col += get_value_chunk<uint32>(chunk_data, shf_col);
+        shf_col += 4;
+    }
+    val = get_value_chunk<ValueType>(chunk_data, shf_val);
+    val = finalize_op(val);
+    set_value_chunk<ValueType>(chunk_data, shf_val, val);
+    shf_val += sizeof(ValueType);
 }
 
 

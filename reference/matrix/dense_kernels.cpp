@@ -457,8 +457,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     // Computation of rows, offsets and m (mem_size)
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
-    auto num_nonzeros = 0;
-    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
+    auto num_nonzeros = 0;  // TODO: Also compute and return this value
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row_res = 0;
+    size_type col_res = 0;
+    size_type shf = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             if (source->at(row, col) != zero<ValueType>()) {
@@ -491,8 +495,12 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     // Computation of chunk
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
-    auto num_nonzeros = 0;
-    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
+    auto num_nonzeros = 0;  // TODO: Is it necessary?
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row_res = 0;
+    size_type col_res = 0;
+    size_type shf = 0;
     offsets_data[0] = 0;
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {

@@ -138,11 +138,10 @@ public:
 
     void convert_to(Bccoo<ValueType, IndexType>* result) const override;
     /*
-                    {
-                            // converts *this to *result
-                            // if they have different compressions, adjust one
-       of them
-                    }
+       {
+           // converts *this to *result
+           // if they have different compressions, adjust one of them
+       }
     */
 
     void move_to(Bccoo<ValueType, IndexType>* result) override

@@ -162,7 +162,11 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     const ValueType* values = coo->get_const_values();
     const size_type num_rows = coo->get_size()[0];
     const size_type num_stored_elements = coo->get_num_stored_elements();
-    size_type nblk = 0, blk = 0, row_res = 0, col_res = 0, shf = 0;
+    size_type nblk = 0;
+    size_type blk = 0;
+    size_type row_res = 0;
+    size_type col_res = 0;
+    size_type shf = 0;
     for (size_type i = 0; i < num_stored_elements; i++) {
         const size_type row = row_idxs[i];
         const size_type col = col_idxs[i];
