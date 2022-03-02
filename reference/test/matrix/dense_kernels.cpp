@@ -614,13 +614,14 @@ TYPED_TEST(Dense, ComputesNorm2)
 
 TYPED_TEST(Dense, ComputesNorm2Mixed)
 {
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
     using MixedMtx = typename TestFixture::MixedMtx;
     using MixedT = typename MixedMtx::value_type;
     using MixedT_nc = gko::remove_complex<MixedT>;
     using MixedNormVector = gko::matrix::Dense<MixedT_nc>;
-    auto mtx(gko::initialize<MixedMtx>(
-        {I<MixedT>{1.0, 0.0}, I<MixedT>{2.0, 3.0}, I<MixedT>{2.0, 4.0}},
-        this->exec));
+    auto mtx(gko::initialize<Mtx>(
+        {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
 
     mtx->compute_norm2(result.get());
@@ -640,30 +641,11 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
-    gko::kernels::reference::dense::compute_norm2_sqr(
+    gko::kernels::reference::dense::compute_squared_norm2(
         gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get());
 
     EXPECT_EQ(result->at(0, 0), T_nc{9.0});
     EXPECT_EQ(result->at(0, 1), T_nc{25.0});
-}
-
-
-TYPED_TEST(Dense, ComputesNorm2SquaredMixed)
-{
-    using MixedMtx = typename TestFixture::MixedMtx;
-    using MixedT = typename MixedMtx::value_type;
-    using MixedT_nc = gko::remove_complex<MixedT>;
-    using MixedNormVector = gko::matrix::Dense<MixedT_nc>;
-    auto mtx(gko::initialize<MixedMtx>(
-        {I<MixedT>{1.0, 0.0}, I<MixedT>{2.0, 3.0}, I<MixedT>{2.0, 4.0}},
-        this->exec));
-    auto result = MixedNormVector::create(this->exec, gko::dim<2>{1, 2});
-
-    gko::kernels::reference::dense::compute_norm2_sqr(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get());
-
-    EXPECT_EQ(result->at(0, 0), MixedT_nc{9.0});
-    EXPECT_EQ(result->at(0, 1), MixedT_nc{25.0});
 }
 
 
