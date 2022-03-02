@@ -179,7 +179,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
 
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
         KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), opts);
-    dispatcher.apply(a, b, x, logdata);
+    dispatcher.apply(a, nullptr, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);
