@@ -409,9 +409,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_sqr(std::shared_ptr<const ReferenceExecutor> exec,
-                       const matrix::Dense<ValueType>* x,
-                       matrix::Dense<remove_complex<ValueType>>* result)
+void compute_squared_norm2(std::shared_ptr<const ReferenceExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           matrix::Dense<remove_complex<ValueType>>* result)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -423,7 +423,8 @@ void compute_norm2_sqr(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
 
 
 template <typename ValueType>
