@@ -84,7 +84,6 @@ public:
     md_type md_localized[3];
 };
 
-
 TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
 
@@ -94,18 +93,18 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
     using value_type = typename TestFixture::value_type;
     auto vec = TestFixture::dist_vec_type::create(this->ref, this->comm);
     auto rank = this->comm.rank();
+    I<I<value_type>> ref_data[3] = {
+        {{0, 1}, {2, 3}},
+        {{4, 5}, {6, 7}},
+        {{8, 9}, {10, 11}},
+    };
 
     vec->read_distributed(this->md, this->part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                 gko::dim<2>(2, 2));
-    I<I<value_type>> ref_data[3] = {
-        {{0, 1}, {2, 3}},
-        {{4, 5}, {6, 7}},
-        {{8, 9}, {10, 11}},
-    };
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
 }
 
 
@@ -127,7 +126,7 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
         GKO_ASSERT_MTX_NEAR(
             vec->get_local(),
             l({{0., 1.}, {2., 3.}, {4., 5.}, {6., 7.}, {8., 9.}, {10., 11.}}),
-            r<value_type>::value);
+            0.0);
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                     gko::dim<2>(0, 2));
@@ -161,7 +160,7 @@ TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<vt>::value);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
 }
 
 
@@ -186,7 +185,7 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataScattered)
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(), ref_size[rank]);
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
 }
 
 
@@ -214,7 +213,7 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixData)
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
 }
 
 
@@ -249,7 +248,7 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
             vec->get_local(),
             I<I<value_type>>(
                 {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}),
-            r<value_type>::value);
+            0.0);
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
                                     gko::dim<2>(0, 2));
