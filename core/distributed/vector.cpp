@@ -43,7 +43,7 @@ namespace vector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
 GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
@@ -51,37 +51,6 @@ GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
 }  // namespace
 }  // namespace vector
-
-
-namespace detail {
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void read_distributed_impl(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
-    const Partition<LocalIndexType, GlobalIndexType>* partition,
-    Vector<ValueType>* result)
-{
-    auto exec = result->get_executor();
-
-    auto rank = result->get_communicator().rank();
-    result->get_local()->fill(zero<ValueType>());
-    exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank,
-        result->get_local()));
-}
-
-#define GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL(               \
-    ValueType, LocalIndexType, GlobalIndexType)                      \
-    void read_distributed_impl(                                      \
-        const device_matrix_data<ValueType, GlobalIndexType>& data,  \
-        const Partition<LocalIndexType, GlobalIndexType>* partition, \
-        Vector<ValueType>* storage)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL);
-
-
-}  // namespace detail
 
 
 dim<2> compute_global_size(mpi::communicator comm, dim<2> local_size)
@@ -397,8 +366,8 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_norm2_sqr(this->get_const_local(),
-                                             dense_res.get()));
+    exec->run(vector::make_compute_squared_norm2(this->get_const_local(),
+                                                 dense_res.get()));
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
