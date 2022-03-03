@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/dense_cache.hpp>
+
+
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -56,7 +58,6 @@ void DenseCache<ValueType>::init_from(
         vec->get_executor() != template_vec->get_executor()) {
         vec = matrix::Dense<ValueType>::create_with_config_of(template_vec);
     }
-    vec->copy_from(template_vec);
 }
 
 

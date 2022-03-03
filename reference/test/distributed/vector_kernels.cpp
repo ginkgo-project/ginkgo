@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
 using comm_index_type = gko::distributed::comm_index_type;
 
 
@@ -64,24 +65,18 @@ protected:
     using global_index_type =
         typename std::tuple_element<2, decltype(
                                            ValueLocalGlobalIndexType())>::type;
-    using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using mtx = gko::matrix::Dense<value_type>;
 
-    Vector() : ref(gko::ReferenceExecutor::create()), mapping{ref} {}
+    Vector() : ref(gko::ReferenceExecutor::create()) {}
 
     void validate(
         const gko::dim<2> size,
         const gko::distributed::Partition<local_index_type, global_index_type>*
             partition,
-        std::initializer_list<global_index_type> input_rows,
-        std::initializer_list<global_index_type> input_cols,
-        std::initializer_list<value_type> input_vals,
-        std::initializer_list<
-            std::initializer_list<std::initializer_list<value_type>>>
-            output_entries)
+        I<global_index_type> input_rows, I<global_index_type> input_cols,
+        I<value_type> input_vals, I<I<I<value_type>>> output_entries)
     {
-        std::vector<std::initializer_list<std::initializer_list<value_type>>>
-            ref_outputs;
+        std::vector<I<I<value_type>>> ref_outputs;
         auto input = gko::device_matrix_data<value_type, global_index_type>{
             ref, size, input_rows, input_cols, input_vals};
         for (auto entry : output_entries) {
@@ -102,7 +97,6 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    gko::Array<comm_index_type> mapping;
 };
 
 TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
@@ -112,11 +106,11 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
+    gko::Array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
+                                                                 mapping,
                                                                  num_parts);
 
     this->validate(gko::dim<2>{0, 0}, partition.get(), {}, {}, {},
@@ -128,11 +122,11 @@ TYPED_TEST(Vector, BuildsLocalSmall)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {1, 0}};
+    gko::Array<comm_index_type> mapping{this->ref, {1, 0}};
     comm_index_type num_parts = 2;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
+                                                                 mapping,
                                                                  num_parts);
 
     this->validate(gko::dim<2>{2, 2}, partition.get(), {0, 0, 1, 1},
@@ -144,11 +138,11 @@ TYPED_TEST(Vector, BuildsLocal)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    this->mapping = {this->ref, {1, 2, 0, 0, 2, 1}};
+    gko::Array<comm_index_type> mapping{this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
-                                                                 this->mapping,
+                                                                 mapping,
                                                                  num_parts);
 
     this->validate(gko::dim<2>{6, 8}, partition.get(), {0, 0, 1, 1, 2, 3, 4, 5},
