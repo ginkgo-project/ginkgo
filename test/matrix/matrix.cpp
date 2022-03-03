@@ -439,12 +439,11 @@ protected:
     }
 
     template <typename VecType = Vec>
-    test_pair<VecType> gen_in_vec(const test_pair<Mtx>& mtx, int nrhs,
-                                  int stride)
+    test_pair<VecType> gen_in_vec(const test_pair<Mtx>& mtx, int nrhs)
     {
         auto size = gko::dim<2>{mtx.ref->get_size()[1],
                                 static_cast<gko::size_type>(nrhs)};
-        auto result = VecType::create(ref, size, stride);
+        auto result = VecType::create(ref, size);
         result->read(gen_dense_data<typename VecType::value_type,
                                     typename Mtx::index_type>(size));
         return {std::move(result), exec};
@@ -465,12 +464,11 @@ protected:
     }
 
     template <typename VecType = Vec>
-    test_pair<VecType> gen_out_vec(const test_pair<Mtx>& mtx, int nrhs,
-                                   int stride)
+    test_pair<VecType> gen_out_vec(const test_pair<Mtx>& mtx, int nrhs)
     {
         auto size = gko::dim<2>{mtx.ref->get_size()[0],
                                 static_cast<gko::size_type>(nrhs)};
-        auto result = VecType::create(ref, size, stride);
+        auto result = VecType::create(ref, size);
         result->read(gen_dense_data<typename VecType::value_type,
                                     typename Mtx::index_type>(size));
         return {std::move(result), exec};
@@ -576,6 +574,34 @@ protected:
     }
 
     template <typename VecType = Vec, typename MtxType, typename TestFunction>
+    void run_strided(const test_pair<MtxType>& mtx, int rhs, int in_stride,
+                     int out_stride, TestFunction fn)
+    {
+        // create slightly bigger vectors
+        auto in_padded = gen_in_vec<VecType>(mtx, in_stride);
+        auto out_padded = gen_out_vec<VecType>(mtx, out_stride);
+        const auto in_rows = gko::span(0, mtx.ref->get_size()[1]);
+        const auto out_rows = gko::span(0, mtx.ref->get_size()[0]);
+        const auto cols = gko::span(0, rhs);
+        const auto out_pad_cols = gko::span(rhs, out_stride);
+        // create views of the padding and in/out vectors
+        auto out_padding = test_pair<VecType>{
+            out_padded.ref->create_submatrix(out_rows, out_pad_cols),
+            out_padded.dev->create_submatrix(out_rows, out_pad_cols)};
+        auto orig_padding = out_padding.ref->clone();
+        auto in =
+            test_pair<VecType>{in_padded.ref->create_submatrix(in_rows, cols),
+                               in_padded.dev->create_submatrix(in_rows, cols)};
+        auto out = test_pair<VecType>{
+            out_padded.ref->create_submatrix(out_rows, cols),
+            out_padded.dev->create_submatrix(out_rows, cols)};
+        fn(std::move(in), std::move(out));
+        // check that padding was unmodified
+        GKO_ASSERT_MTX_NEAR(out_padding.ref, orig_padding, 0.0);
+        GKO_ASSERT_MTX_NEAR(out_padding.dev, orig_padding, 0.0);
+    }
+
+    template <typename VecType = Vec, typename MtxType, typename TestFunction>
     void forall_vector_scenarios(const test_pair<MtxType>& mtx, TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
@@ -587,18 +613,17 @@ protected:
         };
         {
             SCOPED_TRACE("Multivector with 0 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 0, 0),
-                       gen_out_vec<VecType>(mtx, 0, 0));
+            guarded_fn(gen_in_vec<VecType>(mtx, 0),
+                       gen_out_vec<VecType>(mtx, 0));
         }
         {
             SCOPED_TRACE("Single vector");
-            guarded_fn(gen_in_vec<VecType>(mtx, 1, 1),
-                       gen_out_vec<VecType>(mtx, 1, 1));
+            guarded_fn(gen_in_vec<VecType>(mtx, 1),
+                       gen_out_vec<VecType>(mtx, 1));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Single strided vector");
-            guarded_fn(gen_in_vec<VecType>(mtx, 1, 2),
-                       gen_out_vec<VecType>(mtx, 1, 3));
+            run_strided(mtx, 1, 2, 3, guarded_fn);
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector
@@ -606,34 +631,30 @@ protected:
             using complex_vec = gko::to_complex<VecType>;
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Single strided complex vector");
-                guarded_fn(gen_in_vec<complex_vec>(mtx, 1, 2),
-                           gen_out_vec<complex_vec>(mtx, 1, 3));
+                run_strided<complex_vec>(mtx, 1, 2, 3, guarded_fn);
             }
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                guarded_fn(gen_in_vec<complex_vec>(mtx, 2, 3),
-                           gen_out_vec<complex_vec>(mtx, 2, 4));
+                run_strided<complex_vec>(mtx, 2, 3, 4, guarded_fn);
             }
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 2, 2),
-                       gen_out_vec<VecType>(mtx, 2, 2));
+            guarded_fn(gen_in_vec<VecType>(mtx, 2),
+                       gen_out_vec<VecType>(mtx, 2));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 2, 3),
-                       gen_out_vec<VecType>(mtx, 2, 4));
+            run_strided(mtx, 2, 3, 4, guarded_fn);
         }
         {
             SCOPED_TRACE("Multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 40, 40),
-                       gen_out_vec<VecType>(mtx, 40, 40));
+            guarded_fn(gen_in_vec<VecType>(mtx, 40),
+                       gen_out_vec<VecType>(mtx, 40));
         }
         if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 40, 43),
-                       gen_out_vec<VecType>(mtx, 40, 45));
+            run_strided(mtx, 40, 43, 45, guarded_fn);
         }
     }
 
