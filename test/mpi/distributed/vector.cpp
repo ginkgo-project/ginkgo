@@ -115,7 +115,7 @@ public:
 
     void SetUp() override
     {
-        ASSERT_GE(this->comm.size(), 3);
+        ASSERT_EQ(this->comm.size(), 3);
         init_executor(gko::ReferenceExecutor::create(), exec);
     }
 
@@ -566,6 +566,7 @@ TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
     ASSERT_EQ(this->logger->get_transfer_count() > transfer_count_before,
               needs_transfers(this->exec));
 }
+
 
 template <typename ValueType>
 class VectorLocalOps : public ::testing::Test {
