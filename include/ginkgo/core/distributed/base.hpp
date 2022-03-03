@@ -88,7 +88,7 @@ private:
 }  // namespace gko
 
 
-#endif
+#endif  // GINKGO_BUILD_MPI
 
 
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_BASE_HPP_
