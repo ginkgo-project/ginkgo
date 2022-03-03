@@ -273,9 +273,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);
         }
-        auto temp = Array<ValueType>::view(diag_vt->get_executor(),
-                                           diag_vt->get_size()[0],
-                                           diag_vt->get_values());
+        auto temp =
+            make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
+                            diag_vt->get_values());
         this->blocks_ = Array<ValueType>(exec, temp.get_num_elems());
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];

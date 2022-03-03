@@ -277,13 +277,13 @@ void ParIlutState<ValueType, IndexType>::iterate()
         u_csc_builder.get_value_array().resize_and_reset(u_nnz);
         // update arrays that will be aliased
         l_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, l_nnz, l_new->get_col_idxs());
+            make_array_view(exec, l_nnz, l_new->get_col_idxs());
         u_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, u_nnz, u_new->get_col_idxs());
+            make_array_view(exec, u_nnz, u_new->get_col_idxs());
         l_builder.get_value_array() =
-            Array<ValueType>::view(exec, l_nnz, l_new->get_values());
+            make_array_view(exec, l_nnz, l_new->get_values());
         u_builder.get_value_array() =
-            Array<ValueType>::view(exec, u_nnz, u_new->get_values());
+            make_array_view(exec, u_nnz, u_new->get_values());
     }
 
     // convert U' into CSC format

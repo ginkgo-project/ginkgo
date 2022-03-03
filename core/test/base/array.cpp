@@ -356,7 +356,7 @@ TYPED_TEST(Array, CanBeResized)
 TYPED_TEST(Array, ViewCannotBeResized)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 3, data);
 
     EXPECT_THROW(view.resize_and_reset(1), gko::NotSupported);
     EXPECT_EQ(view.get_num_elems(), 3);
@@ -416,7 +416,7 @@ TYPED_TEST(Array, ChangesExecutors)
 TYPED_TEST(Array, ViewModifiesOriginalData)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 3, data);
 
     TypeParam new_data[] = {5, 4, 2};
     std::copy(new_data, new_data + 3, view.get_data());
@@ -448,11 +448,11 @@ TYPED_TEST(Array, CopyArrayToArray)
 TYPED_TEST(Array, CopyViewToView)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 3, data);
     TypeParam data2[] = {5, 4, 2};
-    auto view2 = gko::Array<TypeParam>::view(this->exec, 3, data2);
+    auto view2 = gko::make_array_view(this->exec, 3, data2);
     TypeParam data_size4[] = {5, 4, 2, 1};
-    auto view_size4 = gko::Array<TypeParam>::view(this->exec, 4, data_size4);
+    auto view_size4 = gko::make_array_view(this->exec, 4, data_size4);
 
     view = view2;
     view2.get_data()[0] = 2;
@@ -470,7 +470,7 @@ TYPED_TEST(Array, CopyViewToView)
 TYPED_TEST(Array, CopyViewToArray)
 {
     TypeParam data[] = {1, 2, 3, 4};
-    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+    auto view = gko::make_array_view(this->exec, 4, data);
     gko::Array<TypeParam> array(this->exec, {5, 4, 2});
 
     array = view;
@@ -488,7 +488,7 @@ TYPED_TEST(Array, CopyViewToArray)
 TYPED_TEST(Array, CopyArrayToView)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 3, data);
     gko::Array<TypeParam> array_size2(this->exec, {5, 4});
     gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
 
@@ -525,9 +525,9 @@ TYPED_TEST(Array, MoveArrayToArray)
 TYPED_TEST(Array, MoveViewToView)
 {
     TypeParam data[] = {1, 2, 3, 4};
-    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+    auto view = gko::make_array_view(this->exec, 4, data);
     TypeParam data2[] = {5, 4, 2};
-    auto view2 = gko::Array<TypeParam>::view(this->exec, 3, data2);
+    auto view2 = gko::make_array_view(this->exec, 3, data2);
 
     view = std::move(view2);
 
@@ -550,7 +550,7 @@ TYPED_TEST(Array, MoveViewToArray)
 {
     TypeParam data[] = {1, 2, 3, 4};
     gko::Array<TypeParam> array(this->exec, {5, 4, 2});
-    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+    auto view = gko::make_array_view(this->exec, 4, data);
 
     array = std::move(view);
 
@@ -572,7 +572,7 @@ TYPED_TEST(Array, MoveViewToArray)
 TYPED_TEST(Array, MoveArrayToView)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    auto view = gko::make_array_view(this->exec, 3, data);
     gko::Array<TypeParam> array_size2(this->exec, {5, 4});
     gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
     auto size2_ptr = array_size2.get_data();
