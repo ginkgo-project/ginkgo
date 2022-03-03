@@ -30,10 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/dense_cache.hpp>
+
+
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -204,7 +206,8 @@ TYPED_TEST(DenseCache, VectorIsNotCopyAssigned)
 {
     using value_type = typename TestFixture::value_type;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache = this->cache;
+    gko::detail::DenseCache<value_type> cache;
+    cache = this->cache;
 
     ASSERT_EQ(cache.get(), nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
@@ -215,7 +218,8 @@ TYPED_TEST(DenseCache, VectorIsNotMoveAssigned)
 {
     using value_type = typename TestFixture::value_type;
     this->gen_cache({1, 1});
-    gko::detail::DenseCache<value_type> cache = std::move(this->cache);
+    gko::detail::DenseCache<value_type> cache;
+    cache = std::move(this->cache);
 
     ASSERT_EQ(cache.get(), nullptr);
     GKO_ASSERT_EQUAL_DIMENSIONS(this->cache->get_size(), gko::dim<2>(1, 1));
