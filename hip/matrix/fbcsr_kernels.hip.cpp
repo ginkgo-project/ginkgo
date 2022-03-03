@@ -133,7 +133,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0) {
+    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: fill output with zero
         dense::fill(exec, c, zero<ValueType>());
         return;
@@ -192,7 +192,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0) {
+    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
