@@ -85,9 +85,9 @@ __global__
                                     : ((one_mask << last_thread) - 1u);
         const auto block_mask = upper_mask & lower_mask;
         const auto local_mask = nonzero_mask & block_mask;
-        if (block_local_col == block_size - 1) {
-            block_count += local_mask ? 1 : 0;
-        }
+        // last column in the block increments the counter
+        block_count +=
+            (block_local_col == block_size - 1 && local_mask) ? 1 : 0;
         // if we need to store something for the next iteration
         if ((base_col + config::warp_size) % block_size != 0) {
             // check whether the last block (incomplete) in this warp is nonzero

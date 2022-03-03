@@ -205,17 +205,17 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     Array<size_type> block_ptr_array{exec, num_blocks};
     block_col_idx_array.resize_and_reset(num_blocks);
     block_value_array.resize_and_reset(num_blocks * bs * bs);
-    auto row_idxs = block_row_idx_array.get_data();
-    auto col_idxs = block_col_idx_array.get_data();
-    auto values = as_device_type(block_value_array.get_data());
+    auto block_row_idxs = block_row_idx_array.get_data();
+    auto block_col_idxs = block_col_idx_array.get_data();
+    auto block_values = as_device_type(block_value_array.get_data());
     auto block_ptrs = block_ptr_array.get_data();
     auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
     // write (block_row, block_col, block_start_idx) tuples for each block
     thrust::copy_if(thrust::device, iota, iota + nnz, block_ptr_it,
                     adj_predicate);
     auto block_output_it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
-                           thrust::device_pointer_cast(col_idxs)));
+        thrust::make_tuple(thrust::device_pointer_cast(block_row_idxs),
+                           thrust::device_pointer_cast(block_col_idxs)));
     thrust::transform(
         thrust::device, block_ptr_it, block_ptr_it + num_blocks,
         block_output_it, [bs, in_rows, in_cols] __device__(size_type i) {
@@ -231,12 +231,13 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     thrust::for_each_n(
         thrust::device, iota, num_blocks,
         [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
-         values] __device__(size_type i) {
+         block_values] __device__(size_type i) {
             const auto block_begin = block_ptrs[i];
             const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
-                values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
+                block_values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                             (in_rows[nz] % bs)] =
+                    fake_complex_unpack(in_vals[nz]);
             }
         });
 }
