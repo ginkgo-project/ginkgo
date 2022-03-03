@@ -131,7 +131,6 @@ public:
         const matrix_data<ValueType, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
 
-
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
@@ -369,7 +368,7 @@ private:
 }  // namespace gko
 
 
-#endif
+#endif  // GINKGO_BUILD_MPI
 
 
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_

@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
 using comm_index_type = gko::distributed::comm_index_type;
 
 
@@ -120,7 +121,6 @@ gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
     return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
                                                                            md);
 }
-
 
 TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
 
