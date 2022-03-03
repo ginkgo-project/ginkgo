@@ -159,7 +159,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         if (step > 5) {
             Array<AbsType> cpu_out_array{
                 exec->get_master(),
-                Array<AbsType>::view(exec, bucket.size, tmp_out)};
+                make_array_view(exec, bucket.size, tmp_out)};
             auto begin = cpu_out_array.get_data();
             auto end = begin + bucket.size;
             auto middle = begin + rank;

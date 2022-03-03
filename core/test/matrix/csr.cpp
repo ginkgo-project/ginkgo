@@ -147,9 +147,9 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::Csr<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 4, values),
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs),
+        gko::make_array_view(this->exec, 4, values),
+        gko::make_array_view(this->exec, 4, col_idxs),
+        gko::make_array_view(this->exec, 4, row_ptrs),
         std::make_shared<typename Mtx::load_balance>(2));
 
     ASSERT_EQ(mtx->get_num_srow_elements(), 1);

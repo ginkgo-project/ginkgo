@@ -122,12 +122,10 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     // build COO representation of lower factor
     Array<IndexType> l_row_idxs{exec, l_nnz};
     // copy values from l_factor, which are the lower triangular values of A
-    auto l_vals_view =
-        Array<ValueType>::view(exec, l_nnz, l_factor->get_values());
+    auto l_vals_view = make_array_view(exec, l_nnz, l_factor->get_values());
     auto a_vals = Array<ValueType>{exec, l_vals_view};
     auto a_row_idxs = Array<IndexType>{exec, l_nnz};
-    auto a_col_idxs =
-        Array<IndexType>::view(exec, l_nnz, l_factor->get_col_idxs());
+    auto a_col_idxs = make_array_view(exec, l_nnz, l_factor->get_col_idxs());
     auto a_lower_coo =
         CooMatrix::create(exec, matrix_size, std::move(a_vals),
                           std::move(a_col_idxs), std::move(a_row_idxs));

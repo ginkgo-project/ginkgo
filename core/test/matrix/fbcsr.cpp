@@ -398,9 +398,9 @@ TYPED_TEST(Fbcsr, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::Fbcsr<value_type, index_type>::create(
         this->exec, gko::dim<2>{nbrows * bs, nbcols * bs}, bs,
-        gko::Array<value_type>::view(this->exec, bnnz * bs * bs, values),
-        gko::Array<index_type>::view(this->exec, bnnz, col_idxs),
-        gko::Array<index_type>::view(this->exec, nbrows + 1, row_ptrs));
+        gko::make_array_view(this->exec, bnnz * bs * bs, values),
+        gko::make_array_view(this->exec, bnnz, col_idxs),
+        gko::make_array_view(this->exec, nbrows + 1, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);

@@ -54,7 +54,7 @@ protected:
     template <typename Type, std::size_t size>
     gko::Array<Type> make_view(std::array<Type, size>& array)
     {
-        return gko::Array<Type>::view(exec, size, array.data());
+        return gko::make_array_view(exec, size, array.data());
     }
 
     MatricesNear()

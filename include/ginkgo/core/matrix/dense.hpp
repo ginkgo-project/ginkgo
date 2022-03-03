@@ -866,10 +866,9 @@ public:
 
         return Dense<remove_complex<ValueType>>::create(
             this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
-                this->get_executor(), num_rows * stride,
-                reinterpret_cast<remove_complex<ValueType>*>(
-                    this->get_values())),
+            make_array_view(this->get_executor(), num_rows * stride,
+                            reinterpret_cast<remove_complex<ValueType>*>(
+                                this->get_values())),
             stride);
     }
 
@@ -888,7 +887,7 @@ public:
 
         return Dense<remove_complex<ValueType>>::create(
             this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
+            make_array_view(
                 this->get_executor(), num_rows * stride,
                 const_cast<remove_complex<ValueType>*>(
                     reinterpret_cast<const remove_complex<ValueType>*>(
@@ -1114,10 +1113,9 @@ protected:
         return Dense::create(
             this->get_executor(),
             dim<2>{range_result.length(0), range_result.length(1)},
-            Array<ValueType>::view(
-                this->get_executor(),
-                range_result.length(0) * range_this.length(1) - columns.begin,
-                range_result->data),
+            make_array_view(this->get_executor(),
+                            range_result.length(0) * this->get_stride(),
+                            range_result->data),
             stride);
     }
 

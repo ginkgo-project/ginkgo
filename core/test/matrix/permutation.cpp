@@ -136,7 +136,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -191,7 +191,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{4, 2},
-                     gko::Array<i_type>::view(this->exec, 3, data)),
+                     gko::make_array_view(this->exec, 3, data)),
                  gko::ValueMismatch);
 }
 
@@ -203,7 +203,7 @@ TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     auto mask = m->get_permute_mask();
     ASSERT_EQ(m->get_const_permutation(), data);
@@ -225,7 +225,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{3, 4},
-                     gko::Array<i_type>::view(this->exec, 3, data),
+                     gko::make_array_view(this->exec, 3, data),
                      gko::matrix::column_permute),
                  gko::ValueMismatch);
 }

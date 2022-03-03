@@ -127,7 +127,7 @@ TYPED_TEST(RowGatherer, RowGathererCanBeConstructedFromExistingData)
 
     auto m = gko::matrix::RowGatherer<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_row_idxs(), data);
 }
@@ -140,7 +140,7 @@ TYPED_TEST(RowGatherer, RowGathererThrowsforWrongRowPermDimensions)
 
     ASSERT_THROW(gko::matrix::RowGatherer<i_type>::create(
                      this->exec, gko::dim<2>{4, 2},
-                     gko::Array<i_type>::view(this->exec, 3, data)),
+                     gko::make_array_view(this->exec, 3, data)),
                  gko::ValueMismatch);
 }
 

@@ -1246,7 +1246,7 @@ void is_sorted_by_column_index(
     const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
     *is_sorted = true;
-    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
+    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
     auto gpu_array = Array<bool>{exec, cpu_array};
     auto block_size = default_block_size;
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);

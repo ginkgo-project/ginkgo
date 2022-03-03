@@ -471,8 +471,8 @@ void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
         // matrix on the array to avoid special-casing cross-executor copies
         auto tmp_result =
             Dense{exec, result->get_size(),
-                  Array<ValueType>::view(exec, result_array->get_num_elems(),
-                                         result_array->get_data()),
+                  make_array_view(exec, result_array->get_num_elems(),
+                                  result_array->get_data()),
                   result->get_stride()};
         exec->run(dense::make_copy(this, &tmp_result));
     } else {
