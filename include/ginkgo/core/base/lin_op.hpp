@@ -171,6 +171,17 @@ public:
         return this;
     }
 
+    std::shared_ptr<AsyncHandle> apply(const LinOp* b, LinOp* x,
+                                       std::shared_ptr<AsyncHandle> handle)
+    {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        return this->apply_impl(make_temporary_clone(exec, b).get(),
+                                make_temporary_clone(exec, x).get(), handle);
+        // this->template log<log::Logger::linop_apply_completed>(this, b, x);
+    }
+
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
@@ -369,6 +380,10 @@ protected:
      * @param x  the output vector(s) where the result is stored
      */
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
+
+    virtual std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* b, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -1088,6 +1103,18 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b, x);
         return self();
+    }
+
+    std::shared_ptr<AsyncHandle> apply(const LinOp* b, LinOp* x,
+                                       std::shared_ptr<AsyncHandle> handle)
+    {
+        this->template log<log::Logger::linop_apply_started>(this, b, x);
+        this->validate_application_parameters(b, x);
+        auto exec = this->get_executor();
+        return this->apply_impl(make_temporary_clone(exec, b).get(),
+                                make_temporary_clone(exec, x).get(), handle);
+        // this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        // return self();
     }
 
     const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,

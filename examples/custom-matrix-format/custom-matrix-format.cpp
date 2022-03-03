@@ -142,20 +142,27 @@ protected:
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);
 
-        auto dense_x2 = vec::create(exec);
-        dense_x2->copy_from(dense_x);
+        // we need separate implementations depending on the executor, so we
+        // create an operation which maps the call to the correct implementation
+        exec->run(stencil_operation(coefficients, dense_b, dense_x),
+                  exec->get_default_exec_stream());
+        exec->get_default_exec_stream()->wait();
+    }
+
+    std::shared_ptr<gko::AsyncHandle> apply_impl(
+        const gko::LinOp* b, gko::LinOp* x,
+        std::shared_ptr<gko::AsyncHandle> handle) const override
+    {
+        // we only implement the operator for dense RHS.
+        // gko::as will throw an exception if its argument is not Dense.
+        auto exec = this->get_executor();
+        auto dense_b = gko::as<vec>(b);
+        auto dense_x = gko::as<vec>(x);
 
         // we need separate implementations depending on the executor, so we
         // create an operation which maps the call to the correct implementation
-        auto handle1 = gko::CudaAsyncHandle::create(
-            gko::CudaAsyncHandle::create_type::non_blocking);
-        auto handle2 = exec->run(
-            stencil_operation(coefficients, dense_b, dense_x), handle1);
-        auto handle =
-            exec->run(stencil_operation(coefficients, dense_b, dense_x2.get()),
-                      exec->get_default_exec_stream());
-        handle2->wait();
-        handle->wait();
+        return exec->run(stencil_operation(coefficients, dense_b, dense_x),
+                         handle);
     }
 
     // There is also a version of the apply function which does the operation
@@ -279,7 +286,8 @@ int main(int argc, char* argv[])
             {"cuda",
              [] {
                  return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+                                                  true,
+                                                  gko::allocation_mode::device);
              }},
             {"hip",
              [] {
@@ -305,22 +313,34 @@ int main(int argc, char* argv[])
     auto u1 = correct_u(1);
 
     // initialize vectors
-    auto rhs = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
-    generate_rhs(f, u0, u1, lend(rhs));
-    auto u = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
-    for (int i = 0; i < u->get_size()[0]; ++i) {
-        u->get_values()[i] = 0.0;
+    auto rhs_h = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    generate_rhs(f, u0, u1, lend(rhs_h));
+    auto rhs = vec::create(exec, gko::dim<2>(discretization_points, 1));
+    rhs->copy_from(rhs_h.get());
+    auto rhs2 = vec::create(exec, gko::dim<2>(discretization_points, 1));
+    rhs2->copy_from(rhs_h.get());
+    auto uh = vec::create(app_exec, gko::dim<2>(discretization_points, 1));
+    for (int i = 0; i < uh->get_size()[0]; ++i) {
+        uh->get_values()[i] = 0.0;
     }
+    auto u = vec::create(exec, gko::dim<2>(discretization_points, 1));
+    u->copy_from(uh.get());
+    auto u2 = vec::create(exec, gko::dim<2>(discretization_points, 1));
+    u2->copy_from(u.get());
 
     const RealValueType reduction_factor{1e-7};
     auto mat = StencilMatrix<ValueType>::create(exec, discretization_points, -1,
                                                 2, -1);
+    auto mat2 = StencilMatrix<ValueType>::create(exec, discretization_points,
+                                                 -1, 2, -1);
 
     for (auto i = 0; i < 3; ++i) {
         mat->apply(lend(rhs), lend(u));
     }
 
     std::chrono::nanoseconds time(0);
+    std::chrono::nanoseconds time1(0);
+    std::chrono::nanoseconds time2(0);
     auto tic = std::chrono::steady_clock::now();
     for (auto i = 0; i < num_reps; ++i) {
         mat->apply(lend(rhs), lend(u));
@@ -328,8 +348,31 @@ int main(int argc, char* argv[])
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
+    std::shared_ptr<gko::AsyncHandle> handle;
+    std::shared_ptr<gko::AsyncHandle> handle2;
+    auto chandle = gko::CudaAsyncHandle::create(
+        gko::CudaAsyncHandle::create_type::non_blocking);
+    auto chandle2 = gko::CudaAsyncHandle::create(
+        gko::CudaAsyncHandle::create_type::non_blocking);
+    auto tic1 = std::chrono::steady_clock::now();
+    for (auto i = 0; i < num_reps; ++i) {
+        handle = mat->apply(lend(rhs), lend(u2), chandle);
+        handle2 = mat2->apply(lend(rhs2), lend(u2), chandle2);
+    }
+    auto toc1 = std::chrono::steady_clock::now();
+    handle->wait();
+    handle2->wait();
+    auto toc2 = std::chrono::steady_clock::now();
+    time1 += std::chrono::duration_cast<std::chrono::nanoseconds>(toc1 - tic1);
+    time2 += std::chrono::duration_cast<std::chrono::nanoseconds>(toc2 - tic1);
+
     std::cout << "\nApply complete."
-              << "\nMatrix size: " << mat->get_size() << "\n Total time (ms):"
+              << "\nMatrix size: " << mat->get_size()
+              << "\n Total time (sync) (ms):"
               << static_cast<double>(time.count() / num_reps) / 1000000.0
+              << "\n Total time  (async) (call only) (ms):"
+              << static_cast<double>(time1.count() / num_reps) / 1000000.0
+              << "\n Total time  (async) (call + run) (ms):"
+              << static_cast<double>(time2.count() / num_reps) / 1000000.0
               << std::endl;
 }
