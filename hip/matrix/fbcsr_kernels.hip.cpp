@@ -96,6 +96,7 @@ constexpr int default_block_size{512};
 
 namespace {
 
+
 template <typename ValueType>
 void dense_transpose(std::shared_ptr<const HipExecutor> exec,
                      const size_type nrows, const size_type ncols,
@@ -119,6 +120,7 @@ void dense_transpose(std::shared_ptr<const HipExecutor> exec,
         GKO_NOT_IMPLEMENTED;
     }
 }
+
 
 }  // namespace
 
