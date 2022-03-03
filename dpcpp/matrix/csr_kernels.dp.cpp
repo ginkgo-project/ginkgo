@@ -1125,7 +1125,14 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "load_balance") {
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: zero output
+        dense::fill(exec, c, zero<ValueType>());
+        return;
+    }
+    if (a->get_strategy()->get_name() == "load_balance") {
         dense::fill(exec, c, zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
@@ -1216,7 +1223,14 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "load_balance") {
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: scale output
+        dense::scale(exec, beta, c);
+        return;
+    }
+    if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
         const IndexType nwarps = a->get_num_srow_elements();
