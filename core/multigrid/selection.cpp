@@ -91,13 +91,21 @@ void Selection<ValueType, IndexType>::generate()
         // keep the same precision data in fine_op
         this->set_fine_op(selection_op_shared_ptr);
     }
-    // Use -1 as sentinel value
-    coarse_rows_ = Array<IndexType>(exec, num_rows);
-    coarse_rows_.fill(-one<IndexType>());
 
-    // Fill with incremental local indices.
-    exec->run(selection::make_fill_incremental_indices(parameters_.num_jumps,
-                                                       &coarse_rows_));
+    if (parameters_.coarse_rows.get_data() == nullptr) {
+        // Use -1 as sentinel value
+        coarse_rows_ = Array<IndexType>(exec, num_rows);
+        coarse_rows_.fill(-one<IndexType>());
+
+        // Fill with incremental local indices.
+        exec->run(selection::make_fill_incremental_indices(
+            parameters_.num_jumps, &coarse_rows_));
+    } else {
+        GKO_NOT_IMPLEMENTED;
+        // Fill with coarse rows converted to local indices.
+        // exec->run(selection::make_fill_coarse_indices(
+        //     parameters_.num_jumps, &coarse_rows_));
+    }
 
     gko::dim<2>::dimension_type coarse_dim =
         (coarse_rows_.get_num_elems() + 1) / parameters_.num_jumps;

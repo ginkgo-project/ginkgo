@@ -50,19 +50,9 @@ namespace multigrid {
 
 
 /**
- * Amgx parallel graph match (Selection) is the aggregate method introduced in
- * the paper M. Naumov et al., "AmgX: A Library for GPU Accelerated Algebraic
- * Multigrid and Preconditioned Iterative Methods". Current implementation only
- * contains size = 2 version.
- *
- * Selection creates the aggregate group according to the matrix value not the
- * structure. Selection gives two steps (one-phase handshaking) to group the
- * elements.
- * 1: get the strongest neighbor of each unaggregated element.
- * 2: group the elements whose strongest neighbor is each other.
- * repeating until reaching the given conditions. After that, the
- * un-aggregated elements are assigned to an aggregated group
- * or are left alone.
+ * Selection is a very simple coarse grid generation algorithm. It selects the
+ * coarse matrix from the fine matrix by either constant jumps or with a
+ * user-specified index_set of rows.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -92,18 +82,14 @@ public:
     }
 
     /**
-     * Returns the aggregate group.
+     * Returns the selected coarse rows.
      *
-     * Aggregate group whose size is same as the number of rows. Stores the
-     * mapping information from row index to coarse row index.
-     * i.e., agg[row_idx] = coarse_row_idx.
-     *
-     * @return the aggregate group.
+     * @return the selected coarse rows.
      */
     IndexType* get_coarse_rows() noexcept { return coarse_rows_.get_data(); }
 
     /**
-     * @copydoc Selection::get_agg()
+     * @copydoc Selection::get_coarse_rows()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -118,34 +104,16 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The maximum number of iterations. We use the same default value as
-         * NVIDIA AMGX Reference Manual (October 2017, API Version 2,
-         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
+         * The number of jumps between the rows to be selected. For example if
+         * set to 2, every second row is selected in the coarse grid matrix.
+         */
+        Array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
+
+        /**
+         * The number of jumps between the rows to be selected. For example if
+         * set to 2, every second row is selected in the coarse grid matrix.
          */
         unsigned GKO_FACTORY_PARAMETER_SCALAR(num_jumps, 2u);
-
-        /**
-         * The maximum number of iterations. We use the same default value as
-         * NVIDIA AMGX Reference Manual (October 2017, API Version 2,
-         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
-         */
-        unsigned GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 15u);
-
-        /**
-         * The maximum ratio of unassigned number, which is valid in the
-         * interval 0.0 ~ 1.0. We use the same default value as NVIDIA AMGX
-         * Reference Manual (October 2017, API Version 2,
-         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
-         */
-        double GKO_FACTORY_PARAMETER_SCALAR(max_unassigned_ratio, 0.05);
-
-        /**
-         * The maximum ratio of unassigned number, which is valid in the
-         * interval 0.0 ~ 1.0. We use the same default value as NVIDIA AMGX
-         * Reference Manual (October 2017, API Version 2,
-         * https://github.com/NVIDIA/AMGX/blob/main/doc/AMGX_Reference.pdf).
-         */
-        double GKO_FACTORY_PARAMETER_SCALAR(influence_threshold, 0.25);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
