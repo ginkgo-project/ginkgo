@@ -161,9 +161,9 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
     vec->read_distributed(this->md, this->part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 
 
@@ -180,14 +180,14 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     if (rank == 1) {
-        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                     gko::dim<2>(6, 2));
         GKO_ASSERT_MTX_NEAR(
-            vec->get_local(),
+            vec->get_local_vector(),
             l({{0., 1.}, {2., 3.}, {4., 5.}, {6., 7.}, {8., 9.}, {10., 11.}}),
             0.0);
     } else {
-        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                     gko::dim<2>(0, 2));
     }
 }
@@ -218,9 +218,9 @@ TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
     vec->read_distributed(md, part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 
 
@@ -244,8 +244,8 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataScattered)
     vec->read_distributed(md, part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(), ref_size[rank]);
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(), ref_size[rank]);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 
 
@@ -271,9 +271,9 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixData)
     vec->read_distributed(md[rank], part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                 gko::dim<2>(2, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), ref_data[rank], 0.0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 
 
@@ -302,15 +302,15 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
     if (rank == 1) {
-        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                     gko::dim<2>(6, 2));
         GKO_ASSERT_MTX_NEAR(
-            vec->get_local(),
+            vec->get_local_vector(),
             I<I<value_type>>(
                 {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}),
             0.0);
     } else {
-        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local()->get_size(),
+        GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
                                     gko::dim<2>(0, 2));
     }
 }
@@ -331,7 +331,7 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
                                      local_vec.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), clone_local_vec, 0);
 }
 
 
@@ -346,7 +346,7 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
     auto vec = dist_vec_type::create(this->exec, this->comm, local_vec.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec, gko::dim<2>(6, 2));
-    GKO_ASSERT_MTX_NEAR(vec->get_local(), clone_local_vec, 0);
+    GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), clone_local_vec, 0);
 }
 
 
@@ -717,7 +717,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
     this->local_x->convert_to(local_tmp.get());
     this->x->convert_to(tmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local(), local_tmp, 0.0);
+    GKO_ASSERT_MTX_NEAR(tmp->get_local_vector(), local_tmp, 0.0);
 }
 
 
@@ -734,7 +734,7 @@ TYPED_TEST(VectorLocalOps, MovesToPrecision)
     this->local_x->move_to(local_tmp.get());
     this->x->move_to(tmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local(), local_tmp, 0.0);
+    GKO_ASSERT_MTX_NEAR(tmp->get_local_vector(), local_tmp, 0.0);
 }
 
 
@@ -746,7 +746,7 @@ TYPED_TEST(VectorLocalOps, ComputeAbsoluteSameAsLocal)
     auto local_abs = this->local_x->compute_absolute();
     auto abs = this->x->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs->get_local(), local_abs, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(abs->get_local_vector(), local_abs, r<value_type>::value);
 }
 
 
@@ -758,7 +758,7 @@ TYPED_TEST(VectorLocalOps, ComputeAbsoluteInplaceSameAsLocal)
     this->local_x->compute_absolute_inplace();
     this->x->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x,
                         r<value_type>::value);
 }
 
@@ -771,7 +771,7 @@ TYPED_TEST(VectorLocalOps, MakeComplexSameAsLocal)
     this->complex = this->x->make_complex();
     this->local_complex = this->local_x->make_complex();
 
-    GKO_ASSERT_MTX_NEAR(this->complex->get_local(), this->local_complex, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex, 0.0);
 }
 
 
@@ -783,7 +783,7 @@ TYPED_TEST(VectorLocalOps, MakeComplexInplaceSameAsLocal)
     this->x->make_complex(this->complex.get());
     this->local_x->make_complex(this->local_complex.get());
 
-    GKO_ASSERT_MTX_NEAR(this->complex->get_local(), this->local_complex, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex, 0.0);
 }
 
 
@@ -795,7 +795,7 @@ TYPED_TEST(VectorLocalOps, GetRealSameAsLocal)
     this->real = this->complex->get_real();
     this->local_real = this->local_complex->get_real();
 
-    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local_vector(), this->local_real, 0.0);
 }
 
 
@@ -807,7 +807,7 @@ TYPED_TEST(VectorLocalOps, GetRealInplaceSameAsLocal)
     this->complex->get_real(this->real.get());
     this->local_complex->get_real(this->local_real.get());
 
-    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local_vector(), this->local_real, 0.0);
 }
 
 
@@ -818,7 +818,7 @@ TYPED_TEST(VectorLocalOps, GetImagSameAsLocal)
     this->real = this->complex->get_imag();
     this->local_real = this->local_complex->get_imag();
 
-    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local_vector(), this->local_real, 0.0);
 }
 
 
@@ -829,7 +829,7 @@ TYPED_TEST(VectorLocalOps, GetImagInplaceSameAsLocal)
     this->complex->get_imag(this->real.get());
     this->local_complex->get_imag(this->local_real.get());
 
-    GKO_ASSERT_MTX_NEAR(this->real->get_local(), this->local_real, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->real->get_local_vector(), this->local_real, 0.0);
 }
 
 
@@ -844,7 +844,7 @@ TYPED_TEST(VectorLocalOps, FillSameAsLocal)
     this->x->fill(value);
     this->local_x->fill(value);
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x, 0.0);
 }
 
 
@@ -856,7 +856,7 @@ TYPED_TEST(VectorLocalOps, ScaleSameAsLocal)
     this->x->scale(this->alpha.get());
     this->local_x->scale(this->alpha.get());
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x,
                         r<value_type>::value);
 }
 
@@ -869,7 +869,7 @@ TYPED_TEST(VectorLocalOps, InvScaleSameAsLocal)
     this->x->inv_scale(this->alpha.get());
     this->local_x->inv_scale(this->alpha.get());
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x,
                         r<value_type>::value);
 }
 
@@ -882,7 +882,7 @@ TYPED_TEST(VectorLocalOps, AddScaleSameAsLocal)
     this->x->add_scaled(this->alpha.get(), this->y.get());
     this->local_x->add_scaled(this->alpha.get(), this->local_y.get());
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x,
                         r<value_type>::value);
 }
 
@@ -895,7 +895,7 @@ TYPED_TEST(VectorLocalOps, SubScaleSameAsLocal)
     this->x->sub_scaled(this->alpha.get(), this->y.get());
     this->local_x->sub_scaled(this->alpha.get(), this->local_y.get());
 
-    GKO_ASSERT_MTX_NEAR(this->x->get_local(), this->local_x,
+    GKO_ASSERT_MTX_NEAR(this->x->get_local_vector(), this->local_x,
                         r<value_type>::value);
 }
 
@@ -908,10 +908,10 @@ TYPED_TEST(VectorLocalOps, CreateRealViewSameAsLocal)
     auto local_rv = this->local_x->create_real_view();
 
     GKO_ASSERT_EQUAL_ROWS(rv, this->x);
-    GKO_ASSERT_EQUAL_ROWS(rv->get_local(), local_rv);
-    GKO_ASSERT_EQUAL_COLS(rv->get_local(), local_rv);
-    EXPECT_EQ(rv->get_const_local()->get_stride(), local_rv->get_stride());
-    GKO_ASSERT_MTX_NEAR(rv->get_const_local(), local_rv, 0.0);
+    GKO_ASSERT_EQUAL_ROWS(rv->get_local_vector(), local_rv);
+    GKO_ASSERT_EQUAL_COLS(rv->get_local_vector(), local_rv);
+    EXPECT_EQ(rv->get_local_vector()->get_stride(), local_rv->get_stride());
+    GKO_ASSERT_MTX_NEAR(rv->get_local_vector(), local_rv, 0.0);
 }
 
 
