@@ -150,7 +150,7 @@ Array<IndexType> IndexSet<IndexType>::map_local_to_global(
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(index_set::make_local_to_global(
         this->get_num_subsets(), this->get_subsets_begin(),
-        this->get_subsets_end(), this->get_superset_indices(),
+        this->get_superset_indices(),
         static_cast<IndexType>(local_indices.get_num_elems()),
         local_indices.get_const_data(), global_indices.get_data(), is_sorted));
     return global_indices;

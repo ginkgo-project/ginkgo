@@ -190,7 +190,7 @@ public:
      * @param local_index  the local index.
      * @return  the global index from the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     index_type get_global_index(index_type local_index) const;
@@ -212,7 +212,7 @@ public:
      *
      * @return  the local index of the element in the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     index_type get_local_index(index_type global_index) const;
@@ -234,7 +234,7 @@ public:
      *
      * @return  the local index of the element in the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     index_type get_subset_id(index_type global_index) const;
@@ -301,7 +301,7 @@ public:
      *
      * @return  whether the element exists in the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     bool contains(const index_type global_index) const;

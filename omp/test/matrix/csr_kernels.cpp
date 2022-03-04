@@ -776,6 +776,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
     auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    drow_nnz.fill(gko::one<int>());
     auto smat1 = Mtx::create(
         this->ref, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
         std::move(gko::Array<ValueType>(this->ref, num_nnz)),
