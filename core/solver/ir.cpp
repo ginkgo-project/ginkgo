@@ -87,8 +87,8 @@ Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
         EnableLinOp<Ir>::operator=(other);
         EnableSolverBase<Ir>::operator=(other);
         EnableIterativeBase<Ir>::operator=(other);
-        set_solver(other.get_solver());
-        set_relaxation_factor(other.relaxation_factor_);
+        this->set_solver(other.get_solver());
+        this->set_relaxation_factor(other.relaxation_factor_);
         parameters_ = other.parameters_;
     }
     return *this;
@@ -102,8 +102,8 @@ Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
         EnableLinOp<Ir>::operator=(std::move(other));
         EnableSolverBase<Ir>::operator=(std::move(other));
         EnableIterativeBase<Ir>::operator=(std::move(other));
-        set_solver(other.get_solver());
-        set_relaxation_factor(other.relaxation_factor_);
+        this->set_solver(other.get_solver());
+        this->set_relaxation_factor(other.relaxation_factor_);
         other.set_solver(nullptr);
         other.set_relaxation_factor(nullptr);
         parameters_ = other.parameters_;

@@ -137,8 +137,7 @@ protected:
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<LowerTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<LowerTrs<ValueType, IndexType>,
-                           matrix::Csr<ValueType, IndexType>>{
+          EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},
           parameters_{factory->get_parameters()}

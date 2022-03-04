@@ -354,7 +354,7 @@ TYPED_TEST(Dense, CanCreateEmptySubmatrix)
     using value_type = typename TestFixture::value_type;
     auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
 
-    EXPECT_FALSE(submtx->get_size());
+    EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
 }
 
 

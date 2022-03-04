@@ -136,8 +136,7 @@ protected:
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<UpperTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<UpperTrs<ValueType, IndexType>,
-                           matrix::Csr<ValueType, IndexType>>{
+          EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},
           parameters_{factory->get_parameters()}

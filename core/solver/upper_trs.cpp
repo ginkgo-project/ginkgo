@@ -125,9 +125,8 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 trans_x = Vector::create(exec);
             }
             exec->run(upper_trs::make_solve(
-                gko::lend(this->get_system_matrix()),
-                gko::lend(this->solve_struct_), gko::lend(trans_b),
-                gko::lend(trans_x), dense_b, dense_x));
+                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                lend(trans_b), lend(trans_x), dense_b, dense_x));
         },
         b, x);
 }

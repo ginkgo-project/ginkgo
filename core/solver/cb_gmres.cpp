@@ -223,7 +223,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto one_op = initialize<Vector>({one<ValueType>()}, exec);
         auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-        const auto num_rows = this->get_size()[1];
+        const auto num_rows = this->get_size()[0];
         const auto num_rhs = dense_b->get_size()[1];
         auto residual = Vector::create_with_config_of(dense_b);
         /* The dimensions {x, y, z} explained for the krylov_bases:
