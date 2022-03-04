@@ -98,7 +98,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType num_subsets, const IndexType* subset_begin,
-                     const IndexType* subset_end,
                      const IndexType* superset_indices,
                      const IndexType num_indices,
                      const IndexType* local_indices, IndexType* global_indices,

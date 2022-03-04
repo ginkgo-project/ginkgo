@@ -236,16 +236,14 @@ TYPED_TEST(IndexSet, GetLocalIndicesIsEquivalentToReference)
         gko::Array<TypeParam>{this->ref, rand_local_arr.get_num_elems()};
     gko::kernels::reference::index_set::local_to_global(
         this->ref, ref_idx_set.get_num_subsets(),
-        ref_idx_set.get_subsets_begin(), ref_idx_set.get_subsets_end(),
-        ref_idx_set.get_superset_indices(),
+        ref_idx_set.get_subsets_begin(), ref_idx_set.get_superset_indices(),
         static_cast<TypeParam>(rand_local_arr.get_num_elems()),
         rand_local_arr.get_const_data(), ref_global_arr.get_data(), false);
     auto omp_global_arr =
         gko::Array<TypeParam>{this->omp, rand_local_arr.get_num_elems()};
     gko::kernels::omp::index_set::local_to_global(
         this->omp, omp_idx_set.get_num_subsets(),
-        omp_idx_set.get_subsets_begin(), omp_idx_set.get_subsets_end(),
-        omp_idx_set.get_superset_indices(),
+        omp_idx_set.get_subsets_begin(), omp_idx_set.get_superset_indices(),
         static_cast<TypeParam>(rand_local_arr.get_num_elems()),
         rand_local_arr.get_const_data(), omp_global_arr.get_data(), false);
 

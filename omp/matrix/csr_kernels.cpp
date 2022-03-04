@@ -731,7 +731,7 @@ void calculate_nonzeros_per_row_in_span(
 #pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
         row_nnz->get_data()[row - row_span.begin] = zero<IndexType>();
-        for (size_type nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
+        for (auto nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
             if (col_idxs[nnz] >= col_span.begin &&
                 col_idxs[nnz] < col_span.end) {
                 row_nnz->get_data()[row - row_span.begin]++;
@@ -763,7 +763,7 @@ void calculate_nonzeros_per_row_in_index_set(
     }
     Array<IndexType> l_idxs(exec, max_row_nnz);
     for (size_type set = 0; set < num_row_subsets; ++set) {
-        for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
+        for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             row_nnz->get_data()[res_row] = zero<IndexType>();
             gko::kernels::omp::index_set::global_to_local(
@@ -807,7 +807,7 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         size_type res_nnz = res_row_ptrs[row];
-        for (size_type nnz = row_ptrs[row_offset + row];
+        for (auto nnz = row_ptrs[row_offset + row];
              nnz < row_ptrs[row_offset + row + 1]; ++nnz) {
             const auto local_col = col_idxs[nnz] - col_offset;
             if (local_col >= 0 && local_col < num_cols) {
@@ -851,7 +851,7 @@ void compute_submatrix_from_index_set(
 
 #pragma omp parallel for
     for (size_type set = 0; set < num_row_subsets; ++set) {
-        for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
+        for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             size_type res_nnz = res_row_ptrs[row - row_subset_begin[set]];
             gko::kernels::omp::index_set::global_to_local(
