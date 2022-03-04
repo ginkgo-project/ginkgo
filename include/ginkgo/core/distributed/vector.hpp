@@ -66,7 +66,7 @@ namespace distributed {
  * Using this approach the size of the global vectors, as well as the size of
  * the local vectors, will be automatically inferred. It is possible to create a
  * vector with specified global and local sizes and fill the local vectors using
- * the accessor get_local.
+ * the accessor get_local_vector.
  *
  * @note Operations between two vectors (axpy, dot product, etc.) are only valid
  * if both vectors where created using the same partition.
@@ -86,6 +86,7 @@ class Vector
     friend class EnableCreateMethod<Vector<ValueType>>;
     friend class EnablePolymorphicObject<Vector<ValueType>, LinOp>;
     friend class Vector<to_complex<ValueType>>;
+    friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;
 
 public:
@@ -267,19 +268,65 @@ public:
     void compute_norm1(LinOp* result) const;
 
     /**
+     * Returns a single element of the multi-vector.
+     *
+     * @param row  the local row of the requested element
+     * @param col  the local column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the multi-vector
+     * is stored at (e.g. trying to call this method on a GPU multi-vector from
+     *        the OMP results in a runtime error)
+     */
+    value_type& at_local(size_type row, size_type col) noexcept;
+
+    /**
+     * @copydoc Vector::at(size_type, size_type)
+     */
+    value_type at_local(size_type row, size_type col) const noexcept;
+
+    /**
+     * Returns a single element of the multi-vector.
+     *
+     * Useful for iterating across all elements of the multi-vector.
+     * However, it is less efficient than the two-parameter variant of this
+     * method.
+     *
+     * @param idx  a linear index of the requested element
+     *             (ignoring the stride)
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the OMP results in a runtime error)
+     */
+    ValueType& at_local(size_type idx) noexcept;
+
+    /**
+     * @copydoc Vector::at(size_type)
+     */
+    ValueType at_local(size_type idx) const noexcept;
+
+    /**
+     * Returns a pointer to the array of local values of the multi-vector.
+     *
+     * @return the pointer to the array of local values
+     */
+    value_type* get_local_values();
+
+    /**
+     * @copydoc get_local_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_local_values();
+
+    /**
      * Direct (read) access to the underlying local local_vector_type vectors.
      *
      * @return a constant pointer to the underlying local_vector_type vectors
      */
-    const local_vector_type* get_const_local() const;
-
-    /*
-     * Direct (read/write) access to the underlying local_vector_type Dense
-     * vectors.
-     *
-     * @return a constant pointer to the underlying local_vector_type vectors
-     */
-    local_vector_type* get_local();
+    const local_vector_type* get_local_vector() const;
 
     /**
      * Create a real view of the (potentially) complex original multi-vector.
@@ -287,11 +334,6 @@ public:
      * is complex, the result is created by viewing the complex vector with as
      * real with a reinterpret_cast with twice the number of columns and
      * double the stride.
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * @copydoc create_real_view()
      */
     std::unique_ptr<const real_type> create_real_view() const;
 
