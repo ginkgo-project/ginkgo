@@ -76,13 +76,12 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
              matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
              matrix::Dense<ValueType>* Ap_bases,
-             matrix::Dense<ValueType>* Ap_norm,
              Array<size_type>& final_iter_nums)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             p_bases->at(i, j) = residual->at(i, j);
-            Ap_bases->at(i, j) = A_residual->at(i, j) / Ap_norm->at(0, j);
+            Ap_bases->at(i, j) = A_residual->at(i, j);
         }
         final_iter_nums.get_data()[j] = 0;
     }
@@ -93,22 +92,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
+            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* q,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Dense<ValueType>* rho,
-            const Array<stopping_status>* stop_status)
+            const matrix::Dense<ValueType>* Ap,
+            const matrix::Dense<ValueType>* Ap_norm,
+            const matrix::Dense<ValueType>* alpha,
+            const Array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (beta->at(j) != zero<ValueType>()) {
-                auto tmp = rho->at(j) / beta->at(j);
+            if (Ap_norm->at(j) != zero<ValueType>()) {
+                auto tmp = alpha->at(j) / Ap_norm->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
-                r->at(i, j) -= tmp * q->at(i, j);
+                residual->at(i, j) -= tmp * Ap->at(i, j);
             }
         }
     }

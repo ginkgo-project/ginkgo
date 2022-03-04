@@ -40,10 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-
 
 #include "core/solver/gcr_kernels.hpp"
 
@@ -123,10 +121,10 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         dense_b, exec, dim<2>{num_rows * (krylov_dim_ + 1), num_rhs});
     //    std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
     //        Vector::create_with_config_of(dense_b);
+    auto alpha = Vector::create(exec, dim<2>{1, num_rhs});
+    auto beta = Vector::create(exec, dim<2>{1, num_rhs});
     auto residual_norm = NormVector::create(exec, dim<2>{1, num_rhs});
-    auto Ap_norm = NormVector::create(exec, dim<2>{1, num_rhs});
-    auto alpha = NormVector::create(exec, dim<2>{1, num_rhs});
-    auto beta = NormVector::create(exec, dim<2>{1, num_rhs});
+    auto Ap_norms = Vector::create(exec, dim<2>{krylov_dim_ + 1, num_rhs});
     Array<size_type> final_iter_nums(this->get_executor(), num_rhs);
 
     // indicates if one vectors status changed
@@ -144,16 +142,11 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // A_residual = A*residual
     system_matrix_->apply(residual.get(), A_residual.get());
 
-    // compute initial norms
-    residual->compute_norm2(residual_norm.get());
-    A_residual->compute_norm2(Ap_norm.get());
     // p(:, 1) = residual
-    // Ap(:,1) = Ap(:,1)/norm2(Ap:,1)
+    // Ap(:,1) = A_residual(:,1)
     // final_iter_nums = {0, ..., 0}
     exec->run(gcr::make_restart(residual.get(), A_residual.get(), p_bases.get(),
-                                Ap_bases.get(), Ap_norm.get(),
-                                final_iter_nums));
-
+                                Ap_bases.get(), final_iter_nums));
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
@@ -169,18 +162,22 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     while (true) {
         ++total_iter;
+        // compute norm
+        residual->compute_norm2(residual_norm.get());
         // Log current iteration
-        // TODO: note in include/ginkgo/core/log/logger.hpp says
-        // iteration_complete template is deprecated
         this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual.get(), dense_x, residual_norm.get());
+            this, total_iter, residual.get(), dense_x, nullptr,
+            residual_norm.get());
         // Check stopping criterion
         if (stop_criterion->update()
                 .num_iterations(total_iter)
                 .residual(residual.get())
                 .residual_norm(residual_norm.get())
                 .solution(dense_x)
-                .check(RelativeStoppingId, false, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            std::cout << "Done with:\nIterations: " << total_iter << "\n";
+            //                "\nResidual norm: ";
+            //            gko::write(std::cout, residual_norm.get());
             break;
         }
 
@@ -189,7 +186,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Restart
             exec->run(gcr::make_restart(residual.get(), A_residual.get(),
                                         p_bases.get(), Ap_bases.get(),
-                                        Ap_norm.get(), final_iter_nums));
+                                        final_iter_nums));
             restart_iter = 0;
         }
         // compute alpha
@@ -200,13 +197,19 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             span{num_rows * restart_iter, num_rows * (restart_iter + 1)},
             span{0, num_rhs});
         residual->compute_conj_dot(Ap.get(), alpha.get());
-        // tmp = alpha / 1
+        // normalise
+        auto Ap_norm = Ap_norms->create_submatrix(
+            span{restart_iter, restart_iter + 1}, span{0, num_rhs});
+        Ap->compute_conj_dot(Ap.get(), Ap_norm.get());
+
+        // tmp = alpha / Ap_norm
         // x = x + tmp * p
         // r = r - tmp * Ap
         exec->run(gcr::make_step_1(dense_x, residual.get(), p.get(), Ap.get(),
-                                   one_op.get(), alpha.get(), &stop_status));
+                                   Ap_norm.get(), alpha.get(), stop_status));
         // compute and save Ar
         system_matrix_->apply(residual.get(), A_residual.get());
+
         // modified Gram-Schmidt
         auto next_Ap = Ap_bases->create_submatrix(
             span{num_rows * (restart_iter + 1), num_rows * (restart_iter + 2)},
@@ -223,14 +226,14 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
             p = p_bases->create_submatrix(
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
-            // beta = Ar*Ap
+            Ap_norm =
+                Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
+            // beta = Ar*Ap/Ap*Ap
             A_residual->compute_conj_dot(Ap.get(), beta.get());
+            beta->inv_scale(Ap_norm.get());
             next_Ap->sub_scaled(beta.get(), Ap.get());
             next_p->sub_scaled(beta.get(), p.get());
         }
-        // normalise Ap
-        next_Ap->compute_norm2(Ap_norm.get());
-        next_Ap->inv_scale(Ap_norm.get());
         restart_iter++;
     }
 }

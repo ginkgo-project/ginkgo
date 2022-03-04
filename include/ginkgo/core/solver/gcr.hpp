@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_GCR_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_GCR_HPP_
 
 
 #include <vector>
@@ -53,16 +53,17 @@ namespace gko {
 namespace solver {
 
 
-constexpr size_type default_krylov_dim = 100u;
+constexpr size_type gcr_default_krylov_dim = 100u;
 
 
 /**
- * GMRES or the generalized minimal residual method is an iterative type Krylov
- * subspace method which is suitable for nonsymmetric linear systems.
+ * GCR or the generalized conjugate residual method is an iterative type Krylov
+ * subspace method similar to GMRES which is suitable for nonsymmetric linear
+ * systems.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of GMRES are
- * merged into 2 separate steps. Modified Gram-Schmidt is used.
+ * use of data locality. The inner operations in one iteration of GCR are
+ * merged into one step. Modified Gram-Schmidt is used.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -201,7 +202,7 @@ protected:
         if (parameters_.krylov_dim) {
             krylov_dim_ = parameters_.krylov_dim;
         } else {
-            krylov_dim_ = default_krylov_dim;
+            krylov_dim_ = gcr_default_krylov_dim;
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -218,4 +219,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_GMRES_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_GCR_HPP_

@@ -60,16 +60,15 @@ namespace gcr {
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Dense<_type>* residual,                            \
         matrix::Dense<_type>* A_residual, matrix::Dense<_type>* p_bases, \
-        matrix::Dense<_type>* Ap_bases, matrix::Dense<_type>* Ap_norm,   \
-        Array<size_type>& final_iter_nums)
+        matrix::Dense<_type>* Ap_bases, Array<size_type>& final_iter_nums)
 
-#define GKO_DECLARE_GCR_STEP_1_KERNEL(_type)                                  \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::Dense<_type>* x, matrix::Dense<_type>* r,             \
-                const matrix::Dense<_type>* p, const matrix::Dense<_type>* q, \
-                const matrix::Dense<_type>* beta,                             \
-                const matrix::Dense<_type>* rho,                              \
-                const Array<stopping_status>* stop_status)
+#define GKO_DECLARE_GCR_STEP_1_KERNEL(_type)                                   \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,                   \
+                matrix::Dense<_type>* x, matrix::Dense<_type>* residual,       \
+                const matrix::Dense<_type>* p, const matrix::Dense<_type>* Ap, \
+                const matrix::Dense<_type>* Ap_norm,                           \
+                const matrix::Dense<_type>* alpha,                             \
+                const Array<stopping_status>& stop_status)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \
     template <typename ValueType>                 \

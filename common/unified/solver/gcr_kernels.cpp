@@ -49,9 +49,6 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 namespace gcr {
 
-// TODO: Non-functioning kernels implemented just to try and get the reference
-//  kernel implementation to compile
-
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ValueType>* b,
@@ -61,7 +58,11 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto b, auto residual, auto stop) {
-            // TODO: implement kernel
+            if (row == 0) {
+                stop[col].reset();
+            }
+            // TODO: possibly set other vals to zero here?
+            residual(row, col) = b(row, col);
         },
         b->get_size(), b->get_stride(), b, default_stride(residual),
         stop_status);
@@ -76,18 +77,21 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
              matrix::Dense<ValueType>* A_residual,
              matrix::Dense<ValueType>* p_bases,
              matrix::Dense<ValueType>* Ap_bases,
-             matrix::Dense<ValueType>* Ap_norm,
              Array<size_type>& final_iter_nums)
 {
-    run_kernel(
+    run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto residual, auto A_residual,
-                      auto p_bases, auto Ap_bases, auto Ap_norm,
-                      auto final_iter_nums) {
-            // TODO: implement kernel
+        [] GKO_KERNEL(auto row, auto col, auto residual, auto A_residual,
+                      auto p_bases, auto Ap_bases, auto final_iter_nums) {
+            if (row == 0) {
+                final_iter_nums[col] = 0;
+            }
+            p_bases(row, col) = residual(row, col);
+            Ap_bases(row, col) = A_residual(row, col);
         },
-        residual->get_size(), residual, A_residual, p_bases, Ap_bases, Ap_norm,
-        final_iter_nums);
+        residual->get_size(), residual->get_stride(), residual,
+        default_stride(A_residual), default_stride(p_bases),
+        default_stride(Ap_bases), final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
@@ -95,27 +99,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_RESTART_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
+            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* q,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Dense<ValueType>* rho,
-            const Array<stopping_status>* stop_status)
+            const matrix::Dense<ValueType>* Ap,
+            const matrix::Dense<ValueType>* Ap_norm,
+            const matrix::Dense<ValueType>* alpha,
+            const Array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
-                      auto beta, auto rho, auto stop) {
-            // TODO: double check kernel. Currently the same as cg step_2
-            //  kernel. Possibly needs slight modification
+        [] GKO_KERNEL(auto row, auto col, auto x, auto residual, auto p,
+                      auto Ap, auto Ap_norm, auto alpha, auto stop) {
             if (!stop[col].has_stopped()) {
-                auto tmp = safe_divide(rho[col], beta[col]);
+                auto tmp = safe_divide(alpha[col], Ap_norm[col]);
                 x(row, col) += tmp * p(row, col);
-                r(row, col) -= tmp * q(row, col);
+                residual(row, col) -= tmp * Ap(row, col);
             }
         },
-        x->get_size(), r->get_stride(), x, default_stride(r), default_stride(p),
-        default_stride(q), row_vector(beta), row_vector(rho), *stop_status);
+        x->get_size(), x->get_stride(), x, default_stride(residual),
+        default_stride(p), default_stride(Ap), row_vector(Ap_norm),
+        row_vector(alpha), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);
