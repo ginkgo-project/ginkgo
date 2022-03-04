@@ -133,10 +133,9 @@ void Vector<ValueType>::read_distributed(
                global_cols));
 
     auto rank = this->get_communicator().rank();
-    this->get_local()->fill(zero<ValueType>());
+    local_.fill(zero<ValueType>());
     exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank,
-        this->get_local()));
+        data, make_temporary_clone(exec, partition).get(), rank, &local_));
 }
 
 
@@ -157,7 +156,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::fill(const ValueType value)
 {
-    this->get_local()->fill(value);
+    local_.fill(value);
 }
 
 
@@ -168,7 +167,7 @@ void Vector<ValueType>::convert_to(
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
     result->set_size(this->get_size());
-    this->get_const_local()->convert_to(result->get_local());
+    this->get_local_vector()->convert_to(&result->local_);
 }
 
 
@@ -187,10 +186,10 @@ Vector<ValueType>::compute_absolute() const
 
     auto result =
         absolute_type::create(exec, this->get_communicator(), this->get_size(),
-                              this->get_const_local()->get_size());
+                              this->get_local_vector()->get_size());
 
-    exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
-                                                   result->get_local()));
+    exec->run(vector::make_outplace_absolute_dense(this->get_local_vector(),
+                                                   &result->local_));
 
     return result;
 }
@@ -199,20 +198,13 @@ Vector<ValueType>::compute_absolute() const
 template <typename ValueType>
 void Vector<ValueType>::compute_absolute_inplace()
 {
-    this->get_local()->compute_absolute_inplace();
+    local_.compute_absolute_inplace();
 }
 
 
 template <typename ValueType>
 const typename Vector<ValueType>::local_vector_type*
-Vector<ValueType>::get_const_local() const
-{
-    return &local_;
-}
-
-
-template <typename ValueType>
-typename Vector<ValueType>::local_vector_type* Vector<ValueType>::get_local()
+Vector<ValueType>::get_local_vector() const
 {
     return &local_;
 }
@@ -224,8 +216,8 @@ Vector<ValueType>::make_complex() const
 {
     auto result = complex_type::create(
         this->get_executor(), this->get_communicator(), this->get_size(),
-        this->get_const_local()->get_size(),
-        this->get_const_local()->get_stride());
+        this->get_local_vector()->get_size(),
+        this->get_local_vector()->get_stride());
     this->make_complex(result.get());
     return result;
 }
@@ -234,7 +226,7 @@ Vector<ValueType>::make_complex() const
 template <typename ValueType>
 void Vector<ValueType>::make_complex(Vector::complex_type* result) const
 {
-    this->get_const_local()->make_complex(result->get_local());
+    this->get_local_vector()->make_complex(&result->local_);
 }
 
 
@@ -242,10 +234,10 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_real() const
 {
-    auto result =
-        real_type::create(this->get_executor(), this->get_communicator(),
-                          this->get_size(), this->get_const_local()->get_size(),
-                          this->get_const_local()->get_stride());
+    auto result = real_type::create(this->get_executor(),
+                                    this->get_communicator(), this->get_size(),
+                                    this->get_local_vector()->get_size(),
+                                    this->get_local_vector()->get_stride());
     this->get_real(result.get());
     return result;
 }
@@ -254,7 +246,7 @@ Vector<ValueType>::get_real() const
 template <typename ValueType>
 void Vector<ValueType>::get_real(Vector::real_type* result) const
 {
-    this->get_const_local()->get_real(result->get_local());
+    this->get_local_vector()->get_real(&result->local_);
 }
 
 
@@ -262,10 +254,10 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_imag() const
 {
-    auto result =
-        real_type::create(this->get_executor(), this->get_communicator(),
-                          this->get_size(), this->get_const_local()->get_size(),
-                          this->get_const_local()->get_stride());
+    auto result = real_type::create(this->get_executor(),
+                                    this->get_communicator(), this->get_size(),
+                                    this->get_local_vector()->get_size(),
+                                    this->get_local_vector()->get_stride());
     this->get_imag(result.get());
     return result;
 }
@@ -274,21 +266,21 @@ Vector<ValueType>::get_imag() const
 template <typename ValueType>
 void Vector<ValueType>::get_imag(Vector::real_type* result) const
 {
-    this->get_const_local()->get_imag(result->get_local());
+    this->get_local_vector()->get_imag(&result->local_);
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::scale(const LinOp* alpha)
 {
-    this->get_local()->scale(alpha);
+    local_.scale(alpha);
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::inv_scale(const LinOp* alpha)
 {
-    this->get_local()->inv_scale(alpha);
+    local_.inv_scale(alpha);
 }
 
 
@@ -296,7 +288,7 @@ template <typename ValueType>
 void Vector<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
-    this->get_local()->add_scaled(alpha, dense_b->get_const_local());
+    local_.add_scaled(alpha, dense_b->get_local_vector());
 }
 
 
@@ -304,7 +296,7 @@ template <typename ValueType>
 void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
-    this->get_local()->sub_scaled(alpha, dense_b->get_const_local());
+    local_.sub_scaled(alpha, dense_b->get_local_vector());
 }
 
 
@@ -315,8 +307,8 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_const_local()->compute_dot(as<Vector>(b)->get_const_local(),
-                                         dense_res.get());
+    this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
+                                          dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -340,8 +332,8 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_const_local()->compute_conj_dot(as<Vector>(b)->get_const_local(),
-                                              dense_res.get());
+    this->get_local_vector()->compute_conj_dot(
+        as<Vector>(b)->get_local_vector(), dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -366,7 +358,7 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_squared_norm2(this->get_const_local(),
+    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
                                                  dense_res.get()));
     exec->synchronize();
     auto use_host_buffer =
@@ -393,7 +385,7 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    this->get_const_local()->compute_norm1(dense_res.get());
+    this->get_local_vector()->compute_norm1(dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -411,26 +403,38 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
 
 
 template <typename ValueType>
+ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
+{
+    return local_.at(row, col);
+}
+
+template <typename ValueType>
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
+{
+    return local_.at(row, col);
+}
+
+template <typename ValueType>
+ValueType& Vector<ValueType>::at_local(size_type idx) noexcept
+{
+    return local_.at(idx);
+}
+
+template <typename ValueType>
+ValueType Vector<ValueType>::at_local(size_type idx) const noexcept
+{
+    return local_.at(idx);
+}
+
+
+template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
 {
     if (this->get_size() != global_size) {
         this->set_size(global_size);
     }
-    this->get_local()->resize(local_size);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename Vector<ValueType>::real_type>
-Vector<ValueType>::create_real_view()
-{
-    const auto num_global_rows = this->get_size()[0];
-    const auto num_cols =
-        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
-
-    return real_type::create(this->get_executor(), this->get_communicator(),
-                             dim<2>{num_global_rows, num_cols},
-                             local_.create_real_view().get());
+    local_.resize(local_size);
 }
 
 
