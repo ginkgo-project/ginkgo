@@ -74,8 +74,9 @@ __global__
         // only consider threads in the current block
         const auto first_thread = block_base_col - base_col;
         const auto last_thread = first_thread + block_size;
-        assert(first_thread < int(config::warp_size));
-        assert(last_thread >= 0);
+        // HIP compiles these assertions in Release, traps unconditionally
+        // assert(first_thread < int(config::warp_size));
+        // assert(last_thread >= 0);
         // mask off everything below first_thread
         const auto lower_mask =
             first_thread < 0 ? full_mask : ~((one_mask << first_thread) - 1u);
@@ -147,8 +148,9 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
         // only consider threads in the current block
         const auto first_thread = block_base_col - base_col;
         const auto last_thread = first_thread + block_size;
-        assert(first_thread < int(config::warp_size));
-        assert(last_thread >= 0);
+        // HIP compiles these assertions in Release, traps unconditionally
+        // assert(first_thread < int(config::warp_size));
+        // assert(last_thread >= 0);
         // mask off everything below first_thread
         const auto lower_mask =
             first_thread < 0 ? full_mask : ~((one_mask << first_thread) - 1u);
