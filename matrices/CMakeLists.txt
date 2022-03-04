@@ -50,3 +50,6 @@ configure_file("test/bddc_matrices/phi_rank_0.mtx" "${Ginkgo_BINARY_DIR}/matrice
 configure_file("test/bddc_matrices/phi_rank_1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/bddc_matrices/phi_rank_1.mtx")
 configure_file("test/bddc_matrices/phi_rank_2.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/bddc_matrices/phi_rank_2.mtx")
 configure_file("test/bddc_matrices/phi_rank_3.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/bddc_matrices/phi_rank_3.mtx")
+configure_file("test/mc64_result.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/mc64_result.mtx")
+configure_file("test/nontrivial_mc64_example.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_example.mtx")
+configure_file("test/nontrivial_mc64_result.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/nontrivial_mc64_result.mtx")

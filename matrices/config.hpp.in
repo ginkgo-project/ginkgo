@@ -95,6 +95,12 @@ const char* location_bddc_coarse_2 =
     "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_2.mtx";
 const char* location_bddc_coarse_3 =
     "@Ginkgo_BINARY_DIR@/matrices/test/bddc_matrices/coarse_rank_3.mtx";
+const char* location_1138_bus_mc64_result =
+    "@Ginkgo_BINARY_DIR@/matrices/test/mc64_result.mtx";
+const char* location_nontrivial_mc64_example = 
+    "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_example.mtx";
+const char* location_nontrivial_mc64_result = 
+    "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_result.mtx";
 
 
 }  // namespace matrices
