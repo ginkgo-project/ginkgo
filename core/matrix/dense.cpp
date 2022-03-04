@@ -465,19 +465,17 @@ void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
     if (result->get_size() != this->get_size()) {
         result->resize(this->get_size());
     }
-    // we need to create a clone of the local data, so the target executor can
-    // copy it.
-    auto result_exec = result->get_executor();
-    auto result_input = make_temporary_clone(result_exec, &values_);
+    // we need to create a temporary clone of the target data to write to
+    auto exec = this->get_executor();
+    auto result_output = make_temporary_clone(exec, &result->values_);
     // create a (value, not pointer to avoid allocation overhead) view
     // matrix on the array to avoid special-casing cross-executor copies
-    auto tmp_this = Dense{
-        result_exec, this->get_size(),
-        gko::detail::array_const_cast(gko::detail::ConstArrayView<ValueType>(
-            result_exec, result_input->get_num_elems(),
-            result_input->get_const_data())),
-        this->get_stride()};
-    result_exec->run(dense::make_copy(&tmp_this, result));
+    auto tmp_result =
+        Dense{exec, this->get_size(),
+              make_array_view(exec, result_output->get_num_elems(),
+                              result_output->get_data()),
+              result->get_stride()};
+    exec->run(dense::make_copy(this, &tmp_result));
 }
 
 
