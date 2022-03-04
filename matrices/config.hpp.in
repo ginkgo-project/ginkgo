@@ -67,6 +67,12 @@ const char* location_ani4_amd_chol_mtx =
 const char* location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
 const char* location_1138_bus_mtx =
     "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+const char* location_1138_bus_mc64_result =
+    "@Ginkgo_BINARY_DIR@/matrices/test/mc64_result.mtx";
+const char* location_nontrivial_mc64_example = 
+    "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_example.mtx";
+const char* location_nontrivial_mc64_result = 
+    "@Ginkgo_BINARY_DIR@/matrices/test/nontrivial_mc64_result.mtx";
 
 
 }  // namespace matrices

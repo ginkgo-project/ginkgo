@@ -137,6 +137,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include <ginkgo/core/reorder/amd.hpp>
+#include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/reorder/nested_dissection.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>

@@ -61,6 +61,8 @@ GKO_REGISTER_OPERATION(initialize_weights, mc64::initialize_weights);
 GKO_REGISTER_OPERATION(initial_matching, mc64::initial_matching);
 GKO_REGISTER_OPERATION(shortest_augmenting_path,
                        mc64::shortest_augmenting_path);
+GKO_REGISTER_OPERATION(compute_scaling, mc64::compute_scaling);
+GKO_REGISTER_OPERATION(update_dual_vectors, mc64::update_dual_vectors);
 
 
 }  // anonymous namespace
@@ -74,6 +76,7 @@ void Mc64<ValueType, IndexType>::generate(
 {
     auto mtx = as<matrix_type>(system_matrix);
     size_type num_rows = mtx->get_size()[0];
+    size_type nnz = mtx->get_num_stored_elements();
 
     Array<remove_complex<ValueType>> workspace{exec};
     Array<IndexType> permutation{exec, num_rows};
@@ -83,28 +86,41 @@ void Mc64<ValueType, IndexType>::generate(
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
 
-    exec->run(mc64::make_initialize_weights(mtx.get(), workspace));
+    exec->run(mc64::make_initialize_weights(mtx.get(), workspace,
+                                            parameters_.strategy));
 
     std::list<IndexType> unmatched_rows{};
     exec->run(mc64::make_initial_matching(num_rows, row_ptrs, col_idxs,
                                           workspace, permutation,
                                           inv_permutation, unmatched_rows));
 
-    Array<IndexType> parents{exec, num_rows};
+    // exec->run(mc64::make_update_dual_vectors(num_rows, row_ptrs, col_idxs,
+    // permutation, workspace));
+
+    Array<IndexType> parents{exec, 4 * num_rows};
+    addressable_priority_queue<remove_complex<ValueType>, IndexType, 2> Q{};
+    parents.fill(-2);
     for (auto root : unmatched_rows) {
         exec->run(mc64::make_shortest_augmenting_path(
             num_rows, row_ptrs, col_idxs, workspace, permutation,
-            inv_permutation, root, parents));
+            inv_permutation, root, parents, Q));
     }
-
+    // std::cout << "\n";
     permutation_->copy_from(
-        PermutationMatrix::create(exec, system_matrix->get_size(), permutation)
+        PermutationMatrix::create(
+            exec, system_matrix->get_size(), permutation,
+            gko::matrix::row_permute | matrix::inverse_permute)
             .get());
     inv_permutation_->copy_from(
         share(PermutationMatrix::create(exec, system_matrix->get_size(),
                                         inv_permutation,
                                         matrix::column_permute))
             .get());
+    row_scaling_->copy_from(DiagonalMatrix::create(exec, num_rows));
+    col_scaling_->copy_from(DiagonalMatrix::create(exec, num_rows));
+    exec->run(
+        mc64::make_compute_scaling(mtx.get(), workspace, parameters_.strategy,
+                                   row_scaling_.get(), col_scaling_.get()));
 }
 
 
