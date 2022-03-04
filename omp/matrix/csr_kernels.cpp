@@ -756,13 +756,16 @@ void calculate_nonzeros_per_row_in_index_set(
     auto row_subset_end = row_index_set.get_subsets_end();
     auto src_ptrs = source->get_const_row_ptrs();
     size_type res_row = 0;
+    size_type max_row_nnz = 0;
+    for (size_type i = 1; i < source->get_size()[0] + 1; i++) {
+        max_row_nnz =
+            std::max<size_type>(max_row_nnz, src_ptrs[i] - src_ptrs[i - 1]);
+    }
+    Array<IndexType> l_idxs(exec, max_row_nnz);
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             row_nnz->get_data()[res_row] = zero<IndexType>();
-            Array<IndexType> l_idxs(
-                exec,
-                static_cast<size_type>(src_ptrs[row + 1] - src_ptrs[row]));
             gko::kernels::omp::index_set::global_to_local(
                 exec, col_index_set.get_size(), col_index_set.get_num_subsets(),
                 col_index_set.get_subsets_begin(),
@@ -839,15 +842,18 @@ void compute_submatrix_from_index_set(
     const auto src_row_ptrs = source->get_const_row_ptrs();
     const auto src_col_idxs = source->get_const_col_idxs();
     const auto src_values = source->get_const_values();
+    size_type max_row_nnz = 0;
+    for (size_type i = 1; i < source->get_size()[0] + 1; i++) {
+        max_row_nnz = std::max<size_type>(
+            max_row_nnz, src_row_ptrs[i] - src_row_ptrs[i - 1]);
+    }
+    Array<IndexType> l_idxs(exec, max_row_nnz);
 
 #pragma omp parallel for
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (size_type row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             size_type res_nnz = res_row_ptrs[row - row_subset_begin[set]];
-            Array<IndexType> l_idxs(
-                exec, static_cast<size_type>(src_row_ptrs[row + 1] -
-                                             src_row_ptrs[row]));
             gko::kernels::omp::index_set::global_to_local(
                 exec, col_index_set.get_size(), col_index_set.get_num_subsets(),
                 col_index_set.get_subsets_begin(),
