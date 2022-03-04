@@ -155,10 +155,8 @@ protected:
           system_matrix_{system_matrix},
           coarse_rows_(factory->get_executor(), system_matrix_->get_size()[0])
     {
-        GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
-        GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
+            // generate on the existing matrix
             this->generate();
         }
     }
