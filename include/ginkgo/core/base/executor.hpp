@@ -1246,6 +1246,48 @@ private:
     bool device_reset_{};
 };
 
+template <typename ConcreteExecutor>
+class EnableAsyncHandle {
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
+    friend class ReferenceExecutor;
+
+public:
+    /**
+     * Set the device reset capability.
+     *
+     * @param device_reset  whether to allow a device reset or not
+     */
+    void emplace_back(std::shared_ptr<AsyncHandle> handle)
+    {
+        this->handles_.emplace_back(handle);
+    }
+
+    /**
+     * Returns the current status of the device reset boolean for this executor.
+     *
+     * @return the current status of the device reset boolean for this executor.
+     */
+    std::shared_ptr<AsyncHandle> get_handle_at(const int id)
+    {
+        return this->handles_[id];
+    }
+
+protected:
+    /**
+     * Instantiate an EnableDeviceReset class
+     *
+     * @param device_reset  the starting device_reset status. Defaults to false.
+     */
+    EnableAsyncHandle(int num_additional_handles)
+    {
+        static_cast<ConcreteExecutor*>(this)->init_async_handles(
+            this->handles_);
+    }
+
+private:
+    std::vector<std::shared_ptr<AsyncHandle>> handles_;
+};
+
 
 }  // namespace detail
 
@@ -1599,6 +1641,16 @@ public:
      */
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
+    /**
+     * Get the closest NUMA node
+     *
+     * @return  the closest NUMA node closest to this device
+     */
+    std::shared_ptr<CudaAsyncHandle> get_async_handle_at(const int id) const
+    {
+        return this->async_handles_[id];
+    }
+
 protected:
     void set_gpu_property();
 
@@ -1606,10 +1658,13 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
-                 allocation_mode alloc_mode = default_cuda_alloc_mode)
+                 allocation_mode alloc_mode = default_cuda_alloc_mode,
+                 int num_additional_handles = 0)
         : EnableDeviceReset{device_reset},
           alloc_mode_{alloc_mode},
-          master_(master)
+          master_(master),
+          async_handles_()
+
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1628,13 +1683,20 @@ protected:
         this->init_handles();
         mem_space_instance_ = CudaMemorySpace::create(device_id);
         this->default_exec_stream_ = CudaAsyncHandle::create();
+        for (int i = 0; i < num_additional_handles + 1; ++i) {
+            this->async_handles_.emplace_back(CudaAsyncHandle::create(
+                CudaAsyncHandle::create_type::non_blocking));
+        }
+        GKO_ASSERT(this->async_handles_.size() == (num_additional_handles + 1));
     }
 
     CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
-                 std::shared_ptr<Executor> master, bool device_reset = false)
+                 std::shared_ptr<Executor> master, bool device_reset = false,
+                 int num_additional_handles = 0)
         : EnableDeviceReset{device_reset},
           mem_space_instance_(mem_space),
-          master_(master)
+          master_(master),
+          async_handles_()
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1655,6 +1717,11 @@ protected:
             GKO_MEMSPACE_MISMATCH(NOT_CUDA);
         }
         this->default_exec_stream_ = CudaAsyncHandle::create();
+        for (int i = 0; i < num_additional_handles + 1; ++i) {
+            this->async_handles_.emplace_back(CudaAsyncHandle::create(
+                CudaAsyncHandle::create_type::non_blocking));
+        }
+        GKO_ASSERT(this->async_handles_.size() == (num_additional_handles + 1));
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)

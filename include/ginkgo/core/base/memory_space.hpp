@@ -530,8 +530,10 @@ public:
 protected:
     CudaMemorySpace()
     {
-        this->default_input_stream_ = {};
-        this->default_output_stream_ = {};
+        this->default_input_stream_ = gko::CudaAsyncHandle::create(
+            CudaAsyncHandle::create_type::non_blocking);
+        this->default_output_stream_ = gko::CudaAsyncHandle::create(
+            CudaAsyncHandle::create_type::non_blocking);
     }
 
     CudaMemorySpace(int device_id);
@@ -594,8 +596,10 @@ public:
 protected:
     CudaUVMSpace()
     {
-        this->default_input_stream_ = {};
-        this->default_output_stream_ = {};
+        this->default_input_stream_ = gko::CudaAsyncHandle::create(
+            CudaAsyncHandle::create_type::non_blocking);
+        this->default_output_stream_ = gko::CudaAsyncHandle::create(
+            CudaAsyncHandle::create_type::non_blocking);
     }
 
     CudaUVMSpace(int device_id);
@@ -658,8 +662,10 @@ public:
 protected:
     HipMemorySpace()
     {
-        this->default_input_stream_ = {};
-        this->default_output_stream_ = {};
+        this->default_input_stream_ = gko::HipAsyncHandle::create(
+            HipAsyncHandle::create_type::non_blocking);
+        this->default_output_stream_ = gko::HipAsyncHandle::create(
+            HipAsyncHandle::create_type::non_blocking);
     }
 
     HipMemorySpace(int device_id);
