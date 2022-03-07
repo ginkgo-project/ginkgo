@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype, itype>(mtx_fd);
+            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
 
             auto nrhs = FLAGS_nrhs;
             auto b = create_matrix<etype>(exec, gko::dim<2>{data.size[1], nrhs},

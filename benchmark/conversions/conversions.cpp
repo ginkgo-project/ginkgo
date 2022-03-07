@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
         std::ifstream mtx_fd(test_case["filename"].GetString());
         gko::matrix_data<etype, itype> data;
         try {
-            data = gko::read_raw<etype, itype>(mtx_fd);
+            data = gko::read_generic_raw<etype, itype>(mtx_fd);
         } catch (std::exception& e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;

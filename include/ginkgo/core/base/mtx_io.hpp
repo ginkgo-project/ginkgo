@@ -62,6 +62,46 @@ matrix_data<ValueType, IndexType> read_raw(std::istream& is);
 
 
 /**
+ * Reads a matrix stored in Ginkgo's binary matrix format from an input stream.
+ * Note that this format depends on the processor's endianness,
+ * so files from a big endian processor can't be read from a little endian
+ * processor and vice-versa.
+ *
+ * @tparam ValueType  type of matrix values
+ * @tparam IndexType  type of matrix indexes
+ *
+ * @param is  input stream from which to read the data
+ *
+ * @return A matrix_data structure containing the matrix. The nonzero elements
+ *         are sorted in lexicographic order of their (row, colum) indexes.
+ *
+ * @note This is an advanced routine that will return the raw matrix data
+ *       structure. Consider using gko::read_binary instead.
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
+
+
+/**
+ * Reads a matrix stored in either binary or matrix market format from an input
+ * stream.
+ *
+ * @tparam ValueType  type of matrix values
+ * @tparam IndexType  type of matrix indexes
+ *
+ * @param is  input stream from which to read the data
+ *
+ * @return A matrix_data structure containing the matrix. The nonzero elements
+ *         are sorted in lexicographic order of their (row, colum) indexes.
+ *
+ * @note This is an advanced routine that will return the raw matrix data
+ *       structure. Consider using gko::read_generic instead.
+ */
+template <typename ValueType = default_precision, typename IndexType = int32>
+matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is);
+
+
+/**
  * Specifies the layout type when writing data in matrix market format.
  */
 enum class layout_type {
@@ -96,6 +136,28 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
 
 
 /**
+ * Writes a matrix_data structure to a stream in binary format.
+ * Note that this format depends on the processor's endianness,
+ * so files from a big endian processor can't be read from a little endian
+ * processor and vice-versa.
+ *
+ * @tparam ValueType  type of matrix values
+ * @tparam IndexType  type of matrix indexes
+ *
+ * @param os  output stream where the data is to be written
+ * @param data  the matrix data to write
+ * @param layout  the layout used in the output
+ *
+ * @note This is an advanced routine that writes the raw matrix data structure.
+ *       If you are trying to write an existing matrix, consider using
+ *       gko::write_binary instead.
+ */
+template <typename ValueType, typename IndexType>
+void write_binary_raw(std::ostream& os,
+                      const matrix_data<ValueType, IndexType>& data);
+
+
+/**
  * Reads a matrix stored in matrix market format from an input stream.
  *
  * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
@@ -115,6 +177,57 @@ inline std::unique_ptr<MatrixType> read(StreamType&& is, MatrixArgs&&... args)
     auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
     mtx->read(read_raw<typename MatrixType::value_type,
                        typename MatrixType::index_type>(is));
+    return mtx;
+}
+
+
+/**
+ * Reads a matrix stored in binary format from an input stream.
+ *
+ * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
+ *                     matrix once it's been read from disk.
+ * @tparam StreamType  type of stream used to write the data to
+ * @tparam MatrixArgs  additional argument types passed to MatrixType
+ *                     constructor
+ *
+ * @param is  input stream from which to read the data
+ * @param args  additional arguments passed to MatrixType constructor
+ *
+ * @return A MatrixType LinOp filled with data from filename
+ */
+template <typename MatrixType, typename StreamType, typename... MatrixArgs>
+inline std::unique_ptr<MatrixType> read_binary(StreamType&& is,
+                                               MatrixArgs&&... args)
+{
+    auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
+    mtx->read(read_binary_raw<typename MatrixType::value_type,
+                              typename MatrixType::index_type>(is));
+    return mtx;
+}
+
+
+/**
+ * Reads a matrix stored either in binary or matrix market format from an input
+ * stream.
+ *
+ * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
+ *                     matrix once it's been read from disk.
+ * @tparam StreamType  type of stream used to write the data to
+ * @tparam MatrixArgs  additional argument types passed to MatrixType
+ *                     constructor
+ *
+ * @param is  input stream from which to read the data
+ * @param args  additional arguments passed to MatrixType constructor
+ *
+ * @return A MatrixType LinOp filled with data from filename
+ */
+template <typename MatrixType, typename StreamType, typename... MatrixArgs>
+inline std::unique_ptr<MatrixType> read_generic(StreamType&& is,
+                                                MatrixArgs&&... args)
+{
+    auto mtx = MatrixType::create(std::forward<MatrixArgs>(args)...);
+    mtx->read(read_generic_raw<typename MatrixType::value_type,
+                               typename MatrixType::index_type>(is));
     return mtx;
 }
 
@@ -184,10 +297,10 @@ struct mtx_io_traits<gko::matrix::Fft3> {
 
 
 /**
- * Reads a matrix stored in matrix market format from an input stream.
+ * Writes a matrix into an output stream in matrix market format.
  *
- * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
- *                     matrix once it's been read from disk.
+ * @tparam MatrixType  a WritableToMatrixData object providing data to be
+ *                     written.
  * @tparam StreamType  type of stream used to write the data to
  *
  * @param os  output stream where the data is to be written
@@ -205,6 +318,31 @@ inline void write(
         data{};
     matrix->write(data);
     write_raw(os, data, layout);
+}
+
+
+/**
+ * Writes a matrix into an output stream in binary format.
+ * Note that this format depends on the processor's endianness,
+ * so files from a big endian processor can't be read from a little endian
+ * processor and vice-versa.
+ *
+ * @tparam MatrixType  a WritableToMatrixData object providing data to be
+ *                     written.
+ * @tparam StreamType  type of stream used to write the data to
+ *
+ * @param os  output stream where the data is to be written
+ * @param matrix  the matrix to write
+ * @param layout  the layout used in the output
+ */
+template <typename MatrixType, typename StreamType>
+inline void write_binary(StreamType&& os, MatrixType* matrix)
+{
+    matrix_data<typename MatrixType::value_type,
+                typename MatrixType::index_type>
+        data{};
+    matrix->write(data);
+    write_binary_raw(os, data);
 }
 
 
