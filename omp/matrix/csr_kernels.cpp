@@ -752,32 +752,35 @@ void calculate_nonzeros_per_row_in_index_set(
     const IndexSet<IndexType>& col_index_set, Array<IndexType>* row_nnz)
 {
     auto num_row_subsets = row_index_set.get_num_subsets();
+    auto num_col_subsets = col_index_set.get_num_subsets();
+    auto row_superset_indices = row_index_set.get_superset_indices();
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
+    auto col_subset_begin = col_index_set.get_subsets_begin();
+    auto col_subset_end = col_index_set.get_subsets_end();
     auto src_ptrs = source->get_const_row_ptrs();
-    size_type res_row = 0;
-    size_type max_row_nnz = 0;
-    for (size_type i = 1; i < source->get_size()[0] + 1; i++) {
-        max_row_nnz =
-            std::max<size_type>(max_row_nnz, src_ptrs[i] - src_ptrs[i - 1]);
-    }
-    Array<IndexType> l_idxs(exec, max_row_nnz);
+
+#pragma omp parallel for
     for (size_type set = 0; set < num_row_subsets; ++set) {
+        size_type res_row = row_superset_indices[set];
         for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
             row_nnz->get_data()[res_row] = zero<IndexType>();
-            gko::kernels::omp::index_set::global_to_local(
-                exec, col_index_set.get_size(), col_index_set.get_num_subsets(),
-                col_index_set.get_subsets_begin(),
-                col_index_set.get_subsets_end(),
-                col_index_set.get_superset_indices(),
-                static_cast<IndexType>(l_idxs.get_num_elems()),
-                source->get_const_col_idxs() + src_ptrs[row], l_idxs.get_data(),
-                false);
-            for (size_type nnz = 0; nnz < (src_ptrs[row + 1] - src_ptrs[row]);
-                 ++nnz) {
-                auto l_idx = l_idxs.get_const_data()[nnz];
-                if (l_idx != invalid_index<IndexType>()) {
+            for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
+                auto index = source->get_const_col_idxs()[i];
+                if (index >= col_index_set.get_size()) {
+                    continue;
+                }
+                const auto bucket = std::distance(
+                    col_subset_begin,
+                    std::upper_bound(col_subset_begin,
+                                     col_subset_begin + num_col_subsets,
+                                     index));
+                auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+                if (col_subset_end[shifted_bucket] <= index ||
+                    (index < col_subset_begin[shifted_bucket])) {
+                    continue;
+                } else {
                     row_nnz->get_data()[res_row]++;
                 }
             }
@@ -839,35 +842,37 @@ void compute_submatrix_from_index_set(
     auto res_row_ptrs = result->get_row_ptrs();
     auto res_col_idxs = result->get_col_idxs();
     auto res_values = result->get_values();
-    const auto src_row_ptrs = source->get_const_row_ptrs();
+    auto num_col_subsets = col_index_set.get_num_subsets();
+    auto col_subset_begin = col_index_set.get_subsets_begin();
+    auto col_subset_end = col_index_set.get_subsets_end();
+    auto col_superset_indices = col_index_set.get_superset_indices();
+    const auto src_ptrs = source->get_const_row_ptrs();
     const auto src_col_idxs = source->get_const_col_idxs();
     const auto src_values = source->get_const_values();
-    size_type max_row_nnz = 0;
-    for (size_type i = 1; i < source->get_size()[0] + 1; i++) {
-        max_row_nnz = std::max<size_type>(
-            max_row_nnz, src_row_ptrs[i] - src_row_ptrs[i - 1]);
-    }
-    Array<IndexType> l_idxs(exec, max_row_nnz);
 
-#pragma omp parallel for
+    size_type res_nnz = 0;
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
-            size_type res_nnz = res_row_ptrs[row - row_subset_begin[set]];
-            gko::kernels::omp::index_set::global_to_local(
-                exec, col_index_set.get_size(), col_index_set.get_num_subsets(),
-                col_index_set.get_subsets_begin(),
-                col_index_set.get_subsets_end(),
-                col_index_set.get_superset_indices(),
-                static_cast<IndexType>(l_idxs.get_num_elems()),
-                source->get_const_col_idxs() + src_row_ptrs[row],
-                l_idxs.get_data(), false);
-            for (size_type nnz = 0;
-                 nnz < (src_row_ptrs[row + 1] - src_row_ptrs[row]); ++nnz) {
-                auto l_idx = l_idxs.get_const_data()[nnz];
-                if (l_idx != invalid_index<IndexType>()) {
-                    res_col_idxs[res_nnz] = l_idx;
-                    res_values[res_nnz] = src_values[nnz + src_row_ptrs[row]];
+            for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
+                auto index = src_col_idxs[i];
+                if (index >= col_index_set.get_size()) {
+                    continue;
+                }
+                const auto bucket = std::distance(
+                    col_subset_begin,
+                    std::upper_bound(col_subset_begin,
+                                     col_subset_begin + num_col_subsets,
+                                     index));
+                auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+                if (col_subset_end[shifted_bucket] <= index ||
+                    (index < col_subset_begin[shifted_bucket])) {
+                    continue;
+                } else {
+                    res_col_idxs[res_nnz] =
+                        index - col_subset_begin[shifted_bucket] +
+                        col_superset_indices[shifted_bucket];
+                    res_values[res_nnz] = src_values[i];
                     res_nnz++;
                 }
             }
