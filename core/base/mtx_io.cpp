@@ -342,7 +342,8 @@ private:
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
-            return 2 * num_nonzeros - max(num_rows, num_cols);
+            return 2 * num_nonzeros -
+                   min(2 * num_nonzeros, max(num_rows, num_cols));
         }
 
         /**
@@ -432,7 +433,8 @@ private:
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
-            return 2 * num_nonzeros - max(num_rows, num_cols);
+            return 2 * num_nonzeros -
+                   min(2 * num_nonzeros, max(num_rows, num_cols));
         }
 
         /**
