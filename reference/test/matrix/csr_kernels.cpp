@@ -1830,6 +1830,18 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
 
         GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
     }
+
+    {
+        SCOPED_TRACE("Non Square 2x4");
+        auto row_set = gko::IndexSet<index_type>(this->exec, {5, 6});
+        auto col_set = gko::IndexSet<index_type>(this->exec, {4, 3, 0, 1});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>({I<T>{0.0, 1.0, 0.0, 2.0},   // 5
+                                          I<T>{0.0, 3.0, 7.5, 1.0}},  // 6
+                                         this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
 }
 
 

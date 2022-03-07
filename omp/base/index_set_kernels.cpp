@@ -165,7 +165,8 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
             subset_begin,
             std::upper_bound(subset_begin, subset_begin + num_subsets, index));
         auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
-        if (subset_end[shifted_bucket] <= index) {
+        if (subset_end[shifted_bucket] <= index ||
+            index < subset_begin[shifted_bucket]) {
             local_indices[i] = invalid_index<IndexType>();
         } else {
             local_indices[i] = index - subset_begin[shifted_bucket] +
