@@ -39,7 +39,7 @@ target_sources(ginkgo
     matrix/row_gatherer.cpp
     multigrid/amgx_pgm.cpp
     multigrid/fixed_coarsening.cpp
-    multigrid/selection.cpp
+    multigrid/uniform_coarsening.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp

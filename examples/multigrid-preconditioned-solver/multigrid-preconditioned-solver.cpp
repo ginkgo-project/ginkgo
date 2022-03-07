@@ -54,16 +54,17 @@ int main(int argc, char* argv[])
     using mg = gko::solver::Multigrid;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
-    using selection = gko::multigrid::Selection<ValueType, IndexType>;
+    using uniform_coarsening =
+        gko::multigrid::UniformCoarsening<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned num_jumps = argc >= 3 ? std::atoi(argv[2]) : 2u;
-    const std::string coarse_select = argc >= 4 ? std::string(argv[3]) : "none";
+    const std::string coarse_unif = argc >= 4 ? std::string(argv[3]) : "none";
     const unsigned grid_dim = argc >= 5 ? std::atoi(argv[4]) : 20u;
-    const bool use_coarse_select = !coarse_select.compare("coarse");
+    const bool use_uniform_coarsening = !coarse_unif.compare("coarse");
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -178,11 +179,8 @@ int main(int argc, char* argv[])
     auto mg_level_gen =
         gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
     // Create MultigridLevel factory
-    auto coarse_select =
-        gko::share(selection::build().with_num_jumps(num_jumps).on(exec));
-    std::cout << "Selection coarse size "
-              << coarse_select_gen->generate(A)->get_coarse_op()->get_size()
-              << std::endl;
+    auto coarse_unif_gen = gko::share(
+        uniform_coarsening::build().with_num_jumps(num_jumps).on(exec));
 
     // Create CoarsestSolver factory
     auto coarsest_gen = gko::share(
@@ -195,7 +193,7 @@ int main(int argc, char* argv[])
     // Create multigrid factory
     auto multigrid_gen = gko::share(mg::build()
                                         .with_max_levels(10u)
-                                        .with_min_coarse_rows(64u)
+                                        .with_min_coarse_rows(10u)
                                         .with_pre_smoother(smoother_gen)
                                         .with_post_uses_pre(true)
                                         .with_mg_level(gko::share(mg_level_gen))
@@ -203,18 +201,15 @@ int main(int argc, char* argv[])
                                         .with_zero_guess(true)
                                         .with_criteria(iter_stop, tol_stop)
                                         .on(exec));
-    std::cout << "MG num levels: "
-              << multigrid_gen->generate(A)->get_parameters().mg_level.size()
-              << std::endl;
-    if (use_coarse_select) {
-        std::cout << "Using Selection" << std::endl;
+    if (use_uniform_coarsening) {
+        std::cout << "Using Uniform Coarsening" << std::endl;
         multigrid_gen =
             gko::share(mg::build()
                            .with_max_levels(10u)
-                           .with_min_coarse_rows(64u)
+                           .with_min_coarse_rows(10u)
                            .with_pre_smoother(smoother_gen)
                            .with_post_uses_pre(true)
-                           .with_mg_level(gko::share(coarse_select_gen))
+                           .with_mg_level(gko::share(coarse_unif_gen))
                            .with_coarsest_solver(coarsest_gen)
                            .with_zero_guess(true)
                            .with_criteria(iter_stop, tol_stop)
@@ -223,11 +218,11 @@ int main(int argc, char* argv[])
         std::cout << "Using AMGX " << std::endl;
     }
     // Create solver factory
-    auto solver_gen = multigrid_gen;
-    // cg::build()
-    //     .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
-    //     .with_preconditioner(gko::share(multigrid_gen))
-    //     .on(exec);
+    auto solver_gen =
+        cg::build()
+            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_preconditioner(multigrid_gen)
+            .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();

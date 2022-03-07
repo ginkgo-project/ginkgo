@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/selection_kernels.hpp"
+#include "core/multigrid/uniform_coarsening_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -45,11 +45,11 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The AmgxPgm namespace.
+ * @brief The UniformCoarsening namespace.
  *
- * @ingroup selection
+ * @ingroup uniform_coarsening
  */
-namespace selection {
+namespace uniform_coarsening {
 
 
 template <typename ValueType, typename IndexType>
@@ -70,7 +70,7 @@ void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELECTION_FILL_RESTRICT_OP);
+    GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP);
 
 
 template <typename IndexType>
@@ -88,10 +88,10 @@ void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_SELECTION_FILL_INCREMENTAL_INDICES);
+    GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES);
 
 
-}  // namespace selection
+}  // namespace uniform_coarsening
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

@@ -15,7 +15,7 @@ set(UNIFIED_SOURCES
     matrix/sellp_kernels.cpp
     matrix/diagonal_kernels.cpp
     multigrid/amgx_pgm_kernels.cpp
-    multigrid/selection_kernels.cpp
+    multigrid/uniform_coarsening_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp

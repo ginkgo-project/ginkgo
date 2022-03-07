@@ -30,75 +30,58 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/selection_kernels.hpp"
+#ifndef GKO_CORE_MULTIGRID_UNIFORM_COARSENING_KERNELS_HPP_
+#define GKO_CORE_MULTIGRID_UNIFORM_COARSENING_KERNELS_HPP_
+
+
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 
 #include <memory>
-#include <tuple>
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <ginkgo/core/multigrid/selection.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/base/allocator.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/csr_builder.hpp"
+#include "core/base/kernel_declaration.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace reference {
-/**
- * @brief The SELECTION solver namespace.
- *
- * @ingroup selection
- */
-namespace selection {
+namespace uniform_coarsening {
+
+#define GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP(ValueType, IndexType) \
+    void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,        \
+                          const Array<IndexType>* coarse_rows,                \
+                          matrix::Csr<ValueType, IndexType>* restrict_op)
+
+#define GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES(IndexType)     \
+    void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec, \
+                                  size_type num_jumps,                         \
+                                  Array<IndexType>* coarse_rows)
 
 
-template <typename ValueType, typename IndexType>
-void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* coarse_rows,
-                      matrix::Csr<ValueType, IndexType>* restrict_op)
-{
-    auto num_rows = restrict_op->get_size()[0];
-    auto num_cols = restrict_op->get_size()[1];
-    GKO_ASSERT(num_cols == coarse_rows->get_num_elems());
-    GKO_ASSERT(num_cols >= num_rows);
-    auto coarse_data = coarse_rows->get_const_data();
-
-    for (IndexType j = 0; j < num_cols; ++j) {
-        if (coarse_data[j] >= 0) {
-            restrict_op->get_col_idxs()[coarse_data[j]] = j;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SELECTION_FILL_RESTRICT_OP);
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP(ValueType, IndexType); \
+    template <typename IndexType>                                          \
+    GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES(IndexType)
 
 
-template <typename IndexType>
-void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
-                              size_type num_jumps,
-                              Array<IndexType>* coarse_rows)
-{
-    IndexType i = 0;
-    for (i = 0; i < coarse_rows->get_num_elems(); i += num_jumps) {
-        coarse_rows->get_data()[i] = i / num_jumps;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
-    GKO_DECLARE_SELECTION_FILL_INCREMENTAL_INDICES);
+}  // namespace uniform_coarsening
 
 
-}  // namespace selection
-}  // namespace reference
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(uniform_coarsening,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CORE_MULTIGRID_UNIFORM_COARSENING_KERNELS_HPP_

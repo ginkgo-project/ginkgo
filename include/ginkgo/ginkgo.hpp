@@ -102,7 +102,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
-#include <ginkgo/core/multigrid/selection.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>

@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_MULTIGRID_SELECTION_HPP_
-#define GKO_PUBLIC_CORE_MULTIGRID_SELECTION_HPP_
+#ifndef GKO_PUBLIC_CORE_MULTIGRID_UNIFORM_COARSENING_HPP_
+#define GKO_PUBLIC_CORE_MULTIGRID_UNIFORM_COARSENING_HPP_
 
 
 #include <vector>
@@ -50,9 +50,9 @@ namespace multigrid {
 
 
 /**
- * Selection is a very simple coarse grid generation algorithm. It selects the
- * coarse matrix from the fine matrix by either constant jumps or with a
- * user-specified index_set of rows.
+ * UniformCoarsening is a very simple coarse grid generation algorithm. It
+ * selects the coarse matrix from the fine matrix by either constant jumps or
+ * with a user-specified index_set of rows.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -62,10 +62,11 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Selection : public EnableLinOp<Selection<ValueType, IndexType>>,
-                  public EnableMultigridLevel<ValueType> {
-    friend class EnableLinOp<Selection>;
-    friend class EnablePolymorphicObject<Selection, LinOp>;
+class UniformCoarsening
+    : public EnableLinOp<UniformCoarsening<ValueType, IndexType>>,
+      public EnableMultigridLevel<ValueType> {
+    friend class EnableLinOp<UniformCoarsening>;
+    friend class EnablePolymorphicObject<UniformCoarsening, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -89,7 +90,7 @@ public:
     IndexType* get_coarse_rows() noexcept { return coarse_rows_.get_data(); }
 
     /**
-     * @copydoc Selection::get_coarse_rows()
+     * @copydoc UniformCoarsening::get_coarse_rows()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -103,12 +104,6 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * The number of jumps between the rows to be selected. For example if
-         * set to 2, every second row is selected in the coarse grid matrix.
-         */
-        Array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
-
         /**
          * The number of jumps between the rows to be selected. For example if
          * set to 2, every second row is selected in the coarse grid matrix.
@@ -127,7 +122,7 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Selection, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(UniformCoarsening, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -142,18 +137,17 @@ protected:
         this->get_composition()->apply(alpha, b, beta, x);
     }
 
-    explicit Selection(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Selection>(std::move(exec))
+    explicit UniformCoarsening(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<UniformCoarsening>(std::move(exec))
     {}
 
-    explicit Selection(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Selection>(factory->get_executor(),
-                                 system_matrix->get_size()),
+    explicit UniformCoarsening(const Factory* factory,
+                               std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<UniformCoarsening>(factory->get_executor(),
+                                         system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          coarse_rows_(factory->get_executor(), system_matrix_->get_size()[0])
+          system_matrix_{system_matrix}
     {
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existing matrix
@@ -173,4 +167,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_MULTIGRID_SELECTION_HPP_
+#endif  // GKO_PUBLIC_CORE_MULTIGRID_UNIFORM_COARSENING_HPP_

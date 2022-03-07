@@ -1,3 +1,3 @@
 ginkgo_create_test(amgx_pgm)
 ginkgo_create_test(fixed_coarsening)
-ginkgo_create_test(selection)
+ginkgo_create_test(uniform_coarsening)

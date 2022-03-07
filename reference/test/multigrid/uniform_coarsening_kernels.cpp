@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/multigrid/selection.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 
 #include <memory>
@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/multigrid/selection_kernels.hpp"
+#include "core/multigrid/uniform_coarsening_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -61,7 +61,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class Selection : public ::testing::Test {
+class UniformCoarsening : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -70,13 +70,13 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
-    using MgLevel = gko::multigrid::Selection<value_type, index_type>;
+    using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
-    Selection()
+    UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
-          selection_factory(
+          uniform_coarsening_factory(
               MgLevel::build().with_num_jumps(2u).with_skip_sorting(true).on(
                   exec)),
           fine_b(gko::initialize<Vec>(
@@ -108,7 +108,7 @@ protected:
           coarse_rows(exec, 5)
     {
         this->create_mtx(mtx.get(), &coarse_rows, coarse.get());
-        mg_level = selection_factory->generate(mtx);
+        mg_level = uniform_coarsening_factory->generate(mtx);
     }
 
     void create_mtx(Mtx* fine, gko::Array<index_type>* coarse_rows, Mtx* coarse)
@@ -193,19 +193,20 @@ protected:
     std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
-    std::unique_ptr<typename MgLevel::Factory> selection_factory;
+    std::unique_ptr<typename MgLevel::Factory> uniform_coarsening_factory;
     std::unique_ptr<MgLevel> mg_level;
 };
 
-TYPED_TEST_SUITE(Selection, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(UniformCoarsening, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(Selection, CanBeCopied)
+TYPED_TEST(UniformCoarsening, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->selection_factory->generate(Mtx::create(this->exec));
+    auto copy =
+        this->uniform_coarsening_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(this->mg_level.get());
     auto copy_mtx = copy->get_system_matrix();
@@ -222,11 +223,12 @@ TYPED_TEST(Selection, CanBeCopied)
 }
 
 
-TYPED_TEST(Selection, CanBeMoved)
+TYPED_TEST(UniformCoarsening, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->selection_factory->generate(Mtx::create(this->exec));
+    auto copy =
+        this->uniform_coarsening_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(std::move(this->mg_level));
     auto copy_mtx = copy->get_system_matrix();
@@ -243,7 +245,7 @@ TYPED_TEST(Selection, CanBeMoved)
 }
 
 
-TYPED_TEST(Selection, CanBeCloned)
+TYPED_TEST(UniformCoarsening, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
@@ -262,7 +264,7 @@ TYPED_TEST(Selection, CanBeCloned)
 }
 
 
-TYPED_TEST(Selection, CanBeCleared)
+TYPED_TEST(UniformCoarsening, CanBeCleared)
 {
     using MgLevel = typename TestFixture::MgLevel;
 
@@ -277,9 +279,9 @@ TYPED_TEST(Selection, CanBeCleared)
 }
 
 
-TYPED_TEST(Selection, Generate)
+TYPED_TEST(UniformCoarsening, Generate)
 {
-    auto coarse_fine = this->selection_factory->generate(this->mtx);
+    auto coarse_fine = this->uniform_coarsening_factory->generate(this->mtx);
 
     auto sel_result = coarse_fine->get_const_coarse_rows();
 
@@ -291,73 +293,78 @@ TYPED_TEST(Selection, Generate)
 }
 
 
-TYPED_TEST(Selection, CoarseFineRestrictApply)
+TYPED_TEST(UniformCoarsening, CoarseFineRestrictApply)
 {
-    auto selection = this->selection_factory->generate(this->mtx);
+    auto uniform_coarsening =
+        this->uniform_coarsening_factory->generate(this->mtx);
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
 
-    selection->get_restrict_op()->apply(this->fine_b.get(), x.get());
+    uniform_coarsening->get_restrict_op()->apply(this->fine_b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
 }
 
 
-TYPED_TEST(Selection, CoarseFineProlongApplyadd)
+TYPED_TEST(UniformCoarsening, CoarseFineProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto selection = this->selection_factory->generate(this->mtx);
+    auto uniform_coarsening =
+        this->uniform_coarsening_factory->generate(this->mtx);
     auto one = gko::initialize<Vec>({value_type{1.0}}, this->exec);
     auto x = gko::clone(this->fine_x);
 
-    selection->get_prolong_op()->apply(one.get(), this->coarse_b.get(),
-                                       one.get(), x.get());
+    uniform_coarsening->get_prolong_op()->apply(one.get(), this->coarse_b.get(),
+                                                one.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans, r<value_type>::value);
 }
 
 
-TYPED_TEST(Selection, CoarseFineProlongApply)
+TYPED_TEST(UniformCoarsening, CoarseFineProlongApply)
 {
     using value_type = typename TestFixture::value_type;
-    auto selection = this->selection_factory->generate(this->mtx);
+    auto uniform_coarsening =
+        this->uniform_coarsening_factory->generate(this->mtx);
     auto x = gko::clone(this->fine_x);
 
-    selection->get_prolong_op()->apply(this->coarse_b.get(), x.get());
+    uniform_coarsening->get_prolong_op()->apply(this->coarse_b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
 }
 
 
-TYPED_TEST(Selection, Apply)
+TYPED_TEST(UniformCoarsening, Apply)
 {
     using VT = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto selection = this->selection_factory->generate(this->mtx);
+    auto uniform_coarsening =
+        this->uniform_coarsening_factory->generate(this->mtx);
     auto b = gko::clone(this->fine_x);
     auto x = gko::clone(this->fine_x);
-    auto exec = selection->get_executor();
+    auto exec = uniform_coarsening->get_executor();
     auto answer = gko::initialize<Vec>(
         {I<VT>({-7.0, -2.0}), I<VT>({0.0, 0.0}), I<VT>({1.0, -4.0}),
          I<VT>({0.0, 0.0}), I<VT>({2.0, 12.0})},
         exec);
 
-    selection->apply(b.get(), x.get());
+    uniform_coarsening->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
 
 
-TYPED_TEST(Selection, AdvancedApply)
+TYPED_TEST(UniformCoarsening, AdvancedApply)
 {
     using VT = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
-    auto selection = this->selection_factory->generate(this->mtx);
+    auto uniform_coarsening =
+        this->uniform_coarsening_factory->generate(this->mtx);
     auto b = gko::clone(this->fine_x);
     auto x = gko::clone(this->fine_x);
-    auto exec = selection->get_executor();
+    auto exec = uniform_coarsening->get_executor();
     auto alpha = gko::initialize<Vec>({1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
     auto answer = gko::initialize<Vec>(
@@ -365,13 +372,13 @@ TYPED_TEST(Selection, AdvancedApply)
          I<VT>({0.0, 0.0}), I<VT>({2.0, 16.0})},
         exec);
 
-    selection->apply(alpha.get(), b.get(), beta.get(), x.get());
+    uniform_coarsening->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
 }
 
 
-TYPED_TEST(Selection, GenerateMgLevel)
+TYPED_TEST(UniformCoarsening, GenerateMgLevel)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -381,7 +388,7 @@ TYPED_TEST(Selection, GenerateMgLevel)
     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {4, 2, 1}}});
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
-    auto coarse_fine = this->selection_factory->generate(this->mtx);
+    auto coarse_fine = this->uniform_coarsening_factory->generate(this->mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
@@ -392,7 +399,7 @@ TYPED_TEST(Selection, GenerateMgLevel)
 }
 
 
-TYPED_TEST(Selection, GenerateMgLevelOnUnsortedMatrix)
+TYPED_TEST(UniformCoarsening, GenerateMgLevelOnUnsortedMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;

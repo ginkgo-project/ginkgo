@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/multigrid/selection.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 
 
 #include <memory>
@@ -49,7 +49,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class SelectionFactory : public ::testing::Test {
+class UniformCoarseningFactory : public ::testing::Test {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -57,63 +57,49 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using MgLevel = gko::multigrid::Selection<value_type, index_type>;
-    SelectionFactory()
+    using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
+    UniformCoarseningFactory()
         : exec(gko::ReferenceExecutor::create()),
-          selection1_factory(
+          uniform_coarsening1_factory(
               MgLevel::build().with_num_jumps(4u).with_skip_sorting(true).on(
-                  exec)),
-          selection2_factory(
-              MgLevel::build()
-                  .with_coarse_rows(gko::Array<index_type>(exec, {2, 3}))
-                  .with_skip_sorting(true)
-                  .on(exec))
-
+                  exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename MgLevel::Factory> selection1_factory;
-    std::unique_ptr<typename MgLevel::Factory> selection2_factory;
+    std::unique_ptr<typename MgLevel::Factory> uniform_coarsening1_factory;
 };
 
-TYPED_TEST_SUITE(SelectionFactory, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(UniformCoarseningFactory, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(SelectionFactory, FactoryKnowsItsExecutor)
+TYPED_TEST(UniformCoarseningFactory, FactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->selection1_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(SelectionFactory, DefaultSetting)
+TYPED_TEST(UniformCoarseningFactory, DefaultSetting)
 {
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
 
     ASSERT_EQ(factory->get_parameters().num_jumps, 2u);
-    ASSERT_EQ(factory->get_parameters().coarse_rows.get_data(), nullptr);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
 }
 
 
-TYPED_TEST(SelectionFactory, SetCoarseRows)
+TYPED_TEST(UniformCoarseningFactory, SetNumJumps)
 {
-    using T = typename TestFixture::index_type;
-    GKO_ASSERT_ARRAY_EQ(this->selection2_factory->get_parameters().coarse_rows,
-                        gko::Array<T>(this->exec, {2, 3}));
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().num_jumps,
+              4u);
 }
 
 
-TYPED_TEST(SelectionFactory, SetNumJumps)
+TYPED_TEST(UniformCoarseningFactory, SetSkipSorting)
 {
-    ASSERT_EQ(this->selection1_factory->get_parameters().num_jumps, 4u);
-}
-
-
-TYPED_TEST(SelectionFactory, SetSkipSorting)
-{
-    ASSERT_EQ(this->selection1_factory->get_parameters().skip_sorting, true);
+    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().skip_sorting,
+              true);
 }
 
 
