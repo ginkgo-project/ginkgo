@@ -175,9 +175,10 @@ int main(int argc, char** argv)
     if (argc == 1) {
         std::cerr
             << "Usage: " << argv[0]
-            << " [operation1] [operation2]\nApplies the given operations "
+            << " [-b] [operation1] [operation2]\nApplies the given operations "
                "to the input matrix read from stdin\nand writes it to "
-               "stdout.\nOperations are:\n"
+               "stdout.\nUses binary format if -b is set, otherwise matrix "
+               "market format.Operations are:\n"
                "  lower-triangular   removes nonzeros above the diagonal\n"
                "  upper-triangular   removes nonzeros below the diagonal\n"
                "  remove-diagonal    removes diagonal entries\n"
@@ -194,10 +195,11 @@ int main(int argc, char** argv)
             << std::endl;
         return 1;
     }
+    bool binary = std::string{argv[1]} == "-b";
 
-    auto data = gko::read_raw<value_type, gko::int64>(std::cin);
+    auto data = gko::read_generic_raw<value_type, gko::int64>(std::cin);
     data.ensure_row_major_order();
-    for (int argi = 1; argi < argc; argi++) {
+    for (int argi = binary ? 2 : 1; argi < argc; argi++) {
         std::string arg{argv[argi]};
         if (arg == "lower-triangular") {
             data = make_lower_triangular(data);
@@ -232,5 +234,9 @@ int main(int argc, char** argv)
             return 1;
         }
     }
-    gko::write_raw(std::cout, data, gko::layout_type::coordinate);
+    if (binary) {
+        gko::write_binary_raw(std::cout, data);
+    } else {
+        gko::write_raw(std::cout, data, gko::layout_type::coordinate);
+    }
 }

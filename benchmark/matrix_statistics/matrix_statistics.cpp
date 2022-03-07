@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             std::ifstream ifs(test_case["filename"].GetString());
-            auto matrix = gko::read_raw<etype, gko::int64>(ifs);
+            auto matrix = gko::read_generic_raw<etype, gko::int64>(ifs);
             ifs.close();
 
             std::clog << "Matrix is of size (" << matrix.size[0] << ", "
