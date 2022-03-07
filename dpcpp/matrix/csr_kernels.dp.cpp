@@ -676,16 +676,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, ValueType* c,
                              const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subgroup_size)]] {
-                abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
-                                                       row_ptrs, b, b_stride, c,
-                                                       c_stride, item_ct1);
-            });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
+                        c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, val, col_idxs, row_ptrs, b,
+                                     b_stride, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
@@ -718,16 +729,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, const ValueType* beta,
                              ValueType* c, const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subgroup_size)]] {
-                abstract_classical_spmv<subgroup_size>(
-                    num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride, beta,
-                    c, c_stride, item_ct1);
-            });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
+                        beta, c, c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, alpha, val, col_idxs, row_ptrs,
+                                     b, b_stride, beta, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
