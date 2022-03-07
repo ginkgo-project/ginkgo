@@ -1357,6 +1357,23 @@ Dense<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::compute_average_unsafe()
+    const
+{
+    auto result = gko::initialize<gko::matrix::Dense<ValueType>>(
+        1, {::gko::reduce_add(values_)}, this->get_executor());
+
+    auto size = gko::initialize<gko::matrix::Dense<ValueType>>(
+        1, {static_cast<ValueType>(values_.get_num_elems())},
+        this->get_executor());
+
+    result->inv_scale(size.get());
+
+    return result;
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::compute_absolute(
     Dense<ValueType>::absolute_type* output) const
 {

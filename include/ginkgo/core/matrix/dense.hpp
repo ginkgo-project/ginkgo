@@ -564,6 +564,14 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     /**
+     * Writes the diagonal of this matrix into an existing diagonal matrix.
+     *
+     * @note This might overflow.
+     * @param output The average value.
+     */
+    std::unique_ptr<Dense<ValueType>> compute_average_unsafe() const;
+
+    /**
      * Writes the absolute values of this matrix into an existing matrix.
      *
      * @param output  The output matrix. Its size must match the size of this
