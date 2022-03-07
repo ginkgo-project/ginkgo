@@ -78,7 +78,16 @@ void process(const char* input, const char* output, bool validate)
 int main(int argc, char** argv)
 {
     if (argc < 3 || (std::string{argv[1]} == "-v" && argc < 4)) {
-        std::cerr << "Usage: " << argv[0] << " [-v] [input] [output]\n";
+        std::cerr
+            << "Usage: " << argv[0]
+            << " [-v] [input] [output]\n"
+               "Reads the input file in MatrixMarket format and converts it"
+               "to Ginkgo's binary format.\nWith the optional -v flag, reads "
+               "the written binary output again and compares it with the "
+               "original input to validate the conversion.\n"
+               "The conversion uses a complex value type if necessary, "
+               "the highest possible value precision and the smallest "
+               "possible index type.\n";
         return 1;
     }
     bool validate = std::string{argv[1]} == "-v";

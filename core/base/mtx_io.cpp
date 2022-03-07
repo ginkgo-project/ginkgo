@@ -763,8 +763,15 @@ matrix_data<ValueType, IndexType> read_raw(std::istream& is)
 }
 
 
+/**
+ * Returns the magic number at the beginning of the binary format header for the
+ * given type parameters.
+ *
+ * @tparam ValueType  the value type to be used for the binary storage
+ * @tparam IndexType  the index type to be used for the binary storage
+ */
 template <typename ValueType, typename IndexType>
-static constexpr uint64_t binary_format_magic()
+static constexpr uint64 binary_format_magic()
 {
     constexpr auto is_int = std::is_same<IndexType, int32>::value;
     constexpr auto is_long = std::is_same<IndexType, int64>::value;
@@ -781,16 +788,16 @@ static constexpr uint64_t binary_format_magic()
     constexpr auto index_bit = is_int ? 'I' : 'L';
     constexpr auto value_bit =
         is_double ? 'D' : (is_float ? 'S' : (is_complex_double ? 'Z' : 'C'));
-    constexpr uint64 type_bits = index_bit * 256ull + value_bit;
+    constexpr uint64 shift = 256;
+    constexpr uint64 type_bits = index_bit * shift + value_bit;
     return 'G' +
-           256ull *
+           shift *
                ('I' +
-                256ull *
+                shift *
                     ('N' +
-                     256ull *
+                     shift *
                          ('K' +
-                          256ull *
-                              ('G' + 256ull * ('O' + 256ull * type_bits)))));
+                          shift * ('G' + shift * ('O' + shift * type_bits)))));
 }
 
 
@@ -856,6 +863,8 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
         result.nonzeros[i].row = row;
         result.nonzeros[i].column = column;
     }
+    // sort the entries
+    result.ensure_row_major_order();
     return result;
 }
 
@@ -866,6 +875,7 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
 template <typename ValueType, typename IndexType>
 matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
 {
+    static_assert(sizeof(uint64) == 8, "c++ is broken");  // just to be sure
     std::array<char, 32> header{};
     GKO_CHECK_STREAM(is.read(header.data(), 32), "failed reading header");
     uint64 magic{};

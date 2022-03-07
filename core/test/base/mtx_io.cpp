@@ -404,17 +404,18 @@ std::array<gko::uint64, 20> build_binary_complex_data()
     double neg_dbl_val = -2.5;
     std::memcpy(&int_val, &dbl_val, sizeof(double));
     std::memcpy(&neg_int_val, &neg_dbl_val, sizeof(double));
+    constexpr gko::uint64 shift = 256;
+    // note: the following data is not sorted!
     std::array<gko::uint64, 20> data{
-        'G' + 256ull *
+        'G' + shift *
                   ('I' +
-                   256ull *
+                   shift *
                        ('N' +
-                        256ull *
+                        shift *
                             ('K' +
-                             256ull *
-                                 ('G' +
-                                  256ull *
-                                      ('O' + 256ull * ('Z' + 256ull * 'L')))))),
+                             shift * ('G' +
+                                      shift * ('O' +
+                                               shift * ('Z' + shift * 'L')))))),
         64,       // num_rows
         32,       // num_cols
         4,        // num_entries
@@ -426,14 +427,14 @@ std::array<gko::uint64, 20> build_binary_complex_data()
         1,        // col
         int_val,
         neg_int_val,
-        4,  // row
-        2,  // col
-        0,
-        neg_int_val,
         16,  // row
         25,  // col
         0,
-        0};
+        0,
+        4,  // row
+        2,  // col
+        0,
+        neg_int_val};
     return data;
 }
 
@@ -446,26 +447,27 @@ std::array<gko::uint64, 16> build_binary_real_data()
     double neg_dbl_val = -2.5;
     std::memcpy(&int_val, &dbl_val, sizeof(double));
     std::memcpy(&neg_int_val, &neg_dbl_val, sizeof(double));
+    constexpr gko::uint64 shift = 256;
+    // note: the following data is not sorted!
     std::array<gko::uint64, 16> data{
-        'G' + 256ull *
+        'G' + shift *
                   ('I' +
-                   256ull *
+                   shift *
                        ('N' +
-                        256ull *
+                        shift *
                             ('K' +
-                             256ull *
-                                 ('G' +
-                                  256ull *
-                                      ('O' + 256ull * ('D' + 256ull * 'L')))))),
+                             shift * ('G' +
+                                      shift * ('O' +
+                                               shift * ('D' + shift * 'L')))))),
         64,  // num_rows
         32,  // num_cols
         4,   // num_entries
-        0,   // row
-        1,   // col
-        0,   // val
         1,   // row
         1,   // col
         int_val,
+        0,  // row
+        1,  // col
+        0,  // val
         4,  // row
         2,  // col
         neg_int_val,
@@ -831,8 +833,8 @@ TEST(MtxReader, WritesBinary)
     gko::matrix_data<double, gko::int64> data;
     data.size = gko::dim<2>{64, 32};
     data.nonzeros.resize(4);
-    data.nonzeros[0] = {0, 1, 0.0};
-    data.nonzeros[1] = {1, 1, 2.5};
+    data.nonzeros[0] = {1, 1, 2.5};
+    data.nonzeros[1] = {0, 1, 0.0};
     data.nonzeros[2] = {4, 2, -2.5};
     data.nonzeros[3] = {16, 25, 0.0};
 
@@ -852,8 +854,8 @@ TEST(MtxReader, WritesComplexBinary)
     data.nonzeros.resize(4);
     data.nonzeros[0] = {0, 1, {0.0, 2.5}};
     data.nonzeros[1] = {1, 1, {2.5, -2.5}};
-    data.nonzeros[2] = {4, 2, {0.0, -2.5}};
-    data.nonzeros[3] = {16, 25, {0.0, 0.0}};
+    data.nonzeros[2] = {16, 25, {0.0, 0.0}};
+    data.nonzeros[3] = {4, 2, {0.0, -2.5}};
 
     gko::write_binary_raw(ss, data);
 
@@ -973,6 +975,7 @@ TYPED_TEST(RealDummyLinOpTest, ReadsGenericLinOpFromBinaryStream)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
     auto raw_data = build_binary_real_data();
     std::istringstream iss(std::string{reinterpret_cast<char*>(raw_data.data()),
                                        raw_data.size() * sizeof(gko::uint64)});
@@ -983,18 +986,10 @@ TYPED_TEST(RealDummyLinOpTest, ReadsGenericLinOpFromBinaryStream)
     const auto& data = lin_op->data_;
     ASSERT_EQ(data.size, gko::dim<2>(64, 32));
     ASSERT_EQ(data.nonzeros.size(), 4);
-    ASSERT_EQ(data.nonzeros[0].row, 0);
-    ASSERT_EQ(data.nonzeros[1].row, 1);
-    ASSERT_EQ(data.nonzeros[2].row, 4);
-    ASSERT_EQ(data.nonzeros[3].row, 16);
-    ASSERT_EQ(data.nonzeros[0].column, 1);
-    ASSERT_EQ(data.nonzeros[1].column, 1);
-    ASSERT_EQ(data.nonzeros[2].column, 2);
-    ASSERT_EQ(data.nonzeros[3].column, 25);
-    ASSERT_EQ(data.nonzeros[0].value, value_type{0.0});
-    ASSERT_EQ(data.nonzeros[1].value, value_type{2.5});
-    ASSERT_EQ(data.nonzeros[2].value, value_type{-2.5});
-    ASSERT_EQ(data.nonzeros[3].value, value_type{0.0});
+    ASSERT_EQ(data.nonzeros[0], tpl(0, 1, value_type{0.0}));
+    ASSERT_EQ(data.nonzeros[1], tpl(1, 1, value_type{2.5}));
+    ASSERT_EQ(data.nonzeros[2], tpl(4, 2, value_type{-2.5}));
+    ASSERT_EQ(data.nonzeros[3], tpl(16, 25, value_type{0.0}));
 }
 
 
