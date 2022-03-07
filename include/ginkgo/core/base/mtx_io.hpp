@@ -52,7 +52,7 @@ namespace gko {
  * @param is  input stream from which to read the data
  *
  * @return A matrix_data structure containing the matrix. The nonzero elements
- *         are sorted in lexicographic order of their (row, colum) indexes.
+ *         are sorted in lexicographic order of their (row, column) indexes.
  *
  * @note This is an advanced routine that will return the raw matrix data
  *       structure. Consider using gko::read instead.
@@ -67,13 +67,27 @@ matrix_data<ValueType, IndexType> read_raw(std::istream& is);
  * so files from a big endian processor can't be read from a little endian
  * processor and vice-versa.
  *
+ * The binary format has the following structure (in system endianness):
+ * 1. A 32 byte header consisting of 4 uint64_t values:
+ *    magic = GINKGO__: The highest two bytes stand for value and index type.
+ *                      value type: S (float), D (double),
+ *                                  C (complex<float>), Z(complex<double>)
+ *                      index type: I (int32), L (int64)
+ *    num_rows: Number of rows
+ *    num_cols: Number of columns
+ *    num_entries: Number of (row, column, value) tuples to follow
+ * 2. Following are num_entries blocks of size
+ *    sizeof(IndexType) * 2 + sizeof(ValueType).
+ *    Each consists of a row index stored as IndexType, followed by
+ *    a column index stored as IndexType and a value stored as ValueType.
+ *
  * @tparam ValueType  type of matrix values
  * @tparam IndexType  type of matrix indexes
  *
  * @param is  input stream from which to read the data
  *
  * @return A matrix_data structure containing the matrix. The nonzero elements
- *         are sorted in lexicographic order of their (row, colum) indexes.
+ *         are sorted in lexicographic order of their (row, column) indexes.
  *
  * @note This is an advanced routine that will return the raw matrix data
  *       structure. Consider using gko::read_binary instead.
@@ -92,7 +106,7 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
  * @param is  input stream from which to read the data
  *
  * @return A matrix_data structure containing the matrix. The nonzero elements
- *         are sorted in lexicographic order of their (row, colum) indexes.
+ *         are sorted in lexicographic order of their (row, column) indexes.
  *
  * @note This is an advanced routine that will return the raw matrix data
  *       structure. Consider using gko::read_generic instead.
@@ -146,7 +160,6 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
  *
  * @param os  output stream where the data is to be written
  * @param data  the matrix data to write
- * @param layout  the layout used in the output
  *
  * @note This is an advanced routine that writes the raw matrix data structure.
  *       If you are trying to write an existing matrix, consider using
@@ -333,7 +346,6 @@ inline void write(
  *
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
- * @param layout  the layout used in the output
  */
 template <typename MatrixType, typename StreamType>
 inline void write_binary(StreamType&& os, MatrixType* matrix)
