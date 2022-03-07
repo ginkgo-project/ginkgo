@@ -139,8 +139,6 @@ __dpct_inline__ void generic_generate(
         }
 
         // subwarp_size^2 storage per subwarp
-
-
         auto dense_system_ptr =
             *storage + (item_ct1.get_local_id(2) / subwarp_size) *
                            subwarp_size * subwarp_size;

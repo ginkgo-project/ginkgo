@@ -66,12 +66,12 @@ __forceinline__ __device__ IndexType binary_search(IndexType offset,
  * @internal
  * Generic implementation of a fixed-size binary search.
  * The implementation makes sure that the number of predicate evaluations only
- * depends on `length` and not on the actual position of the partition point.
- * It assumes that the predicate partitions the range [offset, offset + length)
- * into two subranges [offset, middle), [middle, offset + length) such that
- * the predicate is `false` for all elements in the first range and `true` for
- * all elements in the second range. `middle` is called the partition point.
- * If the predicate is `false` everywhere, `middle` equals `offset + length`.
+ * depends on `size` and not on the actual position of the partition point.
+ * It assumes that the predicate partitions the range [0, size) into two
+ * subranges [0, middle), [middle, size) such that the predicate is `false` for
+ * all elements in the first range and `true` for all elements in the second
+ * range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `size`.
  *
  * @tparam size  the length of the partitioned range - must be a power of two
  * @param p  the predicate to be evaluated on the range - it should not have
@@ -103,12 +103,12 @@ __forceinline__ __device__ int synchronous_fixed_binary_search(Predicate p)
  * @internal
  * Generic implementation of a synchronous binary search.
  * The implementation makes sure that the number of predicate evaluations only
- * depends on `length` and not on the actual position of the partition point.
- * It assumes that the predicate partitions the range [offset, offset + length)
- * into two subranges [offset, middle), [middle, offset + length) such that
- * the predicate is `false` for all elements in the first range and `true` for
- * all elements in the second range. `middle` is called the partition point.
- * If the predicate is `false` everywhere, `middle` equals `offset + length`.
+ * depends on `size` and not on the actual position of the partition point.
+ * It assumes that the predicate partitions the range [0, size) into two
+ * subranges [0, middle), [middle, size) such that the predicate is `false` for
+ * all elements in the first range and `true` for all elements in the second
+ * range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `size`.
  *
  * @param size  the length of the partitioned range - must be a power of two
  * @param p  the predicate to be evaluated on the range - it should not have
