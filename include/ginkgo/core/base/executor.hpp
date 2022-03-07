@@ -758,6 +758,10 @@ public:
     Executor& operator=(Executor&) = delete;
     Executor& operator=(Executor&&) = default;
 
+    virtual void emplace_back(std::shared_ptr<AsyncHandle> handle) const = 0;
+
+    virtual std::shared_ptr<AsyncHandle> get_handle_at(const int id) const = 0;
+
     /**
      * Runs the specified Operation using this Executor.
      *
@@ -1042,6 +1046,8 @@ protected:
 
     std::shared_ptr<AsyncHandle> default_exec_stream_;
 
+    std::vector<std::shared_ptr<AsyncHandle>> async_handles_;
+
 private:
     /**
      * The LambdaOperation class wraps four functor objects into an
@@ -1195,6 +1201,24 @@ public:
     }
 
 
+    void emplace_back(std::shared_ptr<AsyncHandle> handle) const override
+    {
+        const_cast<std::vector<std::shared_ptr<AsyncHandle>>*>(
+            &self()->shared_from_this()->async_handles_)
+            ->emplace_back(handle);
+    }
+
+    /**
+     * Returns the current status of the device reset boolean for this executor.
+     *
+     * @return the current status of the device reset boolean for this executor.
+     */
+    std::shared_ptr<AsyncHandle> get_handle_at(const int id) const override
+    {
+        return self()->shared_from_this()->async_handles_[id];
+    }
+
+
 private:
     ConcreteExecutor* self() noexcept
     {
@@ -1206,8 +1230,6 @@ private:
         return static_cast<const ConcreteExecutor*>(this);
     }
 };
-
-#undef GKO_DECLARE_EXECUTOR_FRIEND
 
 
 /**
@@ -1246,47 +1268,7 @@ private:
     bool device_reset_{};
 };
 
-template <typename ConcreteExecutor>
-class EnableAsyncHandle {
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_EXECUTOR_FRIEND);
-    friend class ReferenceExecutor;
-
-public:
-    /**
-     * Set the device reset capability.
-     *
-     * @param device_reset  whether to allow a device reset or not
-     */
-    void emplace_back(std::shared_ptr<AsyncHandle> handle)
-    {
-        this->handles_.emplace_back(handle);
-    }
-
-    /**
-     * Returns the current status of the device reset boolean for this executor.
-     *
-     * @return the current status of the device reset boolean for this executor.
-     */
-    std::shared_ptr<AsyncHandle> get_handle_at(const int id)
-    {
-        return this->handles_[id];
-    }
-
-protected:
-    /**
-     * Instantiate an EnableDeviceReset class
-     *
-     * @param device_reset  the starting device_reset status. Defaults to false.
-     */
-    EnableAsyncHandle(int num_additional_handles)
-    {
-        static_cast<ConcreteExecutor*>(this)->init_async_handles(
-            this->handles_);
-    }
-
-private:
-    std::vector<std::shared_ptr<AsyncHandle>> handles_;
-};
+#undef GKO_DECLARE_EXECUTOR_FRIEND
 
 
 }  // namespace detail
@@ -1513,7 +1495,8 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_cuda_alloc_mode);
+        allocation_mode alloc_mode = default_cuda_alloc_mode,
+        int num_additional_handles = 0);
 
     /**
      * Creates a new CudaExecutor.
@@ -1527,7 +1510,8 @@ public:
      */
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<MemorySpace> memory_space,
-        std::shared_ptr<Executor> master, bool device_reset = false);
+        std::shared_ptr<Executor> master, bool device_reset = false,
+        int num_additional_handles = 0);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1641,20 +1625,21 @@ public:
      */
     int get_closest_numa() const { return this->get_exec_info().numa_node; }
 
-    /**
-     * Get the closest NUMA node
-     *
-     * @return  the closest NUMA node closest to this device
-     */
-    std::shared_ptr<CudaAsyncHandle> get_async_handle_at(const int id) const
-    {
-        return this->async_handles_[id];
-    }
-
 protected:
     void set_gpu_property();
 
     void init_handles();
+
+    std::vector<std::shared_ptr<AsyncHandle>> init_async_handles(
+        int num_add_handles)
+    {
+        std::vector<std::shared_ptr<AsyncHandle>> handles;
+        for (int i = 0; i < num_add_handles + 1; ++i) {
+            handles.emplace_back(gko::CudaAsyncHandle::create(
+                CudaAsyncHandle::create_type::non_blocking));
+        }
+        return handles;
+    }
 
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
@@ -1662,9 +1647,7 @@ protected:
                  int num_additional_handles = 0)
         : EnableDeviceReset{device_reset},
           alloc_mode_{alloc_mode},
-          master_(master),
-          async_handles_()
-
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1683,11 +1666,7 @@ protected:
         this->init_handles();
         mem_space_instance_ = CudaMemorySpace::create(device_id);
         this->default_exec_stream_ = CudaAsyncHandle::create();
-        for (int i = 0; i < num_additional_handles + 1; ++i) {
-            this->async_handles_.emplace_back(CudaAsyncHandle::create(
-                CudaAsyncHandle::create_type::non_blocking));
-        }
-        GKO_ASSERT(this->async_handles_.size() == (num_additional_handles + 1));
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
@@ -1695,8 +1674,7 @@ protected:
                  int num_additional_handles = 0)
         : EnableDeviceReset{device_reset},
           mem_space_instance_(mem_space),
-          master_(master),
-          async_handles_()
+          master_(master)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1717,11 +1695,7 @@ protected:
             GKO_MEMSPACE_MISMATCH(NOT_CUDA);
         }
         this->default_exec_stream_ = CudaAsyncHandle::create();
-        for (int i = 0; i < num_additional_handles + 1; ++i) {
-            this->async_handles_.emplace_back(CudaAsyncHandle::create(
-                CudaAsyncHandle::create_type::non_blocking));
-        }
-        GKO_ASSERT(this->async_handles_.size() == (num_additional_handles + 1));
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)

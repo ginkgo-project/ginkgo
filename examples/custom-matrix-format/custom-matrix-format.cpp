@@ -285,9 +285,9 @@ int main(int argc, char* argv[])
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true,
-                                                  gko::allocation_mode::device);
+                 return gko::CudaExecutor::create(
+                     0, gko::OmpExecutor::create(), true,
+                     gko::allocation_mode::device, 2);
              }},
             {"hip",
              [] {
@@ -350,14 +350,10 @@ int main(int argc, char* argv[])
 
     std::shared_ptr<gko::AsyncHandle> handle;
     std::shared_ptr<gko::AsyncHandle> handle2;
-    auto chandle = gko::CudaAsyncHandle::create(
-        gko::CudaAsyncHandle::create_type::non_blocking);
-    auto chandle2 = gko::CudaAsyncHandle::create(
-        gko::CudaAsyncHandle::create_type::non_blocking);
     auto tic1 = std::chrono::steady_clock::now();
     for (auto i = 0; i < num_reps; ++i) {
-        handle = mat->apply(lend(rhs), lend(u2), chandle);
-        handle2 = mat2->apply(lend(rhs2), lend(u2), chandle2);
+        handle = mat->apply(lend(rhs), lend(u2), exec->get_handle_at(0));
+        handle2 = mat2->apply(lend(rhs2), lend(u2), exec->get_handle_at(1));
     }
     auto toc1 = std::chrono::steady_clock::now();
     handle->wait();
