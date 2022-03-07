@@ -88,8 +88,7 @@ void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
                               size_type num_jumps,
                               Array<IndexType>* coarse_rows)
 {
-    IndexType i = 0;
-    for (i = 0; i < coarse_rows->get_num_elems(); i += num_jumps) {
+    for (IndexType i = 0; i < coarse_rows->get_num_elems(); i += num_jumps) {
         coarse_rows->get_data()[i] = i / num_jumps;
     }
 }
