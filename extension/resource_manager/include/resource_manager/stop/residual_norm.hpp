@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_
-#define GKOEXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_
+
+
+#include <type_traits>
 
 
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-
-#include <type_traits>
 
 
 namespace gko {
@@ -51,10 +52,10 @@ template <typename T>
 struct Generic<typename gko::stop::ResidualNorm<T>::Factory,
                gko::stop::ResidualNorm<T>> {
     using type = std::shared_ptr<typename gko::stop::ResidualNorm<T>::Factory>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "ResidualNorm exec:" << exec.get() << std::endl;
         auto ptr = [&]() {
@@ -82,8 +83,8 @@ template <>
 std::shared_ptr<gko::stop::CriterionFactory>
 create_from_config<RM_CriterionFactory, RM_CriterionFactory::ResidualNorm,
                    gko::stop::CriterionFactory>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     std::cout << "build_residual_norm" << std::endl;
     // go though the type
@@ -101,4 +102,4 @@ create_from_config<RM_CriterionFactory, RM_CriterionFactory::ResidualNorm,
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_RESIDUAL_NORM_HPP_

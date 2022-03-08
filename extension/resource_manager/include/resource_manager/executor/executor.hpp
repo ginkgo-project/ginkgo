@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_
-#define GKOEXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_
 
 
 #include <iostream>
 #include <memory>
+
+
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
@@ -50,10 +52,10 @@ namespace resource_manager {
 template <>
 struct Generic<gko::CudaExecutor> {
     using type = std::shared_ptr<gko::CudaExecutor>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Cuda" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
@@ -68,10 +70,10 @@ IMPLEMENT_BRIDGE(RM_Executor, CudaExecutor, CudaExecutor);
 template <>
 struct Generic<gko::HipExecutor> {
     using type = std::shared_ptr<gko::HipExecutor>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Hip" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
@@ -86,10 +88,10 @@ IMPLEMENT_BRIDGE(RM_Executor, HipExecutor, HipExecutor);
 template <>
 struct Generic<gko::DpcppExecutor> {
     using type = std::shared_ptr<gko::DpcppExecutor>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Dpcpp" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
@@ -107,10 +109,10 @@ IMPLEMENT_BRIDGE(RM_Executor, DpcppExecutor, DpcppExecutor);
 template <>
 struct Generic<gko::ReferenceExecutor> {
     using type = std::shared_ptr<gko::ReferenceExecutor>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Reference" << std::endl;
         return ReferenceExecutor::create();
@@ -124,10 +126,10 @@ IMPLEMENT_BRIDGE(RM_Executor, ReferenceExecutor, ReferenceExecutor);
 template <>
 struct Generic<gko::OmpExecutor> {
     using type = std::shared_ptr<gko::OmpExecutor>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Omp" << std::endl;
         return OmpExecutor::create();
@@ -143,4 +145,4 @@ IMPLEMENT_BRIDGE(RM_Executor, OmpExecutor, OmpExecutor);
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_EXECUTOR_EXECUTOR_HPP_

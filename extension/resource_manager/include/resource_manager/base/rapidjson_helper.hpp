@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_RAPIDJDON_HELPER_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_RAPIDJDON_HELPER_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RAPIDJSON_HELPER_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RAPIDJSON_HELPER_HPP_
 
 
 #include <rapidjson/document.h>
+
+
 #include <ginkgo/ginkgo.hpp>
-#include <resource_manager/base/resource_manager.hpp>
+
+
+#include "resource_manager/base/resource_manager.hpp"
 
 
 namespace gko {
@@ -159,6 +163,11 @@ template <typename T>
 T get_value_with_default(rapidjson::Value& item, std::string key, T default_val)
 {
     if (!item.HasMember(key.c_str())) {
+        // if (default_val == "") {
+        //     std::cerr << "the value of key " << key << " must not be empty"
+        //               << std::endl;
+        //     assert(false);
+        // }
         return default_val;
     } else {
         return get_value<T>(item, key);
@@ -353,4 +362,4 @@ std::vector<std::shared_ptr<const T>> get_pointer_vector(
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_RAPIDJDON_HELPER_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RAPIDJSON_HELPER_HPP_
