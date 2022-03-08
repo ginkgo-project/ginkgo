@@ -473,6 +473,54 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
 
 
 template <typename ValueType>
+void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
+{
+    using AvgVector = local_vector_type;
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    auto dense_res = make_temporary_clone(exec, as<AvgVector>(result));
+    const auto num_local_rows = this->get_const_local()->get_size()[0];
+
+    // TODO FIXME for multi-vector
+    auto local_sum =
+        Array<ValueType>::view(exec, num_local_rows, dense_res->get_values());
+
+    local_sum.fill(ValueType{0});
+    auto local_view = array_const_cast(Array<ValueType>::const_view(
+        exec, num_local_rows, this->get_const_local()->get_const_values()));
+
+    reduce_add(local_view, local_sum);
+
+    exec->synchronize();
+
+    auto use_host_buffer =
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        std::cout << "compute_average unsafe comm all_reduce host_buffer"
+                  << std::endl;
+        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_reduction_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_reduction_buffer_->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+        dense_res->copy_from(host_reduction_buffer_.get());
+        std::cout << "compute_average unsafe comm all_reduce host_buffer"
+                  << std::endl;
+    } else {
+        std::cout << "compute_average unsafe comm all_reduce" << std::endl;
+        comm.all_reduce(dense_res->get_values(),
+                        static_cast<int>(this->get_size()[1]), MPI_SUM);
+        std::cout << "compute_average unsafe comm all_reduce done" << std::endl;
+    }
+
+    const auto num_global_rows = this->get_size()[0];
+    auto size = gko::initialize<gko::matrix::Dense<ValueType>>(
+        1, {static_cast<ValueType>(num_global_rows)}, this->get_executor());
+
+    dense_res->inv_scale(size.get());
+}
+
+template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
 {
     if (this->get_size() != global_size) {
