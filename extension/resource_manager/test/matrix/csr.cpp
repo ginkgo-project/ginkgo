@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <memory>
 #include <thread>
 #include <type_traits>
 
@@ -285,7 +286,9 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorAutomatical)
     ASSERT_EQ(mtx_ptr->get_size(), gko::dim<2>(3, 4));
     ASSERT_EQ(mtx_ptr->get_num_stored_elements(), 10);
     ASSERT_EQ(mtx_ptr->get_executor().get(), exec_ptr.get());
-    ASSERT_EQ(mtx_ptr->get_strategy()->get_name(), std::string("automatical"));
+    ASSERT_NE(std::dynamic_pointer_cast<const type::automatical>(
+                  mtx_ptr->get_strategy()),
+              nullptr);
 }
 
 
