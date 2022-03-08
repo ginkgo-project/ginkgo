@@ -157,6 +157,14 @@ public:
     void compute_absolute_inplace() override;
 
     /**
+     * Writes the diagonal of this matrix into an existing diagonal matrix.
+     *
+     * @note This might overflow.
+     * @param output The average value.
+     */
+    void compute_average_unsafe(LinOp* result) const;
+
+    /**
      * Creates a complex copy of the original vectors. If the original vectors
      * were real, the imaginary part of the result will be zero.
      */
@@ -282,6 +290,7 @@ public:
      *                of columns of this)
      */
     void compute_norm1(LinOp* result) const;
+
 
     /**
      * Direct (read) access to the underlying local local_vector_type vectors.

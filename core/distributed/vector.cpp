@@ -483,10 +483,11 @@ void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
     const auto num_local_rows = this->get_const_local()->get_size()[0];
 
     // TODO FIXME for multi-vector
-    auto local_sum =
-        Array<ValueType>::view(exec, num_local_rows, dense_res->get_values());
+    auto local_sum = Array<ValueType>::view(exec, this->get_size()[1],
+                                            dense_res->get_values());
 
     local_sum.fill(ValueType{0});
+
     auto local_view = array_const_cast(Array<ValueType>::const_view(
         exec, num_local_rows, this->get_const_local()->get_const_values()));
 
@@ -497,20 +498,14 @@ void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (use_host_buffer) {
-        std::cout << "compute_average unsafe comm all_reduce host_buffer"
-                  << std::endl;
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
         comm.all_reduce(host_reduction_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
         dense_res->copy_from(host_reduction_buffer_.get());
-        std::cout << "compute_average unsafe comm all_reduce host_buffer"
-                  << std::endl;
     } else {
-        std::cout << "compute_average unsafe comm all_reduce" << std::endl;
         comm.all_reduce(dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
-        std::cout << "compute_average unsafe comm all_reduce done" << std::endl;
     }
 
     const auto num_global_rows = this->get_size()[0];
