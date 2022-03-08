@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_
 
-#include <ginkgo/ginkgo.hpp>
+
 #include <memory>
 #include <unordered_map>
+
 
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
+
+
+#include <ginkgo/ginkgo.hpp>
+
 
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/macro_helper.hpp"
@@ -83,7 +88,7 @@ public:
     template <typename T>
     std::shared_ptr<T> search_data(std::string key)
     {
-        auto &val = this->get_map<T>().at(key);
+        auto& val = this->get_map<T>().at(key);
         return std::dynamic_pointer_cast<T>(val);
     }
 
@@ -92,7 +97,7 @@ public:
      *
      * @param item  the RapidJson::Value
      */
-    void build_item(rapidjson::Value &item);
+    void build_item(rapidjson::Value& item);
 
     /**
      * build_item is to build one object. If the object contains a name, add it
@@ -109,7 +114,7 @@ public:
      */
     template <typename T>
     std::shared_ptr<T> build_item(
-        rapidjson::Value &item, std::string base,
+        rapidjson::Value& item, std::string base,
         std::shared_ptr<const Executor> exec = nullptr,
         std::shared_ptr<const LinOp> linop = nullptr)
     {
@@ -136,7 +141,7 @@ public:
      */
     template <typename T>
     std::shared_ptr<T> build_item(
-        rapidjson::Value &item, std::shared_ptr<const Executor> exec = nullptr,
+        rapidjson::Value& item, std::shared_ptr<const Executor> exec = nullptr,
         std::shared_ptr<const LinOp> linop = nullptr)
     {
         std::cout << "create_from_config" << std::endl;
@@ -154,10 +159,10 @@ public:
      *
      * @param item  the RapidJson::Value
      */
-    void read(rapidjson::Value &dom)
+    void read(rapidjson::Value& dom)
     {
         if (dom.IsArray()) {
-            for (auto &item : dom.GetArray()) {
+            for (auto& item : dom.GetArray()) {
                 this->build_item(item);
             }
         } else if (dom.IsObject()) {
@@ -184,7 +189,7 @@ public:
     template <typename T>
     void output_map_info()
     {
-        for (auto const &x : this->get_map_impl<T>()) {
+        for (auto const& x : this->get_map_impl<T>()) {
             std::cout << x.first << ": " << x.second.get() << std::endl;
         }
     }
@@ -198,7 +203,7 @@ protected:
      * @return the map
      */
     template <typename T>
-    typename map_type<T>::type &get_map()
+    typename map_type<T>::type& get_map()
     {
         return this->get_map_impl<typename map_type<T>::type>();
     }
@@ -211,7 +216,7 @@ protected:
      * @return the map
      */
     template <typename T>
-    T &get_map_impl();
+    T& get_map_impl();
 
 private:
     std::unordered_map<std::string, std::shared_ptr<Executor>> executor_map_;
@@ -224,31 +229,31 @@ private:
 
 
 template <>
-ExecutorMap &ResourceManager::get_map_impl<ExecutorMap>()
+ExecutorMap& ResourceManager::get_map_impl<ExecutorMap>()
 {
     return executor_map_;
 }
 
 template <>
-LinOpMap &ResourceManager::get_map_impl<LinOpMap>()
+LinOpMap& ResourceManager::get_map_impl<LinOpMap>()
 {
     return linop_map_;
 }
 
 template <>
-LinOpFactoryMap &ResourceManager::get_map_impl<LinOpFactoryMap>()
+LinOpFactoryMap& ResourceManager::get_map_impl<LinOpFactoryMap>()
 {
     return linopfactory_map_;
 }
 
 template <>
-CriterionFactoryMap &ResourceManager::get_map_impl<CriterionFactoryMap>()
+CriterionFactoryMap& ResourceManager::get_map_impl<CriterionFactoryMap>()
 {
     return criterionfactory_map_;
 }
 
 
-void ResourceManager::build_item(rapidjson::Value &item)
+void ResourceManager::build_item(rapidjson::Value& item)
 {
     assert(item.HasMember("name"));
     assert(item.HasMember("base"));
@@ -285,4 +290,4 @@ void ResourceManager::build_item(rapidjson::Value &item)
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RESOURCE_MANAGER_HPP_

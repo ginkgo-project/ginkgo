@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
+
 
 #include <ginkgo/ginkgo.hpp>
-#include <resource_manager/base/macro_helper.hpp>
+
+
+#include "resource_manager/base/macro_helper.hpp"
 
 
 namespace gko {
@@ -66,25 +69,25 @@ struct map_type {
 
 template <typename T>
 struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, Executor *>::value>::type> {
+                       std::is_convertible<T*, Executor*>::value>::type> {
     using type = ExecutorMap;
 };
 
 template <typename T>
-struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, LinOp *>::value>::type> {
+struct map_type<
+    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
     using type = LinOpMap;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<
-                       std::is_convertible<T *, LinOpFactory *>::value>::type> {
+                       std::is_convertible<T*, LinOpFactory*>::value>::type> {
     using type = LinOpFactoryMap;
 };
 
 template <typename T>
 struct map_type<T, typename std::enable_if<std::is_convertible<
-                       T *, CriterionFactory *>::value>::type> {
+                       T*, CriterionFactory*>::value>::type> {
     using type = CriterionFactoryMap;
 };
 
@@ -101,25 +104,25 @@ struct base_type {
 
 template <typename T>
 struct base_type<T, typename std::enable_if<
-                        std::is_convertible<T *, Executor *>::value>::type> {
+                        std::is_convertible<T*, Executor*>::value>::type> {
     using type = Executor;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<
-                        std::is_convertible<T *, LinOp *>::value>::type> {
+struct base_type<
+    T, typename std::enable_if<std::is_convertible<T*, LinOp*>::value>::type> {
     using type = LinOp;
 };
 
 template <typename T>
-struct base_type<T, typename std::enable_if<std::is_convertible<
-                        T *, LinOpFactory *>::value>::type> {
+struct base_type<T, typename std::enable_if<
+                        std::is_convertible<T*, LinOpFactory*>::value>::type> {
     using type = LinOpFactory;
 };
 
 template <typename T>
 struct base_type<T, typename std::enable_if<std::is_convertible<
-                        T *, CriterionFactory *>::value>::type> {
+                        T*, CriterionFactory*>::value>::type> {
     using type = CriterionFactory;
 };
 
@@ -198,8 +201,8 @@ struct is_derived : public std::integral_constant<bool, false> {};
 template <typename Derived, typename Base>
 struct is_derived<
     Derived, Base,
-    typename std::enable_if<std::is_convertible<const volatile Derived *,
-                                                const volatile Base *>::value &&
+    typename std::enable_if<std::is_convertible<const volatile Derived*,
+                                                const volatile Base*>::value &&
                             !std::is_same<const volatile Derived,
                                           const volatile Base>::value>::type>
     : public std::integral_constant<bool, true> {};
@@ -228,4 +231,4 @@ using is_on_criterionfactory = is_derived<T, CriterionFactory>;
 }  // namespace extension
 }  // namespace gko
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
