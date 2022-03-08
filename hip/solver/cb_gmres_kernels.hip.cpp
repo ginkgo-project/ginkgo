@@ -175,7 +175,8 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     }
 
     const auto grid_dim_2 =
-        ceildiv(num_rows * krylov_stride[1], default_block_size);
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size);
     hipLaunchKernelGGL(initialize_2_2_kernel<block_size>, grid_dim_2, block_dim,
                        0, 0, residual->get_size()[0], residual->get_size()[1],
                        as_hip_type(residual->get_const_values()),

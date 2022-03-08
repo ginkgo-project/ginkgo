@@ -173,7 +173,8 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     }
 
     const auto grid_dim_2 =
-        ceildiv(num_rows * krylov_stride[1], default_block_size);
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),

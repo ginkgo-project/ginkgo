@@ -484,8 +484,9 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
     kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                   tmp);
 
-    const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
-                          1);
+    const dim3 grid_dim_2(
+        ceildiv(std::max<size_type>(num_rows, 1) * num_rhs, default_block_size),
+        1, 1);
     initialize_2_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
