@@ -1215,6 +1215,7 @@ public:
      */
     std::shared_ptr<AsyncHandle> get_handle_at(const int id) const override
     {
+        GKO_ASSERT(id < self()->shared_from_this()->async_handles_.size());
         return self()->shared_from_this()->async_handles_[id];
     }
 
@@ -1372,9 +1373,11 @@ public:
      * Creates a new ReferenceExecutor with an existing memory space.
      *
      */
-    static std::shared_ptr<ReferenceExecutor> create()
+    static std::shared_ptr<ReferenceExecutor> create(
+        int num_additional_handles = 1)
     {
-        return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
+        return std::shared_ptr<ReferenceExecutor>(
+            new ReferenceExecutor(num_additional_handles));
     }
 
     /**
@@ -1384,10 +1387,11 @@ public:
      * executor.
      */
     static std::shared_ptr<ReferenceExecutor> create(
-        std::shared_ptr<MemorySpace> memory_space)
+        std::shared_ptr<MemorySpace> memory_space,
+        int num_additional_handles = 1)
     {
         return std::shared_ptr<ReferenceExecutor>(
-            new ReferenceExecutor(memory_space));
+            new ReferenceExecutor(memory_space, num_additional_handles));
     }
 
     void run(const Operation& op) const override
@@ -1420,12 +1424,23 @@ public:
     }
 
 protected:
-    ReferenceExecutor()
+    std::vector<std::shared_ptr<AsyncHandle>> init_async_handles(
+        int num_add_handles)
+    {
+        std::vector<std::shared_ptr<AsyncHandle>> handles;
+        for (int i = 0; i < num_add_handles + 1; ++i) {
+            handles.emplace_back(gko::HostAsyncHandle<void>::create());
+        }
+        return handles;
+    }
+
+    ReferenceExecutor(int num_additional_handles = 1)
     {
         mem_space_instance_ = ReferenceMemorySpace::create();
         this->ReferenceExecutor::populate_exec_info(
             MachineTopology::get_instance());
         this->default_exec_stream_ = HostAsyncHandle<void>::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     void populate_exec_info(const MachineTopology*) override
@@ -1435,13 +1450,15 @@ protected:
         this->get_exec_info().num_pu_per_cu = 1;
     }
 
-    ReferenceExecutor(std::shared_ptr<MemorySpace> mem_space)
+    ReferenceExecutor(std::shared_ptr<MemorySpace> mem_space,
+                      int num_additional_handles)
         : mem_space_instance_(mem_space)
     {
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_REF);
         }
         this->default_exec_stream_ = HostAsyncHandle<void>::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)

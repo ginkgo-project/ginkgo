@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -177,41 +178,62 @@ public:
             new HostAsyncHandle(std::move(handle)));
     }
 
-    std::future<T> get_handle() { return &this->handle_; }
+    std::future<T>* get_handle() { return this->handle_.data(); }
 
-    void get_result() { this->handle_.get(); }
+    void get_result() {}
 
-    void wait() override { this->handle_.wait(); }
+    void wait() override
+    {
+        // auto wait = [](const std::future<T>& fut) { fut.wait(); };
+        // std::for_each(this->handle_.begin(), this->handle_.end(), wait);
+        for (int i = 0; i < this->handle_.size(); ++i) {
+            this->handle_[i].wait();
+        }
+    }
 
     void wait_for(const std::chrono::duration<int>& time) override
     {
-        this->handle_.wait_for(time);
+        auto wait_for = [time](const std::future<T>& fut) {
+            fut.wait_for(time);
+        };
+        std::for_each(this->handle_.begin(), this->handle_.end(), wait_for);
     }
 
     void wait_until(
         const std::chrono::time_point<std::chrono::steady_clock>& time) override
     {
-        this->handle_.wait_until(time);
+        auto wait_until = [time](const std::future<T>& fut) {
+            fut.wait_until(time);
+        };
+        std::for_each(this->handle_.begin(), this->handle_.end(), wait_until);
     }
 
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;
 
-    template <typename Closure>
-    std::shared_ptr<AsyncHandle> queue(const Closure& op) GKO_NOT_IMPLEMENTED;
+    template <typename Closure, typename... Args>
+    std::shared_ptr<AsyncHandle> queue(const Closure& op, Args&&... args)
+    {
+        this->handle_.emplace_back(std::async(std::launch::async, op, args...));
+        return this->shared_from_this();
+    }
 
-    std::shared_ptr<AsyncHandle> queue(std::future<T> new_op)
-        GKO_NOT_IMPLEMENTED;
+    std::shared_ptr<AsyncHandle> queue(std::future<T>&& new_op)
+    {
+        this->handle_.emplace_back(std::forward<std::future<T>>(new_op));
+        return this->shared_from_this();
+    }
 
 protected:
     HostAsyncHandle() : handle_() {}
 
-    HostAsyncHandle(std::future<T> input_handle)
-        : handle_(std::move(input_handle))
-    {}
+    HostAsyncHandle(std::future<T>&& input_handle)
+    {
+        handle_.emplace_back(std::move(input_handle));
+    }
 
 private:
-    std::future<T> handle_;
+    std::vector<std::future<T>> handle_;
 };
 
 

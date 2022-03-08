@@ -86,7 +86,7 @@ protected:
             std::shared_ptr<const gko::OmpExecutor>,
             std::shared_ptr<gko::AsyncHandle> handle) const override
         {
-            auto l = [=]() {
+            auto l = [=](const coef_type& coefficients, const vec* b, vec* x) {
                 auto b_values = b->get_const_values();
                 auto x_values = x->get_values();
 #pragma omp parallel for
@@ -102,9 +102,8 @@ protected:
                     x_values[i] = result;
                 }
             };
-
             return gko::as<gko::HostAsyncHandle<void>>(handle)->queue(
-                std::async(std::launch::async, l));
+                l, coefficients, b, x);
         }
 
         // CUDA implementation
@@ -299,7 +298,7 @@ int main(int argc, char* argv[])
                  return gko::DpcppExecutor::create(0,
                                                    gko::OmpExecutor::create());
              }},
-            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+            {"reference", [] { return gko::ReferenceExecutor::create(2); }}};
 
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
