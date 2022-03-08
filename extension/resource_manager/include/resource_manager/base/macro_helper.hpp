@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
 
 
 // MSVC tends to use __VA_ARGS__ as one item
@@ -135,15 +135,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @note it uses enum_type_alias to make ENUM_LAMBDA use correct enum_type.
  */
-#define ENUM_MAP(_name, _enum_type, _return_type, _list, _keyword)             \
-    using enum_type_alias = _enum_type;                                        \
-    _keyword std::map<std::string,                                             \
-                      std::function<_return_type(                              \
-                          rapidjson::Value &, std::shared_ptr<const Executor>, \
-                          std::shared_ptr<const LinOp>, ResourceManager *)>>   \
-        _name                                                                  \
-    {                                                                          \
-        _list(ENUM_LAMBDA)                                                     \
+#define ENUM_MAP(_name, _enum_type, _return_type, _list, _keyword)            \
+    using enum_type_alias = _enum_type;                                       \
+    _keyword std::map<std::string,                                            \
+                      std::function<_return_type(                             \
+                          rapidjson::Value&, std::shared_ptr<const Executor>, \
+                          std::shared_ptr<const LinOp>, ResourceManager*)>>   \
+        _name                                                                 \
+    {                                                                         \
+        _list(ENUM_LAMBDA)                                                    \
     }
 
 /**
@@ -155,9 +155,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define DECLARE_SELECTION(_base_type, _enum_type)                      \
     std::shared_ptr<_base_type> create_from_config_(                   \
-        _enum_type, rapidjson::Value &, std::string,                   \
+        _enum_type, rapidjson::Value&, std::string,                    \
         std::shared_ptr<const Executor>, std::shared_ptr<const LinOp>, \
-        ResourceManager *)
+        ResourceManager*)
 
 /**
  * IMPLEMENT_SELECTION is a macro helper to implement selection from
@@ -170,9 +170,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define IMPLEMENT_SELECTION(_base_type, _enum_type, _list)                    \
     std::shared_ptr<_base_type> create_from_config_(                          \
-        _enum_type, rapidjson::Value &item, std::string base,                 \
+        _enum_type, rapidjson::Value& item, std::string base,                 \
         std::shared_ptr<const Executor> exec,                                 \
-        std::shared_ptr<const LinOp> linop, ResourceManager *manager)         \
+        std::shared_ptr<const LinOp> linop, ResourceManager* manager)         \
     {                                                                         \
         std::cout << "search on enum" << std::endl;                           \
         ENUM_MAP(_base_type##Select, _enum_type, std::shared_ptr<_base_type>, \
@@ -233,9 +233,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define BUILD_FACTORY(_type, _manager, _item, _exec, _linop)                   \
     auto factory_alias_ = _type::build();                                      \
-    auto &manager_alias_ = _manager;                                           \
-    auto &item_alias_ = _item;                                                 \
-    auto &linop_alias_ = _linop;                                               \
+    auto& manager_alias_ = _manager;                                           \
+    auto& item_alias_ = _item;                                                 \
+    auto& linop_alias_ = _linop;                                               \
     auto exec_alias_ = get_pointer_check<const Executor>(_item, "exec", _exec, \
                                                          _linop, _manager)
 
@@ -249,16 +249,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define SET_POINTER(_param_type, _param_name)                                \
     if (item_alias_.HasMember(#_param_name)) {                               \
-        factory_alias_.with_##_param_name(get_pointer<const _param_type>(    \
-            item_alias_[#_param_name], exec_alias_, linop_alias_,            \
-            manager_alias_));                                                \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-#define SET_NON_CONST_POINTER(_param_type, _param_name)                      \
-    if (item_alias_.HasMember(#_param_name)) {                               \
         factory_alias_.with_##_param_name(                                   \
             get_pointer<_param_type>(item_alias_[#_param_name], exec_alias_, \
                                      linop_alias_, manager_alias_));         \
@@ -266,6 +256,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
 
 /**
  * SET_POINTER_VECTOR is to set pointer array for the factory. It is for the
@@ -300,6 +291,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         std::string name{#_param_name};                                      \
         factory_alias_.with_##_param_name(                                   \
             get_value<_param_type>(item_alias_, name));                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+#define SET_FUNCTION(_param_type, _param_name)                               \
+    if (item_alias_.HasMember(#_param_name)) {                               \
+        factory_alias_.with_##_param_name(                                   \
+            ##_param_name_map[item_alias_[#_param_name]]);                   \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -350,10 +351,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template <>                                                        \
     struct Generic<_base_type> {                                       \
         using type = std::shared_ptr<_base_type>;                      \
-        static type build(rapidjson::Value &item,                      \
+        static type build(rapidjson::Value& item,                      \
                           std::shared_ptr<const Executor> exec,        \
                           std::shared_ptr<const LinOp> linop,          \
-                          ResourceManager *manager)                    \
+                          ResourceManager* manager)                    \
         {                                                              \
             assert(item.HasMember("base"));                            \
             return create_from_config<_base_type>(                     \
@@ -375,10 +376,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template <_template>                                                       \
     struct Generic<_base<_type>> {                                             \
         using type = std::shared_ptr<_base<_type>>;                            \
-        static type build(rapidjson::Value &item,                              \
+        static type build(rapidjson::Value& item,                              \
                           std::shared_ptr<const Executor> exec,                \
                           std::shared_ptr<const LinOp> linop,                  \
-                          ResourceManager *manager)                            \
+                          ResourceManager* manager)                            \
         {                                                                      \
             std::cout << #_base << exec.get() << std::endl;                    \
             auto factory = get_pointer<typename _base<_type>::Factory>(        \
@@ -391,4 +392,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include <thread>
 #include <type_traits>
+
+
+#include <ginkgo/core/base/executor.hpp>
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -43,9 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-#include "rapidjson/document.h"
+#include <rapidjson/document.h>
 
-#include <resource_manager/base/element_types.hpp>
+
+#include "resource_manager/base/element_types.hpp"
 
 
 namespace {
@@ -204,10 +205,10 @@ TEST(Concat, BothSideMultipleTypes)
 
 TEST(Span, TwoType)
 {
-    using type = typename span<double, int>::type;
-    using both_side = typename span<tt_list<double>, tt_list<int>>::type;
-    using left_side = typename span<tt_list<double>, int>::type;
-    using right_side = typename span<double, tt_list<int>>::type;
+    using type = typename span_type<double, int>::type;
+    using both_side = typename span_type<tt_list<double>, tt_list<int>>::type;
+    using left_side = typename span_type<tt_list<double>, int>::type;
+    using right_side = typename span_type<double, tt_list<int>>::type;
     using ref_type = tt_list<type_list<double, int>>;
 
     ASSERT_TRUE((std::is_same<type, ref_type>::value));
@@ -218,9 +219,10 @@ TEST(Span, TwoType)
 
 TEST(Span, LeftSideMultipleTypes)
 {
-    using left_side = typename span<tt_list<double, float, int>, int>::type;
+    using left_side =
+        typename span_type<tt_list<double, float, int>, int>::type;
     using both_sidel =
-        typename span<tt_list<double, float, int>, tt_list<int>>::type;
+        typename span_type<tt_list<double, float, int>, tt_list<int>>::type;
     using ref_type = tt_list<type_list<double, int>, type_list<float, int>,
                              type_list<int, int>>;
 
@@ -230,9 +232,10 @@ TEST(Span, LeftSideMultipleTypes)
 
 TEST(Span, RightSideMultipleTypes)
 {
-    using right_side = typename span<double, tt_list<double, float, int>>::type;
+    using right_side =
+        typename span_type<double, tt_list<double, float, int>>::type;
     using both_sider =
-        typename span<tt_list<double>, tt_list<double, float, int>>::type;
+        typename span_type<tt_list<double>, tt_list<double, float, int>>::type;
     using ref_type = tt_list<type_list<double, double>,
                              type_list<double, float>, type_list<double, int>>;
 
@@ -243,8 +246,8 @@ TEST(Span, RightSideMultipleTypes)
 
 TEST(Span, BothSideMultipleTypes)
 {
-    using type = typename span<tt_list<double, float, int>,
-                               tt_list<int, gko::int64, double>>::type;
+    using type = typename span_type<tt_list<double, float, int>,
+                                    tt_list<int, gko::int64, double>>::type;
     using ref_type =
         tt_list<type_list<double, int>, type_list<double, gko::int64>,
                 type_list<double, double>, type_list<float, int>,

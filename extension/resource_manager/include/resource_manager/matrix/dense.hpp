@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
-#define GKOEXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
 
 
 #include <type_traits>
+
+
 #include "resource_manager/base/element_types.hpp"
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
@@ -51,10 +53,10 @@ namespace resource_manager {
 template <typename T>
 struct Generic<gko::matrix::Dense<T>> {
     using type = std::shared_ptr<gko::matrix::Dense<T>>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "is_double?" << std::is_same<T, double>::value
                   << std::endl;
@@ -85,8 +87,8 @@ constexpr auto dense_list = tt_list<double, float>();
 template <>
 std::shared_ptr<gko::LinOp>
 create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     std::cout << "build_dense" << std::endl;
     // go though the type
@@ -104,4 +106,4 @@ create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_DENSE_HPP_

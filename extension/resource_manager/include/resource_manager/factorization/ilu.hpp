@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
-#define GKOEXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+
+
+#include <type_traits>
 
 
 #include "resource_manager/base/element_types.hpp"
@@ -39,8 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-
-#include <type_traits>
 
 
 namespace gko {
@@ -53,10 +54,10 @@ struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
                gko::factorization::Ilu<ValueType, IndexType>> {
     using type = std::shared_ptr<
         typename gko::factorization::Ilu<ValueType, IndexType>::Factory>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         auto ptr = [&]() {
             BUILD_FACTORY(PACK(gko::factorization::Ilu<ValueType, IndexType>),
@@ -94,10 +95,10 @@ constexpr auto ilu_factorization_list =
 template <>
 std::shared_ptr<gko::LinOpFactory>
 create_from_config<RM_LinOpFactory, RM_LinOpFactory::IluFactorizationFactory,
-                   gko::LinOpFactory>(rapidjson::Value &item,
+                   gko::LinOpFactory>(rapidjson::Value& item,
                                       std::shared_ptr<const Executor> exec,
                                       std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager)
+                                      ResourceManager* manager)
 {
     std::cout << "ilu_factorization_factory" << std::endl;
     // go though the type
@@ -115,8 +116,8 @@ create_from_config<RM_LinOpFactory, RM_LinOpFactory::IluFactorizationFactory,
 template <>
 std::shared_ptr<gko::LinOp>
 create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     std::cout << "build_ilu_factorization" << std::endl;
     // go though the type
@@ -136,4 +137,4 @@ create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_

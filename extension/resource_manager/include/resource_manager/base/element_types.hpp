@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
+
+
+#include <type_traits>
+
 
 #include <ginkgo/ginkgo.hpp>
-#include <type_traits>
-// #include <resource_manager/base/macro_helper.hpp>
+
+
+#include "resource_manager/base/types.hpp"
 
 
 namespace gko {
@@ -130,9 +135,9 @@ std::string get_string(type_list<K>)
 }
 
 
-std::string create_type_name(const std::string &arg) { return arg; }
+std::string create_type_name(const std::string& arg) { return arg; }
 template <typename... Rest>
-std::string create_type_name(const std::string &arg, Rest &&... rest)
+std::string create_type_name(const std::string& arg, Rest&&... rest)
 {
     return arg + "+" + create_type_name(std::forward<Rest>(rest)...);
 }
@@ -226,6 +231,7 @@ struct actual_type {
 
 template <gko::preconditioner::isai_type isai_value, typename... Rest>
 struct actual_type<type_list<
+    std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
     std::integral_constant<gko::preconditioner::isai_type, isai_value>,
     Rest...>> {
     using type = gko::preconditioner::Isai<isai_value, Rest...>;
@@ -233,9 +239,9 @@ struct actual_type<type_list<
 
 template <typename LSolverType, typename USolverType, bool ReverseApply,
           typename IndexType>
-struct actual_type<
-    type_list<LSolverType, USolverType,
-              std::integral_constant<bool, ReverseApply>, IndexType>> {
+struct actual_type<type_list<
+    std::integral_constant<RM_LinOp, RM_LinOp::Ilu>, LSolverType, USolverType,
+    std::integral_constant<bool, ReverseApply>, IndexType>> {
     using type = gko::preconditioner::Ilu<LSolverType, USolverType,
                                           ReverseApply, IndexType>;
 };
@@ -291,7 +297,7 @@ struct tt_list {};
 #define ENABLE_SELECTION(_name, _callable, _return, _get_type)                 \
     template <template <typename...> class Base, typename Predicate,           \
               typename... InferredArgs>                                        \
-    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value &item,    \
+    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value& item,    \
                   InferredArgs... args)                                        \
     {                                                                          \
         GKO_KERNEL_NOT_FOUND;                                                  \
@@ -301,7 +307,7 @@ struct tt_list {};
     template <template <typename...> class Base, typename K, typename... Rest, \
               typename Predicate, typename... InferredArgs>                    \
     _return _name(tt_list<K, Rest...>, Predicate is_eligible,                  \
-                  rapidjson::Value &item, InferredArgs... args)                \
+                  rapidjson::Value& item, InferredArgs... args)                \
     {                                                                          \
         auto key = get_string(K{});                                            \
         if (is_eligible(key)) {                                                \
@@ -373,6 +379,40 @@ struct concat<type_list<Types1...>, type_list<Types2...>> {
     using type = type_list<Types1..., Types2...>;
 };
 
+
+#define ENABLE_SELECTION_ID(_name, _callable, _return, _get_type, _enum_type,  \
+                            _enum_item)                                        \
+    template <template <typename...> class Base, typename Predicate,           \
+              typename... InferredArgs>                                        \
+    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value& item,    \
+                  InferredArgs... args)                                        \
+    {                                                                          \
+        GKO_KERNEL_NOT_FOUND;                                                  \
+        return nullptr;                                                        \
+    }                                                                          \
+                                                                               \
+    template <template <typename...> class Base, typename K, typename... Rest, \
+              typename Predicate, typename... InferredArgs>                    \
+    _return _name(tt_list<K, Rest...>, Predicate is_eligible,                  \
+                  rapidjson::Value& item, InferredArgs... args)                \
+    {                                                                          \
+        auto key = get_string(K{});                                            \
+        if (is_eligible(key)) {                                                \
+            return _callable<typename _get_type<                               \
+                Base, typename concat<std::integral_constant<                  \
+                                          _enum_type, _enum_type::_enum_item>, \
+                                      K>::type>::type>(                        \
+                item, std::forward<InferredArgs>(args)...);                    \
+        } else {                                                               \
+            return _name<Base>(tt_list<Rest...>(), is_eligible, item,          \
+                               std::forward<InferredArgs>(args)...);           \
+        }                                                                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
 /**
  * is_tt_list returns true if the type is tt_list.
  *
@@ -387,42 +427,42 @@ struct is_tt_list<tt_list<T...>> : public std::integral_constant<bool, true> {};
 
 /**
  * span is to build a tt_list from each combination of each tt_list (or one
- * type). The result from span<tt_list<T1, T2, ...>, tt_list<K1, K2, ...>> is
- * tt_list<type_list<T1, K1>, type_list<T1, K2>, ..., type_list<T2, K1>,
+ * type). The result from span_type<tt_list<T1, T2, ...>, tt_list<K1, K2, ...>>
+ * is tt_list<type_list<T1, K1>, type_list<T1, K2>, ..., type_list<T2, K1>,
  * type_list<T2, K2>, ...>
  *
  * @tparam K  the type or tt_list
  * @tparam T  the type or tt_list
  */
 template <typename K, typename T, typename = void>
-struct span {
+struct span_type {
     using type = tt_list<typename concat<K, T>::type>;
 };
 
 template <typename K, typename T>
-struct span<K, tt_list<T>,
-            typename std::enable_if<!is_tt_list<K>::value>::type> {
+struct span_type<K, tt_list<T>,
+                 typename std::enable_if<!is_tt_list<K>::value>::type> {
     using type = tt_list<typename concat<K, T>::type>;
 };
 
 template <typename K, typename T, typename... TT>
-struct span<K, tt_list<T, TT...>,
-            typename std::enable_if<!is_tt_list<K>::value>::type> {
+struct span_type<K, tt_list<T, TT...>,
+                 typename std::enable_if<!is_tt_list<K>::value>::type> {
     using type =
-        typename concatenate<typename span<K, T>::type,
-                             typename span<K, tt_list<TT...>>::type>::type;
+        typename concatenate<typename span_type<K, T>::type,
+                             typename span_type<K, tt_list<TT...>>::type>::type;
 };
 
 template <typename K, typename T>
-struct span<tt_list<K>, T> {
-    using type = typename span<K, T>::type;
+struct span_type<tt_list<K>, T> {
+    using type = typename span_type<K, T>::type;
 };
 
 template <typename K, typename... K1, typename T>
-struct span<tt_list<K, K1...>, T> {
+struct span_type<tt_list<K, K1...>, T> {
     using type =
-        typename concatenate<typename span<K, T>::type,
-                             typename span<tt_list<K1...>, T>::type>::type;
+        typename concatenate<typename span_type<K, T>::type,
+                             typename span_type<tt_list<K1...>, T>::type>::type;
 };
 
 
@@ -438,12 +478,16 @@ struct span_list {};
 
 template <typename K, typename T>
 struct span_list<K, T> {
-    using type = typename span<K, T>::type;
+    using type = typename span_type<K, T>::type;
 };
 
 template <typename K, typename T, typename... S>
 struct span_list<K, T, S...> {
-    using type = typename span_list<typename span<K, T>::type, S...>::type;
+    using type = typename span_list<typename span_type<K, T>::type, S...>::type;
+};
+template <typename... K>
+struct span_list<tt_list<K...>> {
+    using type = tt_list<K...>;
 };
 
 
@@ -451,4 +495,4 @@ struct span_list<K, T, S...> {
 }  // namespace extension
 }  // namespace gko
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_ELEMENT_TYPES_HPP_

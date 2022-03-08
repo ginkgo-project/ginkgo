@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_
-#define GKOEXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_
 
-#include <ginkgo/ginkgo.hpp>
+
 #include <memory>
 #include <unordered_map>
+
 
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
+
+
+#include <ginkgo/ginkgo.hpp>
+
 
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/types.hpp"
@@ -75,10 +80,10 @@ DECLARE_SELECTION(CriterionFactory, RM_CriterionFactory);
  * @param manager  the ResourceManager pointer
  */
 template <typename T>
-std::shared_ptr<T> create_from_config(rapidjson::Value &item, std::string base,
+std::shared_ptr<T> create_from_config(rapidjson::Value& item, std::string base,
                                       std::shared_ptr<const Executor> exec,
                                       std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager);
+                                      ResourceManager* manager);
 
 
 CREATE_DEFAULT_IMPL(Executor);
@@ -109,10 +114,10 @@ struct Generic {
      * @param linop  the LinOp from outside
      * @param manager  the ResourceManager pointer
      */
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager);
+                      ResourceManager* manager);
 };
 
 GENERIC_BASE_IMPL(Executor);
@@ -130,10 +135,10 @@ GENERIC_BASE_IMPL(CriterionFactory);
 template <typename T, typename = void>
 struct GenericHelper {
     using type = std::shared_ptr<T>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         return Generic<T, T>::build(item, exec, linop, manager);
     }
@@ -153,10 +158,10 @@ struct GenericHelper<
     T, typename std::enable_if<is_on_linopfactory<T>::value ||
                                is_on_criterionfactory<T>::value>::type> {
     using type = std::shared_ptr<T>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         return Generic<T, typename T::base_type>::build(item, exec, linop,
                                                         manager);
@@ -174,9 +179,9 @@ struct GenericHelper<
  */
 template <typename T>
 std::shared_ptr<T> create_from_config(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec = nullptr,
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec = nullptr,
     std::shared_ptr<const LinOp> linop = nullptr,
-    ResourceManager *manager = nullptr)
+    ResourceManager* manager = nullptr)
 {
     return GenericHelper<T>::build(item, exec, linop, manager);
 }
@@ -191,10 +196,10 @@ std::shared_ptr<T> create_from_config(
  * @tparam U  the corresponding base type of the enum type
  */
 template <typename T, T base, typename U = typename gkobase<T>::type>
-std::shared_ptr<U> create_from_config(rapidjson::Value &item,
+std::shared_ptr<U> create_from_config(rapidjson::Value& item,
                                       std::shared_ptr<const Executor> exec,
                                       std::shared_ptr<const LinOp> linop,
-                                      ResourceManager *manager)
+                                      ResourceManager* manager)
 {
     return nullptr;
 }
@@ -205,4 +210,4 @@ std::shared_ptr<U> create_from_config(rapidjson::Value &item,
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_GENERIC_CONSTRUCTOR_HPP_

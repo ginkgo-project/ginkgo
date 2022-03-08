@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
-#define GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+
+
+#include <type_traits>
 
 
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-
-#include <type_traits>
 
 
 namespace gko {
@@ -50,10 +51,10 @@ namespace resource_manager {
 template <>
 struct Generic<gko::stop::Iteration::Factory, gko::stop::Iteration> {
     using type = std::shared_ptr<gko::stop::Iteration::Factory>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         std::cout << "Iteration exec:" << exec.get() << std::endl;
         auto ptr = [&]() {
@@ -77,4 +78,4 @@ IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_

@@ -13,6 +13,8 @@ convert_header () {
             else
                 echo "#include \"${header_file}\""
             fi
+        elif [ -f "extension/resource_manager/include/${header_file}" ]; then
+            echo "#include \"${header_file}\""
         elif [ "${header_file}" = "matrices/config.hpp" ]; then
             echo "#include \"${header_file}\""
 	    elif [[ "${header_file}" =~ ${jacobi_regex} ]]; then
@@ -28,8 +30,8 @@ convert_header () {
 get_header_def () {
     local regex="\.(hpp|cuh)"
     if [[ $@ =~ $regex ]]; then
-        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~/|\.~_~g")
-	# Used to get rid of \r in Windows
+        local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~extension/[^/]*/include/~PUBLIC_EXT_~g;s~/|\.~_~g")
+	    # Used to get rid of \r in Windows
         def=$(echo "GKO_${def^^}_")
         echo "$def"
     else
@@ -214,8 +216,8 @@ HEADER_DEF=$(get_header_def "$1")
 
 IFNDEF=""
 DEFINE=""
-IFNDEF_REGEX="^#ifndef GKO_"
-DEFINE_REGEX="^#define GKO_"
+IFNDEF_REGEX="^#ifndef GKO"
+DEFINE_REGEX="^#define GKO"
 HEADER_REGEX="\.(hpp|cuh)"
 SKIP="true"
 START_BLOCK_REX="^(#if| *\/\*)"

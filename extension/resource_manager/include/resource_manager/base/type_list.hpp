@@ -30,46 +30,59 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_
 
 
-#include <map>
+#include <type_traits>
 
 
-#include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/helper.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-#include "resource_manager/base/types.hpp"
-#include "resource_manager/executor/executor.hpp"
-#include "resource_manager/factorization/ilu.hpp"
-#include "resource_manager/matrix/csr.hpp"
-#include "resource_manager/matrix/dense.hpp"
-#include "resource_manager/preconditioner/ilu.hpp"
-#include "resource_manager/preconditioner/isai.hpp"
-#include "resource_manager/preconditioner/jacobi.hpp"
-#include "resource_manager/solver/cg.hpp"
-#include "resource_manager/solver/triangular.hpp"
-#include "resource_manager/stop/iteration.hpp"
-#include "resource_manager/stop/residual_norm.hpp"
+#include <ginkgo/ginkgo.hpp>
+
+
+#include "resource_manager/base/element_types.hpp"
+
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
 
+enum class handle_type { ValueType, IndexType };
 
-IMPLEMENT_SELECTION(Executor, RM_Executor, ENUM_EXECUTER);
-IMPLEMENT_SELECTION(LinOp, RM_LinOp, ENUM_LINOP);
-IMPLEMENT_SELECTION(LinOpFactory, RM_LinOpFactory, ENUM_LINOPFACTORY);
-IMPLEMENT_SELECTION(CriterionFactory, RM_CriterionFactory,
-                    ENUM_CRITERIONFACTORY);
+#define TT_LIST_G_PARTIAL(_enum, ...)      \
+    template <>                            \
+    struct tt_list_g<handle_type::_enum> { \
+        using type = tt_list<__VA_ARGS__>; \
+    }
+
+template <handle_type enum_item>
+struct tt_list_g {};
+
+TT_LIST_G_PARTIAL(ValueType, double, float);
+TT_LIST_G_PARTIAL(IndexType, int32, int64);
+
+template <handle_type T>
+using tt_list_g_t = typename tt_list_g<T>::type;
+
+#define GET_DEFAULT_STRING_PARTIAL(_enum, _type)                             \
+    template <>                                                              \
+    std::string get_default_string<handle_type::_enum>()                     \
+    {                                                                        \
+        return get_string<_type>();                                          \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+template <handle_type enum_item>
+std::string get_default_string();
+
+GET_DEFAULT_STRING_PARTIAL(ValueType, double);
+GET_DEFAULT_STRING_PARTIAL(IndexType, int);
 
 
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko
 
-
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_

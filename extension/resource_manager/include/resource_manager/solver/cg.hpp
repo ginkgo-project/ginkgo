@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,17 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKOEXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
-#define GKOEXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
+
+
+#include <type_traits>
 
 
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
-
-#include <type_traits>
 
 
 namespace gko {
@@ -50,10 +51,10 @@ namespace resource_manager {
 template <typename T>
 struct Generic<typename gko::solver::Cg<T>::Factory, gko::solver::Cg<T>> {
     using type = std::shared_ptr<typename gko::solver::Cg<T>::Factory>;
-    static type build(rapidjson::Value &item,
+    static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
-                      ResourceManager *manager)
+                      ResourceManager* manager)
     {
         auto ptr = [&]() {
             BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
@@ -82,8 +83,8 @@ constexpr auto cg_list = tt_list<double, float>();
 template <>
 std::shared_ptr<gko::LinOpFactory> create_from_config<
     RM_LinOpFactory, RM_LinOpFactory::CgFactory, gko::LinOpFactory>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     std::cout << "build_cg_factory" << std::endl;
     // go though the type
@@ -98,8 +99,8 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
 template <>
 std::shared_ptr<gko::LinOp>
 create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
-    rapidjson::Value &item, std::shared_ptr<const Executor> exec,
-    std::shared_ptr<const LinOp> linop, ResourceManager *manager)
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     std::cout << "build_cg" << std::endl;
     // go though the type
@@ -117,4 +118,4 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
 }  // namespace gko
 
 
-#endif  // GKOEXT_RESOURCE_MANAGER_SOLVER_CG_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_CG_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include <memory>
 #include <thread>
 #include <type_traits>
+
+
+#include <ginkgo/core/base/executor.hpp>
 
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -44,10 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-#include "rapidjson/document.h"
+#include <rapidjson/document.h>
+
 
 #include <ginkgo/core/base/exception.hpp>
-#include <resource_manager/resource_manager.hpp>
+
+
+#include "resource_manager/resource_manager.hpp"
 
 
 namespace {
