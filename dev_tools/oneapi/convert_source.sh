@@ -16,8 +16,9 @@
 #                    If GTEST_HEADER_DIR is available elsewhere GINKGO_BUILD_TESTS is not required.
 #                    CMake's step is not required if copying the ginkgo config.hpp from another ginkgo build into "${ROOT_DIR}/include/ginkgo/".
 #   ROOT_BUILD_DIR: the complete path for build folder. The default is "${ROOT_DIR}/${BUILD_DIR}"
-#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/third_party_gtest/src/googletest/include"
+#   GTEST_HEADER_DIR: the gtest header folder. The default is "${ROOT_BUILD_DIR}/_deps/googletest-src/googletest/include"
 #   CLANG_FORMAT: the clang-format exec. The default is "clang-format"
+#   VERBOSE: if it is set as 1, script will ouput the path information
 CURRENT_DIR="$( pwd )"
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 SCRIPT_DIR="$( pwd )"
@@ -300,6 +301,8 @@ replace_regex="${replace_regex};s|trick/thread_ids.hpp|dpcpp/components/thread_i
 replace_regex="${replace_regex};s|trick/cooperative_groups\.hpp|dpcpp/components/cooperative_groups.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/sorting\.hpp|dpcpp/components/sorting.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/reduction\.hpp|dpcpp/components/reduction.dp.hpp|g"
+replace_regex="${replace_regex};s|cuda/base/math\.hpp|limits|g"
+replace_regex="${replace_regex};s|device_numeric_limits(<.*>)::(.*)(,|;)|std::numeric_limits\1::\2()\3|g"
 replace_regex="${replace_regex};s/#define GET_QUEUE 0//g"
 replace_regex="${replace_regex};s/GET_QUEUE/exec->get_queue()/g"
 replace_regex="${replace_regex};s/cuda/dpcpp/g"

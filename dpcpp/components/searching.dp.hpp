@@ -30,6 +30,23 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_DPCPP_COMPONENTS_SEARCHING_DP_HPP_
+#define GKO_DPCPP_COMPONENTS_SEARCHING_DP_HPP_
+
+
+#include <CL/sycl.hpp>
+
+
+#include "dpcpp/base/config.hpp"
+#include "dpcpp/base/dpct.hpp"
+#include "dpcpp/components/intrinsics.dp.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace dpcpp {
+
+
 /**
  * @internal
  * Generic binary search that finds the first index where a predicate is true.
@@ -47,9 +64,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Predicate>
-__forceinline__ __device__ IndexType binary_search(IndexType offset,
-                                                   IndexType length,
-                                                   Predicate p)
+__dpct_inline__ IndexType binary_search(IndexType offset, IndexType length,
+                                        Predicate p)
 {
     while (length > 0) {
         auto half_length = length / 2;
@@ -79,7 +95,7 @@ __forceinline__ __device__ IndexType binary_search(IndexType offset,
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <int size, typename Predicate>
-__forceinline__ __device__ int synchronous_fixed_binary_search(Predicate p)
+__dpct_inline__ int synchronous_fixed_binary_search(Predicate p)
 {
     if (size == 0) {
         return 0;
@@ -116,7 +132,7 @@ __forceinline__ __device__ int synchronous_fixed_binary_search(Predicate p)
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename Predicate>
-__forceinline__ __device__ int synchronous_binary_search(int size, Predicate p)
+__dpct_inline__ int synchronous_binary_search(int size, Predicate p)
 {
     if (size == 0) {
         return 0;
@@ -155,9 +171,8 @@ __forceinline__ __device__ int synchronous_binary_search(int size, Predicate p)
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Group, typename Predicate>
-__forceinline__ __device__ IndexType group_wide_search(IndexType offset,
-                                                       IndexType length,
-                                                       Group group, Predicate p)
+__dpct_inline__ IndexType group_wide_search(IndexType offset, IndexType length,
+                                            Group group, Predicate p)
 {
     // binary search on the group-sized blocks
     IndexType num_blocks = (length + group.size() - 1) / group.size();
@@ -211,9 +226,8 @@ __forceinline__ __device__ IndexType group_wide_search(IndexType offset,
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Group, typename Predicate>
-__forceinline__ __device__ IndexType group_ary_search(IndexType offset,
-                                                      IndexType length,
-                                                      Group group, Predicate p)
+__dpct_inline__ IndexType group_ary_search(IndexType offset, IndexType length,
+                                           Group group, Predicate p)
 {
     IndexType end = offset + length;
     // invariant: [offset, offset + length] contains middle
@@ -236,3 +250,11 @@ __forceinline__ __device__ IndexType group_ary_search(IndexType offset,
     auto pos = mask == 0 ? group.size() : ffs(mask) - 1;
     return offset + pos;
 }
+
+
+}  // namespace dpcpp
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_DPCPP_COMPONENTS_SEARCHING_DP_HPP_
