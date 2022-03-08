@@ -60,10 +60,10 @@ constexpr auto trs_list =
                    gko::solver::_TRS<ValueType, IndexType>> {                 \
         using type = std::shared_ptr<                                         \
             typename gko::solver::_TRS<ValueType, IndexType>::Factory>;       \
-        static type build(rapidjson::Value &item,                             \
+        static type build(rapidjson::Value& item,                             \
                           std::shared_ptr<const Executor> exec,               \
                           std::shared_ptr<const LinOp> linop,                 \
-                          ResourceManager *manager)                           \
+                          ResourceManager* manager)                           \
         {                                                                     \
             auto ptr = [&]() {                                                \
                 BUILD_FACTORY(PACK(gko::solver::_TRS<ValueType, IndexType>),  \
@@ -115,7 +115,11 @@ constexpr auto trs_list =
             trs_list, [=](std::string key) { return key == type_string; },    \
             item, exec, linop, manager);                                      \
         return ptr;                                                           \
-    }
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
 RM_TRS_IMPL(UpperTrs, upper);
 RM_TRS_IMPL(LowerTrs, lower);
 
