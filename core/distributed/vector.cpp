@@ -444,8 +444,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
@@ -476,6 +476,50 @@ const ValueType* Vector<ValueType>::get_const_local_values() const
     return local_.get_const_values();
 }
 
+
+template <typename ValueType>
+void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
+{
+    using AvgVector = local_vector_type;
+    const auto size = this->get_size()[1];
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, size));
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    auto dense_res = make_temporary_clone(exec, as<AvgVector>(result));
+    const auto num_local_rows = this->get_local_vector()->get_size()[0];
+
+    // TODO FIXME for multi-vector
+    auto local_sum =
+        Array<ValueType>::view(exec, size, dense_res->get_values());
+
+    local_sum.fill(ValueType{0});
+
+    auto local_view = array_const_cast(Array<ValueType>::const_view(
+        exec, num_local_rows, this->get_const_local_values()));
+
+    reduce_add(local_view, local_sum);
+
+    exec->synchronize();
+
+    auto use_host_buffer =
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
+        host_reduction_buffer_->copy_from(dense_res.get());
+        comm.all_reduce(host_reduction_buffer_->get_values(),
+                        static_cast<int>(size), MPI_SUM);
+        dense_res->copy_from(host_reduction_buffer_.get());
+    } else {
+        comm.all_reduce(dense_res->get_values(), static_cast<int>(size),
+                        MPI_SUM);
+    }
+
+    const auto num_global_rows = this->get_size()[0];
+    auto elements = gko::initialize<gko::matrix::Dense<ValueType>>(
+        1, {static_cast<ValueType>(num_global_rows)}, this->get_executor());
+
+    dense_res->inv_scale(elements.get());
+}
 
 template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)

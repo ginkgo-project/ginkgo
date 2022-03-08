@@ -226,6 +226,14 @@ public:
     void inv_scale(const LinOp* alpha);
 
     /**
+     * Writes the diagonal of this matrix into an existing diagonal matrix.
+     *
+     * @note This might overflow.
+     * @param output The average value.
+     */
+    void compute_average_unsafe(LinOp* result) const;
+
+    /**
      * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
