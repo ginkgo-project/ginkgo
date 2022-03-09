@@ -218,6 +218,19 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
 }
 
 
+TEST_F(Csr, AsyncSimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
+    unsort_mtx();
+
+    auto hand = dmtx->apply(dy.get(), dresult.get(), cuda->get_handle_at(0));
+    mtx->apply(y.get(), expected.get());
+    hand->wait();
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));

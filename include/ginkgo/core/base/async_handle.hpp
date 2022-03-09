@@ -347,14 +347,15 @@ public:
 
     ::cl::sycl::queue* get_handle() { return this->handle_.get(); }
 
-    void get_result();
+    void get_result() {}
 
-    void wait() override;
+    void wait() override {}
 
-    void wait_for(const std::chrono::duration<int>& time) override;
+    void wait_for(const std::chrono::duration<int>& time) override {}
 
-    void wait_until(const std::chrono::time_point<std::chrono::steady_clock>&
-                        time) override;
+    void wait_until(
+        const std::chrono::time_point<std::chrono::steady_clock>& time) override
+    {}
 
     std::shared_ptr<AsyncHandle> then(AsyncHandle* handle) override
         GKO_NOT_IMPLEMENTED;

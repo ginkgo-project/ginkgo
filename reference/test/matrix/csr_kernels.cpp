@@ -353,6 +353,23 @@ protected:
 TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
+TYPED_TEST(Csr, AsyncAppliesToDenseVector)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
+
+    auto hand =
+        this->mtx->apply(x.get(), y.get(), this->exec->get_handle_at(0));
+
+    EXPECT_NE(y->at(0), T{13.0});
+    hand->wait();
+    EXPECT_EQ(y->at(0), T{13.0});
+    EXPECT_EQ(y->at(1), T{5.0});
+}
+
+
 TYPED_TEST(Csr, AppliesToDenseVector)
 {
     using Vec = typename TestFixture::Vec;

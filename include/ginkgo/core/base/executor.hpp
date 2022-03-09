@@ -587,7 +587,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
 
 #define GKO_REGISTER_ASYNC_OPERATION(_name, _kernel)                           \
     template <typename... Args>                                                \
-    auto make_##_name(Args&&... args)                                          \
+    auto make_async_##_name(Args&&... args)                                    \
     {                                                                          \
         return ::gko::detail::make_register_async_operation(                   \
             #_name, sizeof...(Args), [&args...](auto exec, auto handle) {      \
@@ -597,7 +597,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
                         exec_type,                                             \
                         std::shared_ptr<const ::gko::ReferenceExecutor>>::     \
                         value) {                                               \
-                    ::gko::kernels::reference::_kernel(                        \
+                    return ::gko::kernels::reference::_kernel(                 \
                         std::dynamic_pointer_cast<                             \
                             const ::gko::ReferenceExecutor>(exec),             \
                         std::dynamic_pointer_cast<                             \
@@ -607,7 +607,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
                                exec_type,                                      \
                                std::shared_ptr<const ::gko::OmpExecutor>>::    \
                                value) {                                        \
-                    ::gko::kernels::omp::_kernel(                              \
+                    return ::gko::kernels::omp::_kernel(                       \
                         std::dynamic_pointer_cast<const ::gko::OmpExecutor>(   \
                             exec),                                             \
                         std::dynamic_pointer_cast<                             \
@@ -617,7 +617,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
                                exec_type,                                      \
                                std::shared_ptr<const ::gko::CudaExecutor>>::   \
                                value) {                                        \
-                    ::gko::kernels::cuda::_kernel(                             \
+                    return ::gko::kernels::cuda::_kernel(                      \
                         std::dynamic_pointer_cast<const ::gko::CudaExecutor>(  \
                             exec),                                             \
                         std::dynamic_pointer_cast<::gko::CudaAsyncHandle>(     \
@@ -627,7 +627,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
                                exec_type,                                      \
                                std::shared_ptr<const ::gko::HipExecutor>>::    \
                                value) {                                        \
-                    ::gko::kernels::hip::_kernel(                              \
+                    return ::gko::kernels::hip::_kernel(                       \
                         std::dynamic_pointer_cast<const ::gko::HipExecutor>(   \
                             exec),                                             \
                         std::dynamic_pointer_cast<::gko::HipAsyncHandle>(      \
@@ -637,7 +637,7 @@ RegisteredAsyncOperation<Closure> make_register_async_operation(
                                exec_type,                                      \
                                std::shared_ptr<const ::gko::DpcppExecutor>>::  \
                                value) {                                        \
-                    ::gko::kernels::dpcpp::_kernel(                            \
+                    return ::gko::kernels::dpcpp::_kernel(                     \
                         std::dynamic_pointer_cast<const ::gko::DpcppExecutor>( \
                             exec),                                             \
                         std::dynamic_pointer_cast<::gko::DpcppAsyncHandle>(    \
@@ -1829,7 +1829,7 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
         allocation_mode alloc_mode = default_hip_alloc_mode,
-        int num_additional_handles = 0);
+        int num_additional_handles = 1);
 
     /**
      * Creates a new HipExecutor.
@@ -1846,7 +1846,7 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<MemorySpace> memory_space,
         std::shared_ptr<Executor> master, bool device_reset = false,
-        int num_additional_handles = 0);
+        int num_additional_handles = 1);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1979,7 +1979,7 @@ protected:
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
                 allocation_mode alloc_mode = default_hip_alloc_mode,
-                int num_additional_handles = 0)
+                int num_additional_handles = 1)
         : EnableDeviceReset{device_reset},
           alloc_mode_(alloc_mode),
           master_(master)

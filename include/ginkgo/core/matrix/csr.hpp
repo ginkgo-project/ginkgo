@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/async_handle.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -1136,6 +1137,10 @@ protected:
                     LinOp* x, const OverlapMask& write_mask) const override;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
+
+    std::shared_ptr<gko::AsyncHandle> apply_impl(
+        const LinOp* b, LinOp* x,
+        std::shared_ptr<gko::AsyncHandle> handle) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;

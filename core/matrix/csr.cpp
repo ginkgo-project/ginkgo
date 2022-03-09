@@ -67,6 +67,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(spmv, csr::spmv);
+GKO_REGISTER_ASYNC_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
@@ -130,6 +131,29 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(
                     csr::make_spmv(this, dense_b, dense_x, OverlapMask{}));
+            },
+            b, x);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<AsyncHandle> Csr<ValueType, IndexType>::apply_impl(
+    const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+{
+    using ComplexDense = Dense<to_complex<ValueType>>;
+    using TCsr = Csr<ValueType, IndexType>;
+    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
+        auto x_csr = as<TCsr>(x);
+        this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
+        return handle;
+    } else {
+        return async_precision_dispatch_real_complex<ValueType>(
+            [this, handle](auto dense_b, auto dense_x) {
+                return this->get_executor()->run(
+                    csr::make_async_spmv(this, dense_b, dense_x, OverlapMask{}),
+                    handle);
             },
             b, x);
     }

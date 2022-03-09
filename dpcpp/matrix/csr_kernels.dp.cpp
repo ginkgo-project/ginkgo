@@ -1208,6 +1208,99 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
+                                  std::shared_ptr<AsyncHandle> handle,
+                                  const matrix::Csr<ValueType, IndexType>* a,
+                                  const matrix::Dense<ValueType>* b,
+                                  matrix::Dense<ValueType>* c,
+                                  const OverlapMask write_mask)
+{
+    if (a->get_strategy()->get_name() == "load_balance") {
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
+        const IndexType nwarps = a->get_num_srow_elements();
+        if (nwarps > 0) {
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
+            kernel::abstract_spmv(
+                csr_grid, csr_block, 0, exec->get_queue(), nwarps,
+                static_cast<IndexType>(a->get_size()[0]), a->get_const_values(),
+                a->get_const_col_idxs(), a->get_const_row_ptrs(),
+                a->get_const_srow(), b->get_const_values(), b->get_stride(),
+                c->get_values(), c->get_stride());
+        } else {
+            GKO_NOT_SUPPORTED(nwarps);
+        }
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        int items_per_thread =
+            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+        host_kernel::select_merge_path_spmv(
+            compiled_kernels(),
+            [&items_per_thread](int compiled_info) {
+                return items_per_thread == compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+    } else if (a->get_strategy()->get_name() == "classical") {
+        IndexType max_length_per_row = 0;
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        if (auto strategy =
+                std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                    a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else if (auto strategy = std::dynamic_pointer_cast<
+                       const typename Tcsr::automatical>(a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else {
+            GKO_NOT_SUPPORTED(a->get_strategy());
+        }
+        host_kernel::select_classical_spmv(
+            classical_kernels(),
+            [&max_length_per_row](int compiled_info) {
+                return max_length_per_row >= compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+    } else if (a->get_strategy()->get_name() == "sparselib" ||
+               a->get_strategy()->get_name() == "cusparse") {
+        if (!is_complex<ValueType>()) {
+            oneapi::mkl::sparse::matrix_handle_t mat_handle;
+            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
+            oneapi::mkl::sparse::set_csr_data(
+                mat_handle, IndexType(a->get_size()[0]),
+                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+                const_cast<IndexType*>(a->get_const_row_ptrs()),
+                const_cast<IndexType*>(a->get_const_col_idxs()),
+                const_cast<ValueType*>(a->get_const_values()));
+            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+                oneapi::mkl::sparse::gemv(
+                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
+                    one<ValueType>(), mat_handle,
+                    const_cast<ValueType*>(b->get_const_values()),
+                    zero<ValueType>(), c->get_values());
+            } else {
+                oneapi::mkl::sparse::gemm(
+                    *exec->get_queue(), oneapi::mkl::layout::row_major,
+                    oneapi::mkl::transpose::nontrans,
+                    oneapi::mkl::transpose::nontrans, one<ValueType>(),
+                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
+                    b->get_size()[1], b->get_stride(), zero<ValueType>(),
+                    c->get_values(), c->get_stride());
+            }
+            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+    return handle;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Csr<ValueType, IndexType>* a,

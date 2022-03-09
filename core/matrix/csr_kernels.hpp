@@ -61,6 +61,15 @@ namespace kernels {
               const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c, \
               const OverlapMask write_mask)
 
+
+#define GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL(ValueType, IndexType)         \
+    std::shared_ptr<AsyncHandle> spmv(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        std::shared_ptr<AsyncHandle> handle,                            \
+        const matrix::Csr<ValueType, IndexType>* a,                     \
+        const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c, \
+        const OverlapMask write_mask)
+
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::Dense<ValueType>* alpha,       \
@@ -218,6 +227,8 @@ namespace kernels {
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                     \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL(ValueType, IndexType);               \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                      \

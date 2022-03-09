@@ -261,12 +261,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename ValueType, typename IndexType>
 void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
+                       std::shared_ptr<AsyncHandle> handle,
                        const matrix::Csr<ValueType, IndexType>* a,
                        const matrix::Dense<ValueType>* b,
                        matrix::Dense<ValueType>* c,
                        const matrix::Dense<ValueType>* alpha = nullptr,
                        const matrix::Dense<ValueType>* beta = nullptr)
 {
+    auto stream = gko::as<CudaAsyncHandle>(handle)->get_handle();
     if (beta) {
         dense::scale(exec, beta, c);
     } else {
@@ -278,7 +280,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
         const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b->get_size()[1]);
         if (alpha) {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
-                kernel::abstract_spmv<<<csr_grid, csr_block>>>(
+                kernel::abstract_spmv<<<csr_grid, csr_block, 0, stream>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_cuda_type(alpha->get_const_values()),
                     as_cuda_type(a->get_const_values()),
@@ -292,7 +294,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
             }
         } else {
             if (csr_grid.x > 0 && csr_grid.y > 0) {
-                kernel::abstract_spmv<<<csr_grid, csr_block>>>(
+                kernel::abstract_spmv<<<csr_grid, csr_block, 0, stream>>>(
                     nwarps, static_cast<IndexType>(a->get_size()[0]),
                     as_cuda_type(a->get_const_values()),
                     a->get_const_col_idxs(),
@@ -421,7 +423,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c);
+        host_kernel::load_balance_spmv(exec, exec->get_default_exec_stream(), a,
+                                       b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -469,6 +472,66 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
+                                  std::shared_ptr<AsyncHandle> handle,
+                                  const matrix::Csr<ValueType, IndexType>* a,
+                                  const matrix::Dense<ValueType>* b,
+                                  matrix::Dense<ValueType>* c,
+                                  const OverlapMask write_mask)
+{
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
+        host_kernel::load_balance_spmv(exec, handle, a, b, c);
+    } else if (a->get_strategy()->get_name() == "merge_path") {
+        int items_per_thread =
+            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
+        host_kernel::select_merge_path_spmv(
+            compiled_kernels(),
+            [&items_per_thread](int compiled_info) {
+                return items_per_thread == compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+    } else {
+        bool use_classical = true;
+        if (a->get_strategy()->get_name() == "sparselib" ||
+            a->get_strategy()->get_name() == "cusparse") {
+            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
+        }
+        if (use_classical) {
+            IndexType max_length_per_row = 0;
+            using Tcsr = matrix::Csr<ValueType, IndexType>;
+            if (auto strategy =
+                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                        a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else if (auto strategy = std::dynamic_pointer_cast<
+                           const typename Tcsr::automatical>(
+                           a->get_strategy())) {
+                max_length_per_row = strategy->get_max_length_per_row();
+            } else {
+                // as a fall-back: use average row length, at least 1
+                max_length_per_row = std::max<size_type>(
+                    a->get_num_stored_elements() /
+                        std::max<size_type>(a->get_size()[0], 1),
+                    1);
+            }
+            host_kernel::select_classical_spmv(
+                classical_kernels(),
+                [&max_length_per_row](int compiled_info) {
+                    return max_length_per_row >= compiled_info;
+                },
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+        }
+    }
+    return handle;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* alpha,
                    const matrix::Csr<ValueType, IndexType>* a,
@@ -479,7 +542,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
+        host_kernel::load_balance_spmv(exec, exec->get_default_exec_stream(), a,
+                                       b, c, alpha, beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
