@@ -119,7 +119,7 @@ public:
     void SetUp() override
     {
         ASSERT_EQ(this->comm.size(), 3);
-        init_executor(gko::ReferenceExecutor::create(), exec);
+        init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
     void TearDown() override
@@ -146,7 +146,7 @@ public:
 TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
 
-#ifdef GKO_COMPILING_REFERENCE
+//#ifdef GKO_COMPILING_REFERENCE
 
 
 TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
@@ -320,7 +320,7 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
 }
 
 
-#endif
+//#endif
 
 
 TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
@@ -373,10 +373,7 @@ public:
           size{53, 11},
           engine(42)
     {
-        init_executor(ref, exec, comm);
-
-        logger = gko::share(HostToDeviceLogger::create(exec));
-        exec->add_logger(logger);
+        logger = gko::share(HostToDeviceLogger::create(ref));
 
         dense_x = dense_type::create(exec);
         dense_y = dense_type::create(exec);
@@ -423,7 +420,8 @@ public:
     void SetUp() override
     {
         ASSERT_GT(comm.size(), 0);
-        init_executor(gko::ReferenceExecutor::create(), exec);
+        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+        exec->add_logger(logger);
     }
 
     void TearDown() override
@@ -600,7 +598,7 @@ public:
     void SetUp() override
     {
         ASSERT_GT(comm.size(), 0);
-        init_executor(gko::ReferenceExecutor::create(), exec);
+        init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
     void TearDown() override
