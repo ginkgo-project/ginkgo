@@ -33,10 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/vector_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/iterator>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
