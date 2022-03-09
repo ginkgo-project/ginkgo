@@ -57,7 +57,8 @@ void build_local(
     auto range_starting_indices = partition->get_range_starting_indices();
     auto num_ranges = partition->get_num_ranges();
 
-    auto find_range = [&](GlobalIndexType idx, size_type hint) {
+    auto find_range = [range_bounds, num_ranges](GlobalIndexType idx,
+                                                 size_type hint) {
         if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
             return hint;
         } else {
@@ -66,7 +67,8 @@ void build_local(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local = [&](GlobalIndexType idx,
+    auto map_to_local = [range_bounds, range_starting_indices](
+                            GlobalIndexType idx,
                             size_type range_id) -> LocalIndexType {
         return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
                range_starting_indices[range_id];
