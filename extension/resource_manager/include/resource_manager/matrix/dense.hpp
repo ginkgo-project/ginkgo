@@ -38,11 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "resource_manager/base/element_types.hpp"
-#include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
@@ -50,38 +50,47 @@ namespace extension {
 namespace resource_manager {
 
 
-template <typename T>
-struct Generic<gko::matrix::Dense<T>> {
-    using type = std::shared_ptr<gko::matrix::Dense<T>>;
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(Dense) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)DenseFactory and (RM_LinOp::)Dense and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
+template <typename ValueType>
+struct Generic<typename gko::matrix::Dense<ValueType>> {
+    using type = std::shared_ptr<gko::matrix::Dense<ValueType>>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "is_double?" << std::is_same<T, double>::value
-                  << std::endl;
-        std::cout << "is_float?" << std::is_same<T, float>::value << std::endl;
-
-        // std::shared_ptr<Executor> exec_ptr;
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        auto stride = get_value_with_default(item, "stride", size[1]);
-        auto ptr = share(gko::matrix::Dense<T>::create(exec_ptr, size, stride));
+        // TODO: consider other thing from constructor
+        auto ptr = share(gko::matrix::Dense<ValueType>::create(exec_ptr, size));
+
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());
-            auto data = gko::read_raw<T>(mtx_fd);
+            auto data = gko::read_raw<
+                typename gko::matrix::Dense<ValueType>::value_type,
+                typename gko::matrix::Dense<ValueType>::index_type>(mtx_fd);
             ptr->read(data);
         }
-        std::cout << ptr->get_size()[0] << " " << ptr->get_size()[1] << " "
-                  << ptr->get_stride() << std::endl;
+
         return std::move(ptr);
     }
 };
 
 
-ENABLE_SELECTION(dense_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
-constexpr auto dense_list = tt_list<double, float>();
+ENABLE_SELECTION(dense_select, call, std::shared_ptr<gko::LinOp>,
+                 get_actual_type);
+
+
+constexpr auto dense_list =
+    typename span_list<tt_list_g_t<handle_type::ValueType>>::type();
 
 
 template <>
@@ -90,14 +99,14 @@ create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_dense" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto type_string = vt;
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()));
     auto ptr = dense_select<gko::matrix::Dense>(
         dense_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 
