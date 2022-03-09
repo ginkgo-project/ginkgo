@@ -63,13 +63,14 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
+    auto cpy_lambda = [=](size_type num_bytes, const void* src_ptr,
+                          void* dest_ptr) {
         if (num_bytes > 0) {
             std::memcpy(dest_ptr, src_ptr, num_bytes);
         }
     };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    return gko::as<HostAsyncHandle<void>>(handle)->queue(cpy_lambda, num_bytes,
+                                                         src_ptr, dest_ptr);
 }
 
 
@@ -77,13 +78,14 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
+    auto cpy_lambda = [=](size_type num_bytes, const void* src_ptr,
+                          void* dest_ptr) {
         if (num_bytes > 0) {
             std::memcpy(dest_ptr, src_ptr, num_bytes);
         }
     };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    return gko::as<HostAsyncHandle<void>>(handle)->queue(cpy_lambda, num_bytes,
+                                                         src_ptr, dest_ptr);
 }
 
 
@@ -91,13 +93,14 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
+    auto cpy_lambda = [=](size_type num_bytes, const void* src_ptr,
+                          void* dest_ptr) {
         if (num_bytes > 0) {
             std::memcpy(dest_ptr, src_ptr, num_bytes);
         }
     };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    return gko::as<HostAsyncHandle<void>>(handle)->queue(cpy_lambda, num_bytes,
+                                                         src_ptr, dest_ptr);
 }
 
 
@@ -123,13 +126,14 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
+    auto cpy_lambda = [=](size_type num_bytes, const void* src_ptr,
+                          void* dest_ptr) {
         if (num_bytes > 0) {
             std::memcpy(dest_ptr, src_ptr, num_bytes);
         }
     };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    return gko::as<HostAsyncHandle<void>>(handle)->queue(cpy_lambda, num_bytes,
+                                                         src_ptr, dest_ptr);
 }
 
 

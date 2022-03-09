@@ -110,14 +110,13 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(dest->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice, stream));
     }
-    return dest->get_default_input_stream();
+    return handle;
 }
 
 
@@ -125,14 +124,13 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(dest->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice, stream));
     }
-    return dest->get_default_input_stream();
+    return handle;
 }
 
 
@@ -187,6 +185,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
+    // auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     auto stream =
         as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
     if (num_bytes > 0) {
@@ -217,16 +216,14 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 }
 
 
@@ -235,16 +232,14 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 #else
     GKO_NOT_SUPPORTED(this);
 #endif
@@ -256,16 +251,14 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 #else
     GKO_NOT_SUPPORTED(this);
 #endif
@@ -276,16 +269,14 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 }
 
 
@@ -299,16 +290,14 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 }
 
 
@@ -316,16 +305,14 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto cpy_lambda = [=]() {
-        if (num_bytes > 0) {
-            cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
-                               this->get_device_id(), num_bytes));
-        }
-    };
-    return HostAsyncHandle<void>::create(
-        std::async(std::launch::async, cpy_lambda));
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeerAsync(dest_ptr, dest->get_device_id(), src_ptr,
+                                this->get_device_id(), num_bytes, stream));
+    }
+    return handle;
 }
 
 
@@ -339,14 +326,13 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(dest->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice, stream));
     }
-    return dest->get_default_input_stream();
+    return handle;
 }
 
 
@@ -354,14 +340,13 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(dest->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice, stream));
     }
-    return dest->get_default_input_stream();
+    return handle;
 }
 
 
@@ -369,14 +354,13 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost, stream));
     }
-    return this->get_default_output_stream();
+    return handle;
 }
 
 
@@ -384,14 +368,13 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
             dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost, stream));
     }
-    return this->get_default_output_stream();
+    return handle;
 }
 
 

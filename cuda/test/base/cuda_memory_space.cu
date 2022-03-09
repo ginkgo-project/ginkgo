@@ -53,7 +53,7 @@ protected:
 
     void SetUp()
     {
-        omp = gko::HostMemorySpace::create();
+        host = gko::HostMemorySpace::create();
         cuda = gko::CudaMemorySpace::create(0);
         cuda2 = gko::CudaMemorySpace::create(
             gko::CudaMemorySpace::get_num_devices() - 1);
@@ -71,7 +71,7 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::HostMemorySpace> omp;
+    std::shared_ptr<gko::HostMemorySpace> host;
     std::shared_ptr<gko::CudaMemorySpace> cuda;
     std::shared_ptr<gko::CudaMemorySpace> cuda2;
 };
@@ -115,7 +115,7 @@ TEST_F(CudaMemorySpace, CopiesDataToCuda)
     int orig[] = {3, 8};
     auto* copy = cuda->alloc<int>(2);
 
-    cuda->copy_from(omp.get(), 2, orig, copy);
+    cuda->copy_from(host.get(), 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
@@ -135,7 +135,7 @@ TEST_F(CudaMemorySpace, CopiesDataFromCuda)
     auto orig = cuda->alloc<int>(2);
     init_data<<<1, 1>>>(orig);
 
-    omp->copy_from(cuda.get(), 2, orig, copy);
+    host->copy_from(cuda.get(), 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
@@ -158,7 +158,7 @@ TEST_F(CudaMemorySpace, CopiesDataFromCudaToCuda)
     check_data<<<1, 1>>>(copy_cuda2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
 
-    omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
+    host->copy_from(cuda2.get(), 2, copy_cuda2, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);

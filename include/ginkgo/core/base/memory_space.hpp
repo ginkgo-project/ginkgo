@@ -152,6 +152,8 @@ public:
             src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
         try {
+            // FIXME: Need to fix the default stream when either CUDA/HIP is
+            // being used.
             this->raw_copy_from(src_mem_space, num_elems * sizeof(T), src_ptr,
                                 dest_ptr, this->get_default_input_stream())
                 ->wait();
@@ -464,8 +466,8 @@ public:
 protected:
     HostMemorySpace()
     {
-        this->default_input_stream_ = {};
-        this->default_output_stream_ = {};
+        this->default_input_stream_ = HostAsyncHandle<void>::create();
+        this->default_output_stream_ = HostAsyncHandle<void>::create();
     }
 
     void* raw_alloc(size_type size) const override;
@@ -512,8 +514,8 @@ public:
 protected:
     ReferenceMemorySpace()
     {
-        this->default_input_stream_ = {};
-        this->default_output_stream_ = {};
+        this->default_input_stream_ = HostAsyncHandle<void>::create();
+        this->default_output_stream_ = HostAsyncHandle<void>::create();
     }
 
     void* raw_alloc(size_type size) const override;
