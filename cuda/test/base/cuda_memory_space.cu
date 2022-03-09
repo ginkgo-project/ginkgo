@@ -115,8 +115,7 @@ TEST_F(CudaMemorySpace, CopiesDataToCuda)
     int orig[] = {3, 8};
     auto* copy = cuda->alloc<int>(2);
 
-    auto hand = cuda->copy_from(omp.get(), 2, orig, copy);
-    hand->wait();
+    cuda->copy_from(omp.get(), 2, orig, copy);
 
     check_data<<<1, 1>>>(copy);
     ASSERT_NO_THROW(cuda->synchronize());
@@ -136,8 +135,7 @@ TEST_F(CudaMemorySpace, CopiesDataFromCuda)
     auto orig = cuda->alloc<int>(2);
     init_data<<<1, 1>>>(orig);
 
-    auto hand = omp->copy_from(cuda.get(), 2, orig, copy);
-    hand->wait();
+    omp->copy_from(cuda.get(), 2, orig, copy);
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);

@@ -61,7 +61,7 @@ void* HostMemorySpace::raw_alloc(size_type num_bytes) const
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -75,7 +75,7 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -89,7 +89,7 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -121,7 +121,7 @@ void* ReferenceMemorySpace::raw_alloc(size_type num_bytes) const
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {

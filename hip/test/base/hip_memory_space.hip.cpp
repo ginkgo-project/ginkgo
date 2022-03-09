@@ -165,16 +165,13 @@ TEST_F(HipMemorySpace, CopiesDataFromHipToHip)
     hipLaunchKernelGGL((init_data), dim3(1), dim3(1), 0, 0, orig);
 
     auto copy_hip2 = hip2->alloc<int>(2);
-    hip2->copy_from(hip.get(), 2, orig, copy_hip2)->wait();
+    hip2->copy_from(hip.get(), 2, orig, copy_hip2);
 
     // Check that the data is really on GPU2 and ensure we did not cheat
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(hip2->get_device_id()));
-    auto hand = as<gko::HipAsyncHandle>(hip2->get_default_input_stream());
-    hipLaunchKernelGGL((check_data2), dim3(1), dim3(1), 0, hand->get_handle(),
-                       copy_hip2);
-    hand->wait();
+    hipLaunchKernelGGL((check_data2), dim3(1), dim3(1), 0, 0, copy_hip2);
     // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(hip2.get(), 2, copy_hip2, copy)->wait();
+    omp->copy_from(hip2.get(), 2, copy_hip2, copy);
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     hip2->free(copy_hip2);

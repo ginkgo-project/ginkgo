@@ -79,12 +79,14 @@ void CudaExecutor::populate_exec_info(const MachineTopology* mach_topo)
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 void CudaMemorySpace::raw_free(void* ptr) const noexcept
@@ -113,74 +115,86 @@ void* CudaUVMSpace::raw_alloc(size_type num_bytes) const
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
-std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(const HipMemorySpace*,
-                                                          size_type num_bytes,
-                                                          const void* src_ptr,
-                                                          void* dest_ptr) const
+std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
+    const HipMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const DpcppMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest_mem_space, size_type n_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const CudaUVMSpace* dest_mem_space, size_type n_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const CudaMemorySpace* dest_mem_space, size_type n_bytes,
-    const void* src_ptr, void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    const void* src_ptr, void* dest_ptr,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const HipMemorySpace* dest_mem_space, size_type n_bytes,
-    const void* src_ptr, void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    const void* src_ptr, void* dest_ptr,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const DpcppMemorySpace* dest_mem_space, size_type n_bytes,
-    const void* src_ptr, void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    const void* src_ptr, void* dest_ptr,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest_mem_space, size_type n_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const HostMemorySpace* dest_mem_space, size_type n_bytes,
-    const void* src_ptr, void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    const void* src_ptr, void* dest_ptr,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest_mem_space, size_type n_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(cuda);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const ReferenceMemorySpace* dest_mem_space, size_type n_bytes,
-    const void* src_ptr, void* dest_ptr) const GKO_NOT_COMPILED(cuda);
+    const void* src_ptr, void* dest_ptr,
+    std::shared_ptr<AsyncHandle> handle) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);

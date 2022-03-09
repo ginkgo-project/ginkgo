@@ -83,7 +83,7 @@ int DpcppMemorySpace::get_num_devices(std::string device_type)
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -96,7 +96,7 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -159,7 +159,7 @@ DpcppMemorySpace::DpcppMemorySpace(int device_id, std::string device_type)
 
 std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
     const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -187,7 +187,7 @@ std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
     const HostMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -200,7 +200,7 @@ std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
     const ReferenceMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -213,12 +213,14 @@ std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
     const HipMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_SUPPORTED(this);
 
 
 std::shared_ptr<AsyncHandle> DpcppMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_SUPPORTED(this);
 
 
 bool DpcppMemorySpace::verify_memory_to(

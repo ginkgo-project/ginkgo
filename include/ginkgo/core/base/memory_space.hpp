@@ -145,23 +145,58 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    std::shared_ptr<AsyncHandle> copy_from(const MemorySpace* src_mem_space,
-                                           size_type num_elems,
-                                           const T* src_ptr, T* dest_ptr) const
+    void copy_from(const MemorySpace* src_mem_space, size_type num_elems,
+                   const T* src_ptr, T* dest_ptr) const
+    {
+        this->template log<log::Logger::copy_started>(
+            src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+        try {
+            this->raw_copy_from(src_mem_space, num_elems * sizeof(T), src_ptr,
+                                dest_ptr, this->get_default_input_stream())
+                ->wait();
+        } catch (NotSupported&) {
+#if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
+            // Unoptimized copy. Try to go through the masters.
+            // output to log when verbose >= 1 and debug build
+            std::clog << "Not direct copy. Try to copy data from the  masters."
+                      << std::endl;
+#endif
+            // TODO Need a host memspace getter for all memspaces ?
+            // auto src_host = HostMemorySpace::create();
+            // if (num_elems > 0 &&
+            //     (dynamic_cast<HostMemorySpace>(src_mem_space) == nullptr)) {
+            //     auto* host_ptr = src_host->alloc<T>(num_elems);
+            //     src_host->copy_from<T>(src_mem_space, num_elems, src_ptr,
+            //                            host_ptr);
+            //     this->copy_from<T>(src_host, num_elems, host_ptr, dest_ptr);
+            //     src_host->free(host_ptr);
+            // }
+        }
+        this->template log<log::Logger::copy_completed>(
+            src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
+            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+    }
+
+
+    template <typename T>
+    std::shared_ptr<AsyncHandle> copy_from(
+        const MemorySpace* src_mem_space, size_type num_elems, const T* src_ptr,
+        T* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     {
         this->template log<log::Logger::copy_started>(
             src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
         // try {
         return this->raw_copy_from(src_mem_space, num_elems * sizeof(T),
-                                   src_ptr, dest_ptr);
+                                   src_ptr, dest_ptr, handle);
         // TODO Find a nice way to fix this
         //         } catch (NotSupported&) {
         // #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
         //             // Unoptimized copy. Try to go through the masters.
         //             // output to log when verbose >= 1 and debug build
         //             std::clog << "Not direct copy. Try to copy data from the
-        //             masters."
+        //                          masters."
         //                       << std::endl;
         // #endif
         //             auto src_host = HostMemorySpace::create();
@@ -176,10 +211,11 @@ public:
         //                 dest_ptr); src_host->free(host_ptr);
         //             }
         //         }
-        // TODO Find a nice way to fix this
-        // this->template log<log::Logger::copy_completed>(
-        //     src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
-        //     reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+        //         // TODO Find a nice way to fix this
+        //         this->template log<log::Logger::copy_completed>(
+        //             src_mem_space, this, reinterpret_cast<uintptr>(src_ptr),
+        //             reinterpret_cast<uintptr>(dest_ptr), num_elems *
+        //             sizeof(T));
     }
 
     /**
@@ -243,7 +279,8 @@ protected:
      */
     virtual std::shared_ptr<AsyncHandle> raw_copy_from(
         const MemorySpace* src_mem_space, size_type n_bytes,
-        const void* src_ptr, void* dest_ptr) const = 0;
+        const void* src_ptr, void* dest_ptr,
+        std::shared_ptr<AsyncHandle> handle) const = 0;
 
 /**
  * @internal
@@ -257,7 +294,8 @@ protected:
 #define GKO_ENABLE_RAW_COPY_TO(_mem_space_type, ...)              \
     virtual std::shared_ptr<AsyncHandle> raw_copy_to(             \
         const _mem_space_type* dest_mem_space, size_type n_bytes, \
-        const void* src_ptr, void* dest_ptr) const = 0
+        const void* src_ptr, void* dest_ptr,                      \
+        std::shared_ptr<AsyncHandle> handle) const = 0
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_ENABLE_RAW_COPY_TO);
 
@@ -365,12 +403,13 @@ class MemorySpaceBase : public MemorySpace {
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_DECLARE_MEMSPACE_FRIEND);
 
 public:
-    std::shared_ptr<AsyncHandle> raw_copy_from(const MemorySpace* src_mem_space,
-                                               size_type n_bytes,
-                                               const void* src_ptr,
-                                               void* dest_ptr) const override
+    std::shared_ptr<AsyncHandle> raw_copy_from(
+        const MemorySpace* src_mem_space, size_type n_bytes,
+        const void* src_ptr, void* dest_ptr,
+        std::shared_ptr<AsyncHandle> handle) const override
     {
-        return src_mem_space->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
+        return src_mem_space->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr,
+                                          handle);
     }
 
 private:
@@ -394,7 +433,8 @@ private:
 #define GKO_OVERRIDE_RAW_COPY_TO(_memory_space_type, ...)            \
     std::shared_ptr<AsyncHandle> raw_copy_to(                        \
         const _memory_space_type* dest_mem_space, size_type n_bytes, \
-        const void* src_ptr, void* dest_ptr) const override
+        const void* src_ptr, void* dest_ptr,                         \
+        std::shared_ptr<AsyncHandle> handle) const override
 
 
 #define GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(dest_, bool_)                     \

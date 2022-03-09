@@ -828,13 +828,22 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    std::shared_ptr<AsyncHandle> copy_from(const Executor* exec,
-                                           size_type num_elems,
-                                           const T* src_ptr, T* dest_ptr) const
+    void copy_from(const Executor* exec, size_type num_elems, const T* src_ptr,
+                   T* dest_ptr) const
     {
-        return this->get_mem_space()->copy_from(exec->get_mem_space().get(),
-                                                num_elems, src_ptr, dest_ptr);
+        this->get_mem_space()->copy_from(exec->get_mem_space().get(), num_elems,
+                                         src_ptr, dest_ptr);
     }
+
+    template <typename T>
+    std::shared_ptr<AsyncHandle> copy_from(
+        const Executor* exec, size_type num_elems, const T* src_ptr,
+        T* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    {
+        return this->get_mem_space()->copy_from(
+            exec->get_mem_space().get(), num_elems, src_ptr, dest_ptr, handle);
+    }
+
 
     /**
      * Copies data within this Executor's memory space.
@@ -848,11 +857,20 @@ public:
      *                  where the data will be copied to
      */
     template <typename T>
-    std::shared_ptr<AsyncHandle> copy(size_type num_elems, const T* src_ptr,
-                                      T* dest_ptr) const
+    void copy(size_type num_elems, const T* src_ptr, T* dest_ptr) const
     {
-        return this->get_mem_space()->copy_from(this->get_mem_space().get(),
-                                                num_elems, src_ptr, dest_ptr);
+        this->get_mem_space()->copy_from(this->get_mem_space().get(), num_elems,
+                                         src_ptr, dest_ptr);
+    }
+
+
+    template <typename T>
+    std::shared_ptr<AsyncHandle> copy(size_type num_elems, const T* src_ptr,
+                                      T* dest_ptr,
+                                      std::shared_ptr<AsyncHandle> handle) const
+    {
+        return this->get_mem_space()->copy_from(
+            this->get_mem_space().get(), num_elems, src_ptr, dest_ptr, handle);
     }
 
     /**
@@ -869,10 +887,8 @@ public:
     T copy_val_to_host(const T* ptr) const
     {
         T out{};
-        this->get_master()
-            ->get_mem_space()
-            ->copy_from(this->get_mem_space().get(), 1, ptr, &out)
-            ->wait();
+        this->get_master()->get_mem_space()->copy_from(
+            this->get_mem_space().get(), 1, ptr, &out);
         return out;
     }
 

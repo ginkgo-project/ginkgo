@@ -108,7 +108,7 @@ int CudaUVMSpace::get_num_devices()
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
@@ -123,7 +123,7 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
@@ -185,7 +185,7 @@ void* CudaMemorySpace::raw_alloc(size_type num_bytes) const
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
@@ -200,7 +200,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
@@ -215,7 +215,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -232,7 +232,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const HipMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     auto cpy_lambda = [=]() {
@@ -253,7 +253,7 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const HipMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     auto cpy_lambda = [=]() {
@@ -274,7 +274,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -291,12 +291,13 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
     const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_SUPPORTED(this);
 
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const CudaMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -311,10 +312,9 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
 }
 
 
-std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(const CudaUVMSpace* dest,
-                                                       size_type num_bytes,
-                                                       const void* src_ptr,
-                                                       void* dest_ptr) const
+std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
+    const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto cpy_lambda = [=]() {
         if (num_bytes > 0) {
@@ -331,12 +331,13 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(const CudaUVMSpace* dest,
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const DpcppMemorySpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_SUPPORTED(this);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_SUPPORTED(this);
 
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
@@ -351,7 +352,7 @@ std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const CudaUVMSpace* dest, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(dest->get_default_input_stream())->get_handle();
@@ -364,10 +365,9 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
 }
 
 
-std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(const HostMemorySpace*,
-                                                       size_type num_bytes,
-                                                       const void* src_ptr,
-                                                       void* dest_ptr) const
+std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
+    const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();
@@ -382,7 +382,7 @@ std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(const HostMemorySpace*,
 
 std::shared_ptr<AsyncHandle> CudaUVMSpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
     auto stream =
         as<CudaAsyncHandle>(this->get_default_output_stream())->get_handle();

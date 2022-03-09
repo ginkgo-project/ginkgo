@@ -94,15 +94,15 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
                         device_reset, num_additional_handles));
 }
 
-std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(const HipMemorySpace*,
-                                                          size_type num_bytes,
-                                                          const void* src_ptr,
-                                                          void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(
+    const HipMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(hip);
 
 std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
     const HipMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(hip);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(hip);
 
 
 void HipMemorySpace::raw_free(void* ptr) const noexcept
@@ -117,41 +117,39 @@ void* HipMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(hip);
 
 
-std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const HostMemorySpace*,
-                                                         size_type num_bytes,
-                                                         const void* src_ptr,
-                                                         void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(hip);
 
 
 std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(hip);
-
-
-std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const CudaMemorySpace*,
-                                                         size_type num_bytes,
-                                                         const void* src_ptr,
-                                                         void* dest_ptr) const
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(hip);
 
 
-std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const CudaUVMSpace*,
-                                                         size_type num_bytes,
-                                                         const void* src_ptr,
-                                                         void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const CudaMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(hip);
+
+
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const CudaUVMSpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(hip);
 
 
 std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
     const DpcppMemorySpace*, size_type num_bytes, const void* src_ptr,
-    void* dest_ptr) const GKO_NOT_COMPILED(hip);
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
+    GKO_NOT_COMPILED(hip);
 
 
-std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(const HipMemorySpace*,
-                                                         size_type num_bytes,
-                                                         const void* src_ptr,
-                                                         void* dest_ptr) const
+std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
+    const HipMemorySpace*, size_type num_bytes, const void* src_ptr,
+    void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
     GKO_NOT_COMPILED(hip);
 
 
