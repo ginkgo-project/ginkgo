@@ -148,7 +148,6 @@ TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
 TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
 {
-    using part_type = typename TestFixture::part_type;
     using value_type = typename TestFixture::value_type;
     auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
     auto rank = this->comm.rank();
@@ -170,7 +169,6 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
 TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
 {
     using part_type = typename TestFixture::part_type;
-    using value_type = typename TestFixture::value_type;
     auto part = gko::share(part_type::build_from_contiguous(
         this->exec, {this->exec, {0, 0, 6, 6}}));
     auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
@@ -195,21 +193,23 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataSomeEmpty)
 
 TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
 {
-    using it = typename TestFixture::global_index_type;
+    using index_type = typename TestFixture::global_index_type;
     using d_md_type = typename TestFixture::d_md_type;
     using part_type = typename TestFixture::part_type;
-    using vt = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
     d_md_type md{
         this->exec, gko::dim<2>{6, 2},
-        gko::Array<it>{this->exec, I<it>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5}},
-        gko::Array<it>{this->exec, I<it>{0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}},
-        gko::Array<vt>{this->exec,
-                       I<vt>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}}};
+        gko::Array<index_type>{
+            this->exec, I<index_type>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5}},
+        gko::Array<index_type>{
+            this->exec, I<index_type>{0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}},
+        gko::Array<value_type>{
+            this->exec, I<value_type>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}}};
     auto part = gko::share(part_type::build_from_contiguous(
         this->exec, {this->exec, {0, 2, 4, 6}}));
     auto vec = TestFixture::dist_vec_type::create(this->exec, this->comm);
     auto rank = this->comm.rank();
-    I<I<vt>> ref_data[3] = {
+    I<I<value_type>> ref_data[3] = {
         {{0, 1}, {2, 3}},
         {{4, 5}, {6, 7}},
         {{8, 9}, {10, 11}},
@@ -244,7 +244,8 @@ TYPED_TEST(VectorCreation, CanReadGlobalMatrixDataScattered)
     vec->read_distributed(md, part.get());
 
     GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_size(), gko::dim<2>(6, 2));
-    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(), ref_size[rank]);
+    GKO_ASSERT_EQUAL_DIMENSIONS(vec->get_local_vector()->get_size(),
+                                ref_size[rank]);
     GKO_ASSERT_MTX_NEAR(vec->get_local_vector(), ref_data[rank], 0.0);
 }
 
@@ -358,7 +359,6 @@ public:
     using global_index_type = gko::int64;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
-    using md_type = gko::matrix_data<value_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
     using real_dense_type = typename dense_type::real_type;
@@ -518,7 +518,6 @@ TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
 
 TYPED_TEST(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
 {
-    using value_type = typename TestFixture::value_type;
     this->init_result();
     auto transfer_count_before = this->logger->get_transfer_count();
 
@@ -531,7 +530,6 @@ TYPED_TEST(VectorReductions, ComputeDotCopiesToHostOnlyIfNecessary)
 
 TYPED_TEST(VectorReductions, ComputeConjDotCopiesToHostOnlyIfNecessary)
 {
-    using value_type = typename TestFixture::value_type;
     this->init_result();
     auto transfer_count_before = this->logger->get_transfer_count();
 
@@ -544,7 +542,6 @@ TYPED_TEST(VectorReductions, ComputeConjDotCopiesToHostOnlyIfNecessary)
 
 TYPED_TEST(VectorReductions, ComputeNorm2CopiesToHostOnlyIfNecessary)
 {
-    using value_type = typename TestFixture::value_type;
     this->init_result();
     auto transfer_count_before = this->logger->get_transfer_count();
 
@@ -557,7 +554,6 @@ TYPED_TEST(VectorReductions, ComputeNorm2CopiesToHostOnlyIfNecessary)
 
 TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
 {
-    using value_type = typename TestFixture::value_type;
     this->init_result();
     auto transfer_count_before = this->logger->get_transfer_count();
 
@@ -572,11 +568,8 @@ template <typename ValueType>
 class VectorLocalOps : public ::testing::Test {
 public:
     using value_type = ValueType;
-    using mixed_type = gko::next_precision<value_type>;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
-    using part_type =
-        gko::distributed::Partition<local_index_type, global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
     using complex_dist_vec_type = typename dist_vec_type::complex_type;
     using real_dist_vec_type = typename dist_vec_type ::real_type;
@@ -706,7 +699,6 @@ TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
 
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
-    using Vector = typename TestFixture::dist_vec_type;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
     using OtherVector = typename gko::distributed::Vector<OtherT>;
@@ -723,7 +715,6 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 
 TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
-    using Vector = typename TestFixture::dist_vec_type;
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
     using OtherVector = typename gko::distributed::Vector<OtherT>;
@@ -746,7 +737,8 @@ TYPED_TEST(VectorLocalOps, ComputeAbsoluteSameAsLocal)
     auto local_abs = this->local_x->compute_absolute();
     auto abs = this->x->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs->get_local_vector(), local_abs, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(abs->get_local_vector(), local_abs,
+                        r<value_type>::value);
 }
 
 
@@ -771,7 +763,8 @@ TYPED_TEST(VectorLocalOps, MakeComplexSameAsLocal)
     this->complex = this->x->make_complex();
     this->local_complex = this->local_x->make_complex();
 
-    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex,
+                        0.0);
 }
 
 
@@ -783,7 +776,8 @@ TYPED_TEST(VectorLocalOps, MakeComplexInplaceSameAsLocal)
     this->x->make_complex(this->complex.get());
     this->local_x->make_complex(this->local_complex.get());
 
-    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex, 0.0);
+    GKO_ASSERT_MTX_NEAR(this->complex->get_local_vector(), this->local_complex,
+                        0.0);
 }
 
 
