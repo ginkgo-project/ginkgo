@@ -50,14 +50,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Dense) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)DenseFactory and (RM_LinOp::)Dense and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<typename gko::matrix::Dense<ValueType>> {
     using type = std::shared_ptr<gko::matrix::Dense<ValueType>>;
@@ -69,8 +61,9 @@ struct Generic<typename gko::matrix::Dense<ValueType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(gko::matrix::Dense<ValueType>::create(exec_ptr, size));
+        auto stride = get_value_with_default(item, "stride", size[1]);
+        auto ptr = share(
+            gko::matrix::Dense<ValueType>::create(exec_ptr, size, stride));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());
