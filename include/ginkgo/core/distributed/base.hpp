@@ -60,11 +60,21 @@ class DistributedBase {
 public:
     virtual ~DistributedBase() = default;
 
+    DistributedBase(const DistributedBase& other) = default;
+
+    DistributedBase(DistributedBase&& other) = default;
+
     /**
      * Copy assignment that doesn't change the used mpi::communicator.
      * @return  unmodified *this
      */
     DistributedBase& operator=(const DistributedBase&) { return *this; }
+
+    /**
+     * Move assignment that doesn't change the used mpi::communicator.
+     * @return  unmodified *this
+     */
+    DistributedBase& operator=(DistributedBase&&) noexcept { return *this; }
 
     /**
      * Access the used mpi::communicator.
