@@ -54,10 +54,11 @@ version version_info::get_hip_version() noexcept
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, int num_additional_handles)
 {
-    return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, std::move(master), device_reset, alloc_mode));
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, std::move(master), device_reset, alloc_mode,
+                        num_additional_handles));
 }
 
 
@@ -85,10 +86,12 @@ void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<MemorySpace> memory_space,
-    std::shared_ptr<Executor> master, bool device_reset)
+    std::shared_ptr<Executor> master, bool device_reset,
+    int num_additional_handles)
 {
-    return std::shared_ptr<HipExecutor>(new HipExecutor(
-        device_id, memory_space, std::move(master), device_reset));
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, memory_space, std::move(master),
+                        device_reset, num_additional_handles));
 }
 
 std::shared_ptr<AsyncHandle> HostMemorySpace::raw_copy_to(const HipMemorySpace*,

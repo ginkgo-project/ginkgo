@@ -1292,9 +1292,24 @@ public:
     /**
      * Creates a new OmpExecutor.
      */
-    static std::shared_ptr<OmpExecutor> create()
+    static std::shared_ptr<OmpExecutor> create(int num_additional_handles = 1)
     {
-        return std::shared_ptr<OmpExecutor>(new OmpExecutor());
+        return std::shared_ptr<OmpExecutor>(
+            new OmpExecutor(num_additional_handles));
+    }
+
+    /**
+     * Creates a new OmpExecutor with an existing memory space.
+     *
+     * @param memory_space  The memory space to be associated with the
+     * executor.
+     */
+    static std::shared_ptr<OmpExecutor> create(
+        std::shared_ptr<MemorySpace> memory_space,
+        int num_additional_handles = 1)
+    {
+        return std::shared_ptr<OmpExecutor>(
+            new OmpExecutor(memory_space, num_additional_handles));
     }
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -1318,21 +1333,34 @@ public:
     }
 
 protected:
-    OmpExecutor()
+    std::vector<std::shared_ptr<AsyncHandle>> init_async_handles(
+        int num_add_handles)
+    {
+        std::vector<std::shared_ptr<AsyncHandle>> handles;
+        for (int i = 0; i < num_add_handles + 1; ++i) {
+            handles.emplace_back(gko::HostAsyncHandle<void>::create());
+        }
+        return handles;
+    }
+
+    OmpExecutor(int num_additional_handles = 1)
     {
         this->OmpExecutor::populate_exec_info(MachineTopology::get_instance());
 
         mem_space_instance_ = HostMemorySpace::create();
         this->default_exec_stream_ = HostAsyncHandle<void>::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
-    OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
+    OmpExecutor(std::shared_ptr<MemorySpace> mem_space,
+                int num_additional_handles = 1)
         : mem_space_instance_(mem_space)
     {
         if (!check_mem_space_validity(mem_space_instance_)) {
             GKO_MEMSPACE_MISMATCH(NOT_HOST);
         }
         this->default_exec_stream_ = HostAsyncHandle<void>::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     void populate_exec_info(const MachineTopology* mach_topo) override;
@@ -1513,7 +1541,7 @@ public:
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
         allocation_mode alloc_mode = default_cuda_alloc_mode,
-        int num_additional_handles = 0);
+        int num_additional_handles = 1);
 
     /**
      * Creates a new CudaExecutor.
@@ -1528,7 +1556,7 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<MemorySpace> memory_space,
         std::shared_ptr<Executor> master, bool device_reset = false,
-        int num_additional_handles = 0);
+        int num_additional_handles = 1);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1661,7 +1689,7 @@ protected:
     CudaExecutor(int device_id, std::shared_ptr<Executor> master,
                  bool device_reset = false,
                  allocation_mode alloc_mode = default_cuda_alloc_mode,
-                 int num_additional_handles = 0)
+                 int num_additional_handles = 1)
         : EnableDeviceReset{device_reset},
           alloc_mode_{alloc_mode},
           master_(master)
@@ -1688,7 +1716,7 @@ protected:
 
     CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
                  std::shared_ptr<Executor> master, bool device_reset = false,
-                 int num_additional_handles = 0)
+                 int num_additional_handles = 1)
         : EnableDeviceReset{device_reset},
           mem_space_instance_(mem_space),
           master_(master)
@@ -1784,7 +1812,8 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false,
-        allocation_mode alloc_mode = default_hip_alloc_mode);
+        allocation_mode alloc_mode = default_hip_alloc_mode,
+        int num_additional_handles = 0);
 
     /**
      * Creates a new HipExecutor.
@@ -1800,7 +1829,8 @@ public:
      */
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<MemorySpace> memory_space,
-        std::shared_ptr<Executor> master, bool device_reset = false);
+        std::shared_ptr<Executor> master, bool device_reset = false,
+        int num_additional_handles = 0);
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
@@ -1919,9 +1949,21 @@ protected:
 
     void init_handles();
 
+    std::vector<std::shared_ptr<AsyncHandle>> init_async_handles(
+        int num_add_handles)
+    {
+        std::vector<std::shared_ptr<AsyncHandle>> handles;
+        for (int i = 0; i < num_add_handles + 1; ++i) {
+            handles.emplace_back(gko::HipAsyncHandle::create(
+                HipAsyncHandle::create_type::non_blocking));
+        }
+        return handles;
+    }
+
     HipExecutor(int device_id, std::shared_ptr<Executor> master,
                 bool device_reset = false,
-                allocation_mode alloc_mode = default_hip_alloc_mode)
+                allocation_mode alloc_mode = default_hip_alloc_mode,
+                int num_additional_handles = 0)
         : EnableDeviceReset{device_reset},
           alloc_mode_(alloc_mode),
           master_(master)
@@ -1943,10 +1985,12 @@ protected:
         this->init_handles();
         mem_space_instance_ = HipMemorySpace::create(device_id);
         this->default_exec_stream_ = HipAsyncHandle::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     HipExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
-                std::shared_ptr<Executor> master, bool device_reset = false)
+                std::shared_ptr<Executor> master, bool device_reset = false,
+                int num_additional_handles = 1)
         : EnableDeviceReset{device_reset},
           mem_space_instance_(mem_space),
           master_(master)
@@ -1970,6 +2014,7 @@ protected:
             GKO_MEMSPACE_MISMATCH(NOT_HIP);
         }
         this->default_exec_stream_ = HipAsyncHandle::create();
+        this->async_handles_ = this->init_async_handles(num_additional_handles);
     }
 
     bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)

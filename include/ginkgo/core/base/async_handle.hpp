@@ -184,11 +184,8 @@ public:
 
     void wait() override
     {
-        // auto wait = [](const std::future<T>& fut) { fut.wait(); };
-        // std::for_each(this->handle_.begin(), this->handle_.end(), wait);
-        for (int i = 0; i < this->handle_.size(); ++i) {
-            this->handle_[i].wait();
-        }
+        auto wait = [](const std::future<T>& fut) { fut.wait(); };
+        std::for_each(this->handle_.begin(), this->handle_.end(), wait);
     }
 
     void wait_for(const std::chrono::duration<int>& time) override

@@ -65,10 +65,11 @@ using hip_device_class = amd_device;
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
     int device_id, std::shared_ptr<Executor> master, bool device_reset,
-    allocation_mode alloc_mode)
+    allocation_mode alloc_mode, int num_additional_handles)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master), device_reset, alloc_mode),
+        new HipExecutor(device_id, std::move(master), device_reset, alloc_mode,
+                        num_additional_handles),
         [device_id](HipExecutor* exec) {
             auto device_reset = exec->get_device_reset();
             std::lock_guard<std::mutex> guard(
