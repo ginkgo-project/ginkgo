@@ -370,6 +370,10 @@ protected:
     /**
      * Creates a distributed vector from local vectors with a specified size.
      *
+     * @note  The data form the local_vector will be moved into the new
+     *        distributed vector. This means, access to local_vector
+     *        will be invalid after this call.
+     *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
      * @param global_size  The global size of the vector
@@ -383,6 +387,10 @@ protected:
      * Creates a distributed vector from local vectors. The global size will
      * be deduced from the local sizes, which will incur a collective
      * communication.
+     *
+     * @note  The data form the local_vector will be moved into the new
+     *        distributed vector. This means, access to local_vector
+     *        will be invalid after this call.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
