@@ -114,12 +114,13 @@ public:
           size{local_size[1] * comm.size(), 11},
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
-    {}
+    {
+        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+    }
 
     void SetUp() override
     {
         ASSERT_EQ(this->comm.size(), 3);
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
     void TearDown() override
@@ -373,7 +374,10 @@ public:
           size{53, 11},
           engine(42)
     {
+        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+
         logger = gko::share(HostToDeviceLogger::create(ref));
+        exec->add_logger(logger);
 
         dense_x = dense_type::create(exec);
         dense_y = dense_type::create(exec);
@@ -420,8 +424,6 @@ public:
     void SetUp() override
     {
         ASSERT_GT(comm.size(), 0);
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
-        exec->add_logger(logger);
     }
 
     void TearDown() override
@@ -598,7 +600,6 @@ public:
     void SetUp() override
     {
         ASSERT_GT(comm.size(), 0);
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
     void TearDown() override

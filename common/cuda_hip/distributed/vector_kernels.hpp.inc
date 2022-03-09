@@ -59,7 +59,8 @@ void build_local(
     // the flat_idx_it is used by the scatter_if as an index map for the values
     auto map_to_local_row =
         [range_bounds, range_starting_indices] GKO_THRUST_LAMBDA(
-            const auto& idx_range_id) -> LocalIndexType {
+            const thrust::tuple<GlobalIndexType, size_type>& idx_range_id)
+        -> LocalIndexType {
         const auto idx = thrust::get<0>(idx_range_id);
         const auto rid = thrust::get<1>(idx_range_id);
         return static_cast<LocalIndexType>(idx - range_bounds[rid]) +
@@ -72,7 +73,9 @@ void build_local(
 
     auto stride = local_mtx->get_stride();
     auto map_to_flat_idx =
-        [stride] GKO_THRUST_LAMBDA(const auto& row_col) -> size_type {
+        [stride] GKO_THRUST_LAMBDA(
+            const thrust::tuple<LocalIndexType, GlobalIndexType>& row_col)
+        -> size_type {
         return thrust::get<0>(row_col) * stride + thrust::get<1>(row_col);
     };
     auto flat_idx_it = thrust::make_transform_iterator(
@@ -81,7 +84,7 @@ void build_local(
         map_to_flat_idx);
 
     auto is_local_row = [part_ids,
-                         local_part] GKO_THRUST_LAMBDA(const auto rid) {
+                         local_part] GKO_THRUST_LAMBDA(const size_type rid) {
         return part_ids[rid] == local_part;
     };
     thrust::scatter_if(thrust::device, input.get_const_values(),
