@@ -33,15 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/vector_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
 #include <thrust/binary_search.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/scatter.h>
 #include <thrust/tuple.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
