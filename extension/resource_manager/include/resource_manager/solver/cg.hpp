@@ -37,10 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include "resource_manager/base/element_types.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
@@ -48,36 +50,47 @@ namespace extension {
 namespace resource_manager {
 
 
-template <typename T>
-struct Generic<typename gko::solver::Cg<T>::Factory, gko::solver::Cg<T>> {
-    using type = std::shared_ptr<typename gko::solver::Cg<T>::Factory>;
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(CgFactory) to ENUM_LINOPFACTORY
+// Add _expand(Cg) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)CgFactory and (RM_LinOp::)Cg and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
+template <typename ValueType>
+struct Generic<typename gko::solver::Cg<ValueType>::Factory,
+               gko::solver::Cg<ValueType>> {
+    using type = std::shared_ptr<typename gko::solver::Cg<ValueType>::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
         auto ptr = [&]() {
-            BUILD_FACTORY(gko::solver::Cg<T>, manager, item, exec, linop);
-            SET_POINTER(LinOp, generated_preconditioner);
-            SET_POINTER(LinOpFactory, preconditioner);
-            SET_POINTER_VECTOR(CriterionFactory, criteria);
-            std::cout << "456" << std::endl;
+            BUILD_FACTORY(gko::solver::Cg<ValueType>, manager, item, exec,
+                          linop);
+            SET_POINTER_VECTOR(const stop::CriterionFactory, criteria);
+            SET_POINTER(const LinOpFactory, preconditioner);
+            SET_POINTER(const LinOp, generated_preconditioner);
             SET_EXECUTOR;
         }();
-
-        std::cout << "123" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
 
-SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename T, T);
+SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Cg, typename ValueType, ValueType);
 
 
-ENABLE_SELECTION(cgfactory_select, call, std::shared_ptr<gko::LinOpFactory>,
-                 get_the_factory_type);
-ENABLE_SELECTION(cg_select, call, std::shared_ptr<gko::LinOp>, get_the_type);
-constexpr auto cg_list = tt_list<double, float>();
+ENABLE_SELECTION(cg_factory_select, call, std::shared_ptr<gko::LinOpFactory>,
+                 get_actual_factory_type);
+ENABLE_SELECTION(cg_select, call, std::shared_ptr<gko::LinOp>, get_actual_type);
+
+
+constexpr auto cg_list =
+    typename span_list<tt_list_g_t<handle_type::ValueType>>::type();
 
 
 template <>
@@ -86,14 +99,14 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_cg_factory" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto type_string = vt;
-    auto ptr = cgfactory_select<gko::solver::Cg>(
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()));
+    auto ptr = cg_factory_select<gko::solver::Cg>(
         cg_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 template <>
@@ -102,14 +115,14 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_cg" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto type_string = vt;
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()));
     auto ptr = cg_select<gko::solver::Cg>(
         cg_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 
