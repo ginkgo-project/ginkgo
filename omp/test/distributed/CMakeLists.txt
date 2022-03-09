@@ -1,1 +1,0 @@
-ginkgo_create_test(vector_kernels)
