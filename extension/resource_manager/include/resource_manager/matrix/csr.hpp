@@ -50,14 +50,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Csr) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)CsrFactory and (RM_LinOp::)Csr and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<typename gko::matrix::Csr<ValueType, IndexType>> {
     using type = std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>>;
@@ -69,9 +61,51 @@ struct Generic<typename gko::matrix::Csr<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(
-            gko::matrix::Csr<ValueType, IndexType>::create(exec_ptr, size));
+        auto nnz = get_value_with_default(item, "nnz", 0);
+        using Csr = gko::matrix::Csr<ValueType, IndexType>;
+        auto strategy =
+            get_value_with_default(item, "strategy", std::string("sparselib"));
+        std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
+        if (strategy == std::string("sparselib") ||
+            strategy == std::string("cusparse")) {
+            strategy_ptr = std::make_shared<typename Csr::sparselib>();
+        } else if (strategy == std::string("automatical")) {
+            if (auto explicit_exec =
+                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
+                        exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::automatical>(explicit_exec);
+            } else if (auto explicit_exec =
+                           std::dynamic_pointer_cast<const gko::HipExecutor>(
+                               exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::automatical>(explicit_exec);
+            } else {
+                strategy_ptr = std::make_shared<typename Csr::automatical>(256);
+            }
+        } else if (strategy == std::string("load_balance")) {
+            if (auto explicit_exec =
+                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
+                        exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(explicit_exec);
+            } else if (auto explicit_exec =
+                           std::dynamic_pointer_cast<const gko::HipExecutor>(
+                               exec_ptr)) {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(explicit_exec);
+            } else {
+                strategy_ptr =
+                    std::make_shared<typename Csr::load_balance>(256);
+            }
+
+        } else if (strategy == std::string("merge_path")) {
+            strategy_ptr = std::make_shared<typename Csr::merge_path>();
+        } else if (strategy == std::string("classical")) {
+            strategy_ptr = std::make_shared<typename Csr::classical>();
+        }
+        auto ptr = share(gko::matrix::Csr<ValueType, IndexType>::create(
+            exec_ptr, size, nnz, strategy_ptr));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());
