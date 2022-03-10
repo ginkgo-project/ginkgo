@@ -488,7 +488,7 @@ int main(int argc, char* argv[])
             auto& sp_blas_case = test_case[benchmark_name];
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype, itype>(mtx_fd);
+            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
             data.ensure_row_major_order();
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size()
