@@ -37,10 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include "resource_manager/base/element_types.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
@@ -48,35 +50,43 @@ namespace extension {
 namespace resource_manager {
 
 
-template <typename T>
-struct Generic<typename gko::stop::ResidualNorm<T>::Factory,
-               gko::stop::ResidualNorm<T>> {
-    using type = std::shared_ptr<typename gko::stop::ResidualNorm<T>::Factory>;
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(ResidualNorm) to ENUM_CRITERIONFACTORY
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_CriterionFactory::)ResidualNorm and (RM_Criterion::)ResidualNorm and
+// their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
+template <typename ValueType>
+struct Generic<typename gko::stop::ResidualNorm<ValueType>::Factory,
+               gko::stop::ResidualNorm<ValueType>> {
+    using type =
+        std::shared_ptr<typename gko::stop::ResidualNorm<ValueType>::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "ResidualNorm exec:" << exec.get() << std::endl;
         auto ptr = [&]() {
-            BUILD_FACTORY(gko::stop::ResidualNorm<T>, manager, item, exec,
-                          linop);
-            std::cout << "Iter 1:" << std::endl;
-            SET_VALUE(T, reduction_factor);
-            std::cout << "Iter 2:" << std::endl;
-            SET_VALUE(gko::stop::mode, baseline);
+            BUILD_FACTORY(gko::stop::ResidualNorm<ValueType>, manager, item,
+                          exec, linop);
+            SET_VALUE(remove_complex<ValueType>, reduction_factor);
+            SET_VALUE(mode, baseline);
             SET_EXECUTOR;
         }();
-        std::cout << "Iter 3:" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
 
 ENABLE_SELECTION(residual_norm_select, call,
                  std::shared_ptr<gko::stop::CriterionFactory>,
-                 get_the_factory_type);
-constexpr auto residual_norm_list = tt_list<double, float>();
+                 get_actual_factory_type);
+
+
+constexpr auto residual_norm_list =
+    typename span_list<tt_list_g_t<handle_type::ValueType>>::type();
 
 
 template <>
@@ -86,14 +96,14 @@ create_from_config<RM_CriterionFactory, RM_CriterionFactory::ResidualNorm,
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_residual_norm" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto type_string = vt;
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()));
     auto ptr = residual_norm_select<gko::stop::ResidualNorm>(
         residual_norm_list, [=](std::string key) { return key == type_string; },
         item, exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 

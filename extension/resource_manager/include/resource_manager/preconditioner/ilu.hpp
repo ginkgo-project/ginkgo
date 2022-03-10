@@ -42,11 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
+
+
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(IluFactory) to ENUM_LINOPFACTORY
+// Add _expand(Ilu) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)IluFactory and (RM_LinOp::)Ilu and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
 template <typename LSolverType, typename USolverType, bool ReverseApply,
@@ -67,14 +77,12 @@ struct Generic<typename gko::preconditioner::Ilu<
                 PACK(gko::preconditioner::Ilu<LSolverType, USolverType,
                                               ReverseApply, IndexType>),
                 manager, item, exec, linop);
-            SET_POINTER(typename LSolverType::Factory, l_solver_factory);
-            SET_POINTER(typename USolverType::Factory, u_solver_factory);
+            SET_POINTER(typename l_solver_type::Factory, l_solver_factory);
+            SET_POINTER(typename u_solver_type::Factory, u_solver_factory);
             SET_POINTER(LinOpFactory, factorization_factory);
             SET_EXECUTOR;
         }();
-
-        std::cout << "123" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
@@ -85,14 +93,35 @@ SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Ilu,
                                PACK(LSolverType, USolverType, ReverseApply,
                                     IndexType));
 
-ENABLE_SELECTION_ID(ilufactory_select, call, std::shared_ptr<gko::LinOpFactory>,
-                    get_actual_factory_type, RM_LinOp, Ilu);
+
+// TODO: the class contain non type template, please create corresponding
+// actual_type like following
+/*
+template <typename LSolverType, typename USolverType, bool ReverseApply,
+typename IndexType> struct actual_type<type_list<
+    std::integral_constant<RM_LinOp, RM_LinOp::Ilu>, LSolverType, USolverType,
+std::integral_constant<bool, ReverseApply>, IndexType>> { using type =
+gko::preconditioner::Ilu<LSolverType, USolverType, ReverseApply, IndexType>;
+};
+*/
+ENABLE_SELECTION_ID(ilu_factory_select, call,
+                    std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type,
+                    RM_LinOp, Ilu);
 ENABLE_SELECTION_ID(ilu_select, call, std::shared_ptr<gko::LinOp>,
                     get_actual_type, RM_LinOp, Ilu);
+
+
 constexpr auto ilu_list =
-    typename span_list<gko::solver::LowerTrs<>, gko::solver::UpperTrs<>,
-                       tt_list<std::true_type, std::false_type>,
-                       tt_list<gko::int32, gko::int64>>::type();
+    typename span_list</* TODO: can not find LSolverType in tt_list_g, please
+                          condider add it if it reused for many times*/
+                       tt_list<>,
+                       /* TODO: can not find USolverType in tt_list_g, please
+                          condider add it if it reused for many times*/
+                       tt_list<>,
+                       /* TODO: can not find ReverseApply in tt_list_g, please
+                          condider add it if it reused for many times*/
+                       tt_list<>, tt_list_g_t<handle_type::IndexType>>::type();
+
 
 template <>
 std::shared_ptr<gko::LinOpFactory> create_from_config<
@@ -100,21 +129,24 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "ilu_factory" << std::endl;
     // go though the type
-    using namespace std::literals::string_literals;
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto ltr_t = get_value_with_default(item, "LowerTrs", "LowerTrs"s);
-    auto utr_t = get_value_with_default(item, "UpperTrs", "UpperTrs"s);
-    auto reverse_apply_t =
-        get_value_with_default(item, "reverse_apply", "false"s);
-    auto type_string = create_type_name(ltr_t, utr_t, reverse_apply_t, it);
-    auto ptr = ilufactory_select<type_list>(
+    auto type_string = create_type_name(  // trick for clang-format
+        /*TODO: can not find LSolverType in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "LSolverType", "solver::LowerTrs<>"),
+        /*TODO: can not find USolverType in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "USolverType", "solver::UpperTrs<>"),
+        /*TODO: can not find ReverseApply in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "ReverseApply", "false"),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
+    auto ptr = ilu_factory_select<type_list>(
         ilu_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
-
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -122,19 +154,23 @@ create_from_config<RM_LinOp, RM_LinOp::Ilu, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_ilu" << std::endl;
     // go though the type
-    using namespace std::literals::string_literals;
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto ltr_t = get_value_with_default(item, "LowerTrs", "LowerTrs"s);
-    auto utr_t = get_value_with_default(item, "UpperTrs", "UpperTrs"s);
-    auto reverse_apply_t =
-        get_value_with_default(item, "reverse_apply", "false"s);
-    auto type_string = create_type_name(ltr_t, utr_t, reverse_apply_t, it);
+    auto type_string = create_type_name(  // trick for clang-format
+        /*TODO: can not find LSolverType in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "LSolverType", "solver::LowerTrs<>"),
+        /*TODO: can not find USolverType in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "USolverType", "solver::UpperTrs<>"),
+        /*TODO: can not find ReverseApply in get_default_string, please condider
+           add it if it reused for many times*/
+        get_value_with_default(item, "ReverseApply", "false"),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
     auto ptr = ilu_select<type_list>(
         ilu_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 

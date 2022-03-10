@@ -42,11 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
+
+
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(IluFactorizationFactory) to ENUM_LINOPFACTORY
+// Add _expand(IluFactorization) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)IluFactorizationFactory and (RM_LinOp::)IluFactorization
+// and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
 template <typename ValueType, typename IndexType>
@@ -62,20 +72,12 @@ struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
         auto ptr = [&]() {
             BUILD_FACTORY(PACK(gko::factorization::Ilu<ValueType, IndexType>),
                           manager, item, exec, linop);
-            //            SET_NON_CONST_POINTER(PACK(typename
-            //            gko::matrix::Csr<ValueType,
-            //            IndexType>::strategy_type),
-            //                                  l_strategy);
-            //            SET_NON_CONST_POINTER(PACK(typename
-            //            gko::matrix::Csr<ValueType,
-            //            IndexType>::strategy_type),
-            //                                  u_strategy);
+            SET_POINTER(typename matrix_type::strategy_type, l_strategy);
+            SET_POINTER(typename matrix_type::strategy_type, u_strategy);
             SET_VALUE(bool, skip_sorting);
             SET_EXECUTOR;
         }();
-
-        std::cout << "123" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
@@ -84,13 +86,17 @@ SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::factorization::Ilu,
                                PACK(typename ValueType, typename IndexType),
                                PACK(ValueType, IndexType));
 
+
 ENABLE_SELECTION(ilu_factorization_factory_select, call,
                  std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type);
 ENABLE_SELECTION(ilu_factorization_select, call, std::shared_ptr<gko::LinOp>,
                  get_actual_type);
+
+
 constexpr auto ilu_factorization_list =
-    typename span_list<tt_list<float, double>,
-                       tt_list<gko::int32, gko::int64>>::type();
+    typename span_list<tt_list_g_t<handle_type::ValueType>,
+                       tt_list_g_t<handle_type::IndexType>>::type();
+
 
 template <>
 std::shared_ptr<gko::LinOpFactory>
@@ -100,18 +106,18 @@ create_from_config<RM_LinOpFactory, RM_LinOpFactory::IluFactorizationFactory,
                                       std::shared_ptr<const LinOp> linop,
                                       ResourceManager* manager)
 {
-    std::cout << "ilu_factorization_factory" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto type_string = create_type_name(vt, it);
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
     auto ptr = ilu_factorization_factory_select<gko::factorization::Ilu>(
         ilu_factorization_list,
         [=](std::string key) { return key == type_string; }, item, exec, linop,
         manager);
-    return ptr;
+    return std::move(ptr);
 }
-
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -119,16 +125,17 @@ create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_ilu_factorization" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto type_string = create_type_name(vt, it);
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
     auto ptr = ilu_factorization_select<gko::factorization::Ilu>(
         ilu_factorization_list,
         [=](std::string key) { return key == type_string; }, item, exec, linop,
         manager);
-    return ptr;
+    return std::move(ptr);
 }
 
 
