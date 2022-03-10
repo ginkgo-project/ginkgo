@@ -124,27 +124,12 @@ public:
         const Partition<local_index_type, global_index_type>* partition);
 
     /**
-     * Get read/write access to the local diagonal matrix
-     * @return  Shared pointer to the local diagonal matrix
-     */
-    std::shared_ptr<local_matrix_type> get_local_diag() { return diag_mtx_; }
-
-    /**
      * Get read access to the local diagonal matrix
      * @return  Shared pointer to the local diagonal matrix
      */
     std::shared_ptr<const local_matrix_type> get_const_local_diag() const
     {
         return diag_mtx_;
-    }
-
-    /**
-     * Get read/write access to the local off-diagonal matrix
-     * @return  Shared pointer to the local off-diagonal matrix
-     */
-    std::shared_ptr<local_matrix_type> get_local_offdiag()
-    {
-        return offdiag_mtx_;
     }
 
     /**
