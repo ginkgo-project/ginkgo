@@ -299,8 +299,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define SET_FUNCTION(_param_type, _param_name)                               \
     if (item_alias_.HasMember(#_param_name)) {                               \
+        std::string name{#_param_name};                                      \
         factory_alias_.with_##_param_name(                                   \
-            ##_param_name_map[item_alias_[#_param_name]]);                   \
+            _param_name##_map[get_value<std::string>(item_alias_, name)]);   \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
