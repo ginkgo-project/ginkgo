@@ -179,14 +179,19 @@ void build_diag_offdiag(
         }
     }
     // store diagonal data to output
-    const auto num_diag_elems =
+    const auto diag_size =
         static_cast<size_type>(partition->get_part_size(local_part));
-    diag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_diag_elems},
-                               static_cast<size_type>(diag_entries.size()));
-    components::aos_to_soa(exec,
-                           Array<local_nonzero>::view(exec, diag_entries.size(),
-                                                      diag_entries.data()),
-                           diag_data);
+    diag_data = std::move(device_matrix_data<ValueType, LocalIndexType>(
+        exec, gko::dim<2>{diag_size, diag_size},
+        static_cast<size_type>(diag_entries.size())));
+#pragma omp parallel for
+    for (size_type i = 0; i < diag_entries.size(); ++i) {
+        const auto& entry = diag_entries[i];
+        diag_data.get_row_idxs()[i] = entry.row;
+        diag_data.get_col_idxs()[i] = entry.column;
+        diag_data.get_values()[i] = entry.value;
+    }
+
     // count off-diagonal columns per part
     for (auto entry : offdiag_cols) {
         auto col_range_id = entry.second;
@@ -225,10 +230,10 @@ void build_diag_offdiag(
         recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
     }
     // map off-diag values to local column indices
-    offdiag_data.resize_and_reset(
-        gko::dim<2>{num_diag_elems, num_ghost_elems},
-        static_cast<size_type>(global_offdiag_entries.size()));
-#pragma omp for
+    offdiag_data = std::move(device_matrix_data<ValueType, LocalIndexType>(
+        exec, gko::dim<2>{diag_size, num_ghost_elems},
+        static_cast<size_type>(global_offdiag_entries.size())));
+#pragma omp parallel for
     for (size_type i = 0; i < global_offdiag_entries.size(); i++) {
         auto global = global_offdiag_entries[i];
         offdiag_data.get_row_idxs()[i] =
