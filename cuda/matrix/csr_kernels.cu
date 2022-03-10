@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/base/stream_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
@@ -107,6 +108,7 @@ namespace {
 template <int items_per_thread, typename ValueType, typename IndexType>
 void merge_path_spmv(syn::value_list<int, items_per_thread>,
                      std::shared_ptr<const CudaExecutor> exec,
+                     std::shared_ptr<AsyncHandle> async_handle,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Dense<ValueType>* b,
                      matrix::Dense<ValueType>* c,
@@ -120,6 +122,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
     const auto block = spmv_block_size;
     Array<IndexType> row_out(exec, grid_num);
     Array<ValueType> val_out(exec, grid_num);
+    auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         if (alpha == nullptr && beta == nullptr) {
@@ -127,7 +130,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
             auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
-                    <<<grid, block, 0, 0>>>(
+                    <<<grid, block, 0, stream>>>(
                         static_cast<IndexType>(a->get_size()[0]),
                         as_cuda_type(a->get_const_values()),
                         a->get_const_col_idxs(),
@@ -137,7 +140,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                         as_cuda_type(row_out.get_data()),
                         as_cuda_type(val_out.get_data()));
             }
-            kernel::abstract_reduce<<<1, spmv_block_size>>>(
+            kernel::abstract_reduce<<<1, spmv_block_size, 0, stream>>>(
                 grid_num, as_cuda_type(val_out.get_data()),
                 as_cuda_type(row_out.get_data()), as_cuda_type(c_vals),
                 c->get_stride());
@@ -147,7 +150,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
             auto c_vals = c->get_values() + column_id;
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
-                    <<<grid, block, 0, 0>>>(
+                    <<<grid, block, 0, stream>>>(
                         static_cast<IndexType>(a->get_size()[0]),
                         as_cuda_type(alpha->get_const_values()),
                         as_cuda_type(a->get_const_values()),
@@ -159,7 +162,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                         as_cuda_type(row_out.get_data()),
                         as_cuda_type(val_out.get_data()));
             }
-            kernel::abstract_reduce<<<1, spmv_block_size>>>(
+            kernel::abstract_reduce<<<1, spmv_block_size, 0, stream>>>(
                 grid_num, as_cuda_type(val_out.get_data()),
                 as_cuda_type(row_out.get_data()),
                 as_cuda_type(alpha->get_const_values()), as_cuda_type(c_vals),
@@ -215,6 +218,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 template <int subwarp_size, typename ValueType, typename IndexType>
 void classical_spmv(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const CudaExecutor> exec,
+                    std::shared_ptr<AsyncHandle> async_handle,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
                     matrix::Dense<ValueType>* c,
@@ -228,11 +232,12 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                  int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
     const auto block = spmv_block_size;
+    auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
 
     if (alpha == nullptr && beta == nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, 0>>>(
+                <<<grid, block, 0, stream>>>(
                     a->get_size()[0], as_cuda_type(a->get_const_values()),
                     a->get_const_col_idxs(),
                     as_cuda_type(a->get_const_row_ptrs()),
@@ -242,7 +247,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
     } else if (alpha != nullptr && beta != nullptr) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
-                <<<grid, block, 0, 0>>>(
+                <<<grid, block, 0, stream>>>(
                     a->get_size()[0], as_cuda_type(alpha->get_const_values()),
                     as_cuda_type(a->get_const_values()),
                     a->get_const_col_idxs(),
@@ -261,14 +266,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename ValueType, typename IndexType>
 void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
-                       std::shared_ptr<AsyncHandle> handle,
+                       std::shared_ptr<AsyncHandle> async_handle,
                        const matrix::Csr<ValueType, IndexType>* a,
                        const matrix::Dense<ValueType>* b,
                        matrix::Dense<ValueType>* c,
                        const matrix::Dense<ValueType>* alpha = nullptr,
                        const matrix::Dense<ValueType>* beta = nullptr)
 {
-    auto stream = gko::as<CudaAsyncHandle>(handle)->get_handle();
+    auto stream = gko::as<CudaAsyncHandle>(async_handle)->get_handle();
     if (beta) {
         dense::scale(exec, beta, c);
     } else {
@@ -314,6 +319,7 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+                                std::shared_ptr<AsyncHandle> async_handle,
                                 const ValueType* alpha,
                                 const matrix::Csr<ValueType, IndexType>* a,
                                 const matrix::Dense<ValueType>* b,
@@ -321,6 +327,9 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
                                 matrix::Dense<ValueType>* c)
 {
     auto handle = exec->get_cusparse_handle();
+    auto stream = gko::as<CudaAsyncHandle>(async_handle)->get_handle();
+
+    cusparse::stream_guard st_guard(handle, stream);
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     if (!cusparse::is_supported<ValueType, IndexType>::value ||
         b->get_stride() != 1 || c->get_stride() != 1 || b->get_size()[0] == 0 ||
@@ -391,6 +400,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
+                        std::shared_ptr<AsyncHandle> async_handle,
                         const matrix::Csr<ValueType, IndexType>* a,
                         const matrix::Dense<ValueType>* b,
                         matrix::Dense<ValueType>* c,
@@ -398,14 +408,16 @@ bool try_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
                         const matrix::Dense<ValueType>* beta = nullptr)
 {
     if (alpha) {
-        return try_general_sparselib_spmv(exec, alpha->get_const_values(), a, b,
+        return try_general_sparselib_spmv(exec, async_handle,
+                                          alpha->get_const_values(), a, b,
                                           beta->get_const_values(), c);
     } else {
         auto handle = exec->get_cusparse_handle();
         cusparse::pointer_mode_guard pm_guard(handle);
         const auto valpha = one<ValueType>();
         const auto vbeta = zero<ValueType>();
-        return try_general_sparselib_spmv(exec, &valpha, a, b, &vbeta, c);
+        return try_general_sparselib_spmv(exec, async_handle, &valpha, a, b,
+                                          &vbeta, c);
     }
 }
 
@@ -420,11 +432,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
           const OverlapMask write_mask)
 {
+    auto async_handle = exec->get_default_exec_stream();
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, exec->get_default_exec_stream(), a,
-                                       b, c);
+        host_kernel::load_balance_spmv(exec, async_handle, a, b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -433,12 +445,14 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            syn::value_list<int>(), syn::type_list<>(), exec, async_handle, a,
+            b, c);
     } else {
         bool use_classical = true;
         if (a->get_strategy()->get_name() == "sparselib" ||
             a->get_strategy()->get_name() == "cusparse") {
-            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, async_handle, a, b, c);
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
@@ -463,9 +477,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 [&max_length_per_row](int compiled_info) {
                     return max_length_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+                syn::value_list<int>(), syn::type_list<>(), exec, async_handle,
+                a, b, c);
         }
     }
+    async_handle->wait();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
@@ -473,7 +489,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
-                                  std::shared_ptr<AsyncHandle> handle,
+                                  std::shared_ptr<AsyncHandle> async_handle,
                                   const matrix::Csr<ValueType, IndexType>* a,
                                   const matrix::Dense<ValueType>* b,
                                   matrix::Dense<ValueType>* c,
@@ -482,7 +498,7 @@ std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, handle, a, b, c);
+        host_kernel::load_balance_spmv(exec, async_handle, a, b, c);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -491,12 +507,14 @@ std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+            syn::value_list<int>(), syn::type_list<>(), exec, async_handle, a,
+            b, c);
     } else {
         bool use_classical = true;
         if (a->get_strategy()->get_name() == "sparselib" ||
             a->get_strategy()->get_name() == "cusparse") {
-            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, async_handle, a, b, c);
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
@@ -521,10 +539,11 @@ std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
                 [&max_length_per_row](int compiled_info) {
                     return max_length_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+                syn::value_list<int>(), syn::type_list<>(), exec, async_handle,
+                a, b, c);
         }
     }
-    return handle;
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -539,11 +558,12 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c, const OverlapMask write_mask)
 {
+    auto async_handle = exec->get_default_exec_stream();
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
     } else if (a->get_strategy()->get_name() == "load_balance") {
-        host_kernel::load_balance_spmv(exec, exec->get_default_exec_stream(), a,
-                                       b, c, alpha, beta);
+        host_kernel::load_balance_spmv(exec, async_handle, a, b, c, alpha,
+                                       beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -552,14 +572,14 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             [&items_per_thread](int compiled_info) {
                 return items_per_thread == compiled_info;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
-            beta);
+            syn::value_list<int>(), syn::type_list<>(), exec, async_handle, a,
+            b, c, alpha, beta);
     } else {
         bool use_classical = true;
         if (a->get_strategy()->get_name() == "sparselib" ||
             a->get_strategy()->get_name() == "cusparse") {
-            use_classical =
-                !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
+            use_classical = !host_kernel::try_sparselib_spmv(
+                exec, async_handle, a, b, c, alpha, beta);
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
@@ -584,8 +604,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 [&max_length_per_row](int compiled_info) {
                     return max_length_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
-                alpha, beta);
+                syn::value_list<int>(), syn::type_list<>(), exec, async_handle,
+                a, b, c, alpha, beta);
         }
     }
 }

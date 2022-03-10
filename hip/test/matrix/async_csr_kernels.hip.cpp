@@ -230,4 +230,40 @@ TEST_F(Csr, AsyncSimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted2)
 }
 
 
+TEST_F(Csr, AsyncSimpleApplyIsEquivalentToRefWithMergePathUnsorted)
+{
+    set_up_apply_data(std::make_shared<Mtx::merge_path>());
+    unsort_mtx();
+
+    auto hand = dmtx->apply(dy.get(), dresult.get(), hip->get_handle_at(0));
+    auto hand2 =
+        square_dmtx->apply(dy2.get(), dresult2.get(), hip->get_handle_at(1));
+    mtx->apply(y.get(), expected.get());
+    square_mtx->apply(y2.get(), expected2.get());
+    hand->wait();
+    hand2->wait();
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
+TEST_F(Csr, AsyncSimpleApplyIsEquivalentToRefWithHipsparse)
+{
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    unsort_mtx();
+
+    auto hand = dmtx->apply(dy.get(), dresult.get(), hip->get_handle_at(0));
+    auto hand2 =
+        square_dmtx->apply(dy2.get(), dresult2.get(), hip->get_handle_at(1));
+    mtx->apply(y.get(), expected.get());
+    square_mtx->apply(y2.get(), expected2.get());
+    hand->wait();
+    hand2->wait();
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-14);
+}
+
+
 }  // namespace
