@@ -81,6 +81,7 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
+        m = 597;
     }
 
     void TearDown()
@@ -113,7 +114,6 @@ protected:
 
     void initialize_data(gko::size_type num_jumps = 2)
     {
-        m = 597;
         coarse_rows = gen_coarse_array(m, num_jumps);
         c_dim = (coarse_rows.get_num_elems() + 1) / num_jumps;
 
@@ -153,8 +153,8 @@ protected:
 TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
 {
     auto c_rows = gko::Array<index_type>(ref, m);
-    auto d_c_rows = gko::Array<index_type>(exec, m);
-    d_c_rows = c_rows;
+    c_rows.fill(-gko::one<index_type>());
+    auto d_c_rows = gko::Array<index_type>(exec, c_rows);
 
     {
         gko::size_type num_jumps = 2;
@@ -166,6 +166,8 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
     }
     {
         gko::size_type num_jumps = 3;
+        c_rows.fill(-gko::one<index_type>());
+        d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, num_jumps, &c_rows);
         gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
@@ -174,6 +176,8 @@ TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
     }
     {
         gko::size_type num_jumps = 47;
+        c_rows.fill(-gko::one<index_type>());
+        d_c_rows.fill(-gko::one<index_type>());
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, num_jumps, &c_rows);
         gko::kernels::EXEC_NAMESPACE::uniform_coarsening::
@@ -203,60 +207,60 @@ TEST_F(UniformCoarsening, FillRestrictOpIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(restrict_op, d_restrict_op, r<value_type>::value);
 }
 
-// TODO: Fix for OpenMP
-// TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRef)
-// {
-//     gko::size_type num_jumps = 2;
-//     initialize_data(num_jumps);
-//     auto mg_level_factory =
-//         gko::multigrid::UniformCoarsening<value_type, int>::build()
-//             .with_num_jumps(num_jumps)
-//             .with_skip_sorting(true)
-//             .on(ref);
-//     auto d_mg_level_factory =
-//         gko::multigrid::UniformCoarsening<value_type, int>::build()
-//             .with_num_jumps(num_jumps)
-//             .with_skip_sorting(true)
-//             .on(exec);
 
-//     auto mg_level = mg_level_factory->generate(system_mtx);
-//     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRef)
+{
+    gko::size_type num_jumps = 2;
+    initialize_data(num_jumps);
+    auto mg_level_factory =
+        gko::multigrid::UniformCoarsening<value_type, int>::build()
+            .with_num_jumps(static_cast<unsigned>(num_jumps))
+            .with_skip_sorting(true)
+            .on(ref);
+    auto d_mg_level_factory =
+        gko::multigrid::UniformCoarsening<value_type, int>::build()
+            .with_num_jumps(static_cast<unsigned>(num_jumps))
+            .with_skip_sorting(true)
+            .on(exec);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-//                         gko::as<Csr>(mg_level->get_prolong_op()),
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-//                         gko::as<Csr>(mg_level->get_restrict_op()),
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-//                         gko::as<Csr>(mg_level->get_coarse_op()),
-//                         r<value_type>::value);
-// }
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
+                        gko::as<Csr>(mg_level->get_prolong_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
+}
 
 
-// TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
-// {
-//     initialize_data();
-//     gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
-//     d_system_mtx = gko::clone(exec, system_mtx);
-//     auto mg_level_factory =
-//         gko::multigrid::UniformCoarsening<value_type, int>::build().on(ref);
-//     auto d_mg_level_factory =
-//         gko::multigrid::UniformCoarsening<value_type, int>::build().on(exec);
+TEST_F(UniformCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
+{
+    initialize_data();
+    gko::test::unsort_matrix(gko::lend(system_mtx), rand_engine);
+    d_system_mtx = gko::clone(exec, system_mtx);
+    auto mg_level_factory =
+        gko::multigrid::UniformCoarsening<value_type, int>::build().on(ref);
+    auto d_mg_level_factory =
+        gko::multigrid::UniformCoarsening<value_type, int>::build().on(exec);
 
-//     auto mg_level = mg_level_factory->generate(system_mtx);
-//     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-//                         gko::as<Csr>(mg_level->get_prolong_op()),
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-//                         gko::as<Csr>(mg_level->get_restrict_op()),
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-//                         gko::as<Csr>(mg_level->get_coarse_op()),
-//                         r<value_type>::value);
-// }
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
+                        gko::as<Csr>(mg_level->get_prolong_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
+                        gko::as<Csr>(mg_level->get_restrict_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
+}
 
 
 }  // namespace

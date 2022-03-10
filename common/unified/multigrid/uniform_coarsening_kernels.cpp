@@ -78,13 +78,15 @@ void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
                               size_type num_jumps,
                               Array<IndexType>* coarse_rows)
 {
-    IndexType num_elems = (coarse_rows->get_num_elems() + 1) / num_jumps;
+    IndexType num_elems = (coarse_rows->get_num_elems());
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto tidx, auto num_jumps, auto coarse_data) {
-            coarse_data[tidx] = tidx / num_jumps;
+        [] GKO_KERNEL(auto tidx, auto num_jumps, auto coarse_data, auto size) {
+            if (tidx % num_jumps == 0 && tidx < size) {
+                coarse_data[tidx] = tidx / num_jumps;
+            }
         },
-        num_elems * num_jumps, num_jumps, coarse_rows->get_data());
+        num_elems, num_jumps, coarse_rows->get_data(), num_elems);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

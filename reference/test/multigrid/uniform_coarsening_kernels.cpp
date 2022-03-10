@@ -293,6 +293,27 @@ TYPED_TEST(UniformCoarsening, Generate)
 }
 
 
+TYPED_TEST(UniformCoarsening, FillIncrementalIndicesWorks)
+{
+    using index_type = typename TestFixture::index_type;
+    auto c2_rows =
+        gko::Array<index_type>(this->exec, {0, -1, 1, -1, 2, -1, 3, -1, 4, -1});
+    auto c3_rows = gko::Array<index_type>(this->exec,
+                                          {0, -1, -1, 1, -1, -1, 2, -1, -1, 3});
+    auto c_rows = gko::Array<index_type>(this->exec, 10);
+    c_rows.fill(-gko::one<index_type>());
+
+    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
+        this->exec, 2, &c_rows);
+    GKO_ASSERT_ARRAY_EQ(c_rows, c2_rows);
+
+    c_rows.fill(-gko::one<index_type>());
+    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
+        this->exec, 3, &c_rows);
+    GKO_ASSERT_ARRAY_EQ(c_rows, c3_rows);
+}
+
+
 TYPED_TEST(UniformCoarsening, CoarseFineRestrictApply)
 {
     auto uniform_coarsening =
