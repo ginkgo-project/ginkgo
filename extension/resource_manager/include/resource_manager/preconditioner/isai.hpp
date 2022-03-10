@@ -50,16 +50,8 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IsaiFactory) to ENUM_LINOPFACTORY
-// Add _expand(Isai) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IsaiFactory and (RM_LinOp::)Isai and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
-template <isai_type IsaiType, typename ValueType, typename IndexType>
+template <gko::preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
 struct Generic<
     typename gko::preconditioner::Isai<IsaiType, ValueType, IndexType>::Factory,
     gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
@@ -87,21 +79,11 @@ struct Generic<
 
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Isai,
-                               PACK(isai_type IsaiType, typename ValueType,
-                                    typename IndexType),
+                               PACK(gko::preconditioner::isai_type IsaiType,
+                                    typename ValueType, typename IndexType),
                                PACK(IsaiType, ValueType, IndexType));
 
 
-// TODO: the class contain non type template, please create corresponding
-// actual_type like following
-/*
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-struct actual_type<type_list<
-    std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
-std::integral_constant<isai_type, IsaiType>, ValueType, IndexType>> { using type
-= gko::preconditioner::Isai<IsaiType, ValueType, IndexType>;
-};
-*/
 ENABLE_SELECTION_ID(isai_factory_select, call,
                     std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type,
                     RM_LinOp, Isai);
@@ -110,9 +92,8 @@ ENABLE_SELECTION_ID(isai_select, call, std::shared_ptr<gko::LinOp>,
 
 
 constexpr auto isai_list =
-    typename span_list</* TODO: can not find IsaiType in tt_list_g, please
-                          condider add it if it reused for many times*/
-                       tt_list<>, tt_list_g_t<handle_type::ValueType>,
+    typename span_list<tt_list<isai_lower, isai_upper, isai_general, isai_spd>,
+                       tt_list_g_t<handle_type::ValueType>,
                        tt_list_g_t<handle_type::IndexType>>::type();
 
 
@@ -124,8 +105,6 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
 {
     // go though the type
     auto type_string = create_type_name(  // trick for clang-format
-        /*TODO: can not find IsaiType in get_default_string, please condider add
-           it if it reused for many times*/
         get_required_value<std::string>(item, "IsaiType"),
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()),
@@ -145,8 +124,6 @@ create_from_config<RM_LinOp, RM_LinOp::Isai, gko::LinOp>(
 {
     // go though the type
     auto type_string = create_type_name(  // trick for clang-format
-        /*TODO: can not find IsaiType in get_default_string, please condider add
-           it if it reused for many times*/
         get_required_value<std::string>(item, "IsaiType"),
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()),

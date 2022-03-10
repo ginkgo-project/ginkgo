@@ -229,12 +229,13 @@ struct actual_type {
     using type = T;
 };
 
-template <gko::preconditioner::isai_type isai_value, typename... Rest>
-struct actual_type<type_list<
-    std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
-    std::integral_constant<gko::preconditioner::isai_type, isai_value>,
-    Rest...>> {
-    using type = gko::preconditioner::Isai<isai_value, Rest...>;
+template <gko::preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
+struct actual_type<
+    type_list<std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
+              std::integral_constant<gko::preconditioner::isai_type, IsaiType>,
+              ValueType, IndexType>> {
+    using type = gko::preconditioner::Isai<IsaiType, ValueType, IndexType>;
 };
 
 template <typename LSolverType, typename USolverType, bool ReverseApply,

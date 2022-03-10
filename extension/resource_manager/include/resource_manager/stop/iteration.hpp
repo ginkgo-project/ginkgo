@@ -50,14 +50,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Iteration) to ENUM_CRITERIONFACTORY
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_CriterionFactory::)Iteration and (RM_Criterion::)Iteration and their
-// snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <>
 struct Generic<typename gko::stop::Iteration::Factory, gko::stop::Iteration> {
     using type = std::shared_ptr<typename gko::stop::Iteration::Factory>;
