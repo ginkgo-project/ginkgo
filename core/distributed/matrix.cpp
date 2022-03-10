@@ -77,30 +77,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
-    Matrix<value_type, local_index_type, global_index_type>* result) const
-{
-    result->diag_mtx_->copy_from(this->diag_mtx_.get());
-    result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
-    result->gather_idxs_ = this->gather_idxs_;
-    result->send_offsets_ = this->send_offsets_;
-    result->recv_offsets_ = this->recv_offsets_;
-    result->recv_sizes_ = this->recv_sizes_;
-    result->send_sizes_ = this->send_sizes_;
-    result->local_to_global_ghost_ = this->local_to_global_ghost_;
-    result->set_size(this->get_size());
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
-    Matrix<value_type, local_index_type, global_index_type>* result)
-{
-    convert_to(result);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     Matrix<next_precision<value_type>, local_index_type, global_index_type>*
         result) const
 {
@@ -301,6 +277,75 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
                          mutable_local_x.get());
     }
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
+    : EnableLinOp<Matrix<value_type, local_index_type,
+                         global_index_type>>{other.get_executor()},
+      DistributedBase{other.get_communicator()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    Matrix&& other) noexcept
+    : EnableLinOp<Matrix<value_type, local_index_type,
+                         global_index_type>>{other.get_executor()},
+      DistributedBase{other.get_communicator()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>&
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
+    const Matrix& other)
+{
+    if (this != &other) {
+        this->set_size(other.get_size());
+        other.diag_mtx_->convert_to(diag_mtx_.get());
+        other.offdiag_mtx_->convert_to(offdiag_mtx_.get());
+        gather_idxs_ = other.gather_idxs_;
+        send_offsets_ = other.send_offsets_;
+        recv_offsets_ = other.recv_offsets_;
+        recv_sizes_ = other.recv_sizes_;
+        send_sizes_ = other.send_sizes_;
+        recv_sizes_ = other.recv_sizes_;
+        local_to_global_ghost_ = other.local_to_global_ghost_;
+        one_scalar_.init(this->get_executor(), dim<2>{1, 1});
+        initialize<local_vector_type>({one<value_type>()}, this->get_executor())
+            ->move_to(one_scalar_.get());
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>&
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
+    Matrix&& other) noexcept
+{
+    if (this != &other) {
+        this->set_size(other.get_size());
+        other.diag_mtx_->move_to(diag_mtx_.get());
+        other.offdiag_mtx_->move_to(offdiag_mtx_.get());
+        gather_idxs_ = std::move(other.gather_idxs_);
+        send_offsets_ = std::move(other.send_offsets_);
+        recv_offsets_ = std::move(other.recv_offsets_);
+        recv_sizes_ = std::move(other.recv_sizes_);
+        send_sizes_ = std::move(other.send_sizes_);
+        recv_sizes_ = std::move(other.recv_sizes_);
+        local_to_global_ghost_ = std::move(other.local_to_global_ghost_);
+        one_scalar_.init(this->get_executor(), dim<2>{1, 1});
+        initialize<local_vector_type>({one<value_type>()}, this->get_executor())
+            ->move_to(one_scalar_.get());
+    }
+    return *this;
 }
 
 
