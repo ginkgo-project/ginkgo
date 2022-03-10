@@ -50,15 +50,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(JacobiFactory) to ENUM_LINOPFACTORY
-// Add _expand(Jacobi) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)JacobiFactory and (RM_LinOp::)Jacobi and their snake case
-// in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<
     typename gko::preconditioner::Jacobi<ValueType, IndexType>::Factory,
@@ -77,9 +68,9 @@ struct Generic<
             SET_VALUE(uint32, max_block_size);
             SET_VALUE(uint32, max_block_stride);
             SET_VALUE(bool, skip_sorting);
-            SET_VALUE(gko::Array<index_type>, block_pointers);
-            SET_VALUE(storage_optimization_type, storage_optimization);
-            SET_VALUE(remove_complex<value_type>, accuracy);
+            // SET_VALUE(gko::Array<IndexType>, block_pointers);
+            // SET_VALUE(storage_optimization_type, storage_optimization);
+            SET_VALUE(remove_complex<ValueType>, accuracy);
             SET_EXECUTOR;
         }();
         return std::move(ptr);

@@ -50,15 +50,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IluFactorizationFactory) to ENUM_LINOPFACTORY
-// Add _expand(IluFactorization) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IluFactorizationFactory and (RM_LinOp::)IluFactorization
-// and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
                gko::factorization::Ilu<ValueType, IndexType>> {
@@ -69,11 +60,12 @@ struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
+        using matrix_type = gko::matrix::Csr<ValueType, IndexType>;
         auto ptr = [&]() {
             BUILD_FACTORY(PACK(gko::factorization::Ilu<ValueType, IndexType>),
                           manager, item, exec, linop);
-            SET_POINTER(typename matrix_type::strategy_type, l_strategy);
-            SET_POINTER(typename matrix_type::strategy_type, u_strategy);
+            // SET_POINTER(typename matrix_type::strategy_type, l_strategy);
+            // SET_POINTER(typename matrix_type::strategy_type, u_strategy);
             SET_VALUE(bool, skip_sorting);
             SET_EXECUTOR;
         }();
