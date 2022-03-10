@@ -30,47 +30,38 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_FUNCTION_MAP_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_FUNCTION_MAP_HPP_
 
 
-#include <map>
+#include <memory>
+#include <unordered_map>
+
+
+#include <ginkgo/ginkgo.hpp>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
 #include "resource_manager/base/types.hpp"
-#include "resource_manager/executor/executor.hpp"
-#include "resource_manager/factorization/ilu.hpp"
-#include "resource_manager/matrix/csr.hpp"
-#include "resource_manager/matrix/dense.hpp"
-#include "resource_manager/preconditioner/ilu.hpp"
-#include "resource_manager/preconditioner/isai.hpp"
-#include "resource_manager/preconditioner/jacobi.hpp"
-#include "resource_manager/solver/cg.hpp"
-#include "resource_manager/solver/multigrid.hpp"
-#include "resource_manager/solver/triangular.hpp"
-#include "resource_manager/stop/iteration.hpp"
-#include "resource_manager/stop/residual_norm.hpp"
+
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
 
 
-IMPLEMENT_SELECTION(Executor, RM_Executor, ENUM_EXECUTER);
-IMPLEMENT_SELECTION(LinOp, RM_LinOp, ENUM_LINOP);
-IMPLEMENT_SELECTION(LinOpFactory, RM_LinOpFactory, ENUM_LINOPFACTORY);
-IMPLEMENT_SELECTION(CriterionFactory, RM_CriterionFactory,
-                    ENUM_CRITERIONFACTORY);
-
+std::unordered_map<std::string,
+                   std::function<size_type(const size_type, const gko::LinOp*)>>
+    selector_map{{"cycle", [](const size_type level, const gko::LinOp*) {
+                      return level % 2;
+                  }}};
+auto& level_selector_map = selector_map;
+auto& solver_selector_map = selector_map;
 
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko
 
-
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_RESOURCE_MANAGER_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_FUNCTION_MAP_HPP_
