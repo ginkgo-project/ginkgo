@@ -429,6 +429,20 @@ ValueType Vector<ValueType>::at_local(size_type idx) const noexcept
 
 
 template <typename ValueType>
+ValueType* Vector<ValueType>::get_local_values()
+{
+    return local_.get_values();
+}
+
+
+template <typename ValueType>
+const ValueType* Vector<ValueType>::get_const_local_values()
+{
+    return local_.get_const_values();
+}
+
+
+template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
 {
     if (this->get_size() != global_size) {
