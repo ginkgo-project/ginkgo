@@ -27,6 +27,13 @@ convert_snake_to_camel() {
     echo "${output}"
 }
 
+convert_camel_to_snake() {
+    local camel_case="$1"
+    local regex="s/([^A-Z]+)([A-Z])/\1_\2/g"
+    local output=$(echo "$camel_case" | sed -E "${regex}")
+    echo "${output,,}"
+}
+
 extract_namespace_class() {
     local input_path=$1
     declare -n namespace_str=$2
@@ -260,9 +267,9 @@ if [[ "$handle_factory" == "true" && "${base}" == "Criterion" ]]; then
 fi
 if [[ "${base}" == "LinOp" ]]; then
     echo "// Add _expand(${rm_class}) to ENUM_${base^^}" >> ${rm_file} 
-fi
+fi 
 echo "// If need to override the generated enum for RM, use RM_CLASS or RM_CLASS_FACTORY env and rerun the generated script." >> ${rm_file} 
-echo "// Or replace the RM_${base}Factory::${rm_class_factory} and RM_${base}::${rm_class}" >> ${rm_file} 
+echo "// Or replace the (RM_${base}Factory::)${rm_class_factory} and (RM_${base}::)${rm_class} and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ..." >> ${rm_file} 
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
 # build Generic function
@@ -369,13 +376,36 @@ selection_addition=""
 if [[ "$template_alltype" == "false" ]]; then
     selection_suffix="_ID"
     selection_addition=", RM_${base}, ${rm_class}"
-    echo "// TODO: the class contain non type template, please create corresponding actual_type" >> ${rm_file}
+    echo "// TODO: the class contain non type template, please create corresponding actual_type like following" >> ${rm_file}
+    actual_template=""
+    all_type_template=""
+    for (( idx = 0; idx < ${num}; idx++ )); do
+        if [ -n "${actual_template}" ]; then
+            actual_template="${actual_template}, "
+            all_type_template="${all_type_template}, "
+        fi
+        actual_template="${actual_template}${template_type_name_array[idx]}"
+        if [[ ! "${template_type_list_array[idx]}" =~ typename && ! "${template_type_list_array[idx]}" =~ class ]]; then
+            all_type_template="${all_type_template}std::integral_constant<${template_type_list_array[idx]}, ${template_type_name_array[idx]}>"
+        else
+            all_type_template="${all_type_template}${template_type_name_array[idx]}"
+        fi
+    done
+    echo "/*
+template <${template_type}>
+struct actual_type<type_list<
+    std::integral_constant<RM_${base}, RM_${base}::${rm_class}>, ${all_type_template}>> {
+    using type = ${namespace}::${class}<${actual_template}>;
+};
+*/" >> ${rm_file}
 fi
+rm_class_factory_snake="$(convert_camel_to_snake "${rm_class_factory}")"
+rm_class_snake="$(convert_camel_to_snake "${rm_class}")"
 if [[ "$handle_factory" == "true" ]]; then
-    echo "ENABLE_SELECTION${selection_suffix}(${class_snake}factory_select, call, std::shared_ptr<gko::${base}Factory>, get_actual_factory_type${selection_addition});" >> ${rm_file}
+    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_factory_snake}_select, call, std::shared_ptr<gko::${base}Factory>, get_actual_factory_type${selection_addition});" >> ${rm_file}
 fi
 if [[ "$base" == "LinOp" ]]; then
-    echo "ENABLE_SELECTION${selection_suffix}(${class_snake}_select, call, std::shared_ptr<gko::${base}>, get_actual_type${selection_addition});" >> ${rm_file}
+    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_snake}_select, call, std::shared_ptr<gko::${base}>, get_actual_type${selection_addition});" >> ${rm_file}
 fi
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
@@ -394,7 +424,7 @@ for (( idx = 0; idx < ${num}; idx++ )); do
         tt_list="${tt_list}tt_list_g_t<handle_type::${template_type_name_array[idx]}>"
     fi
 done
-echo "constexpr auto ${class_snake}_list =
+echo "constexpr auto ${rm_class_snake}_list =
     typename span_list<$tt_list>::type();" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
@@ -404,9 +434,16 @@ for (( idx = 0; idx < ${num}; idx++ )); do
         type_value_with_default="${type_value_with_default}, "
     fi
     # check whether it is exist
+    # TODO: it shuold depend on the template list or check exist
     if [[ "$(check_exist "GET_DEFAULT_STRING_PARTIAL(${template_type_name_array[idx]}")" == "false" ]]; then
         type_value_with_default="${type_value_with_default}/*TODO: can not find ${template_type_name_array[idx]} in get_default_string, please condider add it if it reused for many times*/"
-        type_value_with_default="${type_value_with_default}get_value_with_default(item, \"${template_type_name_array[idx]}\", \"${template_type_default_array[idx]}\")"
+        if [ -n "${template_type_default_array[idx]}" ]; then
+            # If it contains default value, use it
+            type_value_with_default="${type_value_with_default}get_value_with_default(item, \"${template_type_name_array[idx]}\", \"${template_type_default_array[idx]}\")"
+        else
+            # If it does not contain default value, mark it required
+            type_value_with_default="${type_value_with_default}get_required_value<std::string>(item, \"${template_type_name_array[idx]}\")";
+        fi
     else
         type_value_with_default="${type_value_with_default}get_value_with_default(item, \"${template_type_name_array[idx]}\", get_default_string<handle_type::${template_type_name_array[idx]}>())"
     fi
@@ -431,8 +468,8 @@ std::shared_ptr<gko::${base_namespace}${base}Factory> create_from_config<
     auto type_string = create_type_name( // trick for clang-format
             ${type_value_with_default}
         );
-    auto ptr = ${class_snake}factory_select<${select_type}>(
-        ${class_snake}_list, [=](std::string key) { return key == type_string; }, item,
+    auto ptr = ${rm_class_factory_snake}_select<${select_type}>(
+        ${rm_class_snake}_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
     return std::move(ptr);
 }" >> ${rm_file}
@@ -450,8 +487,8 @@ if [[ "$base" == "LinOp" ]]; then
     auto type_string = create_type_name(  // trick for clang-format
             ${type_value_with_default}
         );
-        auto ptr = ${class_snake}_select<${select_type}>(
-            ${class_snake}_list, [=](std::string key) { return key == type_string; }, item,
+        auto ptr = ${rm_class_snake}_select<${select_type}>(
+            ${rm_class_snake}_list, [=](std::string key) { return key == type_string; }, item,
             exec, linop, manager);
         return std::move(ptr);
     }" >> ${rm_file}
