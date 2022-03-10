@@ -63,8 +63,10 @@ prepare_rmfactory_param() {
     local is_vector="false"
     local is_pointer="false"
     if [[ "$input_type" =~ $function_regex ]]; then
-        echo "/* TODO: please create a map ${input_name}_map to handle the function ${BASH_REMATCH[2]}*/"
-        echo "SET_FUNCTION($input_type, $input_name);"
+        echo "
+        /* TODO: please create a map ${input_name}_map to handle the function ${BASH_REMATCH[2]}*/
+        SET_FUNCTION($input_type, $input_name);"
+        return
     fi
     if [[ "$input_type" =~ $vector_regex ]]; then
         is_vector="true"
@@ -307,6 +309,10 @@ struct Generic<typename ${class_type}::Factory, ${class_type}> {
 " >> ${rm_file}
 fi
 if [[ "${num}" == "0" ]]; then
+    if [[ "${base}" == "LinOp" && "$handle_factory" == "true" ]]; then
+        echo "" >> ${rm_file}
+        echo "SIMPLE_LINOP_WITH_FACTORY_IMPL_BASE(${namespace}::${class});" >> ${rm_file}
+    fi
     echo "" >> "${rm_file}"
     echo "" >> "${rm_file}"
     if [[ "${base}" == "Criterion" ]]; then
