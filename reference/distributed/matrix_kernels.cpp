@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -121,20 +122,25 @@ void build_diag_offdiag(
         }
     }
     // store diagonal data to output
-    const auto num_diag_elems =
+    const auto diag_size =
         static_cast<size_type>(partition->get_part_size(local_part));
-    diag_data.resize_and_reset(gko::dim<2>{num_diag_elems, num_diag_elems},
-                               static_cast<size_type>(diag_entries.size()));
-    components::aos_to_soa(exec,
-                           Array<local_nonzero>::view(exec, diag_entries.size(),
-                                                      diag_entries.data()),
-                           diag_data);
+    diag_data = std::move(device_matrix_data<ValueType, LocalIndexType>(
+        exec, gko::dim<2>{diag_size, diag_size},
+        static_cast<size_type>(diag_entries.size())));
+    std::transform(diag_entries.begin(), diag_entries.end(),
+                   detail::make_zip_iterator(diag_data.get_row_idxs(),
+                                             diag_data.get_col_idxs(),
+                                             diag_data.get_values()),
+                   [](const auto& entry) {
+                       return std::make_tuple(entry.row, entry.column,
+                                              entry.value);
+                   });
 
     // build recv_offsets
     components::prefix_sum(exec, recv_offsets, num_parts + 1);
-    const auto num_ghost_elems =
+    const auto num_ghost_columns =
         static_cast<size_type>(recv_offsets[num_parts]);
-    local_gather_idxs.resize_and_reset(num_ghost_elems);
+    local_gather_idxs.resize_and_reset(num_ghost_columns);
     std::unordered_map<GlobalIndexType, LocalIndexType> offdiag_global_to_local;
     // collect and renumber offdiagonal columns
     for (auto entry : offdiag_cols) {
@@ -149,7 +155,7 @@ void build_diag_offdiag(
         ++recv_offsets[part];
     }
     // build local-to-global map for offdiag columns
-    local_to_global_ghost.resize_and_reset(num_ghost_elems);
+    local_to_global_ghost.resize_and_reset(num_ghost_columns);
     std::fill_n(local_to_global_ghost.get_data(),
                 local_to_global_ghost.get_num_elems(),
                 invalid_index<GlobalIndexType>());
@@ -164,16 +170,18 @@ void build_diag_offdiag(
         recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
     }
     // map off-diag values to local column indices
-    offdiag_data.resize_and_reset(
-        gko::dim<2>{num_diag_elems, num_ghost_elems},
-        static_cast<size_type>(global_offdiag_entries.size()));
-    for (size_type i = 0; i < global_offdiag_entries.size(); i++) {
-        auto global = global_offdiag_entries[i];
-        offdiag_data.get_row_idxs()[i] =
-            static_cast<LocalIndexType>(global.row);
-        offdiag_data.get_col_idxs()[i] = offdiag_global_to_local[global.column];
-        offdiag_data.get_values()[i] = global.value;
-    }
+    offdiag_data = std::move(device_matrix_data<ValueType, LocalIndexType>(
+        exec, gko::dim<2>{diag_size, num_ghost_columns},
+        static_cast<size_type>(global_offdiag_entries.size())));
+    std::transform(global_offdiag_entries.begin(), global_offdiag_entries.end(),
+                   detail::make_zip_iterator(offdiag_data.get_row_idxs(),
+                                             offdiag_data.get_col_idxs(),
+                                             offdiag_data.get_values()),
+                   [&](const auto& entry) {
+                       return std::make_tuple(
+                           static_cast<LocalIndexType>(entry.row),
+                           offdiag_global_to_local[entry.column], entry.value);
+                   });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
