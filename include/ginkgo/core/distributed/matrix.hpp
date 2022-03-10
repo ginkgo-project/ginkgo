@@ -81,11 +81,8 @@ public:
     using local_vector_type = typename global_vector_type::local_vector_type;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
 
-    void convert_to(Matrix<value_type, local_index_type, global_index_type>*
-                        result) const override;
-
-    void move_to(Matrix<value_type, local_index_type, global_index_type>*
-                     result) override;
+    using EnableLinOp<Matrix>::convert_to;
+    using EnableLinOp<Matrix>::move_to;
 
     void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
@@ -140,6 +137,14 @@ public:
     {
         return offdiag_mtx_;
     }
+
+    Matrix(const Matrix& other);
+
+    Matrix(Matrix&& other) noexcept;
+
+    Matrix& operator=(const Matrix& other);
+
+    Matrix& operator=(Matrix&& other) noexcept;
 
 protected:
     /**
