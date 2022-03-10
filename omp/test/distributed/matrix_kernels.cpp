@@ -119,15 +119,17 @@ protected:
     }
 
     template <typename Data1, typename Data2>
-    void assert_device_matrix_data_equal(const Data1& first,
-                                         const Data2& second)
+    void assert_device_matrix_data_equal(Data1& first, Data2& second)
     {
-        auto dense_first =
-            gko::matrix::Dense<value_type>::create(first.get_executor());
-        dense_first->read(first);
-        auto dense_second =
-            gko::matrix::Dense<value_type>::create(second.get_executor());
-        dense_second->read(second);
+        auto size_first = first.get_size();
+        auto size_second = second.get_size();
+        auto arrays_first = first.empty_out();
+        auto array_second = second.empty_out();
+
+        GKO_ASSERT_EQUAL_DIMENSIONS(size_first, size_second);
+        GKO_ASSERT_ARRAY_EQ(arrays_first.row_idxs, array_second.row_idxs);
+        GKO_ASSERT_ARRAY_EQ(arrays_first.col_idxs, array_second.col_idxs);
+        GKO_ASSERT_ARRAY_EQ(arrays_first.values, array_second.values);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;

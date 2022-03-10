@@ -94,11 +94,12 @@ public:
                         global_index_type>* result) override;
 
     /**
-     * Reads a matrix from the matrix_data structure and a global row partition.
+     * Reads a square matrix from the matrix_data structure and a global row
+     * partition.
      *
-     * The number of rows of the matrix_data is ignored, only its number of
-     * columns is relevant. Both the number of local and global rows are
-     * inferred from the row partition.
+     * Both the number of rows and columns of the matrix_data is ignored. The
+     * global size of the final matrix is inferred only from the size row
+     * partition.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
