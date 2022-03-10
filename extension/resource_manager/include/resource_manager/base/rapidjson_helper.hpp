@@ -163,12 +163,21 @@ template <typename T>
 T get_value_with_default(rapidjson::Value& item, std::string key, T default_val)
 {
     if (!item.HasMember(key.c_str())) {
-        // if (default_val == "") {
-        //     std::cerr << "the value of key " << key << " must not be empty"
-        //               << std::endl;
-        //     assert(false);
-        // }
         return default_val;
+    } else {
+        return get_value<T>(item, key);
+    }
+}
+
+
+template <typename T>
+T get_required_value(rapidjson::Value& item, std::string key)
+{
+    if (!item.HasMember(key.c_str())) {
+        std::cerr << "the value of key " << key << " must not be empty"
+                  << std::endl;
+        assert(false);
+        return T{};
     } else {
         return get_value<T>(item, key);
     }
