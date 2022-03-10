@@ -219,9 +219,9 @@ TEST_F(Matrix, ConvertsToPrecisionIsSameAsRef)
     mat->convert_to(tmp.get());
     dmat->convert_to(dtmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_diag(), dtmp->get_local_diag(),
+    GKO_ASSERT_MTX_NEAR(tmp->get_const_local_diag(), dtmp->get_const_local_diag(),
                         r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_offdiag(), dtmp->get_local_offdiag(),
+    GKO_ASSERT_MTX_NEAR(tmp->get_const_local_offdiag(), dtmp->get_const_local_offdiag(),
                         r<value_type>::value);
 }
 
@@ -237,9 +237,9 @@ TEST_F(Matrix, MovesToPrecisionIsSameAsRef)
     mat->move_to(tmp.get());
     dmat->move_to(dtmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_diag(), dtmp->get_local_diag(),
+    GKO_ASSERT_MTX_NEAR(tmp->get_const_local_diag(), dtmp->get_const_local_diag(),
                         r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_offdiag(), dtmp->get_local_offdiag(),
+    GKO_ASSERT_MTX_NEAR(tmp->get_const_local_offdiag(), dtmp->get_const_local_offdiag(),
                         r<value_type>::value);
 }
 
