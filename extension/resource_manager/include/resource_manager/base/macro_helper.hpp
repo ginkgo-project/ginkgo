@@ -392,5 +392,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         }                                                                      \
     }
 
+#define SIMPLE_LINOP_WITH_FACTORY_IMPL_BASE(_base)                             \
+    template <>                                                                \
+    struct Generic<_base> {                                                    \
+        using type = std::shared_ptr<_base>;                                   \
+        static type build(rapidjson::Value& item,                              \
+                          std::shared_ptr<const Executor> exec,                \
+                          std::shared_ptr<const LinOp> linop,                  \
+                          ResourceManager* manager)                            \
+        {                                                                      \
+            std::cout << #_base << exec.get() << std::endl;                    \
+            auto factory = get_pointer<typename _base::Factory>(               \
+                item["factory"], exec, linop, manager);                        \
+            auto mtx = get_pointer<const LinOp>(item["generate"], exec, linop, \
+                                                manager);                      \
+            auto ptr = factory->generate(mtx);                                 \
+            return std::move(ptr);                                             \
+        }                                                                      \
+    }
+
 
 #endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_

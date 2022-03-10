@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "resource_manager/base/element_types.hpp"
+#include "resource_manager/base/function_map.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
@@ -72,8 +73,6 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             BUILD_FACTORY(gko::solver::Multigrid, manager, item, exec, linop);
             SET_POINTER_VECTOR(const stop::CriterionFactory, criteria);
             SET_POINTER_VECTOR(const gko::LinOpFactory, mg_level);
-            /* TODO: please create a map level_selector_map to handle the
-             * function size_type(const size_type, const LinOp*)*/
             SET_FUNCTION(
                 std::function<size_type(const size_type, const LinOp*)>,
                 level_selector);
@@ -81,19 +80,17 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             SET_POINTER_VECTOR(const LinOpFactory, post_smoother);
             SET_POINTER_VECTOR(const LinOpFactory, mid_smoother);
             SET_VALUE(bool, post_uses_pre);
-            SET_VALUE(multigrid::mid_smooth_type, mid_case);
+            // SET_VALUE(multigrid::mid_smooth_type, mid_case);
             SET_VALUE(size_type, max_levels);
             SET_VALUE(size_type, min_coarse_rows);
             SET_POINTER_VECTOR(const LinOpFactory, coarsest_solver);
-            /* TODO: please create a map solver_selector_map to handle the
-             * function size_type(const size_type, const LinOp*)*/
             SET_FUNCTION(
                 std::function<size_type(const size_type, const LinOp*)>,
                 solver_selector);
-            SET_VALUE(multigrid::cycle, cycle);
+            // SET_VALUE(multigrid::cycle, cycle);
             SET_VALUE(size_type, kcycle_base);
             SET_VALUE(double, kcycle_rel_tol);
-            SET_VALUE(std::complex<double>, smoother_relax);
+            // SET_VALUE(std::complex<double>, smoother_relax);
             SET_VALUE(size_type, smoother_iters);
             SET_VALUE(bool, zero_guess);
             SET_EXECUTOR;
