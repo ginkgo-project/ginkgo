@@ -234,12 +234,7 @@ public:
      *
      * @param new_num_entries  the new number of stored matrix entries.
      */
-    void resize_and_reset(size_type new_num_entries)
-    {
-        row_idxs_.resize_and_reset(new_num_entries);
-        col_idxs_.resize_and_reset(new_num_entries);
-        values_.resize_and_reset(new_num_entries);
-    }
+    void resize_and_reset(size_type new_num_entries);
 
     /**
      * Resizes the matrix and internal storage to the given dimensions.
@@ -248,11 +243,7 @@ public:
      * @param new_size  the new matrix dimensions.
      * @param new_num_entries  the new number of stored matrix entries.
      */
-    void resize_and_reset(dim<2> new_size, size_type new_num_entries)
-    {
-        size_ = new_size;
-        resize_and_reset(new_num_entries);
-    }
+    void resize_and_reset(dim<2> new_size, size_type new_num_entries);
 
     /**
      * Stores the internal arrays of a device_matrix_data object.
