@@ -169,7 +169,7 @@ class=$(convert_snake_to_camel "${class_snake}")
 base=$(get_base "${namespace}::${class}")
 rm_class=${RM_CLASS:="${class}"}
 rm_class_factory="${rm_class}Factory"
-if [[ "${base}" == "Critrion" ]]; then
+if [[ "${base}" == "Criterion" ]]; then
     rm_class_factory="${rm_class}"
 fi
 rm_class_factory=${RM_CLASS_FACTORY:="${rm_class_factory}"}
@@ -334,7 +334,7 @@ if [[ "${base}" == "LinOp" ]]; then
         echo "SIMPLE_LINOP_WITH_FACTORY_IMPL(${namespace}::${class}, $(pack "${template_type}" ${num}), $(pack "${used_type}" ${num}));" >> ${rm_file}
     else
         echo "template <${template_type}>
-        struct Generic<typename ${class_type}> {
+        struct Generic<${class_type}> {
             using type = std::shared_ptr<${class_type}>;
             static type build(rapidjson::Value &item,
                             std::shared_ptr<const Executor> exec,
@@ -362,6 +362,10 @@ if [[ "${base}" == "LinOp" ]]; then
 fi
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
+base_namespace=""
+if [[ "${base}" == "Criterion" ]]; then
+    base_namespace="stop::"
+fi
 # selection
 # adapt with type
 template_alltype="true"
@@ -402,10 +406,10 @@ fi
 rm_class_factory_snake="$(convert_camel_to_snake "${rm_class_factory}")"
 rm_class_snake="$(convert_camel_to_snake "${rm_class}")"
 if [[ "$handle_factory" == "true" ]]; then
-    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_factory_snake}_select, call, std::shared_ptr<gko::${base}Factory>, get_actual_factory_type${selection_addition});" >> ${rm_file}
+    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_factory_snake}_select, call, std::shared_ptr<gko::${base_namespace}${base}Factory>, get_actual_factory_type${selection_addition});" >> ${rm_file}
 fi
 if [[ "$base" == "LinOp" ]]; then
-    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_snake}_select, call, std::shared_ptr<gko::${base}>, get_actual_type${selection_addition});" >> ${rm_file}
+    echo "ENABLE_SELECTION${selection_suffix}(${rm_class_snake}_select, call, std::shared_ptr<gko::${base_namespace}${base}>, get_actual_type${selection_addition});" >> ${rm_file}
 fi
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
@@ -448,10 +452,6 @@ for (( idx = 0; idx < ${num}; idx++ )); do
         type_value_with_default="${type_value_with_default}get_value_with_default(item, \"${template_type_name_array[idx]}\", get_default_string<handle_type::${template_type_name_array[idx]}>())"
     fi
 done
-base_namespace=""
-if [[ "${base}" == "Critrion" ]]; then
-    base_namespace="stop::"
-fi
 select_type="${namespace}::${class}"
 if [[ "$template_alltype" == "false" ]]; then
     select_type="type_list"
@@ -460,7 +460,7 @@ if [[ "$handle_factory" == "true" ]]; then
 # create_from_config for factory
 echo "template <>
 std::shared_ptr<gko::${base_namespace}${base}Factory> create_from_config<
-    RM_${base}Factory, RM_${base}Factory::${rm_class_factory}, gko::${base}Factory>(
+    RM_${base}Factory, RM_${base}Factory::${rm_class_factory}, gko::${base_namespace}${base}Factory>(
     rapidjson::Value &item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
