@@ -261,6 +261,7 @@ TEST_F(Matrix, AdvancedApplyIsSameAsRef)
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), dy->get_local_vector(), r<value_type>::value);
 }
 
+
 TEST_F(Matrix, ApplyCopiesToHostOnlyIfNecessary)
 {
     auto transfer_count_before = logger->get_transfer_count();
