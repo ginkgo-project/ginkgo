@@ -200,8 +200,9 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
 
     dist_mat->read_distributed(this->mat_input, this->part.get());
 
-    GKO_ASSERT_MTX_NEAR(dist_mat->get_local_diag(), res_diag[rank], 0);
-    GKO_ASSERT_MTX_NEAR(dist_mat->get_local_offdiag(), res_offdiag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_diag(), res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_offdiag(), res_offdiag[rank],
+                        0);
 }
 
 
@@ -216,8 +217,9 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
 
     dist_mat->read_distributed(this->dist_input[rank], this->part.get());
 
-    GKO_ASSERT_MTX_NEAR(dist_mat->get_local_diag(), res_diag[rank], 0);
-    GKO_ASSERT_MTX_NEAR(dist_mat->get_local_offdiag(), res_offdiag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_diag(), res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_offdiag(), res_offdiag[rank],
+                        0);
 }
 
 
@@ -312,10 +314,10 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     this->dist_mat->convert_to(tmp.get());
     tmp->convert_to(res.get());
 
-    GKO_ASSERT_MTX_NEAR(this->dist_mat->get_local_diag(), res->get_local_diag(),
-                        residual);
-    GKO_ASSERT_MTX_NEAR(this->dist_mat->get_local_offdiag(),
-                        res->get_local_offdiag(), residual);
+    GKO_ASSERT_MTX_NEAR(this->dist_mat->get_const_local_diag(),
+                        res->get_const_local_diag(), residual);
+    GKO_ASSERT_MTX_NEAR(this->dist_mat->get_const_local_offdiag(),
+                        res->get_const_local_offdiag(), residual);
 }
 
 
@@ -340,10 +342,10 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     this->dist_mat->move_to(tmp.get());
     tmp->convert_to(res.get());
 
-    GKO_ASSERT_MTX_NEAR(clone_dist_mat->get_local_diag(), res->get_local_diag(),
-                        residual);
-    GKO_ASSERT_MTX_NEAR(clone_dist_mat->get_local_offdiag(),
-                        res->get_local_offdiag(), residual);
+    GKO_ASSERT_MTX_NEAR(clone_dist_mat->get_const_local_diag(),
+                        res->get_const_local_diag(), residual);
+    GKO_ASSERT_MTX_NEAR(clone_dist_mat->get_const_local_offdiag(),
+                        res->get_const_local_offdiag(), residual);
 }
 
 
