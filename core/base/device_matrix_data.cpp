@@ -133,6 +133,24 @@ void device_matrix_data<ValueType, IndexType>::sum_duplicates()
 
 
 template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::resize_and_reset(
+    size_type new_num_entries)
+{
+    row_idxs_.resize_and_reset(new_num_entries);
+    col_idxs_.resize_and_reset(new_num_entries);
+    values_.resize_and_reset(new_num_entries);
+}
+
+template <typename ValueType, typename IndexType>
+void device_matrix_data<ValueType, IndexType>::resize_and_reset(
+    dim<2> new_size, size_type new_num_entries)
+{
+    size_ = new_size;
+    resize_and_reset(new_num_entries);
+}
+
+
+template <typename ValueType, typename IndexType>
 typename device_matrix_data<ValueType, IndexType>::arrays
 device_matrix_data<ValueType, IndexType>::empty_out()
 {
