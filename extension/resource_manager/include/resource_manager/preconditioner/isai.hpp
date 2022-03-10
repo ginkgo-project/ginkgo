@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
@@ -49,50 +50,70 @@ namespace extension {
 namespace resource_manager {
 
 
-template <gko::preconditioner::isai_type isai_value, typename ValueType,
-          typename IndexType>
-struct Generic<typename gko::preconditioner::Isai<isai_value, ValueType,
-                                                  IndexType>::Factory,
-               gko::preconditioner::Isai<isai_value, ValueType, IndexType>> {
-    using type = std::shared_ptr<typename gko::preconditioner::Isai<
-        isai_value, ValueType, IndexType>::Factory>;
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(IsaiFactory) to ENUM_LINOPFACTORY
+// Add _expand(Isai) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)IsaiFactory and (RM_LinOp::)Isai and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+struct Generic<
+    typename gko::preconditioner::Isai<IsaiType, ValueType, IndexType>::Factory,
+    gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
+    using type =
+        std::shared_ptr<typename gko::preconditioner::Isai<IsaiType, ValueType,
+                                                           IndexType>::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
         auto ptr = [&]() {
-            BUILD_FACTORY(PACK(gko::preconditioner::Isai<isai_value, ValueType,
-                                                         IndexType>),
-                          manager, item, exec, linop);
+            BUILD_FACTORY(
+                PACK(gko::preconditioner::Isai<IsaiType, ValueType, IndexType>),
+                manager, item, exec, linop);
             SET_VALUE(bool, skip_sorting);
             SET_VALUE(int, sparsity_power);
             SET_VALUE(size_type, excess_limit);
-            // SET_POINTER(LinOpFactory, excess_solver_factory);
+            SET_POINTER(LinOpFactory, excess_solver_factory);
             SET_EXECUTOR;
         }();
-
-        std::cout << "123" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Isai,
-                               PACK(gko::preconditioner::isai_type isai_value,
-                                    typename ValueType, typename IndexType),
-                               PACK(isai_value, ValueType, IndexType));
+                               PACK(isai_type IsaiType, typename ValueType,
+                                    typename IndexType),
+                               PACK(IsaiType, ValueType, IndexType));
 
 
-ENABLE_SELECTION_ID(isaifactory_select, call,
+// TODO: the class contain non type template, please create corresponding
+// actual_type like following
+/*
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+struct actual_type<type_list<
+    std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
+std::integral_constant<isai_type, IsaiType>, ValueType, IndexType>> { using type
+= gko::preconditioner::Isai<IsaiType, ValueType, IndexType>;
+};
+*/
+ENABLE_SELECTION_ID(isai_factory_select, call,
                     std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type,
                     RM_LinOp, Isai);
 ENABLE_SELECTION_ID(isai_select, call, std::shared_ptr<gko::LinOp>,
                     get_actual_type, RM_LinOp, Isai);
+
+
 constexpr auto isai_list =
-    typename span_list<tt_list<isai_lower, isai_upper, isai_general, isai_spd>,
-                       tt_list<double, float>,
-                       tt_list<gko::int32, gko::int64>>::type();
+    typename span_list</* TODO: can not find IsaiType in tt_list_g, please
+                          condider add it if it reused for many times*/
+                       tt_list<>, tt_list_g_t<handle_type::ValueType>,
+                       tt_list_g_t<handle_type::IndexType>>::type();
 
 
 template <>
@@ -101,19 +122,20 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_isai_factory" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto isai_type = get_value_with_default(item, "IsaiType", std::string{});
-    assert(isai_type != std::string{});
-    auto type_string = isai_type + "+" + vt + "+" + it;
-    auto ptr = isaifactory_select<type_list>(
+    auto type_string = create_type_name(  // trick for clang-format
+        /*TODO: can not find IsaiType in get_default_string, please condider add
+           it if it reused for many times*/
+        get_required_value<std::string>(item, "IsaiType"),
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
+    auto ptr = isai_factory_select<type_list>(
         isai_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
-
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -121,17 +143,19 @@ create_from_config<RM_LinOp, RM_LinOp::Isai, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_isai" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto isai_type = get_value_with_default(item, "IsaiType", std::string{});
-    assert(isai_type != std::string{});
-    auto type_string = isai_type + "+" + vt + "+" + it;
+    auto type_string = create_type_name(  // trick for clang-format
+        /*TODO: can not find IsaiType in get_default_string, please condider add
+           it if it reused for many times*/
+        get_required_value<std::string>(item, "IsaiType"),
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
     auto ptr = isai_select<type_list>(
-        isai_list, [=](std::string key) { return key == vt; }, item, exec,
-        linop, manager);
-    return ptr;
+        isai_list, [=](std::string key) { return key == type_string; }, item,
+        exec, linop, manager);
+    return std::move(ptr);
 }
 
 

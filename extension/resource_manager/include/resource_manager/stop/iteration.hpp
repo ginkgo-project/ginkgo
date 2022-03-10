@@ -37,10 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include "resource_manager/base/element_types.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
@@ -48,24 +50,28 @@ namespace extension {
 namespace resource_manager {
 
 
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(Iteration) to ENUM_CRITERIONFACTORY
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_CriterionFactory::)Iteration and (RM_Criterion::)Iteration and their
+// snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
 template <>
-struct Generic<gko::stop::Iteration::Factory, gko::stop::Iteration> {
-    using type = std::shared_ptr<gko::stop::Iteration::Factory>;
+struct Generic<typename gko::stop::Iteration::Factory, gko::stop::Iteration> {
+    using type = std::shared_ptr<typename gko::stop::Iteration::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "Iteration exec:" << exec.get() << std::endl;
         auto ptr = [&]() {
             BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
-            std::cout << "Iter 1:" << std::endl;
             SET_VALUE(size_type, max_iters);
-            std::cout << "Iter 2:" << std::endl;
             SET_EXECUTOR;
         }();
-        std::cout << "Iter 3:" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 

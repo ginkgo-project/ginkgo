@@ -42,11 +42,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/type_list.hpp"
 
 
 namespace gko {
 namespace extension {
 namespace resource_manager {
+
+
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(JacobiFactory) to ENUM_LINOPFACTORY
+// Add _expand(Jacobi) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)JacobiFactory and (RM_LinOp::)Jacobi and their snake case
+// in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
 template <typename ValueType, typename IndexType>
@@ -64,14 +74,15 @@ struct Generic<
             BUILD_FACTORY(
                 PACK(gko::preconditioner::Jacobi<ValueType, IndexType>),
                 manager, item, exec, linop);
+            SET_VALUE(uint32, max_block_size);
+            SET_VALUE(uint32, max_block_stride);
             SET_VALUE(bool, skip_sorting);
-            SET_VALUE(gko::uint32, max_block_size);
-            SET_VALUE(gko::uint32, max_block_stride);
+            SET_VALUE(gko::Array<index_type>, block_pointers);
+            SET_VALUE(storage_optimization_type, storage_optimization);
+            SET_VALUE(remove_complex<value_type>, accuracy);
             SET_EXECUTOR;
         }();
-
-        std::cout << "123" << std::endl;
-        return ptr;
+        return std::move(ptr);
     }
 };
 
@@ -81,13 +92,15 @@ SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Jacobi,
                                PACK(ValueType, IndexType));
 
 
-ENABLE_SELECTION(jacobifactory_select, call, std::shared_ptr<gko::LinOpFactory>,
-                 get_actual_factory_type);
+ENABLE_SELECTION(jacobi_factory_select, call,
+                 std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type);
 ENABLE_SELECTION(jacobi_select, call, std::shared_ptr<gko::LinOp>,
                  get_actual_type);
+
+
 constexpr auto jacobi_list =
-    typename span_list<tt_list<double, float>,
-                       tt_list<gko::int32, gko::int64>>::type();
+    typename span_list<tt_list_g_t<handle_type::ValueType>,
+                       tt_list_g_t<handle_type::IndexType>>::type();
 
 
 template <>
@@ -96,17 +109,17 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "jacobi_factory" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto type_string = vt + "+" + it;
-    auto ptr = jacobifactory_select<gko::preconditioner::Jacobi>(
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
+    auto ptr = jacobi_factory_select<gko::preconditioner::Jacobi>(
         jacobi_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    return ptr;
+    return std::move(ptr);
 }
-
 
 template <>
 std::shared_ptr<gko::LinOp>
@@ -114,15 +127,16 @@ create_from_config<RM_LinOp, RM_LinOp::Jacobi, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    std::cout << "build_jacobi" << std::endl;
     // go though the type
-    auto vt = get_value_with_default(item, "ValueType", default_valuetype);
-    auto it = get_value_with_default(item, "IndexType", default_indextype);
-    auto type_string = vt + "+" + it;
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()),
+        get_value_with_default(item, "IndexType",
+                               get_default_string<handle_type::IndexType>()));
     auto ptr = jacobi_select<gko::preconditioner::Jacobi>(
-        jacobi_list, [=](std::string key) { return key == vt; }, item, exec,
-        linop, manager);
-    return ptr;
+        jacobi_list, [=](std::string key) { return key == type_string; }, item,
+        exec, linop, manager);
+    return std::move(ptr);
 }
 
 
