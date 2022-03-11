@@ -34,17 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_FUNCTION_MAP_HPP_
 
 
-#include <memory>
+#include <functional>
+#include <string>
 #include <unordered_map>
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
-#include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-#include "resource_manager/base/types.hpp"
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -59,6 +55,7 @@ std::unordered_map<std::string,
                   }}};
 auto& level_selector_map = selector_map;
 auto& solver_selector_map = selector_map;
+
 
 }  // namespace resource_manager
 }  // namespace extension

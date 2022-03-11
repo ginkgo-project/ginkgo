@@ -30,52 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#include <type_traits>
 
 
-#include <ginkgo/core/stop/iteration.hpp>
+#include <gtest/gtest.h>
 
 
-#include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/helper.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/type_default.hpp"
-#include "resource_manager/base/type_pack.hpp"
-#include "resource_manager/base/type_resolving.hpp"
 #include "resource_manager/base/type_string.hpp"
-#include "resource_manager/base/types.hpp"
-
-namespace gko {
-namespace extension {
-namespace resource_manager {
 
 
-template <>
-struct Generic<typename gko::stop::Iteration::Factory, gko::stop::Iteration> {
-    using type = std::shared_ptr<typename gko::stop::Iteration::Factory>;
-    static type build(rapidjson::Value& item,
-                      std::shared_ptr<const Executor> exec,
-                      std::shared_ptr<const LinOp> linop,
-                      ResourceManager* manager)
-    {
-        auto ptr = [&]() {
-            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
-            SET_VALUE(size_type, max_iters);
-            SET_EXECUTOR;
-        }();
-        return std::move(ptr);
-    }
-};
+namespace {
 
 
-IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
+using namespace gko::extension::resource_manager;
 
 
-}  // namespace resource_manager
-}  // namespace extension
-}  // namespace gko
+TEST(GetString, GetStringFromTemplate)
+{
+    ASSERT_EQ(get_string<int>(), "int");
+    ASSERT_EQ(get_string<gko::int64>(), "int64");
+    ASSERT_EQ(get_string<double>(), "double");
+    ASSERT_EQ(get_string<float>(), "float");
+}
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+TEST(GetString, GetStringFromTypeList)
+{
+    ASSERT_EQ(get_string(int{}), "int");
+    ASSERT_EQ(get_string(double{}), "double");
+    ASSERT_EQ(get_string(type_list<double, int>{}), "double+int");
+    ASSERT_EQ(get_string(type_list<int, double>{}), "int+double");
+}
+
+
+}  // namespace

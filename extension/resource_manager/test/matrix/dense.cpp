@@ -34,19 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#if defined(__unix__) || defined(__APPLE__)
-#include <utmpx.h>
-#endif
-
-
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
 
 
-#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "resource_manager/resource_manager.hpp"

@@ -30,52 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+#include <type_traits>
 
 
-#include <ginkgo/core/stop/iteration.hpp>
+#include <gtest/gtest.h>
 
 
-#include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/helper.hpp"
-#include "resource_manager/base/macro_helper.hpp"
-#include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/type_default.hpp"
-#include "resource_manager/base/type_pack.hpp"
 #include "resource_manager/base/type_resolving.hpp"
-#include "resource_manager/base/type_string.hpp"
-#include "resource_manager/base/types.hpp"
-
-namespace gko {
-namespace extension {
-namespace resource_manager {
 
 
-template <>
-struct Generic<typename gko::stop::Iteration::Factory, gko::stop::Iteration> {
-    using type = std::shared_ptr<typename gko::stop::Iteration::Factory>;
-    static type build(rapidjson::Value& item,
-                      std::shared_ptr<const Executor> exec,
-                      std::shared_ptr<const LinOp> linop,
-                      ResourceManager* manager)
-    {
-        auto ptr = [&]() {
-            BUILD_FACTORY(gko::stop::Iteration, manager, item, exec, linop);
-            SET_VALUE(size_type, max_iters);
-            SET_EXECUTOR;
-        }();
-        return std::move(ptr);
-    }
+namespace {
+
+
+using namespace gko::extension::resource_manager;
+
+
+template <typename K>
+struct DummyType {
+    using ktype = K;
+    struct Factory {
+        using rev_kype = K;
+    };
+};
+
+template <typename K, typename T>
+struct DummyType2 {
+    using ktype = K;
+    using ttype = T;
+    struct Factory {
+        using rev_ktype = T;
+        using rev_ttype = K;
+    };
 };
 
 
-IMPLEMENT_BRIDGE(RM_CriterionFactory, Iteration, gko::stop::Iteration::Factory);
+TEST(GetType, ApplyOneTemplate)
+{
+    using type = typename get_the_type<DummyType, double>::type;
+    using type2 = typename get_the_type<DummyType, type_list<double>>::type;
+    using factory = typename get_the_factory_type<DummyType, double>::type;
+    using factory2 =
+        typename get_the_factory_type<DummyType, type_list<double>>::type;
+    using ref_type = DummyType<double>;
+    using ref_factory = typename ref_type::Factory;
+
+    ASSERT_TRUE((std::is_same<type, ref_type>::value));
+    ASSERT_TRUE((std::is_same<factory, ref_factory>::value));
+    ASSERT_TRUE((std::is_same<type2, ref_type>::value));
+    ASSERT_TRUE((std::is_same<factory2, ref_factory>::value));
+}
 
 
-}  // namespace resource_manager
-}  // namespace extension
-}  // namespace gko
+TEST(GetType, ApplyTwoTemplate)
+{
+    using type =
+        typename get_the_type<DummyType2, type_list<double, int>>::type;
+    using factory =
+        typename get_the_factory_type<DummyType2, type_list<double, int>>::type;
+    using ref_type = DummyType2<double, int>;
+    using ref_factory = typename ref_type::Factory;
+
+    ASSERT_TRUE((std::is_same<type, ref_type>::value));
+    ASSERT_TRUE((std::is_same<factory, ref_factory>::value));
+}
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_ITERATION_HPP_
+}  // namespace
