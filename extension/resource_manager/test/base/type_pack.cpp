@@ -30,95 +30,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <thread>
 #include <type_traits>
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#if defined(__unix__) || defined(__APPLE__)
-#include <utmpx.h>
-#endif
-
-
 #include <gtest/gtest.h>
-#include <rapidjson/document.h>
 
+#include <ginkgo/core/base/types.hpp>
 
-#include "resource_manager/base/element_types.hpp"
+#include "resource_manager/base/type_pack.hpp"
 
 
 namespace {
 
+
 using namespace gko::extension::resource_manager;
-
-TEST(GetString, GetStringFromTemplate)
-{
-    ASSERT_EQ(get_string<int>(), "int");
-    ASSERT_EQ(get_string<gko::int64>(), "int64");
-    ASSERT_EQ(get_string<double>(), "double");
-    ASSERT_EQ(get_string<float>(), "float");
-}
-
-
-TEST(GetString, GetStringFromTypeList)
-{
-    ASSERT_EQ(get_string(int{}), "int");
-    ASSERT_EQ(get_string(double{}), "double");
-    ASSERT_EQ(get_string(type_list<double, int>{}), "double+int");
-    ASSERT_EQ(get_string(type_list<int, double>{}), "int+double");
-}
-
-
-template <typename K>
-struct DummyType {
-    using ktype = K;
-    struct Factory {
-        using rev_kype = K;
-    };
-};
-
-template <typename K, typename T>
-struct DummyType2 {
-    using ktype = K;
-    using ttype = T;
-    struct Factory {
-        using rev_ktype = T;
-        using rev_ttype = K;
-    };
-};
-
-
-TEST(GetType, ApplyOneTemplate)
-{
-    using type = typename get_the_type<DummyType, double>::type;
-    using type2 = typename get_the_type<DummyType, type_list<double>>::type;
-    using factory = typename get_the_factory_type<DummyType, double>::type;
-    using factory2 =
-        typename get_the_factory_type<DummyType, type_list<double>>::type;
-    using ref_type = DummyType<double>;
-    using ref_factory = typename ref_type::Factory;
-
-    ASSERT_TRUE((std::is_same<type, ref_type>::value));
-    ASSERT_TRUE((std::is_same<factory, ref_factory>::value));
-    ASSERT_TRUE((std::is_same<type2, ref_type>::value));
-    ASSERT_TRUE((std::is_same<factory2, ref_factory>::value));
-}
-
-
-TEST(GetType, ApplyTwoTemplate)
-{
-    using type =
-        typename get_the_type<DummyType2, type_list<double, int>>::type;
-    using factory =
-        typename get_the_factory_type<DummyType2, type_list<double, int>>::type;
-    using ref_type = DummyType2<double, int>;
-    using ref_factory = typename ref_type::Factory;
-
-    ASSERT_TRUE((std::is_same<type, ref_type>::value));
-    ASSERT_TRUE((std::is_same<factory, ref_factory>::value));
-}
 
 
 TEST(Concatenate, TwoType)

@@ -400,12 +400,16 @@ echo "" >> ${rm_file}
 echo "#include <${input_file/include\//}>" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
-echo "#include \"resource_manager/base/element_types.hpp\"" >> ${rm_file}
-echo "#include \"resource_manager/base/type_list.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/generic_constructor.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/helper.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/resource_manager.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/macro_helper.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/rapidjson_helper.hpp\"" >> ${rm_file}
-echo "#include \"resource_manager/base/resource_manager.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/type_default.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/type_pack.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/type_resolving.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/type_string.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/types.hpp\"" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "namespace gko {

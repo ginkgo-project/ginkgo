@@ -41,11 +41,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
+
+
+#include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-
+#include "resource_manager/base/type_default.hpp"
+#include "resource_manager/base/type_pack.hpp"
+#include "resource_manager/base/type_resolving.hpp"
+#include "resource_manager/base/type_string.hpp"
+#include "resource_manager/base/types.hpp"
 
 namespace gko {
 namespace extension {
@@ -90,10 +98,10 @@ constexpr auto trs_list =
         std::shared_ptr<const LinOp> linop, ResourceManager * manager)        \
     {                                                                         \
         std::cout << "build_" #_CATEGORY "_trs_factory" << std::endl;         \
-        auto vt =                                                             \
-            get_value_with_default(item, "ValueType", default_valuetype);     \
-        auto it =                                                             \
-            get_value_with_default(item, "IndexType", default_indextype);     \
+        auto vt = get_value_with_default(                                     \
+            item, "ValueType", get_default_string<handle_type::ValueType>()); \
+        auto it = get_value_with_default(                                     \
+            item, "IndexType", get_default_string<handle_type::IndexType>()); \
         auto type_string = vt + "+" + it;                                     \
         auto ptr = _CATEGORY##_trs_factory_select<gko::solver::_TRS>(         \
             trs_list, [=](std::string key) { return key == type_string; },    \
@@ -107,10 +115,10 @@ constexpr auto trs_list =
         std::shared_ptr<const LinOp> linop, ResourceManager * manager)        \
     {                                                                         \
         std::cout << "build_" #_CATEGORY "_trs" << std::endl;                 \
-        auto vt =                                                             \
-            get_value_with_default(item, "ValueType", default_valuetype);     \
-        auto it =                                                             \
-            get_value_with_default(item, "IndexType", default_indextype);     \
+        auto vt = get_value_with_default(                                     \
+            item, "ValueType", get_default_string<handle_type::ValueType>()); \
+        auto it = get_value_with_default(                                     \
+            item, "IndexType", get_default_string<handle_type::ValueType>()); \
         auto type_string = vt + "+" + it;                                     \
         auto ptr = _CATEGORY##_trs_select<gko::solver::_TRS>(                 \
             trs_list, [=](std::string key) { return key == type_string; },    \

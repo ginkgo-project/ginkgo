@@ -34,7 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPES_HPP_
 
 
-#include <ginkgo/ginkgo.hpp>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 #include "resource_manager/base/macro_helper.hpp"
@@ -136,9 +144,9 @@ ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
 
 #define ENUM_LINOP(_expand)                                                   \
     _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), _expand(Isai), \
-        _expand(Jacobi), _expand(Multigrid), _expand(LinOpWithOutFactory),    \
-        _expand(Csr), _expand(Dense), _expand(Ilu), _expand(LowerTrs),        \
-        _expand(UpperTrs), _expand(IluFactorization)
+        _expand(Jacobi), _expand(Multigrid), _expand(Ilu), _expand(LowerTrs), \
+        _expand(UpperTrs), _expand(IluFactorization),                         \
+        _expand(LinOpWithOutFactory), _expand(Csr), _expand(Dense)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 
