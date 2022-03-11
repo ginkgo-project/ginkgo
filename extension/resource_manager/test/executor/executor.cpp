@@ -33,21 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <thread>
-#include <type_traits>
-
-
-#if defined(__unix__) || defined(__APPLE__)
-#include <utmpx.h>
-#endif
-
-
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
-// #include <resource_manager/base/generic_constructor.hpp>
+
+
 #include "resource_manager/executor/executor.hpp"
 #include "resource_manager/resource_manager.hpp"
 

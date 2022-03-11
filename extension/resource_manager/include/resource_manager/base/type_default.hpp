@@ -30,17 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_DEFAULT_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_DEFAULT_HPP_
 
 
-#include <type_traits>
+#include <string>  // for string
 
 
-#include <ginkgo/ginkgo.hpp>
-
-
-#include "resource_manager/base/element_types.hpp"
+#include "ginkgo/core/base/types.hpp"             // for int32, int64
+#include "resource_manager/base/type_pack.hpp"    // for tt_list
+#include "resource_manager/base/type_string.hpp"  // for get_string
 
 
 namespace gko {
@@ -64,6 +63,7 @@ TT_LIST_G_PARTIAL(IndexType, int32, int64);
 template <handle_type T>
 using tt_list_g_t = typename tt_list_g<T>::type;
 
+
 #define GET_DEFAULT_STRING_PARTIAL(_enum, _type)                             \
     template <>                                                              \
     std::string get_default_string<handle_type::_enum>()                     \
@@ -85,4 +85,4 @@ GET_DEFAULT_STRING_PARTIAL(IndexType, int);
 }  // namespace extension
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_LIST_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_DEFAULT_HPP_

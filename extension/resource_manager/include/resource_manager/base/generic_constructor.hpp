@@ -35,15 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
-#include <unordered_map>
+#include <string>
+#include <type_traits>
 
 
 #include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-
-
-#include <ginkgo/ginkgo.hpp>
 
 
 #include "resource_manager/base/macro_helper.hpp"
@@ -90,6 +86,7 @@ CREATE_DEFAULT_IMPL(Executor);
 CREATE_DEFAULT_IMPL(LinOp);
 CREATE_DEFAULT_IMPL(LinOpFactory);
 CREATE_DEFAULT_IMPL(CriterionFactory);
+
 
 /**
  * Generic struct to implement the actual object creation.

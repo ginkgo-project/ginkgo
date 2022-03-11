@@ -34,13 +34,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RAPIDJSON_HELPER_HPP_
 
 
+#include <cassert>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+
+#include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 
 
-#include <ginkgo/ginkgo.hpp>
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/types.hpp"
 
 
 namespace gko {

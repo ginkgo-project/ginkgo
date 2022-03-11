@@ -412,4 +412,78 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 
+/**
+ * ENABLE_SELECTION is to build a template selection on the given tt_list. It
+ * will take each item (single type or type_list) of tt_list and the
+ * corresponding identifier string. If the string is accepted by the Predicate,
+ * it will launch the function with the accepted type.
+ *
+ * @param _name  the selection function name
+ * @param _callable  the function to launch
+ * @param _return  the return type of the function (pointer)
+ * @param _get_type  the method to get the type (get_actual_type or
+ *                   get_actual_factory_type)
+ */
+#define ENABLE_SELECTION(_name, _callable, _return, _get_type)                 \
+    template <template <typename...> class Base, typename Predicate,           \
+              typename... InferredArgs>                                        \
+    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value& item,    \
+                  InferredArgs... args)                                        \
+    {                                                                          \
+        GKO_KERNEL_NOT_FOUND;                                                  \
+        return nullptr;                                                        \
+    }                                                                          \
+                                                                               \
+    template <template <typename...> class Base, typename K, typename... Rest, \
+              typename Predicate, typename... InferredArgs>                    \
+    _return _name(tt_list<K, Rest...>, Predicate is_eligible,                  \
+                  rapidjson::Value& item, InferredArgs... args)                \
+    {                                                                          \
+        auto key = get_string(K{});                                            \
+        if (is_eligible(key)) {                                                \
+            return _callable<typename _get_type<Base, K>::type>(               \
+                item, std::forward<InferredArgs>(args)...);                    \
+        } else {                                                               \
+            return _name<Base>(tt_list<Rest...>(), is_eligible, item,          \
+                               std::forward<InferredArgs>(args)...);           \
+        }                                                                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
+#define ENABLE_SELECTION_ID(_name, _callable, _return, _get_type, _enum_type,  \
+                            _enum_item)                                        \
+    template <template <typename...> class Base, typename Predicate,           \
+              typename... InferredArgs>                                        \
+    _return _name(tt_list<>, Predicate is_eligible, rapidjson::Value& item,    \
+                  InferredArgs... args)                                        \
+    {                                                                          \
+        GKO_KERNEL_NOT_FOUND;                                                  \
+        return nullptr;                                                        \
+    }                                                                          \
+                                                                               \
+    template <template <typename...> class Base, typename K, typename... Rest, \
+              typename Predicate, typename... InferredArgs>                    \
+    _return _name(tt_list<K, Rest...>, Predicate is_eligible,                  \
+                  rapidjson::Value& item, InferredArgs... args)                \
+    {                                                                          \
+        auto key = get_string(K{});                                            \
+        if (is_eligible(key)) {                                                \
+            return _callable<typename _get_type<                               \
+                Base, typename concat<std::integral_constant<                  \
+                                          _enum_type, _enum_type::_enum_item>, \
+                                      K>::type>::type>(                        \
+                item, std::forward<InferredArgs>(args)...);                    \
+        } else {                                                               \
+            return _name<Base>(tt_list<Rest...>(), is_eligible, item,          \
+                               std::forward<InferredArgs>(args)...);           \
+        }                                                                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+
 #endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_MACRO_HELPER_HPP_

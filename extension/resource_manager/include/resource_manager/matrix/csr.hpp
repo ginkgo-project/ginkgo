@@ -34,15 +34,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_CSR_HPP_
 
 
-#include <type_traits>
+#include <fstream>
 
 
-#include "resource_manager/base/element_types.hpp"
+#include <ginkgo/core/matrix/csr.hpp>
+
+
+#include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
-#include "resource_manager/base/resource_manager.hpp"
-#include "resource_manager/base/type_list.hpp"
+#include "resource_manager/base/type_default.hpp"
+#include "resource_manager/base/type_pack.hpp"
+#include "resource_manager/base/type_resolving.hpp"
+#include "resource_manager/base/type_string.hpp"
+#include "resource_manager/base/types.hpp"
 
 
 namespace gko {

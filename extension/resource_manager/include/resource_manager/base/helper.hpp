@@ -34,20 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_HELPER_HPP_
 
 
+#include <iostream>
 #include <memory>
-#include <unordered_map>
 
 
 #include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-
-
-#include <ginkgo/ginkgo.hpp>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
-#include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/resource_manager.hpp"
 #include "resource_manager/base/types.hpp"
 
