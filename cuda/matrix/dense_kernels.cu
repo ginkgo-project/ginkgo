@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
+#include "cuda/base/stream_guard.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/reduction.cuh"
@@ -144,13 +145,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* a,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> simple_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+    matrix::Dense<ValueType>* c)
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
+        auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
+        cublas::stream_guard st_guard(handle, stream);
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 cublas::pointer_mode_guard pm_guard(handle);
@@ -168,6 +172,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);

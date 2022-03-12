@@ -52,10 +52,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type)               \
-    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                      const matrix::Dense<_type>* a,               \
-                      const matrix::Dense<_type>* b, matrix::Dense<_type>* c)
+#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type)                        \
+    std::shared_ptr<AsyncHandle> simple_apply(                              \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* a, \
+        const matrix::Dense<_type>* b, matrix::Dense<_type>* c)
 
 #define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                                \
     void apply(std::shared_ptr<const DefaultExecutor> exec,                  \

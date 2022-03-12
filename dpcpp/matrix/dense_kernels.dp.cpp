@@ -231,10 +231,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* a,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> simple_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+    matrix::Dense<ValueType>* c)
 {
     using namespace oneapi::mkl;
     if (b->get_stride() != 0 && c->get_stride() != 0) {
@@ -245,6 +246,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
             b->get_const_values(), b->get_stride(), zero<ValueType>(),
             c->get_values(), c->get_stride());
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);

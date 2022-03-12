@@ -1181,6 +1181,10 @@ protected:
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* b, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 

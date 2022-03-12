@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
+#include "hip/base/stream_guard.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
@@ -147,13 +148,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* a,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> simple_apply(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+    matrix::Dense<ValueType>* c)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
+        auto stream = as<HipAsyncHandle>(async_handle)->get_handle();
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 hipblas::pointer_mode_guard pm_guard(handle);
@@ -172,6 +175,7 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);

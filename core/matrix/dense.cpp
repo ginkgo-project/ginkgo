@@ -66,7 +66,7 @@ namespace dense {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
+GKO_REGISTER_ASYNC_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(copy, dense::copy);
 GKO_REGISTER_OPERATION(fill, dense::fill);
@@ -148,8 +148,23 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                dense::make_simple_apply(this, dense_b, dense_x));
+            auto exec = this->get_executor();
+            exec->run(dense::make_async_simple_apply(this, dense_b, dense_x),
+                      exec->get_default_exec_stream())
+                ->wait();
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::apply_impl(
+    const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex<ValueType>(
+        [this, handle](auto dense_b, auto dense_x) {
+            return this->get_executor()->run(
+                dense::make_async_simple_apply(this, dense_b, dense_x), handle);
         },
         b, x);
 }

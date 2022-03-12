@@ -63,8 +63,10 @@ namespace cublas {
  */
 class stream_guard {
 public:
-    stream_guard(cublasContext* handle, CUstream_st* new_stream)
+    stream_guard(cublasContext* handle, CUstream_st* new_stream) : old_stream_{}
     {
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaStreamCreateWithFlags(&old_stream_, cudaStreamNonBlocking));
         handle_ = handle;
         GKO_ASSERT_NO_CUBLAS_ERRORS(cublasGetStream(
             reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
