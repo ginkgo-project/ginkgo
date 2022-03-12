@@ -53,7 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include "core/multigrid/fixed_coarsening_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -195,15 +194,7 @@ TYPED_TEST_SUITE(FixedCoarsening, gko::test::ValueIndexTypes,
 
 TYPED_TEST(FixedCoarsening, Generate)
 {
-    auto coarse_fine = this->fixed_coarsening_factory->generate(this->mtx);
-
-    auto sel_result = coarse_fine->get_const_coarse_rows();
-
-    ASSERT_EQ(sel_result[0], 0);
-    ASSERT_EQ(sel_result[1], -1);
-    ASSERT_EQ(sel_result[2], 1);
-    ASSERT_EQ(sel_result[3], 2);
-    ASSERT_EQ(sel_result[4], -1);
+    ASSERT_NO_THROW(this->fixed_coarsening_factory->generate(this->mtx));
 }
 
 
@@ -216,14 +207,10 @@ TYPED_TEST(FixedCoarsening, CanBeCopied)
 
     copy->copy_from(this->mg_level.get());
     auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse_rows = copy->get_const_coarse_rows();
     auto copy_coarse = copy->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
-    this->assert_same_coarse_rows(copy_coarse_rows,
-                                  this->gen_coarse_rows.get_data(),
-                                  this->gen_coarse_rows.get_num_elems());
     this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
                                this->coarse.get());
 }
@@ -238,14 +225,10 @@ TYPED_TEST(FixedCoarsening, CanBeMoved)
 
     copy->copy_from(std::move(this->mg_level));
     auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse_rows = copy->get_const_coarse_rows();
     auto copy_coarse = copy->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx*>(copy_mtx.get()),
                                this->mtx.get());
-    this->assert_same_coarse_rows(copy_coarse_rows,
-                                  this->gen_coarse_rows.get_data(),
-                                  this->gen_coarse_rows.get_num_elems());
     this->assert_same_matrices(static_cast<const Mtx*>(copy_coarse.get()),
                                this->coarse.get());
 }
@@ -257,14 +240,10 @@ TYPED_TEST(FixedCoarsening, CanBeCloned)
     using MgLevel = typename TestFixture::MgLevel;
     auto clone = this->mg_level->clone();
     auto clone_mtx = clone->get_system_matrix();
-    auto clone_coarse_rows = clone->get_const_coarse_rows();
     auto clone_coarse = clone->get_coarse_op();
 
     this->assert_same_matrices(static_cast<const Mtx*>(clone_mtx.get()),
                                this->mtx.get());
-    this->assert_same_coarse_rows(clone_coarse_rows,
-                                  this->gen_coarse_rows.get_data(),
-                                  this->gen_coarse_rows.get_num_elems());
     this->assert_same_matrices(static_cast<const Mtx*>(clone_coarse.get()),
                                this->coarse.get());
 }
@@ -277,27 +256,9 @@ TYPED_TEST(FixedCoarsening, CanBeCleared)
     this->mg_level->clear();
     auto mtx = this->mg_level->get_system_matrix();
     auto coarse = this->mg_level->get_coarse_op();
-    auto sel = this->mg_level->get_coarse_rows();
 
     ASSERT_EQ(mtx, nullptr);
     ASSERT_EQ(coarse, nullptr);
-    ASSERT_EQ(sel, nullptr);
-}
-
-
-TYPED_TEST(FixedCoarsening, FillCoarseIndicesWorks)
-{
-    using index_type = typename TestFixture::index_type;
-    auto input_c_rows = gko::Array<index_type>(this->exec, {0, 2, 3, 5, 8, 9});
-    auto c2_rows =
-        gko::Array<index_type>(this->exec, {0, -1, 1, 2, -1, 3, -1, -1, 4, 5});
-    auto c_rows = gko::Array<index_type>(this->exec, 10);
-    c_rows.fill(-gko::one<index_type>());
-
-    gko::kernels::reference::fixed_coarsening::fill_coarse_indices(
-        this->exec, &input_c_rows, &c_rows);
-
-    GKO_ASSERT_ARRAY_EQ(c_rows, c2_rows);
 }
 
 

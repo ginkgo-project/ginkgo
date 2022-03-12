@@ -62,7 +62,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
-#include "core/multigrid/fixed_coarsening_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
@@ -747,16 +746,6 @@ GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace amgx_pgm
-
-
-namespace fixed_coarsening {
-
-
-GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING_FILL_RESTRICT_OP);
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING_FILL_COARSE_INDICES);
-
-
-}  // namespace fixed_coarsening
 
 
 namespace set_all_statuses {

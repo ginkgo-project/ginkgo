@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "core/multigrid/fixed_coarsening_kernels.hpp"
 
 
 namespace gko {
@@ -58,9 +57,6 @@ namespace fixed_coarsening {
 namespace {
 
 
-GKO_REGISTER_OPERATION(fill_restrict_op, fixed_coarsening::fill_restrict_op);
-GKO_REGISTER_OPERATION(fill_coarse_indices,
-                       fixed_coarsening::fill_coarse_indices);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
@@ -93,20 +89,15 @@ void FixedCoarsening<ValueType, IndexType>::generate()
 
     GKO_ASSERT(parameters_.coarse_rows.get_data() != nullptr);
     GKO_ASSERT(parameters_.coarse_rows.get_num_elems() > 0);
-    coarse_rows_ = gko::Array<IndexType>(exec, num_rows);
-    exec->run(fixed_coarsening::make_fill_array(coarse_rows_.get_data(),
-                                                num_rows, -one<IndexType>()));
-    // Fill with coarse rows converted to local indices.
     size_type coarse_dim = parameters_.coarse_rows.get_num_elems();
-    exec->run(fixed_coarsening::make_fill_coarse_indices(
-        &parameters_.coarse_rows, &coarse_rows_));
 
     auto fine_dim = system_matrix_->get_size()[0];
     auto restrict_op = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim, fine_dim}, coarse_dim,
                          fixed_coarsening_op->get_strategy()));
-    exec->run(fixed_coarsening::make_fill_restrict_op(&coarse_rows_,
-                                                      restrict_op.get()));
+    exec->copy_from(parameters_.coarse_rows.get_executor().get(), coarse_dim,
+                    parameters_.coarse_rows.get_const_data(),
+                    restrict_op->get_col_idxs());
     exec->run(fixed_coarsening::make_fill_array(restrict_op->get_values(),
                                                 coarse_dim, one<ValueType>()));
     exec->run(fixed_coarsening::make_fill_seq_array(restrict_op->get_row_ptrs(),
