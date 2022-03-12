@@ -30,8 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/fixed_coarsening_kernels.hpp"
-
 
 #include <algorithm>
 #include <fstream>
@@ -105,7 +103,6 @@ protected:
         for (gko::size_type i = 0; i < num; i++) {
             coarse_array.get_data()[i] = base_vec[i + num_rows - num];
         }
-        std::sort(coarse_array.get_data(), coarse_array.get_data() + num);
         return coarse_array;
     }
 
@@ -153,51 +150,6 @@ protected:
     gko::size_type m;
     gko::size_type c_dim;
 };
-
-
-TEST_F(FixedCoarsening, FillCoarseIndicesIsEquivalentToRef)
-{
-    initialize_data(147);
-    auto c_rows = gko::Array<index_type>(ref, m);
-    c_rows.fill(-gko::one<index_type>());
-    auto d_c_rows = gko::Array<index_type>(exec, c_rows);
-
-    gko::kernels::reference::fixed_coarsening::fill_coarse_indices(
-        ref, &coarse_rows, &c_rows);
-    gko::kernels::EXEC_NAMESPACE::fixed_coarsening::fill_coarse_indices(
-        exec, &d_coarse_rows, &d_c_rows);
-
-    GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
-}
-
-
-TEST_F(FixedCoarsening, FillRestrictOpIsEquivalentToRef)
-{
-    initialize_data(24);
-    gko::kernels::reference::components::fill_array(
-        ref, restrict_op->get_values(), c_dim, gko::one<value_type>());
-    gko::kernels::EXEC_NAMESPACE::components::fill_array(
-        exec, d_restrict_op->get_values(), c_dim, gko::one<value_type>());
-    gko::kernels::reference::components::fill_seq_array(
-        ref, restrict_op->get_row_ptrs(), c_dim + 1);
-    gko::kernels::EXEC_NAMESPACE::components::fill_seq_array(
-        exec, d_restrict_op->get_row_ptrs(), c_dim + 1);
-    auto c_rows = gko::Array<index_type>(ref, m);
-    c_rows.fill(-gko::one<index_type>());
-    auto d_c_rows = gko::Array<index_type>(exec, c_rows);
-
-    gko::kernels::reference::fixed_coarsening::fill_coarse_indices(
-        ref, &coarse_rows, &c_rows);
-    gko::kernels::EXEC_NAMESPACE::fixed_coarsening::fill_coarse_indices(
-        exec, &d_coarse_rows, &d_c_rows);
-
-    gko::kernels::reference::fixed_coarsening::fill_restrict_op(
-        ref, &c_rows, restrict_op.get());
-    gko::kernels::EXEC_NAMESPACE::fixed_coarsening::fill_restrict_op(
-        exec, &d_c_rows, d_restrict_op.get());
-
-    GKO_ASSERT_MTX_NEAR(restrict_op, d_restrict_op, r<value_type>::value);
-}
 
 
 TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRef)

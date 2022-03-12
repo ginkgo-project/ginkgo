@@ -82,25 +82,6 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the selected coarse rows.
-     *
-     * @return the selected coarse rows.
-     */
-    IndexType* get_coarse_rows() noexcept { return coarse_rows_.get_data(); }
-
-    /**
-     * @copydoc FixedCoarsening::get_coarse_rows()
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const IndexType* get_const_coarse_rows() const noexcept
-    {
-        return coarse_rows_.get_const_data();
-    }
-
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -146,8 +127,7 @@ protected:
                                        system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          coarse_rows_(factory->get_executor(), system_matrix_->get_size()[0])
+          system_matrix_{system_matrix}
     {
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existing matrix
@@ -159,7 +139,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    Array<IndexType> coarse_rows_;
 };
 
 
