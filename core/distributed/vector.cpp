@@ -42,8 +42,8 @@ namespace distributed {
 namespace vector {
 
 
-GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
+GKO_REGISTER_ASYNC_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_ASYNC_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
@@ -257,8 +257,10 @@ void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp* result) const
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(
-        vector::make_compute_norm2_sqr(this->get_local(), dense_res.get()));
+    exec->run(vector::make_async_compute_norm2_sqr(this->get_local(),
+                                                   dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec || !gko::mpi::is_gpu_aware();
@@ -272,7 +274,9 @@ void Vector<ValueType, LocalIndexType>::compute_norm2(LinOp* result) const
                          static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
     exec->synchronize();
-    exec->run(vector::make_compute_sqrt(dense_res.get()));
+    exec->run(vector::make_async_compute_sqrt(dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
     exec->synchronize();
 }
 

@@ -81,6 +81,40 @@ __global__ __launch_bounds__(default_block_size) void generic_kernel_2d(
 
 
 template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, size_type size,
+    KernelArgs&&... args)
+{
+    if (size > 0) {
+        auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+        constexpr auto block_size = default_block_size;
+        auto num_blocks = ceildiv(size, block_size);
+        generic_kernel_1d<<<num_blocks, block_size, 0, stream>>>(
+            static_cast<int64>(size), fn, map_to_device(args)...);
+    }
+    return handle;
+}
+
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, dim<2> size,
+    KernelArgs&&... args)
+{
+    if (size[0] > 0 && size[1] > 0) {
+        auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+        constexpr auto block_size = default_block_size;
+        auto num_blocks = ceildiv(size[0] * size[1], block_size);
+        generic_kernel_2d<<<num_blocks, block_size, 0, stream>>>(
+            static_cast<int64>(size[0]), static_cast<int64>(size[1]), fn,
+            map_to_device(args)...);
+    }
+    return handle;
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
 void run_kernel(std::shared_ptr<const CudaExecutor> exec, KernelFunction fn,
                 size_type size, KernelArgs&&... args)
 {

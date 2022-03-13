@@ -282,7 +282,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        dense::scale(exec, beta, c);
+        dense::scale(exec, exec->get_default_exec_stream(), beta, c)->wait();
     }
     select_abstract_spmv(
         compiled_kernels(),

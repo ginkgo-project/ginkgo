@@ -198,6 +198,75 @@ void run_kernel_reduction(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_reduction(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, size_type size,
+    KernelArgs&&... args)
+{
+    constexpr int oversubscription = 16;
+    constexpr auto block_size = default_block_size;
+    const auto num_blocks = std::min<int64>(
+        ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_blocks > 1) {
+        Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
+        generic_kernel_reduction_1d<<<num_blocks, block_size, 0, stream>>>(
+            static_cast<int64>(size), fn, op,
+            [] __device__(auto v) { return v; }, as_cuda_type(identity),
+            as_cuda_type(partial.get_data()), map_to_device(args)...);
+        generic_kernel_reduction_1d<<<1, block_size, 0, stream>>>(
+            static_cast<int64>(num_blocks),
+            [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
+            as_cuda_type(identity), as_cuda_type(result),
+            as_cuda_type(partial.get_const_data()));
+    } else {
+        generic_kernel_reduction_1d<<<1, block_size, 0, stream>>>(
+            static_cast<int64>(size), fn, op, finalize, as_cuda_type(identity),
+            as_cuda_type(result), map_to_device(args)...);
+    }
+    return handle;
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_reduction(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
+    KernelArgs&&... args)
+{
+    constexpr int oversubscription = 16;
+    constexpr auto block_size = default_block_size;
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    const auto num_blocks =
+        std::min<int64>(ceildiv(rows * cols, block_size),
+                        exec->get_num_warps() * oversubscription);
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+    if (num_blocks > 1) {
+        Array<ValueType> partial{exec, static_cast<size_type>(num_blocks)};
+        generic_kernel_reduction_2d<<<num_blocks, block_size, 0, stream>>>(
+            rows, cols, fn, op, [] __device__(auto v) { return v; },
+            as_cuda_type(identity), as_cuda_type(partial.get_data()),
+            map_to_device(args)...);
+        generic_kernel_reduction_1d<<<1, block_size, 0, stream>>>(
+            static_cast<int64>(num_blocks),
+            [] __device__(auto i, auto v) { return v[i]; }, op, finalize,
+            as_cuda_type(identity), as_cuda_type(result),
+            as_cuda_type(partial.get_const_data()));
+    } else {
+        generic_kernel_reduction_2d<<<1, block_size, 0, stream>>>(
+            rows, cols, fn, op, finalize, as_cuda_type(identity),
+            as_cuda_type(result), map_to_device(args)...);
+    }
+    return handle;
+}
+
+
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
@@ -357,68 +426,71 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
-void run_generic_kernel_row_reduction(syn::value_list<int, subwarp_size>,
-                                      int64 rows, int64 cols, int64 col_blocks,
-                                      KernelFunction fn, ReductionOp op,
-                                      FinalizeOp finalize, ValueType identity,
-                                      ValueType* result, int64 result_stride,
-                                      KernelArgs... args)
+std::shared_ptr<AsyncHandle> run_generic_kernel_row_reduction(
+    syn::value_list<int, subwarp_size>, int64 rows, int64 cols,
+    int64 col_blocks, std::shared_ptr<AsyncHandle> handle, KernelFunction fn,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    int64 result_stride, KernelArgs... args)
 {
     const auto num_blocks =
         ceildiv(rows * col_blocks * subwarp_size, default_block_size);
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_blocks > 0) {
         generic_kernel_row_reduction_2d<subwarp_size>
-            <<<num_blocks, default_block_size>>>(
+            <<<num_blocks, default_block_size, 0, stream>>>(
                 rows, cols, col_blocks, fn, op, finalize,
                 as_cuda_type(identity), as_cuda_type(result), result_stride,
                 args...);
     }
+    return handle;
 }
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
-                                    run_generic_kernel_row_reduction);
+GKO_ENABLE_ASYNC_IMPLEMENTATION_SELECTION(
+    select_run_generic_kernel_row_reduction, run_generic_kernel_row_reduction);
 
 
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
-void run_generic_col_reduction_small(syn::value_list<int, subwarp_size>,
-                                     int64 max_blocks,
-                                     std::shared_ptr<const CudaExecutor> exec,
-                                     KernelFunction fn, ReductionOp op,
-                                     FinalizeOp finalize, ValueType identity,
-                                     ValueType* result, dim<2> size,
-                                     MappedKernelArgs... args)
+std::shared_ptr<AsyncHandle> run_generic_col_reduction_small(
+    syn::value_list<int, subwarp_size>, int64 max_blocks,
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
+    MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto num_blocks = std::min<int64>(
         ceildiv(rows * subwarp_size, default_block_size), max_blocks);
+    auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     if (num_blocks <= 1) {
         generic_kernel_col_reduction_2d_small<subwarp_size>
-            <<<1, default_block_size>>>(rows, cols, fn, op, finalize,
-                                        as_cuda_type(identity),
-                                        as_cuda_type(result), args...);
+            <<<1, default_block_size, 0, stream>>>(
+                rows, cols, fn, op, finalize, as_cuda_type(identity),
+                as_cuda_type(result), args...);
     } else {
         Array<ValueType> tmp_storage{exec,
                                      static_cast<size_type>(num_blocks * cols)};
         generic_kernel_col_reduction_2d_small<subwarp_size>
-            <<<num_blocks, default_block_size>>>(
+            <<<num_blocks, default_block_size, 0, stream>>>(
                 rows, cols, fn, op, [] __device__(auto v) { return v; },
                 as_cuda_type(identity), as_cuda_type(tmp_storage.get_data()),
                 args...);
         if (cols > 0) {
             generic_kernel_reduction_finalize_2d<<<
-                ceildiv(cols, default_block_size), default_block_size>>>(
-                cols, num_blocks, op, finalize, as_cuda_type(identity),
-                as_cuda_type(tmp_storage.get_const_data()), 1,
-                as_cuda_type(result));
+                ceildiv(cols, default_block_size), default_block_size, 0,
+                stream>>>(cols, num_blocks, op, finalize,
+                          as_cuda_type(identity),
+                          as_cuda_type(tmp_storage.get_const_data()), 1,
+                          as_cuda_type(result));
         }
     }
+    return handle;
 }
 
-GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generic_col_reduction_small,
-                                    run_generic_col_reduction_small);
+GKO_ENABLE_ASYNC_IMPLEMENTATION_SELECTION(select_generic_col_reduction_small,
+                                          run_generic_col_reduction_small);
 
 
 }  // namespace
@@ -464,9 +536,10 @@ void run_kernel_row_reduction(std::shared_ptr<const CudaExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), rows, cols, 1, fn, op,
-            finalize, identity, result, static_cast<int64>(result_stride),
-            map_to_device(args)...);
+            syn::value_list<int>(), syn::type_list<>(), rows, cols, 1,
+            exec->get_default_exec_stream(), fn, op, finalize, identity, result,
+            static_cast<int64>(result_stride), map_to_device(args)...)
+            ->wait();
     }
 }
 
@@ -493,8 +566,10 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                 return compiled_subwarp_size >= cols ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
-            op, finalize, identity, result, size, map_to_device(args)...);
+            syn::value_list<int>(), syn::type_list<>(), max_blocks, exec,
+            exec->get_default_exec_stream(), fn, op, finalize, identity, result,
+            size, map_to_device(args)...)
+            ->wait();
     } else {
         const auto col_blocks = ceildiv(cols, config::warp_size);
         const auto row_blocks =
@@ -523,6 +598,114 @@ void run_kernel_col_reduction(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(result));
         }
     }
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_row_reduction(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    size_type result_stride, dim<2> size, KernelArgs&&... args)
+{
+    using subwarp_sizes =
+        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    constexpr int oversubscription = 16;
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    const auto resources =
+        exec->get_num_warps() * config::warp_size * oversubscription;
+    if (rows * cols > resources && rows < cols) {
+        auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+        const auto col_blocks = ceildiv(rows * cols, resources);
+        Array<ValueType> partial{exec,
+                                 static_cast<size_type>(col_blocks * rows)};
+        const auto num_blocks =
+            ceildiv(rows * col_blocks * config::warp_size, default_block_size);
+        // no need to guard this kernel, as rows * cols > resources
+        generic_kernel_row_reduction_2d<config::warp_size>
+            <<<num_blocks, default_block_size, 0, stream>>>(
+                rows, cols, col_blocks, fn, op,
+                [] __device__(auto v) { return v; }, as_cuda_type(identity),
+                as_cuda_type(partial.get_data()), 1, map_to_device(args)...);
+        const auto num_finalize_blocks = ceildiv(rows, default_block_size);
+        generic_kernel_reduction_finalize_2d<<<num_finalize_blocks,
+                                               default_block_size, 0, stream>>>(
+            rows, col_blocks, op, finalize, as_cuda_type(identity),
+            as_cuda_type(partial.get_const_data()),
+            static_cast<int64>(result_stride), as_cuda_type(result));
+    } else {
+        return select_run_generic_kernel_row_reduction(
+            subwarp_sizes(),
+            [cols](int compiled_subwarp_size) {
+                return compiled_subwarp_size >= cols ||
+                       compiled_subwarp_size == config::warp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), rows, cols, 1, handle,
+            fn, op, finalize, identity, result,
+            static_cast<int64>(result_stride), map_to_device(args)...);
+    }
+    return handle;
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_col_reduction(
+    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
+    KernelArgs&&... args)
+{
+    using subwarp_sizes =
+        syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+    constexpr int oversubscription = 16;
+    const auto rows = static_cast<int64>(size[0]);
+    const auto cols = static_cast<int64>(size[1]);
+    const auto max_blocks = exec->get_num_warps() * config::warp_size *
+                            oversubscription / default_block_size;
+    if (cols <= config::warp_size) {
+        return select_generic_col_reduction_small(
+            subwarp_sizes(),
+            [cols](int compiled_subwarp_size) {
+                return compiled_subwarp_size >= cols ||
+                       compiled_subwarp_size == config::warp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), max_blocks, exec,
+            handle, fn, op, finalize, identity, result, size,
+            map_to_device(args)...);
+    } else {
+        auto stream = as<CudaAsyncHandle>(handle)->get_handle();
+        const auto col_blocks = ceildiv(cols, config::warp_size);
+        const auto row_blocks =
+            ceildiv(std::min<int64>(
+                        ceildiv(rows * config::warp_size, default_block_size),
+                        max_blocks),
+                    col_blocks);
+        if (row_blocks <= 1) {
+            generic_kernel_col_reduction_2d_blocked<<<
+                dim3(1, col_blocks), default_block_size, 0, stream>>>(
+                rows, cols, fn, op, finalize, as_cuda_type(identity),
+                as_cuda_type(result), map_to_device(args)...);
+        } else {
+            Array<ValueType> tmp_storage{
+                exec, static_cast<size_type>(row_blocks * cols)};
+            // no need to guard this kernel, as cols > warp_size, row_blocks > 1
+            generic_kernel_col_reduction_2d_blocked<<<
+                dim3(row_blocks, col_blocks), default_block_size, 0, stream>>>(
+                rows, cols, fn, op, [] __device__(auto v) { return v; },
+                as_cuda_type(identity), as_cuda_type(tmp_storage.get_data()),
+                map_to_device(args)...);
+            generic_kernel_reduction_finalize_2d<<<
+                ceildiv(cols, default_block_size), default_block_size, 0,
+                stream>>>(cols, row_blocks, op, finalize,
+                          as_cuda_type(identity),
+                          as_cuda_type(tmp_storage.get_const_data()), 1,
+                          as_cuda_type(result));
+        }
+    }
+    return handle;
 }
 
 

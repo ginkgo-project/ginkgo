@@ -264,6 +264,85 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
 
 
 /**
+ * Calls the given function with the given LinOps temporarily converted to
+ * matrix::Dense<ValueType>* as parameters.
+ * If ValueType is real and both `in` and `out` are complex, uses
+ * matrix::Dense::get_real_view() to convert them into real matrices after
+ * precision conversion.
+ *
+ * @see precision_dispatch()
+ */
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex(
+    Function fn, const LinOp* alpha, const LinOp* in, LinOp* out)
+{
+    // do we need to convert complex Dense to real Dense?
+    // all real dense vectors are intra-convertible, thus by casting to
+    // ConvertibleTo<matrix::Dense<>>, we can check whether a LinOp is a real
+    // dense matrix:
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
+    if (complex_to_real) {
+        auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+        using Dense = matrix::Dense<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        return fn(
+            dense_alpha.get(),
+            dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
+            dynamic_cast<Dense*>(dense_out->create_real_view().get()));
+    } else {
+        return async_precision_dispatch<ValueType>(fn, alpha, in, out);
+    }
+}
+
+
+/**
+ * Calls the given function with the given LinOps temporarily converted to
+ * matrix::Dense<ValueType>* as parameters.
+ * If ValueType is real and both `in` and `out` are complex, uses
+ * matrix::Dense::get_real_view() to convert them into real matrices after
+ * precision conversion.
+ *
+ * @see precision_dispatch()
+ */
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex(
+    Function fn, const LinOp* alpha, const LinOp* in, const LinOp* beta,
+    LinOp* out)
+{
+    // do we need to convert complex Dense to real Dense?
+    // all real dense vectors are intra-convertible, thus by casting to
+    // ConvertibleTo<matrix::Dense<>>, we can check whether a LinOp is a real
+    // dense matrix:
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
+    if (complex_to_real) {
+        auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+        auto dense_beta = make_temporary_conversion<ValueType>(beta);
+        using Dense = matrix::Dense<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        return fn(
+            dense_alpha.get(),
+            dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
+            dense_beta.get(),
+            dynamic_cast<Dense*>(dense_out->create_real_view().get()));
+    } else {
+        return async_precision_dispatch<ValueType>(fn, alpha, in, beta, out);
+    }
+}
+
+
+/**
  * Calls the given function with each given argument LinOp
  * converted into matrix::Dense<ValueType> as parameters.
  *

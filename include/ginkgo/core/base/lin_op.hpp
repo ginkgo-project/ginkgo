@@ -397,6 +397,10 @@ protected:
     virtual void apply_impl(const LinOp* alpha, const LinOp* b,
                             const LinOp* beta, LinOp* x) const = 0;
 
+    virtual std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
     /**
      * Implementers of LinOp should override this function instead
      * of apply(const LinOp *, LinOp *).

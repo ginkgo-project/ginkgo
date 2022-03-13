@@ -79,7 +79,7 @@ void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
 {
     // TODO: write a special kernel for multiple RHS
-    dense::scale(exec, beta, x);
+    dense::scale(exec, exec->get_default_exec_stream(), beta, x)->wait();
     for (size_type col = 0; col < b->get_size()[1]; ++col) {
         select_advanced_apply(
             compiled_kernels(),

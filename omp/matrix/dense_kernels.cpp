@@ -69,13 +69,13 @@ namespace dense {
 
 
 template <typename ValueType>
-void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> std::shared_ptr<AsyncHandle> compute_dot_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
     // OpenMP uses the unified kernel.
-    compute_dot(exec, x, y, result);
+    return compute_dot(exec, handle, x, y, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -83,12 +83,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_conj_dot_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
-    compute_conj_dot(exec, x, y, result);
+    return compute_conj_dot(exec, handle, x, y, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -96,11 +96,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm2_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
-    compute_norm2(exec, x, result);
+    return compute_norm2(exec, handle, x, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -137,36 +138,42 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> apply(std::shared_ptr<const DefaultExecutor> exec,
+                                   std::shared_ptr<AsyncHandle> handle,
+                                   const matrix::Dense<ValueType>* alpha,
+                                   const matrix::Dense<ValueType>* a,
+                                   const matrix::Dense<ValueType>* b,
+                                   const matrix::Dense<ValueType>* beta,
+                                   matrix::Dense<ValueType>* c)
 {
-    if (is_nonzero(beta->at(0, 0))) {
+    auto l = [=]() {
+        if (is_nonzero(beta->at(0, 0))) {
 #pragma omp parallel for
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= beta->at(0, 0);
+            for (size_type row = 0; row < c->get_size()[0]; ++row) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) *= beta->at(0, 0);
+                }
+            }
+        } else {
+#pragma omp parallel for
+            for (size_type row = 0; row < c->get_size()[0]; ++row) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) *= zero<ValueType>();
+                }
             }
         }
-    } else {
-#pragma omp parallel for
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= zero<ValueType>();
-            }
-        }
-    }
 
 #pragma omp parallel for
-    for (size_type row = 0; row < c->get_size()[0]; ++row) {
-        for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) +=
-                    alpha->at(0, 0) * a->at(row, inner) * b->at(inner, col);
+        for (size_type row = 0; row < c->get_size()[0]; ++row) {
+            for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) +=
+                        alpha->at(0, 0) * a->at(row, inner) * b->at(inner, col);
+                }
             }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);

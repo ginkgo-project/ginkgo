@@ -97,6 +97,32 @@ void run_kernel(std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
 }
 
 
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, size_type size,
+    KernelArgs&&... args)
+{
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        generic_kernel_1d(cgh, static_cast<int64>(size), fn,
+                          map_to_device(args)...);
+    });
+}
+
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const DpcppExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, dim<2> size,
+    KernelArgs&&... args)
+{
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        generic_kernel_2d(cgh, static_cast<int64>(size[0]),
+                          static_cast<int64>(size[1]), fn,
+                          map_to_device(args)...);
+    });
+}
+
+
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

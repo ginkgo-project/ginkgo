@@ -58,100 +58,118 @@ namespace kernels {
         std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* a, \
         const matrix::Dense<_type>* b, matrix::Dense<_type>* c)
 
-#define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                                \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                  \
-               const matrix::Dense<_type>* alpha,                            \
-               const matrix::Dense<_type>* a, const matrix::Dense<_type>* b, \
-               const matrix::Dense<_type>* beta, matrix::Dense<_type>* c)
+#define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                             \
+    std::shared_ptr<AsyncHandle> apply(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        std::shared_ptr<AsyncHandle> handle,                              \
+        const matrix::Dense<_type>* alpha, const matrix::Dense<_type>* a, \
+        const matrix::Dense<_type>* b, const matrix::Dense<_type>* beta,  \
+        matrix::Dense<_type>* c)
 
-#define GKO_DECLARE_DENSE_COPY_KERNEL(_intype, _outtype)   \
-    void copy(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Dense<_intype>* input,         \
-              matrix::Dense<_outtype>* output)
+#define GKO_DECLARE_DENSE_COPY_KERNEL(_intype, _outtype) \
+    std::shared_ptr<AsyncHandle> copy(                   \
+        std::shared_ptr<const DefaultExecutor> exec,     \
+        std::shared_ptr<AsyncHandle> handle,             \
+        const matrix::Dense<_intype>* input, matrix::Dense<_outtype>* output)
 
-#define GKO_DECLARE_DENSE_FILL_KERNEL(_type)               \
-    void fill(std::shared_ptr<const DefaultExecutor> exec, \
-              matrix::Dense<_type>* mat, _type value)
+#define GKO_DECLARE_DENSE_FILL_KERNEL(_type)                            \
+    std::shared_ptr<AsyncHandle> fill(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        std::shared_ptr<AsyncHandle> handle, matrix::Dense<_type>* mat, \
+        _type value)
 
 #define GKO_DECLARE_DENSE_SCALE_KERNEL(_type, _scalar_type) \
-    void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Dense<_scalar_type>* alpha,    \
-               matrix::Dense<_type>* x)
+    std::shared_ptr<AsyncHandle> scale(                     \
+        std::shared_ptr<const DefaultExecutor> exec,        \
+        std::shared_ptr<AsyncHandle> handle,                \
+        const matrix::Dense<_scalar_type>* alpha, matrix::Dense<_type>* x)
 
 #define GKO_DECLARE_DENSE_INV_SCALE_KERNEL(_type, _scalar_type) \
-    void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::Dense<_scalar_type>* alpha,    \
-                   matrix::Dense<_type>* x)
+    std::shared_ptr<AsyncHandle> inv_scale(                     \
+        std::shared_ptr<const DefaultExecutor> exec,            \
+        std::shared_ptr<AsyncHandle> handle,                    \
+        const matrix::Dense<_scalar_type>* alpha, matrix::Dense<_type>* x)
 
 #define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type, _scalar_type) \
-    void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::Dense<_scalar_type>* alpha,    \
-                    const matrix::Dense<_type>* x, matrix::Dense<_type>* y)
+    std::shared_ptr<AsyncHandle> add_scaled(                     \
+        std::shared_ptr<const DefaultExecutor> exec,             \
+        std::shared_ptr<AsyncHandle> handle,                     \
+        const matrix::Dense<_scalar_type>* alpha,                \
+        const matrix::Dense<_type>* x, matrix::Dense<_type>* y)
 
 #define GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(_type, _scalar_type) \
-    void sub_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::Dense<_scalar_type>* alpha,    \
-                    const matrix::Dense<_type>* x, matrix::Dense<_type>* y)
+    std::shared_ptr<AsyncHandle> sub_scaled(                     \
+        std::shared_ptr<const DefaultExecutor> exec,             \
+        std::shared_ptr<AsyncHandle> handle,                     \
+        const matrix::Dense<_scalar_type>* alpha,                \
+        const matrix::Dense<_type>* x, matrix::Dense<_type>* y)
 
-#define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type)               \
-    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type>* alpha,           \
-                         const matrix::Diagonal<_type>* x,            \
-                         matrix::Dense<_type>* y)
+#define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type)                      \
+    std::shared_ptr<AsyncHandle> add_scaled_diag(                            \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        std::shared_ptr<AsyncHandle> handle,                                 \
+        const matrix::Dense<_type>* alpha, const matrix::Diagonal<_type>* x, \
+        matrix::Dense<_type>* y)
 
-#define GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(_type)               \
-    void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type>* alpha,           \
-                         const matrix::Diagonal<_type>* x,            \
-                         matrix::Dense<_type>* y)
+#define GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(_type)                      \
+    std::shared_ptr<AsyncHandle> sub_scaled_diag(                            \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        std::shared_ptr<AsyncHandle> handle,                                 \
+        const matrix::Dense<_type>* alpha, const matrix::Diagonal<_type>* x, \
+        matrix::Dense<_type>* y)
 
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(_type)               \
-    void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
-                              const matrix::Dense<_type>* x,               \
-                              const matrix::Dense<_type>* y,               \
-                              matrix::Dense<_type>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(_type)                \
+    std::shared_ptr<AsyncHandle> compute_dot_dispatch(                      \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        const matrix::Dense<_type>* y, matrix::Dense<_type>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
-    void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                     const matrix::Dense<_type>* x,               \
-                     const matrix::Dense<_type>* y,               \
-                     matrix::Dense<_type>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)                         \
+    std::shared_ptr<AsyncHandle> compute_dot(                               \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        const matrix::Dense<_type>* y, matrix::Dense<_type>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(_type)     \
-    void compute_conj_dot_dispatch(                                   \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Dense<_type>* x, const matrix::Dense<_type>* y, \
-        matrix::Dense<_type>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(_type)           \
+    std::shared_ptr<AsyncHandle> compute_conj_dot_dispatch(                 \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        const matrix::Dense<_type>* y, matrix::Dense<_type>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)               \
-    void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::Dense<_type>* x,               \
-                          const matrix::Dense<_type>* y,               \
-                          matrix::Dense<_type>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)                    \
+    std::shared_ptr<AsyncHandle> compute_conj_dot(                          \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        const matrix::Dense<_type>* y, matrix::Dense<_type>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)               \
-    void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type>* x,               \
-                       matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)                       \
+    std::shared_ptr<AsyncHandle> compute_norm2(                             \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        matrix::Dense<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(_type)               \
-    void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
-                                const matrix::Dense<_type>* x,               \
-                                matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(_type)              \
+    std::shared_ptr<AsyncHandle> compute_norm2_dispatch(                    \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        matrix::Dense<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL(_type)               \
-    void compute_norm2_sqr(std::shared_ptr<const DefaultExecutor> exec, \
-                           const matrix::Dense<_type>* x,               \
-                           matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL(_type)                   \
+    std::shared_ptr<AsyncHandle> compute_norm2_sqr(                         \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        matrix::Dense<remove_complex<_type>>* result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(_type)               \
-    void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::Dense<_type>* data)
+#define GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(_type) \
+    std::shared_ptr<AsyncHandle> compute_sqrt(       \
+        std::shared_ptr<const DefaultExecutor> exec, \
+        std::shared_ptr<AsyncHandle> handle, matrix::Dense<_type>* data)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)               \
-    void compute_norm1(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type>* x,               \
-                       matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)                       \
+    std::shared_ptr<AsyncHandle> compute_norm1(                             \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        std::shared_ptr<AsyncHandle> handle, const matrix::Dense<_type>* x, \
+        matrix::Dense<remove_complex<_type>>* result)
 
 #define GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(_type, _prec)         \
     void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,  \

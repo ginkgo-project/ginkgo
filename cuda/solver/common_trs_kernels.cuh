@@ -239,7 +239,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                matrix::Dense<ValueType>*) const
     {
         cusparse::pointer_mode_guard pm_guard(handle);
-        dense::copy(exec, input, output);
+        dense::copy(exec, exec->get_default_exec_stream(), input, output)
+            ->wait();
         cusparse::csrsm2_solve(
             handle, algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
             CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0],
@@ -518,7 +519,8 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     const auto nrhs = b->get_size()[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, nan<ValueType>());
+    dense::fill(exec, exec->get_default_exec_stream(), x, nan<ValueType>())
+        ->wait();
 
     Array<bool> nan_produced(exec, 1);
     Array<IndexType> atomic_counter(exec, 1);

@@ -275,9 +275,10 @@ void load_balance_spmv(std::shared_ptr<const CudaExecutor> exec,
 {
     auto stream = gko::as<CudaAsyncHandle>(async_handle)->get_handle();
     if (beta) {
-        dense::scale(exec, beta, c);
+        dense::scale(exec, exec->get_default_exec_stream(), beta, c)->wait();
     } else {
-        dense::fill(exec, c, zero<ValueType>());
+        dense::fill(exec, exec->get_default_exec_stream(), c, zero<ValueType>())
+            ->wait();
     }
     const IndexType nwarps = a->get_num_srow_elements();
     if (nwarps > 0) {

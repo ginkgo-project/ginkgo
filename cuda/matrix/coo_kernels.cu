@@ -81,7 +81,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Coo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    dense::fill(exec, c, zero<ValueType>());
+    dense::fill(exec, exec->get_default_exec_stream(), c, zero<ValueType>())
+        ->wait();
     spmv2(exec, a, b, c);
 }
 
@@ -96,7 +97,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    dense::scale(exec, beta, c);
+    dense::scale(exec, exec->get_default_exec_stream(), beta, c)->wait();
     advanced_spmv2(exec, alpha, a, b, c);
 }
 

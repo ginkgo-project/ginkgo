@@ -75,23 +75,27 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_dot_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+    matrix::Dense<ValueType>* result)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
             auto handle = exec->get_cublas_handle();
+            auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
+            cublas::stream_guard st_guard(handle, stream);
             cublas::dot(handle, x->get_size()[0], x->get_const_values(),
                         x->get_stride(), y->get_const_values(), y->get_stride(),
                         result->get_values());
         } else {
-            compute_dot(exec, x, y, result);
+            return compute_dot(exec, async_handle, x, y, result);
         }
     } else {
-        compute_dot(exec, x, y, result);
+        return compute_dot(exec, async_handle, x, y, result);
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -99,23 +103,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_conj_dot_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+    matrix::Dense<ValueType>* result)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
+            auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
             auto handle = exec->get_cublas_handle();
+            cublas::stream_guard st_guard(handle, stream);
             cublas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
                              x->get_stride(), y->get_const_values(),
                              y->get_stride(), result->get_values());
         } else {
-            compute_conj_dot(exec, x, y, result);
+            return compute_conj_dot(exec, async_handle, x, y, result);
         }
     } else {
-        compute_conj_dot(exec, x, y, result);
+        return compute_conj_dot(exec, async_handle, x, y, result);
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -123,21 +131,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm2_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
     if (x->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
+            auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
             auto handle = exec->get_cublas_handle();
+            cublas::stream_guard st_guard(handle, stream);
             cublas::norm2(handle, x->get_size()[0], x->get_const_values(),
                           x->get_stride(), result->get_values());
         } else {
-            compute_norm2(exec, x, result);
+            return compute_norm2(exec, async_handle, x, result);
         }
     } else {
-        compute_norm2(exec, x, result);
+        return compute_norm2(exec, async_handle, x, result);
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -154,10 +167,10 @@ std::shared_ptr<AsyncHandle> simple_apply(
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
         auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
-        cublas::stream_guard st_guard(handle, stream);
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
                 cublas::pointer_mode_guard pm_guard(handle);
+                cublas::stream_guard st_guard(handle, stream);
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
                 cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
@@ -166,7 +179,7 @@ std::shared_ptr<AsyncHandle> simple_apply(
                              a->get_const_values(), a->get_stride(), &beta,
                              c->get_values(), c->get_stride());
             } else {
-                dense::fill(exec, c, zero<ValueType>());
+                return dense::fill(exec, async_handle, c, zero<ValueType>());
             }
         }
     } else {
@@ -179,27 +192,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> apply(std::shared_ptr<const DefaultExecutor> exec,
+                                   std::shared_ptr<AsyncHandle> async_handle,
+                                   const matrix::Dense<ValueType>* alpha,
+                                   const matrix::Dense<ValueType>* a,
+                                   const matrix::Dense<ValueType>* b,
+                                   const matrix::Dense<ValueType>* beta,
+                                   matrix::Dense<ValueType>* c)
 {
     if (cublas::is_supported<ValueType>::value) {
+        auto stream = as<CudaAsyncHandle>(async_handle)->get_handle();
+        auto handle = exec->get_cublas_handle();
+        cublas::stream_guard st_guard(handle, stream);
         if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
             if (a->get_size()[1] > 0) {
-                cublas::gemm(
-                    exec->get_cublas_handle(), CUBLAS_OP_N, CUBLAS_OP_N,
-                    c->get_size()[1], c->get_size()[0], a->get_size()[1],
-                    alpha->get_const_values(), b->get_const_values(),
-                    b->get_stride(), a->get_const_values(), a->get_stride(),
-                    beta->get_const_values(), c->get_values(), c->get_stride());
+                cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
+                             c->get_size()[0], a->get_size()[1],
+                             alpha->get_const_values(), b->get_const_values(),
+                             b->get_stride(), a->get_const_values(),
+                             a->get_stride(), beta->get_const_values(),
+                             c->get_values(), c->get_stride());
             } else {
-                dense::scale(exec, beta, c);
+                return dense::scale(exec, async_handle, beta, c);
             }
         }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);

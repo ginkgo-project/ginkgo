@@ -67,25 +67,26 @@ namespace {
 
 
 GKO_REGISTER_ASYNC_OPERATION(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
-GKO_REGISTER_OPERATION(copy, dense::copy);
-GKO_REGISTER_OPERATION(fill, dense::fill);
-GKO_REGISTER_OPERATION(scale, dense::scale);
-GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
-GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
-GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
-GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
-GKO_REGISTER_OPERATION(compute_dot_dispatch, dense::compute_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
-GKO_REGISTER_OPERATION(compute_conj_dot_dispatch,
-                       dense::compute_conj_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
-GKO_REGISTER_OPERATION(compute_norm2_dispatch, dense::compute_norm2_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
-GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
+GKO_REGISTER_ASYNC_OPERATION(apply, dense::apply);
+GKO_REGISTER_ASYNC_OPERATION(copy, dense::copy);
+GKO_REGISTER_ASYNC_OPERATION(fill, dense::fill);
+GKO_REGISTER_ASYNC_OPERATION(scale, dense::scale);
+GKO_REGISTER_ASYNC_OPERATION(inv_scale, dense::inv_scale);
+GKO_REGISTER_ASYNC_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_ASYNC_OPERATION(sub_scaled, dense::sub_scaled);
+GKO_REGISTER_ASYNC_OPERATION(add_scaled_diag, dense::add_scaled_diag);
+GKO_REGISTER_ASYNC_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
+GKO_REGISTER_ASYNC_OPERATION(compute_dot, dense::compute_dot);
+GKO_REGISTER_ASYNC_OPERATION(compute_dot_dispatch, dense::compute_dot_dispatch);
+GKO_REGISTER_ASYNC_OPERATION(compute_conj_dot, dense::compute_conj_dot);
+GKO_REGISTER_ASYNC_OPERATION(compute_conj_dot_dispatch,
+                             dense::compute_conj_dot_dispatch);
+GKO_REGISTER_ASYNC_OPERATION(compute_norm2, dense::compute_norm2);
+GKO_REGISTER_ASYNC_OPERATION(compute_norm2_dispatch,
+                             dense::compute_norm2_dispatch);
+GKO_REGISTER_ASYNC_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_ASYNC_OPERATION(compute_sqrt, dense::compute_sqrt);
+GKO_REGISTER_ASYNC_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
@@ -176,8 +177,28 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_apply(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
+            auto exec = this->get_executor();
+            exec->run(dense::make_async_apply(dense_alpha, this, dense_b,
+                                              dense_beta, dense_x),
+                      exec->get_default_exec_stream())
+                ->wait();
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex<ValueType>(
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
+            return this->get_executor()->run(
+                dense::make_async_apply(dense_alpha, this, dense_b, dense_beta,
+                                        dense_x),
+                handle);
         },
         alpha, b, beta, x);
 }
@@ -186,7 +207,19 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 void Dense<ValueType>::fill(const ValueType value)
 {
-    this->get_executor()->run(dense::make_fill(this, value));
+    auto exec = this->get_executor();
+    exec->run(dense::make_async_fill(this, value),
+              exec->get_default_exec_stream())
+        ->wait();
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::fill(
+    const ValueType value, std::shared_ptr<AsyncHandle> handle)
+{
+    return this->get_executor()->run(dense::make_async_fill(this, value),
+                                     handle);
 }
 
 
@@ -203,15 +236,53 @@ void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
         // use the real-complex kernel
-        exec->run(dense::make_inv_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            dynamic_cast<complex_type*>(this)));
+        exec->run(
+                dense::make_async_inv_scale(
+                    make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                        .get(),
+                    dynamic_cast<complex_type*>(this)),
+                exec->get_default_exec_stream())
+            ->wait();
         // this last cast is a no-op for complex value type and the branch is
         // never taken for real value type
     } else {
         // otherwise: use the normal kernel
-        exec->run(dense::make_inv_scale(
-            make_temporary_conversion<ValueType>(alpha).get(), this));
+        exec->run(dense::make_async_inv_scale(
+                      make_temporary_conversion<ValueType>(alpha).get(), this),
+                  exec->get_default_exec_stream())
+            ->wait();
+    }
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::inv_scale_impl(
+    const LinOp* alpha, std::shared_ptr<AsyncHandle> handle)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    // if alpha is real (convertible to real) and ValueType complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        // use the real-complex kernel
+        return exec->run(
+            dense::make_async_inv_scale(
+                make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                    .get(),
+                dynamic_cast<complex_type*>(this)),
+            handle);
+        // this last cast is a no-op for complex value type and the branch is
+        // never taken for real value type
+    } else {
+        // otherwise: use the normal kernel
+        return exec->run(
+            dense::make_async_inv_scale(
+                make_temporary_conversion<ValueType>(alpha).get(), this),
+            handle);
     }
 }
 
@@ -229,15 +300,53 @@ void Dense<ValueType>::scale_impl(const LinOp* alpha)
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
         // use the real-complex kernel
-        exec->run(dense::make_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            dynamic_cast<complex_type*>(this)));
+        exec->run(
+                dense::make_async_scale(
+                    make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                        .get(),
+                    dynamic_cast<complex_type*>(this)),
+                exec->get_default_exec_stream())
+            ->wait();
         // this last cast is a no-op for complex value type and the branch is
         // never taken for real value type
     } else {
         // otherwise: use the normal kernel
-        exec->run(dense::make_scale(
-            make_temporary_conversion<ValueType>(alpha).get(), this));
+        exec->run(dense::make_async_scale(
+                      make_temporary_conversion<ValueType>(alpha).get(), this),
+                  exec->get_default_exec_stream())
+            ->wait();
+    }
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::scale_impl(
+    const LinOp* alpha, std::shared_ptr<AsyncHandle> handle)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    // if alpha is real (convertible to real) and ValueType complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        // use the real-complex kernel
+        return exec->run(
+            dense::make_async_scale(
+                make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                    .get(),
+                dynamic_cast<complex_type*>(this)),
+            handle);
+        // this last cast is a no-op for complex value type and the branch is
+        // never taken for real value type
+    } else {
+        // otherwise: use the normal kernel
+        return exec->run(
+            dense::make_async_scale(
+                make_temporary_conversion<ValueType>(alpha).get(), this),
+            handle);
     }
 }
 
@@ -256,19 +365,67 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
     // if alpha is real and value type complex
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
-        exec->run(dense::make_add_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            make_temporary_conversion<to_complex<ValueType>>(b).get(),
-            dynamic_cast<complex_type*>(this)));
+        exec->run(
+                dense::make_async_add_scaled(
+                    make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                        .get(),
+                    make_temporary_conversion<to_complex<ValueType>>(b).get(),
+                    dynamic_cast<complex_type*>(this)),
+                exec->get_default_exec_stream())
+            ->wait();
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_add_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                dynamic_cast<const Diagonal<ValueType>*>(b), this));
+            exec->run(dense::make_async_add_scaled_diag(
+                          make_temporary_conversion<ValueType>(alpha).get(),
+                          dynamic_cast<const Diagonal<ValueType>*>(b), this),
+                      exec->get_default_exec_stream())
+                ->wait();
         } else {
-            exec->run(dense::make_add_scaled(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                make_temporary_conversion<ValueType>(b).get(), this));
+            exec->run(dense::make_async_add_scaled(
+                          make_temporary_conversion<ValueType>(alpha).get(),
+                          make_temporary_conversion<ValueType>(b).get(), this),
+                      exec->get_default_exec_stream())
+                ->wait();
+        }
+    }
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::add_scaled_impl(
+    const LinOp* alpha, const LinOp* b, std::shared_ptr<AsyncHandle> handle)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+
+    // if alpha is real and value type complex
+    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        return exec->run(
+            dense::make_async_add_scaled(
+                make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                    .get(),
+                make_temporary_conversion<to_complex<ValueType>>(b).get(),
+                dynamic_cast<complex_type*>(this)),
+            handle);
+    } else {
+        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
+            return exec->run(
+                dense::make_async_add_scaled_diag(
+                    make_temporary_conversion<ValueType>(alpha).get(),
+                    dynamic_cast<const Diagonal<ValueType>*>(b), this),
+                handle);
+        } else {
+            return exec->run(
+                dense::make_async_add_scaled(
+                    make_temporary_conversion<ValueType>(alpha).get(),
+                    make_temporary_conversion<ValueType>(b).get(), this),
+                handle);
         }
     }
 }
@@ -287,19 +444,66 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
 
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
-        exec->run(dense::make_sub_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            make_temporary_conversion<to_complex<ValueType>>(b).get(),
-            dynamic_cast<complex_type*>(this)));
+        exec->run(
+                dense::make_async_sub_scaled(
+                    make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                        .get(),
+                    make_temporary_conversion<to_complex<ValueType>>(b).get(),
+                    dynamic_cast<complex_type*>(this)),
+                exec->get_default_exec_stream())
+            ->wait();
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_sub_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                dynamic_cast<const Diagonal<ValueType>*>(b), this));
+            exec->run(dense::make_async_sub_scaled_diag(
+                          make_temporary_conversion<ValueType>(alpha).get(),
+                          dynamic_cast<const Diagonal<ValueType>*>(b), this),
+                      exec->get_default_exec_stream())
+                ->wait();
         } else {
-            exec->run(dense::make_sub_scaled(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                make_temporary_conversion<ValueType>(b).get(), this));
+            exec->run(dense::make_async_sub_scaled(
+                          make_temporary_conversion<ValueType>(alpha).get(),
+                          make_temporary_conversion<ValueType>(b).get(), this),
+                      exec->get_default_exec_stream())
+                ->wait();
+        }
+    }
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::sub_scaled_impl(
+    const LinOp* alpha, const LinOp* b, std::shared_ptr<AsyncHandle> handle)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+
+    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        return exec->run(
+            dense::make_async_sub_scaled(
+                make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                    .get(),
+                make_temporary_conversion<to_complex<ValueType>>(b).get(),
+                dynamic_cast<complex_type*>(this)),
+            handle);
+    } else {
+        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
+            return exec->run(
+                dense::make_async_sub_scaled_diag(
+                    make_temporary_conversion<ValueType>(alpha).get(),
+                    dynamic_cast<const Diagonal<ValueType>*>(b), this),
+                handle);
+        } else {
+            return exec->run(
+                dense::make_async_sub_scaled(
+                    make_temporary_conversion<ValueType>(alpha).get(),
+                    make_temporary_conversion<ValueType>(b).get(), this),
+                handle);
         }
     }
 }
@@ -313,8 +517,25 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
     auto exec = this->get_executor();
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
-    exec->run(
-        dense::make_compute_dot_dispatch(this, dense_b.get(), dense_res.get()));
+    exec->run(dense::make_async_compute_dot_dispatch(this, dense_b.get(),
+                                                     dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::compute_dot_impl(
+    const LinOp* b, LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_b = make_temporary_conversion<ValueType>(b);
+    auto dense_res = make_temporary_conversion<ValueType>(result);
+    return exec->run(dense::make_async_compute_dot_dispatch(this, dense_b.get(),
+                                                            dense_res.get()),
+                     handle);
 }
 
 
@@ -327,8 +548,25 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
     auto exec = this->get_executor();
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
-    exec->run(dense::make_compute_conj_dot_dispatch(this, dense_b.get(),
-                                                    dense_res.get()));
+    exec->run(dense::make_async_compute_conj_dot_dispatch(this, dense_b.get(),
+                                                          dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::compute_conj_dot_impl(
+    const LinOp* b, LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_b = make_temporary_conversion<ValueType>(b);
+    auto dense_res = make_temporary_conversion<ValueType>(result);
+    return exec->run(dense::make_async_compute_conj_dot_dispatch(
+                         this, dense_b.get(), dense_res.get()),
+                     handle);
 }
 
 
@@ -339,8 +577,25 @@ void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
-    exec->run(dense::make_compute_norm2_dispatch(this, dense_res.get()));
+    exec->run(dense::make_async_compute_norm2_dispatch(this, dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
 }
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::compute_norm2_impl(
+    LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    return exec->run(
+        dense::make_async_compute_norm2_dispatch(this, dense_res.get()),
+        handle);
+}
+
 
 template <typename ValueType>
 void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
@@ -349,18 +604,23 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
-    exec->run(dense::make_compute_norm1(this, dense_res.get()));
+    exec->run(dense::make_async_compute_norm1(this, dense_res.get()),
+              exec->get_default_exec_stream())
+        ->wait();
 }
 
 
-// template <typename ValueType>
-// std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_local_view(
-//     std::shared_ptr<mpi::communicator> comm,
-//     std::shared_ptr<const Partition<int>> partition) const
-// {
-//     auto local_size = partition->get_part_size(comm->rank());
-//     return this->create_submatrix();
-// }
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::compute_norm1_impl(
+    LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    return exec->run(dense::make_async_compute_norm1(this, dense_res.get()),
+                     handle);
+}
 
 
 template <typename ValueType>
@@ -378,7 +638,9 @@ void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
                   Array<ValueType>::view(exec, result_array->get_num_elems(),
                                          result_array->get_data()),
                   result->get_stride()};
-        exec->run(dense::make_copy(this, &tmp_result));
+        exec->run(dense::make_async_copy(this, &tmp_result),
+                  exec->get_default_exec_stream())
+            ->wait();
     } else {
         result->values_ = this->values_;
         result->stride_ = this->stride_;
@@ -400,8 +662,10 @@ void Dense<ValueType>::convert_to(
 {
     if (result->get_size() == this->get_size()) {
         auto exec = this->get_executor();
-        exec->run(dense::make_copy(
-            this, make_temporary_output_clone(exec, result).get()));
+        exec->run(dense::make_async_copy(
+                      this, make_temporary_output_clone(exec, result).get()),
+                  exec->get_default_exec_stream())
+            ->wait();
     } else {
         result->values_ = this->values_;
         result->stride_ = this->stride_;

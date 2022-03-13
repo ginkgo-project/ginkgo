@@ -94,49 +94,57 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
-void apply(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+std::shared_ptr<AsyncHandle> apply(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* alpha,
+    const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
+    const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
-    if (is_nonzero(beta->at(0, 0))) {
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= beta->at(0, 0);
+    auto l = [=]() {
+        if (is_nonzero(beta->at(0, 0))) {
+            for (size_type row = 0; row < c->get_size()[0]; ++row) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) *= beta->at(0, 0);
+                }
+            }
+        } else {
+            for (size_type row = 0; row < c->get_size()[0]; ++row) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) *= zero<ValueType>();
+                }
             }
         }
-    } else {
-        for (size_type row = 0; row < c->get_size()[0]; ++row) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) *= zero<ValueType>();
-            }
-        }
-    }
 
-    for (size_type row = 0; row < c->get_size()[0]; ++row) {
-        for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
-            for (size_type col = 0; col < c->get_size()[1]; ++col) {
-                c->at(row, col) +=
-                    alpha->at(0, 0) * a->at(row, inner) * b->at(inner, col);
+        for (size_type row = 0; row < c->get_size()[0]; ++row) {
+            for (size_type inner = 0; inner < a->get_size()[1]; ++inner) {
+                for (size_type col = 0; col < c->get_size()[1]; ++col) {
+                    c->at(row, col) +=
+                        alpha->at(0, 0) * a->at(row, inner) * b->at(inner, col);
+                }
             }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 
 template <typename InValueType, typename OutValueType>
-void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<InValueType>* input,
-          matrix::Dense<OutValueType>* output)
+std::shared_ptr<AsyncHandle> copy(std::shared_ptr<const DefaultExecutor> exec,
+                                  std::shared_ptr<AsyncHandle> handle,
+                                  const matrix::Dense<InValueType>* input,
+                                  matrix::Dense<OutValueType>* output)
 {
-    for (size_type row = 0; row < input->get_size()[0]; ++row) {
-        for (size_type col = 0; col < input->get_size()[1]; ++col) {
-            output->at(row, col) =
-                static_cast<OutValueType>(input->at(row, col));
+    auto l = [=]() {
+        for (size_type row = 0; row < input->get_size()[0]; ++row) {
+            for (size_type col = 0; col < input->get_size()[1]; ++col) {
+                output->at(row, col) =
+                    static_cast<OutValueType>(input->at(row, col));
+            }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
@@ -144,59 +152,73 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
 
 
 template <typename ValueType>
-void fill(std::shared_ptr<const DefaultExecutor> exec,
-          matrix::Dense<ValueType>* mat, ValueType value)
+std::shared_ptr<AsyncHandle> fill(std::shared_ptr<const DefaultExecutor> exec,
+                                  std::shared_ptr<AsyncHandle> handle,
+                                  matrix::Dense<ValueType>* mat,
+                                  ValueType value)
 {
-    for (size_type row = 0; row < mat->get_size()[0]; ++row) {
-        for (size_type col = 0; col < mat->get_size()[1]; ++col) {
-            mat->at(row, col) = value;
+    auto l = [=]() {
+        for (size_type row = 0; row < mat->get_size()[0]; ++row) {
+            for (size_type col = 0; col < mat->get_size()[1]; ++col) {
+                mat->at(row, col) = value;
+            }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
-void scale(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Dense<ScalarType>* alpha, matrix::Dense<ValueType>* x)
+std::shared_ptr<AsyncHandle> scale(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ScalarType>* alpha,
+    matrix::Dense<ValueType>* x)
 {
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) *= alpha->at(0, 0);
+    auto l = [=]() {
+        if (alpha->get_size()[1] == 1) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    x->at(i, j) *= alpha->at(0, 0);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    x->at(i, j) *= alpha->at(0, j);
+                }
             }
         }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) *= alpha->at(0, j);
-            }
-        }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
-void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
-               const matrix::Dense<ScalarType>* alpha,
-               matrix::Dense<ValueType>* x)
+std::shared_ptr<AsyncHandle> inv_scale(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ScalarType>* alpha,
+    matrix::Dense<ValueType>* x)
 {
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) /= alpha->at(0, 0);
+    auto l = [=]() {
+        if (alpha->get_size()[1] == 1) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    x->at(i, j) /= alpha->at(0, 0);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    x->at(i, j) /= alpha->at(0, j);
+                }
             }
         }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                x->at(i, j) /= alpha->at(0, j);
-            }
-        }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
@@ -204,23 +226,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType, typename ScalarType>
-void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ScalarType>* alpha,
-                const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
+std::shared_ptr<AsyncHandle> add_scaled(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ScalarType>* alpha,
+    const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
+    auto l = [=]() {
+        if (alpha->get_size()[1] == 1) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) += alpha->at(0, 0) * x->at(i, j);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) += alpha->at(0, j) * x->at(i, j);
+                }
             }
         }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) += alpha->at(0, j) * x->at(i, j);
-            }
-        }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
@@ -228,23 +254,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType, typename ScalarType>
-void sub_scaled(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ScalarType>* alpha,
-                const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
+std::shared_ptr<AsyncHandle> sub_scaled(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ScalarType>* alpha,
+    const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
 {
-    if (alpha->get_size()[1] == 1) {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) -= alpha->at(0, 0) * x->at(i, j);
+    auto l = [=]() {
+        if (alpha->get_size()[1] == 1) {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) -= alpha->at(0, 0) * x->at(i, j);
+                }
+            }
+        } else {
+            for (size_type i = 0; i < x->get_size()[0]; ++i) {
+                for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                    y->at(i, j) -= alpha->at(0, j) * x->at(i, j);
+                }
             }
         }
-    } else {
-        for (size_type i = 0; i < x->get_size()[0]; ++i) {
-            for (size_type j = 0; j < x->get_size()[1]; ++j) {
-                y->at(i, j) -= alpha->at(0, j) * x->at(i, j);
-            }
-        }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
@@ -252,61 +282,70 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
-                     const matrix::Dense<ValueType>* alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::Dense<ValueType>* y)
+std::shared_ptr<AsyncHandle> add_scaled_diag(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* alpha,
+    const matrix::Diagonal<ValueType>* x, matrix::Dense<ValueType>* y)
 {
-    const auto diag_values = x->get_const_values();
-    for (size_type i = 0; i < x->get_size()[0]; i++) {
-        y->at(i, i) += alpha->at(0, 0) * diag_values[i];
-    }
+    auto l = [=]() {
+        const auto diag_values = x->get_const_values();
+        for (size_type i = 0; i < x->get_size()[0]; i++) {
+            y->at(i, i) += alpha->at(0, 0) * diag_values[i];
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
-void sub_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
-                     const matrix::Dense<ValueType>* alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::Dense<ValueType>* y)
+std::shared_ptr<AsyncHandle> sub_scaled_diag(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* alpha,
+    const matrix::Diagonal<ValueType>* x, matrix::Dense<ValueType>* y)
 {
-    const auto diag_values = x->get_const_values();
-    for (size_type i = 0; i < x->get_size()[0]; i++) {
-        y->at(i, i) -= alpha->at(0, 0) * diag_values[i];
-    }
+    auto l = [=]() {
+        const auto diag_values = x->get_const_values();
+        for (size_type i = 0; i < x->get_size()[0]; i++) {
+            y->at(i, i) -= alpha->at(0, 0) * diag_values[i];
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
-void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
-                 const matrix::Dense<ValueType>* x,
-                 const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_dot(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<ValueType>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    auto l = [=]() {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += x->at(i, j) * y->at(i, j);
+            result->at(0, j) = zero<ValueType>();
         }
-    }
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(0, j) += x->at(i, j) * y->at(i, j);
+            }
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
-void compute_dot_dispatch(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_dot_dispatch(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
-    compute_dot(exec, x, y, result);
+    return compute_dot(exec, handle, x, y, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -314,31 +353,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Dense<ValueType>* x,
-                      const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_conj_dot(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<ValueType>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    auto l = [=]() {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
+            result->at(0, j) = zero<ValueType>();
         }
-    }
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(0, j) += conj(x->at(i, j)) * y->at(i, j);
+            }
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 
 
 template <typename ValueType>
-void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+std::shared_ptr<AsyncHandle> compute_conj_dot_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)
 {
-    compute_conj_dot(exec, x, y, result);
+    return compute_conj_dot(exec, handle, x, y, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -346,32 +388,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm2(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<remove_complex<ValueType>>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    auto l = [=]() {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += squared_norm(x->at(i, j));
+            result->at(0, j) = zero<remove_complex<ValueType>>();
         }
-    }
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = sqrt(result->at(0, j));
-    }
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(0, j) += squared_norm(x->at(i, j));
+            }
+        }
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) = sqrt(result->at(0, j));
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm2_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
-    compute_norm2(exec, x, result);
+    return compute_norm2(exec, handle, x, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -379,32 +426,40 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_sqr(std::shared_ptr<const ReferenceExecutor> exec,
-                       const matrix::Dense<ValueType>* x,
-                       matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm2_sqr(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<remove_complex<ValueType>>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    auto l = [=]() {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += squared_norm(x->at(i, j));
+            result->at(0, j) = zero<remove_complex<ValueType>>();
         }
-    }
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(0, j) += squared_norm(x->at(i, j));
+            }
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
 
 
 template <typename ValueType>
-void compute_sqrt(std::shared_ptr<const ReferenceExecutor> exec,
-                  matrix::Dense<ValueType>* data)
+std::shared_ptr<AsyncHandle> compute_sqrt(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, matrix::Dense<ValueType>* data)
 {
-    for (size_type i = 0; i < data->get_size()[0]; ++i) {
-        for (size_type j = 0; j < data->get_size()[1]; ++j) {
-            data->at(i, j) = sqrt(data->at(i, j));
+    auto l = [=]() {
+        for (size_type i = 0; i < data->get_size()[0]; ++i) {
+            for (size_type j = 0; j < data->get_size()[1]; ++j) {
+                data->at(i, j) = sqrt(data->at(i, j));
+            }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -412,18 +467,22 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+std::shared_ptr<AsyncHandle> compute_norm1(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
-        result->at(0, j) = zero<remove_complex<ValueType>>();
-    }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+    auto l = [=]() {
         for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            result->at(0, j) += abs(x->at(i, j));
+            result->at(0, j) = zero<remove_complex<ValueType>>();
         }
-    }
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            for (size_type j = 0; j < x->get_size()[1]; ++j) {
+                result->at(0, j) += abs(x->at(i, j));
+            }
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);

@@ -350,6 +350,9 @@ public:
      */
     void fill(const ValueType value);
 
+    std::shared_ptr<AsyncHandle> fill(const ValueType value,
+                                      std::shared_ptr<AsyncHandle> handle);
+
     std::unique_ptr<LinOp> permute(
         const Array<int32>* permutation_indices) const override;
 
@@ -1124,6 +1127,82 @@ protected:
     virtual void compute_norm1_impl(LinOp* result) const;
 
     /**
+     * @copydoc scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of scale(const LinOp *alpha).
+     */
+    virtual std::shared_ptr<AsyncHandle> scale_impl(
+        const LinOp* alpha, std::shared_ptr<AsyncHandle> handle);
+
+    /**
+     * @copydoc inv_scale(const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of inv_scale(const LinOp *alpha).
+     */
+    virtual std::shared_ptr<AsyncHandle> inv_scale_impl(
+        const LinOp* alpha, std::shared_ptr<AsyncHandle> handle);
+
+    /**
+     * @copydoc add_scaled(const LinOp *, const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of add_scale(const LinOp *alpha, const LinOp *b).
+     */
+    virtual std::shared_ptr<AsyncHandle> add_scaled_impl(
+        const LinOp* alpha, const LinOp* b,
+        std::shared_ptr<AsyncHandle> handle);
+
+    /**
+     * @copydoc sub_scaled(const LinOp *, const LinOp *)
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of sub_scale(const LinOp *alpha, const LinOp *b).
+     */
+    virtual std::shared_ptr<AsyncHandle> sub_scaled_impl(
+        const LinOp* alpha, const LinOp* b,
+        std::shared_ptr<AsyncHandle> handle);
+
+    /**
+     * @copydoc compute_dot(const LinOp *, LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_dot(const LinOp *b, LinOp *result).
+     */
+    virtual std::shared_ptr<AsyncHandle> compute_dot_impl(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const;
+
+    /**
+     * @copydoc compute_conj_dot(const LinOp *, LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_conj_dot(const LinOp *b, LinOp *result).
+     */
+    virtual std::shared_ptr<AsyncHandle> compute_conj_dot_impl(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const;
+
+    /**
+     * @copydoc compute_norm2(LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_norm2(LinOp *result).
+     */
+    virtual std::shared_ptr<AsyncHandle> compute_norm2_impl(
+        LinOp* result, std::shared_ptr<AsyncHandle> handle) const;
+
+    /**
+     * @copydoc compute_norm1(LinOp *) const
+     *
+     * @note  Other implementations of dense should override this function
+     *        instead of compute_norm1(LinOp *result).
+     */
+    virtual std::shared_ptr<AsyncHandle> compute_norm1_impl(
+        LinOp* result, std::shared_ptr<AsyncHandle> handle) const;
+
+    /**
      * Resizes the matrix to the given size.
      *
      * If the new size matches the current size, the stride will be left
@@ -1183,6 +1262,10 @@ protected:
 
     std::shared_ptr<AsyncHandle> apply_impl(
         const LinOp* b, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
         std::shared_ptr<AsyncHandle> handle) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,

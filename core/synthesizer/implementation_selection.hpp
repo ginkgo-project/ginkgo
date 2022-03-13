@@ -45,6 +45,37 @@ namespace gko {
 namespace syn {
 
 
+#define GKO_ENABLE_ASYNC_IMPLEMENTATION_SELECTION(_name, _callable)           \
+    template <typename Predicate, int... IntArgs, typename... TArgs,          \
+              typename... InferredArgs>                                       \
+    inline std::shared_ptr<AsyncHandle> _name(                                \
+        ::gko::syn::value_list<int>, Predicate,                               \
+        ::gko::syn::value_list<int, IntArgs...>,                              \
+        ::gko::syn::type_list<TArgs...>, InferredArgs...)                     \
+        GKO_KERNEL_NOT_FOUND;                                                 \
+                                                                              \
+    template <int K, int... Rest, typename Predicate, int... IntArgs,         \
+              typename... TArgs, typename... InferredArgs>                    \
+    inline std::shared_ptr<AsyncHandle> _name(                                \
+        ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,       \
+        ::gko::syn::value_list<int, IntArgs...> int_args,                     \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)      \
+    {                                                                         \
+        if (is_eligible(K)) {                                                 \
+            return _callable<IntArgs..., TArgs...>(                           \
+                ::gko::syn::value_list<int, K>(),                             \
+                std::forward<InferredArgs>(args)...);                         \
+        } else {                                                              \
+            return _name(::gko::syn::value_list<int, Rest...>(), is_eligible, \
+                         int_args, type_args,                                 \
+                         std::forward<InferredArgs>(args)...);                \
+        }                                                                     \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+
 #define GKO_ENABLE_IMPLEMENTATION_SELECTION(_name, _callable)                \
     template <typename Predicate, int... IntArgs, typename... TArgs,         \
               typename... InferredArgs>                                      \

@@ -148,6 +148,26 @@ void run_kernel(std::shared_ptr<const OmpExecutor> exec, KernelFunction fn,
 }
 
 
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, size_type size,
+    KernelArgs&&... args)
+{
+    run_kernel_impl(exec, fn, size, map_to_device(args)...);
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel(
+    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, dim<2> size,
+    KernelArgs&&... args)
+{
+    run_kernel_impl(exec, fn, size, map_to_device(args)...);
+}
+
+
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

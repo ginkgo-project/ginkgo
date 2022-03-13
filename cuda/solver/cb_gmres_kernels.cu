@@ -142,7 +142,9 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         acc::as_cuda_range(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
-    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::cuda::dense::compute_norm2(exec, exec->get_default_exec_stream(),
+                                        residual, residual_norm)
+        ->wait();
 
     if (use_scalar) {
         components::fill_array(exec,
