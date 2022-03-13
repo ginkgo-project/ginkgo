@@ -322,6 +322,38 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 #endif
 }
 
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_mixed_precision_dispatch(Function fn,
+                                                            const LinOp* in,
+                                                            LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    using fst_type = matrix::Dense<ValueType>;
+    using snd_type = matrix::Dense<next_precision<ValueType>>;
+    if (auto dense_in = dynamic_cast<const fst_type*>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
+            return fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
+            return fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else if (auto dense_in = dynamic_cast<const snd_type*>(in)) {
+        if (auto dense_out = dynamic_cast<fst_type*>(out)) {
+            return fn(dense_in, dense_out);
+        } else if (auto dense_out = dynamic_cast<snd_type*>(out)) {
+            return fn(dense_in, dense_out);
+        } else {
+            GKO_NOT_SUPPORTED(out);
+        }
+    } else {
+        GKO_NOT_SUPPORTED(in);
+    }
+#else
+    return async_precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
 
 /**
  * Calls the given function with the given LinOps cast to their dynamic type
@@ -346,6 +378,19 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
 
 
 template <typename ValueType, typename Function,
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+std::shared_ptr<AsyncHandle> async_mixed_precision_dispatch_real_complex(
+    Function fn, const LinOp* in, LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    return async_mixed_precision_dispatch<ValueType>(fn, in, out);
+#else
+    return async_precision_dispatch<ValueType>(fn, in, out);
+#endif
+}
+
+
+template <typename ValueType, typename Function,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
 void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
                                            LinOp* out)
@@ -363,6 +408,28 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
     }
 #else
     precision_dispatch_real_complex<ValueType>(fn, in, out);
+#endif
+}
+
+
+template <typename ValueType, typename Function,
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+std::shared_ptr<AsyncHandle> async_mixed_precision_dispatch_real_complex(
+    Function fn, const LinOp* in, LinOp* out)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) {
+        return async_mixed_precision_dispatch<to_complex<ValueType>>(
+            [&fn](auto dense_in, auto dense_out) {
+                return fn(dense_in->create_real_view().get(),
+                          dense_out->create_real_view().get());
+            },
+            in, out);
+    } else {
+        return async_mixed_precision_dispatch<ValueType>(fn, in, out);
+    }
+#else
+    return async_precision_dispatch_real_complex<ValueType>(fn, in, out);
 #endif
 }
 

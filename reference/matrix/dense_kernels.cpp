@@ -72,7 +72,7 @@ std::shared_ptr<AsyncHandle> simple_apply(
     std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* a,
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    auto l = [=]() {
+    auto l = [](const auto a, const auto b, auto c) {
         for (size_type row = 0; row < c->get_size()[0]; ++row) {
             for (size_type col = 0; col < c->get_size()[1]; ++col) {
                 c->at(row, col) = zero<ValueType>();
@@ -87,7 +87,7 @@ std::shared_ptr<AsyncHandle> simple_apply(
             }
         }
     };
-    return as<HostAsyncHandle<void>>(handle)->queue(l);
+    return as<HostAsyncHandle<void>>(handle)->queue(l, a, b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);

@@ -63,13 +63,17 @@ namespace cublas {
  */
 class stream_guard {
 public:
-    stream_guard(cublasContext* handle, CUstream_st* new_stream) : old_stream_{}
+    stream_guard(cublasContext* handle, cudaStream_t new_stream) : old_stream_{}
     {
+        // TODO Find a way to not have to create a stream. Currently, GetStream
+        // needs to have a valid exisitng stream passed to it, otherwise, it
+        // fails with invalid value.
+        // Also need to destroy this stream
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaStreamCreateWithFlags(&old_stream_, cudaStreamNonBlocking));
         handle_ = handle;
         GKO_ASSERT_NO_CUBLAS_ERRORS(cublasGetStream(
-            reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
+            reinterpret_cast<cublasHandle_t>(handle_), &old_stream_));
         GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
             reinterpret_cast<cublasHandle_t>(handle_), new_stream));
     }
@@ -84,19 +88,19 @@ public:
 
     ~stream_guard() noexcept(false)
     {
-        /* Ignore the error during stack unwinding for this call */
+        // Ignore the error during stack unwinding for this call
         if (std::uncaught_exception()) {
             GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
-                reinterpret_cast<cublasHandle_t>(handle_), *old_stream_));
+                reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
         } else {
             GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
-                reinterpret_cast<cublasHandle_t>(handle_), *old_stream_));
+                reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
         }
     }
 
 private:
     cublasContext* handle_;
-    cudaStream_t* old_stream_;
+    cudaStream_t old_stream_;
 };
 
 
