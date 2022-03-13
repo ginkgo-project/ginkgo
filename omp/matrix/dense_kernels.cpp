@@ -69,7 +69,7 @@ namespace dense {
 
 
 template <typename ValueType>
-std::shared_ptr<AsyncHandle> std::shared_ptr<AsyncHandle> compute_dot_dispatch(
+std::shared_ptr<AsyncHandle> compute_dot_dispatch(
     std::shared_ptr<const DefaultExecutor> exec,
     std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* x,
     const matrix::Dense<ValueType>* y, matrix::Dense<ValueType>* result)

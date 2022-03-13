@@ -55,9 +55,10 @@ void run_kernel_solver(std::shared_ptr<const OmpExecutor> exec,
                        KernelFunction fn, dim<2> size, size_type default_stride,
                        KernelArgs&&... args)
 {
-    run_kernel_impl(
-        exec, fn, size,
-        map_to_device_solver(args, static_cast<int64>(default_stride))...);
+    run_async_kernel_impl(
+        exec, exec->get_default_exec_stream(), fn, size,
+        map_to_device_solver(args, static_cast<int64>(default_stride))...)
+        ->wait();
 }
 
 
