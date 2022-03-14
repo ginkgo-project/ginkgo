@@ -73,9 +73,14 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           size{5, 5},
           comm(gko::mpi::communicator(MPI_COMM_WORLD)),
-          part{Partition::build_from_contiguous(
+          row_part{Partition::build_from_contiguous(
               ref, gko::Array<global_index_type>(
                        ref, I<global_index_type>{0, 2, 4, 5}))},
+          col_part{Partition::build_from_mapping(
+              ref,
+              gko::Array<comm_index_type>(ref,
+                                          I<comm_index_type>{1, 1, 2, 0, 0}),
+              3)},
           mat_input{size,
                     {{0, 1, 1},
                      {0, 3, 2},
@@ -145,22 +150,32 @@ protected:
                                                static_cast<int>(num_rows) - 1),
             std::normal_distribution<gko::remove_complex<value_type>>(),
             this->engine);
-        auto mapping = gko::test::generate_random_array<comm_index_type>(
+
+        auto row_mapping = gko::test::generate_random_array<comm_index_type>(
             num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
             this->engine, this->ref);
-        part_large = gko::share(
+        auto col_mapping = gko::test::generate_random_array<comm_index_type>(
+            num_rows, std::uniform_int_distribution<int>(0, num_parts - 1),
+            this->engine, this->ref);
+        row_part_large = gko::share(
             gko::distributed::Partition<local_index_type, global_index_type>::
-                build_from_mapping(this->ref, mapping, num_parts));
-        dist_mat->read_distributed(mat_md, part_large.get());
+                build_from_mapping(this->ref, row_mapping, num_parts));
+        col_part_large = gko::share(
+            gko::distributed::Partition<local_index_type, global_index_type>::
+                build_from_mapping(this->ref, col_mapping, num_parts));
+
+        dist_mat->read_distributed(mat_md, row_part_large.get(),
+                                   col_part_large.get());
         csr_mat->read(mat_md);
-        x->read_distributed(vec_md, part_large.get());
+
+        x->read_distributed(vec_md, col_part_large.get());
         dense_x->read(vec_md);
 
         y = dist_vec_type::create(
             this->ref, this->comm, gko::dim<2>{num_rows, num_cols},
-            gko::dim<2>{
-                static_cast<gko::size_type>(part_large->get_part_size(rank)),
-                num_cols});
+            gko::dim<2>{static_cast<gko::size_type>(
+                            row_part_large->get_part_size(rank)),
+                        num_cols});
         dense_y = gko::matrix::Dense<value_type>::create(
             this->ref, gko::dim<2>{num_rows, num_cols});
     }
@@ -169,8 +184,10 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::dim<2> size;
     gko::mpi::communicator comm;
-    std::shared_ptr<Partition> part;
-    std::shared_ptr<Partition> part_large;
+    std::shared_ptr<Partition> row_part;
+    std::shared_ptr<Partition> col_part;
+    std::shared_ptr<Partition> row_part_large;
+    std::shared_ptr<Partition> col_part_large;
 
     gko::matrix_data<value_type, global_index_type> mat_input;
     std::array<matrix_data, 3> dist_input;
@@ -198,7 +215,7 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
-    dist_mat->read_distributed(this->mat_input, this->part.get());
+    dist_mat->read_distributed(this->mat_input, this->row_part.get());
 
     GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_diag(), res_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_offdiag(), res_offdiag[rank],
@@ -215,7 +232,25 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
-    dist_mat->read_distributed(this->dist_input[rank], this->part.get());
+    dist_mat->read_distributed(this->dist_input[rank], this->row_part.get());
+
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_diag(), res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_offdiag(), res_offdiag[rank],
+                        0);
+}
+
+
+TYPED_TEST(Matrix, ReadsDistributedWithColPartition)
+{
+    using value_type = typename TestFixture::value_type;
+    auto dist_mat = TestFixture::dist_mtx_type::create(this->ref, this->comm);
+    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_offdiag[] = {
+        {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
+    auto rank = dist_mat->get_communicator().rank();
+
+    dist_mat->read_distributed(this->mat_input, this->row_part.get(),
+                               this->col_part.get());
 
     GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_diag(), res_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(dist_mat->get_const_local_offdiag(), res_offdiag[rank],
@@ -234,9 +269,10 @@ TYPED_TEST(Matrix, CanApplyToSingleVector)
     auto y = TestFixture::dist_vec_type ::create(this->ref, this->comm);
     I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
     auto rank = this->comm.rank();
-    dist_mat->read_distributed(this->mat_input, this->part.get());
-    x->read_distributed(vec_md, this->part.get());
-    y->read_distributed(vec_md, this->part.get());
+    dist_mat->read_distributed(this->mat_input, this->row_part.get(),
+                               this->col_part.get());
+    x->read_distributed(vec_md, this->col_part.get());
+    y->read_distributed(vec_md, this->row_part.get());
     y->fill(gko::zero<value_type>());
 
     dist_mat->apply(x.get(), y.get());
@@ -253,7 +289,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorLarge)
     this->csr_mat->apply(this->dense_x.get(), this->dense_y.get());
 
     this->assert_local_vector_equal_to_global_vector(
-        this->y.get(), this->dense_y.get(), this->part_large.get(),
+        this->y.get(), this->dense_y.get(), this->row_part_large.get(),
         this->comm.rank());
 }
 
@@ -270,9 +306,10 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectors)
     I<I<value_type>> result[3] = {
         {{10, 110}, {18, 198}}, {{28, 308}, {67, 737}}, {{59, 649}}};
     auto rank = this->comm.rank();
-    dist_mat->read_distributed(this->mat_input, this->part.get());
-    x->read_distributed(vec_md, this->part.get());
-    y->read_distributed(vec_md, this->part.get());
+    dist_mat->read_distributed(this->mat_input, this->row_part.get(),
+                               this->col_part.get());
+    x->read_distributed(vec_md, this->col_part.get());
+    y->read_distributed(vec_md, this->row_part.get());
     y->fill(gko::zero<value_type>());
 
     dist_mat->apply(x.get(), y.get());
@@ -289,7 +326,7 @@ TYPED_TEST(Matrix, CanApplyToMultipleVectorsLarge)
     this->csr_mat->apply(this->dense_x.get(), this->dense_y.get());
 
     this->assert_local_vector_equal_to_global_vector(
-        this->y.get(), this->dense_y.get(), this->part_large.get(),
+        this->y.get(), this->dense_y.get(), this->row_part_large.get(),
         this->comm.rank());
 }
 
@@ -305,7 +342,7 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
                                           global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
-    this->dist_mat->read_distributed(this->mat_input, this->part.get());
+    this->dist_mat->read_distributed(this->mat_input, this->row_part.get());
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
                         ? gko::remove_complex<T>{0}
@@ -332,7 +369,7 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
                                           global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
-    this->dist_mat->read_distributed(this->mat_input, this->part.get());
+    this->dist_mat->read_distributed(this->mat_input, this->row_part.get());
     auto clone_dist_mat = gko::clone(this->dist_mat);
     // If OtherT is more precise: 0, otherwise r
     auto residual = r<OtherT>::value < r<T>::value
