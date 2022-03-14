@@ -91,25 +91,26 @@ public:
                         global_index_type>* result) override;
 
     /**
-     * Reads a square matrix from the matrix_data structure and a global row
+     * Reads a square matrix from the device_matrix_data structure and a global
      * partition.
      *
-     * Both the number of rows and columns of the matrix_data is ignored. The
-     * global size of the final matrix is inferred only from the size row
+     * Both the number of rows and columns of the device_matrix_data is ignored.
+     * The global size of the final matrix is inferred only from the size row
      * partition.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
      *
-     * @param data  The matrix_data structure.
-     * @param partition  The global row partition.
+     * @param data  The device_matrix_data structure.
+     * @param partition  The global row and column partition.
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* partition);
 
     /**
-     * Reads a matrix from the matrix_data structure and a global row partition.
+     * Reads a square matrix from the matrix_data structure and a global
+     * partition.
      *
      * @see read_distributed
      *
@@ -119,6 +120,40 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         const Partition<local_index_type, global_index_type>* partition);
+
+    /**
+     * Reads a matrix from the device_matrix_data structure, a global row
+     * partition, and a global column partition.
+     *
+     * Both the number of rows and columns of the device_matrix_data is ignored.
+     * The global size of the final matrix is inferred only from the size row
+     * partition.
+     *
+     * @note The matrix data can contain entries for rows other than those owned
+     *        by the process. Entries for those rows are discarded.
+     *
+     * @param data  The device_matrix_data structure.
+     * @param row_partition  The global row partition.
+     * @param col_partition  The global col partition.
+     */
+    void read_distributed(
+        const device_matrix_data<value_type, global_index_type>& data,
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition);
+
+    /**
+     * Reads a matrix from the matrix_data structure, a global row partition,
+     * and a global column partition.
+     *
+     * @see read_distributed
+     *
+     * @note For efficiency it is advised to use the device_matrix_data
+     * overload.
+     */
+    void read_distributed(
+        const matrix_data<value_type, global_index_type>& data,
+        const Partition<local_index_type, global_index_type>* row_partition,
+        const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
      * Get read access to the local diagonal matrix
