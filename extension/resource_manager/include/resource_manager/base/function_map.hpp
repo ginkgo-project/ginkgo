@@ -50,8 +50,10 @@ namespace resource_manager {
 
 std::unordered_map<std::string,
                    std::function<size_type(const size_type, const gko::LinOp*)>>
-    selector_map{{"cycle", [](const size_type level, const gko::LinOp*) {
-                      return level % 2;
+    selector_map{{"cycle", [](const size_type level,
+                              const gko::LinOp*) { return level % 2; }},
+                 {"firstfortop", [](const size_type level, const gko::LinOp*) {
+                      return (level == 0) ? 0 : 1;
                   }}};
 auto& level_selector_map = selector_map;
 auto& solver_selector_map = selector_map;
