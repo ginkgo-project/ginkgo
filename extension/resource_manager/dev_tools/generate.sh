@@ -59,11 +59,15 @@ prepare_rmfactory_param() {
     local vector_regex=" *(std::)?vector<(.*)>$"
     local shared_regex=" *(std::)?shared_ptr<(.*)>$"
     local function_regex=" *(std::)?function<(.*)>"
+    local array_regex=" *(gko::)?Array<(.*)>"
     local is_vector="false"
     local is_pointer="false"
     if [[ "$local_type" =~ $function_regex ]]; then
         echo "SET_FUNCTION($local_type, $local_name); // TODO: please create a map ${local_name}_map to handle the function ${BASH_REMATCH[2]}"
         echo ""
+        return
+    elif [[ "$local_type" =~ $array_regex ]]; then
+        echo "SET_ARRAY(${BASH_REMATCH[2]}, ${local_name});"
         return
     fi
     if [[ "$local_type" =~ $vector_regex ]]; then
@@ -137,7 +141,7 @@ pack() {
 
 check_exist() {
     local input="$1"
-    local source_file="extension/resource_manager/include/resource_manager/base/type_list.hpp"
+    local source_file="extension/resource_manager/include/resource_manager/base/type_default.hpp"
     local result=$(grep -q "${input}," "$source_file")
     if grep -q "${input}," "$source_file"; then
         echo "true"
@@ -184,7 +188,7 @@ generate_template_list_content() {
         local type_name_item="${template_type_name_array[idx]}"
         if [[ "$(check_exist "TT_LIST_G_PARTIAL(${type_name_item}")" == "false" ]]; then
             # add a empty to easy maintain ,
-            echo "tt_list<>${sep} // TODO: can not find ${type_name_item} in with TT_LIST_G_PARTIAL , please condider adding it if it reused for many times."
+            echo "tt_list<>${sep} // TODO: can not find ${type_name_item} in with TT_LIST_G_PARTIAL, please condider adding it into type_default.hpp if it reused for many times."
         else
             echo "tt_list_g_t<handle_type::${type_name_item}>${sep}"
         fi
@@ -204,7 +208,7 @@ generate_type_value_set() {
         # check whether it is exist
         # TODO: it shuold depend on the template list or check exist
         if [[ "$(check_exist "GET_DEFAULT_STRING_PARTIAL(${template_type_name_array_ref[idx]}")" == "false" ]]; then
-            echo "/* TODO: can not find ${template_type_name_array_ref[idx]} with GET_DEFAULT_STRING_PARTIAL, please condider adding it if it reused for many times. */"
+            echo "/* TODO: can not find ${template_type_name_array_ref[idx]} with GET_DEFAULT_STRING_PARTIAL, please condider adding it into type_default.hpp if it reused for many times. */"
             if [ -n "${template_type_default_array_ref[idx]}" ]; then
                 # If it contains default value, use it
                 echo "// Use the found default one"
@@ -241,7 +245,7 @@ generate_actual_type_hint() {
             all_type_template="${all_type_template}${template_type_name_array_ref[idx]}"
         fi
     done
-    echo "// TODO: the class contain non type template, please create corresponding actual_type like following"
+    echo "// TODO: the class contain non type template, please create corresponding actual_type like following into type_resolving.hpp"
     echo "/*
 template <${local_template_type}>
 struct actual_type<type_list<
@@ -397,7 +401,15 @@ echo "#ifndef GKO" >> ${rm_file}
 echo "#define GKO" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
+if [[ "${readable}" == "true" ]]; then
+    echo "#include <fstream>"  >> ${rm_file}
+    echo "" >> ${rm_file}
+    echo "">> ${rm_file}
+fi
 echo "#include <${input_file/include\//}>" >> ${rm_file}
+if [[ "${readable}" == "true" ]]; then
+    echo "#include <ginkgo/core/base/mtx_io.hpp>" >> ${rm_file}
+fi
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "#include \"resource_manager/base/generic_constructor.hpp\"" >> ${rm_file}
@@ -516,6 +528,7 @@ if [[ "${num}" == "0" ]]; then
     if [[ "${base}" == "LinOp" ]]; then
         echo "IMPLEMENT_BRIDGE(RM_${base}, ${rm_class}, ${namespace}::${class});" >> "${rm_file}"
     fi
+    echo "" >> "${rm_file}"
 else
     type_value_with_default="$(generate_type_value_set template_type_name_array template_type_default_array)"
     if [[ "$handle_factory" == "true" ]]; then
@@ -523,16 +536,17 @@ else
         echo "$(generate_create_from_config "${base_namespace}${base}Factory" "RM_${base}Factory" \
                 "${rm_class_factory}" "${type_value_with_default}" \
                 "${rm_class_factory_snake}_select" "${select_type}" "${rm_class_snake}_list")" >> "${rm_file}"
+        echo "" >> "${rm_file}"
     fi
     # create_from_config for itself
     if [[ "$base" == "LinOp" ]]; then
         echo "$(generate_create_from_config "${base_namespace}${base}" "RM_$base" \
                 "${rm_class}" "${type_value_with_default}" \
                 "${rm_class_snake}_select" "${select_type}" "${rm_class_snake}_list")" >> "${rm_file}"
+        echo "" >> "${rm_file}"
     fi
 fi
 echo "
-
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko
