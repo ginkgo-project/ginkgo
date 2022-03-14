@@ -73,7 +73,7 @@ struct Generic<
             SET_VALUE(uint32, max_block_size);
             SET_VALUE(uint32, max_block_stride);
             SET_VALUE(bool, skip_sorting);
-            // SET_VALUE(gko::Array<IndexType>, block_pointers);
+            SET_ARRAY(IndexType, block_pointers);
             // SET_VALUE(storage_optimization_type, storage_optimization);
             SET_VALUE(remove_complex<ValueType>, accuracy);
             SET_EXECUTOR;
