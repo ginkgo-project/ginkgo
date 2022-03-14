@@ -54,7 +54,9 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                   \
         const device_matrix_data<ValueType, GlobalIndexType>& input,   \
         const distributed::Partition<LocalIndexType, GlobalIndexType>* \
-            partition,                                                 \
+            row_partition,                                             \
+        const distributed::Partition<LocalIndexType, GlobalIndexType>* \
+            col_partition,                                             \
         comm_index_type local_part,                                    \
         device_matrix_data<ValueType, LocalIndexType>& diag_data,      \
         device_matrix_data<ValueType, LocalIndexType>& offdiag_data,   \
