@@ -96,7 +96,7 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             // SET_VALUE(multigrid::cycle, cycle);
             SET_VALUE(size_type, kcycle_base);
             SET_VALUE(double, kcycle_rel_tol);
-            // SET_VALUE(std::complex<double>, smoother_relax);
+            SET_VALUE(std::complex<double>, smoother_relax);
             SET_VALUE(size_type, smoother_iters);
             SET_VALUE(bool, zero_guess);
             SET_EXECUTOR;

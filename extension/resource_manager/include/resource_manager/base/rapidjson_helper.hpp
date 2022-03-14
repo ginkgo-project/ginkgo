@@ -35,8 +35,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cassert>
+#include <complex>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -47,8 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rapidjson/document.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -87,6 +91,12 @@ template <>
 int get_value<int>(rapidjson::Value& item, std::string& key)
 {
     return item[key.c_str()].GetInt();
+}
+
+template <>
+gko::int64 get_value<gko::int64>(rapidjson::Value& item, std::string& key)
+{
+    return item[key.c_str()].GetInt64();
 }
 
 template <>
@@ -134,13 +144,52 @@ std::string get_value<std::string>(rapidjson::Value& item, std::string& key)
 template <>
 float get_value<float>(rapidjson::Value& item, std::string& key)
 {
-    return (float)item[key.c_str()].GetDouble();
+    return static_cast<float>(item[key.c_str()].GetDouble());
 }
 
 template <>
 double get_value<double>(rapidjson::Value& item, std::string& key)
 {
     return item[key.c_str()].GetDouble();
+}
+
+template <>
+std::complex<double> get_value<std::complex<double>>(rapidjson::Value& item,
+                                                     std::string& key)
+{
+    const auto& item_value = item[key.c_str()];
+    if (item_value.IsNumber()) {
+        return static_cast<std::complex<double>>(get_value<double>(item, key));
+    } else if (item_value.IsArray()) {
+        // [real, imag]
+        double real = 0;
+        double imag = 0;
+        assert(item_value.Size() <= 2);
+        if (item_value.Size() >= 1) {
+            real = item[0].GetDouble();
+        }
+        if (item_value.Size() >= 2) {
+            imag = item[1].GetDouble();
+        }
+        return std::complex<double>(real, imag);
+    } else if (item_value.IsString()) {
+        // allow real, (real), (real,imag)
+        auto item_string = get_value<std::string>(item, key);
+        std::istringstream str(item_string);
+        std::complex<double> value(0);
+        str >> value;
+        return value;
+    }
+    return std::complex<double>(0);
+}
+
+template <>
+std::complex<float> get_value<std::complex<float>>(rapidjson::Value& item,
+                                                   std::string& key)
+{
+    // rapidjson only has double
+    return static_cast<std::complex<float>>(
+        get_value<std::complex<double>>(item, key));
 }
 
 template <>
@@ -159,6 +208,37 @@ gko::stop::mode get_value<gko::stop::mode>(rapidjson::Value& item,
         // avoid the warning about return type
         return gko::stop::mode::absolute;
     }
+}
+
+
+template <typename ValueType>
+gko::Array<ValueType> get_array(rapidjson::Value& item, std::string& key,
+                                std::shared_ptr<const gko::Executor> exec)
+{
+    std::size_t size = 0;
+    if (item[key.c_str()].IsNumber()) {
+        size = 1;
+    } else if (item[key.c_str()].IsArray()) {
+        size = item[key.c_str()].Size();
+    }
+    gko::Array<ValueType> array(exec, size);
+    if (size == 0) {
+        return array;
+    }
+
+    gko::Array<ValueType> host_array(exec->get_master(), size);
+    if (item[key.c_str()].IsNumber()) {
+        host_array.get_data()[0] = get_value<ValueType>(item, key);
+    } else if (item[key.c_str()].IsArray()) {
+        for (std::size_t i = 0; i < item[key.c_str()].Size(); i++) {
+            // RODO: get_value does not check the existence, so maybe use the
+            // item directly not with key
+            host_array.get_data()[i] =
+                static_cast<ValueType>(item[key.c_str()][i].GetDouble());
+        }
+    }
+    array = host_array;
+    return array;
 }
 
 
