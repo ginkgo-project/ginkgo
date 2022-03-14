@@ -358,6 +358,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           ResourceManager* manager)                    \
         {                                                              \
             assert(item.HasMember("base"));                            \
+            std::cout << "build base" << item["base"].GetString()      \
+                      << std::endl;                                    \
             return create_from_config<_base_type>(                     \
                 item, item["base"].GetString(), exec, linop, manager); \
         }                                                              \

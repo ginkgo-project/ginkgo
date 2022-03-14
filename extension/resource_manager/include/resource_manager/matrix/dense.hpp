@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -99,12 +100,14 @@ create_from_config<RM_LinOp, RM_LinOp::Dense, gko::LinOp>(
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
     // go though the type
+    std::cout << "dense build" << std::endl;
     auto type_string = create_type_name(  // trick for clang-format
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()));
     auto ptr = dense_select<gko::matrix::Dense>(
         dense_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
+    std::cout << "dense finish" << std::endl;
     return std::move(ptr);
 }
 

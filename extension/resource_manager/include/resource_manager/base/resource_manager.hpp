@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
@@ -74,27 +76,18 @@ public:
     }
 
     /**
-     * search_data searches the key on the corresponding map.
-     *
-     * @tparam T  the type
-     *
-     * @param key  the key string
-     *
-     * @return the shared pointer of the object
-     */
-    template <typename T>
-    std::shared_ptr<T> search_data(std::string key)
-    {
-        auto& val = this->get_map<T>().at(key);
-        return std::dynamic_pointer_cast<T>(val);
-    }
-
-    /**
      * build_item is to build one object, which should contain name.
      *
      * @param item  the RapidJson::Value
      */
     void build_item(rapidjson::Value& item);
+
+    /**
+     * put_item is to build one object, which should contain name.
+     *
+     * @param item  the RapidJson::Value
+     */
+    void put_item(rapidjson::Value& item);
 
     /**
      * build_item is to build one object. If the object contains a name, add it
@@ -115,7 +108,7 @@ public:
         std::shared_ptr<const Executor> exec = nullptr,
         std::shared_ptr<const LinOp> linop = nullptr)
     {
-        std::cout << "create_from_config" << std::endl;
+        std::cout << "create_from_config2" << std::endl;
         auto ptr = create_from_config<T>(item, base, exec, linop, this);
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
@@ -168,6 +161,54 @@ public:
     }
 
     /**
+     * search_data searches the key on the corresponding map.
+     *
+     * @tparam T  the type
+     *
+     * @param key  the key string
+     *
+     * @return the shared pointer of the object
+     */
+    template <typename T>
+    std::shared_ptr<T> search_data(std::string key)
+    {
+        auto idx = this->get_map<T>().find(key);
+        if (idx != this->get_map<T>().end()) {
+            return std::dynamic_pointer_cast<T>(idx->second);
+        } else {
+            auto val = config_map_.find(key);
+            if (val != config_map_.end()) {
+                std::cout << "build map" << key << std::endl;
+                rapidjson::StringBuffer buffer;
+
+                buffer.Clear();
+                rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+                config_map_.at(key)->Accept(writer);
+                std::cout << std::string(buffer.GetString()) << std::endl;
+                return this->build_item<T>(*(val->second));
+            }
+        }
+        return nullptr;
+    }
+
+    /**
+     * put is to put one config or list of config, which top components
+     * should contain name.
+     *
+     * @param item  the RapidJson::Value
+     */
+    void put(rapidjson::Value& dom)
+    {
+        if (dom.IsArray()) {
+            for (auto& item : dom.GetArray()) {
+                this->put_item(item);
+            }
+        } else if (dom.IsObject()) {
+            this->put_item(dom);
+        }
+    }
+
+    /**
      * output_map_info print the pairs of each map to standard output
      */
     void output_map_info()
@@ -191,7 +232,6 @@ public:
         }
     }
 
-protected:
     /**
      * get_map gets the member map
      *
@@ -205,6 +245,7 @@ protected:
         return this->get_map_impl<typename map_type<T>::type>();
     }
 
+protected:
     /**
      * get_map_impl is the implementation of get_map
      *
@@ -222,6 +263,7 @@ private:
         linopfactory_map_;
     std::unordered_map<std::string, std::shared_ptr<CriterionFactory>>
         criterionfactory_map_;
+    std::unordered_map<std::string, rapidjson::Value*> config_map_;
 };
 
 
@@ -279,6 +321,27 @@ void ResourceManager::build_item(rapidjson::Value& item)
     }
     // go through all possiblilty from map and call the build_item<>
     // must contain name
+}
+
+void ResourceManager::put_item(rapidjson::Value& item)
+{
+    assert(item.HasMember("name"));
+    std::string name = item["name"].GetString();
+    std::cout << "put_item " << name << std::endl;
+    // Deep Copy will require the dom to keep the allocator
+    // rapidjson::Document dom;
+    // dom.CopyFrom(item, dom.GetAllocator());
+    // rapidjson::Document d;
+    // auto& allocator = d.GetAllocator();
+    config_map_[name] = &item;
+    // std::cout << dom.IsNull() << std::endl;
+
+    rapidjson::StringBuffer buffer;
+
+    buffer.Clear();
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    config_map_.at(name)->Accept(writer);
+    std::cout << std::string(buffer.GetString()) << std::endl;
 }
 
 
