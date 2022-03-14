@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
