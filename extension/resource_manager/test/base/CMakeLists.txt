@@ -1,3 +1,4 @@
 gkoext_manager_create_test(type_pack)
 gkoext_manager_create_test(type_resolving)
 gkoext_manager_create_test(type_string)
+gkoext_manager_create_test(resource_manager)
