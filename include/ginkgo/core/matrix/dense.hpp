@@ -743,6 +743,14 @@ public:
         this->scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
+    std::shared_ptr<AsyncHandle> scale(const LinOp* alpha,
+                                       std::shared_ptr<AsyncHandle> handle)
+    {
+        auto exec = this->get_executor();
+        return this->scale_impl(make_temporary_clone(exec, alpha).get(),
+                                handle);
+    }
+
     /**
      * Scales the matrix with the inverse of a scalar.
      *
@@ -756,6 +764,14 @@ public:
     {
         auto exec = this->get_executor();
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+    }
+
+    std::shared_ptr<AsyncHandle> inv_scale(const LinOp* alpha,
+                                           std::shared_ptr<AsyncHandle> handle)
+    {
+        auto exec = this->get_executor();
+        return this->inv_scale_impl(make_temporary_clone(exec, alpha).get(),
+                                    handle);
     }
 
     /**
@@ -775,6 +791,15 @@ public:
                               make_temporary_clone(exec, b).get());
     }
 
+    std::shared_ptr<AsyncHandle> add_scaled(const LinOp* alpha, const LinOp* b,
+                                            std::shared_ptr<AsyncHandle> handle)
+    {
+        auto exec = this->get_executor();
+        return this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                                     make_temporary_clone(exec, b).get(),
+                                     handle);
+    }
+
     /**
      * Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).
      *
@@ -792,6 +817,15 @@ public:
                               make_temporary_clone(exec, b).get());
     }
 
+    std::shared_ptr<AsyncHandle> sub_scaled(const LinOp* alpha, const LinOp* b,
+                                            std::shared_ptr<AsyncHandle> handle)
+    {
+        auto exec = this->get_executor();
+        return this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                                     make_temporary_clone(exec, b).get(),
+                                     handle);
+    }
+
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
@@ -805,6 +839,16 @@ public:
         auto exec = this->get_executor();
         this->compute_dot_impl(make_temporary_clone(exec, b).get(),
                                make_temporary_output_clone(exec, result).get());
+    }
+
+    std::shared_ptr<AsyncHandle> compute_dot(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const
+    {
+        auto exec = this->get_executor();
+        return this->compute_dot_impl(
+            make_temporary_clone(exec, b).get(),
+            make_temporary_output_clone(exec, result).get(), handle);
     }
 
     /**
@@ -823,6 +867,16 @@ public:
             make_temporary_output_clone(exec, result).get());
     }
 
+    std::shared_ptr<AsyncHandle> compute_conj_dot(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const
+    {
+        auto exec = this->get_executor();
+        return this->compute_conj_dot_impl(
+            make_temporary_clone(exec, b).get(),
+            make_temporary_output_clone(exec, result).get(), handle);
+    }
+
     /**
      * Computes the column-wise Euclidian (L^2) norm of this matrix.
      *
@@ -837,6 +891,14 @@ public:
             make_temporary_output_clone(exec, result).get());
     }
 
+    std::shared_ptr<AsyncHandle> compute_norm2(
+        LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+    {
+        auto exec = this->get_executor();
+        return this->compute_norm2_impl(
+            make_temporary_output_clone(exec, result).get(), handle);
+    }
+
     /**
      * Computes the column-wise (L^1) norm of this matrix.
      *
@@ -849,6 +911,14 @@ public:
         auto exec = this->get_executor();
         this->compute_norm1_impl(
             make_temporary_output_clone(exec, result).get());
+    }
+
+    std::shared_ptr<AsyncHandle> compute_norm1(
+        LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+    {
+        auto exec = this->get_executor();
+        return this->compute_norm1_impl(
+            make_temporary_output_clone(exec, result).get(), handle);
     }
 
     /**

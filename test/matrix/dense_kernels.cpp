@@ -228,9 +228,10 @@ TEST_F(Dense, FillIsEquivalentToRef)
 {
     set_up_vector_data(3);
 
+    auto hand = dx->fill(42, this->exec->get_handle_at(0));
     x->fill(42);
-    dx->fill(42);
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, 0);
 }
 
@@ -244,8 +245,9 @@ TEST_F(Dense, StridedFillIsEquivalentToRef)
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, exec);
 
     x->fill(42);
-    dx->fill(42);
+    auto hand = dx->fill(42, this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, 0);
 }
 
@@ -255,8 +257,9 @@ TEST_F(Dense, SingleVectorScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     x->scale(alpha.get());
-    dx->scale(dalpha.get());
+    auto hand = dx->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -266,8 +269,9 @@ TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     x->inv_scale(alpha.get());
-    dx->inv_scale(dalpha.get());
+    auto hand = dx->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -277,8 +281,9 @@ TEST_F(Dense, SingleVectorComplexScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->scale(c_alpha.get());
-    dc_x->scale(dc_alpha.get());
+    auto hand = dc_x->scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -288,8 +293,9 @@ TEST_F(Dense, SingleVectorComplexInvScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->inv_scale(c_alpha.get());
-    dc_x->inv_scale(dc_alpha.get());
+    auto hand = dc_x->inv_scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -299,8 +305,9 @@ TEST_F(Dense, SingleVectorComplexRealScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->scale(alpha.get());
-    dc_x->scale(dalpha.get());
+    auto hand = dc_x->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -310,8 +317,9 @@ TEST_F(Dense, SingleVectorComplexRealInvScaleIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->inv_scale(alpha.get());
-    dc_x->inv_scale(dalpha.get());
+    auto hand = dc_x->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -321,8 +329,9 @@ TEST_F(Dense, MultipleVectorScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     x->scale(alpha.get());
-    dx->scale(dalpha.get());
+    auto hand = dx->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -332,8 +341,9 @@ TEST_F(Dense, MultipleVectorInvScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     x->inv_scale(alpha.get());
-    dx->inv_scale(dalpha.get());
+    auto hand = dx->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -343,8 +353,9 @@ TEST_F(Dense, MultipleVectorComplexScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->scale(c_alpha.get());
-    dc_x->scale(dc_alpha.get());
+    auto hand = dc_x->scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -354,8 +365,9 @@ TEST_F(Dense, MultipleVectorComplexInvScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->inv_scale(c_alpha.get());
-    dc_x->inv_scale(dc_alpha.get());
+    auto hand = dc_x->inv_scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -365,8 +377,9 @@ TEST_F(Dense, MultipleVectorComplexRealScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->scale(alpha.get());
-    dc_x->scale(dalpha.get());
+    auto hand = dc_x->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -376,8 +389,9 @@ TEST_F(Dense, MultipleVectorComplexRealInvScaleIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->inv_scale(alpha.get());
-    dc_x->inv_scale(dalpha.get());
+    auto hand = dc_x->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -387,8 +401,9 @@ TEST_F(Dense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     x->scale(alpha.get());
-    dx->scale(dalpha.get());
+    auto hand = dx->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -398,8 +413,9 @@ TEST_F(Dense, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     x->inv_scale(alpha.get());
-    dx->inv_scale(dalpha.get());
+    auto hand = dx->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -409,8 +425,9 @@ TEST_F(Dense, MultipleVectorComplexScaleWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     c_x->scale(c_alpha.get());
-    dc_x->scale(dc_alpha.get());
+    auto hand = dc_x->scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -420,8 +437,9 @@ TEST_F(Dense, MultipleVectorComplexInvScaleWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     c_x->inv_scale(c_alpha.get());
-    dc_x->inv_scale(dc_alpha.get());
+    auto hand = dc_x->inv_scale(dc_alpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -431,8 +449,9 @@ TEST_F(Dense, MultipleVectorComplexRealScaleWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     c_x->scale(alpha.get());
-    dc_x->scale(dalpha.get());
+    auto hand = dc_x->scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -443,8 +462,9 @@ TEST_F(Dense,
     set_up_vector_data(20, true);
 
     c_x->inv_scale(alpha.get());
-    dc_x->inv_scale(dalpha.get());
+    auto hand = dc_x->inv_scale(dalpha.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -454,8 +474,10 @@ TEST_F(Dense, SingleVectorAddScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->add_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -465,8 +487,10 @@ TEST_F(Dense, SingleVectorSubtractScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     x->sub_scaled(alpha.get(), y.get());
-    dx->sub_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->sub_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -476,8 +500,10 @@ TEST_F(Dense, SingleVectorComplexAddScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->add_scaled(c_alpha.get(), c_y.get());
-    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -487,8 +513,10 @@ TEST_F(Dense, SingleVectorComplexSubtractScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->sub_scaled(c_alpha.get(), c_y.get());
-    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -498,8 +526,10 @@ TEST_F(Dense, SingleVectorComplexRealAddScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->add_scaled(alpha.get(), c_y.get());
-    dc_x->add_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -509,8 +539,10 @@ TEST_F(Dense, SingleVectorComplexRealSubtractScaledIsEquivalentToRef)
     set_up_vector_data(1);
 
     c_x->sub_scaled(alpha.get(), c_y.get());
-    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -520,8 +552,10 @@ TEST_F(Dense, MultipleVectorAddScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->add_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -531,8 +565,10 @@ TEST_F(Dense, MultipleVectorSubtractScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     x->sub_scaled(alpha.get(), y.get());
-    dx->sub_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->sub_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -542,8 +578,10 @@ TEST_F(Dense, MultipleVectorComplexAddScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->add_scaled(c_alpha.get(), c_y.get());
-    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -553,8 +591,10 @@ TEST_F(Dense, MultipleVectorComplexSubtractScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->sub_scaled(c_alpha.get(), c_y.get());
-    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -564,8 +604,10 @@ TEST_F(Dense, MultipleVectorComplexRealAddScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->add_scaled(alpha.get(), c_y.get());
-    dc_x->add_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -575,8 +617,10 @@ TEST_F(Dense, MultipleVectorComplexRealSubtractScaledIsEquivalentToRef)
     set_up_vector_data(20);
 
     c_x->sub_scaled(alpha.get(), c_y.get());
-    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -586,8 +630,10 @@ TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     x->add_scaled(alpha.get(), y.get());
-    dx->add_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->add_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -597,8 +643,10 @@ TEST_F(Dense, MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     x->sub_scaled(alpha.get(), y.get());
-    dx->sub_scaled(dalpha.get(), dy.get());
+    auto hand =
+        dx->sub_scaled(dalpha.get(), dy.get(), this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
 }
 
@@ -608,8 +656,10 @@ TEST_F(Dense, MultipleVectorComplexAddScaledWithDifferentAlphaIsEquivalentToRef)
     set_up_vector_data(20, true);
 
     c_x->add_scaled(c_alpha.get(), c_y.get());
-    dc_x->add_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -620,8 +670,10 @@ TEST_F(Dense,
     set_up_vector_data(20, true);
 
     c_x->sub_scaled(c_alpha.get(), c_y.get());
-    dc_x->sub_scaled(dc_alpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dc_alpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -632,8 +684,10 @@ TEST_F(Dense,
     set_up_vector_data(20, true);
 
     c_x->add_scaled(alpha.get(), c_y.get());
-    dc_x->add_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->add_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
 }
 
@@ -645,505 +699,11 @@ TEST_F(
     set_up_vector_data(20, true);
 
     c_x->sub_scaled(alpha.get(), c_y.get());
-    dc_x->sub_scaled(dalpha.get(), dc_y.get());
+    auto hand = dc_x->sub_scaled(dalpha.get(), dc_y.get(),
+                                 this->exec->get_handle_at(0));
 
+    hand->wait();
     GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<vtype>::value);
-}
-
-
-TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->add_scaled(alpha.get(), diag.get());
-    dmat->add_scaled(dalpha.get(), ddiag.get());
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<vtype>::value);
-}
-
-
-TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->sub_scaled(alpha.get(), diag.get());
-    dmat->sub_scaled(dalpha.get(), ddiag.get());
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<vtype>::value);
-}
-
-
-TEST_F(Dense, CanGatherRows)
-{
-    set_up_apply_data();
-
-    auto r_gather = x->row_gather(rgather_idxs.get());
-    auto dr_gather = dx->row_gather(rgather_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-}
-
-
-TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
-    auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
-    auto r_gather = Mtx::create(ref, gather_size);
-    // test make_temporary_clone and non-default stride
-    auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
-
-    sub_x->row_gather(rgather_idxs.get(), r_gather.get());
-    sub_dx->row_gather(rgather_idxs.get(), dr_gather.get());
-
-    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-}
-
-
-TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
-    auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
-    auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
-    // test make_temporary_clone and non-default stride
-    auto dr_gather = Mtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
-    dr_gather->copy_from(r_gather.get());
-
-    sub_x->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
-                      r_gather.get());
-    sub_dx->row_gather(dalpha.get(), rgather_idxs.get(), dbeta.get(),
-                       dr_gather.get());
-
-    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-}
-
-
-TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
-    auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
-    auto r_gather = MixedMtx::create(ref, gather_size);
-    // test make_temporary_clone and non-default stride
-    auto dr_gather =
-        MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
-
-    sub_x->row_gather(rgather_idxs.get(), r_gather.get());
-    sub_dx->row_gather(rgather_idxs.get(), dr_gather.get());
-
-    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-}
-
-
-TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
-    auto gather_size =
-        gko::dim<2>{rgather_idxs->get_num_elems(), sub_x->get_size()[1]};
-    auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
-    // test make_temporary_clone and non-default stride
-    auto dr_gather =
-        MixedMtx::create(ref, gather_size, sub_x->get_size()[1] + 2);
-    dr_gather->copy_from(r_gather.get());
-
-    sub_x->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
-                      r_gather.get());
-    sub_dx->row_gather(alpha.get(), rgather_idxs.get(), beta.get(),
-                       dr_gather.get());
-
-    GKO_ASSERT_MTX_NEAR(r_gather.get(), dr_gather.get(), 0);
-}
-
-
-TEST_F(Dense, IsPermutable)
-{
-    set_up_apply_data();
-
-    auto permuted = square->permute(rpermute_idxs.get());
-    auto dpermuted = dsquare->permute(rpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
-                        static_cast<Mtx*>(dpermuted.get()), 0);
-}
-
-
-TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, square->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted =
-        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
-
-    square->permute(rpermute_idxs.get(), permuted.get());
-    dsquare->permute(rpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, IsInversePermutable)
-{
-    set_up_apply_data();
-
-    auto permuted = square->inverse_permute(rpermute_idxs.get());
-    auto dpermuted = dsquare->inverse_permute(rpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(permuted.get()),
-                        static_cast<Mtx*>(dpermuted.get()), 0);
-}
-
-
-TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, square->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted =
-        Mtx::create(ref, square->get_size(), square->get_size()[1] + 2);
-
-    square->inverse_permute(rpermute_idxs.get(), permuted.get());
-    dsquare->inverse_permute(rpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, IsRowPermutable)
-{
-    set_up_apply_data();
-
-    auto r_permute = x->row_permute(rpermute_idxs.get());
-    auto dr_permute = dx->row_permute(rpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(r_permute.get()),
-                        static_cast<Mtx*>(dr_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->row_permute(rpermute_idxs.get(), permuted.get());
-    dx->row_permute(rpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, IsColPermutable)
-{
-    set_up_apply_data();
-
-    auto c_permute = x->column_permute(cpermute_idxs.get());
-    auto dc_permute = dx->column_permute(cpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(c_permute.get()),
-                        static_cast<Mtx*>(dc_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->column_permute(cpermute_idxs.get(), permuted.get());
-    dx->column_permute(cpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, IsInverseRowPermutable)
-{
-    set_up_apply_data();
-
-    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
-    auto d_inverse_r_permute = dx->inverse_row_permute(rpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_r_permute.get()),
-                        static_cast<Mtx*>(d_inverse_r_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->inverse_row_permute(rpermute_idxs.get(), permuted.get());
-    dx->inverse_row_permute(rpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, IsInverseColPermutable)
-{
-    set_up_apply_data();
-
-    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
-    auto d_inverse_c_permute = dx->inverse_column_permute(cpermute_idxs.get());
-
-    GKO_ASSERT_MTX_NEAR(static_cast<Mtx*>(inverse_c_permute.get()),
-                        static_cast<Mtx*>(d_inverse_c_permute.get()), 0);
-}
-
-
-TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto permuted = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dpermuted = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->inverse_column_permute(cpermute_idxs.get(), permuted.get());
-    dx->inverse_column_permute(cpermute_idxs.get(), dpermuted.get());
-
-    GKO_ASSERT_MTX_NEAR(permuted, dpermuted, 0);
-}
-
-
-TEST_F(Dense, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = x->extract_diagonal();
-    auto ddiag = dx->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-}
-
-
-TEST_F(Dense, ExtractDiagonalOnTallSkinnyIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, x->get_size()[1]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, x->get_size()[1]);
-
-    x->extract_diagonal(diag.get());
-    dx->extract_diagonal(ddiag.get());
-
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-}
-
-
-TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = y->extract_diagonal();
-    auto ddiag = dy->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-}
-
-
-TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, y->get_size()[0]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, y->get_size()[0]);
-
-    y->extract_diagonal(diag.get());
-    dy->extract_diagonal(ddiag.get());
-
-    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
-}
-
-
-TEST_F(Dense, ComputeNorm1IsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
-    auto norm_expected = NormVector::create(ref, norm_size);
-    auto dnorm = NormVector::create(ref, norm_size);
-
-    x->compute_norm1(norm_expected.get());
-    dx->compute_norm1(dnorm.get());
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
-}
-
-
-TEST_F(Dense, InplaceAbsoluteMatrixIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    x->compute_absolute_inplace();
-    dx->compute_absolute_inplace();
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
-}
-
-
-TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto abs_x = x->compute_absolute();
-    auto dabs_x = dx->compute_absolute();
-
-    GKO_ASSERT_MTX_NEAR(abs_x, dabs_x, r<vtype>::value);
-}
-
-
-TEST_F(Dense, OutplaceAbsoluteMatrixIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto abs_x = NormVector::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dabs_x = NormVector::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->compute_absolute(abs_x.get());
-    dx->compute_absolute(dabs_x.get());
-
-    GKO_ASSERT_MTX_NEAR(abs_x, dabs_x, r<vtype>::value);
-}
-
-
-TEST_F(Dense, MakeComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto complex_x = x->make_complex();
-    auto dcomplex_x = dx->make_complex();
-
-    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
-}
-
-
-TEST_F(Dense, MakeComplexIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto complex_x = ComplexMtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dcomplex_x =
-        ComplexMtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->make_complex(complex_x.get());
-    dx->make_complex(dcomplex_x.get());
-
-    GKO_ASSERT_MTX_NEAR(complex_x, dcomplex_x, 0);
-}
-
-
-TEST_F(Dense, GetRealIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto real_x = x->get_real();
-    auto dreal_x = dx->get_real();
-
-    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
-}
-
-
-TEST_F(Dense, GetRealIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto real_x = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dreal_x = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->get_real(real_x.get());
-    dx->get_real(dreal_x.get());
-
-    GKO_ASSERT_MTX_NEAR(real_x, dreal_x, 0);
-}
-
-
-TEST_F(Dense, GetImagIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto imag_x = x->get_imag();
-    auto dimag_x = dx->get_imag();
-
-    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-}
-
-
-TEST_F(Dense, GetImagIntoDenseCrossExecutor)
-{
-    set_up_apply_data();
-    auto imag_x = Mtx::create(ref, x->get_size());
-    // test make_temporary_clone and non-default stride
-    auto dimag_x = Mtx::create(ref, x->get_size(), x->get_size()[1] + 2);
-
-    x->get_imag(imag_x.get());
-    dx->get_imag(dimag_x.get());
-
-    GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-}
-
-
-TEST_F(Dense, AddScaledIdentityToNonSquare)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha.get(), beta.get());
-    dx->add_scaled_identity(dalpha.get(), dbeta.get());
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
-}
-
-
-TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha.get(), beta.get());
-    dx->add_scaled_identity(alpha.get(), beta.get());
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
 }
 
 
