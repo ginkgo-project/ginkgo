@@ -184,7 +184,9 @@ std::shared_ptr<${output_type}> create_from_config<
 
 
 generate_template_list_content() {
-    declare -n template_type_name_array_ref="$1"
+    declare -n template_type_array_ref="$1"
+    declare -n template_type_name_array_ref="$2"
+    declare -n template_type_default_array_ref="$3"
     local n=${#template_type_name_array_ref[@]}
     for (( idx = 0; idx < ${num}; idx++ )); do
         local sep=", "
@@ -192,20 +194,27 @@ generate_template_list_content() {
             sep=""
         fi
         # check whether it is exist
-        local type_name_item="${template_type_name_array[idx]}"
-        if [[ "$(check_exist "TT_LIST_G_PARTIAL(${type_name_item}")" == "false" ]]; then
-            # add a empty to easy maintain ,
-            echo "tt_list<>${sep} // TODO: can not find ${type_name_item} in with TT_LIST_G_PARTIAL, please condider adding it into type_default.hpp if it reused for many times."
+        local local_type="${template_type_array_ref[idx]}"
+        local local_type_name="${template_type_name_array_ref[idx]}"
+        local local_type_default="${template_type_default_array_ref[idx]}"
+        local local_todo="Can not find ${local_type_name} in with TT_LIST_G_PARTIAL, please condider adding it into type_default.hpp if it reused for many times."
+        if [[ "$(check_exist "TT_LIST_G_PARTIAL(${local_type_name}")" == "false" ]]; then
+            if [[ "${local_type}" =~ typename|class ]]; then
+                echo "tt_list<${local_type_default}>${sep} // TODO: ${local_todo}"
+            else 
+                echo "tt_list<${local_type_default}>${sep} // TODO: The type is ${local_type}, which should be wrapped in integral_constant. ${local_todo}"
+            fi
         else
-            echo "tt_list_g_t<handle_type::${type_name_item}>${sep}"
+            echo "tt_list_g_t<handle_type::${local_type_name}>${sep}"
         fi
     done
 }
 
 
 generate_type_value_set() {
-    declare -n template_type_name_array_ref=template_type_name_array
-    declare -n template_type_default_array_ref=template_type_default_array
+    declare -n template_type_array_ref="$1"
+    declare -n template_type_name_array_ref="$2"
+    declare -n template_type_default_array_ref="$3"
     local n=${#template_type_name_array_ref[@]}
     for (( idx = 0; idx < ${num}; idx++ )); do
         local sep=", "
@@ -214,14 +223,22 @@ generate_type_value_set() {
         fi
         # check whether it is exist
         # TODO: it shuold depend on the template list or check exist
-        if [[ "$(check_exist "GET_DEFAULT_STRING_PARTIAL(${template_type_name_array_ref[idx]}")" == "false" ]]; then
-            echo "/* TODO: can not find ${template_type_name_array_ref[idx]} with GET_DEFAULT_STRING_PARTIAL, please condider adding it into type_default.hpp if it reused for many times. */"
-            echo "get_value_with_default(item, \"${template_type_name_array_ref[idx]}\", \"${template_type_default_array_ref[idx]}\"s)${sep}"
-                # If it does not contain default value, mark it required
-                # It's disabled now because we can set it from the base
-                # echo "get_required_value<std::string>(item, \"${template_type_name_array_ref[idx]}\")"${sep};
+        local local_type_name="${template_type_name_array_ref[idx]}"
+        local local_type_default="${template_type_default_array_ref[idx]}"
+        if [[ "$(check_exist "GET_DEFAULT_STRING_PARTIAL(${local_type_name}")" == "false" ]]; then
+            echo "/* TODO: can not find ${local_type_name} with GET_DEFAULT_STRING_PARTIAL, please condider adding it into type_default.hpp if it reused for many times. */"
+            if [[ -n "${local_type_default}" && "${template_type_array_ref[idx]}" =~ typename|class ]]; then
+                # When it is type and contains the default type, use get_string to resolve alias
+                echo "get_value_with_default(item, \"${local_type_name}\", get_string<${local_type_default}>())${sep}"
+            else
+                # no type or no default
+                echo "get_value_with_default(item, \"${local_type_name}\", \"${local_type_default}\"s)${sep}"
+            fi
+            # If it does not contain default value, mark it required
+            # It's disabled now because we can set it from the base
+            # echo "get_required_value<std::string>(item, \"${local_type_name}\")"${sep};
         else
-            echo "get_value_with_default(item, \"${template_type_name_array_ref[idx]}\", get_default_string<handle_type::${template_type_name_array_ref[idx]}>())${sep}"
+            echo "get_value_with_default(item, \"${local_type_name}\", get_default_string<handle_type::${local_type_name}>())${sep}"
         fi
     done
 }
@@ -231,9 +248,9 @@ generate_actual_type_hint() {
     local local_enum_type="$2"
     local local_enum_item="$3"
     local local_class="$4"
-    declare -n template_type_list_array_ref="$5"
+    declare -n template_type_array_ref="$5"
     declare -n template_type_name_array_ref="$6"
-    local n=${#template_type_list_array_ref[@]}
+    local n=${#template_type_array_ref[@]}
     local actual_template=""
     local all_type_template=""
     for (( idx = 0; idx < ${n}; idx++ )); do
@@ -242,8 +259,8 @@ generate_actual_type_hint() {
             all_type_template="${all_type_template}, "
         fi
         actual_template="${actual_template}${template_type_name_array_ref[idx]}"
-        if [[ ! "${template_type_list_array_ref[idx]}" =~ typename && ! "${template_type_list_array_ref[idx]}" =~ class ]]; then
-            all_type_template="${all_type_template}std::integral_constant<${template_type_list_array_ref[idx]}, ${template_type_name_array_ref[idx]}>"
+        if [[ ! "${template_type_array_ref[idx]}" =~ typename && ! "${template_type_array_ref[idx]}" =~ class ]]; then
+            all_type_template="${all_type_template}std::integral_constant<${template_type_array_ref[idx]}, ${template_type_name_array_ref[idx]}>"
         else
             all_type_template="${all_type_template}${template_type_name_array_ref[idx]}"
         fi
@@ -349,10 +366,10 @@ factory_param_regex="^ *(.*) GKO_FACTORY_PARAMETER_(VECTOR|SCALAR)\(([^,]*),.*"
 in_factory="false"
 readable="false"
 factory_set=""
-template_type_list=""
-template_type_name=""
-template_type_default=""
-template_type_list_array=""
+template_type_str=""
+template_type_name_str=""
+template_type_default_str=""
+template_type_array=""
 template_type_name_array=""
 template_type_default_array=""
 extracted_template="false"
@@ -363,16 +380,16 @@ while IFS='' read -r line; do
     if [[ "$line" =~ ${template_regex} ]]; then
         template_content="${BASH_REMATCH[1]}"
         # use the template typename and the default
-        extract_template "${template_content}" template_type_list template_type_name template_type_default
-        IFS=';' read -ra template_type_list_array <<< "$template_type_list"
-        IFS=';' read -ra template_type_name_array <<< "$template_type_name"
-        IFS=';' read -ra template_type_default_array <<< "$template_type_default"
+        extract_template "${template_content}" template_type_str template_type_name_str template_type_default_str
+        IFS=';' read -ra template_type_array <<< "$template_type_str"
+        IFS=';' read -ra template_type_name_array <<< "$template_type_name_str"
+        IFS=';' read -ra template_type_default_array <<< "$template_type_default_str"
         extracted_template="true"
     elif [[ "$line" =~ ${no_template_regex} ]]; then
         extracted_template="true"
-        IFS=';' read -ra template_type_list_array <<< "$template_type_list"
-        IFS=';' read -ra template_type_name_array <<< "$template_type_name"
-        IFS=';' read -ra template_type_default_array <<< "$template_type_default"
+        IFS=';' read -ra template_type_array <<< "$template_type_str"
+        IFS=';' read -ra template_type_name_array <<< "$template_type_name_str"
+        IFS=';' read -ra template_type_default_array <<< "$template_type_default_str"
     fi
     if [[ "$handle_factory" == "false" && "${extracted_template}" == "true" && "${line}" =~ public: ]]; then
         # Early break
@@ -396,12 +413,12 @@ done < "temp.hpp"
 
 # Get template_type and class_type
 template_type=""
-num="${#template_type_list_array[@]}"
+num="${#template_type_array[@]}"
 for (( idx = 0; idx < ${num}; idx++ )); do
     if [ -n "$template_type" ]; then
         template_type="$template_type, "
     fi
-    template_type="${template_type}${template_type_list_array[idx]} ${template_type_name_array[idx]}"
+    template_type="${template_type}${template_type_array[idx]} ${template_type_name_array[idx]}"
 done
 used_type="${template_type_name_array[*]}"
 used_type="${used_type// /, }"
@@ -454,6 +471,7 @@ namespace resource_manager {" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
 # Generate some hint
+echo "// TODO: Please add this header file into resource_manager/resource_manager.hpp" >> ${rm_file}
 echo "// TODO: Please add the corresponding to the resource_manager/base/types.hpp" >> ${rm_file}
 if [[ "$handle_factory" == "true" ]]; then
     echo "// Add _expand(${rm_class_factory}) to ENUM_${base^^}FACTORY" >> ${rm_file}
@@ -489,7 +507,7 @@ echo "" >> "${rm_file}"
 # identify whether the all type in template are type
 template_alltype="true"
 for (( idx = 0; idx < ${num}; idx++ )); do
-    if [[ ! "${template_type_list_array[idx]}" =~ typename && ! "${template_type_list_array[idx]}" =~ class ]]; then
+    if [[ ! "${template_type_array[idx]}" =~ typename && ! "${template_type_array[idx]}" =~ class ]]; then
         template_alltype="false"
         break
     fi
@@ -502,7 +520,7 @@ if [[ "$template_alltype" == "false" ]]; then
     selection_suffix="_ID"
     selection_addition=", RM_${base}, ${rm_class}"
     #
-    echo "$(generate_actual_type_hint "${template_type}" "RM_${base}" "${rm_class}" "${namespace}::${class}" template_type_list_array template_type_name_array)" >> ${rm_file}
+    echo "$(generate_actual_type_hint "${template_type}" "RM_${base}" "${rm_class}" "${namespace}::${class}" template_type_array template_type_name_array)" >> ${rm_file}
 fi
 rm_class_factory_snake="$(convert_camel_to_snake "${rm_class_factory}")"
 rm_class_snake="$(convert_camel_to_snake "${rm_class}")"
@@ -518,7 +536,7 @@ if [ "${num}" -gt "0" ]; then
 
     # template list
     echo "constexpr auto ${rm_class_snake}_list = typename span_list<
-        $(generate_template_list_content template_type_name_array)
+        $(generate_template_list_content template_type_array template_type_name_array template_type_default_array)
         >::type();" >> ${rm_file}
     echo "" >> ${rm_file}
     echo "" >> ${rm_file}
@@ -538,7 +556,7 @@ if [[ "${num}" == "0" ]]; then
     fi
     echo "" >> "${rm_file}"
 else
-    type_value_with_default="$(generate_type_value_set template_type_name_array template_type_default_array)"
+    type_value_with_default="$(generate_type_value_set template_type_array template_type_name_array template_type_default_array)"
     if [[ "$handle_factory" == "true" ]]; then
     # create_from_config for factory
         echo "$(generate_create_from_config "${base_namespace}${base}Factory" "RM_${base}Factory" \
