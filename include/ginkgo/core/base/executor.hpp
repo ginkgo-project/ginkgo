@@ -815,6 +815,12 @@ public:
         return this->default_exec_stream_;
     }
 
+    // TODO Maybe add a RAII version similar to a stream guard ?
+    void set_default_exec_stream(std::shared_ptr<AsyncHandle> new_handle) const
+    {
+        const_cast<Executor*>(this)->default_exec_stream_ = new_handle;
+    }
+
     /**
      * Copies data within this Executor's memory space.
      *
