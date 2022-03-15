@@ -121,14 +121,25 @@ std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<HipAsyncHandle>(this->get_default_output_stream())->get_handle();
-    if (num_bytes > 0) {
-        hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(dest_ptr, src_ptr, num_bytes,
-                                                hipMemcpyDeviceToHost, stream));
+    if (auto hip_handle = dynamic_cast<HipAsyncHandle*>(handle.get())) {
+        auto stream = hip_handle->get_handle();
+        if (num_bytes > 0) {
+            hip::device_guard g(this->get_device_id());
+            GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(
+                dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost, stream));
+        }
+        handle->wait();
+        return handle;
+    } else {
+        auto stream =
+            as<HipAsyncHandle>(this->get_default_output_stream())->get_handle();
+        if (num_bytes > 0) {
+            hip::device_guard g(this->get_device_id());
+            GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(
+                dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost, stream));
+        }
+        return this->get_default_output_stream();
     }
-    return this->get_default_output_stream();
 }
 
 
@@ -136,14 +147,25 @@ std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
     const ReferenceMemorySpace*, size_type num_bytes, const void* src_ptr,
     void* dest_ptr, std::shared_ptr<AsyncHandle> handle) const
 {
-    auto stream =
-        as<HipAsyncHandle>(this->get_default_output_stream())->get_handle();
-    if (num_bytes > 0) {
-        hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(dest_ptr, src_ptr, num_bytes,
-                                                hipMemcpyDeviceToHost, stream));
+    if (auto hip_handle = dynamic_cast<HipAsyncHandle*>(handle.get())) {
+        auto stream = hip_handle->get_handle();
+        if (num_bytes > 0) {
+            hip::device_guard g(this->get_device_id());
+            GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(
+                dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost, stream));
+        }
+        handle->wait();
+        return handle;
+    } else {
+        auto stream =
+            as<HipAsyncHandle>(this->get_default_output_stream())->get_handle();
+        if (num_bytes > 0) {
+            hip::device_guard g(this->get_device_id());
+            GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyAsync(
+                dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost, stream));
+        }
+        return this->get_default_output_stream();
     }
-    return this->get_default_output_stream();
 }
 
 

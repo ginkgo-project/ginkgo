@@ -155,7 +155,7 @@ public:
             // FIXME: Need to fix the default stream when either CUDA/HIP is
             // being used.
             this->raw_copy_from(src_mem_space, num_elems * sizeof(T), src_ptr,
-                                dest_ptr, this->get_default_input_stream())
+                                dest_ptr, this->get_default_output_stream())
                 ->wait();
         } catch (NotSupported&) {
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)

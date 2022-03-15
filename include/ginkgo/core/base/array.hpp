@@ -465,9 +465,11 @@ public:
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
                                          this->num_elems_);
         }
-        exec_->get_mem_space()->copy_from(
-            other.get_executor()->get_mem_space().get(), other.get_num_elems(),
-            other.get_const_data(), this->get_data());
+        exec_
+            ->copy_from(other.get_executor().get(), other.get_num_elems(),
+                        other.get_const_data(), this->get_data(),
+                        exec_->get_default_exec_stream())
+            ->wait();
         return *this;
     }
 
@@ -855,9 +857,11 @@ template <typename ValueType>
 Array<ValueType> ConstArrayView<ValueType>::copy_to_array() const
 {
     Array<ValueType> result(this->get_executor(), this->get_num_elems());
-    result.get_executor()->copy_from(this->get_executor().get(),
-                                     this->get_num_elems(),
-                                     this->get_const_data(), result.get_data());
+    result.get_executor()
+        ->copy_from(this->get_executor().get(), this->get_num_elems(),
+                    this->get_const_data(), result.get_data(),
+                    exec_->get_default_exec_stream())
+        ->wait();
     return result;
 }
 
