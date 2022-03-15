@@ -30,10 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <complex>
 #include <type_traits>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/ginkgo.hpp>
 
 
 #include "resource_manager/base/type_string.hpp"
@@ -58,8 +62,20 @@ TEST(GetString, GetStringFromTypeList)
 {
     ASSERT_EQ(get_string(int{}), "int");
     ASSERT_EQ(get_string(double{}), "double");
-    ASSERT_EQ(get_string(type_list<double, int>{}), "double+int");
-    ASSERT_EQ(get_string(type_list<int, double>{}), "int+double");
+    ASSERT_EQ(get_string(type_list<double, int>{}), "double,int");
+    ASSERT_EQ(get_string(type_list<int, double>{}), "int,double");
+}
+
+TEST(GetString, GetStringFromComplex)
+{
+    ASSERT_EQ(get_string<std::complex<float>>(), "complex<float>");
+    ASSERT_EQ(get_string<std::complex<double>>(), "complex<double>");
+}
+
+TEST(GetString, GetStringFromBase)
+{
+    ASSERT_EQ(get_string<gko::solver::LowerTrs<>>(), "LowerTrs<double,int>");
+    ASSERT_EQ(get_string<gko::solver::UpperTrs<>>(), "UpperTrs<double,int>");
 }
 
 

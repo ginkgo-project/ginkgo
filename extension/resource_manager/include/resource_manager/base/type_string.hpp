@@ -34,18 +34,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_TYPE_STRING_HPP_
 
 
+#include <complex>
 #include <string>
 #include <type_traits>
 #include <utility>
 
 
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "resource_manager/base/type_pack.hpp"
+#include "resource_manager/base/types.hpp"
 
 
 namespace gko {
@@ -60,15 +61,26 @@ namespace resource_manager {
  * @param _type  the type
  * @param _str  the corresponding string
  */
-#define GET_STRING_PARTIAL(_type, _str)                                      \
+#define GET_STRING_PARTIAL(_type, _str)           \
+    template <>                                   \
+    struct string_type<_type> {                   \
+        static std::string get() { return _str; } \
+    }
+
+#define GET_BASE_STRING_PARTIAL(_base, _str)                                 \
     template <>                                                              \
-    std::string get_string<_type>()                                          \
+    std::string get_string<_base>()                                          \
     {                                                                        \
         return _str;                                                         \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+template <typename T>
+struct string_type {
+    static std::string get();
+};
 
 /**
  * get_string returns the string identifier of type
@@ -80,30 +92,44 @@ namespace resource_manager {
  * @note the identifier string must be identical among this system
  */
 template <typename T>
-std::string get_string();
+std::string get_string()
+{
+    return string_type<T>::get();
+}
+
+template <typename T, typename... K,
+          typename = std::enable_if_t<(sizeof...(K) > 0)>>
+std::string get_string()
+{
+    return get_string<T>() + "," + get_string<K...>();
+}
+
+template <template <typename...> class base>
+std::string get_string()
+{
+    return "undefined";
+}
+
+template <template <typename...> class base, typename... Rest>
+struct string_type<base<Rest...>> {
+    static std::string get()
+    {
+        return get_string<base>() + "<" + get_string<Rest...>() + ">";
+    };
+};
 
 GET_STRING_PARTIAL(double, "double");
 GET_STRING_PARTIAL(float, "float");
 GET_STRING_PARTIAL(gko::int32, "int");
 GET_STRING_PARTIAL(gko::int64, "int64");
 GET_STRING_PARTIAL(gko::uint32, "uint32");
-using isai_lower =
-    std::integral_constant<gko::preconditioner::isai_type,
-                           gko::preconditioner::isai_type::lower>;
-using isai_upper =
-    std::integral_constant<gko::preconditioner::isai_type,
-                           gko::preconditioner::isai_type::upper>;
-using isai_general =
-    std::integral_constant<gko::preconditioner::isai_type,
-                           gko::preconditioner::isai_type::general>;
-using isai_spd = std::integral_constant<gko::preconditioner::isai_type,
-                                        gko::preconditioner::isai_type::spd>;
 GET_STRING_PARTIAL(isai_lower, "isai_lower");
 GET_STRING_PARTIAL(isai_upper, "isai_upper");
 GET_STRING_PARTIAL(isai_general, "isai_general");
 GET_STRING_PARTIAL(isai_spd, "isai_spd");
-GET_STRING_PARTIAL(gko::solver::LowerTrs<>, "LowerTrs");
-GET_STRING_PARTIAL(gko::solver::UpperTrs<>, "UpperTrs");
+GET_BASE_STRING_PARTIAL(gko::solver::LowerTrs, "LowerTrs");
+GET_BASE_STRING_PARTIAL(gko::solver::UpperTrs, "UpperTrs");
+GET_BASE_STRING_PARTIAL(std::complex, "complex");
 GET_STRING_PARTIAL(std::true_type, "true");
 GET_STRING_PARTIAL(std::false_type, "false");
 GET_STRING_PARTIAL(bool, "bool");
@@ -149,7 +175,7 @@ template <typename K, typename... Rest>
 typename std::enable_if<(sizeof...(Rest) > 0), std::string>::type get_string(
     type_list<K, Rest...>)
 {
-    return get_string<K>() + "+" + get_string(type_list<Rest...>());
+    return get_string<K>() + "," + get_string(type_list<Rest...>());
 }
 
 
@@ -158,7 +184,7 @@ std::string create_type_name(const std::string& arg) { return arg; }
 template <typename... Rest>
 std::string create_type_name(const std::string& arg, Rest&&... rest)
 {
-    return arg + "+" + create_type_name(std::forward<Rest>(rest)...);
+    return arg + "," + create_type_name(std::forward<Rest>(rest)...);
 }
 
 
