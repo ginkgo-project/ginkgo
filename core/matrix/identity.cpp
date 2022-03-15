@@ -38,15 +38,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/handle_guard.hpp"
+
 
 namespace gko {
 namespace matrix {
 
 
 template <typename ValueType>
+std::shared_ptr<AsyncHandle> Identity<ValueType>::apply_impl(
+    const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+{
+    handle_guard hg1(x->get_executor(), handle);
+    handle_guard hg2(b->get_executor(), handle);
+    x->copy_from(b);
+    return handle;
+}
+
+
+template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     x->copy_from(b);
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Identity<ValueType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex<ValueType>(
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
+            auto hand1 = dense_x->scale(dense_beta, handle);
+            return dense_x->add_scaled(dense_alpha, dense_b, hand1);
+        },
+        alpha, b, beta, x);
 }
 
 

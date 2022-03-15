@@ -78,6 +78,21 @@ TYPED_TEST(Identity, AppliesToVector)
 }
 
 
+TYPED_TEST(Identity, AsyncAppliesToVector)
+{
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    auto identity = Id::create(this->exec, 3);
+    auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, this->exec);
+    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
+
+    auto hand = identity->apply(b.get(), x.get(), this->exec->get_handle_at(0));
+    hand->wait();
+
+    GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
+}
+
+
 TYPED_TEST(Identity, AppliesToMultipleVectors)
 {
     using Id = typename TestFixture::Id;
@@ -105,6 +120,24 @@ TYPED_TEST(Identity, AppliesToMixedVector)
     identity->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
+}
+
+
+TYPED_TEST(Identity, AsyncAppliesLinearCombinationToVector)
+{
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    auto identity = Id::create(this->exec, 3);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({1.0}, this->exec);
+    auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, this->exec);
+    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
+
+    auto hand = identity->apply(alpha.get(), b.get(), beta.get(), x.get(),
+                                this->exec->get_handle_at(0));
+    hand->wait();
+
+    GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }
 
 
