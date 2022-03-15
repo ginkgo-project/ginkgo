@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_BASE_RAPIDJSON_HELPER_HPP_
 
 
+#include <algorithm>
 #include <cassert>
 #include <complex>
 #include <iostream>
