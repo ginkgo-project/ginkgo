@@ -41,60 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace kernels {
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-namespace omp {
-namespace schwarz {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace schwarz
-}  // namespace omp
-
-
-namespace cuda {
-namespace schwarz {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace schwarz
-}  // namespace cuda
-
-
-namespace reference {
-namespace schwarz {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace schwarz
-}  // namespace reference
-
-
-namespace hip {
-namespace schwarz {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace schwarz
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace schwarz {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace schwarz
-}  // namespace dpcpp
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-}  // namespace kernels
+namespace kernels {}  // namespace kernels
 }  // namespace gko
 
 

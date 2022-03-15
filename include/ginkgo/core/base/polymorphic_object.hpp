@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/core/base/async_handle.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -165,6 +166,14 @@ public:
         return copied;
     }
 
+    std::shared_ptr<AsyncHandle> copy_from(const PolymorphicObject* other,
+                                           std::shared_ptr<AsyncHandle> handle)
+    {
+        this->template log<log::Logger::polymorphic_object_copy_started>(
+            exec_.get(), other, this);
+        return this->copy_from_impl(other, handle);
+    }
+
     /**
      * Moves another object into this object.
      *
@@ -184,6 +193,15 @@ public:
         this->template log<log::Logger::polymorphic_object_copy_completed>(
             exec_.get(), other.get(), this);
         return copied;
+    }
+
+    std::shared_ptr<AsyncHandle> copy_from(
+        std::unique_ptr<PolymorphicObject> other,
+        std::shared_ptr<AsyncHandle> handle)
+    {
+        this->template log<log::Logger::polymorphic_object_copy_started>(
+            exec_.get(), other.get(), this);
+        return this->copy_from_impl(std::move(other), handle);
     }
 
     /**
@@ -256,6 +274,10 @@ protected:
     virtual PolymorphicObject* copy_from_impl(
         const PolymorphicObject* other) = 0;
 
+    virtual std::shared_ptr<AsyncHandle> copy_from_impl(
+        const PolymorphicObject* other,
+        std::shared_ptr<AsyncHandle> handle) GKO_NOT_IMPLEMENTED;
+
     /**
      * Implementers of PolymorphicObject should implement this function instead
      * of copy_from(std::unique_ptr<PolymorphicObject>).
@@ -266,6 +288,10 @@ protected:
      */
     virtual PolymorphicObject* copy_from_impl(
         std::unique_ptr<PolymorphicObject> other) = 0;
+
+    virtual std::shared_ptr<AsyncHandle> copy_from_impl(
+        std::unique_ptr<PolymorphicObject> other,
+        std::shared_ptr<AsyncHandle> handle) GKO_NOT_IMPLEMENTED;
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
@@ -339,6 +365,19 @@ public:
             this->copy_from_impl(std::move(other)));
     }
 
+    std::shared_ptr<AsyncHandle> copy_from(const PolymorphicObject* other,
+                                           std::shared_ptr<AsyncHandle> handle)
+    {
+        return this->copy_from_impl(other, handle);
+    }
+
+    std::shared_ptr<AsyncHandle> copy_from(
+        std::unique_ptr<PolymorphicObject> other,
+        std::shared_ptr<AsyncHandle> handle)
+    {
+        return this->copy_from_impl(std::move(other), handle);
+    }
+
     AbstractObject* clear()
     {
         return static_cast<AbstractObject*>(this->clear_impl());
@@ -407,6 +446,10 @@ public:
      */
     virtual void convert_to(result_type* result) const = 0;
 
+    virtual std::shared_ptr<AsyncHandle> convert_to(
+        result_type* result,
+        std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+
     /**
      * Converts the implementer to an object of type result_type by moving data
      * from this object.
@@ -422,6 +465,10 @@ public:
      *       moved to the result.
      */
     virtual void move_to(result_type* result) = 0;
+
+    virtual std::shared_ptr<AsyncHandle> move_to(
+        result_type* result,
+        std::shared_ptr<AsyncHandle> handle) GKO_NOT_IMPLEMENTED;
 };
 
 
@@ -599,6 +646,22 @@ protected:
         return this;
     }
 
+    std::shared_ptr<AsyncHandle> copy_from_impl(
+        const PolymorphicObject* other,
+        std::shared_ptr<AsyncHandle> handle) override
+    {
+        return as<ConvertibleTo<ConcreteObject>>(other)->convert_to(self(),
+                                                                    handle);
+    }
+
+    std::shared_ptr<AsyncHandle> copy_from_impl(
+        std::unique_ptr<PolymorphicObject> other,
+        std::shared_ptr<AsyncHandle> handle) override
+    {
+        return as<ConvertibleTo<ConcreteObject>>(other.get())
+            ->move_to(self(), handle);
+    }
+
     PolymorphicObject* clear_impl() override
     {
         *self() = ConcreteObject{this->get_executor()};
@@ -630,6 +693,20 @@ public:
     void convert_to(result_type* result) const override { *result = *self(); }
 
     void move_to(result_type* result) override { *result = std::move(*self()); }
+
+    std::shared_ptr<AsyncHandle> convert_to(
+        result_type* result, std::shared_ptr<AsyncHandle> handle) const override
+    {
+        *result = *self();
+        return handle;
+    }
+
+    std::shared_ptr<AsyncHandle> move_to(
+        result_type* result, std::shared_ptr<AsyncHandle> handle) override
+    {
+        *result = std::move(*self());
+        return handle;
+    }
 
 private:
     GKO_ENABLE_SELF(ConcreteType);
@@ -668,7 +745,7 @@ template <typename ConcreteType>
 class EnableSharedCreateMethod {
 public:
     template <typename... Args>
-    static std::shared_ptr<ConcreteType> create(Args &&... args)
+    static std::shared_ptr<ConcreteType> create(Args&&... args)
     {
         return std::shared_ptr<ConcreteType>(
             new ConcreteType(std::forward<Args>(args)...));
