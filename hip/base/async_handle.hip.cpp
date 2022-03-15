@@ -55,11 +55,18 @@ HipAsyncHandle::HipAsyncHandle(create_type c_type)
     if (c_type == create_type::non_blocking) {
         this->handle_ = handle_manager<ihipStream_t>(
             kernels::hip::stream::create_non_blocking(),
-            [](hipStream_t stream) { kernels::hip::stream::destroy(stream); });
+            [](ihipStream_t* stream) {
+                kernels::hip::stream::destroy(
+                    reinterpret_cast<hipStream_t>(stream));
+            });
     } else if (c_type == create_type::default_blocking) {
         this->handle_ = handle_manager<ihipStream_t>(
             kernels::hip::stream::create_default_blocking(),
-            [](hipStream_t stream) { kernels::hip::stream::destroy(stream); });
+            [](ihipStream_t* stream) {
+                kernels::hip::stream::destroy(
+                    reinterpret_cast<hipStream_t>(stream));
+            });
+
     } else if (c_type == create_type::legacy_blocking) {
         GKO_NOT_SUPPORTED(c_type);
     }
@@ -69,7 +76,8 @@ void HipAsyncHandle::get_result() {}
 
 void HipAsyncHandle::wait()
 {
-    GKO_ASSERT_NO_HIP_ERRORS(hipStreamSynchronize(this->get_handle()));
+    GKO_ASSERT_NO_HIP_ERRORS(hipStreamSynchronize(
+        reinterpret_cast<hipStream_t>(this->get_handle())));
 }
 
 void HipAsyncHandle::wait_for(const std::chrono::duration<int>& time) {}
