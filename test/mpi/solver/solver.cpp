@@ -322,6 +322,12 @@ protected:
             SCOPED_TRACE("Sparse Matrix with variable row nnz (50x50)");
             guarded_fn(gen_mtx(50, 50, 10, 50));
         }
+        {
+            SCOPED_TRACE("Sparse Matrix with neighborhood communication (50x50)");
+            auto mat = gen_mtx(50, 50, 10, 50);
+            mat->use_neighbor_comm();
+            guarded_fn(std::move(mat));
+        }
     }
 
     template <typename TestFunction>

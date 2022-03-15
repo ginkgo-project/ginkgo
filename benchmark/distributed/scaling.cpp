@@ -51,7 +51,7 @@ DEFINE_bool(restrict, false,
             "If true creates 5/7pt stencil, if false creates 9/27pt stencil.");
 DEFINE_string(comm_pattern, "stencil",
               "Choose the communication pattern for the matrix, "
-              "possible values are: stencil, optimal");
+              "possible values are: stencil, optimal, neighborhood");
 DEFINE_bool(
     strong_scaling, false,
     "If set to true will treat target_rows as the total number of rows.");
@@ -338,20 +338,20 @@ int main(int argc, char* argv[])
     using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
-    const auto rank = comm.rank();
-
     std::string header =
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
         "distributed SpMV\n";
     std::string format = "";
     initialize_argument_parsing(&argc, &argv, header, format);
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
+
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+    const auto rank = comm.rank();
+
     if (rank == 0) {
         print_general_information("");
     }
-
     if (FLAGS_repetitions == "auto") {
         if (rank == 0) {
             std::string extra_information =
@@ -375,7 +375,8 @@ int main(int argc, char* argv[])
         gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
             exec->get_master());
     // Generate matrix data on each rank
-    if (FLAGS_comm_pattern == "stencil") {
+    if (FLAGS_comm_pattern == "stencil" ||
+        FLAGS_comm_pattern == "neighborhood") {
         if (rank == 0) {
             std::cout << "using stencil communication pattern..." << std::endl;
         }
@@ -411,6 +412,9 @@ int main(int argc, char* argv[])
     }
     auto A = dist_mtx::create(exec, comm);
     A->copy_from(h_A.get());
+    if (FLAGS_comm_pattern == "neighborhood") {
+        A->use_neighbor_comm();
+    }
 
     // Set up global vectors for the distributed SpMV
     if (rank == 0) {
