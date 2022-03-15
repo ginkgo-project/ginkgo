@@ -43,7 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "resource_manager/base/macro_helper.hpp"
+#include "resource_manager/base/template_helper.hpp"
 #include "resource_manager/base/types.hpp"
+
 
 namespace gko {
 namespace extension {

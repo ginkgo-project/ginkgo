@@ -164,12 +164,19 @@ std::shared_ptr<${output_type}> create_from_config<
     rapidjson::Value &item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager *manager)
 {
-    // go though the type
+    // get the template from base
+    std::string base_string;
+    if (item.HasMember(\"base\")) {
+        base_string = get_base_template(item[\"base\"].GetString());
+    }
+    // get the individual type
     auto type_string = create_type_name( // trick for clang-format
             ${create_type_name_content}
         );
+    // combine them together, base_string has higher priority than type_string
+    auto combined = combine_template(base_string, remove_space(type_string));
     auto ptr = ${select_func}<${select_output_type}>(
-        ${select_list}, [=](std::string key) { return key == type_string; }, item,
+        ${select_list}, [=](std::string key) { return key == combined; }, item,
         exec, linop, manager);
     return std::move(ptr);
 }"
@@ -209,14 +216,10 @@ generate_type_value_set() {
         # TODO: it shuold depend on the template list or check exist
         if [[ "$(check_exist "GET_DEFAULT_STRING_PARTIAL(${template_type_name_array_ref[idx]}")" == "false" ]]; then
             echo "/* TODO: can not find ${template_type_name_array_ref[idx]} with GET_DEFAULT_STRING_PARTIAL, please condider adding it into type_default.hpp if it reused for many times. */"
-            if [ -n "${template_type_default_array_ref[idx]}" ]; then
-                # If it contains default value, use it
-                echo "// Use the found default one"
-                echo "get_value_with_default(item, \"${template_type_name_array_ref[idx]}\", \"${template_type_default_array_ref[idx]}\")${sep}"
-            else
+            echo "get_value_with_default(item, \"${template_type_name_array_ref[idx]}\", \"${template_type_default_array_ref[idx]}\"s)${sep}"
                 # If it does not contain default value, mark it required
-                echo "get_required_value<std::string>(item, \"${template_type_name_array_ref[idx]}\")"${sep};
-            fi
+                # It's disabled now because we can set it from the base
+                # echo "get_required_value<std::string>(item, \"${template_type_name_array_ref[idx]}\")"${sep};
         else
             echo "get_value_with_default(item, \"${template_type_name_array_ref[idx]}\", get_default_string<handle_type::${template_type_name_array_ref[idx]}>())${sep}"
         fi
@@ -246,6 +249,7 @@ generate_actual_type_hint() {
         fi
     done
     echo "// TODO: the class contain non type template, please create corresponding actual_type like following into type_resolving.hpp"
+    echo "// and the corresponding binding of integral_constant except the first one into types.hpp with its string name in type_string.hpp"
     echo "/*
 template <${local_template_type}>
 struct actual_type<type_list<
@@ -390,6 +394,22 @@ while IFS='' read -r line; do
     fi
 done < "temp.hpp"
 
+# Get template_type and class_type
+template_type=""
+num="${#template_type_list_array[@]}"
+for (( idx = 0; idx < ${num}; idx++ )); do
+    if [ -n "$template_type" ]; then
+        template_type="$template_type, "
+    fi
+    template_type="${template_type}${template_type_list_array[idx]} ${template_type_name_array[idx]}"
+done
+used_type="${template_type_name_array[*]}"
+used_type="${used_type// /, }"
+class_type="${namespace}::${class}"
+if [[ "$num" -gt "0" ]]; then
+    class_type="${class_type}<${used_type}>"
+fi
+
 
 # Generate the file
 mkdir -p "$(dirname "${rm_file}")"
@@ -414,9 +434,13 @@ echo "" >> ${rm_file}
 echo "" >> ${rm_file}
 echo "#include \"resource_manager/base/generic_constructor.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/helper.hpp\"" >> ${rm_file}
-echo "#include \"resource_manager/base/resource_manager.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/macro_helper.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/rapidjson_helper.hpp\"" >> ${rm_file}
+echo "#include \"resource_manager/base/resource_manager.hpp\"" >> ${rm_file}
+if [[ "${num}" != "0" ]]; then
+    # the class contains template
+    echo "#include \"resource_manager/base/template_helper.hpp\"" >> ${rm_file}
+fi
 echo "#include \"resource_manager/base/type_default.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/type_pack.hpp\"" >> ${rm_file}
 echo "#include \"resource_manager/base/type_resolving.hpp\"" >> ${rm_file}
@@ -441,22 +465,6 @@ echo "// If need to override the generated enum for RM, use RM_CLASS or RM_CLASS
 echo "// Or replace the (RM_${base}Factory::)${rm_class_factory} and (RM_${base}::)${rm_class} and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ..." >> ${rm_file}
 echo "" >> ${rm_file}
 echo "" >> ${rm_file}
-
-# Get template_type and class_type
-template_type=""
-num="${#template_type_list_array[@]}"
-for (( idx = 0; idx < ${num}; idx++ )); do
-    if [ -n "$template_type" ]; then
-        template_type="$template_type, "
-    fi
-    template_type="${template_type}${template_type_list_array[idx]} ${template_type_name_array[idx]}"
-done
-used_type="${template_type_name_array[*]}"
-used_type="${used_type// /, }"
-class_type="${namespace}::${class}"
-if [[ "$num" -gt "0" ]]; then
-    class_type="${class_type}<${used_type}>"
-fi
 
 # Factory Generic part
 if [[ "$handle_factory" == "true" ]]; then

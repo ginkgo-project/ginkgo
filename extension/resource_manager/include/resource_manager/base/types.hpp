@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -51,6 +53,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace extension {
 namespace resource_manager {
+
+
+// for literal ""s
+using namespace std::literals::string_literals;
 
 
 using Executor = ::gko::Executor;
@@ -234,6 +240,19 @@ using is_on_linopfactory = is_derived<T, LinOpFactory>;
  */
 template <typename T>
 using is_on_criterionfactory = is_derived<T, CriterionFactory>;
+
+// The type alias for those non-type template
+using isai_lower =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::lower>;
+using isai_upper =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::upper>;
+using isai_general =
+    std::integral_constant<gko::preconditioner::isai_type,
+                           gko::preconditioner::isai_type::general>;
+using isai_spd = std::integral_constant<gko::preconditioner::isai_type,
+                                        gko::preconditioner::isai_type::spd>;
 
 
 }  // namespace resource_manager

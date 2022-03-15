@@ -297,7 +297,7 @@ void ResourceManager::build_item(rapidjson::Value& item)
     assert(item.HasMember("name"));
     assert(item.HasMember("base"));
     std::string name = item["name"].GetString();
-    std::string base = item["base"].GetString();
+    std::string base = get_base_class(item["base"].GetString());
 
     // if (base == std::string{})
     auto ptr = create_from_config<Executor>(item, base, nullptr, nullptr, this);

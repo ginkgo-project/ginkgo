@@ -358,21 +358,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param _base_type  the base type
  */
-#define GENERIC_BASE_IMPL(_base_type)                                  \
-    template <>                                                        \
-    struct Generic<_base_type> {                                       \
-        using type = std::shared_ptr<_base_type>;                      \
-        static type build(rapidjson::Value& item,                      \
-                          std::shared_ptr<const Executor> exec,        \
-                          std::shared_ptr<const LinOp> linop,          \
-                          ResourceManager* manager)                    \
-        {                                                              \
-            assert(item.HasMember("base"));                            \
-            std::cout << "build base" << item["base"].GetString()      \
-                      << std::endl;                                    \
-            return create_from_config<_base_type>(                     \
-                item, item["base"].GetString(), exec, linop, manager); \
-        }                                                              \
+#define GENERIC_BASE_IMPL(_base_type)                                        \
+    template <>                                                              \
+    struct Generic<_base_type> {                                             \
+        using type = std::shared_ptr<_base_type>;                            \
+        static type build(rapidjson::Value& item,                            \
+                          std::shared_ptr<const Executor> exec,              \
+                          std::shared_ptr<const LinOp> linop,                \
+                          ResourceManager* manager)                          \
+        {                                                                    \
+            assert(item.HasMember("base"));                                  \
+            std::cout << "build base" << item["base"].GetString() << " "     \
+                      << get_base_class(item["base"].GetString())            \
+                      << std::endl;                                          \
+            return create_from_config<_base_type>(                           \
+                item, get_base_class(item["base"].GetString()), exec, linop, \
+                manager);                                                    \
+        }                                                                    \
     }
 
 /**
