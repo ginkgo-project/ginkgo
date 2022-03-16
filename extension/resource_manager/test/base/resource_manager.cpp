@@ -59,7 +59,7 @@ TEST(ResourceManager, PutIsLazyGenerate)
           \"name\": \"cg\",\
           \"factory\": {\
               \"criteria\": [\
-                  {\"base\": \"Iteration\", \"max_iters\": 20}\
+                  {\"base\": \"IterationFactory\", \"max_iters\": 20}\
               ],\
               \"exec\": {\"base\": \"ReferenceExecutor\"}\
           }, \
