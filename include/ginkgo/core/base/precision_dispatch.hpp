@@ -551,6 +551,26 @@ void precision_dispatch_distributed(Function fn, Args*... linops)
 }
 
 
+template <typename ValueType, typename Function, typename... Args>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_distributed(
+    Function fn, Args*... linops)
+{
+    return fn(
+        make_temporary_conversion_distributed<ValueType>(linops).get()...);
+}
+
+
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex_distributed(
+    Function fn, const LinOp* in, LinOp* out)
+{
+    if (!dynamic_cast<const distributed::DistributedBase*>(in)) {
+        return async_precision_dispatch_real_complex<ValueType>(fn, in, out);
+    }
+    return async_precision_dispatch_distributed<ValueType>(fn, in, out);
+}
+
+
 template <typename ValueType, typename Function>
 void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
                                                  LinOp* out)
@@ -580,6 +600,22 @@ void precision_dispatch_real_complex_distributed(Function fn,
 }
 
 
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex_distributed(
+    Function fn, const LinOp* alpha, const LinOp* in, const LinOp* beta,
+    LinOp* out)
+{
+    if (!dynamic_cast<const distributed::DistributedBase*>(in)) {
+        return async_precision_dispatch_real_complex<ValueType>(fn, alpha, in,
+                                                                beta, out);
+    }
+    return fn(make_temporary_conversion<ValueType>(alpha).get(),
+              make_temporary_conversion_distributed<ValueType>(in).get(),
+              make_temporary_conversion<ValueType>(beta).get(),
+              make_temporary_conversion_distributed<ValueType>(out).get());
+}
+
+
 #else
 
 
@@ -592,12 +628,30 @@ void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
 
 
 template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex_distributed(
+    Function fn, const LinOp* in, LinOp* out)
+{
+    return async_precision_dispatch_real_complex<ValueType>(fn, in, out);
+}
+
+
+template <typename ValueType, typename Function>
 void precision_dispatch_real_complex_distributed(Function fn,
                                                  const LinOp* alpha,
                                                  const LinOp* in,
                                                  const LinOp* beta, LinOp* out)
 {
     precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
+}
+
+
+template <typename ValueType, typename Function>
+std::shared_ptr<AsyncHandle> async_precision_dispatch_real_complex_distributed(
+    Function fn, const LinOp* alpha, const LinOp* in, const LinOp* beta,
+    LinOp* out)
+{
+    return async_precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta,
+                                                            out);
 }
 
 

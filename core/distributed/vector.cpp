@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 
 
+#include "core/base/handle_guard.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
@@ -187,11 +188,58 @@ void Vector<ValueType, LocalIndexType>::scale(const LinOp* alpha)
 
 
 template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<AsyncHandle> Vector<ValueType, LocalIndexType>::scale(
+    const LinOp* alpha, std::shared_ptr<AsyncHandle> handle)
+{
+    handle_guard hg(this->get_executor(), handle);
+    return this->get_local()->scale(alpha, handle);
+}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::add_scaled(const LinOp* alpha,
                                                    const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType, LocalIndexType>>(b);
     this->get_local()->add_scaled(alpha, dense_b->get_local());
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<AsyncHandle> Vector<ValueType, LocalIndexType>::add_scaled(
+    const LinOp* alpha, const LinOp* b, std::shared_ptr<AsyncHandle> handle)
+{
+    handle_guard hg(this->get_executor(), handle);
+    auto dense_b = as<Vector<ValueType, LocalIndexType>>(b);
+    return this->get_local()->add_scaled(alpha, dense_b->get_local(), handle);
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<AsyncHandle> Vector<ValueType, LocalIndexType>::compute_dot(
+    const LinOp* b, LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    handle_guard hg(exec, handle);
+    auto dense_res =
+        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
+    handle = this->get_local()->compute_dot(as<Vector>(b)->get_local(),
+                                            dense_res.get(), handle);
+    handle->wait();
+    exec->synchronize();
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm->all_reduce(dense_res_host->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm->all_reduce(dense_res->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
+    return handle;
 }
 
 
@@ -216,6 +264,40 @@ void Vector<ValueType, LocalIndexType>::compute_dot(const LinOp* b,
         comm->all_reduce(dense_res->get_values(),
                          static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<AsyncHandle>
+Vector<ValueType, LocalIndexType>::compute_conj_dot(
+    const LinOp* b, LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+
+    if (exec != result->get_executor()) {
+        GKO_NOT_IMPLEMENTED;
+    }
+    handle_guard hg(exec, handle);
+    auto dense_res =
+        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
+
+    handle = this->get_local()->compute_conj_dot(as<Vector>(b)->get_local(),
+                                                 dense_res.get(), handle);
+    handle->wait();
+    exec->synchronize();
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm->all_reduce(dense_res_host->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm->all_reduce(dense_res->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
+    return handle;
 }
 
 
@@ -246,6 +328,39 @@ void Vector<ValueType, LocalIndexType>::compute_conj_dot(const LinOp* b,
         comm->all_reduce(dense_res->get_values(),
                          static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::shared_ptr<AsyncHandle> Vector<ValueType, LocalIndexType>::compute_norm2(
+    LinOp* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    const auto comm = this->get_communicator();
+    handle_guard hg(exec, handle);
+    auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
+    exec->run(vector::make_async_compute_norm2_sqr(this->get_local(),
+                                                   dense_res.get()),
+              handle)
+        ->wait();
+    exec->synchronize();
+    auto use_host_buffer =
+        exec->get_master() != exec || !gko::mpi::is_gpu_aware();
+    if (use_host_buffer) {
+        auto dense_res_host =
+            make_temporary_clone(exec->get_master(), dense_res.get());
+        comm->all_reduce(dense_res_host->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    } else {
+        comm->all_reduce(dense_res->get_values(),
+                         static_cast<int>(this->get_size()[1]), MPI_SUM);
+    }
+    exec->synchronize();
+    exec->run(vector::make_async_compute_sqrt(dense_res.get()), handle)->wait();
+    exec->synchronize();
+    return handle;
 }
 
 

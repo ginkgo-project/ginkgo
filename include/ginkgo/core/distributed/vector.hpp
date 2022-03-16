@@ -86,6 +86,9 @@ public:
      */
     void fill(const ValueType value);
 
+    std::shared_ptr<AsyncHandle> fill(const ValueType value,
+                                      std::shared_ptr<AsyncHandle> handle);
+
     void read_distributed(
         const matrix_data<ValueType, global_index_type>& data,
         std::shared_ptr<const Partition<LocalIndexType>> partition);
@@ -105,6 +108,9 @@ public:
      */
     void scale(const LinOp* alpha);
 
+    std::shared_ptr<AsyncHandle> scale(const LinOp* alpha,
+                                       std::shared_ptr<AsyncHandle> handle);
+
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
@@ -117,6 +123,10 @@ public:
      */
     void add_scaled(const LinOp* alpha, const LinOp* b);
 
+    std::shared_ptr<AsyncHandle> add_scaled(
+        const LinOp* alpha, const LinOp* b,
+        std::shared_ptr<AsyncHandle> handle);
+
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
@@ -126,6 +136,10 @@ public:
      * number of columns of this)
      */
     void compute_dot(const LinOp* b, LinOp* result) const;
+
+    std::shared_ptr<AsyncHandle> compute_dot(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const;
 
     /**
      * Computes the column-wise dot product of this matrix and `conj(b)`.
@@ -137,6 +151,10 @@ public:
      */
     void compute_conj_dot(const LinOp* b, LinOp* result) const;
 
+    std::shared_ptr<AsyncHandle> compute_conj_dot(
+        const LinOp* b, LinOp* result,
+        std::shared_ptr<AsyncHandle> handle) const;
+
     /**
      * Computes the Euclidian (L^2) norm of this matrix.
      *
@@ -145,6 +163,9 @@ public:
      * number of columns of this)
      */
     void compute_norm2(LinOp* result) const;
+
+    std::shared_ptr<AsyncHandle> compute_norm2(
+        LinOp* result, std::shared_ptr<AsyncHandle> handle) const;
 
     const local_mtx_type* get_local() const;
 
