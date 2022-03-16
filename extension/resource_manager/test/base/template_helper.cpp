@@ -85,14 +85,26 @@ TEST(TemplateHelper, CombineTemplate)
 
 TEST(TemplateHelper, CombineTemplateReportError)
 {
+#ifndef NDEBUG
+    GTEST_SKIP() << "check the full stderr output only when nodebug mode";
+#endif
     // if both contain empty template, it will report them to stderr
     testing::internal::CaptureStderr();
 
     ASSERT_EQ(combine_template("A,,C<>", "A,,T<>,"), "A,,C<>,");
-    std::string err = testing::internal::GetCapturedStderr();
-    ASSERT_EQ(err,
+    ASSERT_EQ(testing::internal::GetCapturedStderr(),
               "The 1-th (0-based) template parameter is empty\nThe 3-th "
               "(0-based) template parameter is empty\n");
+}
+
+
+TEST(TemplateHelperDeath, CombineTemplateReportError)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "It only introduces failure when in debug mode";
+#endif
+    ASSERT_DEBUG_DEATH({ combine_template("A,,C<>", "A,,T<>,"); },
+                       "The 1-th \\(0-based\\) template parameter is empty");
 }
 
 
