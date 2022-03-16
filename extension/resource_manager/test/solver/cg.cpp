@@ -52,7 +52,7 @@ TEST(Cg, CreateStandAlone)
         "{\"base\": \"Cg\",\
           \"factory\": {\
               \"criteria\": [\
-                  {\"base\": \"Iteration\", \"max_iters\": 20}\
+                  {\"base\": \"IterationFactory\", \"max_iters\": 20}\
               ],\
               \"exec\": {\"base\": \"ReferenceExecutor\"}\
           }, \
@@ -81,7 +81,7 @@ TEST(Cg, CreateManager)
         "{\"base\": \"Cg\",\
           \"factory\": {\
               \"criteria\": [\
-                  {\"base\": \"Iteration\", \"max_iters\": 20}\
+                  {\"base\": \"IterationFactory\", \"max_iters\": 20}\
               ],\
               \"exec\": \"exec\"\
           }, \
