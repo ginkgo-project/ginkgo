@@ -898,6 +898,17 @@ public:
         return out;
     }
 
+    template <typename T>
+    T copy_val_to_host(const T* ptr, std::shared_ptr<AsyncHandle> handle) const
+    {
+        T out{};
+        this->get_master()
+            ->get_mem_space()
+            ->copy_from(this->get_mem_space().get(), 1, ptr, &out, handle)
+            ->wait();
+        return out;
+    }
+
     /**
      * Returns the master OmpExecutor of this Executor.
      * @return the master OmpExecutor of this Executor.

@@ -68,17 +68,21 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 }
 
 
-void set_all_statuses(std::shared_ptr<const HipExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status>* stop_status)
+std::shared_ptr<AsyncHandle> set_all_statuses(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
+    Array<stopping_status>* stop_status)
 {
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(stop_status->get_num_elems(), block_size);
+    auto stream = as<HipAsyncHandle>(handle)->get_handle();
 
     if (grid_size > 0) {
-        hipLaunchKernelGGL((set_all_statuses), grid_size, block_size, 0, 0,
+        hipLaunchKernelGGL((set_all_statuses), grid_size, block_size, 0, stream,
                            stop_status->get_num_elems(), stoppingId,
                            setFinalized, as_hip_type(stop_status->get_data()));
     }
+    return handle;
 }
 
 

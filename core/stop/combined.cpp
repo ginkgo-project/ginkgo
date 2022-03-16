@@ -37,6 +37,30 @@ namespace gko {
 namespace stop {
 
 
+std::tuple<std::shared_ptr<AsyncHandle>, bool> Combined::check_impl(
+    std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
+    Array<stopping_status>* stop_status, bool* one_changed,
+    const Updater& updater)
+{
+    bool one_converged = false;
+    gko::uint8 ids{1};
+    *one_changed = false;
+    for (auto& c : criteria_) {
+        bool local_one_changed = false;
+        auto out = c->check(handle, ids, setFinalized, stop_status,
+                            &local_one_changed, updater);
+        std::get<0>(out)->wait();
+        one_converged |= std::get<1>(out);
+        *one_changed |= local_one_changed;
+        if (one_converged) {
+            break;
+        }
+        ids++;
+    }
+    return {handle, one_converged};
+}
+
+
 bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
                           Array<stopping_status>* stop_status,
                           bool* one_changed, const Updater& updater)

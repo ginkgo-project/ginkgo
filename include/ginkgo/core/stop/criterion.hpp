@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_STOP_CRITERION_HPP_
 
 
+#include <tuple>
+
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -104,6 +107,15 @@ public:
             return converged;
         }
 
+        std::tuple<std::shared_ptr<AsyncHandle>, bool> check(
+            std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
+            bool set_finalized, Array<stopping_status>* stop_status,
+            bool* one_changed) const
+        {
+            return parent_->check(handle, stopping_id, set_finalized,
+                                  stop_status, one_changed, *this);
+        }
+
         /**
          * Helper macro to add parameters and setters to updater
          */
@@ -167,6 +179,19 @@ public:
         return all_converged;
     }
 
+    std::tuple<std::shared_ptr<AsyncHandle>, bool> check(
+        std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
+        bool set_finalized, Array<stopping_status>* stop_status,
+        bool* one_changed, const Updater& updater)
+    {
+        this->template log<log::Logger::criterion_check_started>(
+            this, updater.num_iterations_, updater.residual_,
+            updater.residual_norm_, updater.solution_, stopping_id,
+            set_finalized);
+        return this->check_impl(handle, stopping_id, set_finalized, stop_status,
+                                one_changed, updater);
+    }
+
 protected:
     /**
      * Implementers of Criterion should override this function instead
@@ -188,6 +213,11 @@ protected:
                             Array<stopping_status>* stop_status,
                             bool* one_changed, const Updater& updater) = 0;
 
+    virtual std::tuple<std::shared_ptr<AsyncHandle>, bool> check_impl(
+        std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
+        bool set_finalized, Array<stopping_status>* stop_status,
+        bool* one_changed, const Updater& updater) GKO_NOT_IMPLEMENTED;
+
     /**
      * This is a helper function which properly sets all elements of the
      * stopping_status to converged. This is used in stopping criteria such as
@@ -200,6 +230,10 @@ protected:
      */
     void set_all_statuses(uint8 stopping_id, bool set_finalized,
                           Array<stopping_status>* stop_status);
+
+    std::shared_ptr<AsyncHandle> set_all_statuses(
+        std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
+        bool set_finalized, Array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<Criterion>(exec)

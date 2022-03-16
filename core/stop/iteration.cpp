@@ -37,6 +37,21 @@ namespace gko {
 namespace stop {
 
 
+std::tuple<std::shared_ptr<AsyncHandle>, bool> Iteration::check_impl(
+    std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
+    Array<stopping_status>* stop_status, bool* one_changed,
+    const Updater& updater)
+{
+    bool result = updater.num_iterations_ >= parameters_.max_iters;
+    if (result) {
+        this->set_all_statuses(handle, stoppingId, setFinalized, stop_status)
+            ->wait();
+        *one_changed = true;
+    }
+    return {handle, result};
+}
+
+
 bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
                            Array<stopping_status>* stop_status,
                            bool* one_changed, const Updater& updater)

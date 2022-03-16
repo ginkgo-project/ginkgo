@@ -47,13 +47,18 @@ namespace omp {
 namespace set_all_statuses {
 
 
-void set_all_statuses(std::shared_ptr<const OmpExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status>* stop_status)
+std::shared_ptr<AsyncHandle> set_all_statuses(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
+    Array<stopping_status>* stop_status)
 {
+    auto l = [=]() {
 #pragma omp parallel for
-    for (int i = 0; i < stop_status->get_num_elems(); i++) {
-        stop_status->get_data()[i].stop(stoppingId, setFinalized);
-    }
+        for (int i = 0; i < stop_status->get_num_elems(); i++) {
+            stop_status->get_data()[i].stop(stoppingId, setFinalized);
+        }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 

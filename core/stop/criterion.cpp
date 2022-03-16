@@ -42,7 +42,8 @@ namespace criterion {
 namespace {
 
 
-GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
+GKO_REGISTER_ASYNC_OPERATION(set_all_statuses,
+                             set_all_statuses::set_all_statuses);
 
 
 }  // anonymous namespace
@@ -52,8 +53,21 @@ GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
                                  Array<stopping_status>* stop_status)
 {
-    this->get_executor()->run(criterion::make_set_all_statuses(
-        stoppingId, setFinalized, stop_status));
+    this->get_executor()
+        ->run(criterion::make_async_set_all_statuses(stoppingId, setFinalized,
+                                                     stop_status),
+              this->get_executor()->get_default_exec_stream())
+        ->wait();
+}
+
+
+std::shared_ptr<AsyncHandle> Criterion::set_all_statuses(
+    std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
+    Array<stopping_status>* stop_status)
+{
+    return this->get_executor()->run(criterion::make_async_set_all_statuses(
+                                         stoppingId, setFinalized, stop_status),
+                                     handle);
 }
 
 
