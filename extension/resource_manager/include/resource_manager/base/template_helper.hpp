@@ -116,10 +116,10 @@ std::string combine_template(const std::string& base_template,
         if (base_sep <= curr_base_pos + (curr_base_pos != 0) &&
             type_sep <= curr_type_pos + (curr_type_pos != 0)) {
             // both are empty
-            assert(false);
             std::cerr << "The " << index
                       << "-th (0-based) template parameter is empty"
                       << std::endl;
+            assert(false);
         }
         curr_base_pos = base_sep;
         curr_type_pos = type_sep;
