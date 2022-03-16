@@ -298,7 +298,8 @@ public:
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         const gko::distributed::Partition<local_index_type, global_index_type>*
-            partition);
+            partition,
+        bool neighbor_comm = false);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -312,7 +313,8 @@ public:
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         const gko::distributed::Partition<local_index_type, global_index_type>*
-            partition);
+            partition,
+        bool neighbor_comm = false);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -334,7 +336,8 @@ public:
         const gko::distributed::Partition<local_index_type, global_index_type>*
             row_partition,
         const gko::distributed::Partition<local_index_type, global_index_type>*
-            col_partition);
+            col_partition,
+        bool neighbor_comm = false);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -350,7 +353,8 @@ public:
         const gko::distributed::Partition<local_index_type, global_index_type>*
             row_partition,
         const gko::distributed::Partition<local_index_type, global_index_type>*
-            col_partition);
+            col_partition,
+        bool neighbor_comm = false);
 
     /**
      * Get read access to the stored local matrix.
@@ -402,6 +406,8 @@ public:
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
+
+    void use_neighbor_comm();
 
 protected:
     /**
@@ -545,6 +551,7 @@ private:
     gko::detail::DenseCache<value_type> recv_buffer_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
+    bool uses_neighbor_comm_;
 };
 
 
