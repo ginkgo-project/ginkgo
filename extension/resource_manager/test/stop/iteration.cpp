@@ -49,7 +49,7 @@ namespace {
 TEST(Iteration, Create)
 {
     const char json[] =
-        "{\"base\": \"Iteration\", \"exec\": {\"base\": "
+        "{\"base\": \"IterationFactory\", \"exec\": {\"base\": "
         "\"ReferenceExecutor\"}}";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -71,8 +71,8 @@ TEST(Iteration, Create)
 TEST(Iteration, CreateWithMaxIters)
 {
     const char json[] =
-        "{\"base\": \"Iteration\", \"max_iters\": 100, \"exec\": {\"base\": "
-        "\"ReferenceExecutor\"}}";
+        "{\"base\": \"IterationFactory\", \"max_iters\": 100, \"exec\": "
+        "{\"base\": \"ReferenceExecutor\"}}";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
     d.ParseStream(s);
