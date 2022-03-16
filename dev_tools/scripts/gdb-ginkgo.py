@@ -22,10 +22,10 @@ import sys
 import re
 
 if sys.version_info[0] > 2:
-    ### Python 3 stuff
+    # Python 3 stuff
     Iterator = object
 else:
-    ### Python 2 stuff
+    # Python 2 stuff
     class Iterator:
         """Compatibility mixin for iterators
 
@@ -42,6 +42,7 @@ else:
 
 _versioned_namespace = '__8::'
 
+
 def is_specialization_of(x, template_name):
     "Test if a type is a given template instantiation."
     global _versioned_namespace
@@ -56,13 +57,14 @@ def get_unique_ptr_data_ptr(val):
     impl_type = val.type.fields()[0].type.tag
     # Check for new implementations first:
     if is_specialization_of(impl_type, '__uniq_ptr_data') \
-        or is_specialization_of(impl_type, '__uniq_ptr_impl'):
+            or is_specialization_of(impl_type, '__uniq_ptr_impl'):
         tuple_member = val['_M_t']['_M_t']
     elif is_specialization_of(impl_type, 'tuple'):
         tuple_member = val['_M_t']
     else:
-        raise ValueError("Unsupported implementation for unique_ptr: %s" % impl_type)
-    tuple_impl_type = tuple_member.type.fields()[0].type # _Tuple_impl
+        raise ValueError(
+            "Unsupported implementation for unique_ptr: %s" % impl_type)
+    tuple_impl_type = tuple_member.type.fields()[0].type  # _Tuple_impl
     tuple_head_type = tuple_impl_type.fields()[1].type   # _Head_base
     head_field = tuple_head_type.fields()[0]
     if head_field.name == '_M_head_impl':
@@ -70,14 +72,15 @@ def get_unique_ptr_data_ptr(val):
     elif head_field.is_base_class:
         return tuple_member.cast(head_field.type)
     else:
-        raise ValueError("Unsupported implementation for tuple in unique_ptr: %s" % impl_type)
+        raise ValueError(
+            "Unsupported implementation for tuple in unique_ptr: %s" % impl_type)
 
 
 class GkoArrayPrinter:
     "Print a gko::Array"
 
     class _iterator(Iterator):
-        def __init__ (self, exec, start, size):
+        def __init__(self, exec, start, size):
             self.exec = exec
             self.item = start
             self.size = size
@@ -85,17 +88,20 @@ class GkoArrayPrinter:
             if exec == "gko::CudaExecutor" or exec == "gko::HipExecutor":
                 self.sizeof = self.item.dereference().type.sizeof
                 self.buffer_start = 0
-                self.buffer_size = min(size, max(1, 2 ** 20 // self.sizeof)) # At most 1 MB or size, at least 1
-                self.buffer = gdb.parse_and_eval("(void*)malloc({})".format(self.buffer_size * self.sizeof))
+                # At most 1 MB or size, at least 1
+                self.buffer_size = min(size, max(1, 2 ** 20 // self.sizeof))
+                self.buffer = gdb.parse_and_eval(
+                    "(void*)malloc({})".format(self.buffer_size * self.sizeof))
                 self.buffer.fetch_lazy()
                 self.buffer_count = self.buffer_size
                 self.update_buffer()
             else:
                 self.buffer = None
-        
+
         def update_buffer(self):
             if self.buffer and self.buffer_count >= self.buffer_size:
-                self.buffer_item = gdb.parse_and_eval(hex(self.buffer)).cast(self.item.type)
+                self.buffer_item = gdb.parse_and_eval(
+                    hex(self.buffer)).cast(self.item.type)
                 self.buffer_count = 0
                 self.buffer_start = self.count
                 if self.exec == "gko::CudaExecutor":
@@ -106,14 +112,18 @@ class GkoArrayPrinter:
                     raise StopIteration
                 device_addr = hex(self.item.dereference().address)
                 buffer_addr = hex(self.buffer)
-                size = min(self.buffer_size, self.size - self.buffer_start) * self.sizeof
-                status = gdb.parse_and_eval(memcpy_expr.format(buffer_addr, device_addr, size))
+                size = min(self.buffer_size, self.size -
+                           self.buffer_start) * self.sizeof
+                status = gdb.parse_and_eval(
+                    memcpy_expr.format(buffer_addr, device_addr, size))
                 if status != 0:
-                    raise gdb.MemoryError("memcpy from device failed: {}".format(status))
+                    raise gdb.MemoryError(
+                        "memcpy from device failed: {}".format(status))
 
         def __del__(self):
             if self.buffer:
-                gdb.parse_and_eval("(void)free({})".format(hex(self.buffer))).fetch_lazy()
+                gdb.parse_and_eval("(void)free({})".format(
+                    hex(self.buffer))).fetch_lazy()
 
         def __iter__(self):
             return self
@@ -135,7 +145,8 @@ class GkoArrayPrinter:
 
     def __init__(self, val):
         self.val = val
-        self.execname = str(self.val['exec_']['_M_ptr'].dereference().dynamic_type.unqualified())
+        self.execname = str(
+            self.val['exec_']['_M_ptr'].dereference().dynamic_type.unqualified())
         self.pointer = get_unique_ptr_data_ptr(self.val['data_'])
 
     def children(self):
@@ -147,6 +158,7 @@ class GkoArrayPrinter:
     def display_hint(self):
         return 'array'
 
+
 def lookup_type(val):
     if not str(val.type.unqualified()).startswith('gko::'):
         return None
@@ -154,5 +166,6 @@ def lookup_type(val):
     if suffix.startswith('Array'):
         return GkoArrayPrinter(val)
     return None
+
 
 gdb.pretty_printers.append(lookup_type)
