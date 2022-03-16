@@ -87,10 +87,13 @@ inline constexpr bool is_gpu_aware()
 int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
-#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
-    template <>                                             \
-    struct type_impl<input_type> {                          \
-        static MPI_Datatype get_type() { return mpi_type; } \
+#define GKO_REGISTER_MPI_TYPE(input_type, mpi_type) \
+    template <>                                     \
+    struct type_impl<input_type> {                  \
+        static MPI_Datatype get_type()              \
+        {                                           \
+            return mpi_type;                        \
+        }                                           \
     }
 
 /**
@@ -480,6 +483,15 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+    }
+
+    communicator duplicate() const
+    {
+        MPI_Comm dup;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_dup(this->get(), &dup));
+        auto other = communicator{MPI_COMM_NULL, this->get_executor()};
+        other.comm_.reset(new MPI_Comm(dup), comm_deleter{});
+        return other;
     }
 
     /**
@@ -1413,6 +1425,22 @@ public:
             std::move(exec), send_buffer, send_counts, send_offsets,
             type_impl<SendType>::get_type(), recv_buffer, recv_counts,
             recv_offsets, type_impl<RecvType>::get_type());
+    }
+
+    request i_neighor_all_to_all_v(const void* send_buffer,
+                                   const int* send_counts,
+                                   const int* send_offsets,
+                                   MPI_Datatype send_type, void* recv_buffer,
+                                   const int* recv_counts,
+                                   const int* recv_offsets,
+                                   MPI_Datatype recv_type) const
+    {
+        auto guard = this->exec_->get_scoped_device_id();
+        request req(exec_);
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Ineighbor_alltoallv(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type, this->get(), req.get()));
+        return req;
     }
 
     /**

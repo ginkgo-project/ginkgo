@@ -87,7 +87,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       non_local_to_global_{exec},
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      non_local_mtx_{non_local_matrix_template->clone(exec)},
+      uses_neighbor_comm_(false),
+      neighbor_comm_(comm)
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -140,12 +142,80 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
+{
+    using gko::distributed::comm_index_type;
+    auto comm = this->get_communicator();
+    uses_neighbor_comm_ = true;
+    // define only outgoing edges:
+    auto source = comm.rank();
+    // compute degree for own rank
+    auto degree = static_cast<comm_index_type>(
+        std::count_if(send_sizes_.begin(), send_sizes_.end(),
+                      [](const auto v) { return v > 0; }));
+    // destinations are ranks where send_size > 0
+    std::vector<comm_index_type> destinations;
+    for (int r = 0; r < send_sizes_.size(); ++r) {
+        if (send_sizes_[r] > 0) {
+            destinations.push_back(r);
+        }
+    }
+
+    MPI_Comm graph;
+    MPI_Dist_graph_create(comm.get(), 1, &source, &degree, destinations.data(),
+                          MPI_UNWEIGHTED, MPI_INFO_NULL, true, &graph);
+
+    comm_index_type num_in_neighbors;
+    comm_index_type num_out_neighbors;
+    int weighted;
+    MPI_Dist_graph_neighbors_count(graph, &num_in_neighbors, &num_out_neighbors,
+                                   &weighted);
+
+    std::vector<comm_index_type> out_neighbors(num_out_neighbors);
+    std::vector<comm_index_type> in_neighbors(num_in_neighbors);
+    MPI_Dist_graph_neighbors(graph, num_in_neighbors, in_neighbors.data(),
+                             MPI_UNWEIGHTED, num_out_neighbors,
+                             out_neighbors.data(), MPI_UNWEIGHTED);
+
+    neighbor_comm_ = mpi::communicator{graph};
+
+    std::vector<comm_index_type> map_old_rank(comm.size());  // new to old rank
+    auto new_rank = neighbor_comm_.rank();
+    auto old_rank = comm.rank();
+    neighbor_comm_.all_gather(&old_rank, 1, map_old_rank.data(), 1);
+
+    // compress communication info
+    std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
+    std::vector<comm_index_type> comp_send_sizes(num_out_neighbors);
+    std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
+    std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
+
+    for (size_type i = 0; i < out_neighbors.size(); ++i) {
+        comp_send_sizes[i] = send_sizes_[out_neighbors[i]];
+    }
+    for (size_type i = 0; i < in_neighbors.size(); ++i) {
+        comp_recv_sizes[i] = recv_sizes_[in_neighbors[i]];
+    }
+    std::partial_sum(comp_send_sizes.begin(), comp_send_sizes.end(),
+                     comp_send_offsets.begin() + 1);
+    std::partial_sum(comp_recv_sizes.begin(), comp_recv_sizes.end(),
+                     comp_recv_offsets.begin() + 1);
+
+    recv_sizes_ = std::move(comp_recv_sizes);
+    recv_offsets_ = std::move(comp_recv_offsets);
+    send_sizes_ = std::move(comp_send_sizes);
+    send_offsets_ = std::move(comp_send_offsets);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<value_type, global_index_type>& data,
     ptr_param<const Partition<local_index_type, global_index_type>>
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    bool neighbor_comm)
 {
     const auto comm = this->get_communicator();
     GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
@@ -224,6 +294,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     if (use_host_buffer) {
         gather_idxs_.set_executor(exec);
     }
+
+    if (neighbor_comm) {
+        this->use_neighbor_comm();
+    }
 }
 
 
@@ -233,33 +307,36 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     ptr_param<const Partition<local_index_type, global_index_type>>
         row_partition,
     ptr_param<const Partition<local_index_type, global_index_type>>
-        col_partition)
+        col_partition,
+    bool neighbor_comm)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        row_partition, col_partition);
+        row_partition, col_partition, neighbor_comm);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition)
+    ptr_param<const Partition<local_index_type, global_index_type>> partition,
+    bool neighbor_comm)
 {
     this->read_distributed(
         device_matrix_data<value_type, global_index_type>::create_from_host(
             this->get_executor(), data),
-        partition, partition);
+        partition, partition, neighbor_comm);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     const device_matrix_data<ValueType, GlobalIndexType>& data,
-    ptr_param<const Partition<local_index_type, global_index_type>> partition)
+    ptr_param<const Partition<local_index_type, global_index_type>> partition,
+    bool neighbor_comm)
 {
-    this->read_distributed(data, partition, partition);
+    this->read_distributed(data, partition, partition, neighbor_comm);
 }
 
 
@@ -293,16 +370,25 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
                                     : recv_buffer_->get_values();
     exec->synchronize();
 #ifdef GINKGO_FORCE_SPMV_BLOCKING_COMM
+    if (uses_neighbor_comm_) {
+        throw std::runtime_error("Neighbor comm not supported atm");
+    }
     comm.all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
                       send_sizes_.data(), send_offsets_.data(), type.get(),
                       recv_ptr, recv_sizes_.data(), recv_offsets_.data(),
                       type.get());
     return {};
 #else
-    return comm.i_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec, send_ptr,
-        send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
-        recv_sizes_.data(), recv_offsets_.data(), type.get());
+    if (uses_neighbor_comm_) {
+        return neighbor_comm_.i_neighor_all_to_all_v(
+            send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
+            recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
+    } else {
+        return comm.i_all_to_all_v(
+            use_host_buffer ? exec->get_master() : exec, send_ptr,
+            send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
+    }
 #endif
 }
 
@@ -377,7 +463,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      neighbor_comm_(other.get_communicator())
 {
     *this = other;
 }
@@ -388,7 +475,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      neighbor_comm_(other.get_communicator())
 {
     *this = std::move(other);
 }
@@ -413,6 +501,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
+        uses_neighbor_comm_ = other.uses_neighbor_comm_;
+        neighbor_comm_ = other.neighbor_comm_;
     }
     return *this;
 }
@@ -437,6 +527,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
+        uses_neighbor_comm_ = std::exchange(other.uses_neighbor_comm_, false);
+        neighbor_comm_ = std::move(other.neighbor_comm_);
     }
     return *this;
 }

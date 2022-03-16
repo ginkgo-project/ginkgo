@@ -90,6 +90,11 @@ protected:
      */
     explicit DistributedBase(mpi::communicator comm) : comm_{std::move(comm)} {}
 
+    void set_commuinicator(mpi::communicator new_comm)
+    {
+        comm_ = std::move(new_comm);
+    }
+
 private:
     mpi::communicator comm_;
 };
