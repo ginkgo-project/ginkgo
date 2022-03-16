@@ -69,13 +69,13 @@ public:
         // needs to have a valid exisitng stream passed to it, otherwise, it
         // fails with invalid value.
         // Also need to destroy this stream
-        GKO_ASSERT_NO_CUDA_ERRORS(
-            cudaStreamCreateWithFlags(&old_stream_, cudaStreamNonBlocking));
-        handle_ = handle;
-        GKO_ASSERT_NO_CUBLAS_ERRORS(cublasGetStream(
-            reinterpret_cast<cublasHandle_t>(handle_), &old_stream_));
+        // GKO_ASSERT_NO_CUDA_ERRORS(
+        //     cudaStreamCreateWithFlags(&old_stream_, cudaStreamNonBlocking));
+        // handle_ = handle;
+        // GKO_ASSERT_NO_CUBLAS_ERRORS(cublasGetStream(
+        //     reinterpret_cast<cublasHandle_t>(handle_), &old_stream_));
         GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
-            reinterpret_cast<cublasHandle_t>(handle_), new_stream));
+            reinterpret_cast<cublasHandle_t>(handle), new_stream));
     }
 
     stream_guard(stream_guard& other) = delete;
@@ -89,13 +89,13 @@ public:
     ~stream_guard() noexcept(false)
     {
         // Ignore the error during stack unwinding for this call
-        if (std::uncaught_exception()) {
-            GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
-                reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
-        } else {
-            GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
-                reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
-        }
+        // if (std::uncaught_exception()) {
+        //     GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
+        //         reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
+        // } else {
+        //     GKO_ASSERT_NO_CUBLAS_ERRORS(cublasSetStream(
+        //         reinterpret_cast<cublasHandle_t>(handle_), old_stream_));
+        // }
     }
 
 private:
