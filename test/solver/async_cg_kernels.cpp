@@ -159,19 +159,20 @@ protected:
 };
 
 
-TEST_F(Cg, CgInitializeIsEquivalentToRef)
+TEST_F(Cg, AsyncCgInitializeIsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::initialize(
-        ref, ref->get_default_exec_stream(), b.get(), r.get(), z.get(), p.get(),
-        q.get(), prev_rho.get(), rho.get(), stop_status.get())
-        ->wait();
-    gko::kernels::EXEC_NAMESPACE::cg::initialize(
-        exec, exec->get_default_exec_stream(), d_b.get(), d_r.get(), d_z.get(),
+    auto hand1 = gko::kernels::reference::cg::initialize(
+        ref, ref->get_handle_at(0), b.get(), r.get(), z.get(), p.get(), q.get(),
+        prev_rho.get(), rho.get(), stop_status.get());
+    auto hand2 = gko::kernels::EXEC_NAMESPACE::cg::initialize(
+        exec, exec->get_handle_at(0), d_b.get(), d_r.get(), d_z.get(),
         d_p.get(), d_q.get(), d_prev_rho.get(), d_rho.get(),
-        d_stop_status.get())
-        ->wait();
+        d_stop_status.get());
+
+    hand1->wait();
+    hand2->wait();
 
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -183,35 +184,38 @@ TEST_F(Cg, CgInitializeIsEquivalentToRef)
 }
 
 
-TEST_F(Cg, CgStep1IsEquivalentToRef)
+TEST_F(Cg, AsyncCgStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::cg::step_1(ref, ref->get_default_exec_stream(),
-                                        p.get(), z.get(), rho.get(),
-                                        prev_rho.get(), stop_status.get())
-        ->wait();
-    gko::kernels::EXEC_NAMESPACE::cg::step_1(
-        exec, exec->get_default_exec_stream(), d_p.get(), d_z.get(),
-        d_rho.get(), d_prev_rho.get(), d_stop_status.get())
-        ->wait();
+    auto hand1 = gko::kernels::reference::cg::step_1(
+        ref, ref->get_handle_at(0), p.get(), z.get(), rho.get(), prev_rho.get(),
+        stop_status.get());
+    auto hand2 = gko::kernels::EXEC_NAMESPACE::cg::step_1(
+        exec, exec->get_handle_at(0), d_p.get(), d_z.get(), d_rho.get(),
+        d_prev_rho.get(), d_stop_status.get());
+
+    hand1->wait();
+    hand2->wait();
 
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
 }
 
 
-TEST_F(Cg, CgStep2IsEquivalentToRef)
+TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 {
     initialize_data();
-    gko::kernels::reference::cg::step_2(
+
+    auto hand1 = gko::kernels::reference::cg::step_2(
         ref, ref->get_default_exec_stream(), x.get(), r.get(), p.get(), q.get(),
-        beta.get(), rho.get(), stop_status.get())
-        ->wait();
-    gko::kernels::EXEC_NAMESPACE::cg::step_2(
+        beta.get(), rho.get(), stop_status.get());
+    auto hand2 = gko::kernels::EXEC_NAMESPACE::cg::step_2(
         exec, exec->get_default_exec_stream(), d_x.get(), d_r.get(), d_p.get(),
-        d_q.get(), d_beta.get(), d_rho.get(), d_stop_status.get())
-        ->wait();
+        d_q.get(), d_beta.get(), d_rho.get(), d_stop_status.get());
+
+    hand1->wait();
+    hand2->wait();
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
@@ -220,7 +224,7 @@ TEST_F(Cg, CgStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Cg, ApplyIsEquivalentToRef)
+TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
@@ -248,8 +252,8 @@ TEST_F(Cg, ApplyIsEquivalentToRef)
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    auto hand1 = solver->apply(b.get(), x.get(), ref->get_handle_at(0));
+    auto hand2 = d_solver->apply(d_b.get(), d_x.get(), exec->get_handle_at(0));
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
 }

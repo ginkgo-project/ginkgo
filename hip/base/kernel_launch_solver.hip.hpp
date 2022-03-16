@@ -66,14 +66,37 @@ void run_kernel_solver(std::shared_ptr<const HipExecutor> exec,
                        KernelArgs&&... args)
 {
     if (size[0] > 0 && size[1] > 0) {
+        auto handle = exec->get_default_exec_stream();
+        auto stream = as<HipAsyncHandle>(handle)->get_handle();
         constexpr auto block_size = kernels::hip::default_block_size;
         auto num_blocks = ceildiv(size[0] * size[1], block_size);
         hipLaunchKernelGGL(kernels::hip::generic_kernel_2d_solver, num_blocks,
-                           block_size, 0, 0, static_cast<int64>(size[0]),
+                           block_size, 0, stream, static_cast<int64>(size[0]),
+                           static_cast<int64>(size[1]),
+                           static_cast<int64>(default_stride), fn,
+                           kernels::hip::map_to_device(args)...);
+        handle->wait();
+    }
+}
+
+
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_solver(
+    std::shared_ptr<const HipExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, dim<2> size,
+    size_type default_stride, KernelArgs&&... args)
+{
+    if (size[0] > 0 && size[1] > 0) {
+        auto stream = as<HipAsyncHandle>(handle)->get_handle();
+        constexpr auto block_size = kernels::hip::default_block_size;
+        auto num_blocks = ceildiv(size[0] * size[1], block_size);
+        hipLaunchKernelGGL(kernels::hip::generic_kernel_2d_solver, num_blocks,
+                           block_size, 0, stream, static_cast<int64>(size[0]),
                            static_cast<int64>(size[1]),
                            static_cast<int64>(default_stride), fn,
                            kernels::hip::map_to_device(args)...);
     }
+    return handle;
 }
 
 

@@ -173,9 +173,11 @@ TYPED_TEST(Cg, KernelInitialize)
                 this->stopped);
 
     gko::kernels::reference::cg::initialize(
-        this->exec, this->small_b.get(), this->small_r.get(),
-        this->small_z.get(), this->small_p.get(), this->small_q.get(),
-        this->small_prev_rho.get(), this->small_rho.get(), &this->small_stop);
+        this->exec, this->exec->get_default_exec_stream(), this->small_b.get(),
+        this->small_r.get(), this->small_z.get(), this->small_p.get(),
+        this->small_q.get(), this->small_prev_rho.get(), this->small_rho.get(),
+        &this->small_stop)
+        ->wait();
 
     GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_z, this->small_zero, 0);
@@ -199,8 +201,10 @@ TYPED_TEST(Cg, KernelStep1)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::cg::step_1(
-        this->exec, this->small_p.get(), this->small_z.get(),
-        this->small_rho.get(), this->small_prev_rho.get(), &this->small_stop);
+        this->exec, this->exec->get_default_exec_stream(), this->small_p.get(),
+        this->small_z.get(), this->small_rho.get(), this->small_prev_rho.get(),
+        &this->small_stop)
+        ->wait();
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
 }
@@ -214,8 +218,10 @@ TYPED_TEST(Cg, KernelStep1DivByZero)
     this->small_prev_rho->fill(0);
 
     gko::kernels::reference::cg::step_1(
-        this->exec, this->small_p.get(), this->small_z.get(),
-        this->small_rho.get(), this->small_prev_rho.get(), &this->small_stop);
+        this->exec, this->exec->get_default_exec_stream(), this->small_p.get(),
+        this->small_z.get(), this->small_rho.get(), this->small_prev_rho.get(),
+        &this->small_stop)
+        ->wait();
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
 }
@@ -234,9 +240,10 @@ TYPED_TEST(Cg, KernelStep2)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::cg::step_2(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
-        this->small_rho.get(), &this->small_stop);
+        this->exec, this->exec->get_default_exec_stream(), this->small_x.get(),
+        this->small_r.get(), this->small_p.get(), this->small_q.get(),
+        this->small_beta.get(), this->small_rho.get(), &this->small_stop)
+        ->wait();
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-1.25, -2.0}, {-1.25, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
@@ -253,9 +260,10 @@ TYPED_TEST(Cg, KernelStep2DivByZero)
     this->small_beta->fill(0);
 
     gko::kernels::reference::cg::step_2(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
-        this->small_rho.get(), &this->small_stop);
+        this->exec, this->exec->get_default_exec_stream(), this->small_x.get(),
+        this->small_r.get(), this->small_p.get(), this->small_q.get(),
+        this->small_beta.get(), this->small_rho.get(), &this->small_stop)
+        ->wait();
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
@@ -286,6 +294,21 @@ TYPED_TEST(Cg, SolvesStencilSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Cg, AsyncSolvesStencilSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    auto hand = solver->apply(b.get(), x.get(), this->exec->get_handle_at(0));
+    hand->wait();
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }

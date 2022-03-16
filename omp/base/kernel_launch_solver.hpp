@@ -62,6 +62,18 @@ void run_kernel_solver(std::shared_ptr<const OmpExecutor> exec,
 }
 
 
+template <typename KernelFunction, typename... KernelArgs>
+std::shared_ptr<AsyncHandle> run_async_kernel_solver(
+    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, KernelFunction fn, dim<2> size,
+    size_type default_stride, KernelArgs&&... args)
+{
+    return run_async_kernel_impl(
+        exec, handle, fn, size,
+        map_to_device_solver(args, static_cast<int64>(default_stride))...);
+}
+
+
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
