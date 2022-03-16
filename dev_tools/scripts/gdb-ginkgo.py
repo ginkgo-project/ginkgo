@@ -24,11 +24,6 @@ import re
 if sys.version_info[0] > 2:
     ### Python 3 stuff
     Iterator = object
-    # Python 3 folds these into the normal functions.
-    imap = map
-    izip = zip
-    # Also, int subsumes long
-    long = int
 else:
     ### Python 2 stuff
     class Iterator:
@@ -44,9 +39,6 @@ else:
 
         def next(self):
             return self.__next__()
-
-    # In Python 2, we still need these from itertools
-    from itertools import imap, izip
 
 _versioned_namespace = '__8::'
 
@@ -85,34 +77,69 @@ class GkoArrayPrinter:
     "Print a gko::Array"
 
     class _iterator(Iterator):
-        def __init__ (self, start, size):
+        def __init__ (self, exec, start, size):
+            self.exec = exec
             self.item = start
             self.size = size
             self.count = 0
+            if exec == "gko::CudaExecutor" or exec == "gko::HipExecutor":
+                self.sizeof = self.item.dereference().type.sizeof
+                self.buffer_start = 0
+                self.buffer_size = min(size, max(1, 2 ** 20 // self.sizeof)) # At most 1 MB or size, at least 1
+                self.buffer = gdb.parse_and_eval("(void*)malloc({})".format(self.buffer_size * self.sizeof))
+                self.buffer.fetch_lazy()
+                self.buffer_count = self.buffer_size
+                self.update_buffer()
+            else:
+                self.buffer = None
+        
+        def update_buffer(self):
+            if self.buffer and self.buffer_count >= self.buffer_size:
+                self.buffer_item = gdb.parse_and_eval(hex(self.buffer)).cast(self.item.type)
+                self.buffer_count = 0
+                self.buffer_start = self.count
+                if self.exec == "gko::CudaExecutor":
+                    memcpy_expr = "(cudaError)cudaMemcpy({}, {}, {}, cudaMemcpyDeviceToHost)"
+                elif self.exec == "gko::HipExecutor":
+                    memcpy_expr = "(hipError_t)hipMemcpy({}, {}, {}, hipMemcpyDeviceToHost)"
+                else:
+                    raise StopIteration
+                device_addr = hex(self.item.dereference().address)
+                buffer_addr = hex(self.buffer)
+                size = min(self.buffer_size, self.size - self.buffer_start) * self.sizeof
+                status = gdb.parse_and_eval(memcpy_expr.format(buffer_addr, device_addr, size))
+                if status != 0:
+                    raise gdb.MemoryError("memcpy from device failed: {}".format(status))
+
+        def __del__(self):
+            if self.buffer:
+                gdb.parse_and_eval("(void)free({})".format(hex(self.buffer))).fetch_lazy()
 
         def __iter__(self):
             return self
 
         def __next__(self):
-            count = self.count
-            self.count = self.count + 1
-            if self.count > self.size:
+            if self.count >= self.size:
                 raise StopIteration
-            elt = self.item.dereference()
+            if self.buffer:
+                self.update_buffer()
+                elt = self.buffer_item.dereference()
+                self.buffer_item = self.buffer_item + 1
+                self.buffer_count = self.buffer_count + 1
+            else:
+                elt = self.item.dereference()
+            count = self.count
             self.item = self.item + 1
+            self.count = self.count + 1
             return ('[%d]' % count, elt)
 
     def __init__(self, val):
         self.val = val
-        self.execname = str(self.val['exec_']['_M_ptr'].dereference().dynamic_type)
-        self.pointer = get_unique_ptr_data_ptr(self.val['data_']);
-        # Cuda allows access via unified memory in Debug builds
-        self.is_cpu = re.match('gko::(Reference|Omp|Cuda)Executor', str(self.execname)) is not None
+        self.execname = str(self.val['exec_']['_M_ptr'].dereference().dynamic_type.unqualified())
+        self.pointer = get_unique_ptr_data_ptr(self.val['data_'])
 
     def children(self):
-        if self.is_cpu:
-            return self._iterator(self.pointer, self.val['num_elems_'])
-        return []
+        return self._iterator(self.execname, self.pointer, self.val['num_elems_'])
 
     def to_string(self):
         return ('%s of length %d on %s (%s)' % (str(self.val.type), int(self.val['num_elems_']), self.execname, self.pointer))
