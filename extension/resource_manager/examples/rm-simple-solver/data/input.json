@@ -44,7 +44,7 @@
             "criteria": [
                 {
                     "name": "10Iter",
-                    "base": "Iteration",
+                    "base": "IterationFactory",
                     "max_iters": 10
                 }
             ]

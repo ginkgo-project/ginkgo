@@ -55,16 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(AmgxPgmFactory) to ENUM_LINOPFACTORY
-// Add _expand(AmgxPgm) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)AmgxPgmFactory and (RM_LinOp::)AmgxPgm and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<typename gko::multigrid::AmgxPgm<ValueType, IndexType>::Factory,
                gko::multigrid::AmgxPgm<ValueType, IndexType>> {
@@ -148,6 +138,7 @@ create_from_config<RM_LinOp, RM_LinOp::AmgxPgm, gko::LinOp>(
                                get_default_string<handle_type::IndexType>()));
     // combine them together, base_string has higher priority than type_string
     auto combined = combine_template(base_string, remove_space(type_string));
+    std::cout << "generate AMGX_PGM " << combined << std::endl;
     auto ptr = amgx_pgm_select<gko::multigrid::AmgxPgm>(
         amgx_pgm_list, [=](std::string key) { return key == combined; }, item,
         exec, linop, manager);

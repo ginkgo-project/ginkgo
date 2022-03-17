@@ -136,10 +136,12 @@ public:
     {
         std::cout << "create_from_config" << std::endl;
         auto ptr = GenericHelper<T>::build(item, exec, linop, this);
+        std::cout << "finish build" << std::endl;
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
             this->insert_data<T>(item["name"].GetString(), ptr);
         }
+        std::cout << "insert_data" << ptr << std::endl;
         return ptr;
     }
 
