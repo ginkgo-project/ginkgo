@@ -69,7 +69,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -82,7 +82,7 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -172,12 +172,12 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     GKO_ASSERT(r->get_executor() != nullptr);
     GKO_ASSERT(neg_one_op->get_executor() != nullptr);
     GKO_ASSERT(one_op->get_executor() != nullptr);
-    GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
-    this->system_matrix_
+    GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
+    this->get_system_matrix()
         ->apply(neg_one_op.get(), dense_x, one_op.get(), r.get(), handle)
         ->wait();
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
 
@@ -193,7 +193,7 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
      * 1x norm2 residual   n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get(), handle)->wait();
+        this->get_preconditioner()->apply(r.get(), z.get(), handle)->wait();
         r->compute_conj_dot(z.get(), rho.get(), handle)->wait();
 
         ++iter;
@@ -215,7 +215,7 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                                         prev_rho.get(), &stop_status),
                   handle)
             ->wait();
-        system_matrix_->apply(p.get(), q.get(), handle)->wait();
+        this->get_system_matrix()->apply(p.get(), q.get(), handle)->wait();
         p->compute_conj_dot(q.get(), beta.get(), handle)->wait();
         // tmp = rho / beta
         // x = x + tmp * p
@@ -279,11 +279,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_ASSERT(r->get_executor() != nullptr);
     GKO_ASSERT(neg_one_op->get_executor() != nullptr);
     GKO_ASSERT(one_op->get_executor() != nullptr);
-    GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
-    this->system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
 
@@ -299,7 +299,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      * 1x norm2 residual   n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
+        this->get_preconditioner()->apply(r.get(), z.get());
         r->compute_conj_dot(z.get(), rho.get());
 
         ++iter;
@@ -321,7 +321,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                         prev_rho.get(), &stop_status),
                   exec->get_default_exec_stream())
             ->wait();
-        system_matrix_->apply(p.get(), q.get());
+        this->get_system_matrix()->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p
@@ -384,12 +384,12 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_ASSERT(r->get_executor() != nullptr);
     GKO_ASSERT(neg_one_op->get_executor() != nullptr);
     GKO_ASSERT(one_op->get_executor() != nullptr);
-    GKO_ASSERT(this->system_matrix_->get_executor() != nullptr);
+    GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
     auto x_clone = as<VectorType>(dense_x->clone());
-    this->system_matrix_->apply(neg_one_op.get(), x_clone.get(), one_op.get(),
-                                r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), x_clone.get(),
+                                     one_op.get(), r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}),
         x_clone.get(), r.get());
 
@@ -426,7 +426,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                         prev_rho.get(), &stop_status),
                   exec->get_default_exec_stream())
             ->wait();
-        this->system_matrix_->apply(p.get(), q.get());
+        this->get_system_matrix()->apply(p.get(), q.get());
         p->compute_conj_dot(q.get(), beta.get());
         // tmp = rho / beta
         // x = x + tmp * p
