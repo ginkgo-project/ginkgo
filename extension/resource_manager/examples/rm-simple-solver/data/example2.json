@@ -28,7 +28,7 @@
             "criteria": [
                 {
                     "name": "20Iter",
-                    "base": "Iteration",
+                    "base": "IterationFactory",
                     "max_iters": 20,
                     "exec": "executor"
                 }

@@ -174,7 +174,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         std::shared_ptr<const Executor> exec,                                 \
         std::shared_ptr<const LinOp> linop, ResourceManager* manager)         \
     {                                                                         \
-        std::cout << "search on enum" << std::endl;                           \
+        std::cout << "search on enum " << base << std::endl;                  \
         ENUM_MAP(_base_type##Select, _enum_type, std::shared_ptr<_base_type>, \
                  _list, static);                                              \
         auto it = _base_type##Select.find(base);                              \
@@ -268,7 +268,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define SET_POINTER_VECTOR(_param_type, _param_name)                         \
     if (item_alias_.HasMember(#_param_name)) {                               \
-        std::cout << exec_alias_.get() << std::endl;                         \
+        std::cout << "pointer_vector executor " << exec_alias_.get()         \
+                  << std::endl;                                              \
         factory_alias_.with_##_param_name(get_pointer_vector<_param_type>(   \
             item_alias_[#_param_name], exec_alias_, linop_alias_,            \
             manager_alias_));                                                \
