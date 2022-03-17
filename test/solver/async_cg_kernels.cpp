@@ -233,6 +233,9 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);
+    auto d_mtx2 = gko::clone(exec, mtx);
+    auto d_x2 = gko::clone(exec, x);
+    auto d_b2 = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
@@ -251,11 +254,15 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
             .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
+    auto d_solver2 = d_cg_factory->generate(std::move(d_mtx2));
 
     auto hand1 = solver->apply(b.get(), x.get(), ref->get_handle_at(0));
     auto hand2 = d_solver->apply(d_b.get(), d_x.get(), exec->get_handle_at(0));
+    auto hand3 =
+        d_solver2->apply(d_b2.get(), d_x2.get(), exec->get_handle_at(1));
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x2, x, ::r<value_type>::value * 100);
 }
 
 
