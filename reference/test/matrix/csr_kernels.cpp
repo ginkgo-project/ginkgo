@@ -1781,7 +1781,9 @@ TYPED_TEST(Csr, CanGetSubmatrixWithIndexSet)
             I<T>{0.0, 3.0, 0.0, 7.5, 1.0}    // 6
         },
         this->exec);
+
     ASSERT_EQ(mat->get_num_stored_elements(), 23);
+
     {
         SCOPED_TRACE("Small square 2x2");
         auto row_set = gko::IndexSet<index_type>(this->exec, {0, 1});
