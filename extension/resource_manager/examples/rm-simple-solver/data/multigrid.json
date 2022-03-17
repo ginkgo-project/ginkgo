@@ -1,0 +1,111 @@
+[
+    {
+        "name": "executor",
+        "base": "ReferenceExecutor"
+    },
+    {
+        "name": "A",
+        "base": "Csr",
+        "exec": "executor",
+        "read": "data/A.mtx"
+    },
+    {
+        "name": "b",
+        "base": "Dense",
+        "ValueType": "double",
+        "exec": "executor",
+        "read": "data/b.mtx"
+    },
+    {
+        "name": "x",
+        "base": "Dense",
+        "ValueType": "double",
+        "exec": "executor",
+        "read": "data/x0.mtx"
+    },
+    {
+        "name": "double_pgm",
+        "base": "AmgxPgmFactory",
+        "deterministic": true,
+        "exec": "executor"
+    },
+    {
+        "name": "float_pgm",
+        "base": "AmgxPgmFactory",
+        "ValueType": "float",
+        "deterministic": true,
+        "exec": "executor"
+    },
+    {
+        "name": "sm_stop",
+        "base": "IterationFactory",
+        "max_iters": 1,
+        "exec": "executor"
+    },
+    {
+        "name": "double_sm",
+        "base": "IrFactory",
+        "criteria": "sm_stop",
+        "solver": {
+            "base": "JacobiFactory",
+            "max_block_size": 1
+        },
+        "relaxation_factor": 0.9,
+        "exec": "executor"
+    },
+    {
+        "name": "float_sm",
+        "base": "IrFactory",
+        "ValueType": "float",
+        "criteria": "sm_stop",
+        "solver": {
+            "base": "JacobiFactory",
+            "ValueType": "float",
+            "max_block_size": 1
+        },
+        "relaxation_factor": 0.9,
+        "exec": "executor"
+    },
+    {
+        "name": "solver",
+        "base": "Multigrid",
+        "factory": {
+            "exec": "executor",
+            "criteria": [
+                {
+                    "base": "IterationFactory",
+                    "max_iters": 17,
+                    "exec": "executor"
+                }
+            ],
+            "max_levels": 10,
+            "min_coarse_rows": 2,
+            "pre_smoother": [
+                "double_sm",
+                "float_sm"
+            ],
+            "mg_level": [
+                "double_pgm",
+                "float_pgm"
+            ],
+            "level_selector": "firstfortop",
+            "coarsest_solver": {
+                "base": "IrFactory",
+                "criteria": {
+                    "base": "IterationFactory",
+                    "max_iters": 4,
+                    "exec": "executor"
+                },
+                "solver": {
+                    "base": "JacobiFactory",
+                    "ValueType": "float",
+                    "max_block_size": 1,
+                    "exec": "executor"
+                },
+                "relaxation_factor": 0.9,
+                "exec": "executor"
+            }
+        },
+        "generate": "A"
+    }
+]
