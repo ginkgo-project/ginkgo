@@ -755,6 +755,32 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    using IndexType = int;
+    using ValueType = double;
+    set_up_mat_data();
+    gko::IndexSet<IndexType> rset{
+        this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
+    gko::IndexSet<IndexType> cset{this->ref,
+                                  {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::IndexSet<IndexType> drset(this->omp, rset);
+    gko::IndexSet<IndexType> dcset(this->omp, cset);
+    auto size = this->mtx2->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
+    row_nnz.fill(gko::zero<int>());
+    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
+        this->ref, this->mtx2.get(), rset, cset, &row_nnz);
+    gko::kernels::omp::csr::calculate_nonzeros_per_row_in_index_set(
+        this->omp, this->dmtx2.get(), drset, dcset, &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
+}
+
+
 TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
 {
     using Mtx = gko::matrix::Csr<>;

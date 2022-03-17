@@ -839,6 +839,7 @@ void compute_submatrix_from_index_set(
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
+    auto row_superset_indices = row_index_set.get_superset_indices();
     auto res_row_ptrs = result->get_row_ptrs();
     auto res_col_idxs = result->get_col_idxs();
     auto res_values = result->get_values();
@@ -850,10 +851,13 @@ void compute_submatrix_from_index_set(
     const auto src_col_idxs = source->get_const_col_idxs();
     const auto src_values = source->get_const_values();
 
-    size_type res_nnz = 0;
+#pragma unroll
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
+            auto local_row =
+                row - row_subset_begin[set] + row_superset_indices[set];
+            auto res_nnz = res_row_ptrs[local_row];
             for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
                 auto index = src_col_idxs[i];
                 if (index >= col_index_set.get_size()) {
