@@ -61,7 +61,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
     return build()
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(parameters_.relaxation_factor)
         .on(this->get_executor())
         ->generate(
@@ -75,7 +75,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
     return build()
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
         .on(this->get_executor())
         ->generate(share(

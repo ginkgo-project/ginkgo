@@ -210,6 +210,12 @@ protected:
         std::shared_ptr<const Partition<LocalIndexType>> partition = nullptr,
         dim<2> global_size = {}, dim<2> local_size = {});
 
+    explicit Vector(std::shared_ptr<const Executor> exec,
+                    std::shared_ptr<mpi::communicator> comm,
+                    std::shared_ptr<const Partition<LocalIndexType>> partition,
+                    dim<2> global_size, dim<2> local_size,
+                    Array<ValueType>&& local_view);
+
     void apply_impl(const LinOp*, LinOp*) const override;
 
     void apply_impl(const LinOp*, const LinOp*, const LinOp*,

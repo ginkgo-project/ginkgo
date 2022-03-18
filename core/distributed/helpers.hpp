@@ -52,6 +52,35 @@ std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size(
 
 
 template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size_from_view(
+    Array<ValueType>& workspace, int offset,
+    const matrix::Dense<ValueType>* mtx)
+{
+    GKO_ASSERT(workspace.get_executor()->get_mem_space()->memory_accessible(
+        mtx->get_executor()->get_mem_space()));
+    auto workspace_offset_view = Array<ValueType>::view(
+        workspace.get_executor(), mtx->get_size()[0] * mtx->get_size()[1],
+        workspace.get_data() + offset);
+    return matrix::Dense<ValueType>::create(
+        mtx->get_executor(), mtx->get_size(), std::move(workspace_offset_view),
+        mtx->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> create_with_size_from_view(
+    std::shared_ptr<const Executor> exec, Array<ValueType>& workspace,
+    int offset, dim<2> size)
+{
+    auto workspace_offset_view =
+        Array<ValueType>::view(workspace.get_executor(), size[0] * size[1],
+                               workspace.get_data() + offset);
+    return matrix::Dense<ValueType>::create(
+        exec, size, std::move(workspace_offset_view), size[1]);
+}
+
+
+template <typename ValueType>
 const matrix::Dense<ValueType>* get_local(const matrix::Dense<ValueType>* mtx)
 {
     return mtx;
@@ -90,6 +119,25 @@ create_with_same_size(const distributed::Vector<ValueType, LocalIndexType>* mtx)
     return distributed::Vector<ValueType, LocalIndexType>::create(
         mtx->get_executor(), mtx->get_communicator(), mtx->get_partition(),
         mtx->get_size(), mtx->get_local()->get_size());
+}
+
+
+template <typename ValueType, typename LocalIndexType>
+std::unique_ptr<distributed::Vector<ValueType, LocalIndexType>>
+create_with_same_size_from_view(
+    Array<ValueType>& workspace, int offset,
+    const distributed::Vector<ValueType, LocalIndexType>* mtx)
+{
+    GKO_ASSERT(workspace.get_executor()->get_mem_space()->memory_accessible(
+        mtx->get_executor()->get_mem_space()));
+    auto workspace_offset_view = Array<ValueType>::view(
+        workspace.get_executor(),
+        mtx->get_local()->get_size()[0] * mtx->get_local()->get_size()[1],
+        workspace.get_data() + offset);
+    return distributed::Vector<ValueType, LocalIndexType>::create(
+        mtx->get_executor(), mtx->get_communicator(), mtx->get_partition(),
+        mtx->get_size(), mtx->get_local()->get_size(),
+        std::move(workspace_offset_view));
 }
 
 

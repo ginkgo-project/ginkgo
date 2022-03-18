@@ -159,6 +159,19 @@ Vector<ValueType, LocalIndexType>::Vector(
 
 
 template <typename ValueType, typename LocalIndexType>
+Vector<ValueType, LocalIndexType>::Vector(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<mpi::communicator> comm,
+    std::shared_ptr<const Partition<LocalIndexType>> partition,
+    dim<2> global_size, dim<2> local_size, Array<ValueType>&& local_view)
+    : EnableLinOp<Vector<ValueType, LocalIndexType>>{exec, global_size},
+      DistributedBase{comm},
+      partition_{std::move(partition)},
+      local_{exec, local_size, std::move(local_view), local_size[1]}
+{}
+
+
+template <typename ValueType, typename LocalIndexType>
 void Vector<ValueType, LocalIndexType>::read_distributed(
     const matrix_data<ValueType, global_index_type>& data,
     std::shared_ptr<const Partition<LocalIndexType>> partition)

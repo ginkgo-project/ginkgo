@@ -64,6 +64,21 @@ GKO_REGISTER_ASYNC_OPERATION(step_2, cg::step_2);
 
 
 template <typename ValueType>
+void Cg<ValueType>::generate()
+{
+    // TODO: Fix for distributed. Need to have local sizes
+    auto num_rows = this->get_system_matrix()->get_size()[0];
+    // FIXME: Probably needs to be stride instead
+    auto nrhs = this->get_parameters().num_rhs;
+    this->workspace_ = gko::Array<ValueType>(
+        this->get_executor(),
+        num_rows * nrhs * num_aux_vecs + nrhs * num_aux_scalars);
+    this->stop_status_ =
+        gko::Array<stopping_status>(this->get_executor(), nrhs);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
 {
     return build()
@@ -138,29 +153,49 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     auto exec = this->get_executor();
     handle_guard hg{exec, handle};
 
-    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
+    auto num_rhs = dense_b->get_size()[1];
+    GKO_ASSERT(this->get_parameters().num_rhs == num_rhs);
+    int offset = 0;
+    auto num_rows = detail::get_local(dense_b)->get_size()[0];
+    auto r = detail::create_with_same_size_from_view(this->workspace_, offset,
+                                                     dense_b);
+    offset += num_rows * num_rhs;
+    auto z = detail::create_with_same_size_from_view(this->workspace_, offset,
+                                                     dense_b);
+    offset += num_rows * num_rhs;
+    auto p = detail::create_with_same_size_from_view(this->workspace_, offset,
+                                                     dense_b);
+    offset += num_rows * num_rhs;
+    auto q = detail::create_with_same_size_from_view(this->workspace_, offset,
+                                                     dense_b);
 
-    auto r = detail::create_with_same_size(dense_b);
-    auto z = detail::create_with_same_size(dense_b);
-    auto p = detail::create_with_same_size(dense_b);
-    auto q = detail::create_with_same_size(dense_b);
 
-    auto alpha = LocalVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = LocalVector::create_with_config_of(alpha.get());
-    auto prev_rho = LocalVector::create_with_config_of(alpha.get());
-    auto rho = LocalVector::create_with_config_of(alpha.get());
+    offset += num_rows * num_rhs;
+    auto alpha = detail::create_with_size_from_view(exec, this->workspace_,
+                                                    offset, dim<2>{1, num_rhs});
+    offset += num_rhs;
+    auto beta = detail::create_with_same_size_from_view(this->workspace_,
+                                                        offset, alpha.get());
+    offset += num_rhs;
+    auto prev_rho = detail::create_with_same_size_from_view(
+        this->workspace_, offset, alpha.get());
+    offset += num_rhs;
+    auto rho = detail::create_with_same_size_from_view(this->workspace_, offset,
+                                                       alpha.get());
+    // auto alpha = LocalVector::create(exec, dim<2>{1,
+    // dense_b->get_size()[1]}); auto beta =
+    // LocalVector::create_with_config_of(alpha.get()); auto prev_rho =
+    // LocalVector::create_with_config_of(alpha.get()); auto rho =
+    // LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(cg::make_async_initialize(
                   detail::get_local(dense_b), detail::get_local(r.get()),
                   detail::get_local(z.get()), detail::get_local(p.get()),
                   detail::get_local(q.get()), prev_rho.get(), rho.get(),
-                  &stop_status),
+                  &this->stop_status_),
               handle)
         ->wait();
     // r = dense_b
@@ -170,11 +205,12 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
 
     GKO_ASSERT(dense_x->get_executor() != nullptr);
     GKO_ASSERT(r->get_executor() != nullptr);
-    GKO_ASSERT(neg_one_op->get_executor() != nullptr);
-    GKO_ASSERT(one_op->get_executor() != nullptr);
+    GKO_ASSERT(this->neg_one_op_->get_executor() != nullptr);
+    GKO_ASSERT(this->one_op_->get_executor() != nullptr);
     GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
     this->get_system_matrix()
-        ->apply(neg_one_op.get(), dense_x, one_op.get(), r.get(), handle)
+        ->apply(this->neg_one_op_.get(), dense_x, this->one_op_.get(), r.get(),
+                handle)
         ->wait();
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -204,7 +240,8 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                 .residual(r.get())
                 .implicit_sq_residual_norm(rho.get())
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+                .check(RelativeStoppingId, true, &this->stop_status_,
+                       &one_changed)) {
             break;
         }
 
@@ -212,7 +249,7 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
         // p = z + tmp * p
         exec->run(cg::make_async_step_1(detail::get_local(p.get()),
                                         detail::get_local(z.get()), rho.get(),
-                                        prev_rho.get(), &stop_status),
+                                        prev_rho.get(), &this->stop_status_),
                   handle)
             ->wait();
         this->get_system_matrix()->apply(p.get(), q.get(), handle)->wait();
@@ -223,7 +260,7 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
         exec->run(cg::make_async_step_2(
                       detail::get_local(dense_x), detail::get_local(r.get()),
                       detail::get_local(p.get()), detail::get_local(q.get()),
-                      beta.get(), rho.get(), &stop_status),
+                      beta.get(), rho.get(), &this->stop_status_),
                   handle)
             ->wait();
         handle->wait();
@@ -244,9 +281,6 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
-
-    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
     auto r = detail::create_with_same_size(dense_b);
     auto z = detail::create_with_same_size(dense_b);
@@ -277,11 +311,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_ASSERT(dense_x->get_executor() != nullptr);
     GKO_ASSERT(r->get_executor() != nullptr);
-    GKO_ASSERT(neg_one_op->get_executor() != nullptr);
-    GKO_ASSERT(one_op->get_executor() != nullptr);
+    GKO_ASSERT(this->neg_one_op_->get_executor() != nullptr);
+    GKO_ASSERT(this->one_op_->get_executor() != nullptr);
     GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
+    this->get_system_matrix()->apply(this->neg_one_op_.get(), dense_x,
+                                     this->one_op_.get(), r.get());
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
@@ -350,9 +384,6 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
 
-    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
-
     auto r = detail::create_with_same_size(dense_b);
     auto z = detail::create_with_same_size(dense_b);
     auto p = detail::create_with_same_size(dense_b);
@@ -382,12 +413,12 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_ASSERT(dense_x->get_executor() != nullptr);
     GKO_ASSERT(r->get_executor() != nullptr);
-    GKO_ASSERT(neg_one_op->get_executor() != nullptr);
-    GKO_ASSERT(one_op->get_executor() != nullptr);
+    GKO_ASSERT(this->neg_one_op_->get_executor() != nullptr);
+    GKO_ASSERT(this->one_op_->get_executor() != nullptr);
     GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
     auto x_clone = as<VectorType>(dense_x->clone());
-    this->get_system_matrix()->apply(neg_one_op.get(), x_clone.get(),
-                                     one_op.get(), r.get());
+    this->get_system_matrix()->apply(this->neg_one_op_.get(), x_clone.get(),
+                                     this->one_op_.get(), r.get());
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}),

@@ -81,6 +81,9 @@ public:
     using value_type = ValueType;
     using transposed_type = Cg<ValueType>;
 
+    static constexpr int num_aux_vecs = 4;
+    static constexpr int num_aux_scalars = 4;
+
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
@@ -94,6 +97,11 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * Number of rhs, if known at generation time
+         */
+        unsigned GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1);
+
         /**
          * Criterion factories.
          */
@@ -148,6 +156,8 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x, const OverlapMask& wmask) const override;
 
+    void generate();
+
     explicit Cg(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Cg>(std::move(exec))
     {}
@@ -159,7 +169,19 @@ protected:
           EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
-    {}
+    {
+        this->generate();
+        one_op_ = initialize<matrix::Dense<ValueType>>({one<ValueType>()},
+                                                       this->get_executor());
+        neg_one_op_ = initialize<matrix::Dense<ValueType>>(
+            {-one<ValueType>()}, this->get_executor());
+    }
+
+private:
+    mutable Array<ValueType> workspace_;
+    mutable Array<stopping_status> stop_status_;
+    std::shared_ptr<matrix::Dense<ValueType>> one_op_;
+    std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
 };
 
 

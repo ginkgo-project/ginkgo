@@ -228,8 +228,8 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50, 53);
     gko::test::make_hpd(mtx.get());
-    auto x = gen_mtx(50, 3, 5);
-    auto b = gen_mtx(50, 3, 4);
+    auto x = gen_mtx(50, 1, 1);
+    auto b = gen_mtx(50, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);
