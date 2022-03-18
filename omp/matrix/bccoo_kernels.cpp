@@ -70,6 +70,13 @@ void get_default_block_size(std::shared_ptr<const OmpExecutor> exec,
 }
 
 
+void get_default_compression(std::shared_ptr<const OmpExecutor> exec,
+                             matrix::bccoo::compression* compression)
+{
+    *compression = matrix::bccoo::compression::element;
+}
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,

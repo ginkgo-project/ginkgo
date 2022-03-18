@@ -72,6 +72,13 @@ void get_default_block_size(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 
+void get_default_compression(std::shared_ptr<const ReferenceExecutor> exec,
+                             matrix::bccoo::compression* compression)
+{
+    *compression = matrix::bccoo::compression::element;
+}
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
@@ -187,6 +194,30 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     if ((source->get_block_size() == block_size_res) &&
         (source->get_compression() == commpress_res)) {
         *mem_size = source->get_num_bytes();
+    } else if ((source->use_element_compression()) &&
+               (commpress_res == matrix::bccoo::compression::element)) {
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto num_stored_elements = source->get_num_stored_elements();
+        auto block_size_src = source->get_block_size();
+        /*
+                for (size_type i = 0; i < num_stored_elements; i++) {
+                    get_detect_newblock(rows_data_src, offsets_data_src,
+           nblk_src, blk_src, shf_src, row_src, col_src);
+                    put_detect_newblock(chunk_data_res, rows_data_res, nblk_res,
+                                        blk_res, shf_res, row_res, row_src -
+           row_res, col_res); uint8 ind_src = get_position_newrow_put(
+                        chunk_data_src, shf_src, row_src, col_src,
+           chunk_data_res, nblk_res, blk_res, rows_data_res, shf_res, row_res,
+           col_res); get_next_position_value(chunk_data_src, nblk_src, ind_src,
+           shf_src, col_src, val_src); val_res = val_src;
+                    put_next_position_value(chunk_data_res, nblk_res, col_src -
+           col_res, shf_res, col_res, val_res); get_detect_endblock(block_size,
+           nblk_src, blk_src); put_detect_endblock(offsets_data_res, shf_res,
+           block_size, nblk_res, blk_res);
+                }
+        */
     } else if (source->use_element_compression()) {
         auto* rows_data_src = source->get_const_rows();
         auto* offsets_data_src = source->get_const_offsets();
@@ -238,11 +269,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             shf_res += sizeof(ValueType) * block_size_local;
             /*
                uint8 type_blk = (mul_row)? 1: 0;
-                                                         if (mul_row) { }
+               if (mul_row) { }
                if (col_dif < 256) {
                    type_blk |= GKO_BCCOO_COLS_8BITS;
-                                                         } else if (col_dif <
-               65536) { type_blk |= GKO_BCCOO_COLS_16BITS; } else { }
+               } else if (col_dif < 65536) {
+                                                                        type_blk
+               |= GKO_BCCOO_COLS_16BITS; } else { }
             */
         }
         *mem_size = shf_res;

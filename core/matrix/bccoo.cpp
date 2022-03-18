@@ -58,6 +58,7 @@ namespace bccoo {
 
 
 GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+GKO_REGISTER_OPERATION(get_default_compression, bccoo::get_default_compression);
 GKO_REGISTER_OPERATION(spmv, bccoo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, bccoo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, bccoo::spmv2);
@@ -135,16 +136,74 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<ValueType, IndexType>* result) const
 {
+    /* CONVERT CSR -> BCCOO
+        auto exec = this->get_executor();
+        auto num_stored_elements = this->get_num_stored_elements();
+
+        //  const size_type block_size = 1024;
+        // JIAE TODO
+        //  const auto block_size = Bccoo<ValueType, IndexType>::
+        //    compute_block_size( result->get_executor(), this.size(),
+        //    num_stored_elements);
+        size_type block_size = 1024;
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+        const auto num_blocks = ceildiv(num_stored_elements, block_size);
+
+        Array<IndexType> rows(exec, num_blocks);
+        Array<IndexType> offsets(exec, num_blocks + 1);
+
+        size_type mem_size{};
+        if (exec == exec->get_master()) {
+            exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
+                                               offsets.get_data(), num_blocks,
+                                               block_size, &mem_size));
+        } else {
+            //        auto host_csr = clone(exec->get_master(), this);
+            auto host_csr = this->clone(exec->get_master());
+            exec->get_master()->run(csr::make_mem_size_bccoo(
+                host_csr.get(), rows.get_data(), offsets.get_data(), num_blocks,
+                block_size, &mem_size));
+        }
+
+        Array<uint8> data(exec, mem_size);
+
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, this->get_size(), std::move(data), std::move(offsets),
+            std::move(rows), num_stored_elements, block_size);
+
+        exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
+        tmp->move_to(result);
+
+    */
+    auto exec = this->get_executor();
+    const auto num_blocks = ceildiv(num_stored_elements, block_size);
+
+    size_type block_size = 1024;
+    exec->run(bccoo::make_get_default_block_size(&block_size));
+    auto num_stored_elements = this->get_num_stored_elements();
+
+    Array<IndexType> rows(exec, num_blocks);
+    Array<IndexType> offsets(exec, num_blocks + 1);
+
+    size_type mem_size{};
+
     gko::matrix::bccoo::compression compression_src = this->get_compression();
     gko::matrix::bccoo::compression compression_res = result->get_compression();
 
     /*
-    if (result_executor is on GPU) {
+    if (result_executor is on GPU) { // ASK ABOUT THIS CONDITION
             compression_res = gko::matrix::bccoo::compression::block;
     }
     */
+
     if (compression_src == compression_res) {
-        // result = this->clone();
+        // result = this->clone(exec); // ASK ABOUT THIS OPERATION
+        // Better copy each scalar/vector
+        // 		gko::Array<type> new_rows(new_exec, rows);
+        // 		new_rows = rows;
+        // 		new_rows = rows->copy();
+        // 		new_rows->copy_from(rows);
+
     } else if (compression_src == gko::matrix::bccoo::compression::element) {
         // convert_from_element_to_block(this, result);
     } else {

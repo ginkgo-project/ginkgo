@@ -65,6 +65,11 @@ void get_default_block_size(std::shared_ptr<const DpcppExecutor> exec,
                             size_type* block_size) GKO_NOT_IMPLEMENTED;
 
 
+void get_default_compression(std::shared_ptr<const DpcppExecutor> exec,
+                             matrix::bccoo::compression* compression)
+    GKO_NOT_IMPLEMENTED;
+
+
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,

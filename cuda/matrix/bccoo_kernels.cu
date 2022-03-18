@@ -75,7 +75,17 @@ constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
 void get_default_block_size(std::shared_ptr<const CudaExecutor> exec,
-                            size_type* block_size) GKO_NOT_IMPLEMENTED;
+                            size_type* block_size)
+{
+    *block_size = 10;
+}
+
+
+void get_default_compression(std::shared_ptr<const CudaExecutor> exec,
+                             matrix::bccoo::compression* compression)
+{
+    *compression = matrix::bccoo::compression::block;
+}
 
 
 template <typename ValueType, typename IndexType>

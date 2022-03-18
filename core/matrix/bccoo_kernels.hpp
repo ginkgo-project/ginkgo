@@ -55,6 +55,10 @@ namespace kernels {
     void get_default_block_size(std::shared_ptr<const DefaultExecutor> exec, \
                                 size_type* block_size)
 
+#define GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL()                          \
+    void get_default_compression(std::shared_ptr<const DefaultExecutor> exec, \
+                                 matrix::bccoo::compression* compression)
+
 #define GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,  \
               const matrix::Bccoo<ValueType, IndexType>* a, \
