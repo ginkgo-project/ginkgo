@@ -39,6 +39,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+
+
+std::string HipfftError::get_error(int64 error_code)
+{
+    return "Does not contain hipfft.";
+}
+
+
 namespace kernels {
 namespace hip {
 /**
