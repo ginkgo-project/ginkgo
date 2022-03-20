@@ -110,8 +110,10 @@ protected:
           baseline_{baseline},
           system_matrix_{args.system_matrix},
           b_{args.b},
-          one_{gko::initialize<Vector>({1}, exec)},
-          neg_one_{gko::initialize<Vector>({-1}, exec)}
+          one_{Vector::create(exec)},
+          neg_one_{Vector::create(exec)}
+    // one_{gko::initialize<Vector>({1}, exec)},
+    // neg_one_{gko::initialize<Vector>({-1}, exec)}
     {
 #if GINKGO_BUILD_MPI
         using DistributedComplexVector =

@@ -169,7 +169,6 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     auto q = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
 
-
     offset += num_rows * num_rhs;
     auto alpha = detail::create_with_size_from_view(exec, this->workspace_,
                                                     offset, dim<2>{1, num_rhs});
@@ -182,11 +181,6 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     offset += num_rhs;
     auto rho = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                        alpha.get());
-    // auto alpha = LocalVector::create(exec, dim<2>{1,
-    // dense_b->get_size()[1]}); auto beta =
-    // LocalVector::create_with_config_of(alpha.get()); auto prev_rho =
-    // LocalVector::create_with_config_of(alpha.get()); auto rho =
-    // LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
 
@@ -196,22 +190,14 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                   detail::get_local(z.get()), detail::get_local(p.get()),
                   detail::get_local(q.get()), prev_rho.get(), rho.get(),
                   &this->stop_status_),
-              handle)
-        ->wait();
+              handle);
     // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
 
-    GKO_ASSERT(dense_x->get_executor() != nullptr);
-    GKO_ASSERT(r->get_executor() != nullptr);
-    GKO_ASSERT(this->neg_one_op_->get_executor() != nullptr);
-    GKO_ASSERT(this->one_op_->get_executor() != nullptr);
-    GKO_ASSERT(this->get_system_matrix()->get_executor() != nullptr);
-    this->get_system_matrix()
-        ->apply(this->neg_one_op_.get(), dense_x, this->one_op_.get(), r.get(),
-                handle)
-        ->wait();
+    this->get_system_matrix()->apply(this->neg_one_op_.get(), dense_x,
+                                     this->one_op_.get(), r.get(), handle);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
@@ -229,19 +215,22 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
      * 1x norm2 residual   n
      */
     while (true) {
-        this->get_preconditioner()->apply(r.get(), z.get(), handle)->wait();
-        r->compute_conj_dot(z.get(), rho.get(), handle)->wait();
+        this->get_preconditioner()->apply(r.get(), z.get(), handle);
+        r->compute_conj_dot(z.get(), rho.get(), handle);
 
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &this->stop_status_,
-                       &one_changed)) {
+        // this->template log<log::Logger::iteration_complete>(
+        //     this, iter, r.get(), dense_x, nullptr, rho.get());
+        auto stop = stop_criterion->update()
+                        .num_iterations(iter)
+                        .residual(r.get())
+                        .implicit_sq_residual_norm(rho.get())
+                        .solution(dense_x)
+                        .check(handle, RelativeStoppingId, true,
+                               &this->stop_status_, &one_changed);
+
+        // std::get<1>(stop).wait();
+        if (std::get<1>(stop)) {
             break;
         }
 
@@ -250,10 +239,10 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
         exec->run(cg::make_async_step_1(detail::get_local(p.get()),
                                         detail::get_local(z.get()), rho.get(),
                                         prev_rho.get(), &this->stop_status_),
-                  handle)
-            ->wait();
-        this->get_system_matrix()->apply(p.get(), q.get(), handle)->wait();
-        p->compute_conj_dot(q.get(), beta.get(), handle)->wait();
+                  handle);
+
+        this->get_system_matrix()->apply(p.get(), q.get(), handle);
+        p->compute_conj_dot(q.get(), beta.get(), handle);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
@@ -261,9 +250,8 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                       detail::get_local(dense_x), detail::get_local(r.get()),
                       detail::get_local(p.get()), detail::get_local(q.get()),
                       beta.get(), rho.get(), &this->stop_status_),
-                  handle)
-            ->wait();
-        handle->wait();
+                  handle);
+        // handle->wait();
         swap(prev_rho, rho);
     }
     return handle;

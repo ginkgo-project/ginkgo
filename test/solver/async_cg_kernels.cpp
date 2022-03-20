@@ -226,43 +226,51 @@ TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 
 TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53);
+    exec->set_default_exec_stream(exec->get_handle_at(0));
+    auto mtx = gen_mtx(2000, 2000, 2000);
     gko::test::make_hpd(mtx.get());
-    auto x = gen_mtx(50, 1, 1);
-    auto b = gen_mtx(50, 1, 1);
+    auto x = gen_mtx(2000, 1, 1);
+    auto b = gen_mtx(2000, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);
     auto d_mtx2 = gko::clone(exec, mtx);
     auto d_x2 = gko::clone(exec, x);
     auto d_b2 = gko::clone(exec, b);
+    auto d_mtx3 = gko::clone(exec, mtx);
+    auto d_x3 = gko::clone(exec, x);
+    auto d_b3 = gko::clone(exec, b);
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
-                gko::stop::ResidualNorm<value_type>::build()
+                gko::stop::Iteration::build().with_max_iters(500u).on(ref),
+                gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
             .on(ref);
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
-                gko::stop::ResidualNorm<value_type>::build()
+                gko::stop::Iteration::build().with_max_iters(500u).on(exec),
+                gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
             .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
     auto d_solver2 = d_cg_factory->generate(std::move(d_mtx2));
+    auto d_solver3 = d_cg_factory->generate(std::move(d_mtx3));
 
-    auto hand1 = solver->apply(b.get(), x.get(), ref->get_handle_at(0));
-    auto hand2 = d_solver->apply(d_b.get(), d_x.get(), exec->get_handle_at(0));
+    solver->apply(b.get(), x.get());
+    auto hand2 = d_solver->apply(d_b.get(), d_x.get(), exec->get_handle_at(1));
     auto hand3 =
-        d_solver2->apply(d_b2.get(), d_x2.get(), exec->get_handle_at(1));
+        d_solver2->apply(d_b2.get(), d_x2.get(), exec->get_handle_at(2));
+    auto hand4 =
+        d_solver3->apply(d_b3.get(), d_x3.get(), exec->get_handle_at(3));
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x2, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
+    GKO_ASSERT_MTX_NEAR(d_x2, x, ::r<value_type>::value * 1000);
+    GKO_ASSERT_MTX_NEAR(d_x3, x, ::r<value_type>::value * 1000);
 }
 
 

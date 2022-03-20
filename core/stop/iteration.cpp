@@ -44,9 +44,10 @@ std::tuple<std::shared_ptr<AsyncHandle>, bool> Iteration::check_impl(
 {
     bool result = updater.num_iterations_ >= parameters_.max_iters;
     if (result) {
-        this->set_all_statuses(handle, stoppingId, setFinalized, stop_status)
-            ->wait();
         *one_changed = true;
+        return {this->set_all_statuses(handle, stoppingId, setFinalized,
+                                       stop_status),
+                result};
     }
     return {handle, result};
 }
