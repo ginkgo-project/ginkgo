@@ -48,6 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dpcpp/components/uninitialized_array.hpp"
 
 
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
@@ -170,7 +175,11 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
                                ValueType* result, size_type size,
                                Array<char>& tmp, MappedKernelArgs... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 4;
+#else
     constexpr int oversubscription = 4;
+#endif
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     const auto num_workgroups =
@@ -214,7 +223,11 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
                                ValueType* result, dim<2> size, Array<char>& tmp,
                                MappedKernelArgs... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 4;
+#else
     constexpr int oversubscription = 4;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto flat_size = rows * cols;
@@ -566,7 +579,11 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     using subsubgroup_sizes =
         syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
                         std::min<int>(32, sg_size), sg_size>;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto resources =
@@ -619,7 +636,11 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     using subsubgroup_sizes =
         syn::value_list<int, 1, 2, 4, 8, std::min<int>(16, sg_size),
                         std::min<int>(32, sg_size), sg_size>;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto max_blocks =

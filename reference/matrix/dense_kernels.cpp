@@ -397,6 +397,26 @@ void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
 
 
+template <typename ValueType>
+void compute_sparselib_dot(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
+    matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SPARSELIB_DOT_KERNEL);
+
+
+template <typename ValueType>
+void compute_sparselib_norm2(std::shared_ptr<const DefaultExecutor> exec,
+                             const matrix::Dense<ValueType>* x,
+                             matrix::Dense<remove_complex<ValueType>>* result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SPARSELIB_NORM2_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const ReferenceExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,

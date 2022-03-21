@@ -46,6 +46,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/matrix/dense_kernels.hpp"
+
+
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
+
+GKO_REGISTER_OPERATION(compute_sparselib_dot, dense::compute_sparselib_dot);
+GKO_REGISTER_OPERATION(compute_sparselib_norm, dense::compute_sparselib_norm2);
 
 
 // Command-line arguments
@@ -57,8 +67,10 @@ DEFINE_string(
     "   multiaxpy (like axpy, but a has one entry per column),\n"
     "   scal (y = a * y),\n"
     "   multiscal (like scal, but a has one entry per column),\n"
-    "   dot (a = x' * y),"
+    "   dot (a = x' * y),\n"
+    "   sparselib_dot (like dot, but using vendor libraries),\n"
     "   norm (a = sqrt(x' * x)),\n"
+    "   sparselib_norm (like norm, but using vendor libraries),\n"
     "   mm (C = A * B),\n"
     "   gemm (C = a * A * B + b * C)\n"
     "where A has dimensions n x k, B has dimensions k x m,\n"
@@ -73,6 +85,7 @@ public:
     virtual gko::size_type get_memory() const = 0;
     virtual void prepare(){};
     virtual void run() = 0;
+    virtual bool is_tunable() { return false; }
 };
 
 
@@ -205,10 +218,25 @@ public:
 
     void run() override { x_->compute_dot(lend(y_), lend(alpha_)); }
 
-private:
+    bool is_tunable() override { return true; }
+
+protected:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
     std::unique_ptr<gko::matrix::Dense<etype>> x_;
     std::unique_ptr<gko::matrix::Dense<etype>> y_;
+};
+
+
+class SparselibDotOperation : public DotOperation {
+    using DotOperation::DotOperation;
+
+    void run() override
+    {
+        auto exec = alpha_->get_executor();
+        exec->run(make_compute_sparselib_dot(x_.get(), y_.get(), alpha_.get()));
+    }
+
+    bool is_tunable() override { return false; }
 };
 
 
@@ -218,7 +246,8 @@ public:
                   gko::size_type rows, gko::size_type cols,
                   gko::size_type stride)
     {
-        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
+        alpha_ = gko::matrix::Dense<gko::remove_complex<etype>>::create(
+            exec, gko::dim<2>{1, cols});
         y_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
                                                stride);
         y_->fill(1);
@@ -236,9 +265,24 @@ public:
 
     void run() override { y_->compute_norm2(lend(alpha_)); }
 
-private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    bool is_tunable() override { return true; }
+
+protected:
+    std::unique_ptr<gko::matrix::Dense<gko::remove_complex<etype>>> alpha_;
     std::unique_ptr<gko::matrix::Dense<etype>> y_;
+};
+
+
+class SparselibNormOperation : public NormOperation {
+    using NormOperation::NormOperation;
+
+    void run() override
+    {
+        auto exec = alpha_->get_executor();
+        exec->run(make_compute_sparselib_norm(y_.get(), alpha_.get()));
+    }
+
+    bool is_tunable() override { return false; }
 };
 
 
@@ -407,10 +451,20 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
              return std::make_unique<DotOperation>(
                  exec, dims.n, dims.r, dims.stride_x, dims.stride_y);
          }},
+        {"sparselib_dot",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<SparselibDotOperation>(
+                 exec, dims.n, dims.r, dims.stride_x, dims.stride_y);
+         }},
         {"norm",
          [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
              return std::make_unique<NormOperation>(exec, dims.n, dims.r,
                                                     dims.stride_y);
+         }},
+        {"sparselib_norm",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<SparselibNormOperation>(
+                 exec, dims.n, dims.r, dims.stride_y);
          }},
         {"mm",
          [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
@@ -466,6 +520,44 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(blas_case[operation_name], "repetitions", repetitions,
                           allocator);
 
+        // tuning run
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+        if (op->is_tunable()) {
+            if (!blas_case[operation_name].HasMember("tuning")) {
+                blas_case[operation_name].AddMember(
+                    "tuning", rapidjson::Value(rapidjson::kObjectType),
+                    allocator);
+            }
+            auto& tuning_case = blas_case[operation_name]["tuning"];
+            add_or_set_member(tuning_case, "time",
+                              rapidjson::Value(rapidjson::kArrayType),
+                              allocator);
+            add_or_set_member(tuning_case, "values",
+                              rapidjson::Value(rapidjson::kArrayType),
+                              allocator);
+
+            // Enable tuning for this portion of code
+            gko::_tuning_flag = true;
+            // Select some values we want to tune.
+            std::vector<gko::size_type> tuning_values(32);
+            std::iota(tuning_values.begin(), tuning_values.end(), 0);
+            for (auto val : tuning_values) {
+                gko::_tuned_value = val;
+                IterationControl ic_tuning{timer};
+                op->prepare();
+                for (auto _ : ic_tuning.run()) {
+                    op->run();
+                }
+                tuning_case["time"].PushBack(ic_tuning.compute_average_time(),
+                                             allocator);
+                tuning_case["values"].PushBack(val, allocator);
+            }
+            // We put back the flag to false to use the default (non-tuned)
+            // values for the following
+            gko::_tuning_flag = false;
+        }
+#endif
+
         // compute and write benchmark data
         add_or_set_member(blas_case[operation_name], "completed", true,
                           allocator);
@@ -504,7 +596,8 @@ int main(int argc, char* argv[])
                          "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
+    std::string extra_information =
+        "The operations are " + FLAGS_operations + "\n";
     print_general_information(extra_information);
 
     auto exec = executor_factory.at(FLAGS_executor)();

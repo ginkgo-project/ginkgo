@@ -124,7 +124,11 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  ValueType* result, size_type size,
                                  Array<char>& tmp, KernelArgs&&... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     constexpr auto block_size = default_block_size;
     const auto num_blocks = std::min<int64>(
         ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
@@ -161,7 +165,11 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  ValueType* result, dim<2> size,
                                  Array<char>& tmp, KernelArgs&&... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     constexpr auto block_size = default_block_size;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -195,10 +203,10 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
-        int64 rows, int64 cols, int64 col_blocks, KernelFunction fn,
-        ReductionOp op, FinalizeOp finalize, ValueType identity,
-        ValueType* result, int64 result_stride, KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
+    int64 rows, int64 cols, int64 col_blocks, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    int64 result_stride, KernelArgs... args)
 {
     const auto idx = thread::get_subwarp_id_flat<subwarp_size, int64>();
     const auto row = idx % rows;
@@ -227,10 +235,10 @@ __global__
 template <int subwarp_size, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     constexpr auto warps_per_block = default_block_size / warp_size;
@@ -290,10 +298,10 @@ __global__
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
-        int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, ValueType* result,
-        KernelArgs... args)
+__launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
+    int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result,
+    KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
     __shared__ UninitializedArray<ValueType, default_block_size> block_partial;
@@ -329,10 +337,10 @@ __global__
 
 template <typename ValueType, typename ReductionOp, typename FinalizeOp>
 __global__
-    __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
-        int64 num_results, int64 num_blocks, ReductionOp op,
-        FinalizeOp finalize, ValueType identity, const ValueType* input,
-        int64 result_stride, ValueType* result)
+__launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
+    int64 num_results, int64 num_blocks, ReductionOp op, FinalizeOp finalize,
+    ValueType identity, const ValueType* input, int64 result_stride,
+    ValueType* result)
 {
     const auto idx = thread::get_thread_id_flat<int64>();
     if (idx >= num_results) {
@@ -430,7 +438,11 @@ void run_kernel_row_reduction_cached(
 {
     using subwarp_sizes =
         syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto resources =
@@ -480,7 +492,11 @@ void run_kernel_col_reduction_cached(
 {
     using subwarp_sizes =
         syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 16;
+#else
     constexpr int oversubscription = 16;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto max_blocks = exec->get_num_warps() * config::warp_size *

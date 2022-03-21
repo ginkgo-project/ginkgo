@@ -42,13 +42,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+#include "benchmark/utils/tuning_variables.hpp"
+#endif  // GINKGO_BENCHMARK_ENABLE_TUNING
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
-
-
-// how many more reduction tasks we launch relative to the number of threads
-constexpr int reduction_kernel_oversubscription = 4;
 
 
 namespace {
@@ -207,6 +208,11 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                    dim<2> size, Array<char>& tmp,
                                    MappedKernelArgs... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 4;
+#else
+    constexpr int oversubscription = 4;
+#endif
     constexpr int block_size = 8;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -215,8 +221,7 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         return;
     }
     // enough work to keep all threads busy or only very small reduction sizes
-    if (rows >= reduction_kernel_oversubscription * num_threads ||
-        cols < rows) {
+    if (rows >= oversubscription * num_threads || cols < rows) {
 #pragma omp parallel for
         for (int64 row = 0; row < rows; row++) {
             [&]() {
@@ -300,6 +305,11 @@ void run_kernel_col_reduction_sized_impl(
     FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
     Array<char>& tmp, MappedKernelArgs... args)
 {
+#ifdef GINKGO_BENCHMARK_ENABLE_TUNING
+    const int oversubscription = gko::_tuning_flag ? gko::_tuned_value : 4;
+#else
+    constexpr int oversubscription = 4;
+#endif
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
@@ -307,8 +317,7 @@ void run_kernel_col_reduction_sized_impl(
     GKO_ASSERT(cols % block_size == remainder_cols);
     const auto num_col_blocks = ceildiv(cols, block_size);
     // enough work to keep all threads busy or only very small reduction sizes
-    if (cols >= reduction_kernel_oversubscription * num_threads ||
-        rows < cols) {
+    if (cols >= oversubscription * num_threads || rows < cols) {
 #pragma omp parallel for
         for (int64 col_block = 0; col_block < num_col_blocks; col_block++) {
             const auto base_col = col_block * block_size;
@@ -325,7 +334,7 @@ void run_kernel_col_reduction_sized_impl(
     } else {
         // number of blocks that need to be reduced afterwards
         const auto reduction_size =
-            ceildiv(reduction_kernel_oversubscription * num_threads, cols);
+            ceildiv(oversubscription * num_threads, cols);
         const auto rows_per_thread = ceildiv(rows, reduction_size);
         const auto required_storage = sizeof(ValueType) * rows * reduction_size;
         if (tmp.get_num_elems() < required_storage) {

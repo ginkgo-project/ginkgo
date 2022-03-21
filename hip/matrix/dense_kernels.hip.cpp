@@ -126,6 +126,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
+void compute_sparselib_dot(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           const matrix::Dense<ValueType>* y,
+                           matrix::Dense<ValueType>* result)
+{
+    if (hipblas::is_supported<ValueType>::value) {
+        auto handle = exec->get_hipblas_handle();
+        for (size_type col = 0; col < x->get_size()[1]; col++) {
+            hipblas::dot(handle, x->get_size()[0], x->get_const_values() + col,
+                         x->get_stride(), y->get_const_values() + col,
+                         y->get_stride(), result->get_values() + col);
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SPARSELIB_DOT_KERNEL);
+
+
+template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
                             matrix::Dense<remove_complex<ValueType>>* result,
@@ -146,6 +168,27 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
+
+
+template <typename ValueType>
+void compute_sparselib_norm2(std::shared_ptr<const DefaultExecutor> exec,
+                             const matrix::Dense<ValueType>* x,
+                             matrix::Dense<remove_complex<ValueType>>* result)
+{
+    if (hipblas::is_supported<ValueType>::value) {
+        auto handle = exec->get_hipblas_handle();
+        for (size_type col = 0; col < x->get_size()[1]; col++) {
+            hipblas::norm2(handle, x->get_size()[0],
+                           x->get_const_values() + col, x->get_stride(),
+                           result->get_values() + col);
+        }
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SPARSELIB_NORM2_KERNEL);
 
 
 template <typename ValueType>
