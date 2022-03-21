@@ -243,7 +243,14 @@ public:
 
     friend class Dense<next_precision<ValueType>>;
 
+    std::shared_ptr<AsyncHandle> convert_to(
+        Dense<ValueType>* result,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
     void convert_to(Dense<ValueType>* result) const override;
+
+    std::shared_ptr<AsyncHandle> move_to(
+        Dense<ValueType>* result, std::shared_ptr<AsyncHandle> handle) override;
 
     void move_to(Dense<ValueType>* result) override;
 

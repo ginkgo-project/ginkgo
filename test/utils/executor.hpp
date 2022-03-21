@@ -69,7 +69,8 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::HipExecutor>& exec)
 {
     ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    exec = gko::HipExecutor::create(0, ref);
+    exec =
+        gko::HipExecutor::create(0, ref, true, gko::allocation_mode::device, 4);
 }
 
 

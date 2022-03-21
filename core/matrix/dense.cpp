@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/handle_guard.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -624,6 +625,33 @@ std::shared_ptr<AsyncHandle> Dense<ValueType>::compute_norm1_impl(
 
 
 template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::convert_to(
+    Dense<ValueType>* result, std::shared_ptr<AsyncHandle> handle) const
+{
+    if (this->get_size() && result->get_size() == this->get_size()) {
+        // we need to create a executor-local clone of the target data, that
+        // will be copied back later.
+        auto exec = this->get_executor();
+        auto result_array = make_temporary_output_clone(exec, &result->values_);
+        // create a (value, not pointer to avoid allocation overhead) view
+        // matrix on the array to avoid special-casing cross-executor copies
+        auto tmp_result =
+            Dense{exec, result->get_size(),
+                  Array<ValueType>::view(exec, result_array->get_num_elems(),
+                                         result_array->get_data()),
+                  result->get_stride()};
+        return exec->run(dense::make_async_copy(this, &tmp_result), handle);
+    } else {
+        handle_guard hg{this->get_executor(), handle};
+        result->values_ = this->values_;
+        result->stride_ = this->stride_;
+        result->set_size(this->get_size());
+        return handle;
+    }
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
 {
     if (this->get_size() && result->get_size() == this->get_size()) {
@@ -646,6 +674,14 @@ void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
         result->stride_ = this->stride_;
         result->set_size(this->get_size());
     }
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Dense<ValueType>::move_to(
+    Dense<ValueType>* result, std::shared_ptr<AsyncHandle> handle)
+{
+    return this->convert_to(result, handle);
 }
 
 

@@ -49,10 +49,7 @@ template <typename ValueType>
 std::shared_ptr<AsyncHandle> Identity<ValueType>::apply_impl(
     const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
 {
-    handle_guard hg1(x->get_executor(), handle);
-    handle_guard hg2(b->get_executor(), handle);
-    x->copy_from(b);
-    return handle;
+    return x->copy_from(b, handle);
 }
 
 

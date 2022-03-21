@@ -89,6 +89,7 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
         result->copy_from(tmp_mtx.get());
+
         return result;
     }
 
@@ -227,10 +228,10 @@ TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     exec->set_default_exec_stream(exec->get_handle_at(0));
-    auto mtx = gen_mtx(2000, 2000, 2000);
+    auto mtx = gen_mtx(100, 100, 100);
     gko::test::make_hpd(mtx.get());
-    auto x = gen_mtx(2000, 1, 1);
-    auto b = gen_mtx(2000, 1, 1);
+    auto x = gen_mtx(100, 1, 1);
+    auto b = gen_mtx(100, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);
@@ -243,18 +244,22 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(ref),
-                gko::stop::ImplicitResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(ref))
+                gko::stop::Iteration::build().with_max_iters(500u).on(ref)
+                // ,
+                // gko::stop::ImplicitResidualNorm<value_type>::build()
+                //     .with_reduction_factor(::r<value_type>::value)
+                // .on(ref)
+                )
             .on(ref);
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(exec),
-                gko::stop::ImplicitResidualNorm<value_type>::build()
-                    .with_reduction_factor(::r<value_type>::value)
-                    .on(exec))
+                gko::stop::Iteration::build().with_max_iters(500u).on(exec)
+                // ,
+                // gko::stop::ImplicitResidualNorm<value_type>::build()
+                //     .with_reduction_factor(::r<value_type>::value)
+                // .on(exec)
+                )
             .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
