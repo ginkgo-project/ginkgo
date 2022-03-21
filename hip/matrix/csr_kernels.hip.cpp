@@ -282,104 +282,6 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const HipExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
-          const OverlapMask write_mask)
-{
-    auto async_handle = exec->get_default_exec_stream();
-    auto stream = as<HipAsyncHandle>(async_handle)->get_handle();
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
-        // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "load_balance") {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
-        const IndexType nwarps = a->get_num_srow_elements();
-        if (nwarps > 0) {
-            const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
-            hipLaunchKernelGGL(
-                kernel::abstract_spmv, csr_grid, csr_block, 0, stream, nwarps,
-                static_cast<IndexType>(a->get_size()[0]),
-                as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_hip_type(a->get_const_row_ptrs()),
-                as_hip_type(a->get_const_srow()),
-                as_hip_type(b->get_const_values()),
-                as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
-                as_hip_type(c->get_stride()));
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
-        }
-    } else if (a->get_strategy()->get_name() == "merge_path") {
-        int items_per_thread =
-            host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
-        host_kernel::select_merge_path_spmv(
-            compiled_kernels(),
-            [&items_per_thread](int compiled_info) {
-                return items_per_thread == compiled_info;
-            },
-            syn::value_list<int>(), syn::type_list<>(), exec, async_handle, a,
-            b, c);
-    } else {
-        bool try_sparselib = (a->get_strategy()->get_name() == "sparselib" ||
-                              a->get_strategy()->get_name() == "cusparse");
-        try_sparselib = try_sparselib &&
-                        hipsparse::is_supported<ValueType, IndexType>::value;
-        try_sparselib =
-            try_sparselib && b->get_stride() == 1 && c->get_stride() == 1;
-        // rocSPARSE has issues with zero matrices
-        try_sparselib = try_sparselib && a->get_num_stored_elements() > 0;
-        if (try_sparselib) {
-            auto handle = exec->get_hipsparse_handle();
-            auto descr = hipsparse::create_mat_descr();
-            {
-                hipsparse::pointer_mode_guard pm_guard(handle);
-                auto row_ptrs = a->get_const_row_ptrs();
-                auto col_idxs = a->get_const_col_idxs();
-                auto alpha = one<ValueType>();
-                auto beta = zero<ValueType>();
-                hipsparse::spmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                                a->get_size()[0], a->get_size()[1],
-                                a->get_num_stored_elements(), &alpha, descr,
-                                a->get_const_values(), row_ptrs, col_idxs,
-                                b->get_const_values(), &beta, c->get_values());
-            }
-            hipsparse::destroy(descr);
-        } else {
-            IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<ValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
-            }
-            host_kernel::select_classical_spmv(
-                classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
-                },
-                syn::value_list<int>(), syn::type_list<>(), exec, async_handle,
-                a, b, c);
-        }
-    }
-    async_handle->wait();
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
                                   std::shared_ptr<AsyncHandle> async_handle,
                                   const matrix::Csr<ValueType, IndexType>* a,
@@ -476,19 +378,18 @@ std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
     return async_handle;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Csr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c, const OverlapMask write_mask)
+std::shared_ptr<AsyncHandle> advanced_spmv(
+    std::shared_ptr<const HipExecutor> exec,
+    std::shared_ptr<AsyncHandle> async_handle,
+    const matrix::Dense<ValueType>* alpha,
+    const matrix::Csr<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, const matrix::Dense<ValueType>* beta,
+    matrix::Dense<ValueType>* c, const OverlapMask write_mask)
 {
-    auto async_handle = exec->get_default_exec_stream();
     auto stream = as<HipAsyncHandle>(async_handle)->get_handle();
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
@@ -575,7 +476,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 a, b, c, alpha, beta);
         }
     }
-    async_handle->wait();
+    return async_handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

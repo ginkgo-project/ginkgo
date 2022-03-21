@@ -63,7 +63,9 @@ protected:
 #else
     using value_type = double;
 #endif
+    using index_type = int;
     using Mtx = gko::matrix::Dense<value_type>;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
 
     Cg() : rand_engine(30) {}
 
@@ -78,6 +80,19 @@ protected:
         if (exec != nullptr) {
             ASSERT_NO_THROW(exec->synchronize());
         }
+    }
+
+    std::unique_ptr<CsrMtx> gen_mtx(gko::size_type num_rows,
+                                    gko::size_type num_cols)
+    {
+        auto tmp_mtx = gko::test::generate_random_matrix<CsrMtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        auto result = CsrMtx::create(ref, gko::dim<2>{num_rows, num_cols});
+        result->copy_from(tmp_mtx.get());
+
+        return result;
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
@@ -228,8 +243,10 @@ TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     exec->set_default_exec_stream(exec->get_handle_at(0));
-    auto mtx = gen_mtx(100, 100, 100);
-    gko::test::make_hpd(mtx.get());
+    auto dense_mtx = gen_mtx(100, 100, 100);
+    gko::test::make_hpd(dense_mtx.get());
+    auto mtx = CsrMtx::create(ref);
+    mtx->copy_from(dense_mtx.get());
     auto x = gen_mtx(100, 1, 1);
     auto b = gen_mtx(100, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);

@@ -71,54 +71,6 @@ namespace csr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Csr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c,
-          const OverlapMask write_mask)
-{
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
-    auto wspan = write_mask.write_idxs;
-    auto restrict = write_mask.restrict;
-
-#pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        ValueType sum = zero<ValueType>();
-        if (restrict) {
-            if (wspan.in_span(row)) {
-                for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                    c->at(row, j) = zero<ValueType>();
-                }
-            }
-        } else {
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) = zero<ValueType>();
-            }
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = vals[k];
-            auto col = col_idxs[k];
-            if (restrict) {
-                if (wspan.in_span(row)) {
-                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                        c->at(row, j) += val * b->at(col, j);
-                    }
-                }
-            } else {
-                for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                    c->at(row, j) += val * b->at(col, j);
-                }
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
                                   std::shared_ptr<AsyncHandle> handle,
                                   const matrix::Csr<ValueType, IndexType>* a,
@@ -166,56 +118,58 @@ std::shared_ptr<AsyncHandle> spmv(std::shared_ptr<const DefaultExecutor> exec,
     return handle;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_CSR_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Csr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c, const OverlapMask write_mask)
+std::shared_ptr<AsyncHandle> advanced_spmv(
+    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* alpha,
+    const matrix::Csr<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, const matrix::Dense<ValueType>* beta,
+    matrix::Dense<ValueType>* c, const OverlapMask write_mask)
 {
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
-    auto vals = a->get_const_values();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
-    auto wspan = write_mask.write_idxs;
-    auto restrict = write_mask.restrict;
+    auto l = [=]() {
+        auto row_ptrs = a->get_const_row_ptrs();
+        auto col_idxs = a->get_const_col_idxs();
+        auto vals = a->get_const_values();
+        auto valpha = alpha->at(0, 0);
+        auto vbeta = beta->at(0, 0);
+        auto wspan = write_mask.write_idxs;
+        auto restrict = write_mask.restrict;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        if (restrict) {
-            if (wspan.in_span(row)) {
-                for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                    c->at(row, j) *= vbeta;
-                }
-            }
-        } else {
-            for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                c->at(row, j) *= vbeta;
-            }
-        }
-        for (size_type k = row_ptrs[row];
-             k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = vals[k];
-            auto col = col_idxs[k];
+        for (size_type row = 0; row < a->get_size()[0]; ++row) {
             if (restrict) {
                 if (wspan.in_span(row)) {
                     for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                        c->at(row, j) += valpha * val * b->at(col, j);
+                        c->at(row, j) *= vbeta;
                     }
                 }
             } else {
                 for (size_type j = 0; j < c->get_size()[1]; ++j) {
-                    c->at(row, j) += valpha * val * b->at(col, j);
+                    c->at(row, j) *= vbeta;
+                }
+            }
+            for (size_type k = row_ptrs[row];
+                 k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
+                auto val = vals[k];
+                auto col = col_idxs[k];
+                if (restrict) {
+                    if (wspan.in_span(row)) {
+                        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                            c->at(row, j) += valpha * val * b->at(col, j);
+                        }
+                    }
+                } else {
+                    for (size_type j = 0; j < c->get_size()[1]; ++j) {
+                        c->at(row, j) += valpha * val * b->at(col, j);
+                    }
                 }
             }
         }
-    }
+    };
+    return as<HostAsyncHandle<void>>(handle)->queue(l);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

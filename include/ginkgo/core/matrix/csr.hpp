@@ -1145,6 +1145,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    std::shared_ptr<gko::AsyncHandle> apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        std::shared_ptr<gko::AsyncHandle> handle) const override;
+
     // TODO: This provides some more sane settings. Please fix this!
     static std::shared_ptr<strategy_type> make_default_strategy(
         std::shared_ptr<const Executor> exec)
