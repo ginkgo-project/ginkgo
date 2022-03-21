@@ -190,47 +190,6 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
 
 
 template <typename ValueType>
-void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
-{
-    // TODO Add onemkl for single column ?
-    compute_dot(exec, x, y, result);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL);
-
-
-template <typename ValueType>
-void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
-{
-    // TODO Add onemkl for single column ?
-    compute_conj_dot(exec, x, y, result);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL);
-
-
-template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
-{
-    // TODO Add onemkl for single column ?
-    compute_norm2(exec, x, result);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
-
-
-template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* a,
                   const matrix::Dense<ValueType>* b,

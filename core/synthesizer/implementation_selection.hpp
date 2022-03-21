@@ -50,7 +50,7 @@ namespace syn {
               typename... InferredArgs>                                      \
     inline void _name(::gko::syn::value_list<int>, Predicate,                \
                       ::gko::syn::value_list<int, IntArgs...>,               \
-                      ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
+                      ::gko::syn::type_list<TArgs...>, InferredArgs&&...)    \
         GKO_KERNEL_NOT_FOUND;                                                \
                                                                              \
     template <int K, int... Rest, typename Predicate, int... IntArgs,        \
@@ -58,7 +58,7 @@ namespace syn {
     inline void _name(                                                       \
         ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,      \
         ::gko::syn::value_list<int, IntArgs...> int_args,                    \
-        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs&&... args)   \
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<IntArgs..., TArgs...>(                                 \
@@ -81,7 +81,7 @@ namespace syn {
                       ::gko::syn::value_list<bool, BoolArgs...>,             \
                       ::gko::syn::value_list<int, IntArgs...>,               \
                       ::gko::syn::value_list<gko::size_type, SizeTArgs...>,  \
-                      ::gko::syn::type_list<TArgs...>, InferredArgs...)      \
+                      ::gko::syn::type_list<TArgs...>, InferredArgs&&...)    \
         GKO_KERNEL_NOT_FOUND;                                                \
                                                                              \
     template <std::uint32_t K, std::uint32_t... Rest, typename Predicate,    \
@@ -93,7 +93,7 @@ namespace syn {
         ::gko::syn::value_list<bool, BoolArgs...> bool_args,                 \
         ::gko::syn::value_list<int, IntArgs...> int_args,                    \
         ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,      \
-        ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)     \
+        ::gko::syn::type_list<TArgs...> type_args, InferredArgs&&... args)   \
     {                                                                        \
         if (is_eligible(K)) {                                                \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K>(   \

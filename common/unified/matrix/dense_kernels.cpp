@@ -246,15 +246,15 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result)
+                 matrix::Dense<ValueType>* result, Array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        x, y);
+        tmp, x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
@@ -264,15 +264,15 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result)
+                      matrix::Dense<ValueType>* result, Array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        x, y);
+        tmp, x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
@@ -281,14 +281,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   Array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         [] GKO_KERNEL(auto a, auto b) { return a + b; },
         [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
-        result->get_values(), x->get_size(), x);
+        result->get_values(), x->get_size(), tmp, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
@@ -296,12 +297,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   Array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
-        x->get_size(), x);
+        x->get_size(), tmp, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
