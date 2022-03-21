@@ -121,8 +121,9 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                 default_block_size);
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
+    Array<char> tmp{exec};
 
-    kernels::hip::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::hip::dense::compute_norm2(exec, residual, residual_norm, tmp);
 
     const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
     hipLaunchKernelGGL(

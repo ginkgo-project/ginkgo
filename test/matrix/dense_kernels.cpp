@@ -998,18 +998,135 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, ComputeDotIsEquivalentToRef)
+{
+    set_up_vector_data(2);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_dot(y.get(), dot_expected.get());
+    dx->compute_dot(y.get(), ddot.get());
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
+{
+    set_up_vector_data(40);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+    gko::Array<char> tmp{ref};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_dot(y.get(), dot_expected.get(), tmp);
+    dx->compute_dot(y.get(), ddot.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
+{
+    set_up_vector_data(13);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_conj_dot(y.get(), dot_expected.get());
+    dx->compute_conj_dot(y.get(), ddot.get());
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
+{
+    set_up_vector_data(65);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+    gko::Array<char> tmp{ref};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_conj_dot(y.get(), dot_expected.get(), tmp);
+    dx->compute_conj_dot(y.get(), ddot.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
 TEST_F(Dense, ComputeNorm1IsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_vector_data(2);
 
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
     auto dnorm = NormVector::create(ref, norm_size);
 
+    // all parameters are on ref to check cross-executor calls
     x->compute_norm1(norm_expected.get());
     dx->compute_norm1(dnorm.get());
 
-    GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
+{
+    set_up_vector_data(10);
+
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(ref, norm_size);
+    auto dnorm = NormVector::create(ref, norm_size);
+    gko::Array<char> tmp{ref};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_norm1(norm_expected.get(), tmp);
+    dx->compute_norm1(dnorm.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeNorm2IsEquivalentToRef)
+{
+    set_up_vector_data(5);
+
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(ref, norm_size);
+    auto dnorm = NormVector::create(ref, norm_size);
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_norm1(norm_expected.get());
+    dx->compute_norm1(dnorm.get());
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
+{
+    set_up_vector_data(3);
+
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(ref, norm_size);
+    auto dnorm = NormVector::create(ref, norm_size);
+    gko::Array<char> tmp{ref};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_norm1(norm_expected.get(), tmp);
+    dx->compute_norm1(dnorm.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
 }
 
 

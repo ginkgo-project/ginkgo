@@ -1006,13 +1006,14 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
+    Array<char> tmp{exec};
 
     initialize_2_1_kernel<block_size>(
         grid_dim_1, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
-    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm, tmp);
 
     if (use_scalar) {
         components::fill_array(exec,

@@ -51,13 +51,40 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 using gko::dim;
 using gko::int64;
 using gko::size_type;
 using std::is_same;
+
+
+struct move_only_type {
+    move_only_type() {}
+
+    move_only_type(move_only_type&&) {}
+
+    move_only_type(const move_only_type&) = delete;
+};
+
+
+move_only_type move_only_val{};
+
+
+namespace gko {
+namespace kernels {
+namespace omp {
+
+
+template <>
+struct to_device_type_impl<move_only_type&> {
+    using type = int64;
+
+    static type map_to_device(move_only_type&) { return 0; }
+};
+
+
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko
 
 
 class KernelLaunch : public ::testing::Test {
@@ -97,12 +124,13 @@ TEST_F(KernelLaunch, Runs1D)
 {
     gko::kernels::omp::run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto d) {
+        [] GKO_KERNEL(auto i, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             d[i] = i;
         },
-        zero_array.get_num_elems(), zero_array.get_data());
+        zero_array.get_num_elems(), zero_array.get_data(), move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -112,17 +140,19 @@ TEST_F(KernelLaunch, Runs1DArray)
 {
     gko::kernels::omp::run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto d, auto d_ptr) {
+        [] GKO_KERNEL(auto i, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d), int*>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             if (d == d_ptr) {
                 d[i] = i;
             } else {
                 d[i] = 0;
             }
         },
-        zero_array.get_num_elems(), zero_array, zero_array.get_const_data());
+        zero_array.get_num_elems(), zero_array, zero_array.get_const_data(),
+        move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
 }
@@ -132,13 +162,14 @@ TEST_F(KernelLaunch, Runs1DDense)
 {
     gko::kernels::omp::run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr) {
+        [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
             static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
                           "type");
             static_assert(is_same<decltype(d_ptr), const double*>::value,
                           "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
             bool accessors_2d_correct =
@@ -154,7 +185,7 @@ TEST_F(KernelLaunch, Runs1DDense)
         },
         16, zero_dense2.get(),
         static_cast<const gko::matrix::Dense<>*>(zero_dense2.get()),
-        zero_dense2->get_const_values());
+        zero_dense2->get_const_values(), move_only_val);
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
@@ -164,13 +195,14 @@ TEST_F(KernelLaunch, Runs2D)
 {
     gko::kernels::omp::run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto d) {
+        [] GKO_KERNEL(auto i, auto j, auto d, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int*>::value, "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             d[i + 4 * j] = 4 * i + j;
         },
-        dim<2>{4, 4}, zero_array.get_data());
+        dim<2>{4, 4}, zero_array.get_data(), move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_transp_array);
 }
@@ -180,18 +212,19 @@ TEST_F(KernelLaunch, Runs2DArray)
 {
     gko::kernels::omp::run_kernel(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr) {
+        [] GKO_KERNEL(auto i, auto j, auto d, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(d), int*>::value, "type");
             static_assert(is_same<decltype(d_ptr), const int*>::value, "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             if (d == d_ptr) {
                 d[i + 4 * j] = 4 * i + j;
             } else {
                 d[i + 4 * j] = 0;
             }
         },
-        dim<2>{4, 4}, zero_array, zero_array.get_const_data());
+        dim<2>{4, 4}, zero_array, zero_array.get_const_data(), move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(zero_array, iota_transp_array);
 }
@@ -202,7 +235,7 @@ TEST_F(KernelLaunch, Runs2DDense)
     gko::kernels::omp::run_kernel_solver(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
-                      auto d4, auto d2_ptr, auto d3_ptr) {
+                      auto d4, auto d2_ptr, auto d3_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
             static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
@@ -213,6 +246,7 @@ TEST_F(KernelLaunch, Runs2DDense)
             static_assert(is_same<decltype(d4), double*>::value, "type");
             static_assert(is_same<decltype(d2_ptr), double*>::value, "type");
             static_assert(is_same<decltype(d3_ptr), double*>::value, "type");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
                                     d3.data == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
@@ -235,7 +269,7 @@ TEST_F(KernelLaunch, Runs2DDense)
         zero_dense2->get_const_values(),
         gko::kernels::omp::default_stride(zero_dense.get()),
         gko::kernels::omp::row_vector(vec_dense.get()),
-        zero_dense->get_values(), vec_dense->get_values());
+        zero_dense->get_values(), vec_dense->get_values(), move_only_val);
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
 }
@@ -246,28 +280,30 @@ TEST_F(KernelLaunch, Reduction1D)
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto a) {
+        [] GKO_KERNEL(auto i, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(a), int64*>::value, "value");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
-        size_type{100000}, output);
+        size_type{100000}, output, move_only_val);
 
     // 2 * sum i=0...99999 (i+1)
     ASSERT_EQ(*output.get_const_data(), 10000100000LL);
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto a) {
+        [] GKO_KERNEL(auto i, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(a), int64*>::value, "value");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             return i + 1;
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
-        size_type{10}, output);
+        size_type{10}, output, move_only_val);
 
     // 2 * sum i=0...9 (i+1)
     ASSERT_EQ(*output.get_const_data(), 110LL);
@@ -281,14 +317,16 @@ TEST_F(KernelLaunch, Reduction2DSmallRows)
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
             exec,
-            [] GKO_KERNEL(auto i, auto j, auto a) {
+            [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
                 static_assert(is_same<decltype(a), int64*>::value, "value");
+                static_assert(is_same<decltype(dummy), int64>::value, "dummy");
                 return (i + 1) * (j + 1);
             },
             [] GKO_KERNEL(auto i, auto j) { return i + j; },
             [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-            gko::dim<2>{10, cols}, output);
+            gko::dim<2>{10, cols}, output, move_only_val);
 
         // 4 * sum i=0...9 sum j=0...cols-1 of (i+1)*(j+1)
         ASSERT_EQ(*output.get_const_data(), 110LL * cols * (cols + 1));
@@ -303,14 +341,16 @@ TEST_F(KernelLaunch, Reduction2DLargeRows)
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
             exec,
-            [] GKO_KERNEL(auto i, auto j, auto a) {
+            [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                 static_assert(is_same<decltype(i), int64>::value, "index");
+                static_assert(is_same<decltype(j), int64>::value, "index");
                 static_assert(is_same<decltype(a), int64*>::value, "value");
+                static_assert(is_same<decltype(dummy), int64>::value, "dummy");
                 return (i + 1) * (j + 1);
             },
             [] GKO_KERNEL(auto i, auto j) { return i + j; },
             [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-            gko::dim<2>{1000, cols}, output);
+            gko::dim<2>{1000, cols}, output, move_only_val);
 
         // 4 * sum i=0...999 sum j=0...cols-1 of (i+1)*(j+1)
         ASSERT_EQ(*output.get_const_data(), 1001000LL * cols * (cols + 1));
@@ -324,14 +364,15 @@ TEST_F(KernelLaunch, Reduction2D)
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto a) {
+        [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(a), int64*>::value, "value");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
-        gko::dim<2>{1000, 100}, output);
+        gko::dim<2>{1000, 100}, output, move_only_val);
 
 
     // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
@@ -358,16 +399,18 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
 
     gko::kernels::omp::run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto a) {
+        [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
+            static_assert(is_same<decltype(j), int64>::value, "index");
             static_assert(is_same<decltype(a), int64*>::value, "value");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(), 2,
         gko::dim<2>{static_cast<size_type>(num_rows),
                     static_cast<size_type>(num_cols)},
-        output);
+        output, move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(host_ref, output);
 }
@@ -390,16 +433,17 @@ TEST_F(KernelLaunch, ReductionRow2D)
 
     gko::kernels::omp::run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto a) {
+        [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
             static_assert(is_same<decltype(a), int64*>::value, "value");
+            static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             return (i + 1) * (j + 1);
         },
         [] GKO_KERNEL(auto i, auto j) { return i + j; },
         [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(), 2,
         gko::dim<2>{static_cast<size_type>(num_rows),
                     static_cast<size_type>(num_cols)},
-        output);
+        output, move_only_val);
 
     GKO_ASSERT_ARRAY_EQ(host_ref, output);
 }
@@ -422,9 +466,12 @@ TEST_F(KernelLaunch, ReductionCol2D)
 
             gko::kernels::omp::run_kernel_col_reduction(
                 exec,
-                [] GKO_KERNEL(auto i, auto j, auto a) {
+                [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
                     static_assert(is_same<decltype(i), int64>::value, "index");
+                    static_assert(is_same<decltype(j), int64>::value, "index");
                     static_assert(is_same<decltype(a), int64*>::value, "value");
+                    static_assert(is_same<decltype(dummy), int64>::value,
+                                  "dummy");
                     return (i + 1) * (j + 1);
                 },
                 [] GKO_KERNEL(auto i, auto j) { return i + j; },
@@ -432,12 +479,9 @@ TEST_F(KernelLaunch, ReductionCol2D)
                 output.get_data(),
                 gko::dim<2>{static_cast<size_type>(num_rows),
                             static_cast<size_type>(num_cols)},
-                output);
+                output, move_only_val);
 
             GKO_ASSERT_ARRAY_EQ(host_ref, output);
         }
     }
 }
-
-
-}  // namespace
