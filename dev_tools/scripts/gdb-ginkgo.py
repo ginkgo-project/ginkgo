@@ -1,8 +1,17 @@
 # Pretty-printers for Ginkgo
+#
+# Usage inside gdb:
+# > source path/to/ginkgo/dev_tools/scripts/gdb-ginkgo.py
+#   load the pretty-printer
+# > print object->array_
+#   print the contents of the given array
+# > set print elements 1000
+#   limit the output to 1000 elements
+#
 # Based on the pretty-printers for libstdc++.
 
 # Copyright (C) 2008-2020 Free Software Foundation, Inc.
-
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -49,8 +58,10 @@ def is_specialization_of(x, template_name):
     if type(x) is gdb.Type:
         x = x.tag
     if _versioned_namespace:
-        return re.match('^std::(%s)?%s<.*>$' % (_versioned_namespace, template_name), x) is not None
-    return re.match('^std::%s<.*>$' % template_name, x) is not None
+        expr = '^std::({})?{}<.*>$'.format(_versioned_namespace, template_name)
+    else:
+        expr = '^std::{}<.*>$'.format(template_name)
+    return re.match(expr, x) is not None
 
 
 def get_unique_ptr_data_ptr(val):
@@ -63,9 +74,9 @@ def get_unique_ptr_data_ptr(val):
         tuple_member = val['_M_t']
     else:
         raise ValueError(
-            "Unsupported implementation for unique_ptr: %s" % impl_type)
+            "Unsupported unique_ptr impl: {}".format(impl_type))
     tuple_impl_type = tuple_member.type.fields()[0].type  # _Tuple_impl
-    tuple_head_type = tuple_impl_type.fields()[1].type   # _Head_base
+    tuple_head_type = tuple_impl_type.fields()[1].type    # _Head_base
     head_field = tuple_head_type.fields()[0]
     if head_field.name == '_M_head_impl':
         return tuple_member['_M_head_impl']
@@ -73,7 +84,7 @@ def get_unique_ptr_data_ptr(val):
         return tuple_member.cast(head_field.type)
     else:
         raise ValueError(
-            "Unsupported implementation for tuple in unique_ptr: %s" % impl_type)
+            "Unsupported tuple impl in unique_ptr: {}".format(impl_type))
 
 
 class GkoArrayPrinter:
@@ -85,7 +96,7 @@ class GkoArrayPrinter:
             self.item = start
             self.size = size
             self.count = 0
-            if exec == "gko::CudaExecutor" or exec == "gko::HipExecutor":
+            if exec in ["gko::CudaExecutor", "gko::HipExecutor"]:
                 self.sizeof = self.item.dereference().type.sizeof
                 self.buffer_start = 0
                 # At most 1 MB or size, at least 1
@@ -104,10 +115,12 @@ class GkoArrayPrinter:
                     hex(self.buffer)).cast(self.item.type)
                 self.buffer_count = 0
                 self.buffer_start = self.count
+                cuda = "(cudaError)cudaMemcpy({},{},{},cudaMemcpyDeviceToHost)"
+                hip = "(hipError_t)hipMemcpy({},{},{},hipMemcpyDeviceToHost)"
                 if self.exec == "gko::CudaExecutor":
-                    memcpy_expr = "(cudaError)cudaMemcpy({}, {}, {}, cudaMemcpyDeviceToHost)"
+                    memcpy_expr = cuda
                 elif self.exec == "gko::HipExecutor":
-                    memcpy_expr = "(hipError_t)hipMemcpy({}, {}, {}, hipMemcpyDeviceToHost)"
+                    memcpy_expr = hip
                 else:
                     raise StopIteration
                 device_addr = hex(self.item.dereference().address)
@@ -134,26 +147,35 @@ class GkoArrayPrinter:
             if self.buffer:
                 self.update_buffer()
                 elt = self.buffer_item.dereference()
-                self.buffer_item = self.buffer_item + 1
-                self.buffer_count = self.buffer_count + 1
+                self.buffer_item += 1
+                self.buffer_count += 1
             else:
                 elt = self.item.dereference()
             count = self.count
-            self.item = self.item + 1
-            self.count = self.count + 1
-            return ('[%d]' % count, elt)
+            self.item += 1
+            self.count += 1
+            return ('[{}]'.format(count), elt)
 
     def __init__(self, val):
         self.val = val
         self.execname = str(
-            self.val['exec_']['_M_ptr'].dereference().dynamic_type.unqualified())
+            self.val['exec_']['_M_ptr']
+            .dereference()
+            .dynamic_type
+            .unqualified())
         self.pointer = get_unique_ptr_data_ptr(self.val['data_'])
 
     def children(self):
-        return self._iterator(self.execname, self.pointer, self.val['num_elems_'])
+        return self._iterator(self.execname,
+                              self.pointer,
+                              self.val['num_elems_'])
 
     def to_string(self):
-        return ('%s of length %d on %s (%s)' % (str(self.val.type), int(self.val['num_elems_']), self.execname, self.pointer))
+        return ('{} of length {} on {} ({})'
+                .format(str(self.val.type),
+                        int(self.val['num_elems_']),
+                        self.execname,
+                        self.pointer))
 
     def display_hint(self):
         return 'array'
