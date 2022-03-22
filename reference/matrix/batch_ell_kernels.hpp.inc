@@ -82,3 +82,53 @@ inline void advanced_matvec_kernel(
         }
     }
 }
+
+
+inline void check_diagonal_entries_exist(const int nrows, const int stride,
+                                         const int max_nnz_per_row,
+                                         const int* const col_idxs,
+                                         bool& has_all_diags)
+{
+    has_all_diags = true;
+    if (col_idxs[0] != 0) {
+        has_all_diags = false;
+        return;
+    }
+    for (int irow = 1; irow < nrows; irow++) {
+        bool has_diag = false;
+        for (int iz = 0; iz < max_nnz_per_row; iz++) {
+            if (col_idxs[iz * stride + irow] == irow) {
+                has_diag = true;
+                break;
+            }
+        }
+        if (!has_diag) {
+            has_all_diags = false;
+            break;
+        }
+    }
+}
+
+
+template <typename ValueType>
+inline void add_scaled_identity(const int nrows, const int stride,
+                                const int max_nnz_per_row,
+                                const int* const col_idxs,
+                                ValueType* const values, const ValueType& alpha,
+                                const ValueType& beta)
+{
+    for (int jz = 0; jz < max_nnz_per_row; jz++) {
+        values[jz * stride] *= beta;
+        if (col_idxs[jz * stride] == 0 && jz == 0) {
+            values[jz * stride] += alpha;
+        }
+    }
+    for (int i = 1; i < nrows; i++) {
+        for (int jz = 0; jz < max_nnz_per_row; jz++) {
+            values[jz * stride + i] *= beta;
+            if (i == col_idxs[jz * stride + i]) {
+                values[jz * stride + i] += alpha;
+            }
+        }
+    }
+}
