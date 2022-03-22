@@ -133,37 +133,53 @@ namespace kernels {
         const matrix::BatchEll<ValueType, IndexType>* csr,                 \
         matrix::BatchDense<ValueType>* dense)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_SPMV_KERNEL(ValueType, IndexType);                 \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_TRANSPOSE_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType,        \
-                                                           IndexType);       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType,       \
-                                                            IndexType);      \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_SORT_BY_COLUMN_INDEX(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_SCALE(ValueType, IndexType);                       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE(ValueType, IndexType)
+#define GKO_DECLARE_BATCH_ELL_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, \
+                                                           IndexType) \
+    void check_diagonal_entries_exist(                                \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::BatchEll<ValueType, IndexType>* mtx, bool& all_diags)
+
+#define GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType) \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,      \
+                             const matrix::BatchDense<ValueType>* a,           \
+                             const matrix::BatchDense<ValueType>* b,           \
+                             matrix::BatchEll<ValueType, IndexType>* mtx)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_SPMV_KERNEL(ValueType, IndexType);                  \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_TRANSPOSE_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType,         \
+                                                           IndexType);        \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType,        \
+                                                            IndexType);       \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_SORT_BY_COLUMN_INDEX(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_SCALE(ValueType, IndexType);                        \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
