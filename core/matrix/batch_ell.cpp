@@ -67,6 +67,9 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        batch_ell::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(convert_to_batch_dense,
                        batch_ell::convert_to_batch_dense);
+GKO_REGISTER_OPERATION(check_diagonal_entries_exist,
+                       batch_ell::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(add_scaled_identity, batch_ell::add_scaled_identity);
 
 
 }  // namespace batch_ell
@@ -251,6 +254,24 @@ std::unique_ptr<BatchLinOp> BatchEll<ValueType, IndexType>::transpose() const
 template <typename ValueType, typename IndexType>
 std::unique_ptr<BatchLinOp> BatchEll<ValueType, IndexType>::conj_transpose()
     const GKO_NOT_IMPLEMENTED;
+
+
+template <typename ValueType, typename IndexType>
+void BatchEll<ValueType, IndexType>::add_scaled_identity_impl(
+    const BatchLinOp* const a, const BatchLinOp* const b)
+{
+    bool has_all_diags = false;
+    this->get_executor()->run(
+        batch_ell::make_check_diagonal_entries_exist(this, has_all_diags));
+    if (!has_all_diags) {
+        // TODO: Replace this with proper exception helper after merging
+        // non-batched add_scaled_identity PR
+        throw std::runtime_error("Matrix does not have all diagonal entries!");
+    }
+    this->get_executor()->run(batch_ell::make_add_scaled_identity(
+        as<const BatchDense<ValueType>>(a), as<const BatchDense<ValueType>>(b),
+        this));
+}
 
 
 #define GKO_DECLARE_BATCH_ELL_MATRIX(ValueType) class BatchEll<ValueType, int32>
