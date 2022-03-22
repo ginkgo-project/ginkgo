@@ -346,7 +346,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     const auto batch_size = mtx->get_num_batch_entries();
     const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
-    const auto nnz = mtx->get_num_stored_elements();
+    const auto nnz = mtx->get_num_stored_elements() / batch_size;
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto a_stride = a->get_stride().at();
     const auto b_stride = b->get_stride().at();

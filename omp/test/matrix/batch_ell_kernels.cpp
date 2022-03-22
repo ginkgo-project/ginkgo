@@ -54,24 +54,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueIndexType>
 class BatchEll : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::BatchEll<value_type, index_type>;
+    using value_type = double;
+    using index_type = int;
+    using Mtx = gko::matrix::BatchEll<value_type>;
     using EllMtx = gko::matrix::Ell<value_type, index_type>;
     using Vec = gko::matrix::BatchDense<value_type>;
 
     BatchEll()
-        : exec(gko::OmpExecutor::create()),
-          mtx(Mtx::create(exec, 2, gko::dim<2>{2, 3}, 2)),
-          mtx2(Mtx::create(exec, 2, gko::dim<2>{3, 3}, 2))
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::OmpExecutor::create()),
+          mtx_size(10, gko::dim<2>(12, 7)),
+          rand_engine(42)
     {
-        this->create_mtx(mtx.get());
-        this->create_mtx2(mtx2.get());
+        mtx = Mtx::create(exec, 2, gko::dim<2>{2, 3}, 2);
+        mtx2 = Mtx::create(exec, 2, gko::dim<2>{3, 3}, 2);
+        create_mtx(mtx.get());
+        create_mtx2(mtx2.get());
+    }
+
+    void SetUp() {}
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
     }
 
     void create_mtx(Mtx* m)
@@ -151,22 +160,64 @@ protected:
         }
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(size_t batch_size, int num_rows,
+                                     int num_cols, int min_nnz_row)
+    {
+        using real_type = typename gko::remove_complex<value_type>;
+        return gko::test::generate_uniform_batch_random_matrix<MtxType>(
+            batch_size, num_rows, num_cols,
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false,
+            ref);
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::OmpExecutor> exec;
+    std::ranlux48 rand_engine;
+    gko::batch_dim<2> mtx_size;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx2;
 };
 
-using valuetypes =
-    ::testing::Types<std::tuple<float, int>, std::tuple<double, gko::int32>,
-                     std::tuple<std::complex<float>, gko::int32>,
-                     std::tuple<std::complex<double>, gko::int32>>;
-TYPED_TEST_SUITE(BatchEll, valuetypes);
 
-
-TYPED_TEST(BatchEll, AppliesToDenseVector)
+TEST_F(BatchEll, CanBeCreatedFromExistingCscData)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    /**
+     * 1 2
+     * 0 3
+     * 4 0
+     *
+     * -1 12
+     * 0 13
+     * 14 0
+     */
+    value_type csc_values[] = {1.0, 4.0, 2.0, 3.0, -1.0, 14.0, 12.0, 13.0};
+    index_type row_idxs[] = {0, 2, 0, 1};
+    index_type col_ptrs[] = {0, 2, 4};
+    value_type ell_values[] = {1.0,  0.0, 4.0,  2.0,  3.0,  0.0,
+                               -1.0, 0.0, 14.0, 12.0, 13.0, 0.0};
+    index_type col_idxs[] = {0, 0, 0, 1, 1, 1};
+
+    auto mtx =
+        gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
+            this->exec, 2, gko::dim<2>{3, 2}, 2,
+            gko::Array<value_type>::view(this->exec, 8, csc_values),
+            gko::Array<index_type>::view(this->exec, 4, row_idxs),
+            gko::Array<index_type>::view(this->exec, 3, col_ptrs));
+
+    auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
+        this->exec, 2, gko::dim<2>{3, 2}, 2, 3,
+        gko::Array<value_type>::view(this->exec, 12, ell_values),
+        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
+}
+
+
+TEST_F(BatchEll, AppliesToDenseVector)
+{
+    using T = value_type;
     auto x = gko::batch_initialize<Vec>({{2.0, 1.0, 4.0}, {1.0, -1.0, 3.0}},
                                         this->exec);
     auto y =
@@ -182,10 +233,9 @@ TYPED_TEST(BatchEll, AppliesToDenseVector)
 }
 
 
-TYPED_TEST(BatchEll, AppliesToDenseMatrix)
+TEST_F(BatchEll, AppliesToDenseMatrix)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    using T = value_type;
     auto x = gko::batch_initialize<Vec>(
         {{I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}},
          {I<T>{1.0, 3.0}, I<T>{-1.0, -1.5}, I<T>{3.0, 2.5}}},
@@ -206,10 +256,9 @@ TYPED_TEST(BatchEll, AppliesToDenseMatrix)
 }
 
 
-TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseVector)
+TEST_F(BatchEll, AppliesLinearCombinationToDenseVector)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    using T = value_type;
     auto alpha = gko::batch_initialize<Vec>({{-1.0}, {1.0}}, this->exec);
     auto beta = gko::batch_initialize<Vec>({{2.0}, {2.0}}, this->exec);
     auto x = gko::batch_initialize<Vec>({{2.0, 1.0, 4.0}, {-2.0, 1.0, 4.0}},
@@ -242,10 +291,9 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseVector)
 }
 
 
-TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseMatrix)
+TEST_F(BatchEll, AppliesLinearCombinationToDenseMatrix)
 {
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
+    using T = value_type;
     auto alpha = gko::batch_initialize<Vec>({{1.0}, {-1.0}}, this->exec);
     auto beta = gko::batch_initialize<Vec>({{2.0}, {-2.0}}, this->exec);
     auto x = gko::batch_initialize<Vec>(
@@ -284,6 +332,67 @@ TYPED_TEST(BatchEll, AppliesLinearCombinationToDenseMatrix)
     EXPECT_EQ(y->at(1, 1, 0), uy1->at(1, 0));
     EXPECT_EQ(y->at(1, 0, 1), uy1->at(0, 1));
     EXPECT_EQ(y->at(1, 1, 1), uy1->at(1, 1));
+}
+
+
+TEST_F(BatchEll, DetectsMissingDiagonalEntry)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
+    gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
+    auto omtx = Mtx::create(exec);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::omp::batch_ell::check_diagonal_entries_exist(exec, omtx.get(),
+                                                               all_diags);
+
+    ASSERT_FALSE(all_diags);
+}
+
+
+TEST_F(BatchEll, DetectsPresenceOfAllDiagonalEntries)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto omtx = Mtx::create(exec);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::omp::batch_ell::check_diagonal_entries_exist(exec, omtx.get(),
+                                                               all_diags);
+
+    ASSERT_TRUE(all_diags);
+}
+
+
+TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
+    auto beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
+    auto dalpha = alpha->clone(exec);
+    auto dbeta = beta->clone(exec);
+    auto omtx = Mtx::create(exec);
+    omtx->copy_from(mtx.get());
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+    omtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<double>::value);
 }
 
 
