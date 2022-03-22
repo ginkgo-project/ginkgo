@@ -68,13 +68,13 @@ protected:
     {
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
+        d_exec = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
+        if (d_exec != nullptr) {
+            ASSERT_NO_THROW(d_exec->synchronize());
         }
     }
 
@@ -101,22 +101,22 @@ protected:
         y = gen_mtx<Vec>(batch_size, ncols, num_vectors, 1);
         alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
-        dmtx = Mtx::create(hip);
+        dmtx = Mtx::create(d_exec);
         dmtx->copy_from(mtx.get());
-        square_dmtx = Mtx::create(hip);
+        square_dmtx = Mtx::create(d_exec);
         square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(hip);
+        dresult = Vec::create(d_exec);
         dresult->copy_from(expected.get());
-        dy = Vec::create(hip);
+        dy = Vec::create(d_exec);
         dy->copy_from(y.get());
-        dalpha = Vec::create(hip);
+        dalpha = Vec::create(d_exec);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(hip);
+        dbeta = Vec::create(d_exec);
         dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
+    std::shared_ptr<const gko::HipExecutor> d_exec;
 
     const gko::batch_dim<> mtx_size;
     std::ranlux48 rand_engine;
@@ -158,6 +158,67 @@ TEST_F(BatchEll, AdvancedApplyIsEquivalentToRef)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dresult, expected, 10 * eps);
+}
+
+
+TEST_F(BatchEll, DetectsMissingDiagonalEntry)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
+    gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
+    auto omtx = Mtx::create(d_exec);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::hip::batch_ell::check_diagonal_entries_exist(
+        d_exec, omtx.get(), all_diags);
+
+    ASSERT_FALSE(all_diags);
+}
+
+
+TEST_F(BatchEll, DetectsPresenceOfAllDiagonalEntries)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto omtx = Mtx::create(d_exec);
+    omtx->copy_from(mtx.get());
+    bool all_diags = false;
+
+    gko::kernels::hip::batch_ell::check_diagonal_entries_exist(
+        d_exec, omtx.get(), all_diags);
+
+    ASSERT_TRUE(all_diags);
+}
+
+
+TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
+{
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const int nrows = mtx_size.at()[0];
+    const int ncols = mtx_size.at()[1];
+    auto mtx = gko::test::generate_uniform_batch_random_matrix<Mtx>(
+        batch_size, nrows, ncols,
+        std::uniform_int_distribution<>(ncols / 10, ncols),
+        std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
+    auto alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
+    auto beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
+    auto dalpha = alpha->clone(d_exec);
+    auto dbeta = beta->clone(d_exec);
+    auto omtx = Mtx::create(d_exec);
+    omtx->copy_from(mtx.get());
+
+    mtx->add_scaled_identity(alpha.get(), beta.get());
+    omtx->add_scaled_identity(dalpha.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<double>::value);
 }
 
 

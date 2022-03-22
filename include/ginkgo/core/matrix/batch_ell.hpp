@@ -75,7 +75,8 @@ class BatchEll
       public ConvertibleTo<BatchDense<ValueType>>,
       public BatchReadableFromMatrixData<ValueType, IndexType>,
       public BatchWritableToMatrixData<ValueType, IndexType>,
-      public BatchTransposable {
+      public BatchTransposable,
+      public BatchScaledIdentityAddable {
     friend class EnableCreateMethod<BatchEll>;
     friend class EnablePolymorphicObject<BatchEll, BatchLinOp>;
     friend class BatchEll<to_complex<ValueType>, IndexType>;
@@ -483,6 +484,9 @@ private:
         return batch_id * num_elems_per_batch + row +
                stride_.at(batch_id) * col;
     }
+
+    void add_scaled_identity_impl(const BatchLinOp* a,
+                                  const BatchLinOp* b) override;
 };
 
 

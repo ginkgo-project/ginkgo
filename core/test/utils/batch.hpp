@@ -295,29 +295,21 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
 }
 
 
-template <typename ValueType>
-void remove_diagonal_from_row(matrix::BatchCsr<ValueType>* const mtx,
-                              const int row)
+template <typename MtxType>
+void remove_diagonal_from_row(MtxType* const mtx, const int row)
 {
-    const int nrows = mtx->get_size().at()[0];
-    const auto row_ptrs = mtx->get_row_ptrs();
-    const auto col_idxs = mtx->get_col_idxs();
-    const auto values = mtx->get_values();
-    int diag_pos = -1;
-    for (int iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
-        if (col_idxs[iz] == row) {
-            diag_pos = iz;
+    using value_type = typename MtxType::value_type;
+    std::vector<gko::matrix_data<value_type, int>> mdata;
+    mtx->write(mdata);
+    for (size_type i = 0; i < mdata.size(); i++) {
+        auto it = std::find_if(
+            mdata[i].nonzeros.begin(), mdata[i].nonzeros.end(),
+            [row](auto x) { return x.row == row && x.column == row; });
+        if (it != mdata[i].nonzeros.end()) {
+            mdata[i].nonzeros.erase(it);
         }
     }
-    if (diag_pos != -1) {
-        for (int iz = diag_pos; iz < row_ptrs[nrows] - 1; iz++) {
-            col_idxs[iz] = col_idxs[iz + 1];
-            values[iz] = values[iz + 1];
-        }
-        for (int i = row + 1; i < nrows + 1; i++) {
-            row_ptrs[i]--;
-        }
-    }
+    mtx->read(mdata);
 }
 
 
