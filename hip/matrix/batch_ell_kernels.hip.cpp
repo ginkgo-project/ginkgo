@@ -251,6 +251,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC);
 
 
+template <typename ValueType, typename IndexType>
+void check_diagonal_entries_exist(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchEll<ValueType, IndexType>* const mtx,
+    bool& has_all_diags)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ELL_CHECK_DIAGONAL_ENTRIES_EXIST);
+
+
+template <typename ValueType, typename IndexType>
+void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
+                         const matrix::BatchDense<ValueType>* const a,
+                         const matrix::BatchDense<ValueType>* const b,
+                         matrix::BatchEll<ValueType, IndexType>* const mtx)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL);
+
+
 }  // namespace batch_ell
 }  // namespace hip
 }  // namespace kernels

@@ -428,4 +428,183 @@ TYPED_TEST(BatchEll, MovesToPrecision)
 }
 
 
+TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntry)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    // clang-format off
+    //     {{2.0, 0.0, -1.0, 0.0},
+    //      {0.0, 1.0, -1.5, -2.0},
+    //      {4.0, 2.5, 0.0, -1.0}},
+    //     {{4.0, 0.0, 2.0, 0.0},
+    //      {0.0, -1.0, -2.5, 0.2},
+    //      {3.0, -1.5, 0.0, 0.5}}
+    // clang-format on
+    {
+        const auto vals = mat->get_values();
+        const auto cols = mat->get_col_idxs();
+        for (int i = 0; i < 24; i++) {
+            vals[i] = 0.0;
+            if (i < 12) {
+                cols[i] = 0;
+            }
+        }
+        // clang-format off
+        vals[0] = 2.0; vals[1] = 1.0; vals[2] = 4.0;
+        vals[3] = -1.0; vals[4] = -1.5; vals[5] = 2.5;
+                        vals[7] = -2.0; vals[8] = -1.0;
+        cols[0] = 0; cols[1] = 1; cols[2] = 0;
+        cols[3] = 2; cols[4] = 2; cols[5] = 1;
+                     cols[7] = 3; cols[8] = 3;
+        vals[12] = 4.0; vals[13] = -1.0; vals[14] = 3.0;
+        vals[15] = 3.0; vals[16] = -2.5; vals[17] = -1.5;
+                        vals[19] = 0.2; vals[20] = 0.5;
+        // clang-format on
+    }
+    bool has_all_diags = true;
+
+    gko::kernels::reference::batch_ell::check_diagonal_entries_exist(
+        this->exec, mat.get(), has_all_diags);
+
+    ASSERT_FALSE(has_all_diags);
+}
+
+
+TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntryInFirstRow)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    {
+        const auto vals = mat->get_values();
+        const auto cols = mat->get_col_idxs();
+        for (int i = 0; i < 24; i++) {
+            vals[i] = 0.0;
+            if (i < 12) {
+                cols[i] = 0;
+            }
+        }
+        // clang-format off
+        vals[0] = -1.0; vals[1] = 1.0; vals[2] = 4.0;
+                        vals[4] = -1.5; vals[5] = 2.5;
+                        vals[7] = -2.0; vals[8] = 1.0;
+                                        vals[11] = -1.0;
+        cols[0] = 2; cols[1] = 1; cols[2] = 0;
+                     cols[4] = 2; cols[5] = 1;
+                     cols[7] = 3; cols[8] = 2;
+                                  cols[11] = 3;
+        vals[12] = 4.0; vals[13] = -1.0; vals[14] = 3.0;
+                        vals[16] = -2.5; vals[17] = -1.5;
+                        vals[19] = 0.2; vals[20] = 0.1;
+                                        vals[23] = 0.5;
+        // clang-format on
+    }
+    bool has_all_diags = true;
+
+    gko::kernels::reference::batch_ell::check_diagonal_entries_exist(
+        this->exec, mat.get(), has_all_diags);
+
+    ASSERT_FALSE(has_all_diags);
+}
+
+
+TYPED_TEST(BatchEll, CanDetectPresenceOfAllDiagonalEntries)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 3);
+    {
+        const auto vals = mat->get_values();
+        const auto cols = mat->get_col_idxs();
+        for (int i = 0; i < 18; i++) {
+            vals[i] = 0.0;
+            if (i < 9) {
+                cols[i] = 0;
+            }
+        }
+        // clang-format off
+        vals[0] = 3.0; vals[1] = 1.0;  vals[2] = 4.0;
+                       vals[4] = -1.5; vals[5] = 2.5;
+                       vals[7] = -2.0; vals[8] = 1.0;
+        cols[0] = 0; cols[1] = 1; cols[2] = 0;
+                     cols[4] = 2; cols[5] = 1;
+                     cols[7] = 3; cols[8] = 2;
+        vals[9] = 4.0; vals[10] = -1.0; vals[11] = 3.0;
+                        vals[13] = -2.5; vals[14] = -1.5;
+                        vals[16] = 0.2; vals[17] = 0.1;
+        // clang-format on
+    }
+    bool has_all_diags = false;
+
+    gko::kernels::reference::batch_ell::check_diagonal_entries_exist(
+        this->exec, mat.get(), has_all_diags);
+
+    ASSERT_TRUE(has_all_diags);
+}
+
+
+TYPED_TEST(BatchEll, AddScaledIdentity)
+{
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using BDense = gko::matrix::BatchDense<T>;
+    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    {
+        const auto vals = mat->get_values();
+        const auto cols = mat->get_col_idxs();
+        for (int i = 0; i < 24; i++) {
+            vals[i] = 0.0;
+            if (i < 12) {
+                cols[i] = 0;
+            }
+        }
+        // clang-format off
+        vals[0] = 3.0; vals[1] = 1.0; vals[2] = 4.0;
+        vals[3] = -1.0; vals[4] = -1.5; vals[5] = 2.5;
+                        vals[7] = -2.0; vals[8] = 1.0;
+                                        vals[11] = -1.0;
+        cols[0] = 0; cols[1] = 1; cols[2] = 0;
+        cols[3] = 2; cols[4] = 2; cols[5] = 1;
+                     cols[7] = 3; cols[8] = 2;
+                                  cols[11] = 3;
+        vals[12] = 4.0; vals[13] = -1.0; vals[14] = 3.0;
+        vals[15] = 2.0; vals[16] = -2.5; vals[17] = -1.5;
+                        vals[19] = 0.2; vals[20] = 0.1;
+                                        vals[23] = 0.5;
+        // clang-format on
+    }
+    auto beta =
+        gko::batch_initialize<BDense>({I<T>{-1.0}, I<T>{-0.5}}, this->exec);
+    auto alpha =
+        gko::batch_initialize<BDense>({I<T>{2.0}, I<T>{-3.0}}, this->exec);
+    auto sol_mat = Mtx::create(this->exec);
+    sol_mat->copy_from(mat.get());
+    {
+        const auto vals = sol_mat->get_values();
+        const auto cols = sol_mat->get_col_idxs();
+        // clang-format off
+        vals[0] = -1.0; vals[1] = 1.0; vals[2] = -4.0;
+        vals[3] = 1.0;  vals[4] = 1.5; vals[5] = -2.5;
+                        vals[7] = 2.0; vals[8] = 1.0;
+                                       vals[11] = 1.0;
+        vals[12] = -5.0; vals[13] = -2.5; vals[14] = -1.5;
+        vals[15] = -1.0; vals[16] = 1.25; vals[17] = 0.75;
+                        vals[19] = -0.1; vals[20] = -3.05;
+                                        vals[23] = -0.25;
+        // clang-format on
+    }
+
+    // mat->add_scaled_identity(alpha.get(), beta.get());
+    gko::kernels::reference::batch_ell::add_scaled_identity(
+        this->exec, alpha.get(), beta.get(), mat.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mat, sol_mat, r<T>::value);
+}
+
+
 }  // namespace
