@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilut_kernels.hpp"
 
 
+#include <limits>
+
+
 #include <CL/sycl.hpp>
 
 
@@ -49,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/math.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
 #include "dpcpp/components/merging.dp.hpp"
@@ -199,7 +201,7 @@ void tri_spgeam_init(const IndexType* __restrict__ lu_row_ptrs,
     IndexType l_new_begin = l_new_row_ptrs[row];
     IndexType u_new_begin = u_new_row_ptrs[row];
 
-    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     // load column indices and values for the first merge step
     auto a_col = checked_load(a_col_idxs, a_begin + lane, a_end, sentinel);
     auto a_val = checked_load(a_vals, a_begin + lane, a_end, zero<ValueType>());

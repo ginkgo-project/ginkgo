@@ -302,6 +302,7 @@ replace_regex="${replace_regex};s|trick/cooperative_groups\.hpp|dpcpp/components
 replace_regex="${replace_regex};s|trick/sorting\.hpp|dpcpp/components/sorting.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/reduction\.hpp|dpcpp/components/reduction.dp.hpp|g"
 replace_regex="${replace_regex};s|cuda/base/math\.hpp|limits|g"
+replace_regex="${replace_regex};s|device_numeric_limits(<.*>)::inf(,|;)|std::numeric_limits\1::infinity()\3|g"
 replace_regex="${replace_regex};s|device_numeric_limits(<.*>)::(.*)(,|;)|std::numeric_limits\1::\2()\3|g"
 replace_regex="${replace_regex};s/#define GET_QUEUE 0//g"
 replace_regex="${replace_regex};s/GET_QUEUE/exec->get_queue()/g"

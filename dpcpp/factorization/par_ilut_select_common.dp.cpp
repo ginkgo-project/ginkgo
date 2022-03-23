@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,12 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilut_kernels.hpp"
 
 
+#include <limits>
+
+
 #include <CL/sycl.hpp>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
-#include "dpcpp/base/math.hpp"
 #include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/intrinsics.dp.hpp"
@@ -392,7 +394,7 @@ void basecase_select(const ValueType* __restrict__ input, IndexType size,
                      IndexType rank, ValueType* __restrict__ out,
                      sycl::nd_item<3> item_ct1, ValueType* sh_local)
 {
-    constexpr auto sentinel = device_numeric_limits<ValueType>::inf;
+    constexpr auto sentinel = std::numeric_limits<ValueType>::infinity();
     ValueType local[basecase_local_size];
 
     for (int i = 0; i < basecase_local_size; ++i) {
