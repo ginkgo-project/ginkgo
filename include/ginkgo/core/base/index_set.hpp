@@ -82,10 +82,17 @@ namespace gko {
  * @ingroup IndexSet
  */
 template <typename IndexType = int32>
-class IndexSet : public EnablePolymorphicObject<IndexSet<IndexType>> {
+class IndexSet : public EnablePolymorphicObject<IndexSet<IndexType>>,
+                 public EnablePolymorphicAssignment<IndexSet<IndexType>>,
+                 public EnableCreateMethod<IndexSet<IndexType>> {
     friend class EnablePolymorphicObject<IndexSet>;
+    friend class EnableCreateMethod<IndexSet>;
 
 public:
+    using EnableCreateMethod<IndexSet>::create;
+    using EnablePolymorphicAssignment<IndexSet>::convert_to;
+    using EnablePolymorphicAssignment<IndexSet>::move_to;
+
     /**
      * The type of elements stored in the index set.
      */
@@ -97,7 +104,9 @@ public:
      * @param exec  the Executor where the IndexSet data is allocated
      */
     IndexSet(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IndexSet>(std::move(exec))
+        : EnablePolymorphicObject<IndexSet>(std::move(exec)),
+          index_space_size_{0},
+          num_stored_indices_{0}
     {}
 
     /**
@@ -109,14 +118,18 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    IndexSet(std::shared_ptr<const gko::Executor> executor,
-             std::initializer_list<IndexType> init_list,
-             const bool is_sorted = false)
+    explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
+                      std::initializer_list<IndexType> init_list,
+                      const bool is_sorted = false)
         : EnablePolymorphicObject<IndexSet>(std::move(executor)),
-          index_space_size_(
-              *(std::max_element(std::begin(init_list), std::end(init_list))) +
-              1)
+          index_space_size_(init_list.size() > 0
+                                ? *(std::max_element(std::begin(init_list),
+                                                     std::end(init_list))) +
+                                      1
+                                : 0),
+          num_stored_indices_{static_cast<IndexType>(init_list.size())}
     {
+        GKO_ASSERT(index_space_size_ > 0);
         this->populate_subsets(
             Array<IndexType>(this->get_executor(), init_list), is_sorted);
     }
@@ -131,9 +144,10 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size, const gko::Array<index_type>& indices,
-             const bool is_sorted = false)
+    explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
+                      const index_type size,
+                      const gko::Array<index_type>& indices,
+                      const bool is_sorted = false)
         : EnablePolymorphicObject<IndexSet>(std::move(executor)),
           index_space_size_(size)
     {
@@ -216,28 +230,6 @@ public:
      *          overheads and should be avoided if possible.
      */
     index_type get_local_index(index_type global_index) const;
-
-    /**
-     * Return which set the global index belongs to.
-     *
-     * Consider the set idx_set = (0, 1, 2, 4, 6, 7, 8, 9). This function
-     * returns the subset id in the index set of the input global index. For
-     * example, `idx_set.get_subset_id(0) == 0` `idx_set.get_subset_id(4)
-     * == 1` and `idx_set.get_subset_id(6) == 2`.
-     *
-     * @note This function returns a scalar value and needs a scalar value.
-     *       For repeated queries, it is more efficient to use the Array
-     *       functions that take and return arrays which allow for more
-     *       throughput.
-     *
-     * @param global_index  the global index.
-     *
-     * @return  the local index of the element in the index set.
-     *
-     * @warning This single entry query can have significant kernel launch
-     *          overheads and should be avoided if possible.
-     */
-    index_type get_subset_id(index_type global_index) const;
 
     /**
      * This is an array version of the scalar function above.

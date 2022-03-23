@@ -630,7 +630,7 @@ void calculate_nonzeros_per_row_in_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source,
     const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set, Array<IndexType>* row_nnz)
+    const IndexSet<IndexType>& col_index_set, IndexType* row_nnz)
 {
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto row_subset_begin = row_index_set.get_subsets_begin();
@@ -644,7 +644,7 @@ void calculate_nonzeros_per_row_in_index_set(
         size_type res_row = row_superset_indices[set];
         for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
-            row_nnz->get_data()[res_row] = zero<IndexType>();
+            row_nnz[res_row] = zero<IndexType>();
             for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
                 auto index = source->get_const_col_idxs()[i];
                 if (index >= col_index_set.get_size()) {
@@ -660,7 +660,7 @@ void calculate_nonzeros_per_row_in_index_set(
                     (index < col_subset_begin[shifted_bucket])) {
                     continue;
                 } else {
-                    row_nnz->get_data()[res_row]++;
+                    row_nnz[res_row]++;
                 }
             }
             res_row++;

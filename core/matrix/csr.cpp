@@ -625,6 +625,9 @@ Csr<ValueType, IndexType>::create_submatrix(
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
+    if (!row_index_set.get_num_elems() || !col_index_set.get_num_elems()) {
+        return Mat::create(exec);
+    }
     if (row_index_set.is_contiguous() && col_index_set.is_contiguous()) {
         auto row_st = row_index_set.get_executor()->copy_val_to_host(
             row_index_set.get_subsets_begin());
@@ -643,7 +646,7 @@ Csr<ValueType, IndexType>::create_submatrix(
         auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
         Array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
-            this, row_index_set, col_index_set, &row_ptrs));
+            this, row_index_set, col_index_set, row_ptrs.get_data()));
         exec->run(
             csr::make_prefix_sum(row_ptrs.get_data(), submat_num_rows + 1));
         auto num_nnz =

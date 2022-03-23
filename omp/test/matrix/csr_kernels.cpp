@@ -773,9 +773,9 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
     auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
-        this->ref, this->mtx2.get(), rset, cset, &row_nnz);
+        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
     gko::kernels::omp::csr::calculate_nonzeros_per_row_in_index_set(
-        this->omp, this->dmtx2.get(), drset, dcset, &drow_nnz);
+        this->omp, this->dmtx2.get(), drset, dcset, drow_nnz.get_data());
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
@@ -797,7 +797,7 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
-        this->ref, this->mtx2.get(), rset, cset, &row_nnz);
+        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
     gko::kernels::reference::components::prefix_sum(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];

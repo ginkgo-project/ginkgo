@@ -106,23 +106,6 @@ IndexType IndexSet<IndexType>::get_local_index(const IndexType index) const
 
 
 template <typename IndexType>
-IndexType IndexSet<IndexType>::get_subset_id(const IndexType index) const
-{
-    auto ss_end_host = make_temporary_clone<const Array<IndexType>>(
-        this->get_executor()->get_master(), &this->subsets_end_);
-    auto ss_begin_host = make_temporary_clone<const Array<IndexType>>(
-        this->get_executor()->get_master(), &this->subsets_begin_);
-    for (size_type id = 0; id < this->get_num_subsets(); ++id) {
-        if (index < ss_end_host->get_const_data()[id] &&
-            index >= ss_begin_host->get_const_data()[id]) {
-            return id;
-        }
-    }
-    return -1;
-}
-
-
-template <typename IndexType>
 Array<IndexType> IndexSet<IndexType>::to_global_indices() const
 {
     auto exec = this->get_executor();
