@@ -243,6 +243,10 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
     const IndexType* const __restrict__ col_idxs,
     bool* const __restrict__ has_all_diags)
 {
+    if (threadIdx.x == 0) {
+        *has_all_diags = true;
+    }
+    __syncthreads();
     constexpr int warp_size = config::warp_size;
     auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
@@ -253,7 +257,6 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
         if (tid_in_warp == 0) {
             if (col_idxs[0] == 0) {
                 row_has_diag_local = true;
-                break;
             }
         }
         auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
@@ -286,7 +289,7 @@ __global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
 
 template <typename ValueType>
 __device__ __forceinline__ void add_scaled_identity(
-    const int nrows, const int row_stride, const int max_nnz_per_row,
+    const int nrows, const size_type row_stride, const int max_nnz_per_row,
     const int* const col_idxs, ValueType* const __restrict__ values,
     const ValueType& alpha, const ValueType& beta)
 {
@@ -300,9 +303,9 @@ __device__ __forceinline__ void add_scaled_identity(
             for (int iz = tile.thread_rank(); iz < max_nnz_per_row;
                  iz += warp_size) {
                 values[iz * row_stride] *= beta;
-                if (col_idxs[0] == 0) {
-                    values[0] += alpha;
-                }
+            }
+            if (tile.thread_rank() == 0 && col_idxs[0] == 0) {
+                values[0] += alpha;
             }
         } else {
             for (int iz = tile.thread_rank(); iz < max_nnz_per_row;
@@ -320,10 +323,10 @@ __device__ __forceinline__ void add_scaled_identity(
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
     const size_type batch_size, const int nrows, const int nnz,
-    const int row_stride, const int max_nnz_per_row, const int* const col_idxs,
-    ValueType* const __restrict__ values, const size_type a_stride,
-    const ValueType* const __restrict__ alpha, const size_type b_stride,
-    const ValueType* const __restrict__ beta)
+    const size_type row_stride, const int max_nnz_per_row,
+    const int* const col_idxs, ValueType* const __restrict__ values,
+    const size_type a_stride, const ValueType* const __restrict__ alpha,
+    const size_type b_stride, const ValueType* const __restrict__ beta)
 {
     for (size_type entry = blockIdx.x; entry < batch_size; entry += gridDim.x) {
         ValueType* const values_b = values + entry * nnz;
