@@ -86,7 +86,8 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * The coarse rows to be selected in the coarse matrix.
+         * This array specifies the rows of the fine matrix which should be
+         * selected as rows for the coarse matrix.
          */
         Array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
 

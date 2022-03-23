@@ -171,11 +171,9 @@ TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRef)
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()),
-                        r<value_type>::value);
+                        gko::as<Csr>(mg_level->get_prolong_op()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()),
-                        r<value_type>::value);
+                        gko::as<Csr>(mg_level->get_restrict_op()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
@@ -190,23 +188,19 @@ TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
     auto mg_level_factory =
         gko::multigrid::FixedCoarsening<value_type, int>::build()
             .with_coarse_rows(coarse_rows)
-            .with_skip_sorting(true)
             .on(ref);
     auto d_mg_level_factory =
         gko::multigrid::FixedCoarsening<value_type, int>::build()
             .with_coarse_rows(d_coarse_rows)
-            .with_skip_sorting(true)
             .on(exec);
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_prolong_op()),
-                        gko::as<Csr>(mg_level->get_prolong_op()),
-                        r<value_type>::value);
+                        gko::as<Csr>(mg_level->get_prolong_op()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_restrict_op()),
-                        gko::as<Csr>(mg_level->get_restrict_op()),
-                        r<value_type>::value);
+                        gko::as<Csr>(mg_level->get_restrict_op()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
