@@ -235,3 +235,103 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
         }
     }
 }
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
+    const IndexType num_min_rows_cols, const size_type row_stride,
+    const size_type max_nnz_per_row,
+    const IndexType* const __restrict__ col_idxs,
+    bool* const __restrict__ has_all_diags)
+{
+    constexpr int warp_size = config::warp_size;
+    auto tile_grp =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto row = thread::get_subwarp_id_flat<warp_size, IndexType>();
+    if (row == 0 && num_min_rows_cols > 0) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        bool row_has_diag_local{false};
+        if (tid_in_warp == 0) {
+            if (col_idxs[0] == 0) {
+                row_has_diag_local = true;
+                break;
+            }
+        }
+        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
+        if (!row_has_diag) {
+            if (tid_in_warp == 0) {
+                *has_all_diags = false;
+            }
+            return;
+        }
+    } else if (row < num_min_rows_cols) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        bool row_has_diag_local{false};
+        for (IndexType iz = tid_in_warp; iz < max_nnz_per_row;
+             iz += warp_size) {
+            if (col_idxs[iz * row_stride + row] == row) {
+                row_has_diag_local = true;
+                break;
+            }
+        }
+        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
+        if (!row_has_diag) {
+            if (tile_grp.thread_rank() == 0) {
+                *has_all_diags = false;
+            }
+            return;
+        }
+    }
+}
+
+
+template <typename ValueType>
+__device__ __forceinline__ void add_scaled_identity(
+    const int nrows, const int row_stride, const int max_nnz_per_row,
+    const int* const col_idxs, ValueType* const __restrict__ values,
+    const ValueType& alpha, const ValueType& beta)
+{
+    constexpr auto warp_size = config::warp_size;
+    const auto tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    constexpr int num_tiles = default_block_size / warp_size;
+    const int tile_rank = threadIdx.x / warp_size;
+    for (int row = tile_rank; row < nrows; row += num_tiles) {
+        if (row == 0) {
+            for (int iz = tile.thread_rank(); iz < max_nnz_per_row;
+                 iz += warp_size) {
+                values[iz * row_stride] *= beta;
+                if (col_idxs[0] == 0) {
+                    values[0] += alpha;
+                }
+            }
+        } else {
+            for (int iz = tile.thread_rank(); iz < max_nnz_per_row;
+                 iz += warp_size) {
+                values[iz * row_stride + row] *= beta;
+                if (row == col_idxs[iz * row_stride + row]) {
+                    values[iz * row_stride + row] += alpha;
+                }
+            }
+        }
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void add_scaled_identity(
+    const size_type batch_size, const int nrows, const int nnz,
+    const int row_stride, const int max_nnz_per_row, const int* const col_idxs,
+    ValueType* const __restrict__ values, const size_type a_stride,
+    const ValueType* const __restrict__ alpha, const size_type b_stride,
+    const ValueType* const __restrict__ beta)
+{
+    for (size_type entry = blockIdx.x; entry < batch_size; entry += gridDim.x) {
+        ValueType* const values_b = values + entry * nnz;
+        const ValueType* const alpha_b =
+            batch::batch_entry_ptr(alpha, a_stride, 1, entry);
+        const ValueType* const beta_b =
+            batch::batch_entry_ptr(beta, b_stride, 1, entry);
+        add_scaled_identity(nrows, row_stride, max_nnz_per_row, col_idxs,
+                            values_b, alpha_b[0], beta_b[0]);
+    }
+}

@@ -293,10 +293,11 @@ void check_diagonal_entries_exist(
     bool& has_all_diags)
 {
     if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
-    const auto nrows = static_cast<int>(mtx->get_size().at(0)[0]);
+    const auto nmin = static_cast<int>(
+        std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
-    check_diagonal_entries_exist(nrows, row_ptrs, col_idxs, has_all_diags);
+    check_diagonal_entries_exist(nmin, row_ptrs, col_idxs, has_all_diags);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
