@@ -283,8 +283,8 @@ void check_diagonal_entries_exist(
     const auto max_nnz_per_row =
         static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     Array<bool> d_result(exec, 1);
-    check_all_diagonal_locations<<<1, default_block_size>>>(
-        nmin, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+    check_diagonal_entries<<<1, default_block_size>>>(
+        nmin, row_stride, max_nnz_per_row, mtx->get_const_col_idxs(),
         d_result.get_data());
     has_all_diags = exec->copy_val_to_host(d_result.get_const_data());
 }
@@ -303,10 +303,13 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     const size_type nbatch = mtx->get_num_batch_entries();
     const int nnz = static_cast<int>(mtx->get_num_stored_elements() / nbatch);
     const int nrows = mtx->get_size().at()[0];
+    const auto row_stride = mtx->get_stride().at(0);
+    const auto max_nnz_per_row =
+        static_cast<int>(mtx->get_num_stored_elements_per_row().at(0));
     const size_type astride = a->get_stride().at();
     const size_type bstride = b->get_stride().at();
     add_scaled_identity<<<nbatch, default_block_size>>>(
-        nbatch, nrows, nnz, mtx->get_const_row_ptrs(),
+        nbatch, nrows, nnz, row_stride, max_nnz_per_row,
         mtx->get_const_col_idxs(), as_cuda_type(mtx->get_values()), astride,
         as_cuda_type(a->get_const_values()), bstride,
         as_cuda_type(b->get_const_values()));
