@@ -73,10 +73,11 @@ void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
 {
 #pragma omp parallel for
     for (size_type subset = 0; subset < num_subsets; ++subset) {
-        for (size_type i = 0;
-             i < superset_indices[subset + 1] - superset_indices[subset]; ++i) {
-            decomp_indices[superset_indices[subset] + i] =
-                subset_begin[subset] + i;
+        IndexType local_i{};
+        for (auto i = superset_indices[subset];
+             i < superset_indices[subset + 1]; ++i) {
+            decomp_indices[i] = local_i + subset_begin[subset];
+            local_i++;
         }
     }
 }
@@ -157,20 +158,19 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < num_indices; ++i) {
         auto index = global_indices[i];
-        if (index >= index_space_size) {
+        if (index < 0 || index >= index_space_size) {
             local_indices[i] = invalid_index<IndexType>();
             continue;
         }
         const auto bucket = std::distance(
-            subset_begin,
-            std::upper_bound(subset_begin, subset_begin + num_subsets, index));
-        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
-        if (subset_end[shifted_bucket] <= index ||
-            index < subset_begin[shifted_bucket]) {
+            subset_begin + 1,
+            std::upper_bound(subset_begin + 1, subset_begin + num_subsets + 1,
+                             index));
+        if (index >= subset_end[bucket] || index < subset_begin[bucket]) {
             local_indices[i] = invalid_index<IndexType>();
         } else {
-            local_indices[i] = index - subset_begin[shifted_bucket] +
-                               superset_indices[shifted_bucket];
+            local_indices[i] =
+                index - subset_begin[bucket] + superset_indices[bucket];
         }
     }
 }
@@ -190,17 +190,16 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < num_indices; ++i) {
         auto index = local_indices[i];
-        if (index >= superset_indices[num_subsets]) {
+        if (index < 0 || index >= superset_indices[num_subsets]) {
             global_indices[i] = invalid_index<IndexType>();
             continue;
         }
         const auto bucket = std::distance(
-            superset_indices,
-            std::upper_bound(superset_indices,
+            superset_indices + 1,
+            std::upper_bound(superset_indices + 1,
                              superset_indices + num_subsets + 1, index));
-        auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
-        global_indices[i] = subset_begin[shifted_bucket] + index -
-                            superset_indices[shifted_bucket];
+        global_indices[i] =
+            subset_begin[bucket] + index - superset_indices[bucket];
     }
 }
 

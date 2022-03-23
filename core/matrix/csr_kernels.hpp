@@ -172,7 +172,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType>* source,                \
         const IndexSet<IndexType>& row_index_set,                       \
-        const IndexSet<IndexType>& col_index_set, Array<IndexType>* row_nnz)
+        const IndexSet<IndexType>& col_index_set, IndexType* row_nnz)
 
 #define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)     \
     void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,     \

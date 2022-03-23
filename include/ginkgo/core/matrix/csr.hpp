@@ -793,13 +793,6 @@ public:
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::IndexSet<IndexType>& row_index_set,
-        const gko::IndexSet<IndexType>& column_index_set) const;
-
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const;
-
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
@@ -959,7 +952,7 @@ public:
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
-    /*
+    /**
      * Creates a constant (immutable) Csr matrix from a set of constant arrays.
      *
      * @param exec  the executor to create the matrix on
@@ -987,7 +980,7 @@ public:
             gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
     }
 
-    /*
+    /**
      * This is version of create_const with a default strategy.
      */
     static std::unique_ptr<const Csr> create_const(
@@ -1000,6 +993,36 @@ public:
                                  std::move(col_idxs), std::move(row_ptrs),
                                  Csr::make_default_strategy(exec));
     }
+
+    /**
+     * Creates a submatrix from this Csr matrix given row and column IndexSet
+     * objects.
+     *
+     * @param row_index_set  the row index set containing the set of rows to be
+     *                       in the submatrix.
+     * @param column_index_set  the col index set containing the set of columns
+     *                          to be in the submatrix.
+     * @return A new CSR matrix with the elements that belong to the row and
+     *          columns of this matrix as specified by the index sets.
+     * @note This is not a view but creates a new, separate CSR matrix.
+     */
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::IndexSet<IndexType>& row_index_set,
+        const gko::IndexSet<IndexType>& column_index_set) const;
+
+    /**
+     * Creates a submatrix from this Csr matrix given row and column spans
+     *
+     * @param row_span  the row span containing the contiguous set of rows to be
+     *                  in the submatrix.
+     * @param column_span  the column span containing the contiguous set of
+     *                     columns to be in the submatrix.
+     * @return A new CSR matrix with the elements that belong to the row and
+     *          columns of this matrix as specified by the index sets.
+     * @note This is not a view but creates a new, separate CSR matrix.
+     */
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const gko::span& row_span, const gko::span& column_span) const;
 
 protected:
     /**

@@ -951,7 +951,7 @@ void calculate_nonzeros_per_row_in_index_set(
     const matrix::Csr<ValueType, IndexType>* source,
     const IndexSet<IndexType>& row_index_set,
     const IndexSet<IndexType>& col_index_set,
-    Array<IndexType>* row_nnz) GKO_NOT_IMPLEMENTED;
+    IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL);

@@ -181,7 +181,7 @@ void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
             shifted_bucket = 0;
         }
         auto index = global_indices[i];
-        if (index >= index_space_size) {
+        if (index < 0 || index >= index_space_size) {
             local_indices[i] = invalid_index<IndexType>();
             continue;
         }
@@ -221,7 +221,7 @@ void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
             shifted_bucket = 0;
         }
         auto index = local_indices[i];
-        if (index >= superset_indices[num_subsets]) {
+        if (index < 0 || index >= superset_indices[num_subsets]) {
             global_indices[i] = invalid_index<IndexType>();
             continue;
         }
