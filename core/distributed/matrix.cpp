@@ -93,8 +93,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
         dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
             offdiag_mtx.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
-    initialize<local_vector_type>({one<value_type>()}, exec)
-        ->move_to(one_scalar_.get());
+    one_scalar_->fill(one<value_type>());
 }
 
 
@@ -270,28 +269,28 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
     auto dense_b = as<global_vector_type>(b);
-    auto exec = this->get_executor();
     auto dense_x = as<global_vector_type>(x);
-    auto mutable_local_x = gko::matrix::Dense<ValueType>::create(
-        x->get_executor(), dense_x->get_local_vector()->get_size(),
+    auto x_exec = x->get_executor();
+    auto local_x = gko::matrix::Dense<ValueType>::create(
+        x_exec, dense_x->get_local_vector()->get_size(),
         gko::make_array_view(
-            x->get_executor(),
-            dense_x->get_local_vector()->get_num_stored_elements(),
+            x_exec, dense_x->get_local_vector()->get_num_stored_elements(),
             dense_x->get_local_values()),
         dense_x->get_local_vector()->get_stride());
     if (this->get_const_local_offdiag()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
-        diag_mtx_->apply(dense_b->get_local_vector(), mutable_local_x.get());
+        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
         req.wait();
+        auto exec = this->get_executor();
         auto needs_host_buffer =
             exec->get_master() != exec && !gko::mpi::is_gpu_aware();
         if (needs_host_buffer) {
             recv_buffer_->copy_from(host_recv_buffer_.get());
         }
         offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                            one_scalar_.get(), mutable_local_x.get());
+                            one_scalar_.get(), local_x.get());
     } else {
-        diag_mtx_->apply(dense_b->get_local_vector(), mutable_local_x.get());
+        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
     }
 }
 
@@ -302,31 +301,31 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 {
     auto dense_b = as<global_vector_type>(b);
     auto dense_x = as<global_vector_type>(x);
-    auto mutable_local_x = gko::matrix::Dense<ValueType>::create(
-        x->get_executor(), dense_x->get_local_vector()->get_size(),
+    const auto x_exec = x->get_executor();
+    auto local_x = gko::matrix::Dense<ValueType>::create(
+        x_exec, dense_x->get_local_vector()->get_size(),
         gko::make_array_view(
-            x->get_executor(),
-            dense_x->get_local_vector()->get_num_stored_elements(),
+            x_exec, dense_x->get_local_vector()->get_num_stored_elements(),
             dense_x->get_local_values()),
         dense_x->get_local_vector()->get_stride());
-    auto exec = this->get_executor();
     auto local_alpha = as<local_vector_type>(alpha);
     auto local_beta = as<local_vector_type>(beta);
     if (this->get_const_local_offdiag()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
         diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         mutable_local_x.get());
+                         local_x.get());
         req.wait();
+        auto exec = this->get_executor();
         auto needs_host_buffer =
             exec->get_master() != exec && !gko::mpi::is_gpu_aware();
         if (needs_host_buffer) {
             recv_buffer_->copy_from(host_recv_buffer_.get());
         }
         offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), one_scalar_.get(),
-                            mutable_local_x.get());
+                            local_x.get());
     } else {
         diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         mutable_local_x.get());
+                         local_x.get());
     }
 }
 
@@ -369,8 +368,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_sizes_ = other.recv_sizes_;
         local_to_global_ghost_ = other.local_to_global_ghost_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
-        initialize<local_vector_type>({one<value_type>()}, this->get_executor())
-            ->move_to(one_scalar_.get());
+        one_scalar_->fill(one<value_type>());
     }
     return *this;
 }
@@ -394,8 +392,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_sizes_ = std::move(other.recv_sizes_);
         local_to_global_ghost_ = std::move(other.local_to_global_ghost_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
-        initialize<local_vector_type>({one<value_type>()}, this->get_executor())
-            ->move_to(one_scalar_.get());
+        one_scalar_->fill(one<value_type>());
     }
     return *this;
 }
