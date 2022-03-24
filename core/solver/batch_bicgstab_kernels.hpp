@@ -55,6 +55,7 @@ namespace batch_bicgstab {
 template <typename RealType>
 struct BatchBicgstabOptions {
     preconditioner::batch::type preconditioner;
+    const BatchLinOp* prec;
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;

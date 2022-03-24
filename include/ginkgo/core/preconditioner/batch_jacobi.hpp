@@ -50,6 +50,12 @@ namespace preconditioner {
 
 
 /**
+ * Placeholder for no-preconditioner.
+ */
+class BatchIdentity {};
+
+
+/**
  * A batch-Jacobi preconditioner is a diagonal batch linear operator, obtained
  * by inverting the diagonals, of the source batch operator.
  *
