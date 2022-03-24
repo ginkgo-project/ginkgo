@@ -58,7 +58,10 @@ public:
      * @param trisolve  The triangular solver to use. Currently, it must be
      *                  pre-generated.
      */
-    BatchIlu(const factorization&, const trsv& trisolve) : trsv_{trisolve} {}
+    BatchIlu(const trsv& trisolve,
+             const factorization& factors = factorization{})
+        : trsv_{trisolve}
+    {}
 
     /**
      * The size of the work vector required per batch entry.
