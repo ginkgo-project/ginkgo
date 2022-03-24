@@ -335,6 +335,51 @@ void make_hpd(matrix_data<ValueType, IndexType>& data,
 }
 
 
+/**
+ * Changes the diagonal entry in the requested row, shrinking the
+ * matrix by 1 nonzero entry.
+ *
+ * @param mtx  The matrix to remove a diagonal entry from.
+ * @param row_to_process  The row from which to remove the diagonal entry.
+ */
+template <typename MtxType>
+void remove_diagonal_entry_from_row(
+    MtxType* const mtx, const typename MtxType::index_type row_to_process)
+{
+    using value_type = typename MtxType::value_type;
+    using index_type = typename MtxType::index_type;
+    matrix_data<value_type, index_type> mdata;
+    mtx->write(mdata);
+    auto it = std::remove_if(mdata.nonzeros.begin(), mdata.nonzeros.end(),
+                             [&](auto entry) {
+                                 return entry.row == row_to_process &&
+                                        entry.column == row_to_process;
+                             });
+    mdata.nonzeros.erase(it, mdata.nonzeros.end());
+    mtx->read(mdata);
+}
+
+
+/**
+ * Ensures each row has a diagonal entry.
+ */
+template <typename MtxType>
+void ensure_all_diagonal_entries(MtxType* const mtx)
+{
+    using value_type = typename MtxType::value_type;
+    using index_type = typename MtxType::index_type;
+    matrix_data<value_type, index_type> mdata;
+    mtx->write(mdata);
+    const auto nrows = static_cast<index_type>(mtx->get_size()[0]);
+    mdata.nonzeros.reserve(mtx->get_num_stored_elements() + nrows);
+    for (index_type i = 0; i < nrows; i++) {
+        mdata.nonzeros.push_back({i, i, zero<value_type>()});
+    }
+    mdata.sum_duplicates();
+    mtx->read(mdata);
+}
+
+
 }  // namespace test
 }  // namespace gko
 
