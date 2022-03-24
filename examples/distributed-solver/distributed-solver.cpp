@@ -62,6 +62,8 @@ int main(int argc, char* argv[])
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations.
     using vec = gko::matrix::Dense<ValueType>;
+    using schwarz = gko::preconditioner::Schwarz<ValueType, LocalIndexType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =
@@ -202,10 +204,15 @@ int main(int argc, char* argv[])
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
+
+    auto inner_solver = gko::share(bj::build().on(exec));
+
     auto Ainv =
         solver::build()
+            .with_preconditioner(gko::share(
+                schwarz::build().with_inner_solver(inner_solver).on(exec)))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(num_rows).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_baseline(gko::stop::mode::absolute)
                     .with_reduction_factor(1e-4)
