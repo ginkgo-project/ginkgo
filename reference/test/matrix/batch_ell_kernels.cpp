@@ -599,9 +599,9 @@ TYPED_TEST(BatchEll, AddScaledIdentity)
         // clang-format on
     }
 
-    // mat->add_scaled_identity(alpha.get(), beta.get());
-    gko::kernels::reference::batch_ell::add_scaled_identity(
-        this->exec, alpha.get(), beta.get(), mat.get());
+    mat->add_scaled_identity(alpha.get(), beta.get());
+    // gko::kernels::reference::batch_ell::add_scaled_identity(
+    //     this->exec, alpha.get(), beta.get(), mat.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(mat, sol_mat, r<T>::value);
 }
