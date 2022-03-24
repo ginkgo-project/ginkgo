@@ -112,10 +112,10 @@ void build_diag_offdiag(
     };
 
     // store offdiagonal columns and their range indices
-    std::map<GlobalIndexType, range_index_type> offdiag_cols;
+    map<GlobalIndexType, range_index_type> offdiag_cols(exec);
     // store offdiagonal entries with global column idxs
-    std::vector<global_nonzero> global_offdiag_entries;
-    std::vector<local_nonzero> diag_entries;
+    vector<global_nonzero> global_offdiag_entries(exec);
+    vector<local_nonzero> diag_entries(exec);
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
         const auto global_row = input_row_idxs[i];
         const auto global_col = input_col_idxs[i];
