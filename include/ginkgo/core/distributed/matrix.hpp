@@ -56,8 +56,92 @@ template <typename ValueType>
 class Vector;
 
 
-template <typename ValueType = double, typename LocalIndexType = int32,
-          typename GlobalIndexType = int64>
+/**
+ * The Matrix class defines a (MPI-)distributed matrix.
+ *
+ * The matrix is stored in a row-wise distributed format.
+ * Each process owns a specific set of rows, where the assignment of rows is
+ * defined by a row @see Partition. The following depicts the distribution of
+ * global rows according to their assigned part-id (which will usually be the
+ * owning process id):
+ * ```
+ * Part-Id  Global Rows                   Part-Id  Local Rows
+ * 0        | .. 1  2  .. .. .. |         0        | .. 1  2  .. .. .. |
+ * 1        | 3  4  .. .. .. .. |                  | 13 .. .. .. 14 .. |
+ * 2        | .. 5  6  ..  7 .. |  ---->  1        | 3  4  .. .. .. .. |
+ * 2        | .. .. .. 8  ..  9 |  ---->           | .. .. .. 10 11 12 |
+ * 1        | .. .. .. 10 11 12 |         2        | .. 5  6  ..  7 .. |
+ * 0        | 13 .. .. .. 14 .. |                  | .. .. .. 8  ..  9 |
+ * ```
+ * The local rows are further split into two matrices on each process.
+ * One matrix, called `local_inner`, contains only entries from columns that are
+ * also owned by the process, while the other one, called `local_ghost`,
+ * contains entries from columns that are not owned by the process. The ghost
+ * matrix is stored in a compressed format, where empty columns are discarded
+ * and the remaining columns are renumbered. This splitting is depicted in the
+ * following:
+ * ```
+ * Part-Id  Global                            Inner      Ghost
+ * 0        | .. 1  : 2  .. : .. .. |         | .. 1  |  | 2  |
+ * 0        | 3  4  : .. .. : .. .. |         | 3  4  |  | .. |
+ *          |-----------------------|
+ * 1        | .. 5  : 6  .. : 7  .. |  ---->  | 6  .. |  | 5  7  .. |
+ * 1        | .. .. : .. 8  : ..  9 |  ---->  | 8  .. |  | .. .. 9  |
+ *          |-----------------------|
+ * 2        | .. .. : .. 10 : 11 12 |         | 11 12 |  | .. 10 |
+ * 2        | 13 .. : .. .. : 14 .. |         | 14 .. |  | 13 .. |
+ * ```
+ * This uses the same ownership of the columns as for the rows.
+ * Additionally, the ownership of the columns may be explicitly defined with an
+ * second column partition. If that is not provided, the same row partition will
+ * be used for the columns. Using a column partition also allows to create
+ * non-square matrices, like the one below:
+ * ```
+ * Part-Id  Global                   Inner      Ghost
+ * P_R/P_C    2  2  0  1
+ * 0        | .. 1  2  .. |         | 2  |     | 1  .. |
+ * 0        | 3  4  .. .. |         | .. |     | 3  4  |
+ *          |-------------|
+ * 1        | .. 5  6  .. |  ---->  | .. |     | 6  5  |
+ * 1        | .. .. .. 8  |  ---->  | 8  |     | .. .. |
+ *          |-------------|
+ * 2        | .. .. .. 10 |         | .. .. |  | 10 |
+ * 2        | 13 .. .. .. |         | 13 .. |  | .. |
+ * ```
+ *
+ * The Matrix should be filled using the read_distributed method, e.g.
+ * ```c++
+ * auto part = Partition<...>::build_from_mapping(...);
+ * auto mat = Matrix<...>::create(exec, comm);
+ * mat->read_distributed(matrix_data, part);
+ * ```
+ * or if different partitions for the rows and columns are used:
+ * ```c++
+ * auto row_part = Partition<...>::build_from_mapping(...);
+ * auto col_part = Partition<...>::build_from_mapping(...);
+ * auto mat = Matrix<...>::create(exec, comm);
+ * mat->read_distributed(matrix_data, row_part, col_part);
+ * ```
+ * This will set the dimensions of the global and local matrices automatically
+ * by deducing the sizes from the partitions.
+ *
+ * The Matrix LinOp supports the following operations:
+ * ```cpp
+ * distributed::Matrix *A;       // distributed matrix
+ * distributed::Vector *b, *x;   // distributed multi-vectors
+ * matrix::Dense *alpha, *beta;  // scalars of dimension 1x1
+ *
+ * // Applying to distributed multi-vectors computes an SpMV/SpMM product
+ * A->apply(b, x)              // x = A*b
+ * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
+ * ```
+ *
+ * @tparam ValueType  The underlying value type.
+ * @tparam LocalIndexType  The index type used by the local matrices.
+ * @tparam GlobalIndexType  The type for global indices.
+ */
+template <typename ValueType = default_precision,
+          typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
     : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<
@@ -65,10 +149,8 @@ class Matrix
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
       public DistributedBase {
-    friend class EnableCreateMethod<
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>>;
-    friend class EnablePolymorphicObject<
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>, LinOp>;
+    friend class EnableCreateMethod<Matrix>;
+    friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Matrix<next_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
 
