@@ -218,7 +218,7 @@ TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
     mtx->add_scaled_identity(alpha.get(), beta.get());
     omtx->add_scaled_identity(dalpha.get(), dbeta.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<double>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<value_type>::value);
 }
 
 

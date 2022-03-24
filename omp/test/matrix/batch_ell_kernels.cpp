@@ -344,7 +344,7 @@ TEST_F(BatchEll, DetectsMissingDiagonalEntry)
     gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
     auto omtx = Mtx::create(exec);
     omtx->copy_from(mtx.get());
-    bool all_diags = false;
+    bool all_diags = true;
 
     gko::kernels::omp::batch_ell::check_diagonal_entries_exist(exec, omtx.get(),
                                                                all_diags);
@@ -392,7 +392,7 @@ TEST_F(BatchEll, AddScaleIdentityIsEquivalentToReference)
     mtx->add_scaled_identity(alpha.get(), beta.get());
     omtx->add_scaled_identity(dalpha.get(), dbeta.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<double>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, omtx, r<value_type>::value);
 }
 
 
