@@ -1022,9 +1022,10 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
         const auto i = base_i + lane;
         const auto col = i < row_len ? local_cols[i] : 0;
+        // make sure that each idle thread gets a unique out-of-bounds value
         auto hash = i < row_len ? (static_cast<uint32>(col) * hash_parameter) %
                                       static_cast<uint32>(available_storage)
-                                : available_storage;
+                                : static_cast<uint32>(available_storage + lane);
         // collision resolution
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
         const auto this_lane_mask = config::lane_mask_type{1} << lane;
@@ -1036,9 +1037,10 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         auto colliding = subwarp.match_any(hash);
         // if there are any collisions with previously filled buckets
         while (subwarp.any(entry != empty || colliding != this_lane_mask)) {
-            if (entry != empty) {
+            if (entry != empty || colliding != this_lane_mask) {
                 // assign consecutive indices to matching threads
-                hash += 1 + popcnt(colliding & lane_prefix_mask);
+                hash += (entry == empty ? 0 : 1) +
+                        popcnt(colliding & lane_prefix_mask);
                 // cheap modulo replacement
                 if (hash >= available_storage) {
                     hash -= available_storage;
