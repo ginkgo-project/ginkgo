@@ -197,10 +197,10 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged =
-        exec->copy_val_to_host(device_storage->get_const_data(), handle);
-    *one_changed =
-        exec->copy_val_to_host(device_storage->get_const_data() + 1, handle);
+    *all_converged = false;
+    // exec->copy_val_to_host(device_storage->get_const_data(), handle);
+    *one_changed = false;
+    // exec->copy_val_to_host(device_storage->get_const_data() + 1, handle);
     return handle;
 }
 
