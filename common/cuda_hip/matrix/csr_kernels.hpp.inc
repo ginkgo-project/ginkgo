@@ -968,6 +968,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         for (int32 i = lane; i < num_blocks; i += subwarp_size) {
             block_bitmaps[i] = 0;
         }
+        // memory barrier - just to be sure
+        subwarp.sync();
         // fill bitmaps with sparsity pattern
         for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
             const auto i = base_i + lane;
