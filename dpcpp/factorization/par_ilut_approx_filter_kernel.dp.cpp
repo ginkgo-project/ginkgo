@@ -192,7 +192,8 @@ void threshold_filter_nnz(dim3 grid, dim3 block,
                           bool lower)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             threshold_filter_nnz<subwarp_size>(row_ptrs, vals, num_rows,
                                                threshold, nnz, lower, item_ct1);
         });
@@ -228,7 +229,8 @@ void threshold_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType* new_col_idxs, ValueType* new_vals, bool lower)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             threshold_filter<subwarp_size>(old_row_ptrs, old_col_idxs, old_vals,
                                            num_rows, threshold, new_row_ptrs,
                                            new_row_idxs, new_col_idxs, new_vals,
@@ -258,7 +260,8 @@ void bucket_filter_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        BucketType bucket, IndexType* nnz)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             bucket_filter_nnz<subwarp_size>(row_ptrs, buckets, num_rows, bucket,
                                             nnz, item_ct1);
         });
@@ -296,7 +299,8 @@ void bucket_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    ValueType* new_vals)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             bucket_filter<subwarp_size>(
                 old_row_ptrs, old_col_idxs, old_vals, buckets, num_rows, bucket,
                 new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
@@ -372,7 +376,9 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             sh_samples_acc_ct1(sycl::range<1>(1024 /*sample_size*/), cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 build_searchtree(input, size, tree_output, item_ct1,
                                  sh_samples_acc_ct1.get_pointer());
             });
@@ -556,7 +562,9 @@ void block_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             warp_sums_acc_ct1(sycl::range<1>(16 /*num_warps*/), cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 block_prefix_sum(counters, totals, num_blocks, item_ct1,
                                  (IndexType*)warp_sums_acc_ct1.get_pointer());
             });
@@ -661,7 +669,9 @@ void basecase_select(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             sh_local_acc_ct1(sycl::range<1>(1024 /*basecase_size*/), cgh);
 
         cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            sycl_nd_range(grid, block), [=
+        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                            config::warp_size)]] {
                 basecase_select(input, size, rank, out, item_ct1,
                                 (ValueType*)sh_local_acc_ct1.get_pointer());
             });
@@ -699,10 +709,12 @@ template <typename IndexType>
 void find_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                  sycl::queue* queue, IndexType* prefix_sum, IndexType rank)
 {
-    queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
-                            find_bucket(prefix_sum, rank, item_ct1);
-                        });
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                        config::warp_size)]] {
+            find_bucket(prefix_sum, rank, item_ct1);
+        });
 }
 
 

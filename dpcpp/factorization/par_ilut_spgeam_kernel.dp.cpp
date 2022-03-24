@@ -129,7 +129,8 @@ void tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     IndexType* u_new_row_ptrs, IndexType num_rows)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             tri_spgeam_nnz<subwarp_size>(lu_row_ptrs, lu_col_idxs, a_row_ptrs,
                                          a_col_idxs, l_new_row_ptrs,
                                          u_new_row_ptrs, num_rows, item_ct1);
@@ -350,7 +351,8 @@ void tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      ValueType* u_new_vals, IndexType num_rows)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             tri_spgeam_init<subwarp_size>(
                 lu_row_ptrs, lu_col_idxs, lu_vals, a_row_ptrs, a_col_idxs,
                 a_vals, l_row_ptrs, l_col_idxs, l_vals, u_row_ptrs, u_col_idxs,
