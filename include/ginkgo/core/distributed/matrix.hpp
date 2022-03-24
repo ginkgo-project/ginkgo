@@ -44,12 +44,91 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
+namespace matrix {
+
+
+template <typename ValueType, typename IndexType>
+class Csr;
+
+
+}
+
+namespace detail {
+
+
+template <template <typename, typename> class MatrixType,
+          typename... CreateArgs>
+struct MatrixTypeBuilderFromValueAndIndex {
+    template <typename ValueType, typename IndexType, std::size_t... I>
+    auto create_impl(std::shared_ptr<const Executor> exec,
+                     std::index_sequence<I...>)
+    {
+        return MatrixType<ValueType, IndexType>::create(
+            exec, std::get<I>(create_args)...);
+    }
+
+
+    template <typename ValueType, typename IndexType>
+    auto create(std::shared_ptr<const Executor> exec)
+    {
+        // with c++17 we could use std::apply
+        static constexpr auto size = sizeof...(CreateArgs);
+        return create_impl<ValueType, IndexType>(
+            std::move(exec), std::make_index_sequence<size>{});
+    }
+
+    std::tuple<CreateArgs...> create_args;
+};
+
+
+}  // namespace detail
+
+
+/**
+ * This function returns a type that delays a call to MatrixType::create.
+ *
+ * It can be used to set the used value and index type, as well as the executor
+ * at a later stage.
+ *
+ * For example, the following code creates first a temporary object, which is
+ * then used later to construct a operator of the previously defined base type:
+ * ```
+ * auto type = gko::with_matrix_type<gko::matrix::Csr>();
+ * ...
+ * std::unique_ptr<LinOp> concrete_op
+ * if(flag1){
+ *   concrete_op = type.template create<double, int>(exec);
+ * } else {
+ *   concrete_op = type.template create<float, int>(exec);
+ * }
+ * ```
+ *
+ * @note This is mainly a helper function to specify the local matrix type for a
+ *       gko::distributed::Matrix more easily.
+ *
+ * @tparam MatrixType  A template type that accepts two types, the first one
+ *                     will be set to the value type, the second one to the
+ *                     index type.
+ * @tparam Args  Types of the arguments passed to MatrixType::create.
+ * @param create_args  arguments that will be forwarded to MatrixType::create
+ * @return  A type with a function `create<value_type, index_type>(executor)`.
+ */
+template <template <typename, typename> class MatrixType, typename... Args>
+auto with_matrix_type(Args&&... create_args)
+{
+    return detail::MatrixTypeBuilderFromValueAndIndex<MatrixType, Args...>{
+        std::make_tuple(create_args...)};
+}
+
+
 namespace distributed {
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+class Partition;
 
 
 template <typename ValueType>
@@ -241,7 +320,7 @@ public:
      * Get read access to the local diagonal matrix
      * @return  Shared pointer to the local diagonal matrix
      */
-    std::shared_ptr<const local_matrix_type> get_const_local_diag() const
+    std::shared_ptr<const LinOp> get_const_local_diag() const
     {
         return diag_mtx_;
     }
@@ -250,7 +329,7 @@ public:
      * Get read access to the local off-diagonal matrix
      * @return  Shared pointer to the local off-diagonal matrix
      */
-    std::shared_ptr<const local_matrix_type> get_const_local_offdiag() const
+    std::shared_ptr<const LinOp> get_const_local_offdiag() const
     {
         return offdiag_mtx_;
     }
@@ -272,6 +351,107 @@ protected:
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
+
+    /**
+     * Creates an empty distributed matrix with specified type
+     * for local matricies.
+     *
+     * @note This is mainly a convienience wrapper for
+     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
+     *       LinOp*)
+     *
+     * @tparam MatrixType  A type that has a `create<ValueType,
+     *                     IndexType>(exec)` function to create an smart pointer
+     *                     of a type derived from LinOp and
+     *                     ReadableFromMatrixData
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param matrix_type  the local matrices will be constructed with the same
+     *                     type as `create` returns. It should be the return
+     * value of make_matrix_type.
+     */
+    template <typename MatrixType>
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, MatrixType matrix_type)
+        : Matrix(
+              exec, comm,
+              static_cast<const LinOp*>(
+                  matrix_type.template create<ValueType, LocalIndexType>(exec)
+                      .get()))
+    {}
+
+    /**
+     * Creates an empty distributed matrix with specified types for the local
+     * inner matrix and the local ghost matrix.
+     *
+     * @note This is mainly a convienience wrapper for
+     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
+     *       const LinOp*, const LinOp*)
+     *
+     * @tparam InnerMatrixType  A type that has a `create<ValueType,
+     *                          IndexType>(exec)` function to create an smart
+     *                          pointer of a type derived from LinOp and
+     *                          ReadableFromMatrixData
+     * @tparam GhostMatrixType  A (possible different) type with the same
+     *                          constraints as InnerMatrixType
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param inner_matrix_type  the local inner matrix will be constructed with
+     *                           the same type as `create` returns. It should be
+     *                           the return value of make_matrix_type.
+     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     *                           the same type as `create` returns. It should be
+     *                           the return value of make_matrix_type.
+     */
+    template <typename InnerMatrixType, typename GhostMatrixType>
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, InnerMatrixType inner_matrix_type,
+                    GhostMatrixType ghost_matrix_type)
+        : Matrix(exec, comm,
+                 static_cast<const LinOp*>(
+                     inner_matrix_type
+                         .template create<ValueType, LocalIndexType>(exec)
+                         .get()),
+                 static_cast<const LinOp*>(
+                     ghost_matrix_type
+                         .template create<ValueType, LocalIndexType>(exec)
+                         .get()))
+    {}
+
+    /**
+     * Creates an empty distributed matrix with specified type
+     * for local matricies.
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param matrix_type  the local matrices will be constructed with the same
+     *                     runtime type.
+     */
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, const LinOp* matrix_type);
+
+    /**
+     * Creates an empty distributed matrix with specified types for the local
+     * inner matrix and the local ghost matrix.
+     *
+     * @note It calls Matrix(std::shared_ptr<const Executor>,mpi::communicator,
+     * const LinOp*,const LinOp*) underneath
+     *
+     * @tparam InnerMatrixType  A type that has a `create<ValueType,
+     *                          IndexType>(exec)` function to create an smart
+     *                          pointer of a type derived from LinOp and
+     *                          ReadableFromMatrixData
+     * @tparam GhostMatrixType  A (possible different) type with the same
+     *                          constraints as InnerMatrixType
+     * @param exec  Executor associated with this matrix.
+     * @param comm  Communicator associated with this matrix.
+     * @param inner_matrix_type  the local inner matrix will be constructed with
+     *                           the same runtime type.
+     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     *                           the same runtime type.
+     */
+    explicit Matrix(std::shared_ptr<const Executor> exec,
+                    mpi::communicator comm, const LinOp* inner_matrix_type,
+                    const LinOp* ghost_matrix_type);
 
     /**
      * Asynchronously communicates the values of b that are shared with other
@@ -299,8 +479,8 @@ private:
     ::gko::detail::DenseCache<value_type> host_recv_buffer_;
     ::gko::detail::DenseCache<value_type> send_buffer_;
     ::gko::detail::DenseCache<value_type> recv_buffer_;
-    std::shared_ptr<local_matrix_type> diag_mtx_;
-    std::shared_ptr<local_matrix_type> offdiag_mtx_;
+    std::shared_ptr<LinOp> diag_mtx_;
+    std::shared_ptr<LinOp> offdiag_mtx_;
 };
 
 
