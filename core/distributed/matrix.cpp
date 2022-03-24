@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/distributed/matrix_kernels.hpp"
@@ -56,6 +57,22 @@ GKO_REGISTER_OPERATION(build_diag_offdiag,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
+    : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
+{}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    const LinOp* inner_matrix_type)
+    : Matrix(exec, comm, inner_matrix_type, inner_matrix_type)
+{}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    const LinOp* inner_matrix_type, const LinOp* ghost_matrix_type)
     : EnableLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
@@ -66,9 +83,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       local_to_global_ghost_{exec},
       one_scalar_{},
-      diag_mtx_{local_matrix_type::create(exec)},
-      offdiag_mtx_{local_matrix_type::create(exec)}
+      diag_mtx_{inner_matrix_type->create_default(exec)},
+      offdiag_mtx_{ghost_matrix_type->create_default(exec)}
 {
+    GKO_ASSERT(GKO_QUOTE(
+        dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
+            diag_mtx.get())));
+    GKO_ASSERT(GKO_QUOTE(
+        dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
+            offdiag_mtx.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     initialize<local_vector_type>({one<value_type>()}, exec)
         ->move_to(one_scalar_.get());
@@ -137,8 +160,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         offdiag_data, recv_gather_idxs, recv_offsets_array.get_data(),
         local_to_global_ghost_));
 
-    this->diag_mtx_->read(diag_data);
-    this->offdiag_mtx_->read(offdiag_data);
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+        ->read(diag_data);
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->offdiag_mtx_)
+        ->read(offdiag_data);
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     exec->get_master()->copy_from(exec.get(), num_parts + 1,
@@ -334,8 +359,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
 {
     if (this != &other) {
         this->set_size(other.get_size());
-        other.diag_mtx_->convert_to(diag_mtx_.get());
-        other.offdiag_mtx_->convert_to(offdiag_mtx_.get());
+        diag_mtx_->copy_from(other.diag_mtx_.get());
+        offdiag_mtx_->copy_from(other.offdiag_mtx_.get());
         gather_idxs_ = other.gather_idxs_;
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
@@ -358,8 +383,9 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
 {
     if (this != &other) {
         this->set_size(other.get_size());
-        other.diag_mtx_->move_to(diag_mtx_.get());
-        other.offdiag_mtx_->move_to(offdiag_mtx_.get());
+        other.set_size({});
+        diag_mtx_->move_from(other.diag_mtx_.get());
+        offdiag_mtx_->move_from(other.offdiag_mtx_.get());
         gather_idxs_ = std::move(other.gather_idxs_);
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);
