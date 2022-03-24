@@ -262,7 +262,7 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(ref),
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
                 gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
@@ -270,7 +270,7 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
                 gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(exec))

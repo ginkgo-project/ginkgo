@@ -49,7 +49,6 @@ std::tuple<std::shared_ptr<AsyncHandle>, bool> Combined::check_impl(
         bool local_one_changed = false;
         auto out = c->check(handle, ids, setFinalized, stop_status,
                             &local_one_changed, updater);
-        std::get<0>(out)->wait();
         one_converged |= std::get<1>(out);
         *one_changed |= local_one_changed;
         if (one_converged) {

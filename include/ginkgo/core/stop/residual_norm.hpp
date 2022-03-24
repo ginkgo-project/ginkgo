@@ -124,7 +124,7 @@ protected:
         if (args.u_den_tau) {
             this->u_dense_tau_ = as<NormVector>(args.u_den_tau);
         }
-        device_storage_->fill(false);
+        // device_storage_->fill(false);
 #if GINKGO_BUILD_MPI
         using DistributedComplexVector =
             distributed::Vector<gko::to_complex<ValueType>>;
@@ -143,15 +143,18 @@ protected:
                     }
                     auto b_clone = share(args.b->clone());
                     args.system_matrix->apply(neg_one_.get(), args.x,
-                                              one_.get(), b_clone.get());
+                                              one_.get(), b_clone.get(),
+                                              exec->get_default_exec_stream());
                     if (auto vec =
                             std::dynamic_pointer_cast<const ComplexVector>(
                                 b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
+                        vec->compute_norm2(this->starting_tau_.get(),
+                                           exec->get_default_exec_stream());
                     } else if (auto vec =
                                    std::dynamic_pointer_cast<const Vector>(
                                        b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
+                        vec->compute_norm2(this->starting_tau_.get(),
+                                           exec->get_default_exec_stream());
                     } else {
                         GKO_NOT_SUPPORTED(nullptr);
                     }
@@ -167,10 +170,14 @@ protected:
                     if (dynamic_cast<const DistributedComplexVector*>(
                             args.b.get())) {
                         auto dense_rhs = as<DistributedComplexVector>(args.b);
-                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                        dense_rhs->compute_norm2(
+                            this->starting_tau_.get(),
+                            exec->get_default_exec_stream());
                     } else {
                         auto dense_rhs = as<DistributedVector>(args.b);
-                        dense_rhs->compute_norm2(this->starting_tau_.get());
+                        dense_rhs->compute_norm2(
+                            this->starting_tau_.get(),
+                            exec->get_default_exec_stream());
                     }
 #else
                 bool is_distributed = false;
@@ -180,10 +187,12 @@ protected:
                     if (dynamic_cast<const ComplexVector*>(
                             args.initial_residual)) {
                         auto dense_r = as<ComplexVector>(args.initial_residual);
-                        dense_r->compute_norm2(this->starting_tau_.get());
+                        dense_r->compute_norm2(this->starting_tau_.get(),
+                                               exec->get_default_exec_stream());
                     } else {
                         auto dense_r = as<Vector>(args.initial_residual);
-                        dense_r->compute_norm2(this->starting_tau_.get());
+                        dense_r->compute_norm2(this->starting_tau_.get(),
+                                               exec->get_default_exec_stream());
                     }
                 }
             }
@@ -203,10 +212,12 @@ protected:
                 if (dynamic_cast<const DistributedComplexVector*>(
                         args.b.get())) {
                     auto dense_rhs = as<DistributedComplexVector>(args.b);
-                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                    dense_rhs->compute_norm2(this->starting_tau_.get(),
+                                             exec->get_default_exec_stream());
                 } else {
                     auto dense_rhs = as<DistributedVector>(args.b);
-                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                    dense_rhs->compute_norm2(this->starting_tau_.get(),
+                                             exec->get_default_exec_stream());
                 }
 #else
             bool is_distributed = false;
@@ -215,10 +226,12 @@ protected:
             } else {
                 if (dynamic_cast<const ComplexVector*>(args.b.get())) {
                     auto dense_rhs = as<ComplexVector>(args.b);
-                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                    dense_rhs->compute_norm2(this->starting_tau_.get(),
+                                             exec->get_default_exec_stream());
                 } else {
                     auto dense_rhs = as<Vector>(args.b);
-                    dense_rhs->compute_norm2(this->starting_tau_.get());
+                    dense_rhs->compute_norm2(this->starting_tau_.get(),
+                                             exec->get_default_exec_stream());
                 }
             }
             break;
