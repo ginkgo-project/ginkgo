@@ -73,8 +73,12 @@ void Cg<ValueType>::generate()
     this->workspace_ = gko::Array<ValueType>(
         this->get_executor(),
         num_rows * nrhs * num_aux_vecs + nrhs * num_aux_scalars);
+    this->real_workspace_ =
+        gko::Array<remove_complex<ValueType>>(this->get_executor(), nrhs * 2);
     this->stop_status_ =
         gko::Array<stopping_status>(this->get_executor(), nrhs);
+    this->device_storage_ =
+        std::make_shared<Array<bool>>(this->get_executor(), 2);
 }
 
 
@@ -181,6 +185,12 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     offset += num_rhs;
     auto rho = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                        alpha.get());
+    offset = 0;
+    auto st_tau = share(detail::create_with_size_from_view(
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
+    offset = num_rhs;
+    auto dense_tau = share(detail::create_with_size_from_view(
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
 
     bool one_changed{};
 
@@ -201,7 +211,8 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
+        r.get(), this->one_op_, this->neg_one_op_, this->device_storage_,
+        st_tau, dense_tau);
 
 
     int iter = -1;

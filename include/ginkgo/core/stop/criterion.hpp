@@ -252,6 +252,11 @@ protected:
  * set.
  */
 struct CriterionArgs {
+    std::shared_ptr<const LinOp> one_op;
+    std::shared_ptr<const LinOp> neg_one_op;
+    mutable std::shared_ptr<Array<bool>> device_storage;
+    mutable std::shared_ptr<LinOp> st_tau;
+    mutable std::shared_ptr<LinOp> u_den_tau;
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
     const LinOp* x;
@@ -260,11 +265,20 @@ struct CriterionArgs {
 
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
                   std::shared_ptr<const LinOp> b, const LinOp* x,
-                  const LinOp* initial_residual = nullptr)
+                  const LinOp* initial_residual = nullptr,
+                  std::shared_ptr<const LinOp> one_op = {},
+                  std::shared_ptr<const LinOp> neg_one_op = {},
+                  std::shared_ptr<Array<bool>> device_storage = {},
+                  std::shared_ptr<LinOp> st_tau = {},
+                  std::shared_ptr<LinOp> u_den_tau = {})
         : system_matrix{system_matrix},
           b{b},
           x{x},
-          initial_residual{initial_residual}
+          one_op{one_op},
+          neg_one_op{neg_one_op},
+          device_storage{device_storage},
+          st_tau{st_tau},
+          u_den_tau{u_den_tau}
     {}
 };
 

@@ -97,7 +97,7 @@ protected:
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2}
+          device_storage_{std::make_shared<Array<bool>>(exec, 2)}
     {}
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
@@ -105,16 +105,26 @@ protected:
                               remove_complex<ValueType> reduction_factor,
                               mode baseline)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2},
+          device_storage_{args.device_storage
+                              ? args.device_storage
+                              : std::make_shared<Array<bool>>(exec, 2)},
           reduction_factor_{reduction_factor},
           baseline_{baseline},
           system_matrix_{args.system_matrix},
           b_{args.b},
-          one_{Vector::create(exec)},
-          neg_one_{Vector::create(exec)}
-    // one_{gko::initialize<Vector>({1}, exec)},
-    // neg_one_{gko::initialize<Vector>({-1}, exec)}
+          one_{args.one_op ? as<const Vector>(args.one_op)
+                           : gko::initialize<Vector>({one<ValueType>()}, exec)},
+          neg_one_{args.neg_one_op
+                       ? as<const Vector>(args.neg_one_op)
+                       : gko::initialize<Vector>({-one<ValueType>()}, exec)}
     {
+        if (args.st_tau) {
+            this->starting_tau_ = as<NormVector>(args.st_tau);
+        }
+        if (args.u_den_tau) {
+            this->u_dense_tau_ = as<NormVector>(args.u_den_tau);
+        }
+        device_storage_->fill(false);
 #if GINKGO_BUILD_MPI
         using DistributedComplexVector =
             distributed::Vector<gko::to_complex<ValueType>>;
@@ -127,8 +137,10 @@ protected:
                     args.x == nullptr) {
                     GKO_NOT_SUPPORTED(nullptr);
                 } else {
-                    this->starting_tau_ = NormVector::create(
-                        exec, dim<2>{1, args.b->get_size()[1]});
+                    if (!this->starting_tau_) {
+                        this->starting_tau_ = NormVector::create(
+                            exec, dim<2>{1, args.b->get_size()[1]});
+                    }
                     auto b_clone = share(args.b->clone());
                     args.system_matrix->apply(neg_one_.get(), args.x,
                                               one_.get(), b_clone.get());
@@ -145,8 +157,10 @@ protected:
                     }
                 }
             } else {
-                this->starting_tau_ = NormVector::create(
-                    exec, dim<2>{1, args.initial_residual->get_size()[1]});
+                if (!this->starting_tau_) {
+                    this->starting_tau_ = NormVector::create(
+                        exec, dim<2>{1, args.initial_residual->get_size()[1]});
+                }
 #if GINKGO_BUILD_MPI
                 if (dynamic_cast<const distributed::DistributedBase*>(
                         args.b.get())) {
@@ -179,8 +193,10 @@ protected:
             if (args.b == nullptr) {
                 GKO_NOT_SUPPORTED(nullptr);
             }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
+            if (!this->starting_tau_) {
+                this->starting_tau_ =
+                    NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
+            }
 #if GINKGO_BUILD_MPI
             if (dynamic_cast<const distributed::DistributedBase*>(
                     args.b.get())) {
@@ -211,23 +227,30 @@ protected:
             if (args.b == nullptr) {
                 GKO_NOT_SUPPORTED(nullptr);
             }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            this->starting_tau_->fill(gko::one<remove_complex<ValueType>>());
+
+            if (!this->starting_tau_) {
+                this->starting_tau_ =
+                    NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
+            }
+            as<NormVector>(this->starting_tau_)
+                ->fill(gko::one<remove_complex<ValueType>>());
             break;
         }
         default:
             GKO_NOT_SUPPORTED(nullptr);
         }
-        this->u_dense_tau_ =
-            NormVector::create_with_config_of(this->starting_tau_.get());
+
+        if (!this->u_dense_tau_) {
+            this->u_dense_tau_ =
+                NormVector::create_with_config_of(this->starting_tau_.get());
+        }
     }
 
     remove_complex<ValueType> reduction_factor_{};
-    std::unique_ptr<NormVector> starting_tau_{};
-    std::unique_ptr<NormVector> u_dense_tau_{};
+    std::shared_ptr<NormVector> starting_tau_{};
+    std::shared_ptr<NormVector> u_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
-    Array<bool> device_storage_;
+    std::shared_ptr<Array<bool>> device_storage_{};
 
 private:
     mode baseline_{mode::rhs_norm};

@@ -141,7 +141,7 @@ ResidualNormBase<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
     this->get_executor()->run(
         residual_norm::make_async_residual_norm(
             dense_tau, starting_tau_.get(), reduction_factor_, stopping_id,
-            set_finalized, stop_status, &device_storage_, &all_converged,
+            set_finalized, stop_status, device_storage_.get(), &all_converged,
             one_changed),
         handle);
 
@@ -218,8 +218,8 @@ bool ResidualNormBase<ValueType>::check_impl(
     this->get_executor()
         ->run(residual_norm::make_async_residual_norm(
                   dense_tau, starting_tau_.get(), reduction_factor_,
-                  stopping_id, set_finalized, stop_status, &device_storage_,
-                  &all_converged, one_changed),
+                  stopping_id, set_finalized, stop_status,
+                  device_storage_.get(), &all_converged, one_changed),
               this->get_executor()->get_default_exec_stream())
         ->wait();
 
@@ -247,8 +247,8 @@ ImplicitResidualNorm<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
     auto hand = this->get_executor()->run(
         implicit_residual_norm::make_async_implicit_residual_norm(
             dense_tau, this->starting_tau_.get(), this->reduction_factor_,
-            stopping_id, set_finalized, stop_status, &this->device_storage_,
-            &all_converged, one_changed),
+            stopping_id, set_finalized, stop_status,
+            this->device_storage_.get(), &all_converged, one_changed),
         handle);
 
     return {hand, all_converged};
@@ -272,7 +272,7 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
         ->run(implicit_residual_norm::make_async_implicit_residual_norm(
                   dense_tau, this->starting_tau_.get(), this->reduction_factor_,
                   stopping_id, set_finalized, stop_status,
-                  &this->device_storage_, &all_converged, one_changed),
+                  this->device_storage_.get(), &all_converged, one_changed),
               this->get_executor()->get_default_exec_stream())
         ->wait();
 

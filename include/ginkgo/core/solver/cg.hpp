@@ -82,7 +82,7 @@ public:
     using transposed_type = Cg<ValueType>;
 
     static constexpr int num_aux_vecs = 4;
-    static constexpr int num_aux_scalars = 4;
+    static constexpr int num_aux_scalars = 2;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -179,7 +179,9 @@ protected:
 
 private:
     mutable Array<ValueType> workspace_;
+    mutable Array<remove_complex<ValueType>> real_workspace_;
     mutable Array<stopping_status> stop_status_;
+    mutable std::shared_ptr<Array<bool>> device_storage_;
     std::shared_ptr<matrix::Dense<ValueType>> one_op_;
     std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
 };

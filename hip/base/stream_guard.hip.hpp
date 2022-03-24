@@ -65,11 +65,11 @@ class stream_guard {
 public:
     stream_guard(hipblasContext* handle, hipStream_t new_stream) : old_stream_{}
     {
-        GKO_ASSERT_NO_HIP_ERRORS(
-            hipStreamCreateWithFlags(&old_stream_, hipStreamNonBlocking));
+        // GKO_ASSERT_NO_HIP_ERRORS(
+        //     hipStreamCreateWithFlags(&old_stream_, hipStreamNonBlocking));
         handle_ = handle;
-        GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasGetStream(
-            reinterpret_cast<hipblasHandle_t>(handle_), &old_stream_));
+        // GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasGetStream(
+        //     reinterpret_cast<hipblasHandle_t>(handle_), &old_stream_));
         GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(
             reinterpret_cast<hipblasHandle_t>(handle_), new_stream));
     }
@@ -85,13 +85,13 @@ public:
     ~stream_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(
-                reinterpret_cast<hipblasHandle_t>(handle_), old_stream_));
-        } else {
-            GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(
-                reinterpret_cast<hipblasHandle_t>(handle_), old_stream_));
-        }
+        // if (std::uncaught_exception()) {
+        //     GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(
+        //         reinterpret_cast<hipblasHandle_t>(handle_), old_stream_));
+        // } else {
+        //     GKO_ASSERT_NO_HIPBLAS_ERRORS(hipblasSetStream(
+        //         reinterpret_cast<hipblasHandle_t>(handle_), old_stream_));
+        // }
     }
 
 private:

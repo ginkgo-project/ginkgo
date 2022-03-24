@@ -259,24 +259,21 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto d_x3 = gko::clone(exec, x);
     auto d_b3 = gko::clone(exec, b);
     auto cg_factory =
+
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(ref)
-                // ,
-                // gko::stop::ImplicitResidualNorm<value_type>::build()
-                //     .with_reduction_factor(::r<value_type>::value)
-                // .on(ref)
-                )
+                gko::stop::Iteration::build().with_max_iters(500u).on(ref),
+                gko::stop::ImplicitResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
+                    .on(ref))
             .on(ref);
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(500u).on(exec)
-                // ,
-                // gko::stop::ImplicitResidualNorm<value_type>::build()
-                //     .with_reduction_factor(::r<value_type>::value)
-                // .on(exec)
-                )
+                gko::stop::Iteration::build().with_max_iters(500u).on(exec),
+                gko::stop::ImplicitResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
+                    .on(exec))
             .on(exec);
     auto solver = cg_factory->generate(std::move(mtx));
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
