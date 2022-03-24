@@ -126,12 +126,13 @@ void ict_tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         const IndexType* a_col_idxs, IndexType* l_new_row_ptrs,
                         IndexType num_rows)
 {
-    queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
-                            ict_tri_spgeam_nnz<subwarp_size>(
-                                llh_row_ptrs, llh_col_idxs, a_row_ptrs,
-                                a_col_idxs, l_new_row_ptrs, num_rows, item_ct1);
-                        });
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
+            ict_tri_spgeam_nnz<subwarp_size>(
+                llh_row_ptrs, llh_col_idxs, a_row_ptrs, a_col_idxs,
+                l_new_row_ptrs, num_rows, item_ct1);
+        });
 }
 
 
@@ -311,7 +312,8 @@ void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          IndexType num_rows)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             ict_tri_spgeam_init<subwarp_size>(
                 llh_row_ptrs, llh_col_idxs, llh_vals, a_row_ptrs, a_col_idxs,
                 a_vals, l_row_ptrs, l_col_idxs, l_vals, l_new_row_ptrs,
@@ -407,7 +409,8 @@ void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                const IndexType* l_col_idxs, ValueType* l_vals, IndexType l_nnz)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             ict_sweep<subwarp_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
                                     l_row_idxs, l_col_idxs, l_vals, l_nnz,
                                     item_ct1);

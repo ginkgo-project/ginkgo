@@ -176,7 +176,8 @@ void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
            const IndexType* ut_row_idxs, ValueType* ut_vals, IndexType u_nnz)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             sweep<subwarp_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
                                 l_row_idxs, l_col_idxs, l_vals, l_nnz,
                                 u_row_idxs, u_col_idxs, u_vals, ut_col_ptrs,
