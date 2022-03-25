@@ -151,6 +151,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyIsSameAsRef)
     using global_index_type = typename TestFixture::global_index_type;
     gko::Array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
+
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
@@ -186,6 +187,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
+
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
@@ -221,6 +223,7 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
                                            static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
+
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  mapping,
@@ -245,6 +248,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyWithColPartitionIsSameAsRef)
     gko::Array<comm_index_type> col_mapping{this->ref,
                                             {0, 0, 2, 2, 2, 1, 1, 1}};
     comm_index_type num_parts = 3;
+
     auto row_partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  row_mapping,
@@ -295,6 +299,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallWithColPartitionIsEquivalentToRef)
         std::uniform_int_distribution<int>(0, static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
+
     auto row_partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  row_mapping,
@@ -344,6 +349,7 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
                                            static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
+
     auto row_partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  row_mapping,
