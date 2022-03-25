@@ -43,11 +43,11 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The IndexSet namespace.
+ * @brief The index_set namespace.
  *
  * @ingroup index_set
  */
-namespace index_set {
+namespace idx_set {
 
 
 template <typename IndexType>
@@ -68,7 +68,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
 
 
-}  // namespace index_set
+}  // namespace idx_set
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

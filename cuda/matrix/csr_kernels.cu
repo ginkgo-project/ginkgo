@@ -1162,8 +1162,8 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source,
-    const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
     IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1174,8 +1174,8 @@ template <typename ValueType, typename IndexType>
 void compute_submatrix_from_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source,
-    const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
     matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

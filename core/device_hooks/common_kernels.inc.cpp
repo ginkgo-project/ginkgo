@@ -214,7 +214,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 }  // namespace components
 
 
-namespace index_set {
+namespace idx_set {
 
 
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
@@ -224,7 +224,7 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL);
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
-}  // namespace index_set
+}  // namespace idx_set
 
 
 namespace partition {

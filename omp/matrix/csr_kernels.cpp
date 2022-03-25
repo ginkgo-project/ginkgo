@@ -748,8 +748,8 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source,
-    const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set, IndexType* row_nnz)
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set, IndexType* row_nnz)
 {
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto num_col_subsets = col_index_set.get_num_subsets();
@@ -828,8 +828,8 @@ template <typename ValueType, typename IndexType>
 void compute_submatrix_from_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source,
-    const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
     matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];

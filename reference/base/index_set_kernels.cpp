@@ -62,7 +62,7 @@ namespace reference {
  *
  * @ingroup index_set
  */
-namespace index_set {
+namespace idx_set {
 
 
 template <typename IndexType>
@@ -240,7 +240,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
-}  // namespace index_set
+}  // namespace idx_set
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

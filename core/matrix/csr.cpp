@@ -620,8 +620,8 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>>
 Csr<ValueType, IndexType>::create_submatrix(
-    const IndexSet<IndexType>& row_index_set,
-    const IndexSet<IndexType>& col_index_set) const
+    const index_set<IndexType>& row_index_set,
+    const index_set<IndexType>& col_index_set) const
 {
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();

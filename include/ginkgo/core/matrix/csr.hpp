@@ -995,7 +995,7 @@ public:
     }
 
     /**
-     * Creates a submatrix from this Csr matrix given row and column IndexSet
+     * Creates a submatrix from this Csr matrix given row and column index_set
      * objects.
      *
      * @param row_index_set  the row index set containing the set of rows to be
@@ -1007,8 +1007,8 @@ public:
      * @note This is not a view but creates a new, separate CSR matrix.
      */
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::IndexSet<IndexType>& row_index_set,
-        const gko::IndexSet<IndexType>& column_index_set) const;
+        const index_set<IndexType>& row_index_set,
+        const index_set<IndexType>& column_index_set) const;
 
     /**
      * Creates a submatrix from this Csr matrix given row and column spans
@@ -1022,7 +1022,7 @@ public:
      * @note This is not a view but creates a new, separate CSR matrix.
      */
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const;
+        const span& row_span, const span& column_span) const;
 
 protected:
     /**
