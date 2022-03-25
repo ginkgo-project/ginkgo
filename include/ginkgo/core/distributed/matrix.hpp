@@ -84,6 +84,16 @@ struct MatrixTypeBuilderFromValueAndIndex {
 };
 
 
+template <typename T, typename = void>
+struct is_matrix_builder : std::false_type {};
+
+template <typename T>
+struct is_matrix_builder<
+    T, xstd::void_t<decltype(std::declval<T>().template create<double, int>(
+           std::declval<std::shared_ptr<const Executor>>()))>>
+    : std::true_type {};
+
+
 }  // namespace detail
 
 
@@ -140,7 +150,7 @@ class Vector;
  *
  * The matrix is stored in a row-wise distributed format.
  * Each process owns a specific set of rows, where the assignment of rows is
- * defined by a row @see Partition. The following depicts the distribution of
+ * defined by a row Partition. The following depicts the distribution of
  * global rows according to their assigned part-id (which will usually be the
  * owning process id):
  * ```
@@ -161,14 +171,14 @@ class Vector;
  * following:
  * ```
  * Part-Id  Global                            Inner      Ghost
- * 0        | .. 1  : 2  .. : .. .. |         | .. 1  |  | 2  |
- * 0        | 3  4  : .. .. : .. .. |         | 3  4  |  | .. |
+ * 0        | .. 1  ⁞ 2  .. ⁞ .. .. |         | .. 1  |  | 2  |
+ * 0        | 3  4  ⁞ .. .. ⁞ .. .. |         | 3  4  |  | .. |
  *          |-----------------------|
- * 1        | .. 5  : 6  .. : 7  .. |  ---->  | 6  .. |  | 5  7  .. |
- * 1        | .. .. : .. 8  : ..  9 |  ---->  | 8  .. |  | .. .. 9  |
+ * 1        | .. 5  ⁞ 6  .. ⁞ 7  .. |  ---->  | 6  .. |  | 5  7  .. |
+ * 1        | .. .. ⁞ .. 8  ⁞ ..  9 |  ---->  | 8  .. |  | .. .. 9  |
  *          |-----------------------|
- * 2        | .. .. : .. 10 : 11 12 |         | 11 12 |  | .. 10 |
- * 2        | 13 .. : .. .. : 14 .. |         | 14 .. |  | 13 .. |
+ * 2        | .. .. ⁞ .. 10 ⁞ 11 12 |         | 11 12 |  | .. 10 |
+ * 2        | 13 .. ⁞ .. .. ⁞ 14 .. |         | 14 .. |  | 13 .. |
  * ```
  * This uses the same ownership of the columns as for the rows.
  * Additionally, the ownership of the columns may be explicitly defined with an
@@ -189,13 +199,13 @@ class Vector;
  * ```
  *
  * The Matrix should be filled using the read_distributed method, e.g.
- * ```c++
+ * ```
  * auto part = Partition<...>::build_from_mapping(...);
  * auto mat = Matrix<...>::create(exec, comm);
  * mat->read_distributed(matrix_data, part);
  * ```
  * or if different partitions for the rows and columns are used:
- * ```c++
+ * ```
  * auto row_part = Partition<...>::build_from_mapping(...);
  * auto col_part = Partition<...>::build_from_mapping(...);
  * auto mat = Matrix<...>::create(exec, comm);
@@ -368,7 +378,7 @@ protected:
      * @param comm  Communicator associated with this matrix.
      * @param matrix_type  the local matrices will be constructed with the same
      *                     type as `create` returns. It should be the return
-     * value of make_matrix_type.
+     *                     value of make_matrix_type.
      */
     template <typename MatrixType>
     explicit Matrix(std::shared_ptr<const Executor> exec,
@@ -421,6 +431,10 @@ protected:
     /**
      * Creates an empty distributed matrix with specified type
      * for local matricies.
+     *
+     * @note It internally clones the passed in matrix_type. Therefore, this
+     *       LinOp should be empty.
+     *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param matrix_type  the local matrices will be constructed with the same
@@ -433,8 +447,8 @@ protected:
      * Creates an empty distributed matrix with specified types for the local
      * inner matrix and the local ghost matrix.
      *
-     * @note It calls Matrix(std::shared_ptr<const Executor>,mpi::communicator,
-     * const LinOp*,const LinOp*) underneath
+     * @note It internally clones the passed in inner_matrix_type and
+     *       ghost_matrix_type. Therefore, these LinOps should be empty.
      *
      * @tparam InnerMatrixType  A type that has a `create<ValueType,
      *                          IndexType>(exec)` function to create an smart
@@ -454,11 +468,11 @@ protected:
                     const LinOp* ghost_matrix_type);
 
     /**
-     * Asynchronously communicates the values of b that are shared with other
-     * processors.
+     * Starts a non-blocking communication of the values of b that are shared
+     * with other processors.
      * @param local_b  The full local vector to be communicated. The subset of
      *                 shared values is automatically extracted.
-     * @return  MPI request for the async communication.
+     * @return  MPI request for the non-blocking communication.
      */
     mpi::request communicate(const local_vector_type* local_b) const;
 
