@@ -94,7 +94,7 @@ void BatchBicgstab<ValueType>::solver_apply(const BatchLinOp* const mtx,
              parameters_.residual_tol, parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_bicgstab::make_apply(
-        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        opts, mtx, preconditioner_.get(), as<const Dense>(b), as<Dense>(x),
         *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 

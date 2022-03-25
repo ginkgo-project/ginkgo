@@ -149,13 +149,19 @@ public:
 template <typename KernelCaller, typename OptsType, typename ValueType>
 class BatchSolverDispatch {
 public:
+    using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
 
     BatchSolverDispatch(
         const KernelCaller& kernel_caller, const OptsType& opts,
+        const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
         const gko::log::BatchLogType logger_type =
             gko::log::BatchLogType::simple_convergence_completion)
-        : caller_{kernel_caller}, opts_{opts}, logger_type_{logger_type}
+        : caller_{kernel_caller},
+          opts_{opts},
+          a_{matrix},
+          precon_{preconditioner},
+          logger_type_{logger_type}
     {}
 
     template <typename PrecType, typename BatchMatrixType, typename LogType>
@@ -186,11 +192,23 @@ public:
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
-        if (opts_.preconditioner == gko::preconditioner::batch::type::none) {
+        // if (opts_.preconditioner == gko::preconditioner::batch::type::none) {
+        //     dispatch_on_stop<device::BatchIdentity<device_value_type>>(
+        //         logger, amat, b_b, x_b);
+        // } else if (opts_.preconditioner ==
+        //            gko::preconditioner::batch::type::jacobi) {
+        //     dispatch_on_stop<device::BatchJacobi<device_value_type>>(
+        //         logger, amat, b_b, x_b);
+        // } else {
+        //     GKO_NOT_IMPLEMENTED;
+        // }
+        if (auto precid =
+                dynamic_cast<const preconditioner::BatchIdentity*>(precon_)) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, b_b, x_b);
-        } else if (opts_.preconditioner ==
-                   gko::preconditioner::batch::type::jacobi) {
+        } else if (auto precjac = dynamic_cast<
+                       const preconditioner::BatchJacobi<value_type>*>(
+                       precon_)) {
             dispatch_on_stop<device::BatchJacobi<device_value_type>>(
                 logger, amat, b_b, x_b);
         } else {
@@ -222,33 +240,34 @@ public:
      * Note: The correct backend-specific get_batch_struct function needs to be
      * available in the current scope.
      */
-    void apply(const BatchLinOp* const a,
-               const matrix::BatchDense<ValueType>* const b,
+    void apply(const matrix::BatchDense<ValueType>* const b,
                matrix::BatchDense<ValueType>* const x,
                log::BatchLogData<ValueType>& logdata)
     {
         const auto x_b = device::get_batch_struct(x);
         const auto b_b = device::get_batch_struct(b);
 
-        if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
+        if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else if (auto amat =
-                       dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
+                       dynamic_cast<const matrix::BatchEll<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else if (auto amat =
-                       dynamic_cast<const matrix::BatchDense<ValueType>*>(a)) {
+                       dynamic_cast<const matrix::BatchDense<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else {
-            GKO_NOT_SUPPORTED(a);
+            GKO_NOT_SUPPORTED(a_);
         }
     }
 
 private:
     const KernelCaller caller_;
     const OptsType opts_;
+    const BatchLinOp* a_;
+    const BatchLinOp* precon_;
     const log::BatchLogType logger_type_;
 };
 
@@ -259,11 +278,12 @@ private:
 template <typename ValueType, typename KernelCaller, typename OptsType>
 BatchSolverDispatch<KernelCaller, OptsType, ValueType> create_dispatcher(
     const KernelCaller& kernel_caller, const OptsType& opts,
+    const BatchLinOp* const a, const BatchLinOp* const preconditioner,
     const log::BatchLogType logger_type =
         log::BatchLogType::simple_convergence_completion)
 {
     return BatchSolverDispatch<KernelCaller, OptsType, ValueType>(
-        kernel_caller, opts, logger_type);
+        kernel_caller, opts, a, preconditioner, logger_type);
 }
 
 
