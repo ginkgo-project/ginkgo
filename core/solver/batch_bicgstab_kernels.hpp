@@ -55,7 +55,6 @@ namespace batch_bicgstab {
 template <typename RealType>
 struct BatchBicgstabOptions {
     preconditioner::batch::type preconditioner;
-    const BatchLinOp* prec;
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
@@ -224,9 +223,9 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     void apply(std::shared_ptr<const DefaultExecutor> exec,              \
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
                    remove_complex<_type>>& options,                      \
-               const BatchLinOp* const a,                                \
-               const matrix::BatchDense<_type>* const b,                 \
-               matrix::BatchDense<_type>* const x,                       \
+               const BatchLinOp* a, const BatchLinOp* preconditioner,    \
+               const matrix::BatchDense<_type>* b,                       \
+               matrix::BatchDense<_type>* x,                             \
                gko::log::BatchLogData<_type>& logdata)
 
 
