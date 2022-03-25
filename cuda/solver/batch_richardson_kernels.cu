@@ -120,15 +120,15 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchRichardsonOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const prec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<cu_value_type>(exec, opts), opts);
-    dispatcher.apply(a, nullptr, b, x, logdata);
+        KernelCaller<cu_value_type>(exec, opts), opts, a, prec);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
