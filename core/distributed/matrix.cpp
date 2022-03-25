@@ -83,15 +83,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       local_to_global_ghost_{exec},
       one_scalar_{},
-      diag_mtx_{inner_matrix_type->create_default(exec)},
-      offdiag_mtx_{ghost_matrix_type->create_default(exec)}
+      diag_mtx_{inner_matrix_type->clone(exec)},
+      offdiag_mtx_{ghost_matrix_type->clone(exec)}
 {
-    GKO_ASSERT(GKO_QUOTE(
-        dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            diag_mtx.get())));
-    GKO_ASSERT(GKO_QUOTE(
-        dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            offdiag_mtx.get())));
+    GKO_ASSERT(
+        (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
+            diag_mtx_.get())));
+    GKO_ASSERT(
+        (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
+            offdiag_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
 }

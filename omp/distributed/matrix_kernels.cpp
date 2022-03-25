@@ -89,8 +89,7 @@ void build_diag_offdiag(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local_row = [&](GlobalIndexType idx,
-                                size_type range_id) -> LocalIndexType {
+    auto map_to_local_row = [&](GlobalIndexType idx, size_type range_id) {
         auto range_bounds = row_partition->get_range_bounds();
         auto range_starting_indices =
             row_partition->get_range_starting_indices();
@@ -108,8 +107,7 @@ void build_diag_offdiag(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local_col = [&](GlobalIndexType idx,
-                                size_type range_id) -> LocalIndexType {
+    auto map_to_local_col = [&](GlobalIndexType idx, size_type range_id) {
         auto range_bounds = col_partition->get_range_bounds();
         auto range_starting_indices =
             col_partition->get_range_starting_indices();
@@ -118,10 +116,10 @@ void build_diag_offdiag(
     };
 
     // store offdiagonal columns and their range indices
-    std::map<GlobalIndexType, range_index_type> offdiag_cols;
+    map<GlobalIndexType, range_index_type> offdiag_cols(exec);
     // store offdiagonal entries with global column idxs
-    std::vector<global_nonzero> global_offdiag_entries;
-    std::vector<local_nonzero> diag_entries;
+    vector<global_nonzero> global_offdiag_entries(exec);
+    vector<local_nonzero> diag_entries(exec);
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     auto num_input = input.get_num_elems();

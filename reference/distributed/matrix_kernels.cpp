@@ -83,8 +83,7 @@ void build_diag_offdiag(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local_row = [&](GlobalIndexType idx,
-                                size_type range_id) -> LocalIndexType {
+    auto map_to_local_row = [&](GlobalIndexType idx, size_type range_id) {
         auto range_bounds = row_partition->get_range_bounds();
         auto range_starting_indices =
             row_partition->get_range_starting_indices();
@@ -102,8 +101,7 @@ void build_diag_offdiag(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local_col = [&](GlobalIndexType idx,
-                                size_type range_id) -> LocalIndexType {
+    auto map_to_local_col = [&](GlobalIndexType idx, size_type range_id) {
         auto range_bounds = col_partition->get_range_bounds();
         auto range_starting_indices =
             col_partition->get_range_starting_indices();
