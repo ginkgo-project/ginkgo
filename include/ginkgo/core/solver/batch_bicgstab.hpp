@@ -92,10 +92,29 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Inner preconditioner descriptor.
+         * TODO: Remove. Inner preconditioner descriptor.
          */
         preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
             preconditioner, preconditioner::batch::type::none);
+
+        /**
+         * Preconditioner factory.
+         */
+        std::shared_ptr<const BatchLinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         */
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_preconditioner, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            left_scaling_op, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            right_scaling_op, nullptr);
 
         /**
          * Maximum number iterations allowed.
@@ -128,11 +147,24 @@ protected:
         : EnableBatchSolver<BatchBicgstab>(factory->get_executor(),
                                            std::move(system_matrix)),
           parameters_{factory->get_parameters()}
-    {}
+    {
+        if (parameters_.generated_preconditioner) {
+            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
+                parameters_.generated_preconditioner, this);
+            preconditioner_ = parameters_.generated_preconditioner;
+        } else if (parameters_.preconditioner) {
+            preconditioner_ =
+                parameters_.preconditioner->generate(system_matrix_);
+        }
+    }
 
 private:
     void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
                       BatchInfo* const info) const override;
+
+    std::shared_ptr<const LinOp> preconditioner_{};
+    std::shared_ptr<const LinOp> left_scale_{};
+    std::shared_ptr<const LinOp> right_scale_{};
 };
 
 
