@@ -119,8 +119,8 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, precon, b, x, logdata);
+        KernelCaller<ValueType>(exec, opts), opts, a, precon);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);
