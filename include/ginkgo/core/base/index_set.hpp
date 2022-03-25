@@ -82,17 +82,8 @@ namespace gko {
  * @ingroup IndexSet
  */
 template <typename IndexType = int32>
-class IndexSet : public EnablePolymorphicObject<IndexSet<IndexType>>,
-                 public EnablePolymorphicAssignment<IndexSet<IndexType>>,
-                 public EnableCreateMethod<IndexSet<IndexType>> {
-    friend class EnablePolymorphicObject<IndexSet>;
-    friend class EnableCreateMethod<IndexSet>;
-
+class IndexSet {
 public:
-    using EnableCreateMethod<IndexSet>::create;
-    using EnablePolymorphicAssignment<IndexSet>::convert_to;
-    using EnablePolymorphicAssignment<IndexSet>::move_to;
-
     /**
      * The type of elements stored in the index set.
      */
@@ -104,9 +95,7 @@ public:
      * @param exec  the Executor where the IndexSet data is allocated
      */
     IndexSet(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IndexSet>(std::move(exec)),
-          index_space_size_{0},
-          num_stored_indices_{0}
+        : exec_(std::move(exec)), index_space_size_{0}, num_stored_indices_{0}
     {}
 
     /**
@@ -118,10 +107,10 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
+    explicit IndexSet(std::shared_ptr<const gko::Executor> exec,
                       std::initializer_list<IndexType> init_list,
                       const bool is_sorted = false)
-        : EnablePolymorphicObject<IndexSet>(std::move(executor)),
+        : exec_(std::move(exec)),
           index_space_size_(init_list.size() > 0
                                 ? *(std::max_element(std::begin(init_list),
                                                      std::end(init_list))) +
@@ -144,12 +133,11 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    explicit IndexSet(std::shared_ptr<const gko::Executor> executor,
+    explicit IndexSet(std::shared_ptr<const gko::Executor> exec,
                       const index_type size,
                       const gko::Array<index_type>& indices,
                       const bool is_sorted = false)
-        : EnablePolymorphicObject<IndexSet>(std::move(executor)),
-          index_space_size_(size)
+        : exec_(std::move(exec)), index_space_size_(size)
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
@@ -164,8 +152,20 @@ public:
     IndexSet(std::shared_ptr<const Executor> exec, const IndexSet& other)
         : IndexSet(exec)
     {
-        *this = other;
+        this->index_space_size_ = other.index_space_size_;
+        this->num_stored_indices_ = other.num_stored_indices_;
+        subsets_begin_ = gko::Array<index_type>(exec, other.subsets_begin_);
+        subsets_end_ = gko::Array<index_type>(exec, other.subsets_end_);
+        superset_cumulative_indices_ =
+            gko::Array<index_type>(exec, other.superset_cumulative_indices_);
     }
+
+    /**
+     * Returns the executor of the IndexSet
+     *
+     * @return  the executor.
+     */
+    std::shared_ptr<const Executor> get_executor() const { return this->exec_; }
 
     /**
      * Returns the size of the index set space.
@@ -344,6 +344,7 @@ private:
     void populate_subsets(const gko::Array<index_type>& indices,
                           const bool is_sorted);
 
+    std::shared_ptr<const Executor> exec_;
     index_type index_space_size_;
     index_type num_stored_indices_;
     gko::Array<index_type> subsets_begin_;
