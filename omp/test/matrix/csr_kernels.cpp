@@ -755,18 +755,18 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
+TEST_F(Csr, CalculateNnzPerRowInindex_setIsEquivalentToRef)
 {
     using Mtx = gko::matrix::Csr<>;
     using IndexType = int;
     using ValueType = double;
     set_up_mat_data();
-    gko::IndexSet<IndexType> rset{
+    gko::index_set<IndexType> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::IndexSet<IndexType> cset{this->ref,
-                                  {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::IndexSet<IndexType> drset(this->omp, rset);
-    gko::IndexSet<IndexType> dcset(this->omp, cset);
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
     auto size = this->mtx2->get_size();
     auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
@@ -781,18 +781,18 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
+TEST_F(Csr, ComputeSubmatrixFromindex_setIsEquivalentToRef)
 {
     using Mtx = gko::matrix::Csr<>;
     using IndexType = int;
     using ValueType = double;
     set_up_mat_data();
-    gko::IndexSet<IndexType> rset{
+    gko::index_set<IndexType> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::IndexSet<IndexType> cset{this->ref,
-                                  {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::IndexSet<IndexType> drset(this->omp, rset);
-    gko::IndexSet<IndexType> dcset(this->omp, cset);
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
     auto size = this->mtx2->get_size();
     auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
@@ -883,18 +883,18 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 }
 
 
-TEST_F(Csr, CreateSubMatrixFromIndexSetIsEquivalentToRef)
+TEST_F(Csr, CreateSubMatrixFromindex_setIsEquivalentToRef)
 {
     using IndexType = int;
     using ValueType = double;
     set_up_mat_data();
 
-    gko::IndexSet<IndexType> rset{
+    gko::index_set<IndexType> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::IndexSet<IndexType> cset{this->ref,
-                                  {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::IndexSet<IndexType> drset(this->omp, rset);
-    gko::IndexSet<IndexType> dcset(this->omp, cset);
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
     auto smat1 = this->mtx2->create_submatrix(rset, cset);
     auto sdmat1 = this->dmtx2->create_submatrix(drset, dcset);
 

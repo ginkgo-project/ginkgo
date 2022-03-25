@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <initializer_list>
 #include <mutex>
 #include <vector>
 
@@ -42,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -79,10 +79,10 @@ namespace gko {
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
- * @ingroup IndexSet
+ * @ingroup index_set
  */
 template <typename IndexType = int32>
-class IndexSet {
+class index_set {
 public:
     /**
      * The type of elements stored in the index set.
@@ -90,11 +90,11 @@ public:
     using index_type = IndexType;
 
     /**
-     * Creates an empty IndexSet tied to the specified Executor.
+     * Creates an empty index_set tied to the specified Executor.
      *
-     * @param exec  the Executor where the IndexSet data is allocated
+     * @param exec  the Executor where the index_set data is allocated
      */
-    IndexSet(std::shared_ptr<const Executor> exec)
+    index_set(std::shared_ptr<const Executor> exec)
         : exec_(std::move(exec)), index_space_size_{0}, num_stored_indices_{0}
     {}
 
@@ -107,9 +107,9 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    explicit IndexSet(std::shared_ptr<const gko::Executor> exec,
-                      std::initializer_list<IndexType> init_list,
-                      const bool is_sorted = false)
+    explicit index_set(std::shared_ptr<const gko::Executor> exec,
+                       std::initializer_list<IndexType> init_list,
+                       const bool is_sorted = false)
         : exec_(std::move(exec)),
           index_space_size_(init_list.size() > 0
                                 ? *(std::max_element(std::begin(init_list),
@@ -133,10 +133,10 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    explicit IndexSet(std::shared_ptr<const gko::Executor> exec,
-                      const index_type size,
-                      const gko::Array<index_type>& indices,
-                      const bool is_sorted = false)
+    explicit index_set(std::shared_ptr<const gko::Executor> exec,
+                       const index_type size,
+                       const gko::Array<index_type>& indices,
+                       const bool is_sorted = false)
         : exec_(std::move(exec)), index_space_size_(size)
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
@@ -144,13 +144,13 @@ public:
     }
 
     /**
-     * Creates a copy of another IndexSet on a different executor.
+     * Creates a copy of another index_set on a different executor.
      *
-     * @param exec  the executor where the new IndexSet will be created
-     * @param other  the IndexSet to copy from
+     * @param exec  the executor where the new index_set will be created
+     * @param other  the index_set to copy from
      */
-    IndexSet(std::shared_ptr<const Executor> exec, const IndexSet& other)
-        : IndexSet(exec)
+    index_set(std::shared_ptr<const Executor> exec, const index_set& other)
+        : index_set(exec)
     {
         this->index_space_size_ = other.index_space_size_;
         this->num_stored_indices_ = other.num_stored_indices_;
@@ -161,7 +161,7 @@ public:
     }
 
     /**
-     * Returns the executor of the IndexSet
+     * Returns the executor of the index_set
      *
      * @return  the executor.
      */

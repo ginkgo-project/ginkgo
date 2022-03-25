@@ -50,10 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class IndexSet : public ::testing::Test {
+class index_set : public ::testing::Test {
 protected:
     using T = int;
-    IndexSet()
+    index_set()
         : exec(gko::ReferenceExecutor::create()),
           cuda(gko::CudaExecutor::create(0, gko::ReferenceExecutor::create()))
     {}
@@ -66,8 +66,8 @@ protected:
         }
     }
 
-    static void assert_equal_index_sets(gko::IndexSet<T>& a,
-                                        gko::IndexSet<T>& b)
+    static void assert_equal_index_sets(gko::index_set<T>& a,
+                                        gko::index_set<T>& b)
     {
         ASSERT_EQ(a.get_size(), b.get_size());
         ASSERT_EQ(a.get_num_subsets(), b.get_num_subsets());
@@ -95,16 +95,16 @@ protected:
 };
 
 
-TEST_F(IndexSet, CanBeCopiedBetweenExecutors)
+TEST_F(index_set, CanBeCopiedBetweenExecutors)
 {
     auto idx_arr = gko::Array<T>{exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto begin_comp = gko::Array<T>{exec, {0, 4, 6}};
     auto end_comp = gko::Array<T>{exec, {3, 5, 10}};
     auto superset_comp = gko::Array<T>{exec, {0, 3, 4, 8}};
 
-    auto idx_set = gko::IndexSet<T>{exec, 10, idx_arr};
-    auto cuda_idx_set = gko::IndexSet<T>(cuda, idx_set);
-    auto host_idx_set = gko::IndexSet<T>(exec, cuda_idx_set);
+    auto idx_set = gko::index_set<T>{exec, 10, idx_arr};
+    auto cuda_idx_set = gko::index_set<T>(cuda, idx_set);
+    auto host_idx_set = gko::index_set<T>(exec, cuda_idx_set);
 
     ASSERT_EQ(cuda_idx_set.get_executor(), cuda);
     this->assert_equal_index_sets(host_idx_set, idx_set);

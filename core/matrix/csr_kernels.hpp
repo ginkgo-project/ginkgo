@@ -171,8 +171,8 @@ namespace kernels {
     void calculate_nonzeros_per_row_in_index_set(                       \
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType>* source,                \
-        const IndexSet<IndexType>& row_index_set,                       \
-        const IndexSet<IndexType>& col_index_set, IndexType* row_nnz)
+        const gko::index_set<IndexType>& row_index_set,                 \
+        const gko::index_set<IndexType>& col_index_set, IndexType* row_nnz)
 
 #define GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL(ValueType, IndexType)     \
     void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -185,8 +185,8 @@ namespace kernels {
     void compute_submatrix_from_index_set(                                  \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const matrix::Csr<ValueType, IndexType>* source,                    \
-        const IndexSet<IndexType>& row_index_set,                           \
-        const IndexSet<IndexType>& col_index_set,                           \
+        const gko::index_set<IndexType>& row_index_set,                     \
+        const gko::index_set<IndexType>& col_index_set,                     \
         matrix::Csr<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)         \
