@@ -110,14 +110,14 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const prec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, nullptr, b, x, logdata);
+        KernelCaller<ValueType>(exec, opts), opts, a, prec);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);
