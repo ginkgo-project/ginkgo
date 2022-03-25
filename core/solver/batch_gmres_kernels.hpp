@@ -101,7 +101,7 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs,
     void apply(std::shared_ptr<const DefaultExecutor> exec,        \
                const gko::kernels::batch_gmres::BatchGmresOptions< \
                    remove_complex<_type>>& options,                \
-               const BatchLinOp* const a,                          \
+               const BatchLinOp* a, const BatchLinOp* precon,      \
                const matrix::BatchDense<_type>* const b,           \
                matrix::BatchDense<_type>* const x,                 \
                gko::log::BatchLogData<_type>& logdata)

@@ -144,7 +144,7 @@ get_rand_value(Distribution&& dist, Generator&& gen)
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const prec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
@@ -178,8 +178,9 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
         opts.deterministic_gen ? as_cuda_type(arr.get_const_data()) : nullptr;
 
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), opts);
-    dispatcher.apply(a, nullptr, b, x, logdata);
+        KernelCaller<cu_value_type>(exec, opts, subspace_vectors_entry), opts,
+        a, prec);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);

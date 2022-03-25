@@ -88,7 +88,8 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const gko::kernels::batch_cg::BatchCgOptions<remove_complex<_type>>& \
             options,                                                         \
-        const BatchLinOp* const a, const matrix::BatchDense<_type>* const b, \
+        const BatchLinOp* const a, const BatchLinOp* const precon,           \
+        const matrix::BatchDense<_type>* const b,                            \
         matrix::BatchDense<_type>* const x,                                  \
         gko::log::BatchLogData<_type>& logdata)
 
