@@ -106,7 +106,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
 
 
 /**
- * Generates matrix data for a random matrix.
+ * Generates device matrix data for a random matrix.
  *
  * @see generate_random_matrix_data
  */
