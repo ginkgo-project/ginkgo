@@ -258,6 +258,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_TWO_SIDED_BATCH_SYSTEM_TRANSFORM);
 
 
+template <typename ValueType>
+void two_sided_batch_transform(const std::shared_ptr<const Executor> exec,
+                               const BatchDiagonal<ValueType>* const left,
+                               const BatchDiagonal<ValueType>* const right,
+                               BatchLinOp* const mtx)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+#define GKO_DECLARE_TWO_SIDED_BATCH_TRANSFORM(_type)                     \
+    void two_sided_batch_transform(std::shared_ptr<const Executor> exec, \
+                                   const BatchDiagonal<_type>* left_op,  \
+                                   const BatchDiagonal<_type>* rght_op,  \
+                                   BatchLinOp* mtx)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_TRANSFORM);
+
+
 }  // namespace matrix
 
 
