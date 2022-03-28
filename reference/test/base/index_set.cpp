@@ -130,7 +130,7 @@ TYPED_TEST(index_set, CanBeMoveConstructed)
     gko::index_set<TypeParam> idx_set2(std::move(idx_set));
 
     ASSERT_EQ(idx_set2.get_executor(), this->exec);
-    ASSERT_EQ(idx_set.get_executor(), nullptr);
+    ASSERT_EQ(idx_set.get_size(), 0);
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
 
@@ -163,7 +163,7 @@ TYPED_TEST(index_set, CanBeMoveAssigned)
     gko::index_set<TypeParam> idx_set2 = std::move(idx_set);
 
     ASSERT_EQ(idx_set2.get_executor(), this->exec);
-    ASSERT_EQ(idx_set.get_executor(), nullptr);
+    ASSERT_EQ(idx_set.get_size(), 0);
     ASSERT_EQ(idx_set2.get_size(), 10);
 }
 
