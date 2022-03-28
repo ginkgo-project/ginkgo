@@ -498,8 +498,8 @@ protected:
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
-    size_type linearize_index(const size_type batch, const size_type row) const
-        noexcept
+    size_type linearize_index(const size_type batch,
+                              const size_type row) const noexcept
     {
         if (this->get_size().stores_equal_sizes()) {
             return row + batch * std::min(this->get_size().at(0)[0],
@@ -513,6 +513,23 @@ private:
     Array<value_type> values_;
     Array<size_type> num_elems_per_batch_cumul_;
 };
+
+
+/**
+ * Transforms the input matrix A according to
+ * S_L*A*S_R where '*' denotes matrix multiplication, and S_L and S_R
+ * are the left and right transormation matrices.
+ *
+ * @param exec  Exector to run the operation on.
+ * @param left  Left transformation matrix.
+ * @param right  Right transformation matrix.
+ * @param mtx  System matrix to be transformed.
+ */
+template <typename ValueType>
+void two_sided_batch_transform(std::shared_ptr<const Executor> exec,
+                               const BatchDiagonal<ValueType>* left,
+                               const BatchDiagonal<ValueType>* right,
+                               BatchLinOp* mtx);
 
 
 /**
