@@ -54,11 +54,51 @@ struct BatchInfo {
 
 
 template <typename ConcreteSolver, typename PolymorphicBase>
+EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const BatchLinOp> system_matrix,
+    detail::common_batch_params common_params)
+    : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
+        exec, gko::transpose(system_matrix->get_size())),
+      system_matrix_{std::move(system_matrix)},
+      left_scaling_{common_params.left_scaling_op},
+      right_scaling_{common_params.right_scaling_op}
+{
+    GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
+
+    using value_type = typename ConcreteSolver::value_type;
+    using Csr = matrix::BatchCsr<value_type>;
+    using Diag = matrix::BatchDiagonal<value_type>;
+    using real_type = remove_complex<value_type>;
+
+    const bool to_scale = left_scaling_ && right_scaling_;
+    const auto acsr = dynamic_cast<const Csr*>(system_matrix_.get());
+    if (to_scale && !acsr) {
+        GKO_NOT_SUPPORTED(system_matrix_);
+    }
+    if (to_scale) {
+        auto a_scaled_smart = gko::share(Csr::create(exec));
+        a_scaled_smart->copy_from(acsr);
+        matrix::two_sided_batch_transform(exec,
+            as<const Diag>(this->left_scaling_.get()),
+            as<const Diag>(this->right_scaling_.get()), a_scaled_smart.get());
+        system_matrix_ = a_scaled_smart;
+    }
+
+    if (common_params.generated_prec) {
+        GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(common_params.generated_prec, this);
+        preconditioner_ = std::move(common_params.generated_prec);
+    } else if (common_params.prec_factory) {
+        preconditioner_ = common_params.prec_factory->generate(system_matrix_);
+    }
+}
+
+
+template <typename ConcreteSolver, typename PolymorphicBase>
 void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchLinOp* b,
                                           BatchLinOp* x) const
 {
     using value_type = typename ConcreteSolver::value_type;
-    using Csr = matrix::BatchCsr<value_type>;
     using Diag = matrix::BatchDiagonal<value_type>;
     using Vector = matrix::BatchDense<value_type>;
     using real_type = remove_complex<value_type>;
@@ -66,30 +106,17 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const bool to_scale =
-        this->get_left_scaling_op() && this->get_right_scaling_op();
-    const auto acsr = dynamic_cast<const Csr*>(system_matrix_.get());
-    const BatchLinOp* a_scaled{};
-    const Vector* b_scaled{};
-    auto a_scaled_smart = Csr::create(exec);
-    auto b_scaled_smart = Vector::create(exec);
-    if (to_scale && !acsr) {
-        GKO_NOT_SUPPORTED(system_matrix_);
-    }
+    const bool to_scale = left_scaling_ && right_scaling_;
+    auto b_scaled = Vector::create(exec);
+    const Vector* b_scaled_ptr{};
 
     // copies to scale
     if (to_scale) {
-        a_scaled_smart->copy_from(acsr);
-        b_scaled_smart->copy_from(dense_b);
-        matrix::two_sided_batch_system_transform(exec,
-            as<const Diag>(this->get_left_scaling_op()),
-            as<const Diag>(this->get_right_scaling_op()),
-            a_scaled_smart.get(), b_scaled_smart.get());
-        a_scaled = a_scaled_smart.get();
-        b_scaled = b_scaled_smart.get();
+        b_scaled->copy_from(dense_b);
+        as<const Diag>(this->left_scaling_)->apply(b_scaled.get(), b_scaled.get());
+        b_scaled_ptr = b_scaled.get();
     } else {
-        a_scaled = system_matrix_.get();
-        b_scaled = dense_b;
+        b_scaled_ptr = dense_b;
     }
 
     const size_type num_rhs = dense_b->get_size().at(0)[1];
@@ -104,13 +131,13 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     concrete_logdata->iter_counts.set_executor(this->get_executor());
     concrete_logdata->iter_counts.resize_and_reset(num_rhs * num_batches);
 
-    this->solver_apply(a_scaled, b_scaled, dense_x, &info);
+    this->solver_apply(b_scaled_ptr, dense_x, &info);
 
     this->template log<log::Logger::batch_solver_completed>(
         concrete_logdata->iter_counts, concrete_logdata->res_norms.get());
 
     if (to_scale) {
-        as<const Diag>(this->get_right_scaling_op())->apply(dense_x, dense_x);
+        as<const Diag>(this->right_scaling_)->apply(dense_x, dense_x);
     }
 }
 

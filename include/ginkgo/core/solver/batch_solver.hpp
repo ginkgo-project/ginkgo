@@ -39,6 +39,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
+namespace detail {
+
+
+struct common_batch_params {
+    std::shared_ptr<const BatchLinOpFactory> prec_factory;
+    std::shared_ptr<const BatchLinOp> generated_prec;
+    std::shared_ptr<const BatchLinOp> left_scaling_op;
+    std::shared_ptr<const BatchLinOp> right_scaling_op;
+};
+
+
+template <typename ParamsType>
+common_batch_params extract_common_batch_params(ParamsType& params)
+{
+    return {params.preconditioner, params.generated_preconditioner,
+            params.left_scaling_op, params.right_scaling_op};
+}
+
+
+}  // namespace detail
 
 
 struct BatchInfo;
@@ -49,8 +69,7 @@ struct BatchInfo;
  */
 template <typename ConcreteSolver, typename PolymorphicBase = BatchLinOp>
 class EnableBatchSolver
-    : public EnableBatchLinOp<ConcreteSolver, PolymorphicBase>,
-      public EnableBatchScaling {
+    : public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
 public:
     /**
      * Returns the system operator (matrix) of the linear system.
@@ -68,22 +87,20 @@ protected:
     {}
 
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec,
-                               std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
-              exec, gko::transpose(system_matrix->get_size())),
-          system_matrix_{std::move(system_matrix)}
-    {
-        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
-    }
+                               std::shared_ptr<const BatchLinOp> system_matrix,
+                               detail::common_batch_params common_params);
 
     void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
 
-private:
     std::shared_ptr<const BatchLinOp> system_matrix_{};
+    std::shared_ptr<const BatchLinOp> preconditioner_{};
+    std::shared_ptr<const BatchLinOp> left_scaling_{};
+    std::shared_ptr<const BatchLinOp> right_scaling_{};
 
+private:
     /**
      * Calls the concrete solver on the given system (not necessarily on
      * system_matrix_).
@@ -93,8 +110,8 @@ private:
      * @param x  Solution vector and initial guess.
      * @param info  Batch logging information.
      */
-    virtual void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b,
-                              BatchLinOp* x, BatchInfo* const info) const = 0;
+    virtual void solver_apply(const BatchLinOp* b, BatchLinOp* x,
+                              BatchInfo* const info) const = 0;
 };
 
 
