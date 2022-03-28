@@ -90,12 +90,24 @@ public:
     using index_type = IndexType;
 
     /**
+     * Creates an empty Array not tied to any executor.
+     */
+    index_set() noexcept
+        : exec_(nullptr), index_space_size_{0}, num_stored_indices_{0}
+    {}
+
+    /**
      * Creates an empty index_set tied to the specified Executor.
      *
      * @param exec  the Executor where the index_set data is allocated
      */
-    index_set(std::shared_ptr<const Executor> exec)
-        : exec_(std::move(exec)), index_space_size_{0}, num_stored_indices_{0}
+    explicit index_set(std::shared_ptr<const Executor> exec) noexcept
+        : exec_(std::move(exec)),
+          index_space_size_{0},
+          num_stored_indices_{0},
+          subsets_begin_{Array<index_type>(exec_)},
+          subsets_end_{Array<index_type>(exec_)},
+          superset_cumulative_indices_{Array<index_type>(exec_)}
     {}
 
     /**
@@ -144,7 +156,7 @@ public:
     }
 
     /**
-     * Creates a copy of another index_set on a different executor.
+     * Creates a copy of the input index_set on a different executor.
      *
      * @param exec  the executor where the new index_set will be created
      * @param other  the index_set to copy from
@@ -152,12 +164,117 @@ public:
     index_set(std::shared_ptr<const Executor> exec, const index_set& other)
         : index_set(exec)
     {
+        *this = other;
+    }
+
+    /**
+     * Creates a copy of the input index_set.
+     *
+     * @param other the index_set to copy from
+     */
+    index_set(const index_set& other) : index_set(other.get_executor(), other)
+    {}
+
+    /**
+     * Moves the input index_set to a different executor.
+     *
+     * @param exec  the executor where the new index_set will be moved to
+     * @param other the index_set to move from
+     */
+    index_set(std::shared_ptr<const Executor> exec, index_set&& other)
+        : index_set(exec)
+    {
+        *this = std::move(other);
+    }
+
+    /**
+     * Moves the input index_set.
+     *
+     * @param other the index_set to move from
+     */
+    index_set(index_set&& other)
+        : index_set(other.get_executor(), std::move(other))
+    {}
+
+    /**
+     * Copies data from another index_set
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the index_set to copy from
+     *
+     * @return this
+     */
+    index_set& operator=(const index_set& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+        if (exec_ == nullptr) {
+            this->exec_ = other.get_executor();
+        }
         this->index_space_size_ = other.index_space_size_;
         this->num_stored_indices_ = other.num_stored_indices_;
-        subsets_begin_ = gko::Array<index_type>(exec, other.subsets_begin_);
-        subsets_end_ = gko::Array<index_type>(exec, other.subsets_end_);
-        superset_cumulative_indices_ =
-            gko::Array<index_type>(exec, other.superset_cumulative_indices_);
+        this->subsets_begin_ = other.subsets_begin_;
+        this->subsets_end_ = other.subsets_end_;
+        this->superset_cumulative_indices_ = other.superset_cumulative_indices_;
+
+        return *this;
+    }
+
+    /**
+     * Moves data from another index_set
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the index_set to move from
+     *
+     * @return this
+     */
+    index_set& operator=(index_set&& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        if (other.get_executor() == nullptr) {
+            this->clear();
+            return *this;
+        }
+        if (exec_ == nullptr) {
+            this->exec_ = other.get_executor();
+        }
+        this->index_space_size_ = other.index_space_size_;
+        this->num_stored_indices_ = other.num_stored_indices_;
+        other.index_space_size_ = 0;
+        other.num_stored_indices_ = 0;
+        this->subsets_begin_ = std::move(other.subsets_begin_);
+        this->subsets_end_ = std::move(other.subsets_end_);
+        this->superset_cumulative_indices_ =
+            std::move(other.superset_cumulative_indices_);
+
+        return *this;
+    }
+
+    /**
+     * Deallocates all data used by the index_set.
+     *
+     * The index_set is left in a valid, but empty state, so the same index_set
+     * can be used to allocate new memory. Calls to
+     * index_set::get_subsets_begin() will return a `nullptr`.
+     */
+    void clear() noexcept
+    {
+        this->index_space_size_ = 0;
+        this->num_stored_indices_ = 0;
+        this->subsets_begin_.clear();
+        this->subsets_end_.clear();
+        this->superset_cumulative_indices_.clear();
     }
 
     /**
@@ -345,11 +462,11 @@ private:
                           const bool is_sorted);
 
     std::shared_ptr<const Executor> exec_;
-    index_type index_space_size_;
-    index_type num_stored_indices_;
-    gko::Array<index_type> subsets_begin_;
-    gko::Array<index_type> subsets_end_;
-    gko::Array<index_type> superset_cumulative_indices_;
+    index_type index_space_size_{};
+    index_type num_stored_indices_{};
+    gko::Array<index_type> subsets_begin_{};
+    gko::Array<index_type> subsets_end_{};
+    gko::Array<index_type> superset_cumulative_indices_{};
 };
 
 
