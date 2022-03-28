@@ -94,8 +94,8 @@ public:
         /**
          * TODO: Remove. Inner preconditioner descriptor.
          */
-        preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, preconditioner::batch::type::none);
+        // preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
+        //     preconditioner, preconditioner::batch::type::none);
 
         /**
          * Preconditioner factory.
@@ -144,27 +144,15 @@ protected:
 
     explicit BatchBicgstab(const Factory* factory,
                            std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<BatchBicgstab>(factory->get_executor(),
-                                           std::move(system_matrix)),
+        : EnableBatchSolver<BatchBicgstab>(
+              factory->get_executor(), std::move(system_matrix),
+              detail::extract_common_batch_params(factory->get_parameters())),
           parameters_{factory->get_parameters()}
-    {
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(
-                parameters_.generated_preconditioner, this);
-            preconditioner_ = parameters_.generated_preconditioner;
-        } else if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
-        }
-    }
+    {}
 
 private:
-    void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
+    void solver_apply(const BatchLinOp* b, BatchLinOp* x,
                       BatchInfo* const info) const override;
-
-    std::shared_ptr<const LinOp> preconditioner_{};
-    std::shared_ptr<const LinOp> left_scale_{};
-    std::shared_ptr<const LinOp> right_scale_{};
 };
 
 
