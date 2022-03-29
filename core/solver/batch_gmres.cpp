@@ -84,19 +84,19 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const mtx,
-                                         const BatchLinOp* const b,
+void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const b,
                                          BatchLinOp* const x,
                                          BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
+        opts{preconditioner::batch::type::none, parameters_.max_iterations,
              parameters_.residual_tol, parameters_.restart,
              parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_gmres::make_apply(
-        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        opts, this->system_matrix_.get(), this->preconditioner_.get(),
+        as<const Dense>(b), as<Dense>(x),
         *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
