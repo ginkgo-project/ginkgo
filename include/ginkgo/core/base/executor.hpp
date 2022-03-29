@@ -899,14 +899,12 @@ public:
     }
 
     template <typename T>
-    T copy_val_to_host(const T* ptr, std::shared_ptr<AsyncHandle> handle) const
+    std::shared_ptr<AsyncHandle> copy_val_to_host(
+        const T* ptr, T* out, std::shared_ptr<AsyncHandle> handle) const
     {
-        T out{};
-        this->get_master()
-            ->get_mem_space()
-            ->copy_from(this->get_mem_space().get(), 1, ptr, &out, handle)
-            ->wait();
-        return out;
+        this->get_master()->get_mem_space()->copy_from(
+            this->get_mem_space().get(), 1, ptr, out, handle);
+        return handle;
     }
 
     /**

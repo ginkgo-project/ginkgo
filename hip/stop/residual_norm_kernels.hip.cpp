@@ -119,10 +119,10 @@ std::shared_ptr<AsyncHandle> residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged =
-        exec->copy_val_to_host(device_storage->get_const_data(), handle);
-    *one_changed =
-        exec->copy_val_to_host(device_storage->get_const_data() + 1, handle);
+    exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
+                           handle);
+    exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
+                           handle);
     return handle;
 }
 
@@ -204,10 +204,10 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged =
-        exec->copy_val_to_host(device_storage->get_const_data(), handle);
-    *one_changed =
-        exec->copy_val_to_host(device_storage->get_const_data() + 1, handle);
+    exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
+                           handle);
+    exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
+                           handle);
     return handle;
 }
 

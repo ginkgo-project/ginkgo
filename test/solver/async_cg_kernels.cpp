@@ -243,12 +243,12 @@ TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     exec->set_default_exec_stream(exec->get_handle_at(0));
-    auto dense_mtx = gen_mtx(100, 100, 100);
+    auto dense_mtx = gen_mtx(500, 500, 500);
     gko::test::make_hpd(dense_mtx.get());
     auto mtx = CsrMtx::create(ref);
     mtx->copy_from(dense_mtx.get());
-    auto x = gen_mtx(100, 1, 1);
-    auto b = gen_mtx(100, 1, 1);
+    auto x = gen_mtx(500, 1, 1);
+    auto b = gen_mtx(500, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);
@@ -259,10 +259,9 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto d_x3 = gko::clone(exec, x);
     auto d_b3 = gko::clone(exec, b);
     auto cg_factory =
-
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::Iteration::build().with_max_iters(500u).on(ref),
                 gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(ref))
@@ -270,7 +269,7 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(exec),
+                gko::stop::Iteration::build().with_max_iters(500u).on(exec),
                 gko::stop::ImplicitResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
                     .on(exec))
