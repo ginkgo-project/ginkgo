@@ -90,13 +90,6 @@ public:
     using index_type = IndexType;
 
     /**
-     * Creates an empty Array not tied to any executor.
-     */
-    index_set() noexcept
-        : exec_(nullptr), index_space_size_{0}, num_stored_indices_{0}
-    {}
-
-    /**
      * Creates an empty index_set tied to the specified Executor.
      *
      * @param exec  the Executor where the index_set data is allocated
@@ -211,13 +204,6 @@ public:
         if (&other == this) {
             return *this;
         }
-        if (other.get_executor() == nullptr) {
-            this->clear();
-            return *this;
-        }
-        if (exec_ == nullptr) {
-            this->exec_ = other.get_executor();
-        }
         this->index_space_size_ = other.index_space_size_;
         this->num_stored_indices_ = other.num_stored_indices_;
         this->subsets_begin_ = other.subsets_begin_;
@@ -242,17 +228,8 @@ public:
         if (&other == this) {
             return *this;
         }
-        if (other.get_executor() == nullptr) {
-            this->clear();
-            return *this;
-        }
-        if (exec_ == nullptr) {
-            this->exec_ = other.get_executor();
-        }
-        this->index_space_size_ = other.index_space_size_;
-        this->num_stored_indices_ = other.num_stored_indices_;
-        other.index_space_size_ = 0;
-        other.num_stored_indices_ = 0;
+        this->index_space_size_ = std::exchange(other.index_space_size_, 0);
+        this->num_stored_indices_ = std::exchange(other.num_stored_indices_, 0);
         this->subsets_begin_ = std::move(other.subsets_begin_);
         this->subsets_end_ = std::move(other.subsets_end_);
         this->superset_cumulative_indices_ =
@@ -462,11 +439,11 @@ private:
                           const bool is_sorted);
 
     std::shared_ptr<const Executor> exec_;
-    index_type index_space_size_{};
-    index_type num_stored_indices_{};
-    gko::Array<index_type> subsets_begin_{};
-    gko::Array<index_type> subsets_end_{};
-    gko::Array<index_type> superset_cumulative_indices_{};
+    index_type index_space_size_;
+    index_type num_stored_indices_;
+    gko::Array<index_type> subsets_begin_;
+    gko::Array<index_type> subsets_end_;
+    gko::Array<index_type> superset_cumulative_indices_;
 };
 
 
