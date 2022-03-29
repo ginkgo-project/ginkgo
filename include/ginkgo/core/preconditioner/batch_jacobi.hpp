@@ -50,12 +50,6 @@ namespace preconditioner {
 
 
 /**
- * Placeholder for no-preconditioner.
- */
-class BatchIdentity {};
-
-
-/**
  * A batch-Jacobi preconditioner is a diagonal batch linear operator, obtained
  * by inverting the diagonals, of the source batch operator.
  *
@@ -77,7 +71,7 @@ public:
     using index_type = IndexType;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
-    GKO_ENABLE_LIN_OP_FACTORY(BatchJacobi, parameters, Factory);
+    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchJacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
