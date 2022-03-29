@@ -86,9 +86,22 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    auto handle = this->get_executor()->get_default_exec_stream();
     precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+        [this, handle](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x, handle)->wait();
+        },
+        b, x);
+}
+
+
+template <typename ValueType>
+std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_impl(
+    const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex_distributed<ValueType>(
+        [this, handle](auto dense_b, auto dense_x) {
+            return this->apply_dense_impl(dense_b, dense_x, handle);
         },
         b, x);
 }
@@ -108,8 +121,9 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x,
 
 template <typename ValueType>
 template <typename VectorType>
-void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                     VectorType* dense_x) const
+std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
+    const VectorType* dense_b, VectorType* dense_x,
+    std::shared_ptr<AsyncHandle> handle) const
 {
     using LocalVector = matrix::Dense<ValueType>;
     constexpr uint8 relative_stopping_id{1};
@@ -207,6 +221,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
         // #endif
     }
+    return handle;
 }
 
 
@@ -291,13 +306,33 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
 
 template <typename ValueType>
+std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex_distributed<ValueType>(
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), handle);
+            dense_x->scale(dense_beta, handle);
+            dense_x->add_scaled(dense_alpha, x_clone.get(), handle);
+            return handle;
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
 {
+    auto handle = this->get_executor()->get_default_exec_stream();
     precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            this->apply_dense_impl(dense_b, x_clone.get(), handle)->wait();
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },

@@ -206,21 +206,31 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* b, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
     template <typename VectorType>
-    void apply_dense_impl(const VectorType *b, VectorType *x) const;
+    std::shared_ptr<AsyncHandle> apply_dense_impl(
+        const VectorType* b, VectorType* x,
+        std::shared_ptr<AsyncHandle> handle) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    void apply_impl(const LinOp *b, LinOp *x,
-                    const OverlapMask &wmask) const override;
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
+    void apply_impl(const LinOp* b, LinOp* x,
+                    const OverlapMask& wmask) const override;
 
     template <typename VectorType>
-    void apply_dense_impl(const VectorType *b, VectorType *x,
-                          const OverlapMask &wmask) const;
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          const OverlapMask& wmask) const;
 
-    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x, const OverlapMask &wmask) const override;
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x, const OverlapMask& wmask) const override;
 
     explicit Ir(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Ir>(std::move(exec))
