@@ -104,11 +104,23 @@ namespace kernels {
                          const matrix::Diagonal<_type>* x,            \
                          matrix::Dense<_type>* y)
 
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(_type)               \
+    void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
+                              const matrix::Dense<_type>* x,               \
+                              const matrix::Dense<_type>* y,               \
+                              matrix::Dense<_type>* result, Array<char>& tmp)
+
 #define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
                      const matrix::Dense<_type>* x,               \
                      const matrix::Dense<_type>* y,               \
                      matrix::Dense<_type>* result, Array<char>& tmp)
+
+#define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(_type)     \
+    void compute_conj_dot_dispatch(                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Dense<_type>* x, const matrix::Dense<_type>* y, \
+        matrix::Dense<_type>* result, Array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)               \
     void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
@@ -121,6 +133,12 @@ namespace kernels {
                        const matrix::Dense<_type>* x,                \
                        matrix::Dense<remove_complex<_type>>* result, \
                        Array<char>& tmp)
+
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(_type)                \
+    void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,  \
+                                const matrix::Dense<_type>* x,                \
+                                matrix::Dense<remove_complex<_type>>* result, \
+                                Array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)                \
     void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,  \
@@ -310,9 +328,15 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
     template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL(ValueType);               \
+    template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(ValueType);                   \
     template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(ValueType);          \
+    template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                      \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(ValueType);             \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
