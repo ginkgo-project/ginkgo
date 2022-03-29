@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
@@ -70,10 +71,11 @@ protected:
           sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch))
     {
         auto execp = cuexec;
-        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+        solve_fn = [execp](const Options opts, const Mtx* mtx,
+                           const gko::BatchLinOp* prec, const BDense* b,
                            BDense* x, LogData& logdata) {
-            gko::kernels::cuda::batch_gmres::apply<value_type>(execp, opts, mtx,
-                                                               b, x, logdata);
+            gko::kernels::cuda::batch_gmres::apply<value_type>(
+                execp, opts, mtx, prec, b, x, logdata);
         };
     }
 
@@ -98,17 +100,19 @@ protected:
 
     gko::test::LinSys<T> sys_1;
 
-    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
+    std::function<void(Options, const Mtx*, const gko::BatchLinOp*,
+                       const BDense*, BDense*, LogData&)>
         solve_fn;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options& opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts,
+        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
             .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
-            .with_preconditioner(opts.preconditioner)
+            .with_preconditioner(prec_factory)
             .with_restart(opts.restart_num)
             .on(exec);
     }
@@ -143,12 +147,14 @@ TYPED_TEST(BatchGmres, SolveIsEquivalentToReference)
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         this->exec, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(this->exec, opts);
+    auto d_factory = this->create_factory(this->cuexec, opts);
     const double iter_tol = 0.01;
     const double res_tol = 10 * r<value_type>::value;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->cuexec, r_sys, r_factory.get(), iter_tol, res_tol, sol_tol);
+        this->cuexec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
+        res_tol, sol_tol);
 }
 
 
@@ -157,8 +163,9 @@ TYPED_TEST(BatchGmres, StencilSystemLoggerIsCorrect)
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
 
-    auto r_1 = gko::test::solve_poisson_uniform(this->cuexec, this->solve_fn,
-                                                this->opts_1, this->sys_1, 1);
+    auto r_1 = gko::test::solve_poisson_uniform(
+        this->cuexec, this->solve_fn, this->opts_1, this->sys_1, 1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->cuexec));
 
     const int ref_iters = this->single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
@@ -186,7 +193,9 @@ TYPED_TEST(BatchGmres, CoreSolvesSystemJacobi)
         Solver::build()
             .with_max_iterations(100)
             .with_residual_tol(1e-6f)
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<value_type>::build().on(
+                    useexec))
             .with_restart(2)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
@@ -265,7 +274,6 @@ TEST(BatchGmres, GoodScalingImprovesConvergence)
             .with_max_iterations(20)
             .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(gko::preconditioner::batch::type::none)
             .on(cuexec);
 
     gko::test::test_solve_iterations_with_scaling<Solver>(cuexec, nbatch, nrows,
@@ -290,7 +298,6 @@ TEST(BatchGmres, CanSolveCsrWithoutScaling)
             .with_max_iterations(maxits)
             .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(gko::preconditioner::batch::type::none)
             .with_restart(5)
             .on(exec);
     const int nrows = 23;
