@@ -202,8 +202,7 @@ public:
         // } else {
         //     GKO_NOT_IMPLEMENTED;
         // }
-        if (auto precid =
-                dynamic_cast<const preconditioner::BatchIdentity*>(precon_)) {
+        if (!precon_) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, b_b, x_b);
         } else if (auto precjac = dynamic_cast<

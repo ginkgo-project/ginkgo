@@ -106,6 +106,10 @@ public:
         /**
          * Already generated preconditioner. If one is provided, the factory
          * `preconditioner` will be ignored.
+         *
+         * Note that if scaling is requested (@sa left_scaling_op,
+         * @sa right_scaling_op), this is assumed to be generated from the
+         * scaled matrix.
          */
         std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
             generated_preconditioner, nullptr);
