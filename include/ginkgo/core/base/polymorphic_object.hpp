@@ -178,10 +178,10 @@ public:
      */
     PolymorphicObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        this->template log<log::Logger::polymorphic_object_copy_started>(
+        this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
         auto copied = this->copy_from_impl(std::move(other));
-        this->template log<log::Logger::polymorphic_object_copy_completed>(
+        this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other.get(), this);
         return copied;
     }
@@ -199,10 +199,10 @@ public:
      */
     PolymorphicObject* move_from(PolymorphicObject* other)
     {
-        this->template log<log::Logger::polymorphic_object_copy_started>(
+        this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other, this);
         auto moved = this->move_from_impl(other);
-        this->template log<log::Logger::polymorphic_object_copy_completed>(
+        this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other, this);
         return moved;
     }

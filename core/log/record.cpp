@@ -162,6 +162,24 @@ void Record::on_polymorphic_object_copy_completed(
 }
 
 
+void Record::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    append_deque(data_.polymorphic_object_move_started,
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+}
+
+
+void Record::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    append_deque(data_.polymorphic_object_move_completed,
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+}
+
+
 void Record::on_polymorphic_object_deleted(const Executor* exec,
                                            const PolymorphicObject* po) const
 {
