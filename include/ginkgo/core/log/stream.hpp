@@ -105,6 +105,14 @@ public:
         const Executor* exec, const PolymorphicObject* from,
         const PolymorphicObject* to) const override;
 
+    void on_polymorphic_object_move_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
     void on_polymorphic_object_deleted(
         const Executor* exec, const PolymorphicObject* po) const override;
 

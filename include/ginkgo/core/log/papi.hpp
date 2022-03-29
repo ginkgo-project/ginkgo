@@ -138,6 +138,14 @@ public:
         const Executor* exec, const PolymorphicObject* from,
         const PolymorphicObject* to) const override;
 
+    void on_polymorphic_object_move_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
     void on_polymorphic_object_deleted(
         const Executor* exec, const PolymorphicObject* po) const override;
 
@@ -291,6 +299,10 @@ private:
         &papi_handle, "polymorphic_object_copy_started"};
     mutable papi_queue<Executor> polymorphic_object_copy_completed{
         &papi_handle, "polymorphic_object_copy_completed"};
+    mutable papi_queue<Executor> polymorphic_object_move_started{
+        &papi_handle, "polymorphic_object_move_started"};
+    mutable papi_queue<Executor> polymorphic_object_move_completed{
+        &papi_handle, "polymorphic_object_move_completed"};
     mutable papi_queue<Executor> polymorphic_object_deleted{
         &papi_handle, "polymorphic_object_deleted"};
 

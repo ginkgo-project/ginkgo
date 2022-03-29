@@ -458,6 +458,30 @@ protected:
         this->on_iteration_complete(solver, it, r, x, tau);
     }
 
+    /**
+     * PolymorphicObject's move started event.
+     *
+     * @param exec  the executor used
+     * @param input  the PolymorphicObject to be move from
+     * @param output  the PolymorphicObject to be move to
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, polymorphic_object_move_started,
+                              const Executor* exec,
+                              const PolymorphicObject* input,
+                              const PolymorphicObject* output)
+
+    /**
+     * PolymorphicObject's move completed event.
+     *
+     * @param exec  the executor used
+     * @param input  the PolymorphicObject to be move from
+     * @param output  the PolymorphicObject to be move to
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, polymorphic_object_move_completed,
+                              const Executor* exec,
+                              const PolymorphicObject* input,
+                              const PolymorphicObject* output)
+
 public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
@@ -483,6 +507,8 @@ public:
         polymorphic_object_create_completed_mask |
         polymorphic_object_copy_started_mask |
         polymorphic_object_copy_completed_mask |
+        polymorphic_object_move_started_mask |
+        polymorphic_object_move_completed_mask |
         polymorphic_object_deleted_mask;
 
     /**

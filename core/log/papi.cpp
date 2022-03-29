@@ -149,6 +149,24 @@ void Papi<ValueType>::on_polymorphic_object_copy_completed(
 
 
 template <typename ValueType>
+void Papi<ValueType>::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    polymorphic_object_move_started.get_counter(exec) += 1;
+}
+
+
+template <typename ValueType>
+void Papi<ValueType>::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    polymorphic_object_move_completed.get_counter(exec) += 1;
+}
+
+
+template <typename ValueType>
 void Papi<ValueType>::on_polymorphic_object_deleted(
     const Executor* exec, const PolymorphicObject* po) const
 {

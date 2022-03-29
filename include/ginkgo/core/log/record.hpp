@@ -263,6 +263,10 @@ public:
         std::deque<std::unique_ptr<polymorphic_object_data>>
             polymorphic_object_copy_completed;
         std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_move_started;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
+            polymorphic_object_move_completed;
+        std::deque<std::unique_ptr<polymorphic_object_data>>
             polymorphic_object_deleted;
 
         std::deque<std::unique_ptr<linop_data>> linop_apply_started;
@@ -325,6 +329,14 @@ public:
         const PolymorphicObject* to) const override;
 
     void on_polymorphic_object_copy_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_completed(
         const Executor* exec, const PolymorphicObject* from,
         const PolymorphicObject* to) const override;
 
