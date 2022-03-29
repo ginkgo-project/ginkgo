@@ -76,26 +76,29 @@ int main(int argc, char* argv[])
 
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim = argc >= 3 ? std::atoi(argv[2]) : 100;
-    gko::size_type overlap = argc >= 4 ? std::atoi(argv[3]) : 0;
-    ValueType relax_fac = argc >= 5 ? std::atof(argv[4]) : 1.0;
+    gko::size_type num_subdomains = argc >= 4 ? std::atoi(argv[3]) : 1;
+    gko::size_type inner_max_iters = argc >= 5 ? std::atoi(argv[4]) : 100;
     ValueType c_relax_fac = argc >= 6 ? std::atof(argv[5]) : 1.0;
-    gko::size_type num_subdomains = argc >= 7 ? std::atoi(argv[6]) : 1;
+    gko::size_type overlap = argc >= 7 ? std::atoi(argv[6]) : 0;
     gko::size_type num_iters = argc >= 8 ? std::atoi(argv[7]) : 10000;
     gko::size_type c_max_iters = argc >= 9 ? std::atoi(argv[8]) : 10;
+    // ValueType relax_fac = argc >= 5 ? std::atof(argv[4]) : 1.0;
     RealValueType inner_reduction_factor =
         argc >= 10 ? std::atof(argv[9]) : 1e-1;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
-             [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
+             [num_subdomains] {
+                 return gko::CudaExecutor::create(
+                     0, gko::OmpExecutor::create(), true,
+                     gko::allocation_mode::device, num_subdomains);
              }},
             {"hip",
              [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
+                 return gko::HipExecutor::create(
+                     0, gko::OmpExecutor::create(), true,
+                     gko::allocation_mode::device, 4);
              }},
             {"dpcpp",
              [] {
@@ -200,26 +203,30 @@ int main(int argc, char* argv[])
     // Create solver factory
     gko::remove_complex<ValueType> inner2_red = 1e-1;
 
-    // auto coarse_gen = amgx_pgm::build().with_deterministic(true).on(exec);
-    // auto coarse_mat = as<> coarse_gen->get_coarse_op();
+    auto coarse_gen =
+        amgx_pgm::build().with_deterministic(true).on(exec)->generate(A);
+    auto coarse_mat = coarse_gen->get_coarse_op();
     auto coarse_solver = cg::build()
                              .with_criteria(gko::stop::Iteration::build()
                                                 .with_max_iters(c_max_iters)
                                                 .on(exec))
                              .on(exec)
-                             ->generate(A);
+                             ->generate(coarse_mat);
     auto schwarz_precond =
         schwarz::build()
             .with_block_dimensions(block_sizes)
-            .with_coarse_relaxation_factors(c_relax_fac)
-            .with_generated_coarse_solvers(gko::share(coarse_solver))
+            // .with_coarse_relaxation_factors(c_relax_fac)
+            // .with_generated_coarse_solvers(gko::share(coarse_solver))
             .with_inner_solver(
                 cg::build()
-                    .with_preconditioner(bj::build().on(exec))
-                    .with_criteria(
-                        gko::stop::ResidualNorm<ValueType>::build()
-                            .with_reduction_factor(inner_reduction_factor)
-                            .on(exec))
+                    // .with_preconditioner(bj::build().on(exec))
+                    .with_criteria(gko::stop::Iteration::build()
+                                       .with_max_iters(inner_max_iters)
+                                       .on(exec))
+                    // .with_criteria(
+                    //     gko::stop::ResidualNorm<ValueType>::build()
+                    //         .with_reduction_factor(inner_reduction_factor)
+                    //         .on(exec))
                     .on(exec))
             .on(exec)
             ->generate(A);

@@ -62,9 +62,22 @@ namespace schwarz {}  // namespace schwarz
 template <typename ValueType, typename IndexType>
 void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    auto handle = this->get_executor()->get_default_exec_stream();
     precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+        [this, handle](auto dense_b, auto dense_x) {
+            this->apply_dense_impl(dense_b, dense_x, handle)->wait();
+        },
+        b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<AsyncHandle> Schwarz<ValueType, IndexType>::apply_impl(
+    const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex_distributed<ValueType>(
+        [this, handle](auto dense_b, auto dense_x) {
+            return this->apply_dense_impl(dense_b, dense_x, handle);
         },
         b, x);
 }
@@ -72,9 +85,11 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
 template <typename ValueType, typename IndexType>
 template <typename VectorType>
-void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
-                                                     VectorType* dense_x) const
+std::shared_ptr<AsyncHandle> Schwarz<ValueType, IndexType>::apply_dense_impl(
+    const VectorType* dense_b, VectorType* dense_x,
+    std::shared_ptr<AsyncHandle> handle) const
 {
+    auto exec = this->get_executor();
     using LocalVector = matrix::Dense<ValueType>;
     if (is_distributed()) {
         GKO_ASSERT(this->inner_solvers_.size() > 0);
@@ -110,7 +125,9 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
                             left_ov[i] + non_ov_bsize.get_const_data()[i]},
                         true});
             } else {
-                this->inner_solvers_[i]->apply(b_view.get(), x_view.get());
+                this->inner_solvers_[i]->apply(
+                    b_view.get(), x_view.get(),
+                    exec->get_handle_at(i % exec->get_num_handles()));
             }
         }
     }
@@ -131,6 +148,7 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
             dense_x->add_scaled(fac.get(), corr.get());
         }
     }
+    return handle;
 }
 
 
@@ -140,12 +158,33 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                                const LinOp* beta,
                                                LinOp* x) const
 {
+    auto handle = this->get_executor()->get_default_exec_stream();
     precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            this->apply_dense_impl(dense_b, x_clone.get(), handle)->wait();
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
+        },
+        alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<AsyncHandle> Schwarz<ValueType, IndexType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    std::shared_ptr<AsyncHandle> handle) const
+{
+    return async_precision_dispatch_real_complex_distributed<ValueType>(
+        [this, handle](auto dense_alpha, auto dense_b, auto dense_beta,
+                       auto dense_x) {
+            // TODO: This syncs
+            auto x_clone = dense_x->clone();
+            this->apply_dense_impl(dense_b, x_clone.get(), handle);
+            dense_x->scale(dense_beta, handle);
+            dense_x->add_scaled(dense_alpha, x_clone.get(), handle);
+            return handle;
         },
         alpha, b, beta, x);
 }

@@ -936,6 +936,8 @@ public:
     virtual std::shared_ptr<const MemorySpace> get_mem_space() const
         noexcept = 0;
 
+    int get_num_handles() const { return this->async_handles_.size(); }
+
 protected:
     /**
      * A struct that abstracts the executor info for different executors

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/async_handle.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/block_approx.hpp>
 #include <ginkgo/core/matrix/block_approx.hpp>
@@ -223,10 +224,20 @@ protected:
      */
     void generate(const LinOp* system_matrix);
 
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* b, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x) const;
+    std::shared_ptr<AsyncHandle> apply_dense_impl(
+        const VectorType* b, VectorType* x,
+        std::shared_ptr<AsyncHandle> handle) const;
+
+    std::shared_ptr<AsyncHandle> apply_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        std::shared_ptr<AsyncHandle> handle) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
