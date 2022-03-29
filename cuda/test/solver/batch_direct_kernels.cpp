@@ -75,8 +75,9 @@ protected:
           sys_m(gko::test::get_poisson_problem<T>(exec, nrhs, nbatch))
     {
         auto execp = cuexec;
-        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
-                           BDense* x, LogData& logdata) {
+        solve_fn = [execp](const Options opts, const Mtx* mtx,
+                           const gko::BatchLinOp*, const BDense* b, BDense* x,
+                           LogData& logdata) {
             auto btemp =
                 std::dynamic_pointer_cast<BDense>(gko::share(b->transpose()));
             auto a = BDense::create(execp, mtx->get_size());
@@ -111,7 +112,8 @@ protected:
     gko::test::LinSys<T> sys_1;
     gko::test::LinSys<T> sys_m;
 
-    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
+    std::function<void(Options, const Mtx*, const gko::BatchLinOp*,
+                       const BDense*, BDense*, LogData&)>
         solve_fn;
 
     std::unique_ptr<BDiag> ref_left_scale;

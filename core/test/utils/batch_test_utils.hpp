@@ -134,6 +134,7 @@ template <typename ValueType, typename SolveFunction, typename Options>
 Result<ValueType> solve_poisson_uniform(
     std::shared_ptr<const Executor> d_exec, SolveFunction solve_function,
     const Options opts, const LinSys<ValueType>& sys, const int nrhs,
+    std::shared_ptr<BatchLinOpFactory> prec_factory = nullptr,
     const matrix::BatchDiagonal<ValueType>* const left_scale = nullptr,
     const matrix::BatchDiagonal<ValueType>* const right_scale = nullptr)
 {
@@ -165,7 +166,7 @@ Result<ValueType> solve_poisson_uniform(
     logdata.iter_counts.set_executor(d_exec);
     logdata.iter_counts.resize_and_reset(nrhs * nbatch);
 
-    auto mtx = Mtx::create(d_exec);
+    auto mtx = gko::share(Mtx::create(d_exec));
     auto b = BDense::create(d_exec);
     auto x = BDense::create(d_exec);
     mtx->copy_from(gko::lend(sys.mtx));
@@ -189,7 +190,14 @@ Result<ValueType> solve_poisson_uniform(
             d_exec, d_left_ptr, d_right_ptr, mtx.get(), b_sc.get());
     }
 
-    solve_function(opts, mtx.get(), b_sc.get(), x.get(), logdata);
+    std::unique_ptr<BatchLinOp> prec;
+    if (prec_factory) {
+        prec = prec_factory->generate(mtx);
+    } else {
+        prec = nullptr;
+    }
+
+    solve_function(opts, mtx.get(), prec.get(), b_sc.get(), x.get(), logdata);
 
     if (left_scale) {
         d_right_ptr->apply(x.get(), x.get());
@@ -466,6 +474,7 @@ template <typename ValueType, typename SolverType>
 void compare_with_reference(std::shared_ptr<const Executor> d_exec,
                             BatchSystem<ValueType>& bsys,
                             typename SolverType::Factory* const ref_factory,
+                            typename SolverType::Factory* const d_factory,
                             const double iter_tol, const double res_tol,
                             const double sol_tol)
 {
@@ -486,8 +495,8 @@ void compare_with_reference(std::shared_ptr<const Executor> d_exec,
     }
     auto d_x = BDense::create(d_exec);
     d_x->copy_from(r_x.get());
-    auto d_factory = SolverType::build().on(d_exec);
-    d_factory->copy_from(ref_factory);
+    // auto d_factory = SolverType::build().on(d_exec);
+    // d_factory->copy_from(ref_factory);
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> r_logger =
         gko::log::BatchConvergence<value_type>::create(exec);
     std::shared_ptr<const gko::log::BatchConvergence<value_type>> d_logger =
