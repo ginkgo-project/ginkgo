@@ -72,7 +72,8 @@ endfunction()
 function(ginkgo_install)
     # pkg-config file
     install(FILES ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
-        DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}")
+        DESTINATION "${GINKGO_INSTALL_PKGCONFIG_DIR}"
+        RENAME ginkgo.pc)
 
     # install the public header files
     install(DIRECTORY "${Ginkgo_SOURCE_DIR}/include/"
