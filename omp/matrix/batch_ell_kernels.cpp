@@ -46,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "omp/components/format_conversion.hpp"
 #include "reference/matrix/batch_struct.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -264,6 +264,8 @@ void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
                             const Array<IndexType>& row_idxs_arr,
                             const Array<IndexType>& col_ptrs_arr)
 {
+    GKO_NOT_IMPLEMENTED;
+#if 0
     const size_type nbatches = ell->get_num_batch_entries();
     const int num_rows = ell->get_size().at(0)[0];
     const int num_cols = ell->get_size().at(0)[1];
@@ -279,8 +281,9 @@ void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
     std::vector<IndexType> col_idxs(row_idxs_arr.get_num_elems());
     size_type num_nnz = col_ptrs[num_cols];
     row_ptrs[0] = 0;
-    convert_unsorted_idxs_to_ptrs(row_idxs, num_nnz, row_ptrs.data() + 1,
-                                  num_rows);
+	// TODO: Use transpose_and_transform instead
+    //convert_unsorted_idxs_to_ptrs(row_idxs, num_nnz, row_ptrs.data() + 1,
+    //                              num_rows);
     for (size_type col = 0; col < num_cols; ++col) {
         for (auto i = col_ptrs[col]; i < col_ptrs[col + 1]; ++i) {
             const auto dest_idx = (row_ptrs.data() + 1)[row_idxs[i]]++;
@@ -307,6 +310,7 @@ void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
+#endif
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
