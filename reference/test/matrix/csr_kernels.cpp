@@ -1699,6 +1699,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         this->exec);
     ASSERT_EQ(mat->get_num_stored_elements(), 23);
     {
+        SCOPED_TRACE("Left top corner: Square 2x2");
         auto sub_mat1 = mat->create_submatrix(gko::span(0, 2), gko::span(0, 2));
         auto ref1 =
             gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
@@ -1706,6 +1707,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Left boundary: Square 2x2");
         auto sub_mat2 = mat->create_submatrix(gko::span(2, 4), gko::span(0, 2));
         auto ref2 =
             gko::initialize<Mtx>({I<T>{0.0, 3.0}, I<T>{0.0, -1.0}}, this->exec);
@@ -1713,6 +1715,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat2.get(), ref2.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Right boundary: Square 2x2");
         auto sub_mat3 = mat->create_submatrix(gko::span(0, 2), gko::span(3, 5));
         auto ref3 =
             gko::initialize<Mtx>({I<T>{0.0, 2.0}, I<T>{7.5, 3.0}}, this->exec);
@@ -1720,6 +1723,7 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         GKO_EXPECT_MTX_NEAR(sub_mat3.get(), ref3.get(), 0.0);
     }
     {
+        SCOPED_TRACE("Non-square 5x2");
         auto sub_mat4 = mat->create_submatrix(gko::span(1, 6), gko::span(2, 4));
         /*
            4.5, 7.5
@@ -1756,6 +1760,132 @@ TYPED_TEST(Csr, CanGetSubmatrix2)
         auto ref7 = gko::initialize<Mtx>({I<T>{1.0}}, this->exec);
 
         GKO_EXPECT_MTX_NEAR(sub_mat7.get(), ref7.get(), 0.0);
+    }
+}
+
+
+TYPED_TEST(Csr, CanGetSubmatrixWithindex_set)
+{
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto mat = gko::initialize<Mtx>(
+        {
+            I<T>{1.0, 3.0, 4.5, 0.0, 2.0},   // 0
+            I<T>{1.0, 0.0, 4.5, 7.5, 3.0},   // 1
+            I<T>{0.0, 3.0, 4.5, 0.0, 2.0},   // 2
+            I<T>{0.0, -1.0, 2.5, 0.0, 2.0},  // 3
+            I<T>{1.0, 0.0, -1.0, 3.5, 1.0},  // 4
+            I<T>{0.0, 1.0, 0.0, 0.0, 2.0},   // 5
+            I<T>{0.0, 3.0, 0.0, 7.5, 1.0}    // 6
+        },
+        this->exec);
+
+    ASSERT_EQ(mat->get_num_stored_elements(), 23);
+
+    {
+        SCOPED_TRACE("Both empty index sets");
+        auto row_set = gko::index_set<index_type>(this->exec);
+        auto col_set = gko::index_set<index_type>(this->exec);
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = Mtx::create(this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("One empty index set");
+        auto row_set = gko::index_set<index_type>(this->exec);
+        auto col_set = gko::index_set<index_type>(this->exec, {0});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = Mtx::create(this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Full index set");
+        auto row_set =
+            gko::index_set<index_type>(this->exec, {0, 1, 2, 3, 4, 5, 6});
+        auto col_set = gko::index_set<index_type>(this->exec, {0, 1, 2, 3, 4});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>(
+            {
+                I<T>{1.0, 3.0, 4.5, 0.0, 2.0},   // 0
+                I<T>{1.0, 0.0, 4.5, 7.5, 3.0},   // 1
+                I<T>{0.0, 3.0, 4.5, 0.0, 2.0},   // 2
+                I<T>{0.0, -1.0, 2.5, 0.0, 2.0},  // 3
+                I<T>{1.0, 0.0, -1.0, 3.5, 1.0},  // 4
+                I<T>{0.0, 1.0, 0.0, 0.0, 2.0},   // 5
+                I<T>{0.0, 3.0, 0.0, 7.5, 1.0}    // 6
+            },
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Small square 2x2");
+        auto row_set = gko::index_set<index_type>(this->exec, {0, 1});
+        auto col_set = gko::index_set<index_type>(this->exec, {0, 1});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 =
+            gko::initialize<Mtx>({I<T>{1.0, 3.0}, I<T>{1.0, 0.0}}, this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Non-square 4x2");
+        auto row_set = gko::index_set<index_type>(this->exec, {1, 2, 3, 4});
+        auto col_set = gko::index_set<index_type>(this->exec, {1, 3});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>(
+            {I<T>{0.0, 7.5}, I<T>{3.0, 0.0}, I<T>{-1.0, 0.0}, I<T>{0.0, 3.5}},
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Square 3x3");
+        auto row_set = gko::index_set<index_type>(this->exec, {1, 3, 4});
+        auto col_set = gko::index_set<index_type>(this->exec, {1, 3, 0});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>(
+            {I<T>{1.0, 0.0, 7.5}, I<T>{0.0, -1.0, 0.0}, I<T>{1.0, 0.0, 3.5}},
+            this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Square 4x4");
+        auto row_set = gko::index_set<index_type>(this->exec, {1, 4, 5, 6});
+        // This is unsorted to make sure that the output is correct (sorted)
+        // even when the input is sorted.
+        auto col_set = gko::index_set<index_type>(this->exec, {4, 3, 0, 1});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>({I<T>{1.0, 0.0, 7.5, 3.0},   // 1
+                                          I<T>{1.0, 0.0, 3.5, 1.0},   // 4
+                                          I<T>{0.0, 1.0, 0.0, 2.0},   // 5
+                                          I<T>{0.0, 3.0, 7.5, 1.0}},  // 6
+                                         this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
+    }
+
+    {
+        SCOPED_TRACE("Non Square 2x4");
+        auto row_set = gko::index_set<index_type>(this->exec, {5, 6});
+        auto col_set = gko::index_set<index_type>(this->exec, {4, 3, 0, 1});
+        auto sub_mat1 = mat->create_submatrix(row_set, col_set);
+        auto ref1 = gko::initialize<Mtx>({I<T>{0.0, 1.0, 0.0, 2.0},   // 5
+                                          I<T>{0.0, 3.0, 7.5, 1.0}},  // 6
+                                         this->exec);
+
+        GKO_EXPECT_MTX_NEAR(sub_mat1.get(), ref1.get(), 0.0);
     }
 }
 

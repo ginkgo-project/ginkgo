@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -51,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/index_set_kernels.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -729,7 +731,7 @@ void calculate_nonzeros_per_row_in_span(
 #pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
         row_nnz->get_data()[row - row_span.begin] = zero<IndexType>();
-        for (size_type nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
+        for (auto nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
             if (col_idxs[nnz] >= col_span.begin &&
                 col_idxs[nnz] < col_span.end) {
                 row_nnz->get_data()[row - row_span.begin]++;
@@ -740,6 +742,53 @@ void calculate_nonzeros_per_row_in_span(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_index_set(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set, IndexType* row_nnz)
+{
+    auto num_row_subsets = row_index_set.get_num_subsets();
+    auto num_col_subsets = col_index_set.get_num_subsets();
+    auto row_superset_indices = row_index_set.get_superset_indices();
+    auto row_subset_begin = row_index_set.get_subsets_begin();
+    auto row_subset_end = row_index_set.get_subsets_end();
+    auto col_subset_begin = col_index_set.get_subsets_begin();
+    auto col_subset_end = col_index_set.get_subsets_end();
+    auto src_ptrs = source->get_const_row_ptrs();
+
+#pragma omp parallel for
+    for (size_type set = 0; set < num_row_subsets; ++set) {
+        size_type res_row = row_superset_indices[set];
+        for (auto row = row_subset_begin[set]; row < row_subset_end[set];
+             ++row) {
+            row_nnz[res_row] = zero<IndexType>();
+            for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
+                auto index = source->get_const_col_idxs()[i];
+                if (index >= col_index_set.get_size()) {
+                    continue;
+                }
+                const auto bucket = std::distance(
+                    col_subset_begin,
+                    std::upper_bound(col_subset_begin,
+                                     col_subset_begin + num_col_subsets,
+                                     index));
+                auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+                if (index < col_subset_end[shifted_bucket] &&
+                    index >= col_subset_begin[shifted_bucket]) {
+                    row_nnz[res_row]++;
+                }
+            }
+            res_row++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -759,7 +808,7 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         size_type res_nnz = res_row_ptrs[row];
-        for (size_type nnz = row_ptrs[row_offset + row];
+        for (auto nnz = row_ptrs[row_offset + row];
              nnz < row_ptrs[row_offset + row + 1]; ++nnz) {
             const auto local_col = col_idxs[nnz] - col_offset;
             if (local_col >= 0 && local_col < num_cols) {
@@ -773,6 +822,66 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix_from_index_set(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
+    matrix::Csr<ValueType, IndexType>* result)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto num_row_subsets = row_index_set.get_num_subsets();
+    auto row_subset_begin = row_index_set.get_subsets_begin();
+    auto row_subset_end = row_index_set.get_subsets_end();
+    auto row_superset_indices = row_index_set.get_superset_indices();
+    auto res_row_ptrs = result->get_row_ptrs();
+    auto res_col_idxs = result->get_col_idxs();
+    auto res_values = result->get_values();
+    auto num_col_subsets = col_index_set.get_num_subsets();
+    auto col_subset_begin = col_index_set.get_subsets_begin();
+    auto col_subset_end = col_index_set.get_subsets_end();
+    auto col_superset_indices = col_index_set.get_superset_indices();
+    const auto src_ptrs = source->get_const_row_ptrs();
+    const auto src_col_idxs = source->get_const_col_idxs();
+    const auto src_values = source->get_const_values();
+
+#pragma unroll
+    for (size_type set = 0; set < num_row_subsets; ++set) {
+        for (auto row = row_subset_begin[set]; row < row_subset_end[set];
+             ++row) {
+            auto local_row =
+                row - row_subset_begin[set] + row_superset_indices[set];
+            auto res_nnz = res_row_ptrs[local_row];
+            for (size_type i = src_ptrs[row]; i < src_ptrs[row + 1]; ++i) {
+                auto index = src_col_idxs[i];
+                if (index >= col_index_set.get_size()) {
+                    continue;
+                }
+                const auto bucket = std::distance(
+                    col_subset_begin,
+                    std::upper_bound(col_subset_begin,
+                                     col_subset_begin + num_col_subsets,
+                                     index));
+                auto shifted_bucket = bucket == 0 ? 0 : (bucket - 1);
+                if (index < col_subset_end[shifted_bucket] &&
+                    (index >= col_subset_begin[shifted_bucket])) {
+                    res_col_idxs[res_nnz] =
+                        index - col_subset_begin[shifted_bucket] +
+                        col_superset_indices[shifted_bucket];
+                    res_values[res_nnz] = src_values[i];
+                    res_nnz++;
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

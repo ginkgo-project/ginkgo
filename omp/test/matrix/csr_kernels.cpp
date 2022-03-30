@@ -755,6 +755,73 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, CalculateNnzPerRowInindex_setIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    using IndexType = int;
+    using ValueType = double;
+    set_up_mat_data();
+    gko::index_set<IndexType> rset{
+        this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
+    auto size = this->mtx2->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
+    row_nnz.fill(gko::zero<int>());
+    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
+        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
+    gko::kernels::omp::csr::calculate_nonzeros_per_row_in_index_set(
+        this->omp, this->dmtx2.get(), drset, dcset, drow_nnz.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
+}
+
+
+TEST_F(Csr, ComputeSubmatrixFromindex_setIsEquivalentToRef)
+{
+    using Mtx = gko::matrix::Csr<>;
+    using IndexType = int;
+    using ValueType = double;
+    set_up_mat_data();
+    gko::index_set<IndexType> rset{
+        this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
+    auto size = this->mtx2->get_size();
+    auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
+    row_nnz.fill(gko::zero<int>());
+    gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
+        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
+    gko::kernels::reference::components::prefix_sum(
+        this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
+    auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
+    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    auto smat1 = Mtx::create(
+        this->ref, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
+        std::move(gko::Array<ValueType>(this->ref, num_nnz)),
+        std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+        std::move(row_nnz));
+    auto sdmat1 = Mtx::create(
+        this->omp, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
+        std::move(gko::Array<ValueType>(this->omp, num_nnz)),
+        std::move(gko::Array<IndexType>(this->omp, num_nnz)),
+        std::move(drow_nnz));
+
+    gko::kernels::reference::csr::compute_submatrix_from_index_set(
+        this->ref, this->mtx2.get(), rset, cset, smat1.get());
+    gko::kernels::omp::csr::compute_submatrix_from_index_set(
+        this->omp, this->dmtx2.get(), drset, dcset, sdmat1.get());
+
+    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
+}
+
+
 TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 {
     set_up_mat_data();
@@ -813,6 +880,25 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
     dmtx->add_scaled_identity(dalpha.get(), dbeta.get());
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<double>::value);
+}
+
+
+TEST_F(Csr, CreateSubMatrixFromindex_setIsEquivalentToRef)
+{
+    using IndexType = int;
+    using ValueType = double;
+    set_up_mat_data();
+
+    gko::index_set<IndexType> rset{
+        this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
+    gko::index_set<IndexType> cset{this->ref,
+                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<IndexType> drset(this->omp, rset);
+    gko::index_set<IndexType> dcset(this->omp, cset);
+    auto smat1 = this->mtx2->create_submatrix(rset, cset);
+    auto sdmat1 = this->dmtx2->create_submatrix(drset, dcset);
+
+    GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
 
 
