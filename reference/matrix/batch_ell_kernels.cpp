@@ -47,8 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "reference/components/format_conversion.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "reference/matrix/batch_struct.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -278,7 +279,8 @@ void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
     std::vector<IndexType> col_idxs(row_idxs_arr.get_num_elems());
     size_type num_nnz = col_ptrs[num_cols];
     row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(row_idxs, num_nnz, row_ptrs.data() + 1, num_rows);
+    gko::kernels::reference::components::convert_idxs_to_ptrs(
+        exec, row_idxs, num_nnz, num_rows, row_ptrs.data() + 1);
     for (size_type col = 0; col < num_cols; ++col) {
         for (auto i = col_ptrs[col]; i < col_ptrs[col + 1]; ++i) {
             const auto dest_idx = (row_ptrs.data() + 1)[row_idxs[i]]++;
