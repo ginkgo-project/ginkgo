@@ -146,7 +146,7 @@ TEST_F(EnablePolymorphicObject, CopiesObject)
 }
 
 
-TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
+TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtr)
 {
     auto copy = DummyObject::create(ref, 7);
 
@@ -169,6 +169,18 @@ TEST_F(EnablePolymorphicObject, MovesObject)
     ASSERT_EQ(copy->x, 5);
     ASSERT_EQ(obj->get_executor(), ref);
     ASSERT_EQ(obj->x, 0);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
+{
+    auto copy = DummyObject::create(ref, 7);
+
+    copy->copy_from(gko::give(obj));
+
+    ASSERT_NE(copy, obj);
+    ASSERT_EQ(copy->get_executor(), ref);
+    ASSERT_EQ(copy->x, 5);
 }
 
 
