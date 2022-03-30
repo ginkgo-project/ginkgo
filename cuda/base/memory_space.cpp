@@ -192,6 +192,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
             GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
                 dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost, stream));
         }
+        std::cout << " Here " << __LINE__ << std::endl;
         return handle;
     } else {
         auto stream = as<CudaAsyncHandle>(this->get_default_output_stream())
@@ -201,6 +202,7 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
             GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
                 dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost, stream));
         }
+        std::cout << " Here " << __LINE__ << std::endl;
         return this->get_default_output_stream();
     }
 }
@@ -214,8 +216,9 @@ std::shared_ptr<AsyncHandle> CudaMemorySpace::raw_copy_to(
         auto stream = (cuda_handle)->get_handle();
         if (num_bytes > 0) {
             cuda::device_guard g(this->get_device_id());
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyAsync(
-                dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost, stream));
+            GKO_ASSERT_NO_CUDA_ERRORS(
+                cudaMemcpyAsync(dest_ptr, src_ptr, num_bytes, cudaMemcpyDefault,
+                                stream););
         }
         return handle;
     } else {

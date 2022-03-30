@@ -242,7 +242,7 @@ ImplicitResidualNorm<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }
-    bool all_converged = true;
+    bool all_converged = false;
 
     auto hand = this->get_executor()->run(
         implicit_residual_norm::make_async_implicit_residual_norm(
@@ -250,8 +250,12 @@ ImplicitResidualNorm<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
             stopping_id, set_finalized, stop_status,
             this->device_storage_.get(), &all_converged, one_changed),
         handle);
+    // this->get_executor()->copy_val_to_host(this->device_storage_->get_data(),
+    //                                        &all_converged, handle);
+    // this->get_executor()->copy_val_to_host(
+    //     this->device_storage_->get_data() + 1, one_changed, handle);
 
-    return {hand, all_converged};
+    return {handle, all_converged};
 }
 
 

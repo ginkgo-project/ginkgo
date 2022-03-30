@@ -199,10 +199,18 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
-                           handle);
-    exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
-                           handle);
+    // auto hand1 = exec->copy_val_to_host(device_storage->get_const_data(),
+    //                                     all_converged, handle);
+    // auto hand = exec->copy_val_to_host(device_storage->get_const_data() + 1,
+    //                                    one_changed, hand1);
+    bool* pin_host_storage;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaHostAlloc(&pin_host_storage, 2, 0));
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 2, device_storage->get_const_data(),
+        pin_host_storage, handle);
+    *all_converged = pin_host_storage[0];
+    *one_changed = pin_host_storage[1];
+    // GKO_ASSERT_NO_CUDA_ERRORS(cudaFreeHost(pin_host_storage));
     return handle;
 }
 

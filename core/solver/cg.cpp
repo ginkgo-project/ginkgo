@@ -240,7 +240,6 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                         .check(handle, RelativeStoppingId, true,
                                &this->stop_status_, &one_changed);
 
-        // std::get<1>(stop).wait();
         if (std::get<1>(stop)) {
             break;
         }
