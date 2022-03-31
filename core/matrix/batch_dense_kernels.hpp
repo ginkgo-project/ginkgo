@@ -165,9 +165,10 @@ namespace kernels {
                         const matrix::BatchDense<_type>* orig,       \
                         matrix::BatchDense<_type>* trans)
 
-#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)        \
-    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,    \
-                     const matrix::BatchDense<ValueType>* scale_vec, \
+#define GKO_DECLARE_BATCH_DENSE_BATCH_SCALE_KERNEL(ValueType)             \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,         \
+                     const matrix::BatchDiagonal<ValueType>* left_scale,  \
+                     const matrix::BatchDiagonal<ValueType>* right_scale, \
                      matrix::BatchDense<ValueType>* vec_to_scale)
 
 #define GKO_DECLARE_BATCH_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType)     \
