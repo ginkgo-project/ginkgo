@@ -196,6 +196,19 @@ inline void batch_scale(
     }
 }
 
+template <typename ValueType>
+inline void batch_scale(const int nrows, const int ncols,
+                        const size_type a_stride, const ValueType* const left,
+                        const ValueType* const right, ValueType* const a)
+{
+    for (int i_row = 0; i_row < nrows; i_row++) {
+        const ValueType scale = left[i_row];
+        for (int j = 0; j < ncols; j++) {
+            a[i_row * a_stride + j] *= scale * right[j];
+        }
+    }
+}
+
 
 /**
  * Copies the values of one multi-vector into another.
