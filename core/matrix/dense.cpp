@@ -341,6 +341,10 @@ void Dense<ValueType>::compute_dot(const LinOp* b, LinOp* result,
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
     auto local_b = make_temporary_clone(exec, b);
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
@@ -371,6 +375,10 @@ void Dense<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
     auto local_b = make_temporary_clone(exec, b);
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
@@ -400,6 +408,10 @@ void Dense<ValueType>::compute_norm2(LinOp* result, Array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
@@ -424,6 +436,10 @@ void Dense<ValueType>::compute_norm1(LinOp* result, Array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());

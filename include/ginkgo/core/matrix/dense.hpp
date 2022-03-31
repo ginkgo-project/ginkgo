@@ -747,6 +747,9 @@ public:
      * @param result  a Dense row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
      */
     void compute_dot(const LinOp* b, LinOp* result, Array<char>& tmp) const;
 
@@ -767,6 +770,9 @@ public:
      * @param result  a Dense row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
      */
     void compute_conj_dot(const LinOp* b, LinOp* result,
                           Array<char>& tmp) const;
@@ -785,7 +791,10 @@ public:
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the
-     * number of columns of this)
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
      */
     void compute_norm2(LinOp* result, Array<char>& tmp) const;
 
@@ -803,7 +812,10 @@ public:
      *
      * @param result  a Dense row vector, used to store the norm
      *                (the number of columns in the vector must match the
-     * number of columns of this)
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
      */
     void compute_norm1(LinOp* result, Array<char>& tmp) const;
 

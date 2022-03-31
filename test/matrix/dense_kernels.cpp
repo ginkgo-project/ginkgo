@@ -1014,6 +1014,23 @@ TEST_F(Dense, ComputeDotIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ComputeDotWithPreallocatedTmpIsEquivalentToRef)
+{
+    set_up_vector_data(42);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+    gko::Array<char> tmp{exec, 12345};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_dot(y.get(), dot_expected.get());
+    dx->compute_dot(y.get(), ddot.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
 TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
 {
     set_up_vector_data(40);
@@ -1021,10 +1038,10 @@ TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
     auto ddot = Mtx::create(ref, dot_size);
-    gko::Array<char> tmp{ref};
+    gko::Array<char> tmp{exec};
 
     // all parameters are on ref to check cross-executor calls
-    x->compute_dot(y.get(), dot_expected.get(), tmp);
+    x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(y.get(), ddot.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
@@ -1047,6 +1064,23 @@ TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ComputeConjDotWithPreallocatedTmpIsEquivalentToRef)
+{
+    set_up_vector_data(36);
+
+    auto dot_size = gko::dim<2>{1, x->get_size()[1]};
+    auto dot_expected = Mtx::create(ref, dot_size);
+    auto ddot = Mtx::create(ref, dot_size);
+    gko::Array<char> tmp{exec, 12345};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_conj_dot(y.get(), dot_expected.get());
+    dx->compute_conj_dot(y.get(), ddot.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+}
+
+
 TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
 {
     set_up_vector_data(65);
@@ -1057,7 +1091,7 @@ TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
     gko::Array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
-    x->compute_conj_dot(y.get(), dot_expected.get(), tmp);
+    x->compute_conj_dot(y.get(), dot_expected.get());
     dx->compute_conj_dot(y.get(), ddot.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
@@ -1080,6 +1114,23 @@ TEST_F(Dense, ComputeNorm1IsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ComputeNorm1WithPreallocatedTmpIsEquivalentToRef)
+{
+    set_up_vector_data(7);
+
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(ref, norm_size);
+    auto dnorm = NormVector::create(ref, norm_size);
+    gko::Array<char> tmp{exec, 12345};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_norm1(norm_expected.get());
+    dx->compute_norm1(dnorm.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
+}
+
+
 TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
 {
     set_up_vector_data(10);
@@ -1090,7 +1141,7 @@ TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
     gko::Array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
-    x->compute_norm1(norm_expected.get(), tmp);
+    x->compute_norm1(norm_expected.get());
     dx->compute_norm1(dnorm.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
@@ -1113,7 +1164,7 @@ TEST_F(Dense, ComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
+TEST_F(Dense, ComputeNorm2WithPreallocatedTmpIsEquivalentToRef)
 {
     set_up_vector_data(3);
 
@@ -1123,7 +1174,24 @@ TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
     gko::Array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
-    x->compute_norm1(norm_expected.get(), tmp);
+    x->compute_norm1(norm_expected.get());
+    dx->compute_norm1(dnorm.get(), tmp);
+
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);
+}
+
+
+TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
+{
+    set_up_vector_data(14);
+
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(ref, norm_size);
+    auto dnorm = NormVector::create(ref, norm_size);
+    gko::Array<char> tmp{exec, 12345};
+
+    // all parameters are on ref to check cross-executor calls
+    x->compute_norm1(norm_expected.get());
     dx->compute_norm1(dnorm.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, r<vtype>::value);

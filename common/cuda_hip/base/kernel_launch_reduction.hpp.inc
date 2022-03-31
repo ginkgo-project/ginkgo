@@ -130,7 +130,6 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
         ceildiv(size, block_size), exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         const auto required_storage = sizeof(ValueType) * num_blocks;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -171,7 +170,6 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                         exec->get_num_warps() * oversubscription);
     if (num_blocks > 1) {
         const auto required_storage = sizeof(ValueType) * num_blocks;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -395,7 +393,6 @@ void run_generic_col_reduction_small(
                                         as_device_type(result), args...);
     } else {
         const auto required_storage = sizeof(ValueType) * num_blocks * cols;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -441,7 +438,6 @@ void run_kernel_row_reduction_cached(
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -512,7 +508,6 @@ void run_kernel_col_reduction_cached(
                 as_device_type(result), map_to_device(args)...);
         } else {
             const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-            tmp.set_executor(exec);
             if (tmp.get_num_elems() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }

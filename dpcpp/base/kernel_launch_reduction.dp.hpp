@@ -179,7 +179,6 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -227,7 +226,6 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     auto queue = exec->get_queue();
     if (num_workgroups > 1) {
         const auto required_storage = sizeof(ValueType) * num_workgroups;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -531,7 +529,6 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
         });
     } else {
         const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -578,7 +575,6 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
     if (rows * cols > resources && rows < cols) {
         const auto col_blocks = ceildiv(rows * cols, resources);
         const auto required_storage = sizeof(ValueType) * col_blocks * rows;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -651,7 +647,6 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
             });
         } else {
             const auto required_storage = sizeof(ValueType) * row_blocks * cols;
-            tmp.set_executor(exec);
             if (tmp.get_num_elems() < required_storage) {
                 tmp.resize_and_reset(required_storage);
             }
