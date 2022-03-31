@@ -47,6 +47,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+struct DummyLogger : gko::log::Logger {
+    DummyLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(std::move(exec), gko::log::Logger::linop_events_mask)
+    {}
+
+    void on_linop_apply_started(const gko::LinOp*, const gko::LinOp*,
+                                const gko::LinOp*) const override
+    {
+        linop_apply_started++;
+    }
+
+    void on_linop_apply_completed(const gko::LinOp*, const gko::LinOp*,
+                                  const gko::LinOp*) const override
+    {
+        linop_apply_completed++;
+    }
+
+    void on_linop_advanced_apply_started(const gko::LinOp*, const gko::LinOp*,
+                                         const gko::LinOp*, const gko::LinOp*,
+                                         const gko::LinOp*) const override
+    {
+        linop_advanced_apply_started++;
+    }
+
+    void on_linop_advanced_apply_completed(const gko::LinOp*, const gko::LinOp*,
+                                           const gko::LinOp*, const gko::LinOp*,
+                                           const gko::LinOp*) const override
+    {
+        linop_advanced_apply_completed++;
+    }
+
+    int mutable linop_apply_started = 0;
+    int mutable linop_apply_completed = 0;
+    int mutable linop_advanced_apply_started = 0;
+    int mutable linop_advanced_apply_completed = 0;
+};
+
+
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
@@ -98,8 +136,11 @@ protected:
           alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
           b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
-          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})}
-    {}
+          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})},
+          logger{std::make_shared<DummyLogger>(ref)}
+    {
+        op->add_logger(logger);
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::ReferenceExecutor> ref2;
@@ -108,6 +149,7 @@ protected:
     std::unique_ptr<DummyLinOp> beta;
     std::unique_ptr<DummyLinOp> b;
     std::unique_ptr<DummyLinOp> x;
+    std::shared_ptr<DummyLogger> logger;
 };
 
 
@@ -248,6 +290,32 @@ TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
 {
     ASSERT_FALSE(op->apply_uses_initial_guess());
+}
+
+
+TEST_F(EnableLinOp, ApplyIsLogged)
+{
+    auto before_logger = *logger;
+
+    op->apply(gko::lend(b), gko::lend(x));
+
+    ASSERT_EQ(logger->linop_apply_started,
+              before_logger.linop_apply_started + 1);
+    ASSERT_EQ(logger->linop_apply_completed,
+              before_logger.linop_apply_completed + 1);
+}
+
+
+TEST_F(EnableLinOp, AdvancedApplyIsLogged)
+{
+    auto before_logger = *logger;
+
+    op->apply(gko::lend(alpha), gko::lend(b), gko::lend(beta), gko::lend(x));
+
+    ASSERT_EQ(logger->linop_advanced_apply_started,
+              before_logger.linop_advanced_apply_started + 1);
+    ASSERT_EQ(logger->linop_advanced_apply_completed,
+              before_logger.linop_advanced_apply_completed + 1);
 }
 
 
