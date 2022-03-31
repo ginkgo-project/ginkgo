@@ -1,3 +1,4 @@
+ginkgo_create_common_test(batch_bicgstab_kernels)
 ginkgo_create_common_test(bicg_kernels)
 ginkgo_create_common_test(bicgstab_kernels)
 ginkgo_create_common_test(cg_kernels)

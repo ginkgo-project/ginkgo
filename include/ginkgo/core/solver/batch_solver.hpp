@@ -81,6 +81,22 @@ public:
         return system_matrix_;
     }
 
+    /**
+     * @return The left scaling vector.
+     */
+    std::shared_ptr<const BatchLinOp> get_left_scaling_op() const
+    {
+        return left_scaling_;
+    }
+
+    /**
+     * @return The right scaling vector.
+     */
+    std::shared_ptr<const BatchLinOp> get_right_scaling_op() const
+    {
+        return right_scaling_;
+    }
+
 protected:
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
