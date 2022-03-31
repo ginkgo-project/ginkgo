@@ -181,40 +181,6 @@ protected:
 };
 
 
-TEST_F(BatchEll, CanBeCreatedFromExistingCscData)
-{
-    /**
-     * 1 2
-     * 0 3
-     * 4 0
-     *
-     * -1 12
-     * 0 13
-     * 14 0
-     */
-    value_type csc_values[] = {1.0, 4.0, 2.0, 3.0, -1.0, 14.0, 12.0, 13.0};
-    index_type row_idxs[] = {0, 2, 0, 1};
-    index_type col_ptrs[] = {0, 2, 4};
-    value_type ell_values[] = {1.0,  0.0, 4.0,  2.0,  3.0,  0.0,
-                               -1.0, 0.0, 14.0, 12.0, 13.0, 0.0};
-    index_type col_idxs[] = {0, 0, 0, 1, 1, 1};
-
-    auto mtx =
-        gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
-            this->exec, 2, gko::dim<2>{3, 2}, 2,
-            gko::Array<value_type>::view(this->exec, 8, csc_values),
-            gko::Array<index_type>::view(this->exec, 4, row_idxs),
-            gko::Array<index_type>::view(this->exec, 3, col_ptrs));
-
-    auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
-        this->exec, 2, gko::dim<2>{3, 2}, 2, 3,
-        gko::Array<value_type>::view(this->exec, 12, ell_values),
-        gko::Array<index_type>::view(this->exec, 6, col_idxs));
-
-    GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
-}
-
-
 TEST_F(BatchEll, AppliesToDenseVector)
 {
     using T = value_type;
