@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
 
 
@@ -57,6 +58,8 @@ namespace batch_diagonal {
 GKO_REGISTER_OPERATION(apply, batch_diagonal::apply);
 GKO_REGISTER_OPERATION(pre_diag_transform_csr,
                        batch_csr::pre_diag_transform_system);
+GKO_REGISTER_OPERATION(pre_diag_scale_csr, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(pre_diag_scale_dense, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(conj_transpose, batch_diagonal::conj_transpose);
 GKO_REGISTER_OPERATION(fill, components::fill_array);
 

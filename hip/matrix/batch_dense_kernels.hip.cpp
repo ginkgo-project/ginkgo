@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -392,20 +393,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void batch_scale(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::BatchDense<ValueType>* const scale_vec,
+                 const matrix::BatchDiagonal<ValueType>* const left_scale,
+                 const matrix::BatchDiagonal<ValueType>* const rght_scale,
                  matrix::BatchDense<ValueType>* const vec_to_scale)
 {
-    if (!scale_vec->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    if (!rght_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
+    if (!vec_to_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const auto stride = vec_to_scale->get_stride().at();
-    const auto nrows = vec_to_scale->get_size().at()[0];
-    const auto nrhs = vec_to_scale->get_size().at()[1];
+    const auto nrows = static_cast<int>(vec_to_scale->get_size().at()[0]);
+    const auto nrhs = static_cast<int>(vec_to_scale->get_size().at()[1]);
     const auto nbatch = vec_to_scale->get_num_batch_entries();
 
     const int num_blocks = vec_to_scale->get_num_batch_entries();
     hipLaunchKernelGGL(uniform_batch_scale, dim3(num_blocks),
                        dim3(default_block_size), 0, 0, nrows, stride, nrhs,
-                       nbatch, as_hip_type(scale_vec->get_const_values()),
+                       nbatch, as_hip_type(left_scale->get_const_values()),
+                       as_hip_type(rght_scale->get_const_values()),
                        as_hip_type(vec_to_scale->get_values()));
 }
 
