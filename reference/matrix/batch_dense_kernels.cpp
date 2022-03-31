@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -528,15 +529,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void batch_scale(std::shared_ptr<const ReferenceExecutor> exec,
-                 const matrix::BatchDense<ValueType>* const scale_vec,
+                 const matrix::BatchDiagonal<ValueType>* const left,
+                 const matrix::BatchDiagonal<ValueType>* const rght,
                  matrix::BatchDense<ValueType>* const vecs)
 {
-    const auto scale_ub = host::get_batch_struct(scale_vec);
-    const auto v_ub = host::get_batch_struct(vecs);
+    const auto left_vals = left->get_const_values();
+    const auto rght_vals = rght->get_const_values();
+    const auto v_vals = vecs->get_values();
+    const auto nrows = static_cast<int>(vecs->get_size().at(0)[0]);
+    const auto ncols = static_cast<int>(vecs->get_size().at(0)[1]);
+    const auto vstride = vecs->get_stride().at(0);
     for (size_type batch = 0; batch < vecs->get_num_batch_entries(); ++batch) {
-        const auto sc_b = gko::batch::batch_entry(scale_ub, batch);
-        const auto v_b = gko::batch::batch_entry(v_ub, batch);
-        batch_scale(sc_b, v_b);
+        const auto left_b =
+            gko::batch::batch_entry_ptr(left_vals, 1, nrows, batch);
+        const auto rght_b =
+            gko::batch::batch_entry_ptr(rght_vals, 1, ncols, batch);
+        const auto v_b =
+            gko::batch::batch_entry_ptr(v_vals, vstride, nrows, batch);
+        batch_scale(nrows, ncols, vstride, left_b, rght_b, v_b);
     }
 }
 
