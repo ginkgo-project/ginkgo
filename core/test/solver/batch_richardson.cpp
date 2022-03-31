@@ -39,10 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
+#include "ginkgo/core/log/logger.hpp"
 
 
 namespace {
@@ -64,7 +66,9 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::test::create_poisson1d_batch<Mtx>(
               std::static_pointer_cast<const gko::ReferenceExecutor>(exec),
-              nrows, nbatch))
+              nrows, nbatch)),
+          prec_factory(
+              gko::share(gko::preconditioner::BatchJacobi<T>::build().on(exec)))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -76,13 +80,14 @@ protected:
     const real_type def_relax = 1.2;
     const gko::stop::batch::ToleranceType def_tol_type =
         gko::stop::batch::ToleranceType::relative;
+    std::shared_ptr<gko::BatchLinOpFactory> prec_factory;
 
     std::unique_ptr<Solver> generate_solver()
     {
         auto batchrich_factory = Solver::build()
                                      .with_max_iterations(this->def_max_iters)
                                      .with_residual_tol(this->def_rel_res_tol)
-                                     .with_preconditioner(gpb::type::jacobi)
+                                     .with_preconditioner(prec_factory)
                                      .with_relaxation_factor(this->def_relax)
                                      .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
@@ -100,7 +105,7 @@ protected:
     void assert_solver_params(const Solver* const a)
     {
         ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
-        ASSERT_EQ(a->get_parameters().preconditioner, gpb::type::jacobi);
+        ASSERT_EQ(a->get_parameters().preconditioner, prec_factory);
         ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
         ASSERT_EQ(a->get_parameters().residual_tol, def_rel_res_tol);
         ASSERT_EQ(a->get_parameters().tolerance_type, def_tol_type);
@@ -226,17 +231,19 @@ TYPED_TEST(BatchRich, CanSetCriteria)
 }
 
 
-TYPED_TEST(BatchRich, CanSetPreconditionerInFactory)
+TYPED_TEST(BatchRich, CanSetPreconditionerFactory)
 {
+    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    const gpb::type batchrich_precond = gpb::type::none;
+    auto prec_factory = gko::share(
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
 
     auto batchrich_factory =
-        Solver::build().with_preconditioner(batchrich_precond).on(this->exec);
+        Solver::build().with_preconditioner(prec_factory).on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
     auto precond = solver->get_parameters().preconditioner;
 
-    ASSERT_EQ(precond, batchrich_precond);
+    ASSERT_EQ(precond, prec_factory);
 }
 
 
@@ -259,21 +266,20 @@ TYPED_TEST(BatchRich, CanSetScalingOps)
     using Solver = typename TestFixture::Solver;
     using Dense = typename TestFixture::Dense;
     using Diag = gko::matrix::BatchDiagonal<value_type>;
-    auto batchrich_factory = Solver::build().on(this->exec);
+    auto left_scale = gko::share(Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows))));
+    auto right_scale = gko::share(Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows))));
+    auto batchrich_factory = Solver::build()
+                                 .with_left_scaling_op(left_scale)
+                                 .with_right_scaling_op(right_scale)
+                                 .on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
-    auto left_scale = Diag::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
-    auto right_scale = Diag::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
 
-    solver->batch_scale(left_scale.get(), right_scale.get());
-    auto s_solver = gko::as<gko::EnableBatchScaling>(solver.get());
-
-    ASSERT_TRUE(s_solver);
-    ASSERT_EQ(s_solver->get_left_scaling_op(), left_scale.get());
-    ASSERT_EQ(s_solver->get_right_scaling_op(), right_scale.get());
+    ASSERT_EQ(solver->get_left_scaling_op(), left_scale);
+    ASSERT_EQ(solver->get_right_scaling_op(), right_scale);
 }
 
 // TODO: Enable after BatchCsr::transpose is implemented.
