@@ -197,9 +197,9 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
     value_type csc_values[] = {1.0, 4.0, 2.0, 3.0, -1.0, 14.0, 12.0, 13.0};
     index_type row_idxs[] = {0, 2, 0, 1};
     index_type col_ptrs[] = {0, 2, 4};
-    value_type ell_values[] = {1.0,  0.0, 4.0,  2.0,  3.0,  0.0,
-                               -1.0, 0.0, 14.0, 12.0, 13.0, 0.0};
-    index_type col_idxs[] = {0, 0, 0, 1, 1, 1};
+    value_type ell_values[] = {1.0,  3.0,  4.0,  2.0,  0.0, 0.0,
+                               -1.0, 13.0, 14.0, 12.0, 0.0, 0.0};
+    index_type col_idxs[] = {0, 1, 0, 1, 0, 0};
 
     auto mtx =
         gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
