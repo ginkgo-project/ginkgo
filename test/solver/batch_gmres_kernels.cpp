@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_cg.hpp>
+#include <ginkgo/core/solver/batch_gmres.hpp>
 
 
 #include <gtest/gtest.h>
@@ -39,12 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/solver/batch_cg_kernels.hpp"
+#include "core/solver/batch_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
 #include "test/utils/executor.hpp"
@@ -56,7 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchCg : public ::testing::Test {
+class BatchGmres : public ::testing::Test {
+protected:
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -64,24 +66,24 @@ protected:
     using value_type = double;
 #endif
     using real_type = gko::remove_complex<value_type>;
-    using solver_type = gko::solver::BatchCg<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, int>;
     using BDense = gko::matrix::BatchDense<value_type>;
-    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
-    using Options = gko::kernels::batch_cg::BatchCgOptions<real_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
+    using solver_type = gko::solver::BatchGmres<value_type>;
+    using Options = gko::kernels::batch_gmres::BatchGmresOptions<real_type>;
     using LogData = gko::log::BatchLogData<value_type>;
 
-    BatchCg()
+    BatchGmres()
         : ref(gko::ReferenceExecutor::create()),
           sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
     {
-        init_executor(ref, d_exec);
         auto execp = d_exec;
+        init_executor(ref, d_exec);
         solve_fn = [execp](const Options opts, const Mtx* mtx,
                            const gko::BatchLinOp* prec, const BDense* b,
                            BDense* x, LogData& logdata) {
-            gko::kernels::EXEC_NAMESPACE::batch_cg::apply<value_type>(
+            gko::kernels::EXEC_NAMESPACE::batch_gmres::apply<value_type>(
                 execp, opts, mtx, prec, b, x, logdata);
         };
     }
@@ -100,8 +102,9 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
+
     const Options opts_1{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e2) * eps,
+                         static_cast<real_type>(10) * eps, 2,
                          gko::stop::batch::ToleranceType::relative};
 
     gko::test::LinSys<value_type> sys_1;
@@ -119,15 +122,16 @@ protected:
             .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
+            .with_restart(opts.restart_num)
             .on(exec);
     }
 
     int single_iters_regression()
     {
         if (std::is_same<real_type, float>::value) {
-            return 3;
+            return 18;
         } else if (std::is_same<real_type, double>::value) {
-            return 3;
+            return 50;
         } else {
             return -1;
         }
@@ -135,19 +139,19 @@ protected:
 };
 
 
-
-TEST_F(BatchCg, SolveIsEquivalentToReference)
+TEST_F(BatchGmres, SolveIsEquivalentToReference)
 {
+    using solver_type = gko::solver::BatchGmres<value_type>;
     using mtx_type = Mtx;
     using opts_type = Options;
     constexpr bool issingle =
         std::is_same<gko::remove_complex<value_type>, float>::value;
     const float solver_restol = issingle ? 100 * this->eps : this->eps;
     const opts_type opts{gko::preconditioner::batch::type::none, 500,
-                         solver_restol,
+                         solver_restol, 30,
                          gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        this->ref, this->nbatch, 11, 1, true);
+        this->ref, this->nbatch, 11, 1, false);
     auto r_factory = this->create_factory(this->ref, opts);
     auto d_factory = this->create_factory(this->d_exec, opts);
     const double iter_tol = 0.01;
@@ -160,7 +164,7 @@ TEST_F(BatchCg, SolveIsEquivalentToReference)
 }
 
 
-TEST_F(BatchCg, StencilSystemLoggerIsCorrect)
+TEST_F(BatchGmres, StencilSystemLoggerIsCorrect)
 {
     using real_type = gko::remove_complex<value_type>;
 
@@ -183,16 +187,18 @@ TEST_F(BatchCg, StencilSystemLoggerIsCorrect)
 }
 
 
-TEST_F(BatchCg, CoreSolvesSystemJacobi)
+TEST_F(BatchGmres, CoreSolvesSystemJacobi)
 {
+    using Solver = gko::solver::BatchGmres<value_type>;
     auto useexec = this->d_exec;
-    std::unique_ptr<typename solver_type::Factory> batchcg_factory =
-        solver_type::build()
+    std::unique_ptr<typename Solver::Factory> batchgmres_factory =
+        Solver::build()
             .with_max_iterations(100)
             .with_residual_tol(1e-6f)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<value_type>::build().on(
                     useexec))
+            .with_restart(2)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(useexec);
     const int nrhs_1 = 1;
@@ -208,7 +214,8 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
     b->copy_from(gko::lend(sys.b));
     x->copy_from(gko::lend(rx));
 
-    std::unique_ptr<solver_type> solver = batchcg_factory->generate(gko::give(mtx));
+    std::unique_ptr<Solver> solver =
+        batchgmres_factory->generate(gko::give(mtx));
     solver->apply(b.get(), x.get());
     rx->copy_from(gko::lend(x));
 
@@ -216,15 +223,16 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
 }
 
 
-TEST_F(BatchCg, UnitScalingDoesNotChangeResult)
+TEST_F(BatchGmres, UnitScalingDoesNotChangeResult)
 {
+    using Solver = solver_type;
     auto left_scale =
         gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
     auto right_scale =
         gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
     auto factory = this->create_factory(this->d_exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
         this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
         right_scale.get());
 
@@ -232,27 +240,28 @@ TEST_F(BatchCg, UnitScalingDoesNotChangeResult)
 }
 
 
-TEST_F(BatchCg, GeneralScalingDoesNotChangeResult)
+TEST_F(BatchGmres, GeneralScalingDoesNotChangeResult)
 {
+    using Solver = solver_type;
     auto left_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 1.5, 0.95}, this->ref);
+        this->nbatch, {0.8, 0.9, 0.95}, this->ref);
     auto right_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 1.5, 0.95}, this->ref);
+        this->nbatch, {1.0, 1.5, 1.05}, this->ref);
     auto factory = this->create_factory(this->d_exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
+    auto result = gko::test::solve_poisson_uniform_core<Solver>(
         this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
         right_scale.get());
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e3 * this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
 }
 
 
-TEST(BatchCg, GoodScalingImprovesConvergence)
+TEST(BatchGmres, GoodScalingImprovesConvergence)
 {
     using value_type = double;
     using real_type = gko::remove_complex<value_type>;
-    using Solver = gko::solver::BatchCg<value_type>;
+    using Solver = gko::solver::BatchGmres<value_type>;
     const auto eps = r<value_type>::value;
     auto ref = gko::ReferenceExecutor::create();
     std::shared_ptr<gko::EXEC_TYPE> d_exec;
@@ -272,32 +281,31 @@ TEST(BatchCg, GoodScalingImprovesConvergence)
 }
 
 
-TEST(BatchCg, CanSolveCsrWithoutScaling)
+TEST(BatchGmres, CanSolveCsrWithoutScaling)
 {
-    using T = std::complex<float>;
+    using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
-    using Solver = gko::solver::BatchCg<T>;
+    using Solver = gko::solver::BatchGmres<T>;
     using Csr = gko::matrix::BatchCsr<T>;
-    const RT tol = 1e-5;
+    const RT tol = 1e-8;
     std::shared_ptr<gko::ReferenceExecutor> ref =
         gko::ReferenceExecutor::create();
     std::shared_ptr<gko::EXEC_TYPE> d_exec;
     init_executor(ref, d_exec);
-    const int maxits = 100;
-    auto batchcg_factory =
+    const int maxits = 5000;
+    auto batchgmres_factory =
         Solver::build()
             .with_max_iterations(maxits)
             .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(
-                gko::preconditioner::BatchJacobi<T>::build().on(d_exec))
+            .with_restart(5)
             .on(d_exec);
-    const int nrows = 28;
+    const int nrows = 23;
     const size_t nbatch = 3;
     const int nrhs = 1;
 
     gko::test::test_solve<Solver, Csr>(d_exec, nbatch, nrows, nrhs, tol, maxits,
-                                       batchcg_factory.get(), 10);
+                                       batchgmres_factory.get(), 10);
 }
 
 
