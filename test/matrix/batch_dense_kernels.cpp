@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -365,17 +366,23 @@ TEST_F(BatchDense, CopyIsEquivalentToRef)
 
 TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 {
-    set_up_vector_data(20);
+    using BDiag = gko::matrix::BatchDiagonal<vtype>;
+    const int num_rhs = 20;
+    set_up_vector_data(num_rhs);
 
     const int num_rows_in_mat = x->get_size().at(0)[0];
-    const auto diag_vec = gen_mtx<Mtx>(batch_size, 1, num_rows_in_mat);
-    auto ddiag_vec = Mtx::create(this->cuda);
-    ddiag_vec->copy_from(diag_vec.get());
+    const auto left =
+        gen_mtx<BDiag>(batch_size, num_rows_in_mat, num_rows_in_mat);
+    const auto rght = gen_mtx<BDiag>(batch_size, num_rhs, num_rhs);
+    auto dleft = BDiag::create(this->cuda);
+    dleft->copy_from(left.get());
+    auto drght = BDiag::create(this->cuda);
+    drght->copy_from(rght.get());
 
-    gko::kernels::reference::batch_dense::batch_scale(this->ref, diag_vec.get(),
-                                                      x.get());
-    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, ddiag_vec.get(),
-                                                 dx.get());
+    gko::kernels::reference::batch_dense::batch_scale(this->ref, left.get(),
+                                                      rght.get(), x.get());
+    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, rght.get(),
+                                                 drght.get(), dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
