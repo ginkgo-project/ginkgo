@@ -92,9 +92,6 @@ public:
     std::unique_ptr<AbstractProductType> generate(Args&&... args) const
     {
         auto product = this->generate_impl({std::forward<Args>(args)...});
-        for (auto logger : this->loggers_) {
-            product->add_logger(logger);
-        }
         return product;
     }
 
@@ -162,7 +159,7 @@ public:
     std::unique_ptr<ProductType> generate(Args&&... args) const
     {
         auto product = std::unique_ptr<ProductType>(static_cast<ProductType*>(
-            this->generate_impl({std::forward<Args>(args)...}).release()));
+            PolymorphicBase::generate(std::forward<Args>(args)...).release()));
         propagate_loggers<ConcreteFactory, ProductType>(product.get());
         return product;
     }
