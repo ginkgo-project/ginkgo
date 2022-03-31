@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -63,13 +64,11 @@ protected:
               std::static_pointer_cast<const gko::ReferenceExecutor>(
                   this->exec),
               nrows, nbatch)),
-          batchcg_factory(
-              Solver::build()
-                  .with_max_iterations(def_max_iters)
-                  .with_residual_tol(def_abs_res_tol)
-                  .with_tolerance_type(def_tol_type)
-                  .with_preconditioner(gko::preconditioner::batch::type::none)
-                  .on(exec)),
+          batchcg_factory(Solver::build()
+                              .with_max_iterations(def_max_iters)
+                              .with_residual_tol(def_abs_res_tol)
+                              .with_tolerance_type(def_tol_type)
+                              .on(exec)),
           solver(batchcg_factory->generate(mtx))
     {}
 
@@ -200,21 +199,22 @@ TYPED_TEST(BatchCg, CanSetCriteria)
 }
 
 
-TYPED_TEST(BatchCg, CanSetPreconditionerInFactory)
+TYPED_TEST(BatchCg, CanSetPreconditionerFactory)
 {
+    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    const auto batchcg_precond = gko::preconditioner::batch::type::none;
+    auto prec_factory = gko::share(
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
 
-    auto batchcg_factory =
-        Solver::build()
-            .with_max_iterations(3)
-            .with_preconditioner(gko::preconditioner::batch::type::none)
-            .on(this->exec);
+    auto batchcg_factory = Solver::build()
+                               .with_max_iterations(3)
+                               .with_preconditioner(prec_factory)
+                               .on(this->exec);
     auto solver = batchcg_factory->generate(this->mtx);
     auto precond = solver->get_parameters().preconditioner;
 
 
-    ASSERT_EQ(precond, batchcg_precond);
+    ASSERT_EQ(precond, prec_factory);
 }
 
 
@@ -236,21 +236,20 @@ TYPED_TEST(BatchCg, CanSetScalingOps)
     using Solver = typename TestFixture::Solver;
     using Dense = typename TestFixture::Dense;
     using Diag = gko::matrix::BatchDiagonal<value_type>;
-    auto batchcg_factory = Solver::build().on(this->exec);
+    auto left_scale = gko::share(Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows))));
+    auto right_scale = gko::share(Diag::create(
+        this->exec,
+        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows))));
+    auto batchcg_factory = Solver::build()
+                               .with_left_scaling_op(left_scale)
+                               .with_right_scaling_op(right_scale)
+                               .on(this->exec);
     auto solver = batchcg_factory->generate(this->mtx);
-    auto left_scale = Diag::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
-    auto right_scale = Diag::create(
-        this->exec,
-        gko::batch_dim<>(this->nbatch, gko::dim<2>(this->nrows, this->nrows)));
 
-    solver->batch_scale(left_scale.get(), right_scale.get());
-    auto s_solver = gko::as<gko::EnableBatchScaling>(solver.get());
-
-    ASSERT_TRUE(s_solver);
-    ASSERT_EQ(s_solver->get_left_scaling_op(), left_scale.get());
-    ASSERT_EQ(s_solver->get_right_scaling_op(), right_scale.get());
+    ASSERT_EQ(solver->get_left_scaling_op(), left_scale);
+    ASSERT_EQ(solver->get_right_scaling_op(), right_scale);
 }
 
 // TYPED_TEST(BatchCg, SolverTransposeRetainsFactoryParameters)
