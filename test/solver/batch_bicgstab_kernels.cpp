@@ -138,7 +138,6 @@ protected:
 
 TEST_F(BatchBicgstab, SolveIsEquivalentToReference)
 {
-    using solver_type = gko::solver::BatchBicgstab<value_type>;
     using opts_type = Options;
     using mtx_type = Mtx;
     constexpr bool issingle =
@@ -188,10 +187,9 @@ TEST_F(BatchBicgstab, StencilSystemLoggerIsCorrect)
 
 TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
 {
-    using Solver = gko::solver::BatchBicgstab<value_type>;
     auto dexec = this->d_exec;
-    std::unique_ptr<typename Solver::Factory> batchbicgstab_factory =
-        Solver::build()
+    std::unique_ptr<typename solver_type::Factory> batchbicgstab_factory =
+        solver_type::build()
             .with_max_iterations(100)
             .with_residual_tol(1e-6f)
             .with_preconditioner(
@@ -211,7 +209,7 @@ TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
     b->copy_from(gko::lend(sys.b));
     x->copy_from(gko::lend(rx));
 
-    std::unique_ptr<Solver> solver =
+    std::unique_ptr<solver_type> solver =
         batchbicgstab_factory->generate(gko::give(mtx));
     solver->apply(b.get(), x.get());
     rx->copy_from(gko::lend(x));
@@ -223,14 +221,13 @@ TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
 TEST_F(BatchBicgstab, UnitScalingDoesNotChangeResult)
 {
     using T = value_type;
-    using Solver = solver_type;
     auto left_scale =
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, ref);
     auto right_scale =
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, ref);
     auto factory = this->create_factory(d_exec, this->opts_1);
 
-    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1, left_scale.get(),
         right_scale.get());
 
@@ -240,14 +237,13 @@ TEST_F(BatchBicgstab, UnitScalingDoesNotChangeResult)
 
 TEST_F(BatchBicgstab, GeneralScalingDoesNotChangeResult)
 {
-    using Solver = gko::solver::BatchBicgstab<value_type>;
     auto left_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {0.8, 0.9, 0.95}, ref);
     auto right_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {1.0, 1.5, 1.05}, ref);
     auto factory = this->create_factory(d_exec, opts_1);
 
-    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1, left_scale.get(),
         right_scale.get());
 
