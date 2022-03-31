@@ -363,7 +363,7 @@ public:
         std::shared_ptr<const Executor> exec) const
     {
         return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
-            this->create_default_impl(std::move(exec)).release())};
+            PolymorphicBase::create_default(std::move(exec)).release())};
     }
 
     std::unique_ptr<AbstractObject> create_default() const
@@ -386,24 +386,24 @@ public:
 
     AbstractObject* copy_from(const PolymorphicObject* other)
     {
-        return static_cast<AbstractObject*>(this->copy_from_impl(other));
+        return static_cast<AbstractObject*>(PolymorphicBase::copy_from(other));
     }
 
     AbstractObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
-            this->copy_from_impl(std::move(other)));
+            PolymorphicBase::copy_from(std::move(other)));
     }
 
     AbstractObject* move_from(PolymorphicObject* other)
     {
-        return static_cast<AbstractObject*>(this->move_from_impl(other));
+        return static_cast<AbstractObject*>(PolymorphicBase::move_from(other));
     }
 
     AbstractObject* move_from(std::unique_ptr<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
-            this->move_from_impl(std::move(other)));
+            PolymorphicBase::move_from(std::move(other)));
     }
 
     AbstractObject* clear()
