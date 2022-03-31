@@ -708,35 +708,36 @@ TYPED_TEST(BatchDense, ConvergenceCopyData)
 
 TYPED_TEST(BatchDense, BatchScale)
 {
-    using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using BDiag = gko::matrix::BatchDiagonal<T>;
 
     auto mtx(gko::batch_initialize<Mtx>(
         {{I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}},
          {I<T>{-4.0, 2.0}, I<T>{-3.0, -2.0}, I<T>{0.0, 1.0}}},
         this->exec));
 
-    auto diag_vec(
-        gko::batch_initialize<Mtx>(I<I<I<T>>>{I<I<T>>{I<T>{1.0, 2.0, 3.0}},
-                                              I<I<T>>{I<T>{-1.0, -2.0, -3.0}}},
-                                   this->exec));
+    auto left(gko::batch_diagonal_initialize(
+        I<I<T>>{I<T>{1.0, 2.0, 3.0}, I<T>{-1.0, -2.0, -3.0}}, this->exec));
+    auto rght(gko::batch_diagonal_initialize(
+        I<I<T>>{I<T>{-0.5, -2.0}, I<T>{2.0, 0.25}}, this->exec));
 
-    gko::kernels::reference::batch_dense::batch_scale(
-        this->exec, diag_vec.get(), mtx.get());
+    gko::kernels::reference::batch_dense::batch_scale(this->exec, left.get(),
+                                                      rght.get(), mtx.get());
 
-    EXPECT_EQ(mtx->at(0, 0, 0), T{1.0});
-    EXPECT_EQ(mtx->at(0, 1, 0), T{4.0});
-    EXPECT_EQ(mtx->at(0, 2, 0), T{6.0});
+    EXPECT_EQ(mtx->at(0, 0, 0), T{-0.5});
+    EXPECT_EQ(mtx->at(0, 1, 0), T{-2.0});
+    EXPECT_EQ(mtx->at(0, 2, 0), T{-3.0});
     EXPECT_EQ(mtx->at(0, 0, 1), T{0.0});
-    EXPECT_EQ(mtx->at(0, 1, 1), T{6.0});
-    EXPECT_EQ(mtx->at(0, 2, 1), T{12.0});
+    EXPECT_EQ(mtx->at(0, 1, 1), T{-12.0});
+    EXPECT_EQ(mtx->at(0, 2, 1), T{-24.0});
 
-    EXPECT_EQ(mtx->at(1, 0, 0), T{4.0});
-    EXPECT_EQ(mtx->at(1, 1, 0), T{6.0});
+    EXPECT_EQ(mtx->at(1, 0, 0), T{8.0});
+    EXPECT_EQ(mtx->at(1, 1, 0), T{12.0});
     EXPECT_EQ(mtx->at(1, 2, 0), T{0.0});
-    EXPECT_EQ(mtx->at(1, 0, 1), T{-2.0});
-    EXPECT_EQ(mtx->at(1, 1, 1), T{4.0});
-    EXPECT_EQ(mtx->at(1, 2, 1), T{-3.0});
+    EXPECT_EQ(mtx->at(1, 0, 1), T{-0.5});
+    EXPECT_EQ(mtx->at(1, 1, 1), T{1.0});
+    EXPECT_EQ(mtx->at(1, 2, 1), T{-0.75});
 }
 
 
