@@ -66,7 +66,6 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     const auto ssize = static_cast<int64>(size);
     const auto work_per_thread = ceildiv(ssize, num_threads);
     const auto required_storage = sizeof(ValueType) * num_threads;
-    tmp.set_executor(exec);
     if (tmp.get_num_elems() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
@@ -103,7 +102,6 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto work_per_thread = ceildiv(rows, num_threads);
     const auto required_storage = sizeof(ValueType) * num_threads;
-    tmp.set_executor(exec);
     if (tmp.get_num_elems() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
@@ -233,7 +231,6 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         // small number of rows and large reduction sizes: do partial sum first
         const auto work_per_thread = ceildiv(cols, num_threads);
         const auto required_storage = sizeof(ValueType) * rows * num_threads;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
@@ -331,7 +328,6 @@ void run_kernel_col_reduction_sized_impl(
             ceildiv(reduction_kernel_oversubscription * num_threads, cols);
         const auto rows_per_thread = ceildiv(rows, reduction_size);
         const auto required_storage = sizeof(ValueType) * rows * reduction_size;
-        tmp.set_executor(exec);
         if (tmp.get_num_elems() < required_storage) {
             tmp.resize_and_reset(required_storage);
         }
