@@ -68,10 +68,12 @@ protected:
                     Array<stopping_status>* stop_status, bool* one_changed,
                     const Updater& updater) override;
 
-    std::tuple<std::shared_ptr<AsyncHandle>, bool> check_impl(
-        std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
-        bool set_finalized, Array<stopping_status>* stop_status,
-        bool* one_changed, const Updater& updater) override;
+    std::shared_ptr<AsyncHandle> check_impl(std::shared_ptr<AsyncHandle> handle,
+                                            uint8 stopping_id,
+                                            bool set_finalized,
+                                            Array<stopping_status>* stop_status,
+                                            Array<bool>* host_storage,
+                                            const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))

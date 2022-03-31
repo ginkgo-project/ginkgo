@@ -66,13 +66,12 @@ GKO_REGISTER_ASYNC_OPERATION(implicit_residual_norm,
 
 
 template <typename ValueType>
-std::tuple<std::shared_ptr<AsyncHandle>, bool>
-ResidualNormBase<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
-                                        uint8 stopping_id, bool set_finalized,
-                                        Array<stopping_status>* stop_status,
-                                        bool* one_changed,
-                                        const Criterion::Updater& updater)
+std::shared_ptr<AsyncHandle> ResidualNormBase<ValueType>::check_impl(
+    std::shared_ptr<AsyncHandle> handle, uint8 stopping_id, bool set_finalized,
+    Array<stopping_status>* stop_status, Array<bool>* host_storage,
+    const Criterion::Updater& updater)
 {
+    auto exec = this->get_executor();
 #if GINKGO_BUILD_MPI
     using DistributedComplex = distributed::Vector<gko::to_complex<ValueType>>;
     using DistributedVector = distributed::Vector<ValueType>;
@@ -136,16 +135,15 @@ ResidualNormBase<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }
-    bool all_converged = true;
 
-    this->get_executor()->run(
+    exec->run(
         residual_norm::make_async_residual_norm(
             dense_tau, starting_tau_.get(), reduction_factor_, stopping_id,
-            set_finalized, stop_status, device_storage_.get(), &all_converged,
-            one_changed),
+            set_finalized, stop_status, this->device_storage_.get()),
         handle);
-
-    return {handle, all_converged};
+    return exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 2, this->device_storage_->get_const_data(),
+        host_storage->get_data(), handle);
 }
 
 
@@ -154,6 +152,7 @@ bool ResidualNormBase<ValueType>::check_impl(
     uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
+    auto exec = this->get_executor();
 #if GINKGO_BUILD_MPI
     using DistributedComplex = distributed::Vector<gko::to_complex<ValueType>>;
     using DistributedVector = distributed::Vector<ValueType>;
@@ -215,47 +214,49 @@ bool ResidualNormBase<ValueType>::check_impl(
     }
     bool all_converged = true;
 
-    this->get_executor()
-        ->run(residual_norm::make_async_residual_norm(
-                  dense_tau, starting_tau_.get(), reduction_factor_,
-                  stopping_id, set_finalized, stop_status,
-                  device_storage_.get(), &all_converged, one_changed),
-              this->get_executor()->get_default_exec_stream())
+    exec->run(
+            residual_norm::make_async_residual_norm(
+                dense_tau, starting_tau_.get(), reduction_factor_, stopping_id,
+                set_finalized, stop_status, device_storage_.get()),
+            exec->get_default_exec_stream())
         ->wait();
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, device_storage_->get_const_data(),
+        &all_converged);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, device_storage_->get_const_data() + 1,
+        one_changed);
 
     return all_converged;
 }
 
 
 template <typename ValueType>
-std::tuple<std::shared_ptr<AsyncHandle>, bool>
-ImplicitResidualNorm<ValueType>::check_impl(std::shared_ptr<AsyncHandle> handle,
-                                            uint8 stopping_id,
-                                            bool set_finalized,
-                                            Array<stopping_status>* stop_status,
-                                            bool* one_changed,
-                                            const Criterion::Updater& updater)
+std::shared_ptr<AsyncHandle> ImplicitResidualNorm<ValueType>::check_impl(
+    std::shared_ptr<AsyncHandle> handle, uint8 stopping_id, bool set_finalized,
+    Array<stopping_status>* stop_status, Array<bool>* host_storage,
+    const Criterion::Updater& updater)
 {
+    auto exec = this->get_executor();
     const Vector* dense_tau;
     if (updater.implicit_sq_residual_norm_ != nullptr) {
         dense_tau = as<Vector>(updater.implicit_sq_residual_norm_);
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }
-    bool all_converged = false;
 
-    auto hand = this->get_executor()->run(
-        implicit_residual_norm::make_async_implicit_residual_norm(
-            dense_tau, this->starting_tau_.get(), this->reduction_factor_,
-            stopping_id, set_finalized, stop_status,
-            this->device_storage_.get(), &all_converged, one_changed),
-        handle);
+    exec->run(implicit_residual_norm::make_async_implicit_residual_norm(
+                  dense_tau, this->starting_tau_.get(), this->reduction_factor_,
+                  stopping_id, set_finalized, stop_status,
+                  this->device_storage_.get()),
+              handle);
+    return exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 2, this->device_storage_->get_const_data(),
+        host_storage->get_data(), handle);
     // this->get_executor()->copy_val_to_host(this->device_storage_->get_data(),
     //                                        &all_converged, handle);
     // this->get_executor()->copy_val_to_host(
     //     this->device_storage_->get_data() + 1, one_changed, handle);
-
-    return {handle, all_converged};
 }
 
 
@@ -264,6 +265,7 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
     uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
+    auto exec = this->get_executor();
     const Vector* dense_tau;
     if (updater.implicit_sq_residual_norm_ != nullptr) {
         dense_tau = as<Vector>(updater.implicit_sq_residual_norm_);
@@ -272,13 +274,18 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
     }
     bool all_converged = true;
 
-    this->get_executor()
-        ->run(implicit_residual_norm::make_async_implicit_residual_norm(
+    exec->run(implicit_residual_norm::make_async_implicit_residual_norm(
                   dense_tau, this->starting_tau_.get(), this->reduction_factor_,
                   stopping_id, set_finalized, stop_status,
-                  this->device_storage_.get(), &all_converged, one_changed),
-              this->get_executor()->get_default_exec_stream())
+                  this->device_storage_.get()),
+              exec->get_default_exec_stream())
         ->wait();
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, this->device_storage_->get_const_data(),
+        &all_converged);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1,
+        this->device_storage_->get_const_data() + 1, one_changed);
 
     return all_converged;
 }

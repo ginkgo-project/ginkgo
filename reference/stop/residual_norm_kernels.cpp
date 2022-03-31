@@ -59,22 +59,23 @@ std::shared_ptr<AsyncHandle> residual_norm(
     std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* tau,
     const matrix::Dense<ValueType>* orig_tau, ValueType rel_residual_goal,
     uint8 stoppingId, bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     auto l = [=]() {
-        *all_converged = true;
-        *one_changed = false;
+        auto data = device_storage->get_data();
+        data[0] = true;
+        data[1] = false;
         for (size_type i = 0; i < tau->get_size()[1]; ++i) {
             if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
                 stop_status->get_data()[i].converge(stoppingId, setFinalized);
-                *one_changed = true;
+                data[1] = true;
             }
         }
         for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
             if (!stop_status->get_const_data()[i].has_stopped()) {
-                *all_converged = false;
+                data[0] = false;
                 break;
             }
         }
@@ -104,20 +105,21 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     auto l = [=]() {
-        *all_converged = true;
-        *one_changed = false;
+        auto data = device_storage->get_data();
+        data[0] = true;
+        data[1] = false;
         for (size_type i = 0; i < tau->get_size()[1]; ++i) {
             if (sqrt(abs(tau->at(i))) < rel_residual_goal * orig_tau->at(i)) {
                 stop_status->get_data()[i].converge(stoppingId, setFinalized);
-                *one_changed = true;
+                data[1] = true;
             }
         }
         for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
             if (!stop_status->get_const_data()[i].has_stopped()) {
-                *all_converged = false;
+                data[0] = false;
                 break;
             }
         }

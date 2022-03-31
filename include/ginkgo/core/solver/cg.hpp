@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -175,10 +176,20 @@ protected:
                                                        this->get_executor());
         neg_one_op_ = initialize<matrix::Dense<ValueType>>(
             {-one<ValueType>()}, this->get_executor());
+
+        this->host_storage_ =
+            gko::Array<bool>(this->get_executor()->get_master(), 2,
+                             this->get_executor()
+                                 ->get_mem_space()
+                                 ->template pinned_host_alloc<bool>(2),
+                             memory_space_pinned_host_deleter<bool[]>(
+                                 this->get_executor()->get_mem_space()));
+        this->host_storage_.fill(false);
     }
 
 private:
     mutable Array<ValueType> workspace_;
+    mutable Array<bool> host_storage_;
     mutable Array<remove_complex<ValueType>> real_workspace_;
     mutable Array<stopping_status> stop_status_;
     mutable std::shared_ptr<Array<bool>> device_storage_;

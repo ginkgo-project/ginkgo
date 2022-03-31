@@ -104,10 +104,14 @@ void CudaUVMSpace::raw_free(void* ptr) const noexcept
     // allocated the memory, so there is no need to deallocate it.
 }
 
-
 void* CudaMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(nvidia);
 
+void* CudaMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
+
+void CudaMemorySpace::raw_free_pinned_host(void* ptr) const
+    GKO_NOT_COMPILED(nvidia);
 
 void* CudaUVMSpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(nvidia);

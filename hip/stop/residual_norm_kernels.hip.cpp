@@ -97,7 +97,7 @@ std::shared_ptr<AsyncHandle> residual_norm(
     std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* tau,
     const matrix::Dense<ValueType>* orig_tau, ValueType rel_residual_goal,
     uint8 stoppingId, bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -119,10 +119,10 @@ std::shared_ptr<AsyncHandle> residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
-                           handle);
-    exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
-                           handle);
+    // exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
+    //                        handle);
+    // exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
+    //                        handle);
     return handle;
 }
 
@@ -184,7 +184,7 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     auto stream = as<HipAsyncHandle>(handle)->get_handle();
     hipLaunchKernelGGL((init_kernel), 1, 1, 0, stream,
@@ -202,22 +202,24 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
             as_hip_type(stop_status->get_data()),
             as_hip_type(device_storage->get_data()));
     }
+    return handle;
 
     /* Represents all_converged, one_changed */
-    bool* pin_host_storage;
-    GKO_ASSERT_NO_HIP_ERRORS(
-        hipHostAlloc(static_cast<void**>(&pin_host_storage), 2, 0));
-    /* Represents all_converged, one_changed */
-    // auto hand1 = exec->copy_val_to_host(device_storage->get_const_data(),
-    //                                     all_converged, handle);
-    // auto hand2 = exec->copy_val_to_host(device_storage->get_const_data() + 1,
-    //                                     one_changed, hand1);
-    auto hand = exec->get_master()->get_mem_space()->copy_from(
-        exec->get_mem_space().get(), 2, device_storage->get_const_data(),
-        pin_host_storage, handle);
-    *all_converged = pin_host_storage[0];
-    *one_changed = pin_host_storage[1];
-    return hand;
+    // bool* pin_host_storage;
+    // GKO_ASSERT_NO_HIP_ERRORS(
+    //     hipHostAlloc(static_cast<void**>(&pin_host_storage), 2, 0));
+    // /* Represents all_converged, one_changed */
+    // // auto hand1 = exec->copy_val_to_host(device_storage->get_const_data(),
+    // //                                     all_converged, handle);
+    // // auto hand2 = exec->copy_val_to_host(device_storage->get_const_data() +
+    // 1,
+    // //                                     one_changed, hand1);
+    // auto hand = exec->get_master()->get_mem_space()->copy_from(
+    //     exec->get_mem_space().get(), 2, device_storage->get_const_data(),
+    //     pin_host_storage, handle);
+    // *all_converged = pin_host_storage[0];
+    // *one_changed = pin_host_storage[1];
+    // return hand;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);

@@ -47,9 +47,18 @@ namespace gko {
 void HostMemorySpace::raw_free(void* ptr) const noexcept { std::free(ptr); }
 
 
+void HostMemorySpace::raw_free_pinned_host(void* ptr) const { std::free(ptr); }
+
+
 void HostMemorySpace::synchronize() const
 {
     // Currently a no-op
+}
+
+
+void* HostMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+{
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "Host", num_bytes);
 }
 
 
@@ -107,6 +116,17 @@ std::shared_ptr<AsyncHandle> ReferenceMemorySpace::raw_copy_to(
 void ReferenceMemorySpace::raw_free(void* ptr) const noexcept
 {
     std::free(ptr);
+}
+
+void ReferenceMemorySpace::raw_free_pinned_host(void* ptr) const
+{
+    std::free(ptr);
+}
+
+
+void* ReferenceMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+{
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "Reference", num_bytes);
 }
 
 

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -238,9 +239,9 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                         .implicit_sq_residual_norm(rho.get())
                         .solution(dense_x)
                         .check(handle, RelativeStoppingId, true,
-                               &this->stop_status_, &one_changed);
+                               &this->stop_status_, &this->host_storage_);
 
-        if (std::get<1>(stop)) {
+        if (this->host_storage_.get_data()[0]) {
             break;
         }
 

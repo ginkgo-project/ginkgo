@@ -116,6 +116,19 @@ public:
         return allocated;
     }
 
+
+    template <typename T>
+    T* pinned_host_alloc(size_type num_elems) const
+    {
+        this->template log<log::Logger::allocation_started>(
+            this, num_elems * sizeof(T));
+        T* allocated =
+            static_cast<T*>(this->raw_pinned_host_alloc(num_elems * sizeof(T)));
+        this->template log<log::Logger::allocation_completed>(
+            this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
+        return allocated;
+    }
+
     /**
      * Frees memory previously allocated with MemorySpace::alloc().
      *
@@ -128,6 +141,15 @@ public:
         this->template log<log::Logger::free_started>(
             this, reinterpret_cast<uintptr>(ptr));
         this->raw_free(ptr);
+        this->template log<log::Logger::free_completed>(
+            this, reinterpret_cast<uintptr>(ptr));
+    }
+
+    void free_pinned_host(void* ptr) const
+    {
+        this->template log<log::Logger::free_started>(
+            this, reinterpret_cast<uintptr>(ptr));
+        this->raw_free_pinned_host(ptr);
         this->template log<log::Logger::free_completed>(
             this, reinterpret_cast<uintptr>(ptr));
     }
@@ -260,6 +282,9 @@ protected:
      */
     virtual void* raw_alloc(size_type size) const = 0;
 
+    virtual void* raw_pinned_host_alloc(size_type size) const
+        GKO_NOT_IMPLEMENTED;
+
     /**
      * Frees memory previously allocated with MemorySpace::alloc().
      *
@@ -268,6 +293,8 @@ protected:
      * @param ptr  pointer to the allocated memory block
      */
     virtual void raw_free(void* ptr) const noexcept = 0;
+
+    virtual void raw_free_pinned_host(void* ptr) const GKO_NOT_IMPLEMENTED;
 
     /**
      * Copies raw data from another MemorySpace.
@@ -374,6 +401,37 @@ private:
     std::shared_ptr<const MemorySpace> mem_space_;
 };
 
+template <typename T>
+class memory_space_pinned_host_deleter {
+public:
+    using pointer = T*;
+
+    /**
+     * Creates a new deleter.
+     *
+     * @param mem_space  the mem_spaceutor used to free the data
+     */
+    explicit memory_space_pinned_host_deleter(
+        std::shared_ptr<const MemorySpace> mem_space)
+        : mem_space_{mem_space}
+    {}
+
+    /**
+     * Deletes the object.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer ptr) const
+    {
+        if (mem_space_) {
+            mem_space_->free_pinned_host(ptr);
+        }
+    }
+
+private:
+    std::shared_ptr<const MemorySpace> mem_space_;
+};
+
 
 // a specialization for arrays
 template <typename T>
@@ -389,6 +447,28 @@ public:
     {
         if (mem_space_) {
             mem_space_->free(ptr);
+        }
+    }
+
+private:
+    std::shared_ptr<const MemorySpace> mem_space_;
+};
+
+
+template <typename T>
+class memory_space_pinned_host_deleter<T[]> {
+public:
+    using pointer = T[];
+
+    explicit memory_space_pinned_host_deleter(
+        std::shared_ptr<const MemorySpace> mem_space)
+        : mem_space_{mem_space}
+    {}
+
+    void operator()(pointer ptr) const
+    {
+        if (mem_space_) {
+            mem_space_->free_pinned_host(ptr);
         }
     }
 
@@ -474,6 +554,10 @@ protected:
 
     void raw_free(void* ptr) const noexcept override;
 
+    void* raw_pinned_host_alloc(size_type size) const override;
+
+    void raw_free_pinned_host(void* ptr) const override;
+
     bool verify_memory_from(const MemorySpace* src_mem_space) const override
     {
         return src_mem_space->verify_memory_to(this);
@@ -521,6 +605,10 @@ protected:
     void* raw_alloc(size_type size) const override;
 
     void raw_free(void* ptr) const noexcept override;
+
+    void* raw_pinned_host_alloc(size_type size) const override;
+
+    void raw_free_pinned_host(void* ptr) const override;
 
     bool verify_memory_from(const MemorySpace* src_mem_space) const override
     {
@@ -583,6 +671,10 @@ protected:
     void* raw_alloc(size_type size) const override;
 
     void raw_free(void* ptr) const noexcept override;
+
+    void* raw_pinned_host_alloc(size_type size) const override;
+
+    void raw_free_pinned_host(void* ptr) const override;
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
 

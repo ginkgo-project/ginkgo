@@ -151,6 +151,23 @@ void CudaMemorySpace::raw_free(void* ptr) const noexcept
 }
 
 
+void CudaMemorySpace::raw_free_pinned_host(void* ptr) const
+{
+    cuda::device_guard g(this->get_device_id());
+    auto error_code = cudaFreeHost(ptr);
+    if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+        // Unfortunately, if memory free fails, there's not much we can do
+        std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
+                  << " in " << __func__ << ": " << cudaGetErrorName(error_code)
+                  << ": " << cudaGetErrorString(error_code) << std::endl
+                  << "Exiting program" << std::endl;
+#endif
+        std::exit(error_code);
+    }
+}
+
+
 void CudaUVMSpace::raw_free(void* ptr) const noexcept
 {
     cuda::device_guard g(this->get_device_id());
@@ -165,6 +182,19 @@ void CudaUVMSpace::raw_free(void* ptr) const noexcept
 #endif
         std::exit(error_code);
     }
+}
+
+
+void* CudaMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+{
+    void* dev_ptr = nullptr;
+    cuda::device_guard g(this->get_device_id());
+    auto error_code = cudaHostAlloc(&dev_ptr, num_bytes, 0);
+    if (error_code != cudaErrorMemoryAllocation) {
+        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    }
+    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
+    return dev_ptr;
 }
 
 

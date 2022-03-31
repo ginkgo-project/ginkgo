@@ -94,8 +94,9 @@ std::shared_ptr<AsyncHandle> residual_norm(
     });
 
     /* Represents all_converged, one_changed */
-    *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
-    *one_changed = exec->copy_val_to_host(device_storage->get_const_data() + 1);
+    // *all_converged =
+    // exec->copy_val_to_host(device_storage->get_const_data()); *one_changed =
+    // exec->copy_val_to_host(device_storage->get_const_data() + 1);
     return handle;
 }
 
@@ -121,7 +122,7 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     auto device_storage_val = device_storage->get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
@@ -152,8 +153,9 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     });
 
     /* Represents all_converged, one_changed */
-    *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
-    *one_changed = exec->copy_val_to_host(device_storage->get_const_data() + 1);
+    // *all_converged =
+    // exec->copy_val_to_host(device_storage->get_const_data()); *one_changed =
+    // exec->copy_val_to_host(device_storage->get_const_data() + 1);
     return handle;
 }
 

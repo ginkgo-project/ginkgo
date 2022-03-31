@@ -90,10 +90,10 @@ protected:
                     Array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    std::tuple<std::shared_ptr<AsyncHandle>, bool> check_impl(
+    std::shared_ptr<AsyncHandle> check_impl(
         std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
         bool set_finalized, Array<stopping_status>* stop_status,
-        bool* one_changed, const Criterion::Updater& updater) override;
+        Array<bool>* host_storage, const Criterion::Updater& updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
         : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
@@ -382,10 +382,10 @@ protected:
                     Array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    std::tuple<std::shared_ptr<AsyncHandle>, bool> check_impl(
+    std::shared_ptr<AsyncHandle> check_impl(
         std::shared_ptr<AsyncHandle> handle, uint8 stopping_id,
         bool set_finalized, Array<stopping_status>* stop_status,
-        bool* one_changed, const Criterion::Updater& updater) override;
+        Array<bool>* host_storage, const Criterion::Updater& updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNormBase<ValueType>(exec)

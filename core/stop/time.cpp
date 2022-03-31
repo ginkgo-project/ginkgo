@@ -37,17 +37,18 @@ namespace gko {
 namespace stop {
 
 
-std::tuple<std::shared_ptr<AsyncHandle>, bool> Time::check_impl(
+std::shared_ptr<AsyncHandle> Time::check_impl(
     std::shared_ptr<AsyncHandle> handle, uint8 stoppingId, bool setFinalized,
-    Array<stopping_status>* stop_status, bool* one_changed,
+    Array<stopping_status>* stop_status, Array<bool>* host_storage,
     const Updater& updater)
 {
     bool result = clock::now() - start_ >= time_limit_;
     if (result) {
         this->set_all_statuses(stoppingId, setFinalized, stop_status);
-        *one_changed = true;
+        host_storage->get_data()[1] = true;
     }
-    return {handle, result};
+    host_storage->get_data()[0] = result;
+    return handle;
 }
 
 

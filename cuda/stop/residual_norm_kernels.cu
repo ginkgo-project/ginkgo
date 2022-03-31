@@ -96,7 +96,7 @@ std::shared_ptr<AsyncHandle> residual_norm(
     std::shared_ptr<AsyncHandle> handle, const matrix::Dense<ValueType>* tau,
     const matrix::Dense<ValueType>* orig_tau, ValueType rel_residual_goal,
     uint8 stoppingId, bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -115,11 +115,11 @@ std::shared_ptr<AsyncHandle> residual_norm(
             as_cuda_type(device_storage->get_data()));
     }
 
-    /* Represents all_converged, one_changed */
-    exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
-                           handle);
-    exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
-                           handle);
+    // /* Represents all_converged, one_changed */
+    // exec->copy_val_to_host(device_storage->get_const_data(), all_converged,
+    //                        handle);
+    // exec->copy_val_to_host(device_storage->get_const_data() + 1, one_changed,
+    //                        handle);
     return handle;
 }
 
@@ -181,7 +181,7 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    Array<bool>* device_storage)
 {
     auto stream = as<CudaAsyncHandle>(handle)->get_handle();
     init_kernel<<<1, 1, 0, stream>>>(as_cuda_type(device_storage->get_data()));
@@ -197,21 +197,19 @@ std::shared_ptr<AsyncHandle> implicit_residual_norm(
             setFinalized, as_cuda_type(stop_status->get_data()),
             as_cuda_type(device_storage->get_data()));
     }
+    return handle;
 
     /* Represents all_converged, one_changed */
     // auto hand1 = exec->copy_val_to_host(device_storage->get_const_data(),
     //                                     all_converged, handle);
     // auto hand = exec->copy_val_to_host(device_storage->get_const_data() + 1,
     //                                    one_changed, hand1);
-    bool* pin_host_storage;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaHostAlloc(&pin_host_storage, 2, 0));
-    exec->get_master()->get_mem_space()->copy_from(
-        exec->get_mem_space().get(), 2, device_storage->get_const_data(),
-        pin_host_storage, handle);
-    *all_converged = pin_host_storage[0];
-    *one_changed = pin_host_storage[1];
+    // bool* pin_host_storage;
+    // GKO_ASSERT_NO_CUDA_ERRORS(cudaHostAlloc(&pin_host_storage, 2, 0));
+    // *all_converged = pin_host_storage[0];
+    // *one_changed = pin_host_storage[1];
     // GKO_ASSERT_NO_CUDA_ERRORS(cudaFreeHost(pin_host_storage));
-    return handle;
+    // return handle;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
