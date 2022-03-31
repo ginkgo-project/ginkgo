@@ -49,7 +49,9 @@ namespace {
 
 struct DummyLogger : gko::log::Logger {
     DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec), gko::log::Logger::linop_events_mask)
+        : gko::log::Logger(std::move(exec),
+                           gko::log::Logger::linop_events_mask |
+                               gko::log::Logger::linop_factory_events_mask)
     {}
 
     void on_linop_apply_started(const gko::LinOp*, const gko::LinOp*,
@@ -78,10 +80,25 @@ struct DummyLogger : gko::log::Logger {
         linop_advanced_apply_completed++;
     }
 
+    void on_linop_factory_generate_started(const gko::LinOpFactory*,
+                                           const gko::LinOp*) const override
+    {
+        linop_factory_generate_started++;
+    }
+
+    void on_linop_factory_generate_completed(const gko::LinOpFactory*,
+                                             const gko::LinOp*,
+                                             const gko::LinOp*) const override
+    {
+        linop_factory_generate_completed++;
+    }
+
     int mutable linop_apply_started = 0;
     int mutable linop_apply_completed = 0;
     int mutable linop_advanced_apply_started = 0;
     int mutable linop_advanced_apply_completed = 0;
+    int mutable linop_factory_generate_started = 0;
+    int mutable linop_factory_generate_completed = 0;
 };
 
 
@@ -354,9 +371,13 @@ protected:
 
 class EnableLinOpFactory : public ::testing::Test {
 protected:
-    EnableLinOpFactory() : ref{gko::ReferenceExecutor::create()} {}
+    EnableLinOpFactory()
+        : ref{gko::ReferenceExecutor::create()},
+          logger{std::make_shared<DummyLogger>(ref)}
+    {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<DummyLogger> logger;
 };
 
 
@@ -388,6 +409,20 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
     ASSERT_EQ(op->get_executor(), ref);
     ASSERT_EQ(op->get_parameters().value, 6);
     ASSERT_EQ(op->op_.get(), dummy.get());
+}
+
+
+TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
+{
+    auto before_logger = *logger;
+    auto factory = DummyLinOpWithFactory<>::build().on(ref);
+    factory->add_logger(logger);
+    factory->generate(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+
+    ASSERT_EQ(logger->linop_factory_generate_started,
+              before_logger.linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->linop_factory_generate_completed,
+              before_logger.linop_factory_generate_completed + 1);
 }
 
 
