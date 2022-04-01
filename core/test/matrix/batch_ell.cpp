@@ -237,6 +237,27 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingData)
 }
 
 
+TYPED_TEST(BatchEll, CanBeCreatedFromExistingConstData)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0,  0.0, 2.0,  3.0,  4.0,  0.0,
+                                 -1.0, 0.0, 12.0, 13.0, 14.0, 0.0};
+    index_type col_idxs[] = {0, 1, 1, 2, 2, 3};
+
+    auto batch_mtx =
+        gko::matrix::BatchEll<value_type, index_type>::create_const(
+            this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
+            gko::batch_stride(2, 2), gko::batch_stride{2, 3},
+            gko::Array<value_type>::const_view(this->exec, 12, values),
+            gko::Array<index_type>::const_view(this->exec, 6, col_idxs));
+
+    ASSERT_EQ(batch_mtx->get_const_values(), values);
+    ASSERT_EQ(batch_mtx->get_const_col_idxs(), col_idxs);
+}
+
+
 TYPED_TEST(BatchEll, CanBeDuplicatedFromOneEllMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
