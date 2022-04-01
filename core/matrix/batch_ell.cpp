@@ -185,9 +185,10 @@ void BatchEll<ValueType, IndexType>::read(const std::vector<mat_data>& data)
         }
     }
     GKO_ASSERT(std::equal(nnz.begin() + 1, nnz.end(), nnz.begin()));
-    auto tmp =
-        BatchEll::create(this->get_executor()->get_master(), num_batch_entries,
-                         data[0].size, num_stored_elements_per_row);
+    auto tmp = BatchEll::create(
+        this->get_executor()->get_master(),
+        batch_dim<2>{num_batch_entries, data[0].size},
+        batch_stride{num_batch_entries, num_stored_elements_per_row});
     // Get values and column indexes.
     for (size_type id = 0; id < num_batch_entries; ++id) {
         const auto& batch_data = data[id];

@@ -68,8 +68,10 @@ protected:
           mtx_size(10, gko::dim<2>(12, 7)),
           rand_engine(42)
     {
-        mtx = Mtx::create(exec, 2, gko::dim<2>{2, 3}, 2);
-        mtx2 = Mtx::create(exec, 2, gko::dim<2>{3, 3}, 2);
+        mtx = Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}},
+                          gko::batch_stride{2, 2});
+        mtx2 = Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
+                           gko::batch_stride{2, 2});
         create_mtx(mtx.get());
         create_mtx2(mtx2.get());
     }
