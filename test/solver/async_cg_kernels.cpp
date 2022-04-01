@@ -243,12 +243,12 @@ TEST_F(Cg, AsyncCgStep2IsEquivalentToRef)
 TEST_F(Cg, AsyncApplyIsEquivalentToRef)
 {
     exec->set_default_exec_stream(exec->get_handle_at(0));
-    auto dense_mtx = gen_mtx(20000, 20000, 20000);
+    auto dense_mtx = gen_mtx(2000, 2000, 2000);
     gko::test::make_hpd(dense_mtx.get());
     auto mtx = CsrMtx::create(ref);
     mtx->copy_from(dense_mtx.get());
-    auto x = gen_mtx(20000, 1, 1);
-    auto b = gen_mtx(20000, 1, 1);
+    auto x = gen_mtx(2000, 1, 1);
+    auto b = gen_mtx(2000, 1, 1);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);

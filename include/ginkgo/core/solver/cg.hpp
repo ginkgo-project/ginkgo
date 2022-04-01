@@ -89,6 +89,14 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    Cg& operator=(const Cg& other);
+
+    Cg& operator=(Cg&& other);
+
+    Cg(const Cg& other);
+
+    Cg(Cg&& other);
+
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
      *
@@ -172,19 +180,6 @@ protected:
           parameters_{factory->get_parameters()}
     {
         this->generate();
-        one_op_ = initialize<matrix::Dense<ValueType>>({one<ValueType>()},
-                                                       this->get_executor());
-        neg_one_op_ = initialize<matrix::Dense<ValueType>>(
-            {-one<ValueType>()}, this->get_executor());
-
-        this->host_storage_ =
-            gko::Array<bool>(this->get_executor()->get_master(), 2,
-                             this->get_executor()
-                                 ->get_mem_space()
-                                 ->template pinned_host_alloc<bool>(2),
-                             memory_space_pinned_host_deleter<bool[]>(
-                                 this->get_executor()->get_mem_space()));
-        this->host_storage_.fill(false);
     }
 
 private:

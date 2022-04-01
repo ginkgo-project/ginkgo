@@ -65,21 +65,81 @@ GKO_REGISTER_ASYNC_OPERATION(step_2, cg::step_2);
 
 
 template <typename ValueType>
+Cg<ValueType>& Cg<ValueType>::operator=(const Cg& other)
+{
+    if (&other != this) {
+        EnableLinOp<Cg>::operator=(other);
+        EnableSolverBase<Cg>::operator=(other);
+        EnableIterativeBase<Cg>::operator=(other);
+        parameters_ = other.parameters_;
+        if (this->get_system_matrix()) {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Cg<ValueType>& Cg<ValueType>::operator=(Cg&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Cg>::operator=(std::move(other));
+        EnableSolverBase<Cg>::operator=(std::move(other));
+        EnableIterativeBase<Cg>::operator=(std::move(other));
+        parameters_ = other.parameters_;
+        if (this->get_system_matrix()) {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Cg<ValueType>::Cg(const Cg& other) : Cg(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Cg<ValueType>::Cg(Cg&& other) : Cg(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType>
 void Cg<ValueType>::generate()
 {
     // TODO: Fix for distributed. Need to have local sizes
     auto num_rows = this->get_system_matrix()->get_size()[0];
     // FIXME: Probably needs to be stride instead
     auto nrhs = this->get_parameters().num_rhs;
-    this->workspace_ = gko::Array<ValueType>(
-        this->get_executor(),
-        num_rows * nrhs * num_aux_vecs + nrhs * num_aux_scalars);
-    this->real_workspace_ =
-        gko::Array<remove_complex<ValueType>>(this->get_executor(), nrhs * 2);
-    this->stop_status_ =
-        gko::Array<stopping_status>(this->get_executor(), nrhs);
-    this->device_storage_ =
-        std::make_shared<Array<bool>>(this->get_executor(), 2);
+    if (this->get_executor()) {
+        this->workspace_ = gko::Array<ValueType>(
+            this->get_executor(),
+            num_rows * nrhs * num_aux_vecs + nrhs * num_aux_scalars);
+        this->real_workspace_ = gko::Array<remove_complex<ValueType>>(
+            this->get_executor(), nrhs * 2);
+        this->stop_status_ =
+            gko::Array<stopping_status>(this->get_executor(), nrhs);
+        this->device_storage_ =
+            std::make_shared<Array<bool>>(this->get_executor(), 2);
+        this->one_op_ = initialize<matrix::Dense<ValueType>>(
+            {one<ValueType>()}, this->get_executor());
+        this->neg_one_op_ = initialize<matrix::Dense<ValueType>>(
+            {-one<ValueType>()}, this->get_executor());
+        this->host_storage_ =
+            gko::Array<bool>(this->get_executor()->get_master(), 2,
+                             this->get_executor()
+                                 ->get_mem_space()
+                                 ->template pinned_host_alloc<bool>(2),
+                             memory_space_pinned_host_deleter<bool[]>(
+                                 this->get_executor()->get_mem_space()));
+        this->host_storage_.fill(false);
+    }
 }
 
 
@@ -159,9 +219,17 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
     handle_guard hg{exec, handle};
 
     auto num_rhs = dense_b->get_size()[1];
-    GKO_ASSERT(this->get_parameters().num_rhs == num_rhs);
-    int offset = 0;
     auto num_rows = detail::get_local(dense_b)->get_size()[0];
+    if (this->get_parameters().num_rhs != num_rhs) {
+        this->workspace_ = gko::Array<ValueType>(
+            this->get_executor(),
+            num_rows * num_rhs * num_aux_vecs + num_rhs * num_aux_scalars);
+        this->real_workspace_ = gko::Array<remove_complex<ValueType>>(
+            this->get_executor(), num_rhs * 2);
+        this->stop_status_ =
+            gko::Array<stopping_status>(this->get_executor(), num_rhs);
+    }
+    int offset = 0;
     auto r = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
     offset += num_rows * num_rhs;

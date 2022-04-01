@@ -299,21 +299,6 @@ TYPED_TEST(Cg, SolvesStencilSystem)
 }
 
 
-TYPED_TEST(Cg, AsyncSolvesStencilSystem)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    auto solver = this->cg_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
-
-    auto hand = solver->apply(b.get(), x.get(), this->exec->get_handle_at(0));
-    hand->wait();
-
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
-}
-
-
 TYPED_TEST(Cg, SolvesStencilSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;

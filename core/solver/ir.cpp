@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/handle_guard.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 
@@ -80,6 +81,122 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
+{
+    auto exec = this->get_executor();
+    if (new_solver) {
+        GKO_ASSERT_EQUAL_DIMENSIONS(new_solver, this);
+        GKO_ASSERT_IS_SQUARE_MATRIX(new_solver);
+        if (new_solver->get_executor() != exec) {
+            new_solver = gko::clone(exec, new_solver);
+        }
+    }
+    solver_ = new_solver;
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::set_relaxation_factor(
+    std::shared_ptr<const matrix::Dense<ValueType>> new_factor)
+{
+    auto exec = this->get_executor();
+    if (new_factor && new_factor->get_executor() != exec) {
+        new_factor = gko::clone(exec, new_factor);
+    }
+    relaxation_factor_ = new_factor;
+}
+
+
+template <typename ValueType>
+Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
+{
+    if (&other != this) {
+        EnableLinOp<Ir>::operator=(other);
+        EnableSolverBase<Ir>::operator=(other);
+        EnableIterativeBase<Ir>::operator=(other);
+        parameters_ = other.parameters_;
+        if (this->get_system_matrix()) {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Ir>::operator=(std::move(other));
+        EnableSolverBase<Ir>::operator=(std::move(other));
+        EnableIterativeBase<Ir>::operator=(std::move(other));
+        parameters_ = other.parameters_;
+        other.set_solver(nullptr);
+        other.set_relaxation_factor(nullptr);
+        if (this->get_system_matrix()) {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType>
+void Ir<ValueType>::generate()
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this->get_system_matrix());
+    if (parameters_.generated_solver) {
+        this->set_solver(parameters_.generated_solver);
+        GKO_ASSERT_EQUAL_DIMENSIONS(this->get_solver(), this);
+    } else if (parameters_.solver) {
+        // TODO overhead of re-generation when copying the solver
+        this->set_solver(
+            parameters_.solver->generate(this->get_system_matrix()));
+    } else {
+        this->set_solver(matrix::Identity<ValueType>::create(
+            this->get_executor(), this->get_size()));
+    }
+    this->relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+        {parameters_.relaxation_factor}, this->get_executor());
+    this->one_op_ = initialize<matrix::Dense<ValueType>>({one<ValueType>()},
+                                                         this->get_executor());
+    this->neg_one_op_ = initialize<matrix::Dense<ValueType>>(
+        {-one<ValueType>()}, this->get_executor());
+    this->host_storage_ = gko::Array<bool>(
+        this->get_executor()->get_master(), 2,
+        this->get_executor()->get_mem_space()->template pinned_host_alloc<bool>(
+            2),
+        memory_space_pinned_host_deleter<bool[]>(
+            this->get_executor()->get_mem_space()));
+    this->host_storage_.fill(false);
+    auto num_rows = this->get_system_matrix()->get_size()[0];
+    auto nrhs = this->get_parameters().num_rhs;
+    this->workspace_ = gko::Array<ValueType>(this->get_executor(),
+                                             num_rows * nrhs * num_aux_vecs);
+    this->real_workspace_ =
+        gko::Array<remove_complex<ValueType>>(this->get_executor(), nrhs * 2);
+    this->stop_status_ =
+        gko::Array<stopping_status>(this->get_executor(), nrhs);
+    this->device_storage_ =
+        std::make_shared<Array<bool>>(this->get_executor(), 2);
+}
+
+
+template <typename ValueType>
+Ir<ValueType>::Ir(const Ir& other) : Ir(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType>
+Ir<ValueType>::Ir(Ir&& other) : Ir(other.get_executor())
+{
+    *this = std::move(other);
 }
 
 
@@ -129,24 +246,43 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
-    auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
+    handle_guard hg{exec, handle};
+    auto num_rhs = dense_b->get_size()[1];
+    auto num_rows = detail::get_local(dense_b)->get_size()[0];
+    if (this->get_parameters().num_rhs != num_rhs) {
+        this->workspace_ = gko::Array<ValueType>(
+            this->get_executor(), num_rows * num_rhs * num_aux_vecs);
+        this->real_workspace_ = gko::Array<remove_complex<ValueType>>(
+            this->get_executor(), num_rhs * 2);
+        this->stop_status_ =
+            gko::Array<stopping_status>(this->get_executor(), num_rhs);
+    }
+    int offset = 0;
 
-    auto residual = detail::create_with_same_size(dense_b);
-    auto inner_solution = detail::create_with_same_size(dense_b);
+    auto residual = detail::create_with_same_size_from_view(this->workspace_,
+                                                            offset, dense_b);
+    offset += num_rows * num_rhs;
+    auto inner_solution = detail::create_with_same_size_from_view(
+        this->workspace_, offset, dense_b);
+    offset = 0;
+    auto st_tau = share(detail::create_with_size_from_view(
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
+    offset = num_rhs;
+    auto dense_tau = share(detail::create_with_size_from_view(
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
 
     bool one_changed{};
-    Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
-    exec->run(ir::make_initialize(&stop_status));
+    exec->run(ir::make_initialize(&this->stop_status_));
 
     residual->copy_from(dense_b);
-    system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                          lend(residual));
+    this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                     lend(this->one_op_), lend(residual));
 
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        lend(residual));
+        lend(residual), this->one_op_, this->neg_one_op_, this->device_storage_,
+        st_tau, dense_tau);
 
     int iter = -1;
     while (true) {
@@ -158,7 +294,7 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
                 .num_iterations(iter)
                 .residual(lend(residual))
                 .solution(dense_x)
-                .check(relative_stopping_id, true, &stop_status,
+                .check(relative_stopping_id, true, &this->stop_status_,
                        &one_changed)) {
             break;
         }
@@ -167,7 +303,7 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         //         auto dist_mat =
         //             gko::as<const gko::distributed::Matrix<ValueType,
         //             int32>>(
-        //                 system_matrix_);
+        //                 this->get_system_matrix());
 
         //         if (solver_->apply_uses_initial_guess()) {
         //             // Use the inner solver to solve
@@ -195,29 +331,31 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         //                             lend(residual));
         //         }
         // #else
-        if (solver_->apply_uses_initial_guess()) {
+        if (this->get_solver()->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
             inner_solution->copy_from(lend(residual));
-            solver_->apply(lend(residual), lend(inner_solution));
+            this->get_solver()->apply(lend(residual), lend(inner_solution));
 
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  lend(residual));
+            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                             lend(this->one_op_),
+                                             lend(residual));
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), lend(residual),
-                           lend(one_op), dense_x);
+            this->get_solver()->apply(lend(relaxation_factor_), lend(residual),
+                                      lend(this->one_op_), dense_x);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                  lend(residual));
+            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                             lend(this->one_op_),
+                                             lend(residual));
         }
         // #endif
     }
@@ -248,11 +386,11 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);
-    system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
-                          lend(residual));
+    this->get_system_matrix()->apply(lend(neg_one_op), x_clone.get(),
+                                     lend(one_op), lend(residual));
 
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}),
         x_clone.get(), lend(residual));
 
@@ -283,8 +421,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
-                                  lend(residual));
+            this->get_system_matrix()->apply(lend(neg_one_op), x_clone.get(),
+                                             lend(one_op), lend(residual));
         } else {
             // x = x + relaxation_factor * A \ residual
             solver_->apply(lend(relaxation_factor_), lend(residual),
@@ -292,8 +430,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            system_matrix_->apply(lend(neg_one_op), x_clone.get(), lend(one_op),
-                                  lend(residual));
+            this->get_system_matrix()->apply(lend(neg_one_op), x_clone.get(),
+                                             lend(one_op), lend(residual));
         }
     }
     // FIXME
