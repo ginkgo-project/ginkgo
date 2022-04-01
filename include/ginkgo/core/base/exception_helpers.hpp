@@ -159,6 +159,13 @@ inline batch_dim<2> get_batch_size(const T& op)
 inline batch_dim<2> get_batch_size(const batch_dim<2>& size) { return size; }
 
 
+template <typename T>
+inline size_type get_num_batch_entries(const T& obj)
+{
+    return obj.get_num_batch_entries();
+}
+
+
 inline std::tuple<bool, int> compare_batch_inner(const batch_dim<2>& size1,
                                                  const batch_dim<2>& size2)
 {
@@ -630,6 +637,24 @@ inline std::tuple<bool, size_type> check_batch_single_column(
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+
+/**
+ * Asserts that _op1 has the same number of batch entries as _op2.
+ *
+ * @throw DimensionMismatch  if _op1 contains a different number of entries
+ *   from _op2.
+ */
+#define GKO_ASSERT_EQUAL_BATCH_ENTRIES(_op1, _op2)                          \
+    {                                                                       \
+        auto sz1 = ::gko::detail::get_num_batch_entries(_op1);              \
+        auto sz2 = ::gko::detail::get_num_batch_entries(_op2);              \
+        if (sz1 != sz2) {                                                   \
+            throw ::gko::DimensionMismatch(                                 \
+                __FILE__, __LINE__, __func__, #_op1, sz1, 0, #_op2, sz2, 0, \
+                "expected matching number of batch entries");               \
+        }                                                                   \
+    }
 
 
 /**
