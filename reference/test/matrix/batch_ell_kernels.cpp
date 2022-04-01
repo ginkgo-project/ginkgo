@@ -209,7 +209,7 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
             gko::Array<index_type>::view(this->exec, 3, col_ptrs));
 
     auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
-        this->exec, 2, gko::dim<2>{3, 2}, 2, 3,
+        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}}, 2, 3,
         gko::Array<value_type>::view(this->exec, 12, ell_values),
         gko::Array<index_type>::view(this->exec, 6, col_idxs));
 
