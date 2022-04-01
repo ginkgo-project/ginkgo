@@ -220,13 +220,18 @@ int main(int argc, char* argv[])
             .with_inner_solver(
                 cg::build()
                     // .with_preconditioner(bj::build().on(exec))
-                    .with_criteria(gko::stop::Iteration::build()
-                                       .with_max_iters(inner_max_iters)
-                                       .on(exec))
                     // .with_criteria(
-                    //     gko::stop::ResidualNorm<ValueType>::build()
-                    //         .with_reduction_factor(inner_reduction_factor)
-                    //         .on(exec))
+                    // gko::stop::Iteration::build()
+                    //                    .with_max_iters(inner_max_iters)
+                    //                    .on(exec)
+                    //                    )
+                    .with_criteria(
+                        gko::stop::Iteration::build()
+                            .with_max_iters(inner_max_iters)
+                            .on(exec),
+                        gko::stop::ImplicitResidualNorm<ValueType>::build()
+                            .with_reduction_factor(inner_reduction_factor)
+                            .on(exec))
                     .on(exec))
             .on(exec)
             ->generate(A);

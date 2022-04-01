@@ -104,11 +104,41 @@ void HipMemorySpace::raw_free(void* ptr) const noexcept
 }
 
 
+void HipMemorySpace::raw_free_pinned_host(void* ptr) const
+{
+    hip::device_guard g(this->get_device_id());
+    auto error_code = hipHostFree(ptr);
+    if (error_code != hipSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+        // Unfortunately, if memory free fails, there's not much we can do
+        std::cerr << "Unrecoverable HIP error on device " << this->device_id_
+                  << " in " << __func__ << ": " << hipGetErrorName(error_code)
+                  << ": " << hipGetErrorString(error_code) << std::endl
+                  << "Exiting program" << std::endl;
+#endif
+        std::exit(error_code);
+    }
+}
+
+
 void* HipMemorySpace::raw_alloc(size_type num_bytes) const
 {
     void* dev_ptr = nullptr;
     hip::device_guard g(this->get_device_id());
     auto error_code = hipMalloc(&dev_ptr, num_bytes);
+    if (error_code != hipErrorMemoryAllocation) {
+        GKO_ASSERT_NO_HIP_ERRORS(error_code);
+    }
+    GKO_ENSURE_ALLOCATED(dev_ptr, "hip", num_bytes);
+    return dev_ptr;
+}
+
+
+void* HipMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+{
+    void* dev_ptr = nullptr;
+    hip::device_guard g(this->get_device_id());
+    auto error_code = hipHostMalloc(&dev_ptr, num_bytes, 0);
     if (error_code != hipErrorMemoryAllocation) {
         GKO_ASSERT_NO_HIP_ERRORS(error_code);
     }

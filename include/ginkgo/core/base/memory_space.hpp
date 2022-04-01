@@ -808,6 +808,10 @@ protected:
 
     void raw_free(void* ptr) const noexcept override;
 
+    void* raw_pinned_host_alloc(size_type size) const override;
+
+    void raw_free_pinned_host(void* ptr) const override;
+
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
 
     bool verify_memory_from(const MemorySpace* src_mem_space) const override
