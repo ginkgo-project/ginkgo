@@ -289,6 +289,34 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(0, row, idx)];
     }
 
+    /**
+     * Creates an immutable BatchEll matrix from a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param num_stored_elems_per_row  the number of stored nonzeros per row
+     * @param stride  the column-stride of the value and column index array
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          the arrays on the correct executor.
+     */
+    static std::unique_ptr<const BatchEll> create_const(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        const batch_stride& num_stored_elems_per_row,
+        const batch_stride& stride,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const BatchEll>(new BatchEll{
+            exec, size, num_stored_elems_per_row.at(0), stride.at(0),
+            gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs))});
+    }
+
 protected:
     /**
      * Creates an uninitialized BatchEll matrix of the specified size.
@@ -424,20 +452,19 @@ protected:
      *       matrix.
      */
     template <typename ValuesArray, typename ColIdxsArray>
-    BatchEll(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries, const dim<2>& size,
+    BatchEll(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
              const size_type num_stored_elems_per_row, const size_type stride,
              ValuesArray&& values, ColIdxsArray&& col_idxs)
-        : EnableBatchLinOp<BatchEll>(
-              exec, gko::batch_dim<2>(num_batch_entries, size)),
+        : EnableBatchLinOp<BatchEll>(exec, size.get_num_batch_entries(),
+                                     size.at(0)),
           num_stored_elems_per_row_(batch_num_stored_elems_per_row(
-              num_batch_entries, num_stored_elems_per_row)),
-          stride_(batch_stride(num_batch_entries, stride)),
+              size.get_num_batch_entries(), num_stored_elems_per_row)),
+          stride_(batch_stride(size.get_num_batch_entries(), stride)),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)}
     {
         GKO_ASSERT_EQ(values_.get_num_elems(),
-                      col_idxs_.get_num_elems() * num_batch_entries);
+                      col_idxs_.get_num_elems() * size.get_num_batch_entries());
     }
 
     void create_from_batch_csc_impl(const gko::Array<ValueType>& values,

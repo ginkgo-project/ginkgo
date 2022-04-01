@@ -234,6 +234,32 @@ public:
         return values_.get_num_elems();
     }
 
+    /**
+     * Creates a constant BatchCsr matrix by wrapping a set of constant arrays.
+     *
+     * @param exec  the executor to create the matrix on
+     * @param size  the dimensions of the matrix
+     * @param values  the value array of the matrix
+     * @param col_idxs  the column index array of the matrix
+     * @param row_ptrs  the row pointer array of the matrix
+     * @returns A smart pointer to the constant matrix wrapping the input arrays
+     *          (if they reside on the same executor as the matrix) or a copy of
+     *          these arrays on the correct executor.
+     */
+    static std::unique_ptr<const BatchCsr> create_const(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+    {
+        // cast const-ness away, but return a const object afterwards,
+        // so we can ensure that no modifications take place.
+        return std::unique_ptr<const BatchCsr>(new BatchCsr{
+            exec, size, gko::detail::array_const_cast(std::move(values)),
+            gko::detail::array_const_cast(std::move(col_idxs)),
+            gko::detail::array_const_cast(std::move(row_ptrs))});
+    }
+
 protected:
     /**
      * Creates an uninitialized BatchCsr matrix of the specified size.
