@@ -59,7 +59,7 @@ std::unique_ptr<matrix::Dense<ValueType>> create_with_same_size_from_view(
     GKO_ASSERT(workspace.get_executor()->get_mem_space()->memory_accessible(
         mtx->get_executor()->get_mem_space()));
     auto workspace_offset_view = Array<ValueType>::view(
-        workspace.get_executor(), mtx->get_size()[0] * mtx->get_size()[1],
+        workspace.get_executor(), mtx->get_size()[0] * mtx->get_stride(),
         workspace.get_data() + offset);
     return matrix::Dense<ValueType>::create(
         mtx->get_executor(), mtx->get_size(), std::move(workspace_offset_view),

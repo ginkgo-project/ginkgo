@@ -248,28 +248,29 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
     auto exec = this->get_executor();
     handle_guard hg{exec, handle};
     auto num_rhs = dense_b->get_size()[1];
+    auto b_stride = detail::get_local(dense_b)->get_stride();
     auto num_rows = detail::get_local(dense_b)->get_size()[0];
-    if (this->get_parameters().num_rhs != num_rhs) {
+    if (this->get_parameters().num_rhs < b_stride) {
         this->workspace_ = gko::Array<ValueType>(
-            this->get_executor(), num_rows * num_rhs * num_aux_vecs);
+            this->get_executor(), num_rows * b_stride * num_aux_vecs);
         this->real_workspace_ = gko::Array<remove_complex<ValueType>>(
-            this->get_executor(), num_rhs * 2);
+            this->get_executor(), b_stride * 2);
         this->stop_status_ =
-            gko::Array<stopping_status>(this->get_executor(), num_rhs);
+            gko::Array<stopping_status>(this->get_executor(), b_stride);
     }
     int offset = 0;
 
     auto residual = detail::create_with_same_size_from_view(this->workspace_,
                                                             offset, dense_b);
-    offset += num_rows * num_rhs;
+    offset += num_rows * b_stride;
     auto inner_solution = detail::create_with_same_size_from_view(
         this->workspace_, offset, dense_b);
     offset = 0;
     auto st_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
-    offset = num_rhs;
+        exec, this->real_workspace_, offset, dim<2>{1, b_stride}));
+    offset = b_stride;
     auto dense_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
+        exec, this->real_workspace_, offset, dim<2>{1, b_stride}));
 
     bool one_changed{};
     exec->run(ir::make_initialize(&this->stop_status_));
@@ -290,12 +291,15 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         this->template log<log::Logger::iteration_complete>(
             this, iter, lend(residual), dense_x);
 
-        if (stop_criterion->update()
-                .num_iterations(iter)
-                .residual(lend(residual))
-                .solution(dense_x)
-                .check(relative_stopping_id, true, &this->stop_status_,
-                       &one_changed)) {
+        stop_criterion->update()
+            .num_iterations(iter)
+            .residual(lend(residual))
+            .solution(dense_x)
+            .check(handle, relative_stopping_id, true, &this->stop_status_,
+                   &this->host_storage_)
+            ->wait();
+
+        if (this->host_storage_.get_data()[0]) {
             break;
         }
 
