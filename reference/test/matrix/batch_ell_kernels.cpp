@@ -67,8 +67,10 @@ protected:
 
     BatchEll()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(Mtx::create(exec, 2, gko::dim<2>{2, 3}, 2)),
-          mtx2(Mtx::create(exec, 2, gko::dim<2>{3, 3}, 2))
+          mtx(Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{2, 3}},
+                          gko::batch_stride{2, 2})),
+          mtx2(Mtx::create(exec, gko::batch_dim<2>{2, gko::dim<2>{3, 3}},
+                           gko::batch_stride{2, 2}))
     {
         this->create_mtx(mtx.get());
         this->create_mtx2(mtx2.get());
@@ -209,7 +211,8 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
             gko::Array<index_type>::view(this->exec, 3, col_ptrs));
 
     auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
-        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}}, 2, 3,
+        this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}},
+        gko::batch_stride{2, 2}, gko::batch_stride{2, 3},
         gko::Array<value_type>::view(this->exec, 12, ell_values),
         gko::Array<index_type>::view(this->exec, 6, col_idxs));
 
@@ -433,7 +436,8 @@ TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntry)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
+                           gko::batch_stride{2, 4});
     // clang-format off
     //     {{2.0, 0.0, -1.0, 0.0},
     //      {0.0, 1.0, -1.5, -2.0},
@@ -477,7 +481,8 @@ TYPED_TEST(BatchEll, CanDetectMissingDiagonalEntryInFirstRow)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
+                           gko::batch_stride{2, 4});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
@@ -516,7 +521,8 @@ TYPED_TEST(BatchEll, CanDetectPresenceOfAllDiagonalEntries)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 3);
+    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
+                           gko::batch_stride{2, 3});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
@@ -553,7 +559,8 @@ TYPED_TEST(BatchEll, AddScaledIdentity)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using BDense = gko::matrix::BatchDense<T>;
-    auto mat = Mtx::create(this->exec, 2, gko::dim<2>{3, 4}, 4);
+    auto mat = Mtx::create(this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
+                           gko::batch_stride{2, 4});
     {
         const auto vals = mat->get_values();
         const auto cols = mat->get_col_idxs();
