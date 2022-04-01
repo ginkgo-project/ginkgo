@@ -72,13 +72,13 @@ struct ApplSysData {
     // Number of non-zeros in each system matrix.
     int nnz;
     // Row pointers for one matrix
-    index_type* row_ptrs;
+    const index_type* row_ptrs;
     // Column indices of non-zeros for one matrix
-    index_type* col_idxs;
+    const index_type* col_idxs;
     // Nonzero values for all matrices in the batch, concatenated
-    value_type* all_values;
+    const value_type* all_values;
     // RHS vectors for all systems in the batch, concatenated
-    value_type* all_rhs;
+    const value_type* all_rhs;
 };
 
 
@@ -161,23 +161,25 @@ int main(int argc, char* argv[])
     //  out of them.
     // Ginkgo expects the nonzero values for all the small matrices to be
     //  allocated contiguously, one matrix after the other.
-    auto vals_view = gko::Array<value_type>::view(
+    auto vals_view = gko::Array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
-    auto rowptrs_view =
-        gko::Array<index_type>::view(exec, num_rows + 1, appl_sys.row_ptrs);
-    auto colidxs_view =
-        gko::Array<index_type>::view(exec, appl_sys.nnz, appl_sys.col_idxs);
-    auto A = gko::share(mtx_type::create(exec, batch_mat_size, vals_view,
-                                         colidxs_view, rowptrs_view));
+    auto rowptrs_view = gko::Array<index_type>::const_view(exec, num_rows + 1,
+                                                           appl_sys.row_ptrs);
+    auto colidxs_view = gko::Array<index_type>::const_view(exec, appl_sys.nnz,
+                                                           appl_sys.col_idxs);
+    auto A = gko::share(mtx_type::create_const(
+        exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
+        std::move(rowptrs_view)));
     // @sect3{RHS and solution vectors}
     // batch_stride object specifies the access stride within the individual
     //  matrices (vectors) in the batch. In this case, we specify a stride of 1
     //  as the common value for all the matrices.
     auto batch_vec_stride = gko::batch_stride(num_systems, 1);
     // Create RHS, again reusing application allocation
-    auto b_view = gko::Array<value_type>::view(exec, num_systems * num_rows,
-                                               appl_sys.all_rhs);
-    auto b = vec_type::create(exec, batch_vec_size, b_view, batch_vec_stride);
+    auto b_view = gko::Array<value_type>::const_view(
+        exec, num_systems * num_rows, appl_sys.all_rhs);
+    auto b = vec_type::create_const(exec, batch_vec_size, std::move(b_view),
+                                    batch_vec_stride);
     // Create initial guess as 0 and copy to device
     auto x = vec_type::create(exec);
     auto host_x =
@@ -333,8 +335,10 @@ ApplSysData appl_generate_system(const int nrows, const size_type nsystems,
 
 void appl_clean_up(ApplSysData& appl_data, std::shared_ptr<gko::Executor> exec)
 {
-    exec->free(appl_data.row_ptrs);
-    exec->free(appl_data.col_idxs);
-    exec->free(appl_data.all_values);
-    exec->free(appl_data.all_rhs);
+    // In general, the application would control non-const pointers;
+    //  the const casts below would not be needed.
+    exec->free(const_cast<index_type*>(appl_data.row_ptrs));
+    exec->free(const_cast<index_type*>(appl_data.col_idxs));
+    exec->free(const_cast<value_type*>(appl_data.all_values));
+    exec->free(const_cast<value_type*>(appl_data.all_rhs));
 }
