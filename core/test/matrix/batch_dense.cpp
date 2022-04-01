@@ -172,6 +172,32 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
 }
 
 
+TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
+{
+    using value_type = typename TestFixture::value_type;
+    using size_type = gko::size_type;
+    // clang-format off
+    const value_type data[] = {
+       1.0, 2.0, -1.0,
+       3.0, 4.0, -1.0,
+       3.0, 5.0, 1.0,
+       5.0, 6.0, -3.0};
+    // clang-format on
+
+    auto m = gko::matrix::BatchDense<TypeParam>::create_const(
+        this->exec,
+        std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
+        gko::Array<value_type>::const_view(this->exec, 12, data),
+        std::vector<size_type>{3, 3});
+
+    ASSERT_EQ(m->get_const_values(), data);
+    ASSERT_EQ(m->at(0, 0, 1), value_type{2.0});
+    ASSERT_EQ(m->at(0, 1, 2), value_type{-1.0});
+    ASSERT_EQ(m->at(1, 0, 1), value_type{5.0});
+    ASSERT_EQ(m->at(1, 1, 2), value_type{-3.0});
+}
+
+
 TYPED_TEST(BatchDense, CanBeConstructedFromBatchDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
