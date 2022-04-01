@@ -139,7 +139,8 @@ public:
         GKO_ASSERT_EQ(size[1] + 1, col_ptrs.get_num_elems());
 
         auto batch_ell_mat = BatchEll<ValueType, IndexType>::create(
-            exec, num_batch_entries, size, num_elems_per_row);
+            exec, batch_dim<2>{num_batch_entries, size},
+            batch_stride{num_batch_entries, num_elems_per_row});
 
         batch_ell_mat->create_from_batch_csc_impl(values, row_idxs, col_ptrs);
         return batch_ell_mat;
@@ -327,10 +328,8 @@ protected:
      * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
     BatchEll(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries = {},
-             const dim<2>& size = dim<2>{})
-        : EnableBatchLinOp<BatchEll>(exec,
-                                     batch_dim<2>(num_batch_entries, size)),
+             const batch_dim<2>& size = batch_dim<2>{})
+        : EnableBatchLinOp<BatchEll>(exec, size),
           num_stored_elems_per_row_(batch_num_stored_elems_per_row{}),
           values_(exec),
           col_idxs_(exec)
@@ -344,17 +343,17 @@ protected:
      * @param size  the common size of all the batch matrices
      * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
-    BatchEll(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries, const dim<2>& size,
-             size_type num_stored_elems_per_row)
-        : EnableBatchLinOp<BatchEll>(exec,
-                                     batch_dim<2>(num_batch_entries, size)),
-          num_stored_elems_per_row_(batch_num_stored_elems_per_row(
-              num_batch_entries, num_stored_elems_per_row)),
-          stride_(batch_stride(num_batch_entries, size[0])),
-          values_(exec, num_stored_elems_per_row * size[0] * num_batch_entries),
-          col_idxs_(exec, num_stored_elems_per_row * size[0])
-    {}
+    BatchEll(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+             const batch_stride& num_stored_elems_per_row)
+        : EnableBatchLinOp<BatchEll>(exec, size),
+          num_stored_elems_per_row_(num_stored_elems_per_row),
+          stride_(get_stride_from_dim(size)),
+          values_(exec, num_stored_elems_per_row.at(0) * size.at(0)[0] *
+                            size.get_num_batch_entries()),
+          col_idxs_(exec, num_stored_elems_per_row.at(0) * size.at(0)[0])
+    {
+        GKO_ASSERT_EQUAL_BATCH_ENTRIES(size, num_stored_elems_per_row);
+    }
 
     /**
      * Creates an uninitialized BatchEll matrix of the specified size.
@@ -364,17 +363,19 @@ protected:
      * @param size  the common size of all the batch matrices
      * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
-    BatchEll(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries, const dim<2>& size,
-             size_type num_stored_elems_per_row, size_type stride)
-        : EnableBatchLinOp<BatchEll>(exec,
-                                     batch_dim<2>(num_batch_entries, size)),
-          num_stored_elems_per_row_(batch_num_stored_elems_per_row(
-              num_batch_entries, num_stored_elems_per_row)),
-          stride_(batch_stride(num_batch_entries, stride)),
-          values_(exec, num_stored_elems_per_row * stride * num_batch_entries),
-          col_idxs_(exec, num_stored_elems_per_row * stride)
-    {}
+    BatchEll(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+             const batch_stride& num_stored_elems_per_row,
+             const batch_stride& stride)
+        : EnableBatchLinOp<BatchEll>(exec, size),
+          num_stored_elems_per_row_(num_stored_elems_per_row),
+          stride_(stride),
+          values_(exec, num_stored_elems_per_row.at(0) * stride.at(0) *
+                            size.get_num_batch_entries()),
+          col_idxs_(exec, num_stored_elems_per_row.at(0) * stride.at(0))
+    {
+        GKO_ASSERT_EQUAL_BATCH_ENTRIES(size, num_stored_elems_per_row);
+        GKO_ASSERT_EQUAL_BATCH_ENTRIES(size, stride);
+    }
 
     /**
      * Creates an BatchEll matrix by duplicating a CSR matrix
@@ -453,13 +454,13 @@ protected:
      */
     template <typename ValuesArray, typename ColIdxsArray>
     BatchEll(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-             const size_type num_stored_elems_per_row, const size_type stride,
-             ValuesArray&& values, ColIdxsArray&& col_idxs)
+             const batch_stride& num_stored_elems_per_row,
+             const batch_stride& stride, ValuesArray&& values,
+             ColIdxsArray&& col_idxs)
         : EnableBatchLinOp<BatchEll>(exec, size.get_num_batch_entries(),
                                      size.at(0)),
-          num_stored_elems_per_row_(batch_num_stored_elems_per_row(
-              size.get_num_batch_entries(), num_stored_elems_per_row)),
-          stride_(batch_stride(size.get_num_batch_entries(), stride)),
+          num_stored_elems_per_row_(num_stored_elems_per_row),
+          stride_(stride),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)}
     {
@@ -510,6 +511,21 @@ private:
             values_.get_num_elems() / this->get_num_batch_entries();
         return batch_id * num_elems_per_batch + row +
                stride_.at(batch_id) * col;
+    }
+
+    batch_stride get_stride_from_dim(const batch_dim<2>& dim)
+    {
+        if (dim.stores_equal_sizes()) {
+            return batch_stride(dim.get_num_batch_entries(), dim.at(0)[0]);
+        } else {
+            std::vector<size_type> strides;
+            strides.reserve(dim.get_num_batch_entries());
+            auto batch_sizes = dim.get_batch_sizes();
+            for (auto dims : batch_sizes) {
+                strides.push_back(dims[0]);
+            }
+            return batch_stride(strides);
+        }
     }
 
     void add_scaled_identity_impl(const BatchLinOp* a,
