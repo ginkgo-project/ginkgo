@@ -116,6 +116,12 @@ void HipMemorySpace::raw_free(void* ptr) const noexcept
 void* HipMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(hip);
 
+void* HipMemorySpace::raw_pinned_host_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(hip);
+
+void HipMemorySpace::raw_free_pinned_host(void* ptr) const
+    GKO_NOT_COMPILED(hip);
+
 
 std::shared_ptr<AsyncHandle> HipMemorySpace::raw_copy_to(
     const HostMemorySpace*, size_type num_bytes, const void* src_ptr,

@@ -87,10 +87,10 @@ std::shared_ptr<AsyncHandle> ResidualNormBase<ValueType>::check_impl(
             if (dynamic_cast<const DistributedComplex*>(updater.residual_)) {
                 // handle solvers that use complex vectors even for real systems
                 auto dense_r = as<DistributedComplex>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
+                dense_r->compute_norm2(u_dense_tau_.get(), handle);
             } else {
                 auto dense_r = as<DistributedVector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get());
+                dense_r->compute_norm2(u_dense_tau_.get(), handle);
             }
 #else
         bool is_distributed = false;
@@ -101,10 +101,10 @@ std::shared_ptr<AsyncHandle> ResidualNormBase<ValueType>::check_impl(
             if (dynamic_cast<const ComplexVector*>(updater.residual_)) {
                 // handle solvers that use complex vectors even for real systems
                 auto dense_r = as<ComplexVector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get(), handle)->wait();
+                dense_r->compute_norm2(u_dense_tau_.get(), handle);
             } else {
                 auto dense_r = as<Vector>(updater.residual_);
-                dense_r->compute_norm2(u_dense_tau_.get(), handle)->wait();
+                dense_r->compute_norm2(u_dense_tau_.get(), handle);
             }
         }
         dense_tau = u_dense_tau_.get();
@@ -115,19 +115,15 @@ std::shared_ptr<AsyncHandle> ResidualNormBase<ValueType>::check_impl(
         // so it still uses the same type of scalar in apply.
         if (auto vec_b = std::dynamic_pointer_cast<const Vector>(b_)) {
             auto dense_r = vec_b->clone();
-            system_matrix_
-                ->apply(neg_one_.get(), updater.solution_, one_.get(),
-                        dense_r.get(), handle)
-                ->wait();
-            dense_r->compute_norm2(u_dense_tau_.get(), handle)->wait();
+            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
+                                  dense_r.get(), handle);
+            dense_r->compute_norm2(u_dense_tau_.get(), handle);
         } else if (auto vec_b =
                        std::dynamic_pointer_cast<const ComplexVector>(b_)) {
             auto dense_r = vec_b->clone();
-            system_matrix_
-                ->apply(neg_one_.get(), updater.solution_, one_.get(),
-                        dense_r.get(), handle)
-                ->wait();
-            dense_r->compute_norm2(u_dense_tau_.get(), handle)->wait();
+            system_matrix_->apply(neg_one_.get(), updater.solution_, one_.get(),
+                                  dense_r.get(), handle);
+            dense_r->compute_norm2(u_dense_tau_.get(), handle);
         } else {
             GKO_NOT_SUPPORTED(nullptr);
         }
@@ -253,10 +249,6 @@ std::shared_ptr<AsyncHandle> ImplicitResidualNorm<ValueType>::check_impl(
     return exec->get_master()->get_mem_space()->copy_from(
         exec->get_mem_space().get(), 2, this->device_storage_->get_const_data(),
         host_storage->get_data(), handle);
-    // this->get_executor()->copy_val_to_host(this->device_storage_->get_data(),
-    //                                        &all_converged, handle);
-    // this->get_executor()->copy_val_to_host(
-    //     this->device_storage_->get_data() + 1, one_changed, handle);
 }
 
 
