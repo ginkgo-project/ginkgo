@@ -81,6 +81,19 @@ std::unique_ptr<matrix::Dense<ValueType>> create_with_size_from_view(
 
 
 template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> create_with_size_from_view(
+    std::shared_ptr<const Executor> exec, Array<ValueType>& workspace,
+    int offset, dim<2> size, size_type stride)
+{
+    auto workspace_offset_view =
+        Array<ValueType>::view(workspace.get_executor(), size[0] * stride,
+                               workspace.get_data() + offset);
+    return matrix::Dense<ValueType>::create(
+        exec, size, std::move(workspace_offset_view), stride);
+}
+
+
+template <typename ValueType>
 const matrix::Dense<ValueType>* get_local(const matrix::Dense<ValueType>* mtx)
 {
     return mtx;

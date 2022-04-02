@@ -124,7 +124,6 @@ protected:
         if (args.u_den_tau) {
             this->u_dense_tau_ = as<NormVector>(args.u_den_tau);
         }
-        // device_storage_->fill(false);
 #if GINKGO_BUILD_MPI
         using DistributedComplexVector =
             distributed::Vector<gko::to_complex<ValueType>>;

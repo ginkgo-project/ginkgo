@@ -220,29 +220,30 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
 
     auto num_rhs = dense_b->get_size()[1];
     auto num_rows = detail::get_local(dense_b)->get_size()[0];
-    if (this->get_parameters().num_rhs != num_rhs) {
+    auto b_stride = detail::get_local(dense_b)->get_stride();
+    if (this->get_parameters().num_rhs < b_stride) {
         this->workspace_ = gko::Array<ValueType>(
             this->get_executor(),
-            num_rows * num_rhs * num_aux_vecs + num_rhs * num_aux_scalars);
+            num_rows * b_stride * num_aux_vecs + b_stride * num_aux_scalars);
         this->real_workspace_ = gko::Array<remove_complex<ValueType>>(
-            this->get_executor(), num_rhs * 2);
+            this->get_executor(), b_stride * 2);
         this->stop_status_ =
-            gko::Array<stopping_status>(this->get_executor(), num_rhs);
+            gko::Array<stopping_status>(this->get_executor(), b_stride);
     }
     int offset = 0;
     auto r = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
-    offset += num_rows * num_rhs;
+    offset += num_rows * b_stride;
     auto z = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
-    offset += num_rows * num_rhs;
+    offset += num_rows * b_stride;
     auto p = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
-    offset += num_rows * num_rhs;
+    offset += num_rows * b_stride;
     auto q = detail::create_with_same_size_from_view(this->workspace_, offset,
                                                      dense_b);
 
-    offset += num_rows * num_rhs;
+    offset += num_rows * b_stride;
     auto alpha = detail::create_with_size_from_view(exec, this->workspace_,
                                                     offset, dim<2>{1, num_rhs});
     offset += num_rhs;
@@ -256,10 +257,10 @@ std::shared_ptr<AsyncHandle> Cg<ValueType>::apply_dense_impl(
                                                        alpha.get());
     offset = 0;
     auto st_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
-    offset = num_rhs;
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
+    offset = b_stride;
     auto dense_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}));
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
 
     bool one_changed{};
 

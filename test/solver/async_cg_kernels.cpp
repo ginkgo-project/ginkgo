@@ -247,8 +247,8 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     gko::test::make_hpd(dense_mtx.get());
     auto mtx = CsrMtx::create(ref);
     mtx->copy_from(dense_mtx.get());
-    auto x = gen_mtx(2000, 1, 1);
-    auto b = gen_mtx(2000, 1, 1);
+    auto x = gen_mtx(2000, 3, 4);
+    auto b = gen_mtx(2000, 3, 4);
     auto d_mtx = gko::clone(exec, mtx);
     auto d_x = gko::clone(exec, x);
     auto d_b = gko::clone(exec, b);

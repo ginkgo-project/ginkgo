@@ -267,10 +267,10 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         this->workspace_, offset, dense_b);
     offset = 0;
     auto st_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, b_stride}));
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
     offset = b_stride;
     auto dense_tau = share(detail::create_with_size_from_view(
-        exec, this->real_workspace_, offset, dim<2>{1, b_stride}));
+        exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
 
     bool one_changed{};
     exec->run(ir::make_initialize(&this->stop_status_));
