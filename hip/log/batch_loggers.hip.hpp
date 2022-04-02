@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_LOG_BATCH_LOGGERS_HIP_HPP_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
