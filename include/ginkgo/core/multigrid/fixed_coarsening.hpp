@@ -51,8 +51,13 @@ namespace multigrid {
 
 /**
  * FixedCoarsening is a very simple coarse grid generation algorithm. It selects
- * the coarse matrix from the fine matrix by either constant jumps or with a
- * user-specified index_set of rows.
+ * the coarse matrix from the fine matrix by with user-specified indices.
+ *
+ * The user needs to specify the indices (with global numbering) of the fine
+ * matrix, they wish to be in the coarse matrix. The restriction and
+ * prolongation matrices will map to and from the coarse space without any
+ * interpolation or weighting.
+ *
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

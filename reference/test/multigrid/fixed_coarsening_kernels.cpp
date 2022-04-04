@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -67,6 +68,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using CooMtx = gko::matrix::Coo<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using MgLevel = gko::multigrid::FixedCoarsening<value_type, index_type>;
@@ -348,7 +350,7 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevel)
 }
 
 
-TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedMatrix)
+TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCsrMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -370,6 +372,45 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedMatrix)
     auto matrix = gko::share(
         Mtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
                     std::move(mtx_col_idxs), std::move(mtx_row_ptrs)));
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3}, 0));
+    // 0-2-3
+    prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+
+    auto coarse_fine = mglevel_sort->generate(matrix);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        this->coarse, r<value_type>::value);
+}
+
+
+TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCooMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using CooMtx = typename TestFixture::CooMtx;
+    using Mtx = typename TestFixture::Mtx;
+    using MgLevel = typename TestFixture::MgLevel;
+    auto coarse_rows = gko::Array<index_type>(this->exec, {0, 2, 3});
+    auto mglevel_sort =
+        MgLevel::build().with_coarse_rows(coarse_rows).on(this->exec);
+    /* this unsorted matrix is stored as this->fine:
+     *  5 -3 -3  0  0
+     * -3  5  0 -2 -1
+     * -3  0  5  0 -1
+     *  0 -3  0  5  0
+     *  0 -2 -2  0  5
+     */
+    auto mtx_values = {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5};
+    auto mtx_col_idxs = {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4};
+    auto mtx_row_idxs = {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4};
+    auto matrix = gko::share(
+        CooMtx::create(this->exec, gko::dim<2>{5, 5}, std::move(mtx_values),
+                       std::move(mtx_col_idxs), std::move(mtx_row_idxs)));
     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3}, 0));
     // 0-2-3
     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
