@@ -276,16 +276,10 @@ void validate_option_object(const rapidjson::Value& value)
 }
 
 
-gko::preconditioner::batch::type get_preconditioner(const std::string& prec)
+std::unique_ptr<gko::BatchLinOpFactory> get_preconditioner(
+    std::shared_ptr<const gko::Executor> exec, const std::string& prec)
 {
-    if (prec == "none") {
-        return gko::preconditioner::batch::type::none;
-    } else if (prec == "jacobi") {
-        return gko::preconditioner::batch::type::jacobi;
-    } else {
-        throw std::invalid_argument(std::string("Preconditioner ") + prec +
-                                    " is not available!");
-    }
+    return batch_precond_factory.at(prec)(exec);
 }
 
 
@@ -293,7 +287,7 @@ gko::preconditioner::batch::type get_preconditioner(const std::string& prec)
 std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor>& exec,
     const std::string& description,
-    const gko::preconditioner::batch::type prec_type)
+    const std::shared_ptr<const gko::BatchLinOpFactory> prec_fact)
 {
     const auto toltype = FLAGS_use_abs_residual
                              ? gko::stop::batch::ToleranceType::absolute
@@ -304,7 +298,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
+            .with_preconditioner(prec_fact)
             .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
                 FLAGS_relaxation_factor))
             .with_tolerance_type(toltype)
@@ -315,7 +309,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
+            .with_preconditioner(prec_fact)
             .with_tolerance_type(toltype)
             .on(exec);
     } else if (description == "gmres") {
@@ -324,7 +318,7 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
             .with_max_iterations(static_cast<int>(FLAGS_max_iters))
             .with_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_type)
+            .with_preconditioner(prec_fact)
             .with_tolerance_type(toltype)
             .with_restart(FLAGS_gmres_restart)
             .on(exec);
@@ -352,7 +346,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             return;
         }
 
-        const auto prec_type = get_preconditioner(prec_name);
+        const auto prec_fact = gko::share(get_preconditioner(exec, prec_name));
 
         add_or_set_member(solver_case, solver_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
@@ -400,7 +394,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
             auto solver =
-                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
+                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaling*>(solver.get())
@@ -450,7 +444,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             auto solver =
-                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
+                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
 
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaling*>(solver.get())
@@ -468,7 +462,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             exec->remove_logger(gko::lend(apply_logger));
 
             if (FLAGS_compute_errors) {
-                auto direct_solver = generate_solver(exec, "direct", prec_type)
+                auto direct_solver = generate_solver(exec, "direct", prec_fact)
                                          ->generate(mat_clone);
                 direct_solver->apply(lend(b_clone), lend(exac_clone));
                 auto err = clone(exac_clone);
@@ -510,7 +504,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 std::shared_ptr<const gko::BatchLinOp> mat_clone2 =
                     clone(system_matrix);
                 std::shared_ptr<const gko::BatchLinOp> b_clone2 = clone(b);
-                auto solver2 = generate_solver(exec, sol_name, prec_type)
+                auto solver2 = generate_solver(exec, sol_name, prec_fact)
                                    ->generate(mat_clone2);
                 solver2->add_logger(logger);
                 solver2->apply(lend(b_clone2), lend(x_clone));
@@ -558,7 +552,7 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             exec->synchronize();
             generate_timer->tic();
             auto solver =
-                generate_solver(exec, sol_name, prec_type)->generate(mat_clone);
+                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
             if (FLAGS_batch_scaling == "explicit") {
                 dynamic_cast<gko::EnableBatchScaling*>(solver.get())
                     ->batch_scale(lend(scaling_vec), lend(scaling_vec));

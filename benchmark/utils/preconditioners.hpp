@@ -331,5 +331,16 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .on(exec);
          }}};
 
+const std::map<std::string,
+               std::function<std::unique_ptr<gko::BatchLinOpFactory>(
+                   std::shared_ptr<const gko::Executor>)>>
+    batch_precond_factory{
+        {"none",
+         [](std::shared_ptr<const gko::Executor> exec) { return nullptr; }},
+        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::preconditioner::BatchJacobi<etype, itype>::build().on(
+                 exec);
+         }}};
+
 
 #endif  // GKO_BENCHMARK_UTILS_PRECONDITIONERS_HPP_
