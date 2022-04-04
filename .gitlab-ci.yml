@@ -530,12 +530,16 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
-# HIP AMD
-build/amd/nompi/gcc/hip/debug/shared:
+# ROCm 3.5 and friends
+build/amd/nompi/gcc/rocm35/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm35-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -544,11 +548,15 @@ build/amd/nompi/gcc/hip/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/openmpi/clang/hip/release/static:
+build/amd/openmpi/clang/rocm35/release/static:
   <<: *default_build_with_test
   extends:
-    - .quick_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+    - .full_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm35-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -560,17 +568,93 @@ build/amd/openmpi/clang/hip/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
-# Build HIP AMD without omp
-build/amd/nompi/clang/hip_wo_omp/release/shared:
+# ROCm 4.5 and friends
+build/amd/mvapich2/gcc/rocm45/release/shared:
   <<: *default_build_with_test
   extends:
-    - .full_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+    - .quick_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm45-mvapich2-gnu8-llvm8
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Release"
+
+build/amd/mvapich2/clang/rocm45/debug/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm45-mvapich2-gnu8-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Debug"
+
+# ROCm 5.1 and friends
+build/amd/openmpi/gcc/rocm51/debug/static:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm51-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+
+build/amd/openmpi/clang/rocm51/release/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm51-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Release"
+
+# without omp
+build/amd/nompi/gcc/rocm51_wo_omp/release/shared:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+  image: localhost:5000/hpccm_hip_01b559e2_gko-rocm51-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "OFF"
+    BUILD_MPI: "OFF"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # no cuda but latest gcc and clang
