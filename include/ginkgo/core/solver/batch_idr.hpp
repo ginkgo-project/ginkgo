@@ -208,7 +208,6 @@ public:
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
 
-
         /**
          * Residual tolerance.
          *
@@ -216,19 +215,16 @@ public:
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-8);
 
-
         /**
          * Subspace Dimension
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim,
                                                static_cast<size_type>(2));
 
-
         /**
          * kappa value
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
-
 
         /**
          * If set to true, IDR is supposed to use a complex subspace S also for
@@ -246,7 +242,6 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(smoothing, true);
 
-
         /**
          * If set to true, the vectors spanning the subspace S are chosen
          * deterministically. This is mostly needed for testing purposes.
@@ -257,7 +252,6 @@ public:
          * The default behaviour is to choose the subspace vectors randomly.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
-
 
         /**
          * To specify which tolerance is to be considered.
