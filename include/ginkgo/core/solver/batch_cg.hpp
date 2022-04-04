@@ -95,12 +95,6 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Inner preconditioner descriptor.
-         */
-        // preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
-        //     preconditioner, preconditioner::batch::type::none);
-
-        /**
          * Preconditioner factory.
          */
         std::shared_ptr<const BatchLinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
