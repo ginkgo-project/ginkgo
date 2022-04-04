@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/handle_guard.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 
 
@@ -50,6 +51,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(initialize, ir::initialize);
+GKO_REGISTER_ASYNC_OPERATION(copy, dense::copy);
 
 
 }  // anonymous namespace
@@ -274,10 +276,15 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
 
     bool one_changed{};
     exec->run(ir::make_initialize(&this->stop_status_));
+    exec->run(ir::make_async_copy(detail::get_local(dense_b),
+                                  detail::get_local(residual.get())),
+              handle)
+        ->wait();
 
-    residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
-                                     lend(this->one_op_), lend(residual));
+    this->get_system_matrix()
+        ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
+                lend(residual), handle)
+        ->wait();
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -339,27 +346,49 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(lend(residual));
-            this->get_solver()->apply(lend(residual), lend(inner_solution));
+            // inner_solution->copy_from(lend(residual));
+            exec->run(ir::make_async_copy(
+                          detail::get_local(residual.get()),
+                          detail::get_local(inner_solution.get())),
+                      handle)
+                ->wait();
+            this->get_solver()
+                ->apply(lend(residual), lend(inner_solution), handle)
+                ->wait();
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+            dense_x
+                ->add_scaled(lend(relaxation_factor_), lend(inner_solution),
+                             handle)
+                ->wait();
 
             // residual = b - A * x
-            residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
-                                             lend(this->one_op_),
-                                             lend(residual));
+            // residual->copy_from(dense_b);
+            exec->run(ir::make_async_copy(detail::get_local(dense_b),
+                                          detail::get_local(residual.get())),
+                      handle)
+                ->wait();
+            this->get_system_matrix()
+                ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
+                        lend(residual), handle)
+                ->wait();
         } else {
             // x = x + relaxation_factor * A \ residual
-            this->get_solver()->apply(lend(relaxation_factor_), lend(residual),
-                                      lend(this->one_op_), dense_x);
+            this->get_solver()
+                ->apply(lend(relaxation_factor_), lend(residual),
+                        lend(this->one_op_), dense_x, handle)
+                ->wait();
 
             // residual = b - A * x
-            residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
-                                             lend(this->one_op_),
-                                             lend(residual));
+            // residual->copy_from(dense_b);
+            exec->run(ir::make_async_copy(detail::get_local(dense_b),
+                                          detail::get_local(residual.get())),
+                      handle)
+                ->wait();
+            this->get_system_matrix()
+                ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
+                        lend(residual), handle)
+                ->wait();
         }
         // #endif
     }

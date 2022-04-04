@@ -421,8 +421,12 @@ protected:
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
 
     virtual std::shared_ptr<AsyncHandle> apply_impl(
-        const LinOp* b, LinOp* x,
-        std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+        const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
+    {
+        std::clog << "Running Sync version" << std::endl;
+        this->apply_impl(b, x);
+        return handle;
+    }
 
     /**
      * Implementers of LinOp should override this function instead
@@ -438,7 +442,12 @@ protected:
 
     virtual std::shared_ptr<AsyncHandle> apply_impl(
         const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
-        std::shared_ptr<AsyncHandle> handle) const GKO_NOT_IMPLEMENTED;
+        std::shared_ptr<AsyncHandle> handle) const
+    {
+        std::clog << "Running Sync version" << std::endl;
+        this->apply_impl(alpha, b, beta, x);
+        return handle;
+    }
 
     /**
      * Implementers of LinOp should override this function instead

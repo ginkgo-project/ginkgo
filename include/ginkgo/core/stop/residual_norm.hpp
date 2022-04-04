@@ -245,7 +245,8 @@ protected:
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
             }
             as<NormVector>(this->starting_tau_)
-                ->fill(gko::one<remove_complex<ValueType>>());
+                ->fill(gko::one<remove_complex<ValueType>>(),
+                       exec->get_default_exec_stream());
             break;
         }
         default:

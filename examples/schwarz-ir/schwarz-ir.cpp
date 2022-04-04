@@ -95,10 +95,10 @@ int main(int argc, char* argv[])
                      gko::allocation_mode::device, num_subdomains);
              }},
             {"hip",
-             [] {
+             [num_subdomains] {
                  return gko::HipExecutor::create(
                      0, gko::OmpExecutor::create(), true,
-                     gko::allocation_mode::device, 4);
+                     gko::allocation_mode::device, num_subdomains);
              }},
             {"dpcpp",
              [] {
@@ -201,7 +201,7 @@ int main(int argc, char* argv[])
     // auto block_A =
     //     block_approx::create(exec, A.get(), block_sizes, block_overlaps);
     // Create solver factory
-    gko::remove_complex<ValueType> inner2_red = 1e-1;
+    gko::remove_complex<ValueType> inner2_red = 1e-6;
 
     auto coarse_gen =
         amgx_pgm::build().with_deterministic(true).on(exec)->generate(A);
@@ -256,17 +256,20 @@ int main(int argc, char* argv[])
     b->compute_norm2(gko::lend(res));
 
 
-    auto l_res_norm =
-        gko::as<vec>(
-            gko::clone(exec->get_master(), logger->get_residual_norm()).get())
-            ->at(0);
+    // auto l_res_norm =
+    //     gko::as<vec>(
+    //         gko::clone(exec->get_master(),
+    //         logger->get_residual_norm()).get())
+    //         ->at(0);
     // Print solver statistics
     std::cout << "Problem num rows:     " << A->get_size()[0] << std::endl;
     std::cout << "IR iteration count:     " << logger->get_num_iterations()
               << std::endl;
     std::cout << "Initial Res norm: " << *initial_resnorm->get_values()
-              << "\nFinal Res norm: " << *res->get_values()
-              << "\nIR logger final res:     " << l_res_norm << std::endl;
+              << "\nFinal Res norm: "
+              << *res->get_values()
+              // << "\nIR logger final res:     " << l_res_norm
+              << std::endl;
     std::cout << "IR execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
 }
