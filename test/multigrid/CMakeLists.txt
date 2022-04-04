@@ -1,2 +1,3 @@
 ginkgo_create_common_test(amgx_pgm_kernels)
 ginkgo_create_common_test(fixed_coarsening_kernels)
+ginkgo_create_common_test(rgs_coarsening)
