@@ -312,10 +312,10 @@ public:
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
-        return std::unique_ptr<const BatchEll>(new BatchEll{
-            exec, size, num_stored_elems_per_row.at(0), stride.at(0),
-            gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs))});
+        return std::unique_ptr<const BatchEll>(
+            new BatchEll{exec, size, num_stored_elems_per_row, stride,
+                         gko::detail::array_const_cast(std::move(values)),
+                         gko::detail::array_const_cast(std::move(col_idxs))});
     }
 
 protected:
