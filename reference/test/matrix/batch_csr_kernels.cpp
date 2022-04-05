@@ -440,6 +440,47 @@ TYPED_TEST(BatchCsr, MovesToPrecision)
 }
 
 
+TYPED_TEST(BatchCsr, CanScaleMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using Diag = gko::matrix::BatchDiagonal<value_type>;
+    const size_t nbatch = 2;
+    const int nrows = 3;
+    const int nnz = 7;
+    auto mtx =
+        gko::test::create_poisson1d_batch<Mtx>(this->exec, nrows, nbatch);
+    mtx->get_col_idxs()[5] = 0;  // make unsymmetric
+    mtx->get_values()[4] = -0.5;
+    mtx->get_values()[nnz + 2] = -0.25;
+    auto left = gko::batch_diagonal_initialize<value_type>(
+        nbatch, {-1.0, 3.0, 1.0}, this->exec);
+    left->at(1, 2) = -2.0;
+    auto right = gko::batch_diagonal_initialize<value_type>(
+        nbatch, {1.0, 2.0, -1.0}, this->exec);
+    right->at(1, 0) = -0.5;
+    right->at(1, 2) = 3.0;
+    auto ref_scaled_mtx = Mtx::create(this->exec);
+    ref_scaled_mtx->copy_from(mtx.get());
+    value_type* const refvals = ref_scaled_mtx->get_values();
+    // clang-format off
+    refvals[0] = -2; refvals[1] = 2;
+    refvals[2] = -3; refvals[3] = 12; refvals[4] = 1.5;
+    refvals[5] = -1; refvals[6] = -2;
+    refvals[7 + 0] = 1; refvals[7 + 1] = 2;
+    refvals[7 + 2] = 0.375; refvals[7 + 3] = 12; refvals[7 + 4] = -9;
+    refvals[7 + 5] = -1.0; refvals[7 + 6] = -12.0;
+    // clang-format on
+
+    gko::kernels::reference::batch_csr::batch_scale(this->exec, left.get(),
+                                                    right.get(), mtx.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(ref_scaled_mtx, mtx, 0.0);
+}
+
+
 TYPED_TEST(BatchCsr, CanPreScaleSystem)
 {
     using value_type = typename TestFixture::value_type;

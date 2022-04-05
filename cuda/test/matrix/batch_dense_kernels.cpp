@@ -381,7 +381,7 @@ TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 
     gko::kernels::reference::batch_dense::batch_scale(this->ref, left.get(),
                                                       rght.get(), x.get());
-    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, rght.get(),
+    gko::kernels::cuda::batch_dense::batch_scale(this->cuda, dleft.get(),
                                                  drght.get(), dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
