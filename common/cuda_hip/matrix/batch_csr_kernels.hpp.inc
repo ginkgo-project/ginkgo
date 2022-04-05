@@ -352,26 +352,26 @@ __global__
  *
  * One warp is assigned to each row.
  */
-template <typename ValueType>
-__device__ __forceinline__ void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
-    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
-    const gko::batch_csr::BatchEntry<ValueType>& a)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto tile =
-        group::tiled_partition<warp_size>(group::this_thread_block());
-    const int tile_rank = threadIdx.x / warp_size;
-    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
-
-    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
-        const ValueType rowscale = left_scale.values[i_row];
-        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
-             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
-            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
-        }
-    }
-}
+// template <typename ValueType>
+//__device__ __forceinline__ void batch_scale(
+//    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
+//    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
+//    const gko::batch_csr::BatchEntry<ValueType>& a)
+//{
+//    constexpr auto warp_size = config::warp_size;
+//    const auto tile =
+//        group::tiled_partition<warp_size>(group::this_thread_block());
+//    const int tile_rank = threadIdx.x / warp_size;
+//    const int num_tiles = (blockDim.x - 1) / warp_size + 1;
+//
+//    for (int i_row = tile_rank; i_row < a.num_rows; i_row += num_tiles) {
+//        const ValueType rowscale = left_scale.values[i_row];
+//        for (int iz = a.row_ptrs[i_row] + tile.thread_rank();
+//             iz < a.row_ptrs[i_row + 1]; iz += warp_size) {
+//            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
+//        }
+//    }
+//}
 
 template <typename ValueType>
 __device__ __forceinline__ void batch_scale(
@@ -395,8 +395,8 @@ __device__ __forceinline__ void batch_scale(
 
 
 /**
- * Scales an entire batch of uniform CSR matrices with common dense
- * vectors for row and column scaling.
+ * Scales an entire batch of uniform CSR matrices with diagonal matrices
+ * for row and column scaling.
  *
  * One warp is assigned to each row.
  */
