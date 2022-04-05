@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
 namespace gko {
@@ -106,10 +107,10 @@ namespace kernels {
         const matrix::BatchEll<ValueType, IndexType>* to_check,               \
         bool* is_sorted)
 
-#define GKO_DECLARE_BATCH_ELL_SCALE(ValueType, IndexType)              \
-    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,      \
-                     const matrix::BatchDense<ValueType>* left_scale,  \
-                     const matrix::BatchDense<ValueType>* right_scale, \
+#define GKO_DECLARE_BATCH_ELL_SCALE(ValueType, IndexType)                 \
+    void batch_scale(std::shared_ptr<const DefaultExecutor> exec,         \
+                     const matrix::BatchDiagonal<ValueType>* left_scale,  \
+                     const matrix::BatchDiagonal<ValueType>* right_scale, \
                      matrix::BatchEll<ValueType, IndexType>* mat)
 
 #define GKO_DECLARE_BATCH_ELL_PRE_DIAG_SCALE_SYSTEM(ValueType, IndexType) \
