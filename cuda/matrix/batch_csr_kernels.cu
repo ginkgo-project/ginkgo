@@ -204,8 +204,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const CudaExecutor> exec,
-                 const matrix::BatchDense<ValueType>* const left_scale,
-                 const matrix::BatchDense<ValueType>* const right_scale,
+                 const matrix::BatchDiagonal<ValueType>* const left_scale,
+                 const matrix::BatchDiagonal<ValueType>* const right_scale,
                  matrix::BatchCsr<ValueType, IndexType>* const mat)
 {
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
