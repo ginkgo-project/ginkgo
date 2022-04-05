@@ -90,15 +90,14 @@ inline void advanced_matvec_kernel(
  * One warp is assigned to each row.
  */
 template <typename ValueType>
-inline void batch_scale(
-    const gko::batch_dense::BatchEntry<const ValueType>& left_scale,
-    const gko::batch_dense::BatchEntry<const ValueType>& right_scale,
-    const gko::batch_csr::BatchEntry<ValueType>& a)
+inline void batch_scale(const ValueType* const left_scale,
+                        const ValueType* const right_scale,
+                        const gko::batch_csr::BatchEntry<ValueType>& a)
 {
     for (int i_row = 0; i_row < a.num_rows; i_row++) {
-        const ValueType rowscale = left_scale.values[i_row];
+        const ValueType rowscale = left_scale[i_row];
         for (int iz = a.row_ptrs[i_row]; iz < a.row_ptrs[i_row + 1]; iz++) {
-            a.values[iz] *= rowscale * right_scale.values[a.col_idxs[iz]];
+            a.values[iz] *= rowscale * right_scale[a.col_idxs[iz]];
         }
     }
 }

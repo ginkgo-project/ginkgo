@@ -267,7 +267,13 @@ void two_sided_batch_transform(const std::shared_ptr<const Executor> exec,
                                const BatchDiagonal<ValueType>* const right,
                                BatchLinOp* const mtx)
 {
-    GKO_NOT_IMPLEMENTED;
+    if (auto csrmtx = dynamic_cast<BatchCsr<ValueType>*>(mtx)) {
+        exec->run(batch_diagonal::make_pre_diag_scale_csr(left, right, csrmtx));
+    } else if (auto dmtx = dynamic_cast<BatchDense<ValueType>*>(mtx)) {
+        exec->run(batch_diagonal::make_pre_diag_scale_dense(left, right, dmtx));
+    } else {
+        GKO_NOT_SUPPORTED(mtx);
+    }
 }
 
 
