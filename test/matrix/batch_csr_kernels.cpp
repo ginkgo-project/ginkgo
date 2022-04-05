@@ -47,15 +47,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/test/utils/batch.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
 
 
+#ifndef GINKGO_COMPILING_DPCPP
+
+
 class BatchCsr : public ::testing::Test {
 protected:
+#if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
+#else
+    using value_type = double;
+#endif
     using real_type = gko::remove_complex<value_type>;
     using Vec = gko::matrix::BatchDense<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
@@ -67,15 +75,14 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        init_executor(ref, d_exec);
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (d_exec != nullptr) {
+            ASSERT_NO_THROW(d_exec->synchronize());
         }
     }
 
@@ -102,17 +109,17 @@ protected:
         y = gen_mtx<Vec>(batch_size, ncols, num_vectors, 1);
         alpha = gko::batch_initialize<Vec>(batch_size, {2.0}, ref);
         beta = gko::batch_initialize<Vec>(batch_size, {-1.0}, ref);
-        dmtx = Mtx::create(cuda);
+        dmtx = Mtx::create(d_exec);
         dmtx->copy_from(mtx.get());
-        square_dmtx = Mtx::create(cuda);
+        square_dmtx = Mtx::create(d_exec);
         square_dmtx->copy_from(square_mtx.get());
-        dresult = Vec::create(cuda);
+        dresult = Vec::create(d_exec);
         dresult->copy_from(expected.get());
-        dy = Vec::create(cuda);
+        dy = Vec::create(d_exec);
         dy->copy_from(y.get());
-        dalpha = Vec::create(cuda);
+        dalpha = Vec::create(d_exec);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(cuda);
+        dbeta = Vec::create(d_exec);
         dbeta->copy_from(beta.get());
     }
 
@@ -124,28 +131,28 @@ protected:
         complex_mtx = ComplexMtx::create(ref);
         complex_mtx->copy_from(
             gen_mtx<ComplexMtx>(batch_size, nrows, ncols, 1));
-        complex_dmtx = ComplexMtx::create(cuda);
+        complex_dmtx = ComplexMtx::create(d_exec);
         complex_dmtx->copy_from(complex_mtx.get());
 
         complex_b = gen_mtx<ComplexVec>(batch_size, nrows, 3, 1);
-        dcomplex_b = ComplexVec::create(cuda);
+        dcomplex_b = ComplexVec::create(d_exec);
         dcomplex_b->copy_from(complex_b.get());
         complex_y = gen_mtx<ComplexVec>(batch_size, nrows, 3, 1);
-        dcomplex_y = ComplexVec::create(cuda);
+        dcomplex_y = ComplexVec::create(d_exec);
         dcomplex_y->copy_from(complex_y.get());
         complex_x = gen_mtx<ComplexVec>(batch_size, ncols, 3, 1);
-        dcomplex_x = ComplexVec::create(cuda);
+        dcomplex_x = ComplexVec::create(d_exec);
         dcomplex_x->copy_from(complex_x.get());
         c_alpha = gko::batch_initialize<ComplexVec>(batch_size, {2.0}, ref);
         c_beta = gko::batch_initialize<ComplexVec>(batch_size, {-1.0}, ref);
-        dc_alpha = ComplexVec::create(cuda);
+        dc_alpha = ComplexVec::create(d_exec);
         dc_alpha->copy_from(c_alpha.get());
-        dc_beta = ComplexVec::create(cuda);
+        dc_beta = ComplexVec::create(d_exec);
         dc_beta->copy_from(c_beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<gko::EXEC_TYPE> d_exec;
 
     const gko::batch_dim<> mtx_size;
     std::ranlux48 rand_engine;
@@ -224,6 +231,29 @@ TEST_F(BatchCsr, AdvancedComplexApplyIsEquivalentToRef)
 }
 
 
+TEST_F(BatchCsr, DiagScaleIsEquivalentToReference)
+{
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
+    set_up_apply_data();
+    const size_t batch_size = mtx_size.get_num_batch_entries();
+    const size_t nrows = mtx_size.at()[0];
+    const size_t ncols = mtx_size.at()[1];
+    auto ref_left_scale = gen_mtx<BDiag>(batch_size, nrows, nrows, nrows);
+    auto ref_right_scale = gen_mtx<BDiag>(batch_size, ncols, ncols, ncols);
+    auto d_left_scale = BDiag::create(d_exec);
+    d_left_scale->copy_from(ref_left_scale.get());
+    auto d_right_scale = BDiag::create(d_exec);
+    d_right_scale->copy_from(ref_right_scale.get());
+
+    gko::kernels::reference::batch_csr::batch_scale(
+        ref, ref_left_scale.get(), ref_right_scale.get(), mtx.get());
+    gko::kernels::EXEC_NAMESPACE::batch_csr::batch_scale(
+        d_exec, d_left_scale.get(), d_right_scale.get(), dmtx.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.0);
+}
+
+
 TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
 {
     using BDiag = gko::matrix::BatchDiagonal<value_type>;
@@ -235,18 +265,18 @@ TEST_F(BatchCsr, PreDiagScaleSystemIsEquivalentToReference)
     auto ref_left_scale = gen_mtx<BDiag>(batch_size, nrows, nrows, nrows);
     auto ref_right_scale = gen_mtx<BDiag>(batch_size, ncols, ncols, ncols);
     auto ref_b = gen_mtx<Vec>(batch_size, nrows, nrhs, 2);
-    auto d_left_scale = BDiag::create(cuda);
+    auto d_left_scale = BDiag::create(d_exec);
     d_left_scale->copy_from(ref_left_scale.get());
-    auto d_right_scale = BDiag::create(cuda);
+    auto d_right_scale = BDiag::create(d_exec);
     d_right_scale->copy_from(ref_right_scale.get());
-    auto d_b = Vec::create(cuda);
+    auto d_b = Vec::create(d_exec);
     d_b->copy_from(ref_b.get());
 
     gko::kernels::reference::batch_csr::pre_diag_transform_system(
         ref, ref_left_scale.get(), ref_right_scale.get(), mtx.get(),
         ref_b.get());
-    gko::kernels::cuda::batch_csr::pre_diag_transform_system(
-        cuda, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
+    gko::kernels::EXEC_NAMESPACE::batch_csr::pre_diag_transform_system(
+        d_exec, d_left_scale.get(), d_right_scale.get(), dmtx.get(), d_b.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(ref_b, d_b, 0.001 * r<value_type>::value);
     GKO_ASSERT_BATCH_MTX_NEAR(mtx, dmtx, 0.001 * r<value_type>::value);
@@ -260,10 +290,10 @@ TEST_F(BatchCsr, ConvertToBatchDenseIsEquivalentToReference)
     const int nrows = mtx_size.at()[0];
     const int ncols = mtx_size.at()[1];
     auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
-    auto cmtx = Mtx::create(cuda);
+    auto cmtx = Mtx::create(d_exec);
     cmtx->copy_from(mtx.get());
     auto dense = Dense::create(ref, mtx_size);
-    auto cdense = Dense::create(cuda, mtx_size);
+    auto cdense = Dense::create(d_exec, mtx_size);
 
     mtx->convert_to(dense.get());
     cmtx->convert_to(cdense.get());
@@ -279,12 +309,12 @@ TEST_F(BatchCsr, DetectsMissingDiagonalEntry)
     const int ncols = mtx_size.at()[1];
     auto mtx = gen_mtx<Mtx>(batch_size, nrows, ncols, nrows / 10);
     gko::test::remove_diagonal_from_row(mtx.get(), nrows / 2);
-    auto dmtx = Mtx::create(cuda);
+    auto dmtx = Mtx::create(d_exec);
     dmtx->copy_from(mtx.get());
     bool all_diags = false;
 
-    gko::kernels::cuda::batch_csr::check_diagonal_entries_exist(
-        cuda, dmtx.get(), all_diags);
+    gko::kernels::EXEC_NAMESPACE::batch_csr::check_diagonal_entries_exist(
+        d_exec, dmtx.get(), all_diags);
 
     ASSERT_FALSE(all_diags);
 }
@@ -299,12 +329,12 @@ TEST_F(BatchCsr, DetectsPresenceOfAllDiagonalEntries)
         batch_size, nrows, ncols,
         std::uniform_int_distribution<>(ncols / 10, ncols),
         std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
-    auto dmtx = Mtx::create(cuda);
+    auto dmtx = Mtx::create(d_exec);
     dmtx->copy_from(mtx.get());
     bool all_diags = false;
 
-    gko::kernels::cuda::batch_csr::check_diagonal_entries_exist(
-        cuda, dmtx.get(), all_diags);
+    gko::kernels::EXEC_NAMESPACE::batch_csr::check_diagonal_entries_exist(
+        d_exec, dmtx.get(), all_diags);
 
     ASSERT_TRUE(all_diags);
 }
@@ -320,7 +350,7 @@ TEST_F(BatchCsr, AddScaleIdentityIsEquivalentToReference)
         std::uniform_int_distribution<>(ncols / 10, ncols),
         std::normal_distribution<>(-1.0, 1.0), rand_engine, true, ref);
     set_up_apply_data();
-    auto dmtx = Mtx::create(cuda);
+    auto dmtx = Mtx::create(d_exec);
     dmtx->copy_from(mtx.get());
 
     mtx->add_scaled_identity(alpha.get(), beta.get());
@@ -331,3 +361,5 @@ TEST_F(BatchCsr, AddScaleIdentityIsEquivalentToReference)
 
 
 }  // namespace
+
+#endif
