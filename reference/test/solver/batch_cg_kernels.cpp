@@ -191,21 +191,39 @@ TEST(BatchCg, GoodScalingImprovesConvergence)
 {
     using value_type = double;
     using real_type = gko::remove_complex<value_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
     using Solver = gko::solver::BatchCg<value_type>;
     const auto eps = r<value_type>::value;
     auto exec = gko::ReferenceExecutor::create();
     const size_t nbatch = 3;
     const int nrows = 100;
     const int nrhs = 1;
+    auto matsz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
+    auto left_scale = gko::share(BDiag::create(exec, matsz));
+    auto right_scale = gko::share(BDiag::create(exec, matsz));
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int i = 0; i < nrows; i++) {
+            left_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
+            right_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
+        }
+    }
     auto factory =
         Solver::build()
             .with_max_iterations(20)
             .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
+    auto factory_s =
+        Solver::build()
+            .with_max_iterations(10)
+            .with_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_left_scaling_op(left_scale)
+            .with_right_scaling_op(right_scale)
+            .on(exec);
 
-    gko::test::test_solve_iterations_with_scaling<Solver>(exec, nbatch, nrows,
-                                                          nrhs, factory.get());
+    gko::test::test_solve_iterations_with_scaling<Solver>(
+        exec, nbatch, nrows, nrhs, factory.get(), factory_s.get());
 }
 
 

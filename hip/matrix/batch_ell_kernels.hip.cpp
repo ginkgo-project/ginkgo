@@ -209,8 +209,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const HipExecutor> exec,
-                 const matrix::BatchDense<ValueType>* const left_scale,
-                 const matrix::BatchDense<ValueType>* const right_scale,
+                 const matrix::BatchDiagonal<ValueType>* const left_scale,
+                 const matrix::BatchDiagonal<ValueType>* const right_scale,
                  matrix::BatchEll<ValueType, IndexType>* const mat)
     GKO_NOT_IMPLEMENTED;
 
