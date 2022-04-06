@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_richardson_kernels.hpp"
 
 
+#include "core/matrix/batch_struct.hpp"
+#include "core/solver/batch_dispatch.hpp"
+#include "omp/base/config.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -44,6 +49,65 @@ namespace omp {
  * @ingroup batch_rich
  */
 namespace batch_rich {
+namespace {
+
+
+constexpr int max_num_rhs = 1;
+
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
+#include "reference/matrix/batch_dense_kernels.hpp.inc"
+#include "reference/matrix/batch_ell_kernels.hpp.inc"
+#include "reference/solver/batch_richardson_kernels.hpp.inc"
+
+
+}  // unnamed namespace
+
+
+template <typename T>
+using BatchRichardsonOptions =
+    gko::kernels::batch_rich::BatchRichardsonOptions<T>;
+
+
+template <typename ValueType>
+class KernelCaller {
+public:
+    KernelCaller(std::shared_ptr<const OmpExecutor> exec,
+                 const BatchRichardsonOptions<remove_complex<ValueType>> opts)
+        : exec_{exec}, opts_{opts}
+    {}
+
+    template <typename BatchMatrixType, typename PrecType, typename StopType,
+              typename LogType>
+    void call_kernel(LogType logger, const BatchMatrixType& a,
+                     const gko::batch_dense::UniformBatch<const ValueType>& b,
+                     const gko::batch_dense::UniformBatch<ValueType>& x) const
+    {
+        using real_type = typename gko::remove_complex<ValueType>;
+        const size_type nbatch = a.num_batch;
+        const auto nrows = a.num_rows;
+        const auto nrhs = b.num_rhs;
+        GKO_ASSERT(nrhs == 1);
+
+        const int local_size_bytes =
+            gko::kernels::batch_rich::local_memory_requirement<ValueType>(
+                nrows, nrhs) +
+            PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
+        // Array<unsigned char> local_space(exec_, local_size_bytes);
+
+        for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
+            const auto local_space =
+                static_cast<unsigned char*>(malloc(local_size_bytes));
+            batch_entry_richardson_impl<StopType, PrecType, LogType,
+                                        BatchMatrixType, ValueType>(
+                opts_, logger, PrecType(), a, b, x, ibatch, local_space);
+            free(local_space);
+        }
+    }
+
+private:
+    std::shared_ptr<const OmpExecutor> exec_;
+    const BatchRichardsonOptions<remove_complex<ValueType>> opts_;
+};
 
 
 template <typename T>
@@ -51,11 +115,17 @@ using BatchRichardsonOptions =
     gko::kernels::batch_rich::BatchRichardsonOptions<T>;
 
 template <typename ValueType>
-void apply(std::shared_ptr<const OmpExecutor>,
-           const BatchRichardsonOptions<remove_complex<ValueType>>&,
-           const BatchLinOp*, const BatchLinOp*,
-           const matrix::BatchDense<ValueType>*, matrix::BatchDense<ValueType>*,
-           log::BatchLogData<ValueType>&) GKO_NOT_IMPLEMENTED;
+void apply(std::shared_ptr<const OmpExecutor> exec,
+           const BatchRichardsonOptions<remove_complex<ValueType>>& opts,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
+           const matrix::BatchDense<ValueType>* const b,
+           matrix::BatchDense<ValueType>* const x,
+           log::BatchLogData<ValueType>& logdata)
+{
+    auto dispatcher = batch_solver::create_dispatcher<ValueType>(
+        KernelCaller<ValueType>(exec, opts), opts, a, precon);
+    dispatcher.apply(b, x, logdata);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON_APPLY_KERNEL);
 
