@@ -285,7 +285,7 @@ TEST_F(BatchCg, GoodScalingImprovesConvergence)
 }
 
 
-TEST(BatchCg, CanSolveCsrWithoutScaling)
+TEST(BatchCgCsr, CanSolveWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;

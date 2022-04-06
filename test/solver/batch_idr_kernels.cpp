@@ -232,7 +232,7 @@ TEST_F(BatchIdr, GeneralScalingDoesNotChangeResult)
 }
 
 
-TEST(BatchIdr, CanSolveWithoutScaling)
+TEST(BatchIdrCsr, CanSolveWithoutScaling)
 {
     using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;
@@ -265,7 +265,7 @@ TEST(BatchIdr, CanSolveWithoutScaling)
 }
 
 
-TEST(BatchIdr, CoreSolvesSystemJacobi)
+TEST(BatchIdrCsr, SolvesSystemWithJacobiPreconditioner)
 {
     using value_type = std::complex<float>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
