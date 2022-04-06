@@ -308,8 +308,7 @@ TEST(BatchDirect, CanSolveWithoutScaling)
     const int nrhs = 5;
 
     gko::test::test_solve<Solver, Csr>(exec, nbatch, nrows, nrhs, tol, maxits,
-                                       batchdirect_factory.get(), 1.0, false,
-                                       false);
+                                       batchdirect_factory.get(), 1.0, false);
 }
 
 }  // namespace
