@@ -87,6 +87,8 @@ public:
 #pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             // TODO: Align to cache line boundary
+            // TODO: Allocate and free once per thread rather than once per
+            // work-item.
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
