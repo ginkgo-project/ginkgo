@@ -257,11 +257,8 @@ TEST_F(BatchGmres, GeneralScalingDoesNotChangeResult)
 }
 
 
-TEST(BatchGmres, GoodScalingImprovesConvergence)
+TEST_F(BatchGmres, GoodScalingImprovesConvergence)
 {
-    using value_type = double;
-    using real_type = gko::remove_complex<value_type>;
-    using Solver = gko::solver::BatchGmres<value_type>;
     const auto eps = r<value_type>::value;
     auto ref = gko::ReferenceExecutor::create();
     std::shared_ptr<gko::EXEC_TYPE> d_exec;
@@ -269,19 +266,38 @@ TEST(BatchGmres, GoodScalingImprovesConvergence)
     const size_t nbatch = 3;
     const int nrows = 100;
     const int nrhs = 1;
+    auto matsz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
+    auto left_scale = gko::share(BDiag::create(ref, matsz));
+    auto right_scale = gko::share(BDiag::create(ref, matsz));
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int i = 0; i < nrows; i++) {
+            left_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
+            right_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
+        }
+    }
+	auto d_left = gko::share(gko::clone(d_exec, left_scale));
+	auto d_right = gko::share(gko::clone(d_exec, right_scale));
     auto factory =
-        Solver::build()
+        solver_type::build()
             .with_max_iterations(20)
             .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(d_exec);
+    auto factory_s =
+        solver_type::build()
+            .with_max_iterations(10)
+            .with_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+			.with_left_scaling_op(d_left)
+			.with_right_scaling_op(d_right)
+            .on(d_exec);
 
-    gko::test::test_solve_iterations_with_scaling<Solver>(d_exec, nbatch, nrows,
-                                                          nrhs, factory.get());
+    gko::test::test_solve_iterations_with_scaling<solver_type>(d_exec, nbatch, nrows,
+                nrhs, factory.get(), factory_s.get());
 }
 
 
-TEST(BatchGmres, CanSolveCsrWithoutScaling)
+TEST(BatchGmresCsr, CanSolveWithoutScaling)
 {
     using T = std::complex<double>;
     using RT = typename gko::remove_complex<T>;

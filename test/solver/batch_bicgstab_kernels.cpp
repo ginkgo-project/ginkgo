@@ -289,7 +289,7 @@ TEST_F(BatchBicgstab, GoodScalingImprovesConvergence)
 }
 
 
-TEST(BatchBicgstab, CanSolveCsrWithoutScaling)
+TEST(BatchBicgstabCsr, CanSolveWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
@@ -318,7 +318,7 @@ TEST(BatchBicgstab, CanSolveCsrWithoutScaling)
 }
 
 
-TEST(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
+TEST(BatchBicgstabCsr, SolvesLargeSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
@@ -359,7 +359,7 @@ TEST(BatchBicgstab, SolvesLargeCsrSystemEquivalentToReference)
 }
 
 
-TEST(BatchBicgstab, SolvesLargeDenseSystemEquivalentToReference)
+TEST(BatchBicgstabDense, SolvesLargeSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
@@ -400,7 +400,7 @@ TEST(BatchBicgstab, SolvesLargeDenseSystemEquivalentToReference)
 }
 
 
-TEST(BatchBicgstab, SolvesLargeEllSystemEquivalentToReference)
+TEST(BatchBicgstabEll, SolvesLargeSystemEquivalentToReference)
 {
     using value_type = double;
     using real_type = double;
