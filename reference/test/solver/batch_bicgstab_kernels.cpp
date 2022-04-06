@@ -328,10 +328,23 @@ TEST(BatchBicgstab, CoreCanSolveCsrWithScaling)
     using RT = typename gko::remove_complex<T>;
     using Mtx = gko::matrix::BatchCsr<T, int>;
     using Solver = gko::solver::BatchBicgstab<T>;
+    using BDiag = gko::matrix::BatchDiagonal<T>;
     const RT tol = 1e-10;
     const int maxits = 1000;
     std::shared_ptr<gko::ReferenceExecutor> exec =
         gko::ReferenceExecutor::create();
+    const int nrows = 42;
+    const size_t nbatch = 3;
+    const int nrhs = 1;
+    const auto mat_sz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
+    auto ref_left_scale = gko::share(BDiag::create(exec, mat_sz));
+    auto ref_right_scale = gko::share(BDiag::create(exec, mat_sz));
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (int i = 0; i < nrows; i++) {
+            ref_left_scale->at(ib, i) = 0.7071;
+            ref_right_scale->at(ib, i) = 0.7071;
+        }
+    }
     auto batchbicgstab_factory =
         Solver::build()
             .with_max_iterations(maxits)
@@ -339,10 +352,9 @@ TEST(BatchBicgstab, CoreCanSolveCsrWithScaling)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(exec))
+            .with_left_scaling_op(ref_left_scale)
+            .with_right_scaling_op(ref_right_scale)
             .on(exec);
-    const int nrows = 42;
-    const size_t nbatch = 3;
-    const int nrhs = 1;
 
     gko::test::test_solve<Solver, Mtx>(exec, nbatch, nrows, nrhs, tol, maxits,
                                        batchbicgstab_factory.get(), 10, true);
