@@ -260,7 +260,7 @@ template <typename MatrixData1, typename MatrixData2>
              << second_expression << " is " << err << "\n"
              << "\twhich is larger than " << tolerance_expression
              << " (which is " << tolerance << ")\n";
-        if (num_rows * num_cols <= 25) {
+        if (num_rows <= 10 && num_cols <= 10) {
             fail << first_expression << " is:\n";
             detail::print_matrix(fail, first);
             fail << second_expression << " is:\n";
