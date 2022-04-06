@@ -33,17 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_idr_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
-#include <ginkgo/core/base/math.hpp>
-
-
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace hip {
