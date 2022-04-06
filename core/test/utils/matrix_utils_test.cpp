@@ -104,11 +104,16 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixThrowsError)
 
 TYPED_TEST(MatrixUtils, MakeLowerTriangularCorrectly)
 {
+    auto orig_mtx = TestFixture::mtx_type::create(this->exec);
+    orig_mtx->read(this->data);
     gko::test::make_lower_triangular(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
     for (gko::size_type i = 0; i < mtx->get_size()[0]; i++) {
+        for (gko::size_type j = 0; j <= i; j++) {
+            ASSERT_EQ(mtx->at(i, j), orig_mtx->at(i, j));
+        }
         for (gko::size_type j = i + 1; j < mtx->get_size()[1]; j++) {
             ASSERT_EQ(mtx->at(i, j), gko::zero<TypeParam>());
         }
@@ -118,6 +123,8 @@ TYPED_TEST(MatrixUtils, MakeLowerTriangularCorrectly)
 
 TYPED_TEST(MatrixUtils, MakeUpperTriangularCorrectly)
 {
+    auto orig_mtx = TestFixture::mtx_type::create(this->exec);
+    orig_mtx->read(this->data);
     gko::test::make_upper_triangular(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
@@ -125,6 +132,9 @@ TYPED_TEST(MatrixUtils, MakeUpperTriangularCorrectly)
     for (gko::size_type i = 0; i < mtx->get_size()[0]; i++) {
         for (gko::size_type j = 0; j < i; j++) {
             ASSERT_EQ(mtx->at(i, j), gko::zero<TypeParam>());
+        }
+        for (gko::size_type j = i; j < mtx->get_size()[1]; j++) {
+            ASSERT_EQ(mtx->at(i, j), orig_mtx->at(i, j));
         }
     }
 }
@@ -231,7 +241,7 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixCorrectly)
     using T = typename TestFixture::value_type;
     auto cpy_data = this->data;
 
-    gko::test::make_hpd(this->data);
+    gko::test::make_hpd(this->data, 1.001);
     gko::test::make_hermitian(cpy_data);
     gko::test::make_diag_dominant(cpy_data, 1.001);
 
@@ -266,7 +276,7 @@ TYPED_TEST(MatrixUtils, MakeSpdMatrixCorrectly)
     using T = typename TestFixture::value_type;
     auto cpy_data = this->data;
 
-    gko::test::make_spd(this->data);
+    gko::test::make_spd(this->data, 1.001);
     gko::test::make_symmetric(cpy_data);
     gko::test::make_diag_dominant(cpy_data, 1.001);
 
