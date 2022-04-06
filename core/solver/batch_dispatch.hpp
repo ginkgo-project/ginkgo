@@ -192,16 +192,6 @@ public:
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
-        // if (opts_.preconditioner == gko::preconditioner::batch::type::none) {
-        //     dispatch_on_stop<device::BatchIdentity<device_value_type>>(
-        //         logger, amat, b_b, x_b);
-        // } else if (opts_.preconditioner ==
-        //            gko::preconditioner::batch::type::jacobi) {
-        //     dispatch_on_stop<device::BatchJacobi<device_value_type>>(
-        //         logger, amat, b_b, x_b);
-        // } else {
-        //     GKO_NOT_IMPLEMENTED;
-        // }
         if (!precon_) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, b_b, x_b);

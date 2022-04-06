@@ -89,10 +89,13 @@ public:
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             /* Allocation by each thread has the following advantages:
              * - Should be automatically allocated on the correct NUMA domain.
-             * - No need to allocate memory enough for *all* threads while
-             *   only some threads are in flight at any given time.
-             * These should hopefully compensate for the allocation overhead.
+             * - No need to allocate memory enough for *all* work-items while
+             *   only some work-items are in flight at any given time.
+             * These should hopefully compensate for the allocation overhead -
+             *  maybe try jemalloc if that's an issue.
              * TODO: Align to cache line boundary.
+             * TODO: Allocate and free once per thread rather than once per
+             * work-item.
              */
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));

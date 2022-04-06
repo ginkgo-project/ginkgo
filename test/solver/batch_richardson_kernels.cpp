@@ -266,46 +266,37 @@ TEST_F(BatchRich, CoreSolvesSystemJacobi)
 
 TEST_F(BatchRich, UnitScalingDoesNotChangeResult)
 {
-    using Solver = solver_type;
     auto left_scale =
         gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
     auto right_scale =
         gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
-    auto factory = this->create_factory(this->d_exec, this->opts_1);
+    auto factory = this->create_factory(this->d_exec, this->opts_1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->d_exec));
 
-    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
         right_scale.get());
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_LE(result.resnorm->get_const_values()[i] /
-                      this->sys_1.bnorm->get_const_values()[i],
-                  this->opts_1.residual_tol);
-    }
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e-6);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2*r<value_type>::value);
 }
 
 
 TEST_F(BatchRich, GeneralScalingDoesNotChangeResult)
 {
-    using Solver = solver_type;
     auto left_scale = gko::batch_initialize<BDiag>(
         {{0.8, 0.9, 0.95}, {1.1, 3.2, 0.9}}, this->ref);
     auto right_scale = gko::batch_initialize<BDiag>(
         this->nbatch, {1.0, 1.5, 1.05}, this->ref);
-    auto factory = this->create_factory(this->d_exec, this->opts_1);
+    auto factory = this->create_factory(this->d_exec, this->opts_1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->d_exec));
 
-    auto result = gko::test::solve_poisson_uniform_core<Solver>(
+    auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
         right_scale.get());
 
-    for (size_t i = 0; i < this->nbatch; i++) {
-        ASSERT_LE(result.resnorm->get_const_values()[i] /
-                      this->sys_1.bnorm->get_const_values()[i],
-                  3 * this->opts_1.residual_tol);
-    }
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e-5);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2*r<value_type>::value);
 }
+
 
 TEST(BatchRichCsr, CanSolveWithoutScaling)
 {
