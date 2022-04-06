@@ -182,7 +182,7 @@ TEST_F(BatchGmres, StencilSystemLoggerIsCorrect)
         ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(0, 0, i),
                   this->opts_1.residual_tol);
         ASSERT_NEAR(res_log_array[i], r_1.resnorm->get_const_values()[i],
-                    10 * this->eps);
+                    30 * this->eps);
     }
 }
 
