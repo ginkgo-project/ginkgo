@@ -56,6 +56,7 @@ namespace kernels {
 namespace cuda {
 
 #define GKO_CUDA_BATCH_USE_DYNAMIC_SHARED_MEM 1
+#define GKO_DEVICE_RAND_LIB curand
 constexpr int default_block_size = 128;
 constexpr int sm_multiplier = 4;
 

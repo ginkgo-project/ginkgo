@@ -55,7 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-#ifndef GINKGO_COMPILING_DPCPP
+#ifndef GKO_COMPILING_DPCPP
+
 
 class BatchBicgstab : public ::testing::Test {
 protected:
