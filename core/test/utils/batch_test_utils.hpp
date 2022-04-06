@@ -259,19 +259,6 @@ Result<ValueType> solve_poisson_uniform_core(
 
     auto solver = factory->generate(mtx);
 
-    // auto d_left = BDiag::create(d_exec);
-    // auto d_right = BDiag::create(d_exec);
-    // const bool use_scaling = left_scale && right_scale;
-    // if (use_scaling) {
-    //    if (!left_scale || !right_scale) {
-    //        GKO_NOT_IMPLEMENTED;
-    //    }
-    //    d_left->copy_from(left_scale);
-    //    d_right->copy_from(right_scale);
-    //    dynamic_cast<gko::EnableBatchScaling*>(solver.get())
-    //        ->batch_scale(lend(d_left), lend(d_right));
-    //}
-
     solver->add_logger(logger);
     solver->apply(b.get(), x.get());
     solver->remove_logger(logger.get());
@@ -297,7 +284,7 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
                 const int maxits,
                 const typename SolverType::Factory* const factory,
                 const double true_res_norm_slack_factor = 1.0,
-                const bool use_scaling = false, const bool test_logger = true)
+                const bool test_logger = true)
 {
     using T = typename SolverType::value_type;
     using RT = typename gko::remove_complex<T>;
@@ -314,23 +301,6 @@ void test_solve(std::shared_ptr<const Executor> exec, const size_t nbatch,
     mtx->copy_from(ref_mtx.get());
     auto solver = factory->generate(mtx);
     const auto s_vec_sz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, 1));
-    const auto mat_sz = gko::batch_dim<>(nbatch, gko::dim<2>(nrows, nrows));
-    auto ref_left_scale = BDiag::create(refexec, mat_sz);
-    auto ref_right_scale = BDiag::create(refexec, mat_sz);
-    for (size_t ib = 0; ib < nbatch; ib++) {
-        for (int i = 0; i < nrows; i++) {
-            ref_left_scale->at(ib, i) = 0.7071;
-            ref_right_scale->at(ib, i) = 0.7071;
-        }
-    }
-    auto left_scale = BDiag::create(exec, mat_sz);
-    left_scale->copy_from(ref_left_scale.get());
-    auto right_scale = BDiag::create(exec, mat_sz);
-    right_scale->copy_from(ref_right_scale.get());
-    if (use_scaling) {
-        dynamic_cast<gko::EnableBatchScaling*>(solver.get())
-            ->batch_scale(lend(left_scale), lend(right_scale));
-    }
     std::shared_ptr<const gko::log::BatchConvergence<T>> logger =
         gko::log::BatchConvergence<T>::create(exec);
     auto ref_b = Dense::create(
