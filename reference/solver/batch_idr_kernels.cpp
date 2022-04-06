@@ -50,8 +50,6 @@ namespace reference {
  * @ingroup batch_idr
  */
 namespace batch_idr {
-
-
 namespace {
 
 constexpr int max_num_rhs = 1;
