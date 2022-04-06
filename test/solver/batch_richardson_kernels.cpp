@@ -307,7 +307,7 @@ TEST_F(BatchRich, GeneralScalingDoesNotChangeResult)
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e-5);
 }
 
-TEST(BatchRich, CanSolveWithoutScaling)
+TEST(BatchRichCsr, CanSolveWithoutScaling)
 {
     using T = std::complex<float>;
     using RT = typename gko::remove_complex<T>;
