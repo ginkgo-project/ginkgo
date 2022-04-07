@@ -151,6 +151,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
+void add_scale(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::BatchDense<ValueType>* const alpha,
+               const matrix::BatchDense<ValueType>* const x,
+               const matrix::BatchDense<ValueType>* const beta,
+               matrix::BatchDense<ValueType>* const y)
+{
+    const auto num_blocks = exec->get_num_multiprocessor() * sm_multiplier;
+    const size_type nrhs = x->get_size().at(0)[1];
+    const auto alpha_ub = get_batch_struct(alpha);
+    const auto beta_ub = get_batch_struct(beta);
+    const auto x_ub = get_batch_struct(x);
+    const auto y_ub = get_batch_struct(y);
+    add_scale<<<num_blocks, default_block_size>>>(alpha_ub, x_ub, beta_ub,
+                                                  y_ub);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL);
+
+
+template <typename ValueType>
 void convergence_add_scaled(std::shared_ptr<const CudaExecutor> exec,
                             const matrix::BatchDense<ValueType>* const alpha,
                             const matrix::BatchDense<ValueType>* const x,
