@@ -747,6 +747,9 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
@@ -770,6 +773,9 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         const auto block_size = default_block_size;
         const auto grid_size =

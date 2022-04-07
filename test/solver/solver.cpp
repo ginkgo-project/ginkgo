@@ -197,6 +197,8 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 
 template <unsigned dimension>
 struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
+    static double tolerance() { return 1e9 * r<value_type>::value; }
+
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
@@ -280,6 +282,7 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
         std::shared_ptr<const gko::Executor>, gko::size_type)
     {
         assert(false);
+        return solver_type::build();
     }
 };
 
@@ -309,6 +312,7 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
         std::shared_ptr<const gko::Executor>, gko::size_type)
     {
         assert(false);
+        return solver_type::build();
     }
 };
 
