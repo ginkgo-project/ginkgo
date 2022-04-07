@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -106,15 +107,22 @@ void BatchDense<ValueType>::apply_impl(const BatchLinOp* alpha,
                                        const BatchLinOp* beta,
                                        BatchLinOp* x) const
 {
-    // TODO: Remove this when non-uniform batching kernels have been
-    // implemented
     if (!this->get_size().stores_equal_sizes() ||
         !this->get_stride().stores_equal_strides()) {
         GKO_NOT_IMPLEMENTED;
     }
-    this->get_executor()->run(batch_dense::make_apply(
-        as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
-        as<BatchDense<ValueType>>(beta), as<BatchDense<ValueType>>(x)));
+    if (auto bid = dynamic_cast<const BatchIdentity<ValueType>*>(b)) {
+        if (auto xdense = dynamic_cast<BatchDense<ValueType>*>(x)) {
+            xdense->add_scale(alpha, this, beta);
+        } else {
+            GKO_NOT_SUPPORTED(x);
+        }
+    } else {
+        this->get_executor()->run(batch_dense::make_apply(
+            as<BatchDense<ValueType>>(alpha), this,
+            as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(beta),
+            as<BatchDense<ValueType>>(x)));
+    }
 }
 
 
