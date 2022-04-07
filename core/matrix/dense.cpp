@@ -313,7 +313,6 @@ void Dense<ValueType>::add_scale(const LinOp* const alpha, const LinOp* const a,
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     GKO_ASSERT_EQUAL_ROWS(beta, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
-        GKO_ASSERT(beta->get_size()[1] != 1);
         // different alpha/beta for each column
         GKO_ASSERT_EQUAL_COLS(this, alpha);
         GKO_ASSERT_EQUAL_COLS(this, beta);

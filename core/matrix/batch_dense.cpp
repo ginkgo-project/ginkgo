@@ -166,10 +166,17 @@ void BatchDense<ValueType>::add_scale(const BatchLinOp* const alpha,
     auto batch_a = as<BatchDense<ValueType>>(a);
     GKO_ASSERT_BATCH_EQUAL_ROWS(
         batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
-    for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
-        if (batch_alpha->get_size().at(b)[1] != 1) {
+    if (batch_alpha->get_size().stores_equal_sizes()) {
+        if (batch_alpha->get_size().at(0)[1] != 1) {
             // different alpha for each column
             GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
+        }
+    } else {
+        for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
+            if (batch_alpha->get_size().at(b)[1] != 1) {
+                GKO_ASSERT(this->get_size().at(b)[1] ==
+                           batch_alpha->get_size().at(b)[1]);
+            }
         }
     }
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_a);
