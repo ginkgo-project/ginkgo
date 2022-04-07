@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -138,12 +139,21 @@ template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                   const LinOp* beta, LinOp* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_apply(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
-        },
-        alpha, b, beta, x);
+    if (auto ib = dynamic_cast<const Identity<ValueType>*>(b)) {
+        if (auto xdense = dynamic_cast<Dense<ValueType>*>(x)) {
+            xdense->add_scale(alpha, this, beta);
+        } else {
+            GKO_NOT_SUPPORTED(x);
+        }
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                this->get_executor()->run(dense::make_apply(
+                    dense_alpha, this, dense_b, dense_beta, dense_x));
+            },
+            alpha, b, beta, x);
+    }
 }
 
 
