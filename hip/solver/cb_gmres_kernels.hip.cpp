@@ -146,7 +146,8 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                        krylov_dim, acc::as_hip_range(krylov_bases),
                        as_hip_type(residual_norm_collection->get_values()),
                        residual_norm_collection->get_stride());
-    kernels::hip::dense::compute_norm2(exec, residual, residual_norm, tmp);
+    kernels::hip::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
