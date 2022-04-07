@@ -298,22 +298,24 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         restart_iter++;
     }
 
-    // Solve x
-    auto krylov_bases_small = krylov_bases->create_submatrix(
-        span{0, num_rows * (restart_iter + 1)}, span{0, num_rhs});
-    auto hessenberg_small = hessenberg->create_submatrix(
-        span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
+    if (restart_iter > 0) {
+        // Solve x
+        auto krylov_bases_small = krylov_bases->create_submatrix(
+            span{0, num_rows * (restart_iter + 1)}, span{0, num_rhs});
+        auto hessenberg_small = hessenberg->create_submatrix(
+            span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
 
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
-    // before_preconditioner = krylov_bases * y
-    exec->run(gmres::make_step_2(
-        residual_norm_collection, krylov_bases_small.get(),
-        hessenberg_small.get(), y, before_preconditioner, &final_iter_nums));
-    // x = x + get_preconditioner() * before_preconditioner
-    this->get_preconditioner()->apply(before_preconditioner,
-                                      after_preconditioner);
-    dense_x->add_scaled(one_op, after_preconditioner);
+        // Solve upper triangular.
+        // y = hessenberg \ residual_norm_collection
+        // before_preconditioner = krylov_bases * y
+        exec->run(gmres::make_step_2(
+            residual_norm_collection, krylov_bases_small.get(),
+            hessenberg_small.get(), y, before_preconditioner, &final_iter_nums));
+        // x = x + get_preconditioner() * before_preconditioner
+        this->get_preconditioner()->apply(before_preconditioner,
+                                        after_preconditioner);
+        dense_x->add_scaled(one_op, after_preconditioner);
+    }
 }
 
 
