@@ -1589,7 +1589,7 @@ std::unique_ptr<typename Dense<ValueType>::real_type>
 Dense<ValueType>::create_real_view()
 {
     const auto num_rows = this->get_size()[0];
-    const bool complex = is_complex<ValueType>();
+    constexpr bool complex = is_complex<ValueType>();
     const auto num_cols =
         complex ? 2 * this->get_size()[1] : this->get_size()[1];
     const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
@@ -1608,17 +1608,17 @@ std::unique_ptr<const typename Dense<ValueType>::real_type>
 Dense<ValueType>::create_real_view() const
 {
     const auto num_rows = this->get_size()[0];
-    const bool complex = is_complex<ValueType>();
+    constexpr bool complex = is_complex<ValueType>();
     const auto num_cols =
         complex ? 2 * this->get_size()[1] : this->get_size()[1];
     const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
 
-    return Dense<remove_complex<ValueType>>::create(
+    return Dense<remove_complex<ValueType>>::create_const(
         this->get_executor(), dim<2>{num_rows, num_cols},
-        make_array_view(this->get_executor(), num_rows * stride,
-                        const_cast<remove_complex<ValueType>*>(
-                            reinterpret_cast<const remove_complex<ValueType>*>(
-                                this->get_const_values()))),
+        make_const_array_view(
+            this->get_executor(), num_rows * stride,
+            reinterpret_cast<const remove_complex<ValueType>*>(
+                this->get_const_values())),
         stride);
 }
 
