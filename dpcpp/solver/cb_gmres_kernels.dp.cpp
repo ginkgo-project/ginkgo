@@ -1013,7 +1013,8 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
         residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
-    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm, tmp);
+    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                  tmp);
 
     if (use_scalar) {
         components::fill_array(exec,

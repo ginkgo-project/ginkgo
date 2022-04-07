@@ -1000,7 +1000,7 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
 
 TEST_F(Dense, ComputeDotIsEquivalentToRef)
 {
-    set_up_vector_data(2);
+    set_up_vector_data(1);
 
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
@@ -1050,7 +1050,7 @@ TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
 
 TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
 {
-    set_up_vector_data(13);
+    set_up_vector_data(1);
 
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
@@ -1150,7 +1150,7 @@ TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
 
 TEST_F(Dense, ComputeNorm2IsEquivalentToRef)
 {
-    set_up_vector_data(5);
+    set_up_vector_data(1);
 
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
