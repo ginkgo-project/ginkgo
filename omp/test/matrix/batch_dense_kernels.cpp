@@ -91,8 +91,10 @@ protected:
         y = gen_mtx<Mtx>(batch_size, 75, num_vecs);
         if (different_alpha) {
             alpha = gen_mtx<Mtx>(batch_size, 1, num_vecs);
+            beta = gen_mtx<Mtx>(batch_size, 1, num_vecs);
         } else {
             alpha = gko::batch_initialize<Mtx>(batch_size, {2.0}, ref);
+            beta = gko::batch_initialize<Mtx>(batch_size, {-0.5}, ref);
         }
         dx = Mtx::create(omp);
         dx->copy_from(x.get());
@@ -100,6 +102,7 @@ protected:
         dy->copy_from(y.get());
         dalpha = Mtx::create(omp);
         dalpha->copy_from(alpha.get());
+        dbeta = gko::clone(omp, beta.get());
         expected = Mtx::create(
             ref, gko::batch_dim<2>(batch_size, gko::dim<2>{1, num_vecs}));
         dresult = Mtx::create(
@@ -201,6 +204,17 @@ TEST_F(BatchDense, SingleVectorAddScaledIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, SingleVectorAddScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->add_scale(alpha.get(), y.get(), beta.get());
+    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
 TEST_F(BatchDense, SingleVectorConvergenceAddScaledIsEquivalentToRef)
 {
     const int num_rhs = 1;
@@ -223,6 +237,17 @@ TEST_F(BatchDense, MultipleVectorAddScaledIsEquivalentToRef)
 
     x->add_scaled(alpha.get(), y.get());
     dx->add_scaled(dalpha.get(), dy.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(BatchDense, MultipleVectorAddScaleIsEquivalentToRef)
+{
+    set_up_vector_data(20);
+
+    x->add_scale(alpha.get(), y.get(), beta.get());
+    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
@@ -255,6 +280,17 @@ TEST_F(BatchDense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
+TEST_F(BatchDense, MultipleVectorAddScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->add_scale(alpha.get(), y.get(), beta.get());
+    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
+}
+
+
 TEST_F(BatchDense,
        MultipleVectorConvergenceAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
@@ -270,11 +306,6 @@ TEST_F(BatchDense,
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);
 }
-
-
-// TEST_F(BatchDense, AddsScaledDiagIsEquivalentToRef)
-// TODO (script:batch_dense): change the code imported from matrix/dense if
-// needed
 
 
 TEST_F(BatchDense, SingleVectorComputeDotIsEquivalentToRef)

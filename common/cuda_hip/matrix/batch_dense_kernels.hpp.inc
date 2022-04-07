@@ -211,6 +211,48 @@ __global__ __launch_bounds__(default_block_size, sm_multiplier) void add_scaled(
 }
 
 
+template <typename ValueType>
+__device__ __forceinline__ void add_scale(
+    const gko::batch_dense::BatchEntry<const ValueType>& alpha,
+    const gko::batch_dense::BatchEntry<const ValueType>& x,
+    const gko::batch_dense::BatchEntry<const ValueType>& beta,
+    const gko::batch_dense::BatchEntry<ValueType>& y)
+{
+    const int max_li = x.num_rows * x.num_rhs;
+    for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
+        const int row = li / x.num_rhs;
+        const int col = li % x.num_rhs;
+
+        if (alpha.num_rhs == 1) {
+            y.values[row * y.stride + col] =
+                alpha.values[0] * x.values[row * x.stride + col] +
+                beta.values[0] * y.values[row * y.stride + col];
+        } else {
+            y.values[row * y.stride + col] =
+                alpha.values[col] * x.values[row * x.stride + col] +
+                beta.values[col] * y.values[row * y.stride + col];
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void add_scale(
+    const gko::batch_dense::UniformBatch<const ValueType> alpha,
+    const gko::batch_dense::UniformBatch<const ValueType> x,
+    const gko::batch_dense::UniformBatch<const ValueType> beta,
+    const gko::batch_dense::UniformBatch<ValueType> y)
+{
+    for (size_type ibatch = blockIdx.x; ibatch < x.num_batch;
+         ibatch += gridDim.x) {
+        const auto alpha_b = gko::batch::batch_entry(alpha, ibatch);
+        const auto beta_b = gko::batch::batch_entry(beta, ibatch);
+        const auto x_b = gko::batch::batch_entry(x, ibatch);
+        const auto y_b = gko::batch::batch_entry(y, ibatch);
+        add_scale(alpha_b, x_b, beta_b, y_b);
+    }
+}
+
+
 namespace {
 
 template <typename ValueType>

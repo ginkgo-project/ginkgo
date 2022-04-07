@@ -150,6 +150,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType>
+void add_scale(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::BatchDense<ValueType>* const alpha,
+               const matrix::BatchDense<ValueType>* const x,
+               const matrix::BatchDense<ValueType>* const beta,
+               matrix::BatchDense<ValueType>* const y)
+{
+    const auto x_ub = host::get_batch_struct(x);
+    const auto y_ub = host::get_batch_struct(y);
+    const auto alpha_ub = host::get_batch_struct(alpha);
+    const auto beta_ub = host::get_batch_struct(beta);
+#pragma omp parallel for
+    for (size_type batch = 0; batch < y->get_num_batch_entries(); ++batch) {
+        const auto alpha_b = gko::batch::batch_entry(alpha_ub, batch);
+        const auto beta_b = gko::batch::batch_entry(beta_ub, batch);
+        const auto x_b = gko::batch::batch_entry(x_ub, batch);
+        const auto y_b = gko::batch::batch_entry(y_ub, batch);
+        add_scale(alpha_b, x_b, beta_b, y_b);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_ADD_SCALE_KERNEL);
+
+
+template <typename ValueType>
 void convergence_add_scaled(std::shared_ptr<const OmpExecutor> exec,
                             const matrix::BatchDense<ValueType>* const alpha,
                             const matrix::BatchDense<ValueType>* const x,
