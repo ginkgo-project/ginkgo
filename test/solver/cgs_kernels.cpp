@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -308,8 +308,8 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1e3);
 }
 
 
@@ -327,8 +327,8 @@ TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 5e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5e3);
 }
 
 }  // namespace
