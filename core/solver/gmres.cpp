@@ -301,25 +301,27 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         restart_iter++;
     }
 
-    // Solve x
-    auto krylov_bases_small = krylov_bases->create_submatrix(
-        span{0, system_matrix_->get_size()[0] * (restart_iter + 1)},
-        span{0, dense_b->get_size()[1]});
-    auto hessenberg_small = hessenberg->create_submatrix(
-        span{0, restart_iter},
-        span{0, dense_b->get_size()[1] * (restart_iter)});
+    if (restart_iter > 0) {
+        // Solve x
+        auto krylov_bases_small = krylov_bases->create_submatrix(
+            span{0, system_matrix_->get_size()[0] * (restart_iter + 1)},
+            span{0, dense_b->get_size()[1]});
+        auto hessenberg_small = hessenberg->create_submatrix(
+            span{0, restart_iter},
+            span{0, dense_b->get_size()[1] * (restart_iter)});
 
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
-    // before_preconditioner = krylov_bases * y
-    exec->run(gmres::make_step_2(
-        residual_norm_collection.get(), krylov_bases_small.get(),
-        hessenberg_small.get(), y.get(), before_preconditioner.get(),
-        &final_iter_nums));
-    // x = x + get_preconditioner() * before_preconditioner
-    get_preconditioner()->apply(before_preconditioner.get(),
-                                after_preconditioner.get());
-    dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+        // Solve upper triangular.
+        // y = hessenberg \ residual_norm_collection
+        // before_preconditioner = krylov_bases * y
+        exec->run(gmres::make_step_2(
+            residual_norm_collection.get(), krylov_bases_small.get(),
+            hessenberg_small.get(), y.get(), before_preconditioner.get(),
+            &final_iter_nums));
+        // x = x + get_preconditioner() * before_preconditioner
+        get_preconditioner()->apply(before_preconditioner.get(),
+                                    after_preconditioner.get());
+        dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+    }
 }
 
 
