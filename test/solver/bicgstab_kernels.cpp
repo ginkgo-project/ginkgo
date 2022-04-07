@@ -49,8 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/test/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -336,8 +336,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 500);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 2000);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 2000);
 }
 
 
