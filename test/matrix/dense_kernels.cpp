@@ -1851,3 +1851,36 @@ TEST_F(Dense, ComputesSqrt)
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }
+
+
+TEST_F(Dense, MultipleVectorAddScaleWithDifferentAlphaIsEquivalentToRef)
+{
+    set_up_vector_data(20, true);
+
+    x->add_scale(alpha.get(), y.get(), beta.get());
+    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
+}
+
+
+TEST_F(Dense, SingleVectorComplexRealAddScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    c_x->add_scale(alpha.get(), c_y.get(), beta.get());
+    dc_x->add_scale(dalpha.get(), dc_y.get(), dbeta.get());
+
+    GKO_ASSERT_MTX_NEAR(dc_x, c_x, r<value_type>::value);
+}
+
+
+TEST_F(Dense, SingleVectorAddScaleIsEquivalentToRef)
+{
+    set_up_vector_data(1);
+
+    x->add_scale(alpha.get(), y.get(), beta.get());
+    dx->add_scale(dalpha.get(), dy.get(), dbeta.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
+}
