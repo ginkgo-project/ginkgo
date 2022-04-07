@@ -87,6 +87,13 @@ namespace kernels {
                     const matrix::Dense<_scalar_type>* alpha,    \
                     const matrix::Dense<_type>* x, matrix::Dense<_type>* y)
 
+#define GKO_DECLARE_DENSE_ADD_SCALE_KERNEL(_type, _scalar_type) \
+    void add_scale(std::shared_ptr<const DefaultExecutor> exec, \
+                   const matrix::Dense<_scalar_type>* alpha,    \
+                   const matrix::Dense<_type>* x,               \
+                   const matrix::Dense<_scalar_type>* beta,     \
+                   matrix::Dense<_type>* y)
+
 #define GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(_type, _scalar_type) \
     void sub_scaled(std::shared_ptr<const DefaultExecutor> exec, \
                     const matrix::Dense<_scalar_type>* alpha,    \
@@ -329,6 +336,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_INV_SCALE_KERNEL(ValueType, ScalarType);              \
     template <typename ValueType, typename ScalarType>                      \
     GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType, ScalarType);             \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_ADD_SCALE_KERNEL(ValueType, ScalarType);              \
     template <typename ValueType, typename ScalarType>                      \
     GKO_DECLARE_DENSE_SUB_SCALED_KERNEL(ValueType, ScalarType);             \
     template <typename ValueType>                                           \

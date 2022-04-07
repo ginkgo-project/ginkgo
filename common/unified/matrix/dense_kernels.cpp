@@ -181,6 +181,39 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType, typename ScalarType>
+void add_scale(std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Dense<ScalarType>* alpha,
+               const matrix::Dense<ValueType>* x,
+               const matrix::Dense<ScalarType>* beta,
+               matrix::Dense<ValueType>* y)
+{
+    if (alpha->get_size()[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto beta,
+                          auto y) {
+                y(row, col) =
+                    alpha[col] * x(row, col) + beta[col] * y(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x,
+            beta->get_const_values(), y);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto beta,
+                          auto y) {
+                y(row, col) = alpha[0] * x(row, col) + beta[0] * y(row, col);
+            },
+            x->get_size(), alpha->get_const_values(), x,
+            beta->get_const_values(), y);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALE_KERNEL);
+
+
+template <typename ValueType, typename ScalarType>
 void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Dense<ScalarType>* alpha,
                 const matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* y)
