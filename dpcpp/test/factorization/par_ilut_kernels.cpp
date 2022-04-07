@@ -316,21 +316,23 @@ TEST_F(ParIlut, KernelThresholdSelectMaxIsEquivalentToRef)
 TEST_F(ParIlut, KernelComplexThresholdSelectIsEquivalentToRef)
 {
     test_select(mtx_l_complex, dmtx_l_complex,
-                mtx_l_complex->get_num_stored_elements() / 3, 1e-14);
+                mtx_l_complex->get_num_stored_elements() / 3,
+                50 * r<value_type>::value);
 }
 
 
 TEST_F(ParIlut, KernelComplexThresholdSelectMinIsEquivalentToRef)
 {
     // can change the threshold?
-    test_select(mtx_l_complex, dmtx_l_complex, 0, 1e-14);
+    test_select(mtx_l_complex, dmtx_l_complex, 0, 50 * r<value_type>::value);
 }
 
 
 TEST_F(ParIlut, KernelComplexThresholdSelectMaxLowerIsEquivalentToRef)
 {
     test_select(mtx_l_complex, dmtx_l_complex,
-                mtx_l_complex->get_num_stored_elements() - 1, 1e-14);
+                mtx_l_complex->get_num_stored_elements() - 1,
+                50 * r<value_type>::value);
 }
 
 
