@@ -365,7 +365,8 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
             max_error, std::abs(arrays.values.get_const_data()[i] -
                                 ref_arrays.values.get_const_data()[i]));
     }
-    ASSERT_LT(max_error, r<value_type>::value);
+    // when Hip with GNU < 7, it will give a little difference.
+    ASSERT_LT(max_error, 2 * r<value_type>::value);
 }
 
 
