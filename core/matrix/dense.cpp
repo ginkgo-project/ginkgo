@@ -73,6 +73,7 @@ GKO_REGISTER_OPERATION(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scale, dense::add_scale);
 GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
@@ -305,6 +306,41 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
                 make_temporary_conversion<ValueType>(alpha).get(),
                 make_temporary_conversion<ValueType>(b).get(), this));
         }
+    }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scale(const LinOp* const alpha, const LinOp* const a,
+                                 const LinOp* const beta)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_ROWS(beta, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        GKO_ASSERT(beta->get_size()[1] != 1);
+        // different alpha/beta for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+        GKO_ASSERT_EQUAL_COLS(this, beta);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, a);
+    auto exec = this->get_executor();
+    auto alphac = make_temporary_clone(exec, alpha);
+    auto betac = make_temporary_clone(exec, beta);
+    auto ac = make_temporary_clone(exec, a);
+    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        exec->run(dense::make_add_scale(
+            make_temporary_conversion<remove_complex<ValueType>>(alphac.get())
+                .get(),
+            make_temporary_conversion<to_complex<ValueType>>(ac.get()).get(),
+            make_temporary_conversion<remove_complex<ValueType>>(betac.get())
+                .get(),
+            dynamic_cast<complex_type*>(this)));
+    } else {
+        exec->run(dense::make_add_scale(
+            make_temporary_conversion<ValueType>(alphac.get()).get(),
+            make_temporary_conversion<ValueType>(ac.get()).get(),
+            make_temporary_conversion<ValueType>(betac.get()).get(), this));
     }
 }
 

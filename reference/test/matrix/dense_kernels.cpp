@@ -449,6 +449,27 @@ TYPED_TEST(Dense, AddsScaledMixed)
 }
 
 
+TYPED_TEST(Dense, AddsScale)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({{2.0, 1.0, -2.0}}, this->exec);
+    auto beta = gko::initialize<Mtx>({{-1.0, 2.0, -3.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
+
+    this->mtx1->add_scale(alpha.get(), this->mtx3.get(), beta.get());
+
+    EXPECT_EQ(this->mtx1->at(0, 0), T{1.0});
+    EXPECT_EQ(this->mtx1->at(0, 1), T{6.0});
+    EXPECT_EQ(this->mtx1->at(0, 2), T{-15.0});
+    EXPECT_EQ(this->mtx1->at(1, 0), T{-0.5});
+    EXPECT_EQ(this->mtx1->at(1, 1), T{6.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-15.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
+}
+
+
 TYPED_TEST(Dense, SubtractsScaled)
 {
     using Mtx = typename TestFixture::Mtx;
