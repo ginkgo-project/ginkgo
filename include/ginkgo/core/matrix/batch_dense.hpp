@@ -338,6 +338,20 @@ public:
     }
 
     /**
+     * Adds `a` scaled by `alpha` to the matrix scaled by `beta`.
+     *
+     * @param alpha  If alpha is 1x1 BatchDense matrix, the entire matrix a is
+     *               scaled by alpha. If it is a BatchDense row vector of
+     * values, then i-th column of a is scaled with the i-th element of alpha
+     * (the number of columns of alpha has to match the number of columns of a).
+     * @param b  a matrix of the same dimension as this.
+     * @param beta  Scalar(s), of the same size as alpha, to multiply this
+     * matrix.
+     */
+    void add_scale(const BatchLinOp* alpha, const BatchLinOp* a,
+                   const BatchLinOp* beta);
+
+    /**
      * Computes the column-wise dot product of each matrix in this batch and its
      * corresponding entry in `b`. If the matrix has complex value_type, then
      * the conjugate of this is taken.
