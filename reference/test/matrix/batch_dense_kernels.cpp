@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -406,6 +407,29 @@ TYPED_TEST(BatchDense, AddsScaleWithScalar)
     auto ubeta = beta->unbatch();
 
     this->mtx_1->add_scale(alpha.get(), this->mtx_0.get(), beta.get());
+    this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
+                            ubeta[0].get());
+    this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
+                            ubeta[1].get());
+
+    auto res = this->mtx_1->unbatch();
+    GKO_ASSERT_MTX_NEAR(res[0].get(), this->mtx_10.get(), 0.);
+    GKO_ASSERT_MTX_NEAR(res[1].get(), this->mtx_11.get(), 0.);
+}
+
+
+TYPED_TEST(BatchDense, AddScaleWithScalarViaApply)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::batch_initialize<Mtx>({{2.0}, {-2.0}}, this->exec);
+    auto beta = gko::batch_initialize<Mtx>({{-0.5}, {3.0}}, this->exec);
+    auto id = gko::matrix::BatchIdentity<T>::create(
+        this->exec, gko::batch_dim<2>(2, gko::dim<2>(3, 3)));
+    auto ualpha = alpha->unbatch();
+    auto ubeta = beta->unbatch();
+
+    this->mtx_0->apply(alpha.get(), id.get(), beta.get(), this->mtx_1.get());
     this->mtx_10->add_scale(ualpha[0].get(), this->mtx_00.get(),
                             ubeta[0].get());
     this->mtx_11->add_scale(ualpha[1].get(), this->mtx_01.get(),
