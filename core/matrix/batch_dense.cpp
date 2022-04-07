@@ -189,9 +189,7 @@ void BatchDense<ValueType>::add_scale(const BatchLinOp* const alpha,
     }
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_a);
     GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_alpha, batch_beta);
-    auto exec = this->get_executor();
-
-    exec->run(
+    this->get_executor()->run(
         batch_dense::make_add_scale(batch_alpha, batch_a, batch_beta, this));
 }
 

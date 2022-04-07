@@ -732,7 +732,8 @@ public:
     }
 
     /**
-     * Adds `a` scaled by `alpha` to the matrix scaled by `beta`.
+     * Adds `a` scaled by `alpha` to the matrix scaled by `beta`:
+     * this <- alpha * a + beta * this.
      *
      * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix a is scaled
      *               by alpha. If it is a Dense row vector of values,
