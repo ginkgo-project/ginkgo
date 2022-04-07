@@ -92,8 +92,10 @@ __global__
         // if we need to store something for the next iteration
         if ((base_col + config::warp_size) % block_size != 0) {
             // check whether the last block (incomplete) in this warp is nonzero
-            first_block_nonzero =
-                bool(warp.ballot(bool(local_mask)) >> (config::warp_size - 1));
+            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            bool last_block_nonzero =
+                (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
+            first_block_nonzero = last_block_nonzero;
         } else {
             first_block_nonzero = false;
         }
@@ -163,7 +165,8 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
         const auto block_nonzero_mask =
             warp.ballot(local_mask && (block_local_col == block_size - 1));
 
-        // count how many blocks come before this block in the current block
+        // count how many Fbcsr blocks come before the Fbcsr block handled by
+        // the local group of threads
         const auto block_nz =
             block_base_nz + popcnt(block_nonzero_mask & lane_prefix_mask);
         // now in a second sweep, store the actual elements
@@ -183,8 +186,10 @@ __global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
         // if we need to store something for the next iteration
         if ((base_col + config::warp_size) % block_size != 0) {
             // check whether the last block (incomplete) in this warp is nonzero
-            first_block_nonzero =
-                bool(warp.ballot(bool(local_mask)) >> (config::warp_size - 1));
+            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            bool last_block_nonzero =
+                (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
+            first_block_nonzero = last_block_nonzero;
         } else {
             first_block_nonzero = false;
         }

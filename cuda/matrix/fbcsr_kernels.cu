@@ -374,8 +374,8 @@ void is_sorted_by_column_index(
     *is_sorted = true;
     auto gpu_array = Array<bool>(exec, 1);
     // need to initialize the GPU value to true
-    exec->copy_from<bool>(exec->get_master().get(), 1, is_sorted,
-                          gpu_array.get_data());
+    exec->copy_from(exec->get_master().get(), 1, is_sorted,
+                    gpu_array.get_data());
     auto block_size = default_block_size;
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
