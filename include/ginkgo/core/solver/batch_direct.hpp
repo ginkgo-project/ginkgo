@@ -56,8 +56,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class BatchDirect : public EnableBatchLinOp<BatchDirect<ValueType>>,
-                    public BatchTransposable,
-                    public EnableBatchScaling {
+                    public BatchTransposable {
     friend class EnableBatchLinOp<BatchDirect>;
     friend class EnablePolymorphicObject<BatchDirect, BatchLinOp>;
 
@@ -87,7 +86,24 @@ public:
      */
     bool apply_uses_initial_guess() const override { return false; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * Batch diagonal matrix for scaling the system matrix from the left
+         * before the solve. Note that `right_scaling_op` must also be set if
+         * this is set.
+         */
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            left_scaling_op, nullptr);
+
+        /**
+         * Batch diagonal matrix for scaling the system matrix from the right
+         * before the solve. Note that `left_scaling_op` must also be set if
+         * this is set.
+         */
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            right_scaling_op, nullptr);
+    };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchDirect, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 

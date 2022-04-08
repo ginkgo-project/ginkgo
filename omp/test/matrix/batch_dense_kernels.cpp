@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
 
 
-//#include "core/components/fill_array.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
@@ -601,16 +600,18 @@ TEST_F(BatchDense, BatchScaleIsEquivalentToRef)
 
     const int num_rows_in_mat = x->get_size().at(0)[0];
     const int num_cols_in_mat = x->get_size().at(0)[1];
-    const auto left_diag = gen_mtx<BDiag>(batch_size, 1, num_rows_in_mat);
+    const auto left_diag =
+        gen_mtx<BDiag>(batch_size, num_rows_in_mat, num_rows_in_mat);
     auto dleft_diag = BDiag::create(omp);
     dleft_diag->copy_from(left_diag.get());
-    const auto rght_diag = gen_mtx<BDiag>(batch_size, 1, num_cols_in_mat);
+    const auto rght_diag =
+        gen_mtx<BDiag>(batch_size, num_cols_in_mat, num_cols_in_mat);
     auto drght_diag = BDiag::create(omp);
     drght_diag->copy_from(rght_diag.get());
 
-    gko::kernels::reference::batch_dense::batch_scale(
-        this->ref, left_diag.get(), rght_diag.get(), x.get());
-    gko::kernels::omp::batch_dense::batch_scale(this->omp, dleft_diag.get(),
+    gko::kernels::reference::batch_dense::batch_scale(ref, left_diag.get(),
+                                                      rght_diag.get(), x.get());
+    gko::kernels::omp::batch_dense::batch_scale(omp, dleft_diag.get(),
                                                 drght_diag.get(), dx.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(dx, x, 1e-14);

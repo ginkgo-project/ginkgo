@@ -258,15 +258,17 @@ TYPED_TEST(BatchDirect, UnitScalingDoesNotChangeResult)
 {
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto factory = Solver::build().on(this->cuexec);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->cuexec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->cuexec));
+    auto factory = Solver::build()
+                       .with_left_scaling_op(left_scale)
+                       .with_right_scaling_op(right_scale)
+                       .on(this->cuexec);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->cuexec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->cuexec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -276,15 +278,17 @@ TYPED_TEST(BatchDirect, GeneralScalingDoesNotChangeResult)
 {
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    auto factory = Solver::build().on(this->cuexec);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->cuexec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->cuexec));
+    auto factory = Solver::build()
+                       .with_left_scaling_op(left_scale)
+                       .with_right_scaling_op(right_scale)
+                       .on(this->cuexec);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->cuexec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->cuexec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
