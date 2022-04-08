@@ -175,8 +175,7 @@ TYPED_TEST(BatchBicgstab, UnitScalingDoesNotChangeResult)
                                         left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -187,15 +186,15 @@ TYPED_TEST(BatchBicgstab, GeneralScalingDoesNotChangeResult)
     using value_type = typename TestFixture::value_type;
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_diagonal_initialize<value_type>(
-        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_diagonal_initialize<value_type>(
-        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    auto factory = this->create_factory(this->exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_diagonal_initialize<value_type>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->exec));
+    auto right_scale = gko::share(gko::batch_diagonal_initialize<value_type>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->exec));
+    auto factory = this->create_factory(this->exec, this->opts_1, nullptr,
+                                        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
