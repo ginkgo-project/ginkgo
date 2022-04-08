@@ -111,6 +111,8 @@ void Bicgstab<ValueType>::apply_dense_impl(
 
     auto exec = this->get_executor();
 
+    Array<char> reduction_tmp{exec};
+
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
@@ -168,7 +170,7 @@ void Bicgstab<ValueType>::apply_dense_impl(
         ++iter;
         this->template log<log::Logger::iteration_complete>(
             this, iter, r.get(), dense_x, nullptr, rho.get());
-        rr->compute_conj_dot(r.get(), rho.get());
+        rr->compute_conj_dot(r.get(), rho.get(), reduction_tmp);
 
         if (stop_criterion->update()
                 .num_iterations(iter)
@@ -187,7 +189,7 @@ void Bicgstab<ValueType>::apply_dense_impl(
 
         get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
-        rr->compute_conj_dot(v.get(), beta.get());
+        rr->compute_conj_dot(v.get(), beta.get(), reduction_tmp);
         // alpha = rho / beta
         // s = r - alpha * v
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
@@ -210,8 +212,8 @@ void Bicgstab<ValueType>::apply_dense_impl(
 
         get_preconditioner()->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
-        s->compute_conj_dot(t.get(), gamma.get());
-        t->compute_conj_dot(t.get(), beta.get());
+        s->compute_conj_dot(t.get(), gamma.get(), reduction_tmp);
+        t->compute_conj_dot(t.get(), beta.get(), reduction_tmp);
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
