@@ -112,13 +112,17 @@ protected:
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
         std::shared_ptr<const gko::Executor> exec, const Options& opts,
-        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr)
+        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr,
+        std::shared_ptr<const BDiag> left_scale = nullptr,
+        std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
             .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
+            .with_left_scaling_op(left_scale)
+            .with_right_scaling_op(right_scale)
             .on(exec);
     }
 
@@ -142,20 +146,20 @@ TEST_F(BatchCg, SolveIsEquivalentToReference)
     using opts_type = Options;
     constexpr bool issingle =
         std::is_same<gko::remove_complex<value_type>, float>::value;
-    const float solver_restol = issingle ? 100 * this->eps : this->eps;
+    const float solver_restol = issingle ? 100 * eps : eps;
     const opts_type opts{gko::preconditioner::batch::type::none, 500,
                          solver_restol,
                          gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
-        this->ref, this->nbatch, 11, 1, true);
-    auto r_factory = this->create_factory(this->ref, opts);
-    auto d_factory = this->create_factory(this->d_exec, opts);
+        ref, nbatch, 11, 1, true);
+    auto r_factory = create_factory(ref, opts);
+    auto d_factory = create_factory(d_exec, opts);
     const double iter_tol = 0.01;
     const double res_tol = 10 * r<value_type>::value;
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        this->d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
+        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
         res_tol, sol_tol);
 }
 
@@ -165,45 +169,44 @@ TEST_F(BatchCg, StencilSystemLoggerIsCorrect)
     using real_type = gko::remove_complex<value_type>;
 
     auto r_1 = gko::test::solve_poisson_uniform(
-        this->d_exec, this->solve_fn, this->opts_1, this->sys_1, 1,
-        gko::preconditioner::BatchJacobi<value_type>::build().on(this->d_exec));
+        d_exec, solve_fn, opts_1, sys_1, 1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
 
-    const int ref_iters = this->single_iters_regression();
+    const int ref_iters = single_iters_regression();
     const int* const iter_array = r_1.logdata.iter_counts.get_const_data();
     const real_type* const res_log_array =
         r_1.logdata.res_norms->get_const_values();
-    for (size_t i = 0; i < this->nbatch; i++) {
+    for (size_t i = 0; i < nbatch; i++) {
         GKO_ASSERT((iter_array[i] <= ref_iters + 1) &&
                    (iter_array[i] >= ref_iters - 1));
-        ASSERT_LE(res_log_array[i] / this->sys_1.bnorm->at(0, 0, i),
-                  this->opts_1.residual_tol);
+        ASSERT_LE(res_log_array[i] / sys_1.bnorm->at(0, 0, i),
+                  opts_1.residual_tol);
         ASSERT_NEAR(res_log_array[i], r_1.resnorm->get_const_values()[i],
-                    10 * this->eps);
+                    10 * eps);
     }
 }
 
 
 TEST_F(BatchCg, CoreSolvesSystemJacobi)
 {
-    auto useexec = this->d_exec;
     std::unique_ptr<typename solver_type::Factory> batchcg_factory =
         solver_type::build()
             .with_max_iterations(100)
             .with_residual_tol(1e-6f)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<value_type>::build().on(
-                    useexec))
+                    d_exec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .on(useexec);
+            .on(d_exec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
     const auto sys =
-        gko::test::get_poisson_problem<value_type>(this->ref, nrhs_1, nbatch);
+        gko::test::get_poisson_problem<value_type>(ref, nrhs_1, nbatch);
     auto rx =
-        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, this->ref);
-    std::unique_ptr<Mtx> mtx = Mtx::create(useexec);
-    auto b = BDense::create(useexec);
-    auto x = BDense::create(useexec);
+        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, ref);
+    std::unique_ptr<Mtx> mtx = Mtx::create(d_exec);
+    auto b = BDense::create(d_exec);
+    auto x = BDense::create(d_exec);
     mtx->copy_from(gko::lend(sys.mtx));
     b->copy_from(gko::lend(sys.b));
     x->copy_from(gko::lend(rx));
@@ -218,33 +221,33 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
 
 TEST_F(BatchCg, UnitScalingDoesNotChangeResult)
 {
-    auto left_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
-    auto right_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->ref);
-    auto factory = this->create_factory(this->d_exec, this->opts_1);
+    auto left_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
+    auto right_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
+    auto factory = create_factory(d_exec, opts_1, nullptr,
+                                        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        d_exec, factory.get(), sys_1, 1);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e2 * this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e2 * eps);
 }
 
 
 TEST_F(BatchCg, GeneralScalingDoesNotChangeResult)
 {
-    auto left_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 1.5, 0.95}, this->ref);
-    auto right_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 1.5, 0.95}, this->ref);
-    auto factory = this->create_factory(this->d_exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        nbatch, {0.8, 1.5, 0.95}, d_exec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        nbatch, {0.8, 1.5, 0.95}, d_exec));
+    auto factory = create_factory(d_exec, opts_1, nullptr,
+                                        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
-        this->d_exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        d_exec, factory.get(), sys_1, 1);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, 1e3 * this->eps);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e3 * eps);
 }
 
 
