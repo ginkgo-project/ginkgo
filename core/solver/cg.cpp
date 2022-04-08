@@ -108,6 +108,8 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     auto exec = this->get_executor();
 
+    Array<char> reduction_tmp{exec};
+
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
@@ -151,7 +153,7 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
      */
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        r->compute_conj_dot(z.get(), rho.get());
+        r->compute_conj_dot(z.get(), rho.get(), reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -170,7 +172,7 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
                                   &stop_status));
         system_matrix_->apply(p.get(), q.get());
-        p->compute_conj_dot(q.get(), beta.get());
+        p->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
