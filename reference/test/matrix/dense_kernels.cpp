@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -449,6 +450,49 @@ TYPED_TEST(Dense, AddsScaledMixed)
     EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
     EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
     EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
+}
+
+
+TYPED_TEST(Dense, AddsScale)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({{2.0, 1.0, -2.0}}, this->exec);
+    auto beta = gko::initialize<Mtx>({{-1.0, 2.0, -3.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
+
+    this->mtx1->add_scale(alpha.get(), this->mtx3.get(), beta.get());
+
+    EXPECT_EQ(this->mtx1->at(0, 0), T{1.0});
+    EXPECT_EQ(this->mtx1->at(0, 1), T{6.0});
+    EXPECT_EQ(this->mtx1->at(0, 2), T{-15.0});
+    EXPECT_EQ(this->mtx1->at(1, 0), T{-0.5});
+    EXPECT_EQ(this->mtx1->at(1, 1), T{6.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-15.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
+}
+
+
+TYPED_TEST(Dense, AddScaleViaApply)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto id = gko::matrix::Identity<T>::create(this->exec, gko::dim<2>{3, 3});
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
+
+    this->mtx3->apply(alpha.get(), id.get(), beta.get(), this->mtx1.get());
+
+    EXPECT_EQ(this->mtx1->at(0, 0), T{1.0});
+    EXPECT_EQ(this->mtx1->at(0, 1), T{2.0});
+    EXPECT_EQ(this->mtx1->at(0, 2), T{3.0});
+    EXPECT_EQ(this->mtx1->at(1, 0), T{-0.5});
+    EXPECT_EQ(this->mtx1->at(1, 1), T{0.5});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{1.5});
     ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
 }
 

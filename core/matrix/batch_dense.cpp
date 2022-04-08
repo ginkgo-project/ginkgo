@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 
 
 #include "core/matrix/batch_dense_kernels.hpp"
@@ -59,6 +60,7 @@ GKO_REGISTER_OPERATION(simple_apply, batch_dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, batch_dense::apply);
 GKO_REGISTER_OPERATION(scale, batch_dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, batch_dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scale, batch_dense::add_scale);
 GKO_REGISTER_OPERATION(convergence_add_scaled,
                        batch_dense::convergence_add_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, batch_dense::add_scaled_diag);
@@ -105,15 +107,22 @@ void BatchDense<ValueType>::apply_impl(const BatchLinOp* alpha,
                                        const BatchLinOp* beta,
                                        BatchLinOp* x) const
 {
-    // TODO: Remove this when non-uniform batching kernels have been
-    // implemented
     if (!this->get_size().stores_equal_sizes() ||
         !this->get_stride().stores_equal_strides()) {
         GKO_NOT_IMPLEMENTED;
     }
-    this->get_executor()->run(batch_dense::make_apply(
-        as<BatchDense<ValueType>>(alpha), this, as<BatchDense<ValueType>>(b),
-        as<BatchDense<ValueType>>(beta), as<BatchDense<ValueType>>(x)));
+    if (auto bid = dynamic_cast<const BatchIdentity<ValueType>*>(b)) {
+        if (auto xdense = dynamic_cast<BatchDense<ValueType>*>(x)) {
+            xdense->add_scale(alpha, this, beta);
+        } else {
+            GKO_NOT_SUPPORTED(x);
+        }
+    } else {
+        this->get_executor()->run(batch_dense::make_apply(
+            as<BatchDense<ValueType>>(alpha), this,
+            as<BatchDense<ValueType>>(b), as<BatchDense<ValueType>>(beta),
+            as<BatchDense<ValueType>>(x)));
+    }
 }
 
 
@@ -152,6 +161,36 @@ void BatchDense<ValueType>::add_scaled_impl(const BatchLinOp* alpha,
     auto exec = this->get_executor();
 
     exec->run(batch_dense::make_add_scaled(batch_alpha, batch_b, this));
+}
+
+
+template <typename ValueType>
+void BatchDense<ValueType>::add_scale(const BatchLinOp* const alpha,
+                                      const BatchLinOp* const a,
+                                      const BatchLinOp* const beta)
+{
+    auto batch_alpha = as<BatchDense<ValueType>>(alpha);
+    auto batch_beta = as<BatchDense<ValueType>>(beta);
+    auto batch_a = as<BatchDense<ValueType>>(a);
+    GKO_ASSERT_BATCH_EQUAL_ROWS(
+        batch_alpha, batch_dim<2>(this->get_num_batch_entries(), dim<2>(1, 1)));
+    if (batch_alpha->get_size().stores_equal_sizes()) {
+        if (batch_alpha->get_size().at(0)[1] != 1) {
+            // different alpha for each column
+            GKO_ASSERT_BATCH_EQUAL_COLS(this, batch_alpha);
+        }
+    } else {
+        for (size_type b = 0; b < batch_alpha->get_num_batch_entries(); ++b) {
+            if (batch_alpha->get_size().at(b)[1] != 1) {
+                GKO_ASSERT(this->get_size().at(b)[1] ==
+                           batch_alpha->get_size().at(b)[1]);
+            }
+        }
+    }
+    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(this, batch_a);
+    GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(batch_alpha, batch_beta);
+    this->get_executor()->run(
+        batch_dense::make_add_scale(batch_alpha, batch_a, batch_beta, this));
 }
 
 
