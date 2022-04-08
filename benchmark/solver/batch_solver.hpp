@@ -287,41 +287,57 @@ std::unique_ptr<gko::BatchLinOpFactory> get_preconditioner(
 std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor>& exec,
     const std::string& description,
-    const std::shared_ptr<const gko::BatchLinOpFactory> prec_fact)
+    const std::shared_ptr<const gko::BatchLinOpFactory> prec_fact,
+    const std::shared_ptr<const gko::BatchLinOp> scaling_op)
 {
     const auto toltype = FLAGS_use_abs_residual
                              ? gko::stop::batch::ToleranceType::absolute
                              : gko::stop::batch::ToleranceType::relative;
     if (description == "richardson") {
         using Solver = gko::solver::BatchRichardson<etype>;
-        return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_fact)
-            .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
-                FLAGS_relaxation_factor))
-            .with_tolerance_type(toltype)
-            .on(exec);
+        auto params =
+            Solver::build()
+                .with_max_iterations(static_cast<int>(FLAGS_max_iters))
+                .with_residual_tol(
+                    static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
+                .with_preconditioner(prec_fact)
+                .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
+                    FLAGS_relaxation_factor))
+                .with_tolerance_type(toltype);
+        if (FLAGS_batch_scaling == "explicit") {
+            params.with_left_scaling_op(scaling_op)
+                .with_right_scaling_op(scaling_op);
+        }
+        return params.on(exec);
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
-        return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_fact)
-            .with_tolerance_type(toltype)
-            .on(exec);
+        auto params =
+            Solver::build()
+                .with_max_iterations(static_cast<int>(FLAGS_max_iters))
+                .with_residual_tol(
+                    static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
+                .with_preconditioner(prec_fact)
+                .with_tolerance_type(toltype);
+        if (FLAGS_batch_scaling == "explicit") {
+            params.with_left_scaling_op(scaling_op)
+                .with_right_scaling_op(scaling_op);
+        }
+        return params.on(exec);
     } else if (description == "gmres") {
         using Solver = gko::solver::BatchGmres<etype>;
-        return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
-                static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
-            .with_preconditioner(prec_fact)
-            .with_tolerance_type(toltype)
-            .with_restart(FLAGS_gmres_restart)
-            .on(exec);
+        auto params =
+            Solver::build()
+                .with_max_iterations(static_cast<int>(FLAGS_max_iters))
+                .with_residual_tol(
+                    static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
+                .with_preconditioner(prec_fact)
+                .with_tolerance_type(toltype)
+                .with_restart(FLAGS_gmres_restart);
+        if (FLAGS_batch_scaling == "explicit") {
+            params.with_left_scaling_op(scaling_op)
+                .with_right_scaling_op(scaling_op);
+        }
+        return params.on(exec);
     } else if (description == "direct") {
         using Solver = gko::solver::BatchDirect<etype>;
         return Solver::build().on(exec);
@@ -335,8 +351,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                   std::shared_ptr<gko::Executor> exec,
                   std::shared_ptr<const gko::BatchLinOp> system_matrix,
                   const batch_vec<etype>* b,
-                  const batch_vec<etype>* scaling_vec, batch_vec<etype>* x,
-                  rapidjson::Value& test_case,
+                  std::shared_ptr<const gko::BatchLinOp> scaling_op,
+                  batch_vec<etype>* x, rapidjson::Value& test_case,
                   rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
@@ -393,13 +409,13 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             std::shared_ptr<const gko::BatchLinOp> mat_clone =
                 clone(system_matrix);
             std::shared_ptr<const gko::BatchLinOp> b_clone = clone(b);
-            auto solver =
-                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
+            auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
+                              ->generate(mat_clone);
 
-            if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
-                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
-            }
+            // if (FLAGS_batch_scaling == "explicit") {
+            //     dynamic_cast<gko::EnableBatchScaling*>(solver.get())
+            //         ->batch_scale(lend(scaling_op), lend(scaling_op));
+            // }
             solver->add_logger(logger);
             solver->apply(lend(b_clone), lend(x_clone));
             solver->remove_logger(gko::lend(logger));
@@ -443,13 +459,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             auto gen_logger =
                 std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
-            auto solver =
-                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
-
-            if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
-                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
-            }
+            auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
+                              ->generate(mat_clone);
             exec->remove_logger(gko::lend(gen_logger));
             gen_logger->write_data(solver_json["generate"]["components"],
                                    allocator, 1);
@@ -462,8 +473,9 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
             exec->remove_logger(gko::lend(apply_logger));
 
             if (FLAGS_compute_errors) {
-                auto direct_solver = generate_solver(exec, "direct", prec_fact)
-                                         ->generate(mat_clone);
+                auto direct_solver =
+                    generate_solver(exec, "direct", prec_fact, scaling_op)
+                        ->generate(mat_clone);
                 direct_solver->apply(lend(b_clone), lend(exac_clone));
                 auto err = clone(exac_clone);
                 auto neg_one =
@@ -504,8 +516,9 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
                 std::shared_ptr<const gko::BatchLinOp> mat_clone2 =
                     clone(system_matrix);
                 std::shared_ptr<const gko::BatchLinOp> b_clone2 = clone(b);
-                auto solver2 = generate_solver(exec, sol_name, prec_fact)
-                                   ->generate(mat_clone2);
+                auto solver2 =
+                    generate_solver(exec, sol_name, prec_fact, scaling_op)
+                        ->generate(mat_clone2);
                 solver2->add_logger(logger);
                 solver2->apply(lend(b_clone2), lend(x_clone));
                 solver2->remove_logger(gko::lend(logger));
@@ -551,12 +564,8 @@ void solve_system(const std::string& sol_name, const std::string& prec_name,
 
             exec->synchronize();
             generate_timer->tic();
-            auto solver =
-                generate_solver(exec, sol_name, prec_fact)->generate(mat_clone);
-            if (FLAGS_batch_scaling == "explicit") {
-                dynamic_cast<gko::EnableBatchScaling*>(solver.get())
-                    ->batch_scale(lend(scaling_vec), lend(scaling_vec));
-            }
+            auto solver = generate_solver(exec, sol_name, prec_fact, scaling_op)
+                              ->generate(mat_clone);
             generate_timer->toc();
 
             exec->synchronize();
@@ -681,10 +690,11 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
             auto data = std::vector<gko::matrix_data<etype>>(nbatch);
             auto scale_data = std::vector<gko::matrix_data<etype>>(nbatch);
             using Vec = gko::matrix::BatchDense<etype>;
+            using BDiag = gko::matrix::BatchDiagonal<etype>;
             std::shared_ptr<gko::BatchLinOp> system_matrix;
             std::unique_ptr<Vec> b;
             std::unique_ptr<Vec> x;
-            std::unique_ptr<Vec> scaling_vec;
+            std::shared_ptr<BDiag> scaling_op;
             std::string fbase;
             if (FLAGS_using_suite_sparse) {
                 GKO_ASSERT(ndup == nbatch);
@@ -720,9 +730,9 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
                     FLAGS_batch_solver_mat_format)(exec, ndup, data));
                 if (FLAGS_batch_scaling == "explicit") {
                     auto temp_scaling_op = formats::batch_matrix_factory2.at(
-                        "batch_dense")(exec, ndup, scale_data);
-                    scaling_vec = std::move(std::unique_ptr<Vec>(
-                        static_cast<Vec*>(temp_scaling_op.release())));
+                        "batch_diagonal")(exec, ndup, scale_data);
+                    scaling_op = std::shared_ptr<BDiag>(
+                        static_cast<BDiag*>(temp_scaling_op.release()));
                 }
             }
             if (FLAGS_using_suite_sparse) {
@@ -762,7 +772,7 @@ int read_data_and_launch_benchmark(int argc, char* argv[],
             for (const auto& solver_name : solvers) {
                 std::clog << "\tRunning solver: " << *sol_name << std::endl;
                 solve_system(solver_name, preconditioner, exec, system_matrix,
-                             lend(b), lend(scaling_vec), lend(x), test_case,
+                             lend(b), scaling_op, lend(x), test_case,
                              allocator);
                 backup_results(test_cases);
             }
