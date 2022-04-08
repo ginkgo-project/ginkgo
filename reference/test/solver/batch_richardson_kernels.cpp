@@ -100,13 +100,17 @@ protected:
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
         std::shared_ptr<const gko::Executor> exec, const Options& opts,
-        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr)
+        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr,
+        std::shared_ptr<const BDiag> left_scale = nullptr,
+        std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
             .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
+            .with_left_scaling_op(left_scale)
+            .with_right_scaling_op(right_scale)
             .on(exec);
     }
 
@@ -196,17 +200,20 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 
 TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 {
+    using value_type = typename TestFixture::value_type;
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto factory = this->create_factory(this->exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_diagonal_initialize<value_type>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec));
+    auto right_scale = gko::share(gko::batch_diagonal_initialize<value_type>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec));
+    auto factory = this->create_factory(
+        this->exec, this->opts_1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec),
+        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
@@ -220,17 +227,20 @@ TYPED_TEST(BatchRich, UnitScalingDoesNotChangeResult)
 
 TYPED_TEST(BatchRich, GeneralScalingDoesNotChangeResult)
 {
+    using value_type = typename TestFixture::value_type;
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    auto factory = this->create_factory(this->exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->exec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->exec));
+    auto factory = this->create_factory(
+        this->exec, this->opts_1,
+        gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec),
+        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     for (size_t i = 0; i < this->nbatch; i++) {
         ASSERT_LE(result.resnorm->get_const_values()[i] /
