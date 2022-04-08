@@ -221,9 +221,7 @@ template <typename SolverType, typename ValueType>
 Result<ValueType> solve_poisson_uniform_core(
     std::shared_ptr<const Executor> d_exec,
     const typename SolverType::Factory* const factory,
-    const LinSys<ValueType>& sys, const int nrhs,
-    const matrix::BatchDiagonal<ValueType>* const left_scale = nullptr,
-    const matrix::BatchDiagonal<ValueType>* const right_scale = nullptr)
+    const LinSys<ValueType>& sys, const int nrhs)
 {
     using real_type = remove_complex<ValueType>;
     using BDense = typename Result<ValueType>::BDense;
