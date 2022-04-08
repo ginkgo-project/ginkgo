@@ -48,6 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/lower_trs.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
+#include "omp/components/atomic.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -92,21 +96,50 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
-    auto row_ptrs = matrix->get_const_row_ptrs();
-    auto col_idxs = matrix->get_const_col_idxs();
-    auto vals = matrix->get_const_values();
+    const auto row_ptrs = matrix->get_const_row_ptrs();
+    const auto col_idxs = matrix->get_const_col_idxs();
+    const auto vals = matrix->get_const_values();
+    const auto out_vals = x->get_values();
+    const auto out_stride = x->get_stride();
+    const auto num_rows = b->get_size()[0];
+    const auto num_rhs = b->get_size()[1];
+    const auto num_entries = num_rows * num_rhs;
+    dense::fill(exec, x, nan<ValueType>());
+    // allocate counter on the heap to avoid cache contention over stack
+    Array<IndexType> counter_storage{exec, {0}};
+    IndexType& entry = counter_storage.get_data()[0];
 
-#pragma omp parallel for
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
-            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row + 1] - 1];
-            for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
-                auto col = col_idxs[k];
+#pragma omp parallel shared(entry)
+    {
+        auto local_entry = atomic_inc(entry);
+        while (local_entry < num_entries) {
+            const auto row = local_entry / num_rhs;
+            const auto rhs = local_entry % num_rhs;
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const auto diag_loc = row_end - 1;
+            const auto out_loc = row * out_stride + rhs;
+            const auto ready_loc = row * num_rhs + rhs;
+            ValueType result = b->at(row, rhs);
+            for (auto k = row_begin; k < row_end; ++k) {
+                const auto col = col_idxs[k];
+                const auto val = vals[k];
+                const auto ready_loc = col * num_rhs + rhs;
+                ValueType x_val{};
                 if (col < row) {
-                    x->at(row, j) +=
-                        -vals[k] * x->at(col, j) / vals[row_ptrs[row + 1] - 1];
+                    while (is_nan(x_val = atomic_load(x->at(col, rhs)))) {
+                        // wait until other threads make progress
+                    }
+                    result -= val * x_val;
                 }
             }
+
+            result /= vals[diag_loc];
+            if (is_nan(result)) {
+                result = zero<ValueType>();
+            }
+            atomic_store(out_vals[out_loc], result);
+            local_entry = atomic_inc(entry);
         }
     }
 }

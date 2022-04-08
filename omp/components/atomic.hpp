@@ -46,11 +46,21 @@ namespace kernels {
 namespace omp {
 
 
+template <typename IndexType>
+IndexType atomic_inc(IndexType& val)
+{
+    IndexType result{};
+#pragma omp atomic capture seq_cst
+    result = val++;
+    return result;
+}
+
+
 template <typename ValueType,
           std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
 void atomic_add(ValueType& out, ValueType val)
 {
-#pragma omp atomic
+#pragma omp atomic update seq_cst
     out += val;
 }
 
@@ -61,10 +71,57 @@ void atomic_add(ValueType& out, ValueType val)
     // The C++ standard explicitly allows casting complex<double>* to double*
     // [complex.numbers.general]
     auto values = reinterpret_cast<gko::remove_complex<ValueType>*>(&out);
-#pragma omp atomic
+#pragma omp atomic update seq_cst
     values[0] += real(val);
-#pragma omp atomic
+#pragma omp atomic update seq_cst
     values[1] += imag(val);
+}
+
+
+template <typename ValueType,
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+ValueType atomic_load(ValueType& val)
+{
+    ValueType result{};
+#pragma omp atomic read seq_cst
+    result = val;
+    return result;
+}
+
+template <typename ValueType,
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+ValueType atomic_load(ValueType& val)
+{
+    remove_complex<ValueType> real{};
+    remove_complex<ValueType> imag{};
+    auto values = reinterpret_cast<remove_complex<ValueType>*>(&val);
+#pragma omp atomic read seq_cst
+    real = values[0];
+#pragma omp atomic read seq_cst
+    imag = values[1];
+    return {real, imag};
+}
+
+
+template <typename ValueType,
+          std::enable_if_t<!is_complex<ValueType>()>* = nullptr>
+void atomic_store(ValueType& val, ValueType new_val)
+{
+#pragma omp atomic write seq_cst
+    val = new_val;
+}
+
+template <typename ValueType,
+          std::enable_if_t<is_complex<ValueType>()>* = nullptr>
+void atomic_store(ValueType& val, ValueType new_val)
+{
+    auto new_real = real(new_val);
+    auto new_imag = imag(new_val);
+    auto values = reinterpret_cast<remove_complex<ValueType>*>(&val);
+#pragma omp atomic write seq_cst
+    values[0] = new_real;
+#pragma omp atomic write seq_cst
+    values[1] = new_imag;
 }
 
 
