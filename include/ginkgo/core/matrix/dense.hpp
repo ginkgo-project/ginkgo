@@ -693,11 +693,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
      */
-    void scale(const LinOp* alpha)
-    {
-        auto exec = this->get_executor();
-        this->scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void scale(const LinOp* alpha);
 
     /**
      * Scales the matrix with the inverse of a scalar.
@@ -708,11 +704,7 @@ public:
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of columns of the matrix).
      */
-    void inv_scale(const LinOp* alpha)
-    {
-        auto exec = this->get_executor();
-        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void inv_scale(const LinOp* alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
@@ -724,12 +716,7 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(const LinOp* alpha, const LinOp* b)
-    {
-        auto exec = this->get_executor();
-        this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                              make_temporary_clone(exec, b).get());
-    }
+    void add_scaled(const LinOp* alpha, const LinOp* b);
 
     /**
      * Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).
@@ -741,12 +728,7 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void sub_scaled(const LinOp* alpha, const LinOp* b)
-    {
-        auto exec = this->get_executor();
-        this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                              make_temporary_clone(exec, b).get());
-    }
+    void sub_scaled(const LinOp* alpha, const LinOp* b);
 
     /**
      * Computes the column-wise dot product of this matrix and `b`.
@@ -756,12 +738,20 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(const LinOp* b, LinOp* result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                               make_temporary_output_clone(exec, result).get());
-    }
+    void compute_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the column-wise dot product of this matrix and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_dot(const LinOp* b, LinOp* result, Array<char>& tmp) const;
 
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
@@ -771,13 +761,21 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(const LinOp* b, LinOp* result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_conj_dot_impl(
-            make_temporary_clone(exec, b).get(),
-            make_temporary_output_clone(exec, result).get());
-    }
+    void compute_conj_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
+     *
+     * @param b  a Dense matrix of same dimension as this
+     * @param result  a Dense row vector, used to store the dot product
+     *                (the number of column in the vector must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_conj_dot(const LinOp* b, LinOp* result,
+                          Array<char>& tmp) const;
 
     /**
      * Computes the column-wise Euclidian (L^2) norm of this matrix.
@@ -786,12 +784,19 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(LinOp* result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_norm2_impl(
-            make_temporary_output_clone(exec, result).get());
-    }
+    void compute_norm2(LinOp* result) const;
+
+    /**
+     * Computes the column-wise Euclidian (L^2) norm of this matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm2(LinOp* result, Array<char>& tmp) const;
 
     /**
      * Computes the column-wise (L^1) norm of this matrix.
@@ -800,12 +805,19 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm1(LinOp* result) const
-    {
-        auto exec = this->get_executor();
-        this->compute_norm1_impl(
-            make_temporary_output_clone(exec, result).get());
-    }
+    void compute_norm1(LinOp* result) const;
+
+    /**
+     * Computes the column-wise (L^1) norm of this matrix.
+     *
+     * @param result  a Dense row vector, used to store the norm
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm1(LinOp* result, Array<char>& tmp) const;
 
     /**
      * Create a submatrix from the original matrix.
@@ -1012,64 +1024,64 @@ protected:
     /**
      * @copydoc scale(const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of scale(const LinOp *alpha).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void scale_impl(const LinOp* alpha);
 
     /**
      * @copydoc inv_scale(const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of inv_scale(const LinOp *alpha).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void inv_scale_impl(const LinOp* alpha);
 
     /**
      * @copydoc add_scaled(const LinOp *, const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of add_scale(const LinOp *alpha, const LinOp *b).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
 
     /**
      * @copydoc sub_scaled(const LinOp *, const LinOp *)
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of sub_scale(const LinOp *alpha, const LinOp *b).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
 
     /**
-     * @copydoc compute_dot(const LinOp *, LinOp *) const
+     * @copydoc compute_dot(const LinOp*, LinOp*) const
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of compute_dot(const LinOp *b, LinOp *result).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_dot_impl(const LinOp* b, LinOp* result) const;
 
     /**
-     * @copydoc compute_conj_dot(const LinOp *, LinOp *) const
+     * @copydoc compute_conj_dot(const LinOp*, LinOp*) const
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of compute_conj_dot(const LinOp *b, LinOp *result).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_conj_dot_impl(const LinOp* b, LinOp* result) const;
 
     /**
-     * @copydoc compute_norm2(LinOp *) const
+     * @copydoc compute_norm2(LinOp*) const
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of compute_norm2(LinOp *result).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_norm2_impl(LinOp* result) const;
 
     /**
-     * @copydoc compute_norm1(LinOp *) const
+     * @copydoc compute_norm1(LinOp*) const
      *
-     * @note  Other implementations of dense should override this function
-     *        instead of compute_norm1(LinOp *result).
+     * @deprecated  This function will be removed in the future,
+     *              we will instead always use Ginkgo's implementation.
      */
     virtual void compute_norm1_impl(LinOp* result) const;
 

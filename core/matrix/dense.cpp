@@ -76,13 +76,9 @@ GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
 GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
-GKO_REGISTER_OPERATION(compute_dot_dispatch, dense::compute_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot);
-GKO_REGISTER_OPERATION(compute_conj_dot_dispatch,
-                       dense::compute_conj_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
-GKO_REGISTER_OPERATION(compute_norm2_dispatch, dense::compute_norm2_dispatch);
+GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
+GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
+GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
@@ -151,6 +147,75 @@ template <typename ValueType>
 void Dense<ValueType>::fill(const ValueType value)
 {
     this->get_executor()->run(dense::make_fill(this, value));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scale(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::inv_scale(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
+{
+    auto exec = this->get_executor();
+    this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
+{
+    auto exec = this->get_executor();
+    this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_dot_impl(make_temporary_clone(exec, b).get(),
+                           make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_conj_dot_impl(
+        make_temporary_clone(exec, b).get(),
+        make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1(LinOp* result) const
+{
+    auto exec = this->get_executor();
+    this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
 }
 
 
@@ -270,6 +335,26 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
+void Dense<ValueType>::compute_dot(const LinOp* b, LinOp* result,
+                                   Array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_b = make_temporary_clone(exec, b);
+    auto local_res = make_temporary_clone(exec, result);
+    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
+    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
+    exec->run(
+        dense::make_compute_dot(this, dense_b.get(), dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
@@ -277,8 +362,29 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
     auto exec = this->get_executor();
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
+    Array<char> tmp{exec};
     exec->run(
-        dense::make_compute_dot_dispatch(this, dense_b.get(), dense_res.get()));
+        dense::make_compute_dot(this, dense_b.get(), dense_res.get(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
+                                        Array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_b = make_temporary_clone(exec, b);
+    auto local_res = make_temporary_clone(exec, result);
+    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
+    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
+    exec->run(dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get(),
+                                           tmp));
 }
 
 
@@ -291,8 +397,25 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
     auto exec = this->get_executor();
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
-    exec->run(dense::make_compute_conj_dot_dispatch(this, dense_b.get(),
-                                                    dense_res.get()));
+    Array<char> tmp{exec};
+    exec->run(dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get(),
+                                           tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2(LinOp* result, Array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
 }
 
 
@@ -303,8 +426,26 @@ void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
-    exec->run(dense::make_compute_norm2_dispatch(this, dense_res.get()));
+    Array<char> tmp{exec};
+    exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
 }
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1(LinOp* result, Array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
+}
+
 
 template <typename ValueType>
 void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
@@ -313,8 +454,10 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
     auto exec = this->get_executor();
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
-    exec->run(dense::make_compute_norm1(this, dense_res.get()));
+    Array<char> tmp{exec};
+    exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
 }
+
 
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType>* result) const

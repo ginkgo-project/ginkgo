@@ -470,8 +470,10 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
+    Array<char> tmp{exec};
 
-    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                  tmp);
 
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
                           1);

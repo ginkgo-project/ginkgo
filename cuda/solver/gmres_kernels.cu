@@ -117,8 +117,10 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                 default_block_size);
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
+    Array<char> tmp{exec};
 
-    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 tmp);
 
     const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(

@@ -282,7 +282,7 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result)
+                 matrix::Dense<ValueType>* result, Array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -301,9 +301,9 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+                          matrix::Dense<ValueType>* result, Array<char>& tmp)
 {
-    compute_dot(exec, x, y, result);
+    compute_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -314,7 +314,7 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result)
+                      matrix::Dense<ValueType>* result, Array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -333,9 +333,10 @@ template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+                               matrix::Dense<ValueType>* result,
+                               Array<char>& tmp)
 {
-    compute_conj_dot(exec, x, y, result);
+    compute_conj_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -345,7 +346,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   Array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -366,9 +368,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+                            matrix::Dense<remove_complex<ValueType>>* result,
+                            Array<char>& tmp)
 {
-    compute_norm2(exec, x, result);
+    compute_norm2(exec, x, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -378,7 +381,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   Array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();

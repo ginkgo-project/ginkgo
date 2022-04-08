@@ -137,12 +137,15 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
+    Array<char> tmp{exec};
+
     initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
         acc::as_cuda_range(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
-    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
