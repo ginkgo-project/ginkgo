@@ -119,7 +119,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
     const int num_rows = acsr->get_size().at()[0];
 
     const bool to_scale =
-        this->get_left_scaling_op() && this->get_right_scaling_op();
+        parameters_.left_scaling_op && parameters_.right_scaling_op;
     std::shared_ptr<BDense> adense = BDense::create(
         exec, batch_dim<>(num_batches, dim<2>(num_rows, num_rows)));
     std::shared_ptr<BDense> bt = BDense::create(
@@ -137,8 +137,8 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
         if (to_scale) {
             a_scaled_smart->copy_from(acsr);
             exec->run(batch_direct::make_pre_diag_scale_system(
-                as<BDiag>(this->get_left_scaling_op()),
-                as<BDiag>(this->get_right_scaling_op()), a_scaled_smart.get(),
+                as<BDiag>(parameters_.left_scaling_op.get()),
+                as<BDiag>(parameters_.right_scaling_op.get()), a_scaled_smart.get(),
                 b_scaled.get()));
             a_scaled = a_scaled_smart.get();
         } else {
@@ -153,8 +153,8 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
         acsr->convert_to(a1.get());
         if (to_scale) {
             exec->run(batch_direct::make_pre_diag_scale_system_transpose(
-                a1.get(), dense_b, as<BDiag>(this->get_left_scaling_op()),
-                as<BDiag>(this->get_right_scaling_op()), adense.get(),
+                a1.get(), dense_b, as<BDiag>(parameters_.left_scaling_op.get()),
+                as<BDiag>(parameters_.right_scaling_op.get()), adense.get(),
                 bt.get()));
         } else {
             gko::as<BDense>(a1->transpose())->move_to(adense.get());
@@ -169,7 +169,7 @@ void BatchDirect<ValueType>::apply_impl(const BatchLinOp* b,
 
     if (to_scale) {
         exec->run(batch_direct::make_transpose_scale_copy(
-            as<BDiag>(this->get_right_scaling_op()), bt.get(), dense_x));
+            as<BDiag>(parameters_.right_scaling_op.get()), bt.get(), dense_x));
     } else {
         auto btt =
             std::dynamic_pointer_cast<BDense>(gko::share(bt->transpose()));
