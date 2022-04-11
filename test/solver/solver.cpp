@@ -429,9 +429,9 @@ protected:
     {
         return Config::tolerance() *
                std::sqrt(x.ref->get_size()[1] *
-                                 gko::is_complex<typename VecType::value_type>()
-                             ? 2.0
-                             : 1.0);
+                         (gko::is_complex<typename VecType::value_type>()
+                              ? 2.0
+                              : 1.0));
     }
 
     template <typename VecType>
@@ -439,11 +439,10 @@ protected:
     {
         return std::max(
             r_mixed<value_type, mixed_value_type>() *
-                std::sqrt(
-                    x.ref->get_size()[1] *
-                            gko::is_complex<typename VecType::value_type>()
-                        ? 2.0
-                        : 1.0),
+                std::sqrt(x.ref->get_size()[1] *
+                          (gko::is_complex<typename VecType::value_type>()
+                               ? 2.0
+                               : 1.0)),
             tol(x));
     }
 
