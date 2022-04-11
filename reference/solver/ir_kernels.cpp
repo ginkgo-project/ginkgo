@@ -44,12 +44,14 @@ namespace reference {
 namespace ir {
 
 
-void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                Array<stopping_status>* stop_status)
+std::shared_ptr<AsyncHandle> initialize(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, Array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < stop_status->get_num_elems(); ++j) {
         stop_status->get_data()[j].reset();
     }
+    return handle;
 }
 
 

@@ -47,11 +47,12 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace ir {
 
 
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                Array<stopping_status>* stop_status)
+std::shared_ptr<AsyncHandle> initialize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<AsyncHandle> handle, Array<stopping_status>* stop_status)
 {
-    run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
+    return run_async_kernel(
+        exec, handle, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },
         stop_status->get_num_elems(), *stop_status);
 }
 

@@ -59,7 +59,7 @@ namespace solver {
 namespace multigrid {
 
 
-GKO_REGISTER_OPERATION(initialize, ir::initialize);
+GKO_REGISTER_ASYNC_OPERATION(initialize, ir::initialize);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(kcycle_step_1, multigrid::kcycle_step_1);
 GKO_REGISTER_OPERATION(kcycle_step_2, multigrid::kcycle_step_2);
@@ -584,7 +584,9 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
         bool one_changed{};
         auto state =
             MultigridState(system_matrix_.get(), this, b->get_size()[1]);
-        exec->run(multigrid::make_initialize(&stop_status));
+        exec->run(multigrid::make_async_initialize(&stop_status),
+                  exec->get_default_exec_stream())
+            ->wait();
         // compute the residual at the r_list(0);
         auto r = state.r_list.at(0);
         r->copy_from(b);

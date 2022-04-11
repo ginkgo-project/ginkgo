@@ -51,9 +51,11 @@ namespace kernels {
 namespace ir {
 
 
-#define GKO_DECLARE_IR_INITIALIZE_KERNEL                         \
-    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
-                    Array<stopping_status>* stop_status)
+#define GKO_DECLARE_IR_INITIALIZE_KERNEL             \
+    std::shared_ptr<AsyncHandle> initialize(         \
+        std::shared_ptr<const DefaultExecutor> exec, \
+        std::shared_ptr<AsyncHandle> handle,         \
+        Array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_IR_INITIALIZE_KERNEL

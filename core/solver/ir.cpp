@@ -50,7 +50,7 @@ namespace ir {
 namespace {
 
 
-GKO_REGISTER_OPERATION(initialize, ir::initialize);
+GKO_REGISTER_ASYNC_OPERATION(initialize, ir::initialize);
 GKO_REGISTER_ASYNC_OPERATION(copy, dense::copy);
 
 
@@ -275,7 +275,7 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
 
     bool one_changed{};
-    exec->run(ir::make_initialize(&this->stop_status_));
+    exec->run(ir::make_async_initialize(&this->stop_status_), handle)->wait();
     exec->run(ir::make_async_copy(detail::get_local(dense_b),
                                   detail::get_local(residual.get())),
               handle)
@@ -416,7 +416,9 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
-    exec->run(ir::make_initialize(&stop_status));
+    exec->run(ir::make_async_initialize(&stop_status),
+              exec->get_default_exec_stream())
+        ->wait();
 
     residual->copy_from(dense_b);
     this->get_system_matrix()->apply(lend(neg_one_op), x_clone.get(),
