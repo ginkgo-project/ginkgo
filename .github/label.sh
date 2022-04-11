@@ -3,7 +3,7 @@
 source .github/bot-pr-base.sh
 
 echo "Retrieving PR file list"
-PR_FILES=$(bot_get_all_changed_files ${PR_URL})
+PR_FILES=$(bot_get_all_changed_files "${PR_URL}")
 NUM=$(echo "${PR_FILES}" | wc -l)
 echo "PR has ${NUM} changed files"
 
