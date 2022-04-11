@@ -346,11 +346,10 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
@@ -443,11 +442,10 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
