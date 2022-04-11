@@ -46,6 +46,33 @@ struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
         : gko::EnablePolymorphicObject<DummyObject>(std::move(exec)), x{v}
     {}
 
+    DummyObject(const DummyObject& other) : DummyObject(other.get_executor())
+    {
+        *this = other;
+    }
+
+    DummyObject(DummyObject&& other) : DummyObject(other.get_executor())
+    {
+        *this = std::move(other);
+    }
+
+    DummyObject& operator=(const DummyObject& other)
+    {
+        if (this != &other) {
+            x = other.x;
+        }
+        return *this;
+    }
+
+    DummyObject& operator=(DummyObject&& other) noexcept
+    {
+        if (this != &other) {
+            x = std::exchange(other.x, 0);
+        }
+        return *this;
+    }
+
+
     int x;
 };
 
@@ -114,10 +141,38 @@ TEST_F(EnablePolymorphicObject, CopiesObject)
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), omp);
     ASSERT_EQ(copy->x, 5);
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtr)
+{
+    auto copy = DummyObject::create(ref, 7);
+
+    copy->copy_from(gko::give(obj));
+
+    ASSERT_NE(copy, obj);
+    ASSERT_EQ(copy->get_executor(), ref);
+    ASSERT_EQ(copy->x, 5);
 }
 
 
 TEST_F(EnablePolymorphicObject, MovesObject)
+{
+    auto copy = DummyObject::create(ref, 7);
+
+    copy->move_from(gko::lend(obj));
+
+    ASSERT_NE(copy, obj);
+    ASSERT_EQ(copy->get_executor(), ref);
+    ASSERT_EQ(copy->x, 5);
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->x, 0);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
 {
     auto copy = DummyObject::create(ref, 7);
 

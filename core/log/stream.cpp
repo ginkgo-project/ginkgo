@@ -246,6 +246,26 @@ void Stream<ValueType>::on_polymorphic_object_copy_completed(
 
 
 template <typename ValueType>
+void Stream<ValueType>::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    os_ << prefix_ << demangle_name(from) << " move started to "
+        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    os_ << prefix_ << demangle_name(from) << " move completed to "
+        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_deleted(
     const Executor* exec, const PolymorphicObject* po) const
 {

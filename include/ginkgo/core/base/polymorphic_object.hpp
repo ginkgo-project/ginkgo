@@ -178,10 +178,52 @@ public:
      */
     PolymorphicObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        this->template log<log::Logger::polymorphic_object_copy_started>(
+        this->template log<log::Logger::polymorphic_object_move_started>(
             exec_.get(), other.get(), this);
         auto copied = this->copy_from_impl(std::move(other));
-        this->template log<log::Logger::polymorphic_object_copy_completed>(
+        this->template log<log::Logger::polymorphic_object_move_completed>(
+            exec_.get(), other.get(), this);
+        return copied;
+    }
+
+    /**
+     * Moves another object into this object.
+     *
+     * This is the polymorphic equivalent of the move assignment operator.
+     *
+     * @see move_from_impl(PolymorphicObject *)
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    PolymorphicObject* move_from(PolymorphicObject* other)
+    {
+        this->template log<log::Logger::polymorphic_object_move_started>(
+            exec_.get(), other, this);
+        auto moved = this->move_from_impl(other);
+        this->template log<log::Logger::polymorphic_object_move_completed>(
+            exec_.get(), other, this);
+        return moved;
+    }
+
+    /**
+     * Moves another object into this object.
+     *
+     * This is the polymorphic equivalent of the move assignment operator.
+     *
+     * @see move_from_impl(std::unique_ptr<PolymorphicObject>)
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    PolymorphicObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    {
+        this->template log<log::Logger::polymorphic_object_move_started>(
+            exec_.get(), other.get(), this);
+        auto copied = this->copy_from_impl(std::move(other));
+        this->template log<log::Logger::polymorphic_object_move_completed>(
             exec_.get(), other.get(), this);
         return copied;
     }
@@ -262,6 +304,27 @@ protected:
 
     /**
      * Implementers of PolymorphicObject should implement this function instead
+     * of move_from(PolymorphicObject *).
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    virtual PolymorphicObject* move_from_impl(PolymorphicObject* other) = 0;
+
+    /**
+     * Implementers of PolymorphicObject should implement this function instead
+     * of move_from(std::unique_ptr<PolymorphicObject>).
+     *
+     * @param other  the object to move from
+     *
+     * @return this
+     */
+    virtual PolymorphicObject* move_from_impl(
+        std::unique_ptr<PolymorphicObject> other) = 0;
+
+    /**
+     * Implementers of PolymorphicObject should implement this function instead
      * of clear().
      *
      * @return this
@@ -330,6 +393,17 @@ public:
     {
         return static_cast<AbstractObject*>(
             this->copy_from_impl(std::move(other)));
+    }
+
+    AbstractObject* move_from(PolymorphicObject* other)
+    {
+        return static_cast<AbstractObject*>(this->move_from_impl(other));
+    }
+
+    AbstractObject* move_from(std::unique_ptr<PolymorphicObject> other)
+    {
+        return static_cast<AbstractObject*>(
+            this->move_from_impl(std::move(other)));
     }
 
     AbstractObject* clear()
@@ -586,6 +660,19 @@ protected:
     }
 
     PolymorphicObject* copy_from_impl(
+        std::unique_ptr<PolymorphicObject> other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* move_from_impl(PolymorphicObject* other) override
+    {
+        as<ConvertibleTo<ConcreteObject>>(other)->move_to(self());
+        return this;
+    }
+
+    PolymorphicObject* move_from_impl(
         std::unique_ptr<PolymorphicObject> other) override
     {
         as<ConvertibleTo<ConcreteObject>>(other.get())->move_to(self());
