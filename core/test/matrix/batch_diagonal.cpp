@@ -245,10 +245,6 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromDiagonalMatricesByDuplication)
     m1vals[0] = -1.0;
     m1vals[1] = 2.0;
     m1vals[2] = 3.0;
-    auto mat2 = DiagonalMtx::create(this->exec, 2);
-    auto m2vals = mat2->get_values();
-    m2vals[0] = 1.0;
-    m2vals[1] = -2.5;
 
     auto bat_m = Mtx::create(
         this->exec,
@@ -256,6 +252,36 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromDiagonalMatricesByDuplication)
     auto m = Mtx::create(this->exec, static_cast<size_type>(3), mat1.get());
 
     GKO_ASSERT_BATCH_MTX_NEAR(bat_m.get(), m.get(), 0.0);
+}
+
+
+TYPED_TEST(BatchDiagonal,
+           CanBeConstructedFromBatchDiagonalMatricesByDuplication)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using DiagonalMtx = typename TestFixture::DiagonalMtx;
+    using size_type = gko::size_type;
+    auto mat1 = DiagonalMtx::create(this->exec, 3);
+    auto m1vals = mat1->get_values();
+    m1vals[0] = -1.0;
+    m1vals[1] = 2.0;
+    m1vals[2] = 3.0;
+    auto mat2 = DiagonalMtx::create(this->exec, 3);
+    auto m2vals = mat2->get_values();
+    m2vals[0] = 1.0;
+    m2vals[1] = -2.5;
+    m2vals[2] = -4.0;
+    auto bat_m = Mtx::create(this->exec,
+                             std::vector<DiagonalMtx*>{mat1.get(), mat2.get()});
+    auto full_m = Mtx::create(
+        this->exec,
+        std::vector<DiagonalMtx*>{mat1.get(), mat2.get(), mat1.get(),
+                                  mat2.get(), mat1.get(), mat2.get()});
+
+    auto m = Mtx::create(this->exec, static_cast<size_type>(3), bat_m.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(full_m.get(), m.get(), 0.0);
 }
 
 
