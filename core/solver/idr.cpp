@@ -100,6 +100,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     auto exec = this->get_executor();
 
+    Array<char> reduction_tmp{exec};
+
     auto one_op =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
     auto neg_one_op =
@@ -156,7 +158,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     residual->copy_from(dense_b);
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
-    residual->compute_norm2(residual_norm.get());
+    residual->compute_norm2(residual_norm.get(), reduction_tmp);
 
     // g = u = 0
     exec->run(idr::make_fill_array(
@@ -248,9 +250,9 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         get_preconditioner()->apply(residual.get(), helper.get());
         system_matrix_->apply(helper.get(), t.get());
 
-        t->compute_conj_dot(residual.get(), omega.get());
-        t->compute_conj_dot(t.get(), tht.get());
-        residual->compute_norm2(residual_norm.get());
+        t->compute_conj_dot(residual.get(), omega.get(), reduction_tmp);
+        t->compute_conj_dot(t.get(), tht.get(), reduction_tmp);
+        residual->compute_norm2(residual_norm.get(), reduction_tmp);
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
