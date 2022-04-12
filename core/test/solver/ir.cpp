@@ -76,7 +76,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<typename Solver::Factory> ir_factory;
+    std::shared_ptr<typename Solver::Factory> ir_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
@@ -374,7 +374,7 @@ TYPED_TEST(Ir, DefaultSmootherBuildWithSolver)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    auto solver = gko::as<Solver>(share(this->solver));
+    auto solver = gko::as<Solver>(share(std::move(this->solver)));
 
     auto smoother_factory = gko::solver::build_smoother<value_type>(solver);
     auto criteria =
@@ -394,7 +394,7 @@ TYPED_TEST(Ir, DefaultSmootherBuildWithFactory)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    auto factory = share(this->ir_factory);
+    auto factory = this->ir_factory;
 
     auto smoother_factory = gko::solver::build_smoother<value_type>(factory);
     auto criteria =
@@ -413,7 +413,7 @@ TYPED_TEST(Ir, SmootherBuildWithSolver)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    auto solver = gko::as<Solver>(share(this->solver));
+    auto solver = gko::as<Solver>(gko::share(std::move(this->solver)));
 
     auto smoother_factory =
         gko::solver::build_smoother<value_type>(solver, 3, value_type{0.5});
@@ -434,7 +434,7 @@ TYPED_TEST(Ir, SmootherBuildWithFactory)
 {
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
-    auto factory = share(this->ir_factory);
+    auto factory = this->ir_factory;
 
     auto smoother_factory =
         gko::solver::build_smoother<value_type>(factory, 3, value_type{0.5});

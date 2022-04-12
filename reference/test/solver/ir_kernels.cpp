@@ -178,12 +178,12 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
     using value_type = typename TestFixture::value_type;
 
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
-    auto inner_solver_factory =
+    auto inner_solver_factory = gko::share(
         gko::solver::Gmres<value_type>::build()
             .with_criteria(gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(inner_reduction_factor)
                                .on(this->exec))
-            .on(this->exec);
+            .on(this->exec));
 
     auto solver_factory =
         gko::solver::Ir<value_type>::build()
@@ -192,7 +192,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
-            .with_solver(gko::share(inner_solver_factory))
+            .with_solver(inner_solver_factory)
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -378,12 +378,12 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
-    auto inner_solver_factory =
+    auto inner_solver_factory = gko::share(
         gko::solver::Gmres<value_type>::build()
             .with_criteria(gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(inner_reduction_factor)
                                .on(this->exec))
-            .on(this->exec);
+            .on(this->exec));
     auto solver_factory =
         gko::solver::Ir<value_type>::build()
             .with_criteria(
@@ -393,7 +393,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .with_relaxation_factor(value_type{0.9})
-            .with_solver(gko::share(inner_solver_factory))
+            .with_solver(inner_solver_factory)
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);

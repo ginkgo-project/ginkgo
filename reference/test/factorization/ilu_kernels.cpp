@@ -208,28 +208,26 @@ TYPED_TEST_SUITE(Ilu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 TYPED_TEST(Ilu, ThrowNotSupportedForWrongLinOp1)
 {
-    auto linOp = DummyLinOp::create(this->ref);
+    auto linOp = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->ilu_factory_skip->generate(gko::share(linOp)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->ilu_factory_skip->generate(linOp), gko::NotSupported);
 }
 
 
 TYPED_TEST(Ilu, ThrowNotSupportedForWrongLinOp2)
 {
-    auto linOp = DummyLinOp::create(this->ref);
+    auto linOp = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->ilu_factory_sort->generate(gko::share(linOp)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->ilu_factory_sort->generate(linOp), gko::NotSupported);
 }
 
 
 TYPED_TEST(Ilu, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
-    auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
+    auto matrix = gko::share(Csr::create(this->ref, gko::dim<2>{2, 3}, 4));
 
-    ASSERT_THROW(this->ilu_factory_sort->generate(gko::share(matrix)),
+    ASSERT_THROW(this->ilu_factory_sort->generate(matrix),
                  gko::DimensionMismatch);
 }
 

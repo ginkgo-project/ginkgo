@@ -200,10 +200,10 @@ TYPED_TEST(Ilu, CanBeCopied)
     auto before_l_solver = ilu->get_l_solver();
     auto before_u_solver = ilu->get_u_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
-    auto u_l_composition = Composition::create(this->u_factor, this->l_factor);
-    auto copied = ilu_prec_type::build()
-                      .on(this->exec)
-                      ->generate(gko::share(u_l_composition));
+    auto u_l_composition =
+        gko::share(Composition::create(this->u_factor, this->l_factor));
+    auto copied =
+        ilu_prec_type::build().on(this->exec)->generate(u_l_composition);
 
     copied->copy_from(ilu.get());
 
@@ -220,10 +220,10 @@ TYPED_TEST(Ilu, CanBeMoved)
     auto before_l_solver = ilu->get_l_solver();
     auto before_u_solver = ilu->get_u_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
-    auto u_l_composition = Composition::create(this->u_factor, this->l_factor);
-    auto moved = ilu_prec_type::build()
-                     .on(this->exec)
-                     ->generate(gko::share(u_l_composition));
+    auto u_l_composition =
+        gko::share(Composition::create(this->u_factor, this->l_factor));
+    auto moved =
+        ilu_prec_type::build().on(this->exec)->generate(u_l_composition);
 
     moved->copy_from(std::move(ilu));
 
@@ -316,9 +316,9 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithParIlu)
     x->copy_from(b.get());
     auto par_ilu_fact =
         gko::factorization::ParIlu<value_type>::build().on(this->exec);
-    auto par_ilu = par_ilu_fact->generate(this->mtx);
+    auto par_ilu = gko::share(par_ilu_fact->generate(this->mtx));
 
-    auto preconditioner = this->ilu_pre_factory->generate(gko::share(par_ilu));
+    auto preconditioner = this->ilu_pre_factory->generate(par_ilu);
     preconditioner->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}),

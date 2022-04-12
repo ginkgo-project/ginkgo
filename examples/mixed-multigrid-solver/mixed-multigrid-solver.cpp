@@ -115,10 +115,11 @@ int main(int argc, char* argv[])
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-12;
     auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(100u).on(exec);
-    auto tol_stop = gko::stop::AbsoluteResidualNorm<ValueType>::build()
-                        .with_tolerance(tolerance)
-                        .on(exec);
+        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
+    auto tol_stop =
+        gko::share(gko::stop::AbsoluteResidualNorm<ValueType>::build()
+                       .with_tolerance(tolerance)
+                       .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(exec);
@@ -141,8 +142,10 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .on(exec));
     // Create RestrictProlong factory
-    auto mg_level_gen = amgx_pgm::build().with_deterministic(true).on(exec);
-    auto mg_level_gen2 = amgx_pgm2::build().with_deterministic(true).on(exec);
+    auto mg_level_gen =
+        gko::share(amgx_pgm::build().with_deterministic(true).on(exec));
+    auto mg_level_gen2 =
+        gko::share(amgx_pgm2::build().with_deterministic(true).on(exec));
     // Create CoarsesSolver factory
     auto coarsest_solver_gen =
         cg::build()
@@ -150,18 +153,16 @@ int main(int argc, char* argv[])
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec);
     // Create multigrid factory
-    auto multigrid_gen =
-        mg::build()
-            .with_max_levels(2u)
-            .with_min_coarse_rows(5u)
-            .with_pre_smoother(gko::share(smoother_gen),
-                               gko::share(smoother_gen2))
-            .with_post_uses_pre(true)
-            .with_mg_level(gko::share(mg_level_gen), gko::share(mg_level_gen2))
-            .with_coarsest_solver(
-                gko::share(bj2::build().with_max_block_size(1u).on(exec)))
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
-            .on(exec);
+    auto multigrid_gen = mg::build()
+                             .with_max_levels(2u)
+                             .with_min_coarse_rows(5u)
+                             .with_pre_smoother(smoother_gen, smoother_gen2)
+                             .with_post_uses_pre(true)
+                             .with_mg_level(mg_level_gen, mg_level_gen2)
+                             .with_coarsest_solver(gko::share(
+                                 bj2::build().with_max_block_size(1u).on(exec)))
+                             .with_criteria(iter_stop, tol_stop)
+                             .on(exec);
 
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();

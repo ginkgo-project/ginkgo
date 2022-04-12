@@ -315,8 +315,9 @@ protected:
     std::shared_ptr<const gko::Executor> omp;
     std::shared_ptr<CsrMtx> o_1138_bus_mtx;
     std::shared_ptr<CsrMtx> d_1138_bus_mtx;
-    std::unique_ptr<reorder_type> reorder_op;
-    std::unique_ptr<reorder_type> d_reorder_op;
+    // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
+    // Therefore, use shared pointer
+    std::shared_ptr<reorder_type> d_reorder_op;
 };
 
 TEST_F(Rcm, OmpPermutationIsRcmOrdered)
@@ -325,9 +326,7 @@ TEST_F(Rcm, OmpPermutationIsRcmOrdered)
 
     auto perm = d_reorder_op->get_permutation();
 
-    // Can't std::move parameter when using ASSERT_PREDN, no perfect forwarding.
-    auto d_reorder_op_shared = gko::share(d_reorder_op);
-    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op_shared);
+    ASSERT_PRED2(is_rcm_ordered, d_1138_bus_mtx, d_reorder_op);
 }
 
 }  // namespace

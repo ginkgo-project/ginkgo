@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     auto par_ilu_fact =
         gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
     // Generate concrete factorization for input matrix
-    auto par_ilu = par_ilu_fact->generate(A);
+    auto par_ilu = gko::share(par_ilu_fact->generate(A));
 
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the exact triangular solves
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
             .on(exec);
 
     // Use incomplete factors to generate ILU preconditioner
-    auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));
 
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec))
-            .with_generated_preconditioner(gko::share(ilu_preconditioner))
+            .with_generated_preconditioner(ilu_preconditioner)
             .on(exec);
 
     // Generate preconditioned solver for a specific target system

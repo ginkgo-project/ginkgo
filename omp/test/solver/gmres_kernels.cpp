@@ -165,8 +165,8 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<Mtx> d_mtx;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> d_mtx;
     std::unique_ptr<Solver::Factory> omp_gmres_factory;
     std::unique_ptr<Solver::Factory> ref_gmres_factory;
 
@@ -290,8 +290,8 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 {
     int m = 123;
     int n = 1;
-    auto ref_solver = ref_gmres_factory->generate(gko::share(mtx));
-    auto omp_solver = omp_gmres_factory->generate(gko::share(d_mtx));
+    auto ref_solver = ref_gmres_factory->generate(mtx);
+    auto omp_solver = omp_gmres_factory->generate(d_mtx);
     auto b = gen_mtx(m, n);
     auto x = gen_mtx(m, n);
     auto d_b = gko::clone(omp, b);

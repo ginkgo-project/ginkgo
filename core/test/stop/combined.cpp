@@ -150,10 +150,11 @@ TEST_F(Combined, FunctionCanThrowAllNullptr)
 
 TEST_F(Combined, FunctionCanThrowFirstIsInvalid)
 {
-    auto stop =
-        gko::stop::Iteration::build().with_max_iters(test_iterations).on(exec_);
+    auto stop = gko::share(gko::stop::Iteration::build()
+                               .with_max_iters(test_iterations)
+                               .on(exec_));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
-        criterion_vec{nullptr, gko::share(stop)};
+        criterion_vec{nullptr, stop};
 
     ASSERT_THROW(gko::stop::combine(criterion_vec), gko::NotSupported);
 }
@@ -161,10 +162,11 @@ TEST_F(Combined, FunctionCanThrowFirstIsInvalid)
 
 TEST_F(Combined, FunctionCanIgnoreNullptr)
 {
-    auto stop =
-        gko::stop::Iteration::build().with_max_iters(test_iterations).on(exec_);
+    auto stop = gko::share(gko::stop::Iteration::build()
+                               .with_max_iters(test_iterations)
+                               .on(exec_));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
-        criterion_vec{gko::share(stop), nullptr};
+        criterion_vec{stop, nullptr};
     auto combined = gko::stop::combine(criterion_vec);
 
     ASSERT_NO_THROW(combined->generate(nullptr, nullptr, nullptr));

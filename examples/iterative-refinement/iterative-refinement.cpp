@@ -109,11 +109,12 @@ int main(int argc, char* argv[])
     b->copy_from(host_x.get());
     gko::size_type max_iters = 10000u;
     RealValueType outer_reduction_factor{1e-12};
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(outer_reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
+    auto tol_stop =
+        gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                       .with_reduction_factor(outer_reduction_factor)
+                       .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(exec);
@@ -131,7 +132,7 @@ int main(int argc, char* argv[])
                             .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
                     .on(exec))
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(iter_stop, tol_stop)
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
