@@ -163,7 +163,7 @@ TEST(Share, SharesSharedPointer)
     std::shared_ptr<Derived> p(new Derived());
     auto plain = p.get();
 
-    auto shared = gko::share(p);
+    auto shared = gko::share(std::move(p));
 
     ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
     ASSERT_EQ(plain, shared.get());
@@ -175,7 +175,7 @@ TEST(Share, SharesUniquePointer)
     std::unique_ptr<Derived> p(new Derived());
     auto plain = p.get();
 
-    auto shared = gko::share(p);
+    auto shared = gko::share(std::move(p));
 
     ::testing::StaticAssertTypeEq<decltype(shared), std::shared_ptr<Derived>>();
     ASSERT_EQ(plain, shared.get());
