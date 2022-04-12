@@ -12,20 +12,6 @@
     - cpu
     - controller
 
-.use_gko-cuda90-openmpi-gnu5-llvm39:
-  image: ginkgohub/cuda:openmpi-90-gnu5-llvm39
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
-.use_gko-cuda91-mvapich2-gnu6-llvm40:
-  image: ginkgohub/cuda:91-mvapich2-gnu6-llvm40
-  tags:
-    - private_ci
-    - controller
-    - cpu
-
 .use_gko-cuda92-mvapich2-gnu7-llvm50-intel2017:
   image: ginkgohub/cuda:92-mvapich2-gnu7-llvm50-intel2017
   tags:
@@ -50,8 +36,7 @@
   image: ginkgohub/cuda:101-openmpi-gnu8-llvm11-intel2019
   tags:
     - private_ci
-    - controller
-    - cpu
+    - nvidia-gpu
 
 .use_gko-cuda102-nompi-gnu8-llvm8-intel2019:
   image: ginkgohub/cuda:102-nompi-gnu8-llvm8-intel2019
@@ -64,7 +49,7 @@
   image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
   tags:
     - private_ci
-    - nvidia-gpu
+    - horeka
 
 .use_gko_cuda114-openmpi-gnu11-llvm12:
   image: ginkgohub/cuda:114-openmpi-gnu11-llvm12
