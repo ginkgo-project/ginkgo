@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -53,7 +52,6 @@ constexpr int max_restart = 20;
  */
 template <typename RealType>
 struct BatchGmresOptions {
-    preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;
     int restart_num;
