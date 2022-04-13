@@ -112,7 +112,8 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
     auto residual = Vector::create_with_config_of(dense_b);
-    auto A_residual = Vector::create_with_config_of(dense_b);
+    auto precon_residual = Vector::create_with_config_of(dense_b);
+    auto A_precon_residual = Vector::create_with_config_of(dense_b);
     const auto num_rhs = dense_b->get_size()[1];
     const auto num_rows = system_matrix_->get_size()[0];
     auto p_bases = Vector::create_with_type_of(
@@ -139,14 +140,17 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // Note: x is passed in with initial guess
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
-    // A_residual = A*residual
-    system_matrix_->apply(residual.get(), A_residual.get());
+    get_preconditioner()->apply(residual.get(), precon_residual.get());
+    // A_precon_residual = A*precon_residual
+    system_matrix_->apply(precon_residual.get(), A_precon_residual.get());
 
-    // p(:, 1) = residual
-    // Ap(:,1) = A_residual(:,1)
+    // p(:, 1) = precon_residual
+    // Ap(:,1) = A_precon_residual(:,1)
     // final_iter_nums = {0, ..., 0}
-    exec->run(gcr::make_restart(residual.get(), A_residual.get(), p_bases.get(),
-                                Ap_bases.get(), final_iter_nums));
+    // apply preconditioner to residual
+    exec->run(gcr::make_restart(precon_residual.get(), A_precon_residual.get(),
+                                p_bases.get(), Ap_bases.get(),
+                                final_iter_nums));
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_,
@@ -162,7 +166,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     while (true) {
         ++total_iter;
-        // compute norm
+        // compute residual norm
         residual->compute_norm2(residual_norm.get());
         // Log current iteration
         this->template log<log::Logger::iteration_complete>(
@@ -175,18 +179,16 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                 .residual_norm(residual_norm.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            std::cout << "Done with:\nIterations: " << total_iter << "\n";
-            //                "\nResidual norm: ";
-            //            gko::write(std::cout, residual_norm.get());
             break;
         }
 
         // If krylov_dim reached, restart with new initial guess
         if (restart_iter == krylov_dim_) {
             // Restart
-            exec->run(gcr::make_restart(residual.get(), A_residual.get(),
-                                        p_bases.get(), Ap_bases.get(),
-                                        final_iter_nums));
+            // current residual already preconditioned
+            exec->run(gcr::make_restart(precon_residual.get(),
+                                        A_precon_residual.get(), p_bases.get(),
+                                        Ap_bases.get(), final_iter_nums));
             restart_iter = 0;
         }
         // compute alpha
@@ -207,8 +209,12 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // r = r - tmp * Ap
         exec->run(gcr::make_step_1(dense_x, residual.get(), p.get(), Ap.get(),
                                    Ap_norm.get(), alpha.get(), stop_status));
-        // compute and save Ar
-        system_matrix_->apply(residual.get(), A_residual.get());
+
+        // apply preconditioner to residual
+        get_preconditioner()->apply(residual.get(), precon_residual.get());
+
+        // compute and save A*precon_residual
+        system_matrix_->apply(precon_residual.get(), A_precon_residual.get());
 
         // modified Gram-Schmidt
         auto next_Ap = Ap_bases->create_submatrix(
@@ -219,8 +225,8 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             span{0, num_rhs});
         // Ap = Ar
         // p = r
-        next_Ap->copy_from(A_residual.get());
-        next_p->copy_from(residual.get());
+        next_Ap->copy_from(A_precon_residual.get());
+        next_p->copy_from(precon_residual.get());
         for (size_type i = 0; i <= restart_iter; ++i) {
             Ap = Ap_bases->create_submatrix(
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
@@ -229,7 +235,7 @@ void Gcr<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             Ap_norm =
                 Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
             // beta = Ar*Ap/Ap*Ap
-            A_residual->compute_conj_dot(Ap.get(), beta.get());
+            A_precon_residual->compute_conj_dot(Ap.get(), beta.get());
             beta->inv_scale(Ap_norm.get());
             next_Ap->sub_scaled(beta.get(), Ap.get());
             next_p->sub_scaled(beta.get(), p.get());
