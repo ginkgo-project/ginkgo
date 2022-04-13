@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_cg.hpp>
+#include "core/solver/batch_cg_kernels.hpp"
 
 
 #include <gtest/gtest.h>
@@ -40,11 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_cg.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/solver/batch_cg_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
 #include "test/utils/executor.hpp"
@@ -139,7 +139,6 @@ protected:
 };
 
 
-
 TEST_F(BatchCg, SolveIsEquivalentToReference)
 {
     using mtx_type = Mtx;
@@ -159,8 +158,8 @@ TEST_F(BatchCg, SolveIsEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
-        res_tol, sol_tol);
+        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        sol_tol);
 }
 
 
@@ -202,8 +201,7 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
     const size_t nbatch = 3;
     const auto sys =
         gko::test::get_poisson_problem<value_type>(ref, nrhs_1, nbatch);
-    auto rx =
-        gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, ref);
+    auto rx = gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, ref);
     std::unique_ptr<Mtx> mtx = Mtx::create(d_exec);
     auto b = BDense::create(d_exec);
     auto x = BDense::create(d_exec);
@@ -211,7 +209,8 @@ TEST_F(BatchCg, CoreSolvesSystemJacobi)
     b->copy_from(gko::lend(sys.b));
     x->copy_from(gko::lend(rx));
 
-    std::unique_ptr<solver_type> solver = batchcg_factory->generate(gko::give(mtx));
+    std::unique_ptr<solver_type> solver =
+        batchcg_factory->generate(gko::give(mtx));
     solver->apply(b.get(), x.get());
     rx->copy_from(gko::lend(x));
 
@@ -225,8 +224,8 @@ TEST_F(BatchCg, UnitScalingDoesNotChangeResult)
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
     auto right_scale = gko::share(
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto factory = create_factory(d_exec, opts_1, nullptr,
-                                        left_scale, right_scale);
+    auto factory =
+        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
@@ -237,12 +236,12 @@ TEST_F(BatchCg, UnitScalingDoesNotChangeResult)
 
 TEST_F(BatchCg, GeneralScalingDoesNotChangeResult)
 {
-    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
-        nbatch, {0.8, 1.5, 0.95}, d_exec));
-    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
-        nbatch, {0.8, 1.5, 0.95}, d_exec));
-    auto factory = create_factory(d_exec, opts_1, nullptr,
-                                        left_scale, right_scale);
+    auto left_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {0.8, 1.5, 0.95}, d_exec));
+    auto right_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {0.8, 1.5, 0.95}, d_exec));
+    auto factory =
+        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
@@ -266,8 +265,8 @@ TEST_F(BatchCg, GoodScalingImprovesConvergence)
             right_scale->at(ib, i) = std::sqrt(1.0 / (2.0 + i));
         }
     }
-	auto d_left = gko::share(gko::clone(d_exec, left_scale));
-	auto d_right = gko::share(gko::clone(d_exec, right_scale));
+    auto d_left = gko::share(gko::clone(d_exec, left_scale));
+    auto d_right = gko::share(gko::clone(d_exec, right_scale));
     auto factory =
         solver_type::build()
             .with_max_iterations(20)
@@ -279,12 +278,12 @@ TEST_F(BatchCg, GoodScalingImprovesConvergence)
             .with_max_iterations(10)
             .with_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-			.with_left_scaling_op(d_left)
-			.with_right_scaling_op(d_right)
+            .with_left_scaling_op(d_left)
+            .with_right_scaling_op(d_right)
             .on(d_exec);
 
-    gko::test::test_solve_iterations_with_scaling<solver_type>(d_exec, nbatch, nrows,
-                                 nrhs, factory.get(), factory_s.get());
+    gko::test::test_solve_iterations_with_scaling<solver_type>(
+        d_exec, nbatch, nrows, nrhs, factory.get(), factory_s.get());
 }
 
 
