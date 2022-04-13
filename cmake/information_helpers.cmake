@@ -6,8 +6,8 @@ function(filter_generator_expressions INPUT OUTPUT)
     # without (v3.16.x). Sometimes, it also has extra arguments. We need to do
     # at least a greedy regex also consuming the final `>` if present before
     # doing a non greedy one for the leftovers.
-    string(REGEX REPLACE "[$<A-Z_:]+SHELL:(.+)[>]+" "\\1" TMP "${TMP}")
-    string(REGEX REPLACE "[$<A-Z_:]*SHELL:(.+)[>]*" "\\1" TMP "${TMP}")
+    string(REGEX REPLACE "[$<A-Z_:]+SHELL:(.+)>+" "\\1" TMP "${TMP}")
+    string(REGEX REPLACE "[$<A-Z_:]*SHELL:(.+)>*" "\\1" TMP "${TMP}")
     string(REGEX REPLACE ".+INTERFACE:.+>" "" TMP "${TMP}")
     string(REGEX REPLACE "\$<COMMA>" "," TMP "${TMP}")
     # Ignore hwloc include if it is the internal one
@@ -32,8 +32,8 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                 if (GINKGO_INTERFACE_LIBS_LINK_FLAGS)
                     filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
                         GINKGO_INTERFACE_LIB_NAME)
-                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
-                elseif (NOT "${GINKGO_INTERFACE_LIB_NAME}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND)
+                endif()
+                if (NOT "${GINKGO_INTERFACE_LIB_NAME}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND)
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
                 endif()
 
@@ -97,6 +97,7 @@ macro(ginkgo_interface_information)
 
     # Format and store the interface libraries found
     list(REMOVE_DUPLICATES GINKGO_INTERFACE_LIBS_FOUND)
+    list(REMOVE_ITEM GINKGO_INTERFACE_LIBS_FOUND "")
     string(REPLACE ";" " "
         GINKGO_FORMATTED_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIBS_FOUND}")
     set(GINKGO_INTERFACE_LINK_FLAGS
@@ -104,6 +105,7 @@ macro(ginkgo_interface_information)
     unset(GINKGO_INTERFACE_LIBS_FOUND)
     # Format and store the interface cflags found
     list(REMOVE_DUPLICATES GINKGO_INTERFACE_CFLAGS_FOUND)
+    list(REMOVE_ITEM GINKGO_INTERFACE_CFLAGS_FOUND "")
     string(REPLACE ";" " "
         GINKGO_FORMATTED_INTERFACE_CFLAGS_FOUND "${GINKGO_INTERFACE_CFLAGS_FOUND}")
     set(GINKGO_INTERFACE_CXX_FLAGS "${GINKGO_FORMATTED_INTERFACE_CFLAGS_FOUND}")

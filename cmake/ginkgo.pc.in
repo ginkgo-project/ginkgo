@@ -8,5 +8,5 @@ Version: @Ginkgo_VERSION@
 URL: https://ginkgo-project.github.io/
 
 Requires:
-Libs:  @GINKGO_INTERFACE_LINK_FLAGS@
+Libs: @GINKGO_INTERFACE_LINK_FLAGS@
 Cflags: @GINKGO_INTERFACE_CXX_FLAGS@
