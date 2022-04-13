@@ -60,7 +60,8 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class BatchJacobi : public EnableBatchLinOp<BatchJacobi<ValueType, IndexType>> {
+class BatchJacobi : public EnableBatchLinOp<BatchJacobi<ValueType, IndexType>>,
+                    public BatchTransposable {
     friend class EnableBatchLinOp<BatchJacobi>;
     friend class EnablePolymorphicObject<BatchJacobi, BatchLinOp>;
 
@@ -73,6 +74,19 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchJacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    std::unique_ptr<BatchLinOp> transpose() const override
+    {
+        return this->clone();
+    }
+
+    std::unique_ptr<BatchLinOp> conj_transpose() const override
+    {
+        // Since this preconditioner does nothing in its genarate step,
+        //  conjugate transpose only depends on the matrix being
+        //  conjugate-transposed.
+        return this->clone();
+    }
 
 protected:
     /**

@@ -94,6 +94,7 @@ public:
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
         // Array<unsigned char> local_space(exec_, local_size_bytes);
 
+#pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
