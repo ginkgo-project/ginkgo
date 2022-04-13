@@ -220,9 +220,6 @@ void AmgxPgm<ValueType, IndexType>::generate()
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
     // prolong_row_gather is the lightway implementation for prolongation
-    // TODO: However, we still create the csr to process coarse/restrict matrix
-    // generation. It may be changed when we have the direct triple product from
-    // agg index.
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
@@ -234,7 +231,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
-    // TODO: use less memory footprint to improve it
+    // TODO: improve it
     auto coarse_matrix = generate_coarse(exec, amgxpgm_op, num_agg, agg_);
 
     this->set_multigrid_level(prolong_row_gather, coarse_matrix,

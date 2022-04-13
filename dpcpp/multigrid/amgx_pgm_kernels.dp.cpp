@@ -82,7 +82,10 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     auto policy =
         oneapi::dpl::execution::make_device_policy(*exec->get_queue());
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
-    std::stable_sort(policy, it, it + nnz, [](auto a, auto b) {
+    // Because reduce_by_segment is not determinstic, so we do not need
+    // stable_sort
+    // TODO: If we have determinstic reduce_by_segment, it should be stable_sort
+    std::sort(policy, it, it + nnz, [](auto a, auto b) {
         return std::tie(std::get<0>(a), std::get<1>(a)) <
                std::tie(std::get<0>(b), std::get<1>(b));
     });

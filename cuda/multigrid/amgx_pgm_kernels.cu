@@ -64,67 +64,7 @@ namespace cuda {
 namespace amgx_pgm {
 
 
-template <typename IndexType>
-void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
-              IndexType* row_idxs, IndexType* col_idxs)
-{
-    auto it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
-                           thrust::device_pointer_cast(col_idxs)));
-    thrust::sort(thrust::device, it, it + num);
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
-{
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    using device_value_type = device_member_type<ValueType>;
-    auto vals_it =
-        thrust::device_pointer_cast(reinterpret_cast<device_value_type*>(vals));
-    auto it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
-                           thrust::device_pointer_cast(col_idxs)));
-    thrust::stable_sort_by_key(thrust::device, it, it + nnz, vals_it);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_SORT_ROW_MAJOR);
-
-
-template <typename ValueType, typename IndexType>
-void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
-                        size_type fine_nnz, const IndexType* row_idxs,
-                        const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
-{
-    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
-    // due to overly generic assignment operator and constructor leading to
-    // ambiguities. So we need to use our own fake_complex type
-    using device_value_type = device_member_type<ValueType>;
-    auto vals_it = thrust::device_pointer_cast(
-        reinterpret_cast<const device_value_type*>(vals));
-    auto key_it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
-                           thrust::device_pointer_cast(col_idxs)));
-
-    auto coarse_vals_it = thrust::device_pointer_cast(
-        reinterpret_cast<device_value_type*>(coarse_coo->get_values()));
-    auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(
-        thrust::device_pointer_cast(coarse_coo->get_row_idxs()),
-        thrust::device_pointer_cast(coarse_coo->get_col_idxs())));
-
-    thrust::reduce_by_key(thrust::device, key_it, key_it + fine_nnz, vals_it,
-                          coarse_key_it, coarse_vals_it);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_COMPUTE_COARSE_COO);
+#include "common/cuda_hip/multigrid/amgx_pgm_kernels.hpp.inc"
 
 
 }  // namespace amgx_pgm
