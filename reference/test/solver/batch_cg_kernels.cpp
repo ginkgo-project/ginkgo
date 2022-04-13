@@ -83,8 +83,7 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{gko::preconditioner::batch::type::none, 500,
-                         static_cast<real_type>(1e3) * eps,
+    const Options opts_1{500, static_cast<real_type>(1e3) * eps,
                          gko::stop::batch::ToleranceType::relative};
 
     gko::test::LinSys<value_type> sys_1;
