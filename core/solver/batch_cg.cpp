@@ -103,7 +103,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG);
 
 
 #define GKO_DECLARE_BATCH_CG_APPLY_FUNCTION(_type)                            \
-    void EnableBatchSolver<BatchCg<_type>, BatchLinOp>::apply_impl(           \
+    EnableBatchSolver<BatchCg<_type>, BatchLinOp>::EnableBatchSolver(         \
+        std::shared_ptr<const Executor> exec,                                 \
+        std::shared_ptr<const BatchLinOp> system_matrix,                      \
+        detail::common_batch_params common_params);                           \
+    template void EnableBatchSolver<BatchCg<_type>, BatchLinOp>::apply_impl(  \
         const BatchLinOp* b, BatchLinOp* x) const;                            \
     template void EnableBatchSolver<BatchCg<_type>, BatchLinOp>::apply_impl(  \
         const BatchLinOp* alpha, const BatchLinOp* b, const BatchLinOp* beta, \
