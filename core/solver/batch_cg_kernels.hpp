@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -52,7 +51,6 @@ namespace batch_cg {
  */
 template <typename RealType>
 struct BatchCgOptions {
-    preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;

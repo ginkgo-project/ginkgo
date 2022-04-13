@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
