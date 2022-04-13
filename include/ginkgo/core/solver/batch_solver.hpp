@@ -82,6 +82,16 @@ public:
     }
 
     /**
+     * Returns the generated preconditioner.
+     *
+     * @return the generated preconditioner.
+     */
+    std::shared_ptr<const BatchLinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    /**
      * @return The left scaling vector.
      */
     std::shared_ptr<const BatchLinOp> get_left_scaling_op() const

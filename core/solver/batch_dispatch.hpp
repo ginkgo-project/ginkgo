@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 
 
 #include "core/log/batch_logging.hpp"
