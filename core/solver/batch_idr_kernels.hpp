@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -55,7 +54,6 @@ constexpr int max_subspace_dim = 6;
  */
 template <typename RealType>
 struct BatchIdrOptions {
-    preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;
     size_type subspace_dim_val;

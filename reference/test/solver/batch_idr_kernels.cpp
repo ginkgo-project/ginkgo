@@ -86,15 +86,9 @@ protected:
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{gko::preconditioner::batch::type::none,
-                         500,
-                         static_cast<real_type>(1e3) * eps,
-                         2,
-                         false,
-                         0.70,
-                         true,
-                         true,
-                         gko::stop::batch::ToleranceType::relative};
+    const Options opts_1{
+        500,  static_cast<real_type>(1e3) * eps,        2, false, 0.70, true,
+        true, gko::stop::batch::ToleranceType::relative};
 
     gko::test::LinSys<value_type> sys_1;
 
