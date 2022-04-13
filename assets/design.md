@@ -11,3 +11,5 @@ The colors are, from left to right
 4. ginkgo-gray-1 `#6D6E71`
 5. ginkgo-gray-2 `#939598`
 6. ginkgo-gray-3 `#D1D3D4`
+
+The font used in the logo is Merriweather Black.
