@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_richardson.hpp>
+#include "core/solver/batch_richardson_kernels.hpp"
 
 
 #include <gtest/gtest.h>
@@ -40,11 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_richardson.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/solver/batch_richardson_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
@@ -80,7 +80,7 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           sys_1(gko::test::get_poisson_problem<value_type>(ref, 1, nbatch))
     {
-		init_executor(ref, d_exec);
+        init_executor(ref, d_exec);
         auto execp = d_exec;
         solve_fn = [execp](const Options opts, const Mtx* mtx,
                            const gko::BatchLinOp* prec, const BDense* b,
@@ -167,8 +167,7 @@ TEST_F(BatchRich, SolvesStencilSystemJacobi)
                       sys_1.bnorm->get_const_values()[i],
                   opts_1.residual_tol);
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, sys_1.xex,
-                              1e-6 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(r_1.x, sys_1.xex, 1e-6 /*r<value_type>::value*/);
 }
 
 
@@ -228,7 +227,8 @@ TEST_F(BatchRich, CoreSolvesSystemJacobi)
             .with_max_iterations(100)
             .with_residual_tol(5e-7f)
             .with_preconditioner(
-                gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec))
+                gko::preconditioner::BatchJacobi<value_type>::build().on(
+                    d_exec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(d_exec);
     const int nrhs_1 = 1;
@@ -256,12 +256,11 @@ TEST_F(BatchRich, CoreSolvesSystemJacobi)
     const auto rnorms = gko::test::compute_residual_norm(
         sys_1.mtx.get(), rx.get(), sys_1.b.get());
     for (size_t i = 0; i < nbatch; i++) {
-        ASSERT_LE(rnorms->get_const_values()[i] /
-                      sys_1.bnorm->get_const_values()[i],
-                  5e-7);
+        ASSERT_LE(
+            rnorms->get_const_values()[i] / sys_1.bnorm->get_const_values()[i],
+            5e-7);
     }
-    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys_1.xex,
-                              1e-5 /*r<value_type>::value*/);
+    GKO_ASSERT_BATCH_MTX_NEAR(rx, sys_1.xex, 1e-5 /*r<value_type>::value*/);
 }
 
 
@@ -271,14 +270,15 @@ TEST_F(BatchRich, UnitScalingDoesNotChangeResult)
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
     auto right_scale = gko::share(
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto factory = create_factory(d_exec, opts_1,
+    auto factory = create_factory(
+        d_exec, opts_1,
         gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec),
         left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e2*r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e2 * r<value_type>::value);
 }
 
 
@@ -286,15 +286,16 @@ TEST_F(BatchRich, GeneralScalingDoesNotChangeResult)
 {
     auto left_scale = gko::batch_initialize<BDiag>(
         {{0.8, 0.9, 0.95}, {1.1, 3.2, 0.9}}, d_exec);
-    auto right_scale = gko::batch_initialize<BDiag>(
-        nbatch, {1.0, 1.5, 1.05}, d_exec);
-    auto factory = create_factory(d_exec, opts_1,
+    auto right_scale =
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, d_exec);
+    auto factory = create_factory(
+        d_exec, opts_1,
         gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
 
-    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e2*r<value_type>::value);
+    GKO_ASSERT_BATCH_MTX_NEAR(result.x, sys_1.xex, 1e2 * r<value_type>::value);
 }
 
 
