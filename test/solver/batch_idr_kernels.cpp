@@ -100,14 +100,8 @@ protected:
     const size_t nbatch = 2;
     const int nrows = 3;
 
-    const Options opts_1{gko::preconditioner::batch::type::none,
-                         100,
-                         static_cast<real_type>(1e3) * eps,
-                         2,
-                         false,
-                         0.70,
-                         true,
-                         true,
+    const Options opts_1{100, static_cast<real_type>(1e3) * eps, 2, false,
+                         0.70, true, true,
                          gko::stop::batch::ToleranceType::relative};
 
     gko::test::LinSys<value_type> sys_1;
@@ -156,14 +150,7 @@ TEST_F(BatchIdr, SolveIsEquivalentToReference)
     constexpr bool issingle =
         std::is_same<gko::remove_complex<value_type>, float>::value;
     const float solver_restol = eps;
-    const opts_type opts{gko::preconditioner::batch::type::none,
-                         500,
-                         solver_restol,
-                         2,
-                         false,
-                         0.7,
-                         true,
-                         true,
+    const opts_type opts{500, solver_restol, 2, false, 0.7, true, true,
                          gko::stop::batch::ToleranceType::relative};
     auto r_sys = gko::test::generate_solvable_batch_system<mtx_type>(
         ref, nbatch, 11, 1, false);

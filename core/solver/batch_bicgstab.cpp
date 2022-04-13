@@ -58,6 +58,12 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(share(
+            as<BatchTransposable>(this->get_preconditioner())->transpose()))
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
@@ -72,6 +78,15 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(
+            share(as<BatchTransposable>(this->get_preconditioner())
+                      ->conj_transpose()))
+        .with_left_scaling_op(
+            share(as<BatchTransposable>(parameters_.left_scaling_op)
+                      ->conj_transpose()))
+        .with_right_scaling_op(
+            share(as<BatchTransposable>(parameters_.right_scaling_op)
+                      ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
@@ -89,8 +104,8 @@ void BatchBicgstab<ValueType>::solver_apply(const BatchLinOp* const b,
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>>
-        opts{preconditioner::batch::type::none, parameters_.max_iterations,
-             parameters_.residual_tol, parameters_.tolerance_type};
+        opts{parameters_.max_iterations, parameters_.residual_tol,
+             parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_bicgstab::make_apply(
         opts, this->system_matrix_.get(), this->preconditioner_.get(),
