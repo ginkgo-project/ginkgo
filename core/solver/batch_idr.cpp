@@ -58,6 +58,12 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(share(
+            as<BatchTransposable>(this->get_preconditioner())->transpose()))
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_subspace_dim(parameters_.subspace_dim)
@@ -77,6 +83,15 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(
+            share(as<BatchTransposable>(this->get_preconditioner())
+                      ->conj_transpose()))
+        .with_left_scaling_op(
+            share(as<BatchTransposable>(parameters_.left_scaling_op)
+                      ->conj_transpose()))
+        .with_right_scaling_op(
+            share(as<BatchTransposable>(parameters_.right_scaling_op)
+                      ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_subspace_dim(parameters_.subspace_dim)
@@ -98,15 +113,10 @@ void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const b,
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_idr::BatchIdrOptions<remove_complex<ValueType>> opts{
-        preconditioner::batch::type::none,
-        parameters_.max_iterations,
-        parameters_.residual_tol,
-        parameters_.subspace_dim,
-        parameters_.complex_subspace,
-        parameters_.kappa,
-        parameters_.smoothing,
-        parameters_.deterministic,
-        parameters_.tolerance_type};
+        parameters_.max_iterations, parameters_.residual_tol,
+        parameters_.subspace_dim,   parameters_.complex_subspace,
+        parameters_.kappa,          parameters_.smoothing,
+        parameters_.deterministic,  parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_idr::make_apply(
         opts, this->system_matrix_.get(), this->preconditioner_.get(),

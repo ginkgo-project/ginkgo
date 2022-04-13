@@ -51,9 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-namespace gpb = gko::preconditioner::batch;
-
-
 template <typename T>
 class BatchRich : public ::testing::Test {
 protected:
@@ -89,7 +86,7 @@ protected:
 
     const size_t nbatch = 2;
     const int nrows = 3;
-    const Options opts_1{gpb::type::jacobi, 500, r<real_type>::value,
+    const Options opts_1{500, r<real_type>::value,
                          gko::stop::batch::ToleranceType::relative, 1.0};
 
     gko::test::LinSys<value_type> sys_1;
@@ -176,9 +173,9 @@ TYPED_TEST(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 {
     using value_type = typename TestFixture::value_type;
     using Options = typename TestFixture::Options;
-    const Options opts{gpb::type::jacobi, 1000, 1e-8,
-                       gko::stop::batch::ToleranceType::relative, 1.0};
-    const Options opts_slower{gpb::type::jacobi, 1000, 1e-8,
+    const Options opts{1000, 1e-8, gko::stop::batch::ToleranceType::relative,
+                       1.0};
+    const Options opts_slower{1000, 1e-8,
                               gko::stop::batch::ToleranceType::relative, 0.8};
 
     auto result1 = gko::test::solve_poisson_uniform<value_type>(

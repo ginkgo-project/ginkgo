@@ -50,9 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-namespace gpb = gko::preconditioner::batch;
-
-
 template <typename T>
 class BatchRich : public ::testing::Test {
 protected:
