@@ -6,11 +6,11 @@
     - amdci
 
 .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+  image: ginkgohub/cpu:mvapich2-gnu5-llvm39-intel2018
   tags:
     - private_ci
-    - amdci
-    - gpu
+    - cpu
+    - controller
 
 .use_gko-cuda90-openmpi-gnu5-llvm39:
   image: ginkgohub/cuda:openmpi-90-gnu5-llvm39
@@ -61,42 +61,33 @@
     - cpu
 
 .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+  image: ginkgohub/cuda:110-mvapich2-gnu9-llvm9-intel2020
   tags:
     - private_ci
-    - amdci
     - nvidia-gpu
 
 .use_gko_cuda114-openmpi-gnu11-llvm12:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-cuda114-openmpi-gnu11-llvm12
+  image: ginkgohub/cuda:114-openmpi-gnu11-llvm12
   tags:
     - private_ci
-    - amdci
     - nvidia-gpu
 
-.use_gko-amd-openmpi-gnu8-llvm7:
-  image: ginkgohub/rocm:gnu8-openmpi-llvm7
-  tags:
-    - private_ci
-    - amdci
-    - gpu
-
 .use_gko-rocm35-openmpi-gnu5-llvm50:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-rocm35-openmpi-gnu5-llvm50
+  image: ginkgohub/rocm:35-openmpi-gnu5-llvm50
   tags:
     - private_ci
     - amdci
     - gpu
 
 .use_gko-rocm45-mvapich2-gnu8-llvm8:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-rocm45-mvapich2-gnu8-llvm8
+  image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
   tags:
     - private_ci
     - amdci
     - gpu
 
 .use_gko-rocm502-openmpi-gnu11-llvm11:
-  image: localhost:5000/hpccm_hip_be95edf6_gko-rocm502-openmpi-gnu11-llvm11
+  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amdci
