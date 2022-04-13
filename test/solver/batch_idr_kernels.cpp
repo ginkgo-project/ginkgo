@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/batch_idr.hpp>
+#include "core/solver/batch_idr_kernels.hpp"
 
 
 #include <gtest/gtest.h>
@@ -40,11 +40,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/solver/batch_idr.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
-#include "core/solver/batch_idr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch_test_utils.hpp"
 #include "test/utils/executor.hpp"
@@ -174,8 +174,8 @@ TEST_F(BatchIdr, SolveIsEquivalentToReference)
     const double sol_tol = 10 * solver_restol;
 
     gko::test::compare_with_reference<value_type, solver_type>(
-        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol,
-        res_tol, sol_tol);
+        d_exec, r_sys, r_factory.get(), d_factory.get(), iter_tol, res_tol,
+        sol_tol);
 }
 
 
@@ -206,8 +206,8 @@ TEST_F(BatchIdr, UnitScalingDoesNotChangeResult)
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
     auto right_scale = gko::share(
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.0, 1.0}, d_exec));
-    auto factory = create_factory(d_exec, opts_1, nullptr,
-                                        left_scale, right_scale);
+    auto factory =
+        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
@@ -218,12 +218,12 @@ TEST_F(BatchIdr, UnitScalingDoesNotChangeResult)
 
 TEST_F(BatchIdr, GeneralScalingDoesNotChangeResult)
 {
-    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
-        nbatch, {0.8, 0.9, 0.95}, d_exec));
-    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
-        nbatch, {1.0, 1.5, 1.05}, d_exec));
-    auto factory = create_factory(d_exec, opts_1, nullptr,
-                                        left_scale, right_scale);
+    auto left_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {0.8, 0.9, 0.95}, d_exec));
+    auto right_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, d_exec));
+    auto factory =
+        create_factory(d_exec, opts_1, nullptr, left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<solver_type>(
         d_exec, factory.get(), sys_1, 1);
@@ -246,7 +246,7 @@ TEST(BatchIdrCsr, CanSolveWithoutScaling)
     std::shared_ptr<gko::ReferenceExecutor> ref =
         gko::ReferenceExecutor::create();
     std::shared_ptr<gko::EXEC_TYPE> exec;
-	init_executor(ref, exec);
+    init_executor(ref, exec);
     const int maxits = 5000;
     auto batchidr_factory =
         Solver::build()
@@ -278,7 +278,7 @@ TEST(BatchIdrCsr, SolvesSystemWithJacobiPreconditioner)
     std::shared_ptr<gko::ReferenceExecutor> ref =
         gko::ReferenceExecutor::create();
     std::shared_ptr<gko::EXEC_TYPE> exec;
-	init_executor(ref, exec);
+    init_executor(ref, exec);
     const float eps = r<value_type>::value;
     std::unique_ptr<typename Solver::Factory> batchidr_factory =
         Solver::build()
@@ -292,8 +292,7 @@ TEST(BatchIdrCsr, SolvesSystemWithJacobiPreconditioner)
             .on(exec);
     const int nrhs_1 = 1;
     const size_t nbatch = 3;
-    auto sys =
-        gko::test::get_poisson_problem<value_type>(ref, nrhs_1, nbatch);
+    auto sys = gko::test::get_poisson_problem<value_type>(ref, nrhs_1, nbatch);
     auto rx = gko::batch_initialize<BDense>(nbatch, {0.0, 0.0, 0.0}, ref);
     std::unique_ptr<Mtx> mtx = Mtx::create(exec);
     auto b = BDense::create(exec);
