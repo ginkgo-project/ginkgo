@@ -30,41 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/multigrid/amgx_pgm_kernels.hpp"
-
-
-#include <algorithm>
-#include <memory>
-
-
-#include <omp.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/multigrid/amgx_pgm.hpp>
-
-
-#include "core/base/iterator_factory.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace omp {
-/**
- * @brief The AMGX_PGM solver namespace.
- *
- * @ingroup amgx_pgm
- */
-namespace amgx_pgm {
-
-
 template <typename IndexType>
 void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
               IndexType* row_idxs, IndexType* col_idxs)
 {
-    auto it = detail::make_zip_iterator(row_idxs, col_idxs);
-    std::sort(it, it + num);
+    auto it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
+                           thrust::device_pointer_cast(col_idxs)));
+    thrust::sort(thrust::device, it, it + num);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
@@ -74,11 +47,20 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
                     IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
 {
-    auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
-    std::stable_sort(it, it + nnz, [](auto a, auto b) {
-        return std::tie(std::get<0>(a), std::get<1>(a)) <
-               std::tie(std::get<0>(b), std::get<1>(b));
-    });
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    using device_value_type = device_member_type<ValueType>;
+    auto vals_it =
+        thrust::device_pointer_cast(reinterpret_cast<device_value_type*>(vals));
+    auto it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
+                           thrust::device_pointer_cast(col_idxs)));
+    // Because reduce_by_key is not determinstic, so we do not need
+    // stable_sort_by_key
+    // TODO: If we have determinstic reduce_by_key, it should be
+    // stable_sort_by_key
+    thrust::sort_by_key(thrust::device, it, it + nnz, vals_it);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -91,38 +73,25 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         const IndexType* col_idxs, const ValueType* vals,
                         matrix::Coo<ValueType, IndexType>* coarse_coo)
 {
-    auto coarse_row = coarse_coo->get_row_idxs();
-    auto coarse_col = coarse_coo->get_col_idxs();
-    auto coarse_val = coarse_coo->get_values();
-    size_type idxs = 0;
-    size_type coarse_idxs = 0;
-    IndexType curr_row = row_idxs[0];
-    IndexType curr_col = col_idxs[0];
-    ValueType temp_val = vals[0];
-    for (size_type idxs = 1; idxs < fine_nnz; idxs++) {
-        if (curr_row != row_idxs[idxs] || curr_col != col_idxs[idxs]) {
-            coarse_row[coarse_idxs] = curr_row;
-            coarse_col[coarse_idxs] = curr_col;
-            coarse_val[coarse_idxs] = temp_val;
-            curr_row = row_idxs[idxs];
-            curr_col = col_idxs[idxs];
-            temp_val = vals[idxs];
-            coarse_idxs++;
-            continue;
-        }
-        temp_val += vals[idxs];
-    }
-    GKO_ASSERT(coarse_idxs + 1 == coarse_coo->get_num_stored_elements());
-    coarse_row[coarse_idxs] = curr_row;
-    coarse_col[coarse_idxs] = curr_col;
-    coarse_val[coarse_idxs] = temp_val;
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    using device_value_type = device_member_type<ValueType>;
+    auto vals_it = thrust::device_pointer_cast(
+        reinterpret_cast<const device_value_type*>(vals));
+    auto key_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
+                           thrust::device_pointer_cast(col_idxs)));
+
+    auto coarse_vals_it = thrust::device_pointer_cast(
+        reinterpret_cast<device_value_type*>(coarse_coo->get_values()));
+    auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(
+        thrust::device_pointer_cast(coarse_coo->get_row_idxs()),
+        thrust::device_pointer_cast(coarse_coo->get_col_idxs())));
+
+    thrust::reduce_by_key(thrust::device, key_it, key_it + fine_nnz, vals_it,
+                          coarse_key_it, coarse_vals_it);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_COMPUTE_COARSE_COO);
-
-
-}  // namespace amgx_pgm
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko
