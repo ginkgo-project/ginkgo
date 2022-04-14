@@ -225,8 +225,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
             std::shared_ptr<LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
-                excess_solver_factory =
-                    share(parameters_.excess_solver_factory);
+                excess_solver_factory = parameters_.excess_solver_factory;
                 excess_solution->copy_from(excess_rhs.get());
             } else if (is_general || is_spd) {
                 excess_solver_factory =
