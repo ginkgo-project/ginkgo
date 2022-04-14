@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/base/device_matrix_data_kernels.hpp"
+#include <ginkgo/core/base/device_matrix_data.hpp>
 
 
 #include <memory>
@@ -41,11 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
+#include "core/base/device_matrix_data_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "test/utils/executor.hpp"
@@ -365,7 +365,8 @@ TYPED_TEST(DeviceMatrixData, SumsDuplicates)
             max_error, std::abs(arrays.values.get_const_data()[i] -
                                 ref_arrays.values.get_const_data()[i]));
     }
-    ASSERT_LT(max_error, r<value_type>::value);
+    // when Hip with GNU < 7, it will give a little difference.
+    ASSERT_LT(max_error, 2 * r<value_type>::value);
 }
 
 
