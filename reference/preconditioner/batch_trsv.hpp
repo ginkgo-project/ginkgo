@@ -51,12 +51,6 @@ class BatchExactTrsvSeparate {
 public:
     using value_type = ValueType;
 
-    BatchExactTrsvSeparate(
-        const gko::batch_csr::BatchEntry<const ValueType>& l_factor,
-        const gko::batch_csr::BatchEntry<const ValueType>& u_factor)
-        : l_factor_{l_factor}, u_factor_{u_factor}
-    {}
-
     int dynamic_work_size(const int num_rows, const int nnz)
     {
         return 0;
@@ -64,29 +58,48 @@ public:
         // return num_rows;
     }
 
-    void apply(const ValueType* const __restrict__ r,
-               ValueType* const __restrict__ z)
+    /*
+     * Set local triangular factors.
+     */
+    void generate(const gko::batch_csr::BatchEntry<const ValueType>& l_factor,
+                  const gko::batch_csr::BatchEntry<const ValueType>& u_factor)
+    {
+        l_factor_ = l_factor;
+        u_factor_ = u_factor;
+    }
+
+    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
+               const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
         for (int i = 0; i < l_factor_.num_rows; i++) {
-            ValueType sum{};
-            for (int iz = l_factor_.row_ptrs[i];
-                 iz < l_factor_.row_ptrs[i + 1] - 1; iz++) {
-                ValueType val =
-                    l_factor_.values[iz] * r[l_factor_.col_idxs[iz]];
-                sum += val;
+            for (int j = 0; j < r.num_rhs; j++) {
+                ValueType sum{};
+                for (int iz = l_factor_.row_ptrs[i];
+                     iz < l_factor_.row_ptrs[i + 1] - 1; iz++) {
+                    ValueType val =
+                        l_factor_.values[iz] *
+                        r.values[l_factor_.col_idxs[iz] * r.stride + j];
+                    sum += val;
+                }
+                z.values[i * z.stride + j] =
+                    (r.values[i * r.stride + j] - sum) /
+                    l_factor_.values[l_factor_.row_ptrs[i + 1] - 1];
             }
-            z[i] =
-                (r[i] - sum) / l_factor_.values[l_factor_.row_ptrs[i + 1] - 1];
         }
         for (int i = u_factor_.num_rows - 1; i >= 0; i--) {
-            ValueType sum{};
-            for (int iz = u_factor_.row_ptrs[i] + 1;
-                 iz < u_factor_.row_ptrs[i + 1]; iz++) {
-                ValueType val =
-                    u_factor_.values[iz] * z[u_factor_.col_idxs[iz]];
-                sum += val;
+            for (int j = 0; j < r.num_rhs; j++) {
+                ValueType sum{};
+                for (int iz = u_factor_.row_ptrs[i] + 1;
+                     iz < u_factor_.row_ptrs[i + 1]; iz++) {
+                    ValueType val =
+                        u_factor_.values[iz] *
+                        z.values[u_factor_.col_idxs[iz] * z.stride + j];
+                    sum += val;
+                }
+                z.values[i * z.stride + j] =
+                    (z.values[i * z.stride + j] - sum) /
+                    u_factor_.values[u_factor_.row_ptrs[i]];
             }
-            z[i] = (z[i] - sum) / u_factor_.values[u_factor_.row_ptrs[i]];
         }
     }
 

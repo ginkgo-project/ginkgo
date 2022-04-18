@@ -352,7 +352,7 @@ inline void batch_entry_gmres_impl(
         norms_tmp, static_cast<size_type>(nrhs), 1, nrhs};
 
     // generate preconditioner
-    prec.generate(A_entry, prec_work);
+    prec.generate(ibatch, A_entry, prec_work);
 
     // initialization
     // compute b norms
