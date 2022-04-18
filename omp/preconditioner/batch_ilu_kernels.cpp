@@ -30,7 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/batch_identity_kernels.hpp"
+
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -38,51 +39,53 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_ilu.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace omp {
+namespace batch_ilu {
 
-namespace batch_identity {
+
+#include "reference/preconditioner/batch_ilu_kernels.hpp.inc"
 
 
 template <typename ValueType>
-void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
-                          const matrix::BatchCsr<ValueType>* const a,
-                          const matrix::BatchDense<ValueType>* const b,
-                          matrix::BatchDense<ValueType>* const x)
+void generate_split(std::shared_ptr<const DefaultExecutor> exec,
+                    gko::preconditioner::batch_factorization_type,
+                    gko::preconditioner::batch_factors_storage f_storage,
+                    const matrix::BatchCsr<ValueType>* const a,
+                    matrix::BatchCsr<ValueType>* const l_factor,
+                    matrix::BatchCsr<ValueType>* const u_factor)
 {
-    const auto a_ub = host::get_batch_struct(a);
-    const auto b_ub = host::get_batch_struct(b);
-    const auto x_ub = host::get_batch_struct(x);
-    const int local_size_bytes =
-        host::BatchIdentity<ValueType>::dynamic_work_size(a_ub.num_rows,
-                                                          a_ub.num_nnz) *
-        sizeof(ValueType);
-    using byte = unsigned char;
+    if (f_storage == gko::preconditioner::batch_factors_storage::split) {
+        const auto a_ub = host::get_batch_struct(a);
+        const auto l_ub = host::get_batch_struct(l_factor);
+        const auto u_ub = host::get_batch_struct(u_factor);
+#pragma omp parallel for firstprivate(a_ub, l_ub, u_ub)
+        for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
+            const auto a_b = gko::batch::batch_entry(a_ub, batch);
+            const auto l_b = gko::batch::batch_entry(l_ub, batch);
+            const auto u_b = gko::batch::batch_entry(u_ub, batch);
 
-#pragma omp parallel for
-    for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
-        Array<byte> local_space(exec, local_size_bytes);
-        host::BatchIdentity<ValueType> prec;
-
-        const auto a_b = gko::batch::batch_entry(a_ub, batch);
-        const auto b_b = gko::batch::batch_entry(b_ub, batch);
-        const auto x_b = gko::batch::batch_entry(x_ub, batch);
-
-        const auto prec_work =
-            reinterpret_cast<ValueType*>(local_space.get_data());
-        prec.generate(batch, a_b, prec_work);
-        prec.apply(b_b, x_b);
+            // FIXME: the following needs to be implemented in
+            //  batch_ilu_kernels.hpp.inc
+            generate(a_b.num_rows, a_b.row_ptrs, a_b.col_idxs, a_b.values,
+                     l_b.row_ptrs, l_b.col_idxs, l_b.values, u_b.row_ptrs,
+                     u_b.col_idxs, u_b.values);
+        }
+        GKO_NOT_IMPLEMENTED;
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_KERNEL);
 
-}  // namespace batch_identity
+}  // namespace batch_ilu
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
