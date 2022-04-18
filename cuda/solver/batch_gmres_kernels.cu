@@ -87,7 +87,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const value_type>& b,
                      const gko::batch_dense::UniformBatch<value_type>& x) const
     {
@@ -118,11 +118,11 @@ public:
             static_cast<size_type>(shared_size * nbatch / sizeof(value_type)));
         apply_kernel<StopType><<<nbatch, default_block_size>>>(
             global_gap, opts_.max_its, opts_.residual_tol, opts_.restart_num,
-            logger, PrecType(), a, bptr, xptr, workspace.get_data());
+            logger, prec, a, bptr, xptr, workspace.get_data());
 #else
         apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
             global_gap, opts_.max_its, opts_.residual_tol, opts_.restart_num,
-            logger, PrecType(), a, bptr, xptr);
+            logger, prec, a, bptr, xptr);
 #endif
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }

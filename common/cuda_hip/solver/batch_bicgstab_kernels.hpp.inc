@@ -277,7 +277,7 @@ __global__ void apply_kernel(
             gko::batch::batch_entry_ptr(x, 1, nrows, ibatch);
 
         // generate preconditioner
-        prec_shared.generate(a_global_entry, prec_work_sh);
+        prec_shared.generate(ibatch, a_global_entry, prec_work_sh);
 
         // initialization
         // rho_old = 1, omega = 1, alpha = 1

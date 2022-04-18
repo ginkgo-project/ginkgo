@@ -58,7 +58,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_ell::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_ell::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
         const auto col = mat.col_idxs;
@@ -92,7 +92,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_csr::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
         work_ = work;
@@ -125,7 +125,7 @@ public:
      *              of memory given by dynamic_work_size.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_dense::BatchEntry<const ValueType>& mat,
+        size_type, const gko::batch_dense::BatchEntry<const ValueType>& mat,
         ValueType* const __restrict__ work)
     {
         work_ = work;
@@ -171,7 +171,7 @@ __global__ void batch_jacobi(
 
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
@@ -191,7 +191,7 @@ __global__ void batch_jacobi(
 
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
