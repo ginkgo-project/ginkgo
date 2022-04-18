@@ -266,7 +266,7 @@ inline void batch_entry_bicgstab_impl(
         norms_res, static_cast<size_type>(nrhs), 1, nrhs};
 
     // generate preconditioner
-    prec.generate(A_entry, prec_work);
+    prec.generate(ibatch, A_entry, prec_work);
 
     // initialization
     // rho_old = 1, omega = 1, alpha = 1

@@ -75,6 +75,7 @@ public:
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
     void call_kernel(const LogType& logger, const BatchMatrixType& a,
+                     PrecType prec,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -94,8 +95,8 @@ public:
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_gmres_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                   ValueType>(opts_, logger, PrecType(), a, b,
-                                              x, ibatch, local_space.data());
+                                   ValueType>(opts_, logger, prec, a, b, x,
+                                              ibatch, local_space.data());
         }
     }
 
