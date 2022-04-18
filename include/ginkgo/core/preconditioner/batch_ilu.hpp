@@ -49,14 +49,31 @@ namespace gko {
 namespace preconditioner {
 
 
+/**
+ * Method to use for triangular solves.
+ */
 enum class batch_trsv_type { exact, isai };
 
 
+/**
+ * Method to use for factorization of the system matrix in a given sparsity
+ * pattern.
+ */
+enum class batch_factorization_type { exact, par_ilu };
+
+
+/**
+ * Type of storage of the triangular factors - two separate batch sparse
+ * matrices or one combined batch sparse matrix.
+ */
 enum class batch_factors_storage { split, combined };
 
 
 /**
  * A batch of incomplete LU factor preconditioners for a batch of matrices.
+ *
+ * Currently, this always computes ILU(0) preconditioners, either exactly or
+ * approximately.
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -75,14 +92,21 @@ public:
     using EnableBatchLinOp<BatchIlu>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
+    using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Type of triangular solver used.
+         * Type of triangular solver to use.
          */
         batch_trsv_type GKO_FACTORY_PARAMETER_SCALAR(trsv_type,
                                                      batch_trsv_type::exact);
+
+        /**
+         * Factorization algorithm to use.
+         */
+        batch_factorization_type GKO_FACTORY_PARAMETER_SCALAR(
+            factorization_type, batch_factorization_type::exact);
 
         /**
          * How the factors are stored.
@@ -91,7 +115,7 @@ public:
          * with implied unit diagonal (combined).
          */
         batch_factors_storage GKO_FACTORY_PARAMETER_SCALAR(
-            storage_type, batch_factors_storaga::split);
+            storage_type, batch_factors_storage::split);
     };
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -99,6 +123,16 @@ public:
     std::unique_ptr<BatchLinOp> transpose() const override;
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
+
+    const matrix::BatchCsr<ValueType, IndexType>* get_const_lower_factor() const
+    {
+        return l_factor_.get();
+    }
+
+    const matrix::BatchCsr<ValueType, IndexType>* get_const_upper_factor() const
+    {
+        return u_factor_.get();
+    }
 
 protected:
     /**
@@ -140,8 +174,8 @@ protected:
                     const BatchLinOp* beta, BatchLinOp* x) const override{};
 
 private:
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> l_factors_;
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> u_factors_;
+    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> l_factor_;
+    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> u_factor_;
 };
 
 

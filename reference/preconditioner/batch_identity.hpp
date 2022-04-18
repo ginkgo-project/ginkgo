@@ -71,15 +71,18 @@ public:
      * @param work  A 'work-vector', which is unneecessary here as no
      * preconditioner values are to be stored.
      */
-    void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_csr::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {}
 
-    void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_ell::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {}
 
-    void generate(const gko::batch_dense::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_dense::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {}
 
