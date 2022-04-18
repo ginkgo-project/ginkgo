@@ -637,7 +637,7 @@ inline void batch_entry_idr_impl(
         static_cast<int>(subspace_dim)};
 
     // generate preconditioner
-    prec.generate(A_entry, prec_work);
+    prec.generate(ibatch, A_entry, prec_work);
 
     // initialization
     // compute b norms

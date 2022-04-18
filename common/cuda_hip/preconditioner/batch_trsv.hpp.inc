@@ -62,9 +62,10 @@ public:
         }
         for (int i = 0; i < l_factor_.num_rows; i++) {
             ValueType sum{};
-            for (int iz = factors_.row_ptrs_L[i];
-                 iz < factor_.row_ptrs[i + 1] - 1; iz += config::warp_size) {
-                ValueType val = factor_.values[iz] * r[factor_.col_idxs[iz]];
+            for (int iz = l_factor_.row_ptrs_L[i];
+                 iz < l_factor_.row_ptrs[i + 1] - 1; iz += config::warp_size) {
+                ValueType val =
+                    l_factor_.values[iz] * r[l_factor_.col_idxs[iz]];
                 ValueType sumit =
                     reduce(tile_grp, val,
                            [](ValueType& a, ValueType& b) { return a + b; });
@@ -73,8 +74,8 @@ public:
                 }
             }
             if (tile_grp.thread_rank() == 0) {
-                z[i] =
-                    (r[i] - sum) / factor_.values[factor_.row_ptrs[i + 1] - 1];
+                z[i] = (r[i] - sum) /
+                       l_factor_.values[l_factor_.row_ptrs[i + 1] - 1];
             }
         }
         tile_grp.sync();

@@ -68,12 +68,16 @@ public:
     /**
      * Set the factorization and triangular solver to use.
      *
+     * @param l_factor  Lower-triangular factor that was externally generated.
+     * @param u_factor  Upper-triangular factor that was externally generated.
      * @param trisolve  The triangular solver to use. Currently, it must be
      *                  pre-generated.
      */
-    BatchIlu(const trsv& trisolve,
+    BatchIlu(const gko::batch_csr::UniformBatch<const value_type>& l_factor,
+             const gko::batch_csr::UniformBatch<const value_type>& u_factor,
+             const trsv& trisolve,
              const factorization& factors = factorization{})
-        : trsv_{trisolve}
+        : l_factor_{l_factor}, u_factor_{u_factor}, trsv_{trisolve}
     {}
 
     /**
@@ -96,16 +100,34 @@ public:
      *
      * @param mat  Matrix for which to build an ILU-type preconditioner.
      */
-    void generate(const gko::batch_csr::BatchEntry<const ValueType>&,
+    void generate(size_type batch_id,
+                  const gko::batch_csr::BatchEntry<const ValueType>&,
+                  ValueType*)
+    {
+        auto batch_L = gko::batch::batch_entry(l_factor_, batch_id);
+        auto batch_U = gko::batch::batch_entry(u_factor_, batch_id);
+        trsv_.generate(batch_L, batch_U);
+    }
+
+    void generate(size_type batch_id,
+                  const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType*)
     {}
 
-    void apply(const ValueType* const r, ValueType* const z) const
+    void generate(size_type batch_id,
+                  const gko::batch_dense::BatchEntry<const ValueType>&,
+                  ValueType*)
+    {}
+
+    void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
+               const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
         trsv_.apply(r, z);
     }
 
 private:
+    gko::batch_csr::UniformBatch<const value_type> l_factor_;
+    gko::batch_csr::UniformBatch<const value_type> u_factor_;
     trsv trsv_;
 };
 

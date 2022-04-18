@@ -79,7 +79,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -102,7 +102,7 @@ public:
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_idr_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                 ValueType>(opts_, logger, PrecType(), a, b, x,
+                                 ValueType>(opts_, logger, prec, a, b, x,
                                             ibatch, local_space);
             free(local_space);
         }
