@@ -46,7 +46,7 @@ class BatchDummyFactorization {};
  */
 template <typename ValueType, typename Trsv,
           typename Factorization = BatchDummyFactorization>
-class BatchIlu final {
+class BatchIluSplit final {
 public:
     using value_type = ValueType;
     using factorization = Factorization;
@@ -55,12 +55,16 @@ public:
     /**
      * Set the factorization and triangular solver to use.
      *
+     * @param l_factor  Lower-triangular factor that was externally generated.
+     * @param u_factor  Upper-triangular factor that was externally generated.
      * @param trisolve  The triangular solver to use. Currently, it must be
      *                  pre-generated.
      */
-    BatchIlu(const trsv& trisolve,
-             const factorization& factors = factorization{})
-        : trsv_{trisolve}
+    BatchIluSplit(
+        const gko::batch_csr::UniformBatch<const value_type>& l_factor,
+        const gko::batch_csr::UniformBatch<const value_type>& u_factor,
+        const trsv& trisolve, const factorization& factors = factorization{})
+        : l_factor_{l_factor}, u_factor_{u_factor}, trsv_{trisolve}
     {}
 
     /**
@@ -87,7 +91,22 @@ public:
      * @param mat  Matrix for which to build an ILU-type preconditioner.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType>&, ValueType*)
+        size_type batch_id, const gko::batch_csr::BatchEntry<const ValueType>&,
+        ValueType*)
+    {
+        auto batch_L = gko::batch::batch_entry(l_factor_, batch_id);
+        auto batch_U = gko::batch::batch_entry(u_factor_, batch_id);
+        trsv_.generate(batch_L, batch_U);
+    }
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id, const gko::batch_ell::BatchEntry<const ValueType>&,
+        ValueType*)
+    {}
+
+    __device__ __forceinline__ void generate(
+        size_type batch_id,
+        const gko::batch_dense::BatchEntry<const ValueType>&, ValueType*)
     {}
 
     __device__ __forceinline__ void apply(int, const ValueType* const r,
@@ -97,13 +116,15 @@ public:
     }
 
 private:
+    gko::batch_csr::UniformBatch<const value_type> l_factor_;
+    gko::batch_csr::UniformBatch<const value_type> u_factor_;
     trsv trsv_;
 };
 
 
 template <typename Factorization, typename Trsv, typename ValueType>
-__global__ void batch_ilu(
-    BatchIlu<Factorization, Trsv, ValueType> prec,
+__global__ void batch_ilu_apply(
+    BatchIluSplit<ValueType, Trsv, Factorization> prec,
     const gko::batch_csr::UniformBatch<const ValueType> a,
     const gko::batch_dense::UniformBatch<const ValueType> b,
     const gko::batch_dense::UniformBatch<ValueType> x)
@@ -112,9 +133,6 @@ __global__ void batch_ilu(
         const auto a_b = gko::batch::batch_entry(a, batch);
         const auto b_b = gko::batch::batch_entry(b, batch);
         const auto x_b = gko::batch::batch_entry(x, batch);
-
-        extern __shared__ char local_mem[];
-        const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.apply(b_b.num_rows, b_b.values, x_b.values);
+        prec.apply(b_b.values, x_b.values);
     }
 }

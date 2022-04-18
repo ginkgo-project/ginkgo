@@ -66,7 +66,8 @@ public:
      * preconditioner values are to be stored.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_ell::BatchEntry<const ValueType>& mat, ValueType*)
+        size_type, const gko::batch_ell::BatchEntry<const ValueType>& mat,
+        ValueType*)
     {}
 
 
@@ -79,11 +80,13 @@ public:
      * preconditioner values are to be stored.
      */
     __device__ __forceinline__ void generate(
-        const gko::batch_csr::BatchEntry<const ValueType>& mat, ValueType*)
+        size_type, const gko::batch_csr::BatchEntry<const ValueType>& mat,
+        ValueType*)
     {}
 
     __device__ __forceinline__ void generate(
-        const gko::batch_dense::BatchEntry<const ValueType>& mat, ValueType*)
+        size_type, const gko::batch_dense::BatchEntry<const ValueType>& mat,
+        ValueType*)
     {}
 
     __device__ __forceinline__ void apply(const int num_rows,
@@ -112,7 +115,7 @@ __global__ void batch_identity(
 
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
@@ -133,7 +136,7 @@ __global__ void batch_identity(
 
         extern __shared__ char local_mem[];
         const auto prec_work = reinterpret_cast<ValueType*>(local_mem);
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b.num_rows, b_b.values, x_b.values);
     }
 }
