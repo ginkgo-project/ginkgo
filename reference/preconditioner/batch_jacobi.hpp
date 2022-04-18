@@ -63,7 +63,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_ell::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;
@@ -88,7 +89,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_csr::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;
@@ -112,7 +114,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_dense::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_dense::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;
