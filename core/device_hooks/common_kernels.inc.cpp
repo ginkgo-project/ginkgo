@@ -71,6 +71,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -1231,6 +1232,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 
 
 }  // namespace batch_jacobi
+
+
+namespace batch_ilu {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
+
+
+}
 
 
 namespace batch_identity {

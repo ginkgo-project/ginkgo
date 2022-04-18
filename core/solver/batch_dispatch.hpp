@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
@@ -99,7 +100,9 @@ using DeviceValueType = ValueType;
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
+#include "reference/preconditioner/batch_trsv.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 namespace gko {
@@ -165,7 +168,7 @@ public:
 
     template <typename PrecType, typename BatchMatrixType, typename LogType>
     void dispatch_on_stop(
-        const LogType& logger, const BatchMatrixType& amat,
+        const LogType& logger, const BatchMatrixType& amat, PrecType prec,
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
@@ -173,13 +176,13 @@ public:
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::stop::SimpleAbsResidual<device_value_type>, LogType>(
-                logger, amat, b_b, x_b);
+                logger, amat, prec, b_b, x_b);
         } else if (opts_.tol_type ==
                    gko::stop::batch::ToleranceType::relative) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::stop::SimpleRelResidual<device_value_type>, LogType>(
-                logger, amat, b_b, x_b);
+                logger, amat, prec, b_b, x_b);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -193,12 +196,31 @@ public:
     {
         if (!precon_) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
-                logger, amat, b_b, x_b);
+                logger, amat, device::BatchIdentity<device_value_type>(), b_b,
+                x_b);
         } else if (auto precjac = dynamic_cast<
                        const preconditioner::BatchJacobi<value_type>*>(
                        precon_)) {
             dispatch_on_stop<device::BatchJacobi<device_value_type>>(
-                logger, amat, b_b, x_b);
+                logger, amat, device::BatchJacobi<device_value_type>(), b_b,
+                x_b);
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchIlu<value_type>*>(precon_)) {
+            auto l_factor =
+                device::get_batch_struct(prec->get_const_lower_factor());
+            auto u_factor =
+                device::get_batch_struct(prec->get_const_upper_factor());
+            if (prec->get_parameters().trsv_type ==
+                gko::preconditioner::batch_trsv_type::exact) {
+                using trsv_type =
+                    device::BatchExactTrsvSeparate<device_value_type>;
+                using ilu_type = device::BatchIlu<device_value_type, trsv_type>;
+                dispatch_on_stop(logger, amat,
+                                 ilu_type{l_factor, u_factor, trsv_type()}, b_b,
+                                 x_b);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
         } else {
             GKO_NOT_IMPLEMENTED;
         }

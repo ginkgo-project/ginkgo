@@ -74,7 +74,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
 
         const auto prec_work =
             reinterpret_cast<ValueType*>(local_space.get_data());
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b, x_b);
     }
 }
@@ -109,7 +109,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::OmpExecutor> exec,
 
         const auto prec_work =
             reinterpret_cast<ValueType*>(local_space.get_data());
-        prec.generate(a_b, prec_work);
+        prec.generate(batch, a_b, prec_work);
         prec.apply(b_b, x_b);
     }
 }
