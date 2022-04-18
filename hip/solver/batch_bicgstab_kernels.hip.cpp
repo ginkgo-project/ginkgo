@@ -110,7 +110,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const value_type>& b,
                      const gko::batch_dense::UniformBatch<value_type>& x) const
     {
@@ -151,10 +151,10 @@ public:
         //          << "\n Bicgstab: number of threads per block = " <<
         //          block_size
         //          << "\n";
-        hipLaunchKernelGGL(
-            apply_kernel<StopType>, dim3(nbatch), dim3(block_size), shared_size,
-            0, shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
-            PrecType(), a, b.values, x.values, workspace.get_data());
+        hipLaunchKernelGGL(apply_kernel<StopType>, dim3(nbatch),
+                           dim3(block_size), shared_size, 0, shared_gap, sconf,
+                           opts_.max_its, opts_.residual_tol, logger, prec, a,
+                           b.values, x.values, workspace.get_data());
     }
 
 private:
