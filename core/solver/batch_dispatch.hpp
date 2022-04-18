@@ -214,7 +214,9 @@ public:
                 gko::preconditioner::batch_trsv_type::exact) {
                 using trsv_type =
                     device::BatchExactTrsvSeparate<device_value_type>;
-                using ilu_type = device::BatchIlu<device_value_type, trsv_type>;
+                // assuming split factors, or we need one more branch here
+                using ilu_type =
+                    device::BatchIluSplit<device_value_type, trsv_type>;
                 dispatch_on_stop(logger, amat,
                                  ilu_type{l_factor, u_factor, trsv_type()}, b_b,
                                  x_b);

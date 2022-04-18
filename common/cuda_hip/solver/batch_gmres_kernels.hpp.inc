@@ -321,7 +321,7 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
         // Stride of Hessenberg matrix
         const auto h_stride = static_cast<size_type>(restart);
 
-        prec_shared.generate(a_gl_entry, prec_work_sh);
+        prec_shared.generate(ibatch, a_gl_entry, prec_work_sh);
 
         // initialization
         // compute b norms
