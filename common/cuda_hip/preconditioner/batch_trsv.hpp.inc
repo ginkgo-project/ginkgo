@@ -39,12 +39,6 @@ class BatchExactTrsvSeparate {
 public:
     using value_type = ValueType;
 
-    BatchExactTrsvSeparate(
-        const gko::batch_csr::BatchEntry<const ValueType>& l_factor,
-        const gko::batch_csr::BatchEntry<const ValueType>& u_factor)
-        : l_factor_{l_factor}, u_factor_{u_factor}
-    {}
-
     __host__ __device__ int dynamic_work_size(const int num_rows, const int nnz)
     {
         return 0;
@@ -52,8 +46,19 @@ public:
         // return num_rows;
     }
 
+    /*
+     * Set local triangular factors.
+     */
+    __device__ __forceinline__ void generate(
+        const gko::batch_csr::BatchEntry<const ValueType>& l_factor,
+        const gko::batch_csr::BatchEntry<const ValueType>& u_factor)
+    {
+        l_factor_ = l_factor;
+        u_factor_ = u_factor;
+    }
+
     __device__ __forceinline__ void apply(const ValueType* const __restrict__ r,
-                                          ValueType* const __restrict__ z)
+                                          ValueType* const __restrict__ z) const
     {
         auto tile_grp = group::tiled_partition<config::warp_size>(
             group::this_thread_block());
@@ -62,13 +67,13 @@ public:
         }
         for (int i = 0; i < l_factor_.num_rows; i++) {
             ValueType sum{};
-            for (int iz = l_factor_.row_ptrs_L[i];
+            for (int iz = l_factor_.row_ptrs[i];
                  iz < l_factor_.row_ptrs[i + 1] - 1; iz += config::warp_size) {
                 ValueType val =
                     l_factor_.values[iz] * r[l_factor_.col_idxs[iz]];
                 ValueType sumit =
                     reduce(tile_grp, val,
-                           [](ValueType& a, ValueType& b) { return a + b; });
+                           [](ValueType a, ValueType b) { return a + b; });
                 if (tile_grp.thread_rank() == 0) {
                     sum += sumit;
                 }
@@ -87,7 +92,7 @@ public:
                     u_factor_.values[iz] * z[u_factor_.col_idxs[iz]];
                 ValueType sumit =
                     reduce(tile_grp, val,
-                           [](ValueType& a, ValueType& b) { return a + b; });
+                           [](ValueType a, ValueType b) { return a + b; });
                 if (tile_grp.thread_rank() == 0) {
                     sum += sumit;
                 }
@@ -99,6 +104,6 @@ public:
     }
 
 private:
-    const batch_csr::BatchEntry<const ValueType> l_factor_;
-    const batch_csr::BatchEntry<const ValueType> u_factor_;
+    batch_csr::BatchEntry<const ValueType> l_factor_;
+    batch_csr::BatchEntry<const ValueType> u_factor_;
 };
