@@ -59,7 +59,7 @@ class BatchDummyFactorization {};
  */
 template <typename ValueType, typename Trsv,
           typename Factorization = BatchDummyFactorization>
-class BatchIlu final {
+class BatchIluSplit final {
 public:
     using value_type = ValueType;
     using factorization = Factorization;
@@ -73,10 +73,10 @@ public:
      * @param trisolve  The triangular solver to use. Currently, it must be
      *                  pre-generated.
      */
-    BatchIlu(const gko::batch_csr::UniformBatch<const value_type>& l_factor,
-             const gko::batch_csr::UniformBatch<const value_type>& u_factor,
-             const trsv& trisolve,
-             const factorization& factors = factorization{})
+    BatchIluSplit(
+        const gko::batch_csr::UniformBatch<const value_type>& l_factor,
+        const gko::batch_csr::UniformBatch<const value_type>& u_factor,
+        const trsv& trisolve, const factorization& factors = factorization{})
         : l_factor_{l_factor}, u_factor_{u_factor}, trsv_{trisolve}
     {}
 

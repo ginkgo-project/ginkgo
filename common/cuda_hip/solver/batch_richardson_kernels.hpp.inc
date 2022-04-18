@@ -69,7 +69,7 @@ __global__ void apply_kernel(const int max_iter,
             gko::batch::batch_entry_ptr(x, 1, num_rows, ibatch);
         const auto relax = static_cast<ValueType>(relax_factor);
 
-        prec.generate(a_b, prec_work);
+        prec.generate(ibatch, a_b, prec_work);
 
         // initial residual
         if (threadIdx.x / config::warp_size == 0) {
