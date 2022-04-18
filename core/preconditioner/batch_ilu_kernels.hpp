@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_BATCH_ILU_KERNELS_HPP_
 
 
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+
+
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
@@ -49,13 +52,14 @@ namespace kernels {
  *
  * @param exec  The executor on which to run the kernel.
  * @param a  The batch of matrices for which to build the preconditioner.
- * @param b  The batch of input (RHS) vectors.
- * @param x  The batch of output (solution) vectors.
  */
-#define GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(_type)     \
-    void generate(std::shared_ptr<const DefaultExecutor> exec, \
-                  const matrix::BatchCsr<_type>* a,            \
-                  matrix::BatchCsr<_type>* l, matrix::BatchCsr<_type>* u)
+#define GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(_type)                    \
+    void generate_split(std::shared_ptr<const DefaultExecutor> exec,          \
+                        gko::preconditioner::batch_factorization_type f_type, \
+                        gko::preconditioner::batch_factors_storage f_storage, \
+                        const matrix::BatchCsr<_type>* a,                     \
+                        matrix::BatchCsr<_type>* l,                           \
+                        matrix::BatchCsr<_type>* u)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
