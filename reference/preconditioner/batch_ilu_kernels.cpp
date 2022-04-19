@@ -34,6 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
+#include <algorithm>
+#include <cassert>
+
+
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
@@ -67,14 +71,10 @@ void generate_split(std::shared_ptr<const DefaultExecutor> exec,
             const auto a_b = gko::batch::batch_entry(a_ub, batch);
             const auto l_b = gko::batch::batch_entry(l_ub, batch);
             const auto u_b = gko::batch::batch_entry(u_ub, batch);
-
-            // FIXME: the following needs to be implemented in
-            //  batch_ilu_kernels.hpp.inc
             generate(a_b.num_rows, a_b.row_ptrs, a_b.col_idxs, a_b.values,
                      l_b.row_ptrs, l_b.col_idxs, l_b.values, u_b.row_ptrs,
                      u_b.col_idxs, u_b.values);
         }
-        GKO_NOT_IMPLEMENTED;
     } else {
         GKO_NOT_IMPLEMENTED;
     }

@@ -50,9 +50,34 @@ inline void generate(const int num_rows,
             const int col = a_col_idxs[jz];
             if (irow > col) {
                 // lower
+                assert(l_col_idxs[l_nnz] == col);
+                ValueType sum{};
+                for (int kz = l_row_ptrs[irow]; l_col_idxs[kz] < col; kz++) {
+                    const int l_col = l_col_idxs[kz];
+                    for (int lz = u_row_ptrs[l_col]; lz < u_row_ptrs[l_col + 1];
+                         lz++) {
+                        if (u_col_idxs[lz] == col) {
+                            sum += l_values[kz] * u_values[lz];
+                        }
+                    }
+                }
+                l_values[l_nnz] =
+                    (a_values[jz] - sum) / u_values[u_row_ptrs[irow]];
                 l_nnz++;
             } else {
                 // upper
+                assert(u_col_idxs[u_nnz] == col);
+                ValueType sum{};
+                for (int kz = l_row_ptrs[irow]; l_col_idxs[kz] < irow; kz++) {
+                    const int l_col = l_col_idxs[kz];
+                    for (int lz = u_row_ptrs[l_col]; lz < u_row_ptrs[l_col + 1];
+                         lz++) {
+                        if (u_col_idxs[lz] == col) {
+                            sum += l_values[kz] * u_values[lz];
+                        }
+                    }
+                }
+                u_values[u_nnz] = a_values[jz] - sum;
                 u_nnz++;
             }
         }
