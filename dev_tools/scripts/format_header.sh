@@ -29,8 +29,9 @@ get_header_def () {
     local regex="\.(hpp|cuh)"
     if [[ $@ =~ $regex ]]; then
         local def=$(echo "$@" | sed -E "s~include/ginkgo/~PUBLIC_~g;s~/|\.~_~g")
-        def=$(echo GKO_${def^^}_)
-        echo $def
+	# Used to get rid of \r in Windows
+        def=$(echo "GKO_${def^^}_")
+        echo "$def"
     else
         echo ""
     fi
@@ -157,29 +158,25 @@ get_include_regex () {
 }
 
 # Test if required commands are present on the system:
-command -v "$CLANG_FORMAT" &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v "$CLANG_FORMAT" &> /dev/null; then
     echo "The command 'clang-format' is required for this script to work, but not supported by your system. It can be set via environment parameter CLANG_FORMAT=<clang-format path>" 1>&2
     exit 1
 fi
 
 # Test the command on MacOS
-declare -n &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! declare -n &> /dev/null; then
     echo "The command 'declare' needs to support the '-n' option. Please update bash or use 'brew install bash' if on MacOS" 1>&2
     exit 1
 fi
 
 touch .dummy_file
-sed -i 's///g' .dummy_file &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! sed -i 's///g' .dummy_file &> /dev/null; then
     echo "The command 'sed' needs to support the '-i' option without suffix. Please use gnu sed or use 'brew install gnu-sed' if on MacOS" 1>&2
     rm .dummy_file
     exit 1
 fi
 
-head -n -1 .dummy_file &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! head -n -1 .dummy_file &> /dev/null; then
     echo "The command 'head' needs to support '-NUM' option, Please use gnu head or use 'brew install coreutils' if on MacOS" 1>&2
     rm .dummy_file
     exit 1
@@ -212,8 +209,8 @@ FORCE_TOP_OFF="// force-top: off"
 FORCE_TOP="force_top"
 DURING_FORCE_TOP="false"
 
-get_include_regex $1 MAIN_PART_MATCH
-HEADER_DEF=$(get_header_def $1)
+get_include_regex "$1" MAIN_PART_MATCH
+HEADER_DEF=$(get_header_def "$1")
 
 IFNDEF=""
 DEFINE=""
@@ -245,7 +242,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
             DURING_FORCE_TOP="false"
         fi
         if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header ${line})"
+            line="$(convert_header "${line}")"
         fi
         echo "$line" >> "${FORCE_TOP}"
     elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
@@ -253,7 +250,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
         :
     else
         if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-            line="$(convert_header ${line})"
+            line="$(convert_header "${line}")"
         fi
         if [ -z "${line}" ]; then
             KEEP_LINES=$((KEEP_LINES+1))
@@ -261,9 +258,9 @@ while IFS='' read -r line || [ -n "$line" ]; do
             LAST_NONEMPTY="${line}"
             KEEP_LINES=0
         fi
-        if [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${IFNDEF_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -z "${DEFINE}" ]; then
+        if [[ "$1" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${IFNDEF_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -z "${DEFINE}" ]; then
             IFNDEF="${line}"
-        elif [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ ! -z "${IFNDEF}" ]; then
+        elif [[ "$1" =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -n "${IFNDEF}" ]; then
             DEFINE="${line}"
         elif [ -z "${MAIN_PART_MATCH}" ] || [[ ! "${line}" =~ ${MAIN_PART_MATCH} ]] || [[ "${IN_BLOCK}" -gt 0 ]]; then
             echo "${line}" >> "${CONTENT}"
@@ -275,7 +272,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
                     ALARM="set"
                 fi
             fi
-            if [[ "${IN_BLOCK}" = "0" ]] && [ ! -z "${line}" ] && [[ ! "${line}" =~ ${CONSIDER_REGEX} ]]; then
+            if [[ "${IN_BLOCK}" = "0" ]] && [ -n "${line}" ] && [[ ! "${line}" =~ ${CONSIDER_REGEX} ]]; then
                 if [ "${ALARM}" = "set" ]; then
                     ALARM="true"
                 elif [ -z "${ALARM}" ]; then
@@ -289,19 +286,19 @@ while IFS='' read -r line || [ -n "$line" ]; do
             echo "${line}" >> ${BEFORE}
         fi
     fi
-done < $1
+done < "$1"
 if [ "${ALARM}" = "true" ]; then
     echo "Warning $1: sorting is probably incorrect"
 fi
 
 # Wrtie license
-echo "/*${GINKGO_LICENSE_BEACON}" > $1
-cat LICENSE >> $1
-echo "${GINKGO_LICENSE_BEACON}*/" >> $1
-echo "" >> $1
+echo "/*${GINKGO_LICENSE_BEACON}" > "$1"
+cat LICENSE >> "$1"
+echo "${GINKGO_LICENSE_BEACON}*/" >> "$1"
+echo "" >> "$1"
 
 # Wrtie the definition of header according to path
-if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
+if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
     IFNDEF="#ifndef ${HEADER_DEF}"
     DEFINE="#define ${HEADER_DEF}"
 elif [ -z "${IFNDEF}" ] && [ -z "${DEFINE}" ]; then
@@ -309,20 +306,20 @@ elif [ -z "${IFNDEF}" ] && [ -z "${DEFINE}" ]; then
 else
     echo "Warning $1: only #ifndef GKO_ or #define GKO_ is in the header"
 fi
-if [ ! -z "${IFNDEF}" ]; then
-    echo "${IFNDEF}" >> $1
+if [ -n "${IFNDEF}" ]; then
+    echo "${IFNDEF}" >> "$1"
 fi
-if [ ! -z "${DEFINE}" ]; then
-    echo "${DEFINE}" >> $1
-    echo "" >> $1
-    echo "" >> $1
+if [ -n "${DEFINE}" ]; then
+    echo "${DEFINE}" >> "$1"
+    echo "" >> "$1"
+    echo "" >> "$1"
 fi
 
 # Write the force-top header
 if [ -f "${FORCE_TOP}" ]; then
-    cat "${FORCE_TOP}" >> $1
-    echo "" >> $1
-    echo "" >> $1
+    cat "${FORCE_TOP}" >> "$1"
+    echo "" >> "$1"
+    echo "" >> "$1"
     rm "${FORCE_TOP}"
 fi
 
@@ -330,13 +327,13 @@ fi
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
     "${CLANG_FORMAT}" -i -style=file ${BEFORE}
-    if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
+    if [ "$(wc -l < ${BEFORE})" -gt "1" ]; then
         echo "Warning $1: there are multiple main header matchings"
     fi
-    cat ${BEFORE} >> $1
+    cat ${BEFORE} >> "$1"
     if [ -f "${CONTENT}" ]; then
-        echo "" >> $1
-        echo "" >> $1
+        echo "" >> "$1"
+        echo "" >> "$1"
     fi
     rm "${BEFORE}"
 fi
@@ -345,7 +342,7 @@ fi
 if [ -f "${CONTENT}" ]; then
     add_regroup
     head -n -${KEEP_LINES} ${CONTENT} >> temp
-    if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
+    if [ -n "${IFNDEF}" ] && [ -n "${DEFINE}" ]; then
         # Ignore the last line #endif
         if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
             head -n -1 temp > ${CONTENT}
@@ -373,7 +370,7 @@ if [ -f "${CONTENT}" ]; then
         # Insert content with correct number empty lines
         if [[ ${line} =~ ${INCLUDE_REGEX} ]] && [[ ! ${line} =~ ${INCLUDE_INC} ]]; then
             if [[ ${PREV_INC} == 1 ]]; then
-                echo "" >> $1
+                echo "" >> "$1"
             fi
             PREV_INC=0
         else
@@ -384,7 +381,7 @@ if [ -f "${CONTENT}" ]; then
                 PREV_INC=-3
             fi
         fi
-        echo "${line}" >> $1
+        echo "${line}" >> "$1"
     done < "${CONTENT}"
     rm "${CONTENT}"
 fi
