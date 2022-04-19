@@ -1,3 +1,4 @@
+ginkgo_create_test(batch_ilu_kernels)
 ginkgo_create_test(batch_jacobi_kernels)
 ginkgo_create_test(batch_identity_kernels)
 ginkgo_create_test(ilu)
