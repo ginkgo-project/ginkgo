@@ -368,10 +368,6 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
             // we don't need to use the `bool valid` because last_entry is
             // already a smaller sentinel value than the one used in group_merge
             if (l_col == lh_row && l_col < last_entry) {
-                /*
-                DPCT1007:2: Migration of this CUDA API is not supported by the
-                Intel(R) DPC++ Compatibility Tool.
-                */
                 sum += l_vals[l_idx + l_row_begin] *
                        conj(l_vals[lh_idx + lh_col_begin]);
             }
@@ -388,10 +384,6 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
         subwarp, sum, [](ValueType a, ValueType b) { return a + b; });
 
     if (subwarp.thread_rank() == 0) {
-        /*
-        DPCT1064:3: Migrated sqrt call is used in a macro definition and is not
-        valid for all macro uses. Adjust the code.
-        */
         auto to_write = row == col
                             ? std::sqrt(a_val - sum)
                             : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
