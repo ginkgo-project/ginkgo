@@ -72,10 +72,6 @@ void ic_init(const IndexType* __restrict__ l_row_ptrs,
         return;
     }
     auto l_nz = l_row_ptrs[row + 1] - 1;
-    /*
-    DPCT1064:0: Migrated sqrt call is used in a macro definition and is not
-    valid for all macro uses. Adjust the code.
-    */
     auto diag = std::sqrt(l_vals[l_nz]);
     if (is_finite(diag)) {
         l_vals[l_nz] = diag;
@@ -122,19 +118,11 @@ void ic_sweep(const IndexType* __restrict__ a_row_idxs,
         auto l_col = l_col_idxs[l_row_begin];
         auto lh_row = l_col_idxs[lh_col_begin];
         if (l_col == lh_row && l_col < last_entry) {
-            /*
-            DPCT1007:2: Migration of this CUDA API is not supported by the
-            Intel(R) DPC++ Compatibility Tool.
-            */
             sum += l_vals[l_row_begin] * conj(l_vals[lh_col_begin]);
         }
         l_row_begin += l_col <= lh_row;
         lh_col_begin += l_col >= lh_row;
     }
-    /*
-    DPCT1064:3: Migrated sqrt call is used in a macro definition and is not
-    valid for all macro uses. Adjust the code.
-    */
     auto to_write = row == col
                         ? std::sqrt(a_val - sum)
                         : (a_val - sum) / l_vals[l_row_ptrs[col + 1] - 1];
