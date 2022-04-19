@@ -56,15 +56,22 @@ namespace kernels {
 #define GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(_type)                    \
     void generate_split(std::shared_ptr<const DefaultExecutor> exec,          \
                         gko::preconditioner::batch_factorization_type f_type, \
-                        gko::preconditioner::batch_factors_storage f_storage, \
                         const matrix::BatchCsr<_type>* a,                     \
                         matrix::BatchCsr<_type>* l,                           \
                         matrix::BatchCsr<_type>* u)
 
+#define GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(_type)                     \
+    void apply_split(                                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::BatchCsr<_type>* l, const matrix::BatchCsr<_type>* u, \
+        const matrix::BatchDense<_type>* r, matrix::BatchDense<_type>* z)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(ValueType)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                        \
+    template <typename ValueType>                           \
+    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(ValueType); \
+    template <typename ValueType>                           \
+    GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(ValueType)
 
 
 namespace omp {
