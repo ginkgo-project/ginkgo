@@ -50,19 +50,14 @@ namespace batch_ilu {
 template <typename ValueType>
 void generate_split(std::shared_ptr<const DefaultExecutor> exec,
                     gko::preconditioner::batch_factorization_type,
-                    gko::preconditioner::batch_factors_storage f_storage,
                     const matrix::BatchCsr<ValueType>* const a,
                     matrix::BatchCsr<ValueType>* const l_factor,
                     matrix::BatchCsr<ValueType>* const u_factor)
 {
-    if (f_storage == gko::preconditioner::batch_factors_storage::split) {
-        const auto a_ub = get_batch_struct(a);
-        const auto l_ub = get_batch_struct(l_factor);
-        const auto u_ub = get_batch_struct(u_factor);
-        GKO_NOT_IMPLEMENTED;
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    const auto a_ub = get_batch_struct(a);
+    const auto l_ub = get_batch_struct(l_factor);
+    const auto u_ub = get_batch_struct(u_factor);
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

@@ -70,9 +70,10 @@ public:
     /**
      * The size of the work vector required per batch entry.
      */
-    __host__ __device__ static constexpr int dynamic_work_size(int, int)
+    __host__ __device__ static constexpr int dynamic_work_size(int nrows,
+                                                               int nnz)
     {
-        return 0;
+        return Trsv::dynamic_work_size(nrows, nnz);
     }
 
     // __host__ __device__ static constexpr int dynamic_work_size(

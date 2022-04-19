@@ -39,7 +39,8 @@ class BatchExactTrsvSeparate {
 public:
     using value_type = ValueType;
 
-    __host__ __device__ int dynamic_work_size(const int num_rows, const int nnz)
+    __host__ __device__ static constexpr int dynamic_work_size(
+        const int num_rows, const int nnz)
     {
         return 0;
         // for a more parallel variant that needs an intermediate vector:
