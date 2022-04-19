@@ -54,31 +54,26 @@ namespace batch_ilu {
 template <typename ValueType>
 void generate_split(std::shared_ptr<const DefaultExecutor> exec,
                     gko::preconditioner::batch_factorization_type,
-                    gko::preconditioner::batch_factors_storage f_storage,
                     const matrix::BatchCsr<ValueType>* const a,
                     matrix::BatchCsr<ValueType>* const l_factor,
                     matrix::BatchCsr<ValueType>* const u_factor)
 {
-    if (f_storage == gko::preconditioner::batch_factors_storage::split) {
-        const auto a_ub = host::get_batch_struct(a);
-        const auto l_ub = host::get_batch_struct(l_factor);
-        const auto u_ub = host::get_batch_struct(u_factor);
+    const auto a_ub = host::get_batch_struct(a);
+    const auto l_ub = host::get_batch_struct(l_factor);
+    const auto u_ub = host::get_batch_struct(u_factor);
 #pragma omp parallel for firstprivate(a_ub, l_ub, u_ub)
-        for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
-            const auto a_b = gko::batch::batch_entry(a_ub, batch);
-            const auto l_b = gko::batch::batch_entry(l_ub, batch);
-            const auto u_b = gko::batch::batch_entry(u_ub, batch);
+    for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
+        const auto a_b = gko::batch::batch_entry(a_ub, batch);
+        const auto l_b = gko::batch::batch_entry(l_ub, batch);
+        const auto u_b = gko::batch::batch_entry(u_ub, batch);
 
-            // FIXME: the following needs to be implemented in
-            //  batch_ilu_kernels.hpp.inc
-            generate(a_b.num_rows, a_b.row_ptrs, a_b.col_idxs, a_b.values,
-                     l_b.row_ptrs, l_b.col_idxs, l_b.values, u_b.row_ptrs,
-                     u_b.col_idxs, u_b.values);
-        }
-        GKO_NOT_IMPLEMENTED;
-    } else {
-        GKO_NOT_IMPLEMENTED;
+        // FIXME: the following needs to be implemented in
+        //  batch_ilu_kernels.hpp.inc
+        generate(a_b.num_rows, a_b.row_ptrs, a_b.col_idxs, a_b.values,
+                 l_b.row_ptrs, l_b.col_idxs, l_b.values, u_b.row_ptrs,
+                 u_b.col_idxs, u_b.values);
     }
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

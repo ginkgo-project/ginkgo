@@ -221,8 +221,10 @@ public:
                                  ilu_type{l_factor, u_factor, trsv_type()}, b_b,
                                  x_b);
             } else {
+                // TODO: Implement other batch TRSV types
                 GKO_NOT_IMPLEMENTED;
             }
+            //} else if () {
         } else {
             GKO_NOT_IMPLEMENTED;
         }
