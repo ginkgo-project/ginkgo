@@ -80,6 +80,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
 
 
+template <typename ValueType>
+void apply_split(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::BatchCsr<ValueType>* l,
+                 const matrix::BatchCsr<ValueType>* u,
+                 const matrix::BatchDense<ValueType>* r,
+                 matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
+
+
 }  // namespace batch_ilu
 }  // namespace omp
 }  // namespace kernels
