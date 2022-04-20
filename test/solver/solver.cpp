@@ -599,8 +599,6 @@ using SolverTypes =
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
 
-// The tolerances we set above don't provide any useful information for float
-#if !(GINKGO_DPCPP_SINGLE_MODE)
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
     this->forall_matrix_scenarios([&](auto mtx) {
@@ -673,4 +671,3 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
         });
     });
 }
-#endif
