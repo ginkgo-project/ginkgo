@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ISAI_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ISAI_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -49,46 +49,23 @@ namespace preconditioner {
 
 
 /**
- * Method to use for triangular solves.
- */
-enum class batch_trsv_type { exact, isai };
-
-
-/**
- * Method to use for factorization of the system matrix in a given sparsity
- * pattern.
- */
-enum class batch_factorization_type { exact, par_ilu };
-
-
-/**
- * Type of storage of the triangular factors - two separate batch sparse
- * matrices or one combined batch sparse matrix.
- */
-enum class batch_factors_storage { split, combined };
-
-
-/**
- * A batch of incomplete LU factor preconditioners for a batch of matrices.
- *
- * Currently, this always computes ILU(0) preconditioners, either exactly or
- * approximately.
+ * A batch of approximate inverse preconditioners for a batch of matrices.
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup ilu
+ * @ingroup isai
  * @ingroup precond
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class BatchIlu : public EnableBatchLinOp<BatchIlu<ValueType, IndexType>>,
-                 public BatchTransposable {
-    friend class EnableBatchLinOp<BatchIlu>;
-    friend class EnablePolymorphicObject<BatchIlu, BatchLinOp>;
+class BatchIsai : public EnableBatchLinOp<BatchIsai<ValueType, IndexType>>,
+                  public BatchTransposable {
+    friend class EnableBatchLinOp<BatchIsai>;
+    friend class EnablePolymorphicObject<BatchIsai, BatchLinOp>;
 
 public:
-    using EnableBatchLinOp<BatchIlu>::convert_to;
-    using EnableBatchLinOp<BatchIlu>::move_to;
+    using EnableBatchLinOp<BatchIsai>::convert_to;
+    using EnableBatchLinOp<BatchIsai>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
@@ -96,64 +73,46 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Type of triangular solver to use.
+         * Power of the system matrix that determines the sparsity pattern of
+         * the approximate inverse.
          */
-        batch_trsv_type GKO_FACTORY_PARAMETER_SCALAR(trsv_type,
-                                                     batch_trsv_type::exact);
-
-        /**
-         * Factorization algorithm to use.
-         */
-        batch_factorization_type GKO_FACTORY_PARAMETER_SCALAR(
-            factorization_type, batch_factorization_type::exact);
-
-        /**
-         * How the factors are stored.
-         *
-         * Two separate matrices for L and U (split) or one combined matrix
-         * with implied unit diagonal (combined).
-         */
-        batch_factors_storage GKO_FACTORY_PARAMETER_SCALAR(
-            storage_type, batch_factors_storage::split);
+        int GKO_FACTORY_PARAMETER_SCALAR(sparsity_power, 1);
     };
-    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchIlu, parameters, Factory);
+    GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchIsai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     std::unique_ptr<BatchLinOp> transpose() const override;
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override;
 
-    const matrix::BatchCsr<ValueType, IndexType>* get_const_lower_factor() const
+    const matrix::BatchCsr<ValueType, IndexType>*
+    get_const_approximate_inverse() const
     {
-        return l_factor_.get();
-    }
-
-    const matrix::BatchCsr<ValueType, IndexType>* get_const_upper_factor() const
-    {
-        return u_factor_.get();
+        return isai_.get();
     }
 
 protected:
     /**
-     * Creates an empty Ilu preconditioner.
+     * Creates an empty Isai preconditioner.
      *
      * @param exec  the executor this object is assigned to
      */
-    explicit BatchIlu(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<BatchIlu>(exec)
+    explicit BatchIsai(std::shared_ptr<const Executor> exec)
+        : EnableBatchLinOp<BatchIsai>(exec)
     {}
 
     /**
-     * Creates a Ilu preconditioner from a matrix using a Ilu::Factory.
+     * Creates a Isai preconditioner from a matrix using a Isai::Factory.
      *
      * @param factory  the factory to use to create the preconditoner
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit BatchIlu(const Factory* factory,
-                      std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchLinOp<BatchIlu>(factory->get_executor(),
-                                     gko::transpose(system_matrix->get_size())),
+    explicit BatchIsai(const Factory* factory,
+                       std::shared_ptr<const BatchLinOp> system_matrix)
+        : EnableBatchLinOp<BatchIsai>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()}
     {
         this->generate(lend(system_matrix));
@@ -173,8 +132,7 @@ protected:
                     const BatchLinOp* beta, BatchLinOp* x) const override{};
 
 private:
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> l_factor_;
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> u_factor_;
+    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> isai_;
 };
 
 
@@ -182,4 +140,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ISAI_HPP_
