@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
+#include "reference/preconditioner/batch_trsv.hpp"
 
 
 namespace gko {
@@ -81,11 +82,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_split(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchCsr<ValueType, IndexType>* l,
-                 const matrix::BatchCsr<ValueType, IndexType>* u,
-                 const matrix::BatchDense<ValueType>* r,
-                 matrix::BatchDense<ValueType>* z)
-{}
+                 const matrix::BatchCsr<ValueType, IndexType>* const l,
+                 const matrix::BatchCsr<ValueType, IndexType>* const u,
+                 const matrix::BatchDense<ValueType>* const r,
+                 matrix::BatchDense<ValueType>* const z)
+{
+    auto lub = gko::kernels::host::get_batch_struct(l);
+    auto uub = gko::kernels::host::get_batch_struct(u);
+    auto rub = gko::kernels::host::get_batch_struct(r);
+    auto zub = gko::kernels::host::get_batch_struct(z);
+    using trsv_type = gko::kernels::host::BatchExactTrsvSeparate<ValueType>;
+    using prec_type = gko::kernels::host::BatchIluSplit<ValueType, trsv_type>;
+    prec_type prec(lub, uub, trsv_type());
+    for (size_type batch = 0; batch < l->get_num_batch_entries(); ++batch) {
+        const auto r_b = gko::batch::batch_entry(rub, batch);
+        const auto z_b = gko::batch::batch_entry(zub, batch);
+        prec.generate(batch, gko::batch_csr::BatchEntry<const ValueType>(),
+                      nullptr);
+        prec.apply(r_b, z_b);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
