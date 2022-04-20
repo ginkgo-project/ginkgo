@@ -583,20 +583,20 @@ void Multigrid::generate()
 
 void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 {
+    static auto state =
+        MultigridState(system_matrix_.get(), this, b->get_size()[1]);
     // nvtxRangePushA("Multigrid apply");
-    auto lambda = [this](auto mg_level, auto b, auto x) {
+    auto lambda = [&, this](auto mg_level, auto b, auto x) {
         using value_type = typename std::decay_t<
             detail::pointee<decltype(mg_level)>>::value_type;
         auto exec = this->get_executor();
-        auto neg_one_op =
+        static auto neg_one_op =
             initialize<matrix::Dense<value_type>>({-one<value_type>()}, exec);
-        auto one_op =
+        static auto one_op =
             initialize<matrix::Dense<value_type>>({one<value_type>()}, exec);
         constexpr uint8 RelativeStoppingId{1};
-        Array<stopping_status> stop_status(exec, b->get_size()[1]);
+        static Array<stopping_status> stop_status(exec, b->get_size()[1]);
         bool one_changed{};
-        auto state =
-            MultigridState(system_matrix_.get(), this, b->get_size()[1]);
         exec->run(multigrid::make_initialize(&stop_status));
         // compute the residual at the r_list(0);
         // auto r = state.r_list.at(0);
