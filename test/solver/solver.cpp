@@ -601,14 +601,15 @@ TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->forall_vector_scenarios(solver, [&](auto b, auto x) {
-                solver.ref->apply(b.ref.get(), x.ref.get());
-                solver.dev->apply(b.dev.get(), x.dev.get());
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            this->forall_vector_scenarios(
+                solver, [this, &solver](auto b, auto x) {
+                    solver.ref->apply(b.ref.get(), x.ref.get());
+                    solver.dev->apply(b.dev.get(), x.dev.get());
 
-                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
-            });
+                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
+                });
         });
     });
 }
@@ -616,19 +617,20 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 
 TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 {
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->forall_vector_scenarios(solver, [&](auto b, auto x) {
-                auto alpha = this->gen_scalar();
-                auto beta = this->gen_scalar();
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            this->forall_vector_scenarios(
+                solver, [this, &solver](auto b, auto x) {
+                    auto alpha = this->gen_scalar();
+                    auto beta = this->gen_scalar();
 
-                solver.ref->apply(alpha.ref.get(), b.ref.get(), beta.ref.get(),
-                                  x.ref.get());
-                solver.dev->apply(alpha.dev.get(), b.dev.get(), beta.dev.get(),
-                                  x.dev.get());
+                    solver.ref->apply(alpha.ref.get(), b.ref.get(),
+                                      beta.ref.get(), x.ref.get());
+                    solver.dev->apply(alpha.dev.get(), b.dev.get(),
+                                      beta.dev.get(), x.dev.get());
 
-                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
-            });
+                    GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
+                });
         });
     });
 }
@@ -637,10 +639,10 @@ TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
             this->template forall_vector_scenarios<MixedVec>(
-                solver, [&](auto b, auto x) {
+                solver, [this, &solver](auto b, auto x) {
                     solver.ref->apply(b.ref.get(), x.ref.get());
                     solver.dev->apply(b.dev.get(), x.dev.get());
 
@@ -654,10 +656,10 @@ TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
             this->template forall_vector_scenarios<MixedVec>(
-                solver, [&](auto b, auto x) {
+                solver, [this, &solver](auto b, auto x) {
                     auto alpha = this->template gen_scalar<MixedVec>();
                     auto beta = this->template gen_scalar<MixedVec>();
 
