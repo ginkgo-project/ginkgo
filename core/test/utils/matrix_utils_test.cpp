@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/test/utils/matrix_utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 
 
 #include <cmath>
@@ -233,6 +233,23 @@ TYPED_TEST(MatrixUtils, MakeDiagDominantWithRatioCorrectly)
         ASSERT_GT(gko::abs(mtx->at(i, i)) * (1 + r<T>::value),
                   off_diag_abs * ratio);
     }
+}
+
+
+TYPED_TEST(MatrixUtils, MakeDiagDominantWithEmptyOffdiagRowCorrectly)
+{
+    using value_type = typename TestFixture::value_type;
+    using entry = gko::matrix_data_entry<value_type, int>;
+    gko::matrix_data<value_type, int> data{gko::dim<2>{3, 3}};
+    data.nonzeros.emplace_back(0, 0, gko::one<value_type>());
+    data.nonzeros.emplace_back(1, 1, gko::zero<value_type>());
+
+    gko::test::make_diag_dominant(data, 1.0);
+
+    ASSERT_EQ(data.nonzeros.size(), 3);
+    ASSERT_EQ(data.nonzeros[0], (entry{0, 0, gko::one<value_type>()}));
+    ASSERT_EQ(data.nonzeros[1], (entry{1, 1, gko::one<value_type>()}));
+    ASSERT_EQ(data.nonzeros[2], (entry{2, 2, gko::one<value_type>()}));
 }
 
 
