@@ -78,7 +78,7 @@ public:
                      iz < l_factor_.row_ptrs[i + 1] - 1; iz++) {
                     ValueType val =
                         l_factor_.values[iz] *
-                        r.values[l_factor_.col_idxs[iz] * r.stride + j];
+                        z.values[l_factor_.col_idxs[iz] * r.stride + j];
                     sum += val;
                 }
                 z.values[i * z.stride + j] =
