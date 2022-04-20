@@ -191,7 +191,7 @@ struct MultigridState {
                 [this](auto mg_level, auto i, auto cycle, auto current_nrows,
                        auto next_nrows) {
                     using value_type = typename std::decay_t<
-                        detail::pointee<decltype(mg_level)>>::value_type;
+                        gko::detail::pointee<decltype(mg_level)>>::value_type;
                     this->allocate_memory<value_type>(i, cycle, current_nrows,
                                                       next_nrows);
                 },
@@ -236,7 +236,7 @@ struct MultigridState {
             std::complex<float>, std::complex<double>>(
             mg_level, [&, this](auto mg_level) {
                 using value_type = typename std::decay_t<
-                    detail::pointee<decltype(mg_level)>>::value_type;
+                    gko::detail::pointee<decltype(mg_level)>>::value_type;
                 this->run_cycle<value_type>(cycle, level, matrix, b, x,
                                             is_first, is_end);
             });
@@ -509,7 +509,7 @@ void Multigrid::generate()
             mg_level,
             [this](auto mg_level, auto index, auto matrix) {
                 using value_type = typename std::decay_t<
-                    detail::pointee<decltype(mg_level)>>::value_type;
+                    gko::detail::pointee<decltype(mg_level)>>::value_type;
                 handle_list<value_type>(
                     index, matrix, parameters_.pre_smoother, pre_smoother_list_,
                     parameters_.smoother_iters, parameters_.smoother_relax);
@@ -547,7 +547,7 @@ void Multigrid::generate()
         last_mg_level,
         [this](auto mg_level, auto level, auto matrix) {
             using value_type = typename std::decay_t<
-                detail::pointee<decltype(mg_level)>>::value_type;
+                gko::detail::pointee<decltype(mg_level)>>::value_type;
             auto exec = this->get_executor();
             if (parameters_.coarsest_solver.size() == 0) {
                 coarsest_solver_ = matrix::Identity<value_type>::create(
@@ -573,7 +573,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
 {
     auto lambda = [this](auto mg_level, auto b, auto x) {
         using value_type = typename std::decay_t<
-            detail::pointee<decltype(mg_level)>>::value_type;
+            gko::detail::pointee<decltype(mg_level)>>::value_type;
         auto exec = this->get_executor();
         auto neg_one_op =
             initialize<matrix::Dense<value_type>>({-one<value_type>()}, exec);
@@ -642,7 +642,7 @@ void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     auto lambda = [this](auto mg_level, auto alpha, auto b, auto beta, auto x) {
         using value_type = typename std::decay_t<
-            detail::pointee<decltype(mg_level)>>::value_type;
+            gko::detail::pointee<decltype(mg_level)>>::value_type;
         auto dense_x = as<matrix::Dense<value_type>>(x);
         auto x_clone = dense_x->clone();
         this->apply(b, x_clone.get());

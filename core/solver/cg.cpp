@@ -113,37 +113,41 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     array<char> reduction_tmp{exec};
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto r = this->create_workspace_with_config_of(0, dense_b);
+    auto z = this->create_workspace_with_config_of(1, dense_b);
+    auto p = this->create_workspace_with_config_of(2, dense_b);
+    auto q = this->create_workspace_with_config_of(3, dense_b);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
+    auto alpha = this->template create_workspace_scalar<ValueType>(
+        4, dense_b->get_size()[1]);
+    auto beta = this->template create_workspace_scalar<ValueType>(
+        5, dense_b->get_size()[1]);
+    auto prev_rho = this->template create_workspace_scalar<ValueType>(
+        6, dense_b->get_size()[1]);
+    auto rho = this->template create_workspace_scalar<ValueType>(
+        7, dense_b->get_size()[1]);
 
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
+    auto one_op = this->template create_workspace_scalar<ValueType>(8, 1);
+    auto neg_one_op = this->template create_workspace_scalar<ValueType>(9, 1);
+    one_op->fill(one<ValueType>());
+    neg_one_op->fill(-one<ValueType>());
 
     bool one_changed{};
-    array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    auto& stop_status = this->template create_workspace_array<stopping_status>(
+        0, dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(cg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
-                                  prev_rho.get(), rho.get(), &stop_status));
+    exec->run(
+        cg::make_initialize(dense_b, r, z, p, q, prev_rho, rho, &stop_status));
     // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
 
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
     int iter = -1;
     /* Memory movement summary:
@@ -156,16 +160,16 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
      * 1x norm2 residual   n
      */
     while (true) {
-        this->get_preconditioner()->apply(r.get(), z.get());
-        r->compute_conj_dot(z.get(), rho.get(), reduction_tmp);
+        this->get_preconditioner()->apply(r, z);
+        r->compute_conj_dot(z, rho, reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
+            this, iter, r, dense_x, nullptr, rho);
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -173,15 +177,13 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
-                                  &stop_status));
-        this->get_system_matrix()->apply(p.get(), q.get());
-        p->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
+        exec->run(cg::make_step_1(p, z, rho, prev_rho, &stop_status));
+        this->get_system_matrix()->apply(p, q);
+        p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
-                                  beta.get(), rho.get(), &stop_status));
+        exec->run(cg::make_step_2(dense_x, r, p, q, beta, rho, &stop_status));
         swap(prev_rho, rho);
     }
 }
