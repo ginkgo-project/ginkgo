@@ -97,7 +97,7 @@ protected:
     std::unique_ptr<Mtx> mtx6;
     std::unique_ptr<Mtx> mtx7;
     std::unique_ptr<Mtx> mtx8;
-
+    gko::int32 invalid_index = gko::invalid_index<gko::int32>();
     std::default_random_engine rand_engine;
 
     template <typename MtxType>
@@ -1110,7 +1110,7 @@ TYPED_TEST(Dense, ConvertsToEll32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1135,7 +1135,7 @@ TYPED_TEST(Dense, MovesToEll32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1160,7 +1160,7 @@ TYPED_TEST(Dense, ConvertsToEll64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1185,7 +1185,7 @@ TYPED_TEST(Dense, MovesToEll64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1210,10 +1210,10 @@ TYPED_TEST(Dense, ConvertsToEllWithStride)
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{0.0});
@@ -1240,10 +1240,10 @@ TYPED_TEST(Dense, MovesToEllWithStride)
     ASSERT_EQ(ell_mtx->get_stride(), 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{0.0});
@@ -1474,10 +1474,10 @@ TYPED_TEST(Dense, MovesToHybridWithStrideAndCooLengthByColumns2)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1511,10 +1511,10 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideAndCooLengthByColumns2)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(c[3], 1);
-    EXPECT_EQ(c[4], 0);
-    EXPECT_EQ(c[5], 0);
+    EXPECT_EQ(c[4], this->invalid_index);
+    EXPECT_EQ(c[5], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1550,7 +1550,7 @@ TYPED_TEST(Dense, MovesToHybridWithStrideByPercent40)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1587,7 +1587,7 @@ TYPED_TEST(Dense, ConvertsToHybridWithStrideByPercent40)
     EXPECT_EQ(p, 3);
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 0);
+    EXPECT_EQ(c[2], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{5.0});
     EXPECT_EQ(v[2], T{0.0});
@@ -1623,9 +1623,9 @@ TYPED_TEST(Dense, ConvertsToSellp32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1660,9 +1660,9 @@ TYPED_TEST(Dense, MovesToSellp32)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1697,9 +1697,9 @@ TYPED_TEST(Dense, ConvertsToSellp64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1734,9 +1734,9 @@ TYPED_TEST(Dense, MovesToSellp64)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[gko::matrix::default_slice_size], 1);
-    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
-    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
+    EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[gko::matrix::default_slice_size], T{2.0});
@@ -1770,11 +1770,11 @@ TYPED_TEST(Dense, ConvertsToSellpWithSliceSizeAndStrideFactor)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 0);
-    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(c[5], this->invalid_index);
+    EXPECT_EQ(c[6], this->invalid_index);
+    EXPECT_EQ(c[7], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});
@@ -1810,11 +1810,11 @@ TYPED_TEST(Dense, MovesToSellpWithSliceSizeAndStrideFactor)
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(c[2], 1);
-    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[3], this->invalid_index);
     EXPECT_EQ(c[4], 2);
-    EXPECT_EQ(c[5], 0);
-    EXPECT_EQ(c[6], 0);
-    EXPECT_EQ(c[7], 0);
+    EXPECT_EQ(c[5], this->invalid_index);
+    EXPECT_EQ(c[6], this->invalid_index);
+    EXPECT_EQ(c[7], this->invalid_index);
     EXPECT_EQ(v[0], T{1.0});
     EXPECT_EQ(v[1], T{1.5});
     EXPECT_EQ(v[2], T{2.0});

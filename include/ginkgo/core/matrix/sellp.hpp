@@ -57,6 +57,9 @@ class Csr;
  * SELL-P format divides rows into smaller slices and store each slice with ELL
  * format.
  *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *

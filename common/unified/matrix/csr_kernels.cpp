@@ -151,7 +151,8 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
             const auto slice_length = slice_end - slice_begin;
             auto out_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_begin + slice_length; i++) {
-                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                cols[out_idx] =
+                    i < row_end ? in_cols[i] : invalid_index<IndexType>();
                 values[out_idx] = i < row_end ? unpack_member(in_values[i])
                                               : zero(values[out_idx]);
                 out_idx += slice_size;
@@ -181,7 +182,8 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
             const auto row_end = row_ptrs[row + 1];
             auto out_idx = row;
             for (auto i = row_begin; i < row_begin + ell_length; i++) {
-                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                cols[out_idx] =
+                    i < row_end ? in_cols[i] : invalid_index<IndexType>();
                 values[out_idx] = i < row_end ? unpack_member(in_values[i])
                                               : zero(values[out_idx]);
                 out_idx += ell_stride;
@@ -215,7 +217,8 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                 const auto out_idx = row + ell_stride * i;
                 const auto in_idx = i + row_begin;
                 const bool use = i < row_size;
-                ell_cols[out_idx] = use ? cols[in_idx] : 0;
+                ell_cols[out_idx] =
+                    use ? cols[in_idx] : invalid_index<IndexType>();
                 ell_vals[out_idx] = use ? vals[in_idx] : zero(vals[in_idx]);
             }
             const auto coo_begin = coo_row_ptrs[row];

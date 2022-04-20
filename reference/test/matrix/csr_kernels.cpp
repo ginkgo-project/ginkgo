@@ -238,9 +238,9 @@ protected:
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[64], 1);
-        EXPECT_EQ(c[65], 0);
+        EXPECT_EQ(c[65], this->invalid_index);
         EXPECT_EQ(c[128], 2);
-        EXPECT_EQ(c[129], 0);
+        EXPECT_EQ(c[129], this->invalid_index);
         EXPECT_EQ(v[0], value_type{1.0});
         EXPECT_EQ(v[1], value_type{5.0});
         EXPECT_EQ(v[64], value_type{3.0});
@@ -275,9 +275,9 @@ protected:
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 0);
+        EXPECT_EQ(c[3], invalid_index);
         EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], 0);
+        EXPECT_EQ(c[5], invalid_index);
         EXPECT_EQ(v[0], value_type{1.0});
         EXPECT_EQ(v[1], value_type{5.0});
         EXPECT_EQ(v[2], value_type{3.0});
@@ -348,6 +348,7 @@ protected:
     std::unique_ptr<Mtx> mtx2;
     std::unique_ptr<Mtx> mtx3_sorted;
     std::unique_ptr<Mtx> mtx3_unsorted;
+    index_type invalid_index = gko::invalid_index<index_type>();
 };
 
 TYPED_TEST_SUITE(Csr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
