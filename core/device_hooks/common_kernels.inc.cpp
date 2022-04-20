@@ -1228,9 +1228,10 @@ namespace batch_ilu {
 
 
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
 
 
-}
+}  // namespace batch_ilu
 
 
 namespace batch_identity {
