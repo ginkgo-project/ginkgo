@@ -37,6 +37,8 @@
     - RemoveTest: "true"
 - "core/test/base/allocator"
     - FixInclude: "core/base/allocator.hpp"
+- "core/test/utils/matrix_utils_test"
+    - FixInclude: "core/utils/matrix_utils.hpp"
 - "reference/test/base/utils"
     - FixInclude: "core/base/utils.hpp"
 - "_builder\.cpp"
