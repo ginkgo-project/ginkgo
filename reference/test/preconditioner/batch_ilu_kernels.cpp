@@ -36,9 +36,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/factorization/factorization_kernels.hpp"
@@ -46,9 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
-#include "ginkgo/core/preconditioner/batch_ilu.hpp"
-#include "ginkgo/core/preconditioner/ilu.hpp"
-#include "ginkgo/core/solver/upper_trs.hpp"
 
 
 namespace {
