@@ -39,7 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -154,6 +156,10 @@ private:
 template <typename MatrixType = LinOp>
 class SolverBase {
 public:
+    SolverBase(std::shared_ptr<const Executor> exec)
+        : workspace_{std::move(exec)}
+    {}
+
     virtual ~SolverBase() = default;
 
     /**
@@ -171,6 +177,49 @@ protected:
     {
         system_matrix_ = std::move(system_matrix);
     }
+
+    template <typename VectorType>
+    VectorType* create_workspace_with_config_of(int vector_id,
+                                                const VectorType* vec) const
+    {
+        return workspace_.template create_or_get_vector<VectorType>(
+            vector_id, [&] { return VectorType::create_with_config_of(vec); },
+            typeid(*vec), vec->get_size(), vec->get_stride());
+    }
+
+    template <typename VectorType>
+    VectorType* create_workspace_with_type_of(int vector_id,
+                                              const VectorType* vec,
+                                              dim<2> size) const
+    {
+        return workspace_.template create_or_get_vector<VectorType>(
+            vector_id, [&] { return VectorType::create_with_type_of(vec); },
+            typeid(*vec), size, size[1]);
+    }
+
+    template <typename ValueType>
+    matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
+                                                      size_type size) const
+    {
+        return workspace_
+            .template create_or_get_vector<matrix::Dense<ValueType>>(
+                vector_id,
+                [&] {
+                    return matrix::Dense<ValueType>::create(
+                        workspace_.get_executor(), dim<2>{1, size});
+                },
+                typeid(matrix::Dense<ValueType>), size, size);
+    }
+
+    template <typename ValueType>
+    Array<ValueType>& create_workspace_array(int array_id, size_type size) const
+    {
+        return workspace_.template create_or_get_array<ValueType>(array_id,
+                                                                  size);
+    }
+
+private:
+    mutable detail::workspace workspace_;
 
     std::shared_ptr<const MatrixType> system_matrix_;
 };
@@ -213,9 +262,10 @@ public:
         return *this;
     }
 
-    EnableSolverBase() = default;
+    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
+        : SolverBase<MatrixType>{self()->get_executor()}
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -223,13 +273,21 @@ public:
     /**
      * Creates a shallow copy of the provided system matrix.
      */
-    EnableSolverBase(const EnableSolverBase& other) { *this = other; }
+    EnableSolverBase(const EnableSolverBase& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
+    {
+        *this = other;
+    }
 
     /**
      * Moves the provided system matrix. The moved-from object has a nullptr
      * system matrix.
      */
-    EnableSolverBase(EnableSolverBase&& other) { *this = std::move(other); }
+    EnableSolverBase(EnableSolverBase&& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
+    {
+        *this = std::move(other);
+    }
 
 protected:
     void set_system_matrix(std::shared_ptr<const MatrixType> new_system_matrix)
