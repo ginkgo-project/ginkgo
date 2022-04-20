@@ -30,16 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
-#define GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
+#ifndef GKO_CORE_UTILS_MATRIX_UTILS_HPP_
+#define GKO_CORE_UTILS_MATRIX_UTILS_HPP_
 
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/test/utils/value_generator.hpp"
 
 
 namespace gko {
@@ -114,7 +111,7 @@ void make_unit_diagonal(matrix_data<ValueType, IndexType>& data)
     make_remove_diagonal(data);
     auto num_diags = std::min(data.size[0], data.size[1]);
     for (gko::int64 i = 0; i < num_diags; i++) {
-        data.nonzeros.emplace_back(i, i, 1.0);
+        data.nonzeros.emplace_back(i, i, one<ValueType>());
     }
     data.ensure_row_major_order();
 }
@@ -204,6 +201,10 @@ void make_diag_dominant(matrix_data<ValueType, IndexType>& data,
         i++;
     }
     for (i = 0; i < data.size[0]; i++) {
+        if (norms[i] == zero<ValueType>()) {
+            // make sure empty rows don't make the matrix singular
+            norms[i] = one<remove_complex<ValueType>>();
+        }
         if (diag_positions[i] < 0) {
             data.nonzeros.emplace_back(i, i, norms[i] * ratio);
         } else {
@@ -313,4 +314,4 @@ void ensure_all_diagonal_entries(MtxType* const mtx)
 }  // namespace test
 }  // namespace gko
 
-#endif  // GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
+#endif  // GKO_CORE_UTILS_MATRIX_UTILS_HPP_
