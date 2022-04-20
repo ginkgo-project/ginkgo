@@ -173,8 +173,8 @@ protected:
                     const BatchLinOp* beta, BatchLinOp* x) const override{};
 
 private:
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> l_factor_;
-    std::unique_ptr<matrix::BatchCsr<ValueType, IndexType>> u_factor_;
+    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> l_factor_;
+    std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> u_factor_;
 };
 
 

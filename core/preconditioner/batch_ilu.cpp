@@ -49,7 +49,7 @@ GKO_REGISTER_OPERATION(unbatch_initialize_row_ptrs_l_u,
 GKO_REGISTER_OPERATION(unbatch_initialize_l_u, factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(check_diag_entries_exist,
                        batch_csr::check_diagonal_entries_exist);
-GKO_REGISTER_OPERATION(generate_split_values, batch_ilu::generate_split);
+GKO_REGISTER_OPERATION(generate_split, batch_ilu::generate_split);
 
 
 }  // namespace
@@ -102,17 +102,19 @@ void BatchIlu<ValueType, IndexType>::generate(
     Array<IndexType> l_row_ptrs(exec, nrows + 1);
     Array<IndexType> u_row_ptrs(exec, nrows + 1);
     exec->run(batch_ilu::make_unbatch_initialize_row_ptrs_l_u(
-        first_csr.get(), l_row_ptrs->get_data(), u_row_ptrs->get_data()));
-    const auto l_nnz = exec->copy_val_to_host(&l_row_ptrs[nrows]);
-    const auto u_nnz = exec->copy_val_to_host(&u_row_ptrs[nrows]);
+        first_csr.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+    const auto l_nnz = exec->copy_val_to_host(&l_row_ptrs.get_data()[nrows]);
+    const auto u_nnz = exec->copy_val_to_host(&u_row_ptrs.get_data()[nrows]);
     auto first_L = unbatch_type::create(exec, unbatch_size, l_nnz);
     auto first_U = unbatch_type::create(exec, unbatch_size, u_nnz);
     exec->copy(nrows + 1, l_row_ptrs.get_const_data(), first_L->get_row_ptrs());
     exec->copy(nrows + 1, u_row_ptrs.get_const_data(), first_U->get_row_ptrs());
     exec->run(batch_ilu::make_unbatch_initialize_l_u(
         first_csr.get(), first_L.get(), first_U.get()));
-    l_factor_ = matrix_type::create(exec, nbatch, unbatch_size, l_nnz);
-    u_factor_ = matrix_type::create(exec, nbatch, unbatch_size, u_nnz);
+    l_factor_ =
+        gko::share(matrix_type::create(exec, nbatch, unbatch_size, l_nnz));
+    u_factor_ =
+        gko::share(matrix_type::create(exec, nbatch, unbatch_size, u_nnz));
     exec->copy(nrows + 1, first_L->get_const_row_ptrs(),
                l_factor_->get_row_ptrs());
     exec->copy(nrows + 1, first_U->get_const_row_ptrs(),
@@ -121,9 +123,9 @@ void BatchIlu<ValueType, IndexType>::generate(
     exec->copy(nnz, first_U->get_const_col_idxs(), u_factor_->get_col_idxs());
 
     // compute ILU factorization into the split factor matrices
-    exec->run(batch_ilu::make_generate_split_values(
-        parameters_.factorization_type, parameters_.storage_type, sys_csr,
-        l_factor_.get(), u_factor_.get()));
+    exec->run(batch_ilu::make_generate_split(parameters_.factorization_type,
+                                             sys_csr, l_factor_.get(),
+                                             u_factor_.get()));
 }
 
 template <typename ValueType, typename IndexType>
@@ -138,6 +140,10 @@ std::unique_ptr<BatchLinOp> BatchIlu<ValueType, IndexType>::conj_transpose()
 {
     GKO_NOT_IMPLEMENTED;
 }
+
+
+#define GKO_DECLARE_BATCH_ILU(ValueType) class BatchIlu<ValueType, int32>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ILU);
 
 
 }  // namespace preconditioner
