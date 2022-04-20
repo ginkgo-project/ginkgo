@@ -99,8 +99,10 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
     }
     auto d_stop_status = gko::Array<gko::stopping_status>(exec, stop_status);
 
-    gko::kernels::reference::ir::initialize(ref, &stop_status);
-    gko::kernels::EXEC_NAMESPACE::ir::initialize(exec, &d_stop_status);
+    gko::kernels::reference::ir::initialize(ref, ref->get_default_exec_stream(),
+                                            &stop_status);
+    gko::kernels::EXEC_NAMESPACE::ir::initialize(
+        exec, exec->get_default_exec_stream(), &d_stop_status);
 
     auto tmp = gko::Array<gko::stopping_status>(ref, d_stop_status);
     for (int i = 0; i < stop_status.get_num_elems(); ++i) {

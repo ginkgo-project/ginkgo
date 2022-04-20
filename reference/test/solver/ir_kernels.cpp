@@ -103,7 +103,8 @@ TYPED_TEST(Ir, KernelInitialize)
     non_stopped.reset();
     std::fill_n(stop.get_data(), stop.get_num_elems(), non_stopped);
 
-    gko::kernels::reference::ir::initialize(this->exec, &stop);
+    gko::kernels::reference::ir::initialize(
+        this->exec, this->exec->get_default_exec_stream(), &stop);
 
     ASSERT_EQ(stop.get_data()[0], non_stopped);
     ASSERT_EQ(stop.get_data()[1], non_stopped);

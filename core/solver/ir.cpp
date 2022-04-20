@@ -275,16 +275,14 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         exec, this->real_workspace_, offset, dim<2>{1, num_rhs}, b_stride));
 
     bool one_changed{};
-    exec->run(ir::make_async_initialize(&this->stop_status_), handle)->wait();
+    exec->run(ir::make_async_initialize(&this->stop_status_), handle);
     exec->run(ir::make_async_copy(detail::get_local(dense_b),
                                   detail::get_local(residual.get())),
-              handle)
-        ->wait();
+              handle);
 
-    this->get_system_matrix()
-        ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
-                lend(residual), handle)
-        ->wait();
+    this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                     lend(this->one_op_), lend(residual),
+                                     handle);
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -347,48 +345,38 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
             // A * inner_solution = residual
             // with residual as initial guess.
             // inner_solution->copy_from(lend(residual));
-            exec->run(ir::make_async_copy(
-                          detail::get_local(residual.get()),
-                          detail::get_local(inner_solution.get())),
-                      handle)
-                ->wait();
-            this->get_solver()
-                ->apply(lend(residual), lend(inner_solution), handle)
-                ->wait();
+            exec->run(
+                ir::make_async_copy(detail::get_local(residual.get()),
+                                    detail::get_local(inner_solution.get())),
+                handle);
+            this->get_solver()->apply(lend(residual), lend(inner_solution),
+                                      handle);
 
             // x = x + relaxation_factor * inner_solution
-            dense_x
-                ->add_scaled(lend(relaxation_factor_), lend(inner_solution),
-                             handle)
-                ->wait();
+            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution),
+                                handle);
 
             // residual = b - A * x
             // residual->copy_from(dense_b);
             exec->run(ir::make_async_copy(detail::get_local(dense_b),
                                           detail::get_local(residual.get())),
-                      handle)
-                ->wait();
-            this->get_system_matrix()
-                ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
-                        lend(residual), handle)
-                ->wait();
+                      handle);
+            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                             lend(this->one_op_),
+                                             lend(residual), handle);
         } else {
             // x = x + relaxation_factor * A \ residual
-            this->get_solver()
-                ->apply(lend(relaxation_factor_), lend(residual),
-                        lend(this->one_op_), dense_x, handle)
-                ->wait();
+            this->get_solver()->apply(lend(relaxation_factor_), lend(residual),
+                                      lend(this->one_op_), dense_x, handle);
 
             // residual = b - A * x
             // residual->copy_from(dense_b);
             exec->run(ir::make_async_copy(detail::get_local(dense_b),
                                           detail::get_local(residual.get())),
-                      handle)
-                ->wait();
-            this->get_system_matrix()
-                ->apply(lend(this->neg_one_op_), dense_x, lend(this->one_op_),
-                        lend(residual), handle)
-                ->wait();
+                      handle);
+            this->get_system_matrix()->apply(lend(this->neg_one_op_), dense_x,
+                                             lend(this->one_op_),
+                                             lend(residual), handle);
         }
         // #endif
     }
