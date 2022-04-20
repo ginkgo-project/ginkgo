@@ -47,12 +47,12 @@ namespace hip {
 namespace batch_ilu {
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void generate_split(std::shared_ptr<const DefaultExecutor> exec,
                     gko::preconditioner::batch_factorization_type,
-                    const matrix::BatchCsr<ValueType>* const a,
-                    matrix::BatchCsr<ValueType>* const l_factor,
-                    matrix::BatchCsr<ValueType>* const u_factor)
+                    const matrix::BatchCsr<ValueType, IndexType>* const a,
+                    matrix::BatchCsr<ValueType, IndexType>* const l_factor,
+                    matrix::BatchCsr<ValueType, IndexType>* const u_factor)
 {
     const auto a_ub = get_batch_struct(a);
     const auto l_ub = get_batch_struct(l_factor);
@@ -60,18 +60,19 @@ void generate_split(std::shared_ptr<const DefaultExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void apply_split(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchCsr<ValueType>* l,
-                 const matrix::BatchCsr<ValueType>* u,
+                 const matrix::BatchCsr<ValueType, IndexType>* l,
+                 const matrix::BatchCsr<ValueType, IndexType>* u,
                  const matrix::BatchDense<ValueType>* r,
                  matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
 
 
 }  // namespace batch_ilu
