@@ -43,6 +43,7 @@ target_sources(ginkgo
     matrix/row_gatherer.cpp
     multigrid/amgx_pgm.cpp
     preconditioner/batch_ilu.cpp
+    preconditioner/batch_isai.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp

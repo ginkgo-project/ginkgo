@@ -30,51 +30,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
-#include "core/preconditioner/batch_ilu_kernels.hpp"
-
-
-#include <ginkgo/core/matrix/batch_csr.hpp>
-
-
-#include "core/matrix/batch_struct.hpp"
-#include "cuda/matrix/batch_struct.hpp"
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
 
 
 namespace gko {
-namespace kernels {
-namespace cuda {
-namespace batch_ilu {
+namespace preconditioner {
+namespace batch_isai {
+namespace {
 
 
-template <typename ValueType>
-void generate_split(std::shared_ptr<const DefaultExecutor> exec,
-                    gko::preconditioner::batch_factorization_type,
-                    const matrix::BatchCsr<ValueType>* const a,
-                    matrix::BatchCsr<ValueType>* const l_factor,
-                    matrix::BatchCsr<ValueType>* const u_factor)
+// TODO: Register necessary operations
+
+
+}  // namespace
+}  // namespace batch_isai
+
+
+template <typename ValueType, typename IndexType>
+void BatchIsai<ValueType, IndexType>::generate(
+    const BatchLinOp* const system_matrix) GKO_NOT_IMPLEMENTED;
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<BatchLinOp> BatchIsai<ValueType, IndexType>::transpose() const
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto l_ub = get_batch_struct(l_factor);
-    const auto u_ub = get_batch_struct(u_factor);
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
+template <typename ValueType, typename IndexType>
+std::unique_ptr<BatchLinOp> BatchIsai<ValueType, IndexType>::conj_transpose()
+    const
+{
+    GKO_NOT_IMPLEMENTED;
+}
 
 
-template <typename ValueType>
-void apply_split(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchCsr<ValueType>* l,
-                 const matrix::BatchCsr<ValueType>* u,
-                 const matrix::BatchDense<ValueType>* r,
-                 matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
-
-
-}  // namespace batch_ilu
-}  // namespace cuda
-}  // namespace kernels
+}  // namespace preconditioner
 }  // namespace gko
