@@ -54,6 +54,7 @@ target_sources(ginkgo
     multigrid/pgm.cpp
     multigrid/fixed_coarsening.cpp
     preconditioner/batch_ilu.cpp
+    preconditioner/batch_isai.cpp
     preconditioner/isai.cpp
     preconditioner/jacobi.cpp
     reorder/rcm.cpp

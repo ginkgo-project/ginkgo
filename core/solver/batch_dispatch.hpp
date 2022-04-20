@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
@@ -224,7 +225,14 @@ public:
                 // TODO: Implement other batch TRSV types
                 GKO_NOT_IMPLEMENTED;
             }
-            //} else if () {
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchIsai<value_type>*>(precon_)) {
+            auto approx_inv =
+                device::get_batch_struct(prec->get_const_approximate_inverse());
+            // TODO: Define device preconditioners, add the includes to files
+            //  like cuda/preconditioner/batch_preconditioners.cuh, and add a
+            //  dispatch.
+            GKO_NOT_IMPLEMENTED;
         } else {
             GKO_NOT_IMPLEMENTED;
         }
