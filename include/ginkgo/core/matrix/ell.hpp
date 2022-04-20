@@ -66,6 +66,9 @@ class Hybrid;
  * fashion. The columns are padded to the length by user-defined stride
  * parameter whose default value is the number of rows of the matrix.
  *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *

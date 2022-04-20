@@ -92,7 +92,7 @@ protected:
         ell_val[2] = 3.0;
         ell_val[3] = 5.0;
         ell_col[0] = 0;
-        ell_col[1] = 0;
+        ell_col[1] = gko::invalid_index<index_type>();
         ell_col[2] = 1;
         ell_col[3] = 1;
         // Set Coo values

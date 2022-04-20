@@ -39,9 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename T>
 struct change_index_s {
     using type = gko::int32;
@@ -66,6 +63,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
 
+    index_type invalid_index = gko::invalid_index<index_type>();
+
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Hybrid<value_type, index_type>::create(
@@ -76,10 +75,10 @@ protected:
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
-        c[3] = 0;
+        c[3] = invalid_index;
         v[0] = 1.0;
         v[1] = 5.0;
-        v[2] = 3.0;
+        v[2] = 0.0;
         v[3] = 0.0;
         mtx->get_coo_values()[0] = 2.0;
         mtx->get_coo_col_idxs()[0] = 2;
@@ -103,10 +102,10 @@ protected:
         EXPECT_EQ(c[0], 0);
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 0);
+        EXPECT_EQ(c[3], invalid_index);
         EXPECT_EQ(v[0], value_type{1.0});
         EXPECT_EQ(v[1], value_type{5.0});
-        EXPECT_EQ(v[2], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{0.0});
         EXPECT_EQ(v[3], value_type{0.0});
         EXPECT_EQ(m->get_const_coo_values()[0], value_type{2.0});
         EXPECT_EQ(m->get_const_coo_col_idxs()[0], 2);
@@ -204,7 +203,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataAutomatically)
     using value_type = typename TestFixture::value_type;
     auto m =
         Mtx::create(this->exec, std::make_shared<typename Mtx::automatic>());
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     auto v = m->get_const_coo_values();
     auto c = m->get_const_coo_col_idxs();
@@ -225,7 +224,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataAutomatically)
     EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], value_type{1.0});
-    EXPECT_EQ(v[1], value_type{3.0});
+    EXPECT_EQ(v[1], value_type{0.0});
     EXPECT_EQ(v[2], value_type{2.0});
     EXPECT_EQ(v[3], value_type{5.0});
 }
@@ -236,7 +235,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByColumns2)
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::column_limit>(2));
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -248,7 +247,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByPercent40)
     using value_type = typename TestFixture::value_type;
     auto m = Mtx::create(this->exec,
                          std::make_shared<typename Mtx::imbalance_limit>(0.4));
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 0.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
     auto v = m->get_const_ell_values();
     auto c = m->get_const_ell_col_idxs();
@@ -266,7 +265,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixDataByPercent40)
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(v[0], value_type{1.0});
     EXPECT_EQ(v[1], value_type{5.0});
-    EXPECT_EQ(coo_v[0], value_type{3.0});
+    EXPECT_EQ(coo_v[0], value_type{0.0});
     EXPECT_EQ(coo_v[1], value_type{2.0});
     EXPECT_EQ(coo_c[0], 1);
     EXPECT_EQ(coo_c[1], 2);
@@ -284,7 +283,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataAutomatically)
         Mtx::create(this->exec, std::make_shared<typename Mtx::automatic>());
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
-    data.set_value(0, 1, 3.0);
+    data.set_value(0, 1, 0.0);
     data.set_value(0, 2, 2.0);
     data.set_value(1, 1, 5.0);
 
@@ -309,7 +308,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataAutomatically)
     EXPECT_EQ(c[2], 2);
     EXPECT_EQ(c[3], 1);
     EXPECT_EQ(v[0], value_type{1.0});
-    EXPECT_EQ(v[1], value_type{3.0});
+    EXPECT_EQ(v[1], value_type{0.0});
     EXPECT_EQ(v[2], value_type{2.0});
     EXPECT_EQ(v[3], value_type{5.0});
 }
@@ -324,7 +323,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByColumns2)
                          std::make_shared<typename Mtx::column_limit>(2));
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
-    data.set_value(0, 1, 3.0);
+    data.set_value(0, 1, 0.0);
     data.set_value(0, 2, 2.0);
     data.set_value(1, 1, 5.0);
 
@@ -343,7 +342,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
                          std::make_shared<typename Mtx::imbalance_limit>(0.4));
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
-    data.set_value(0, 1, 3.0);
+    data.set_value(0, 1, 0.0);
     data.set_value(0, 2, 2.0);
     data.set_value(1, 1, 5.0);
 
@@ -365,7 +364,7 @@ TYPED_TEST(Hybrid, CanBeReadFromMatrixAssemblyDataByPercent40)
     EXPECT_EQ(c[1], 1);
     EXPECT_EQ(v[0], value_type{1.0});
     EXPECT_EQ(v[1], value_type{5.0});
-    EXPECT_EQ(coo_v[0], value_type{3.0});
+    EXPECT_EQ(coo_v[0], value_type{0.0});
     EXPECT_EQ(coo_v[1], value_type{2.0});
     EXPECT_EQ(coo_c[0], 1);
     EXPECT_EQ(coo_c[1], 2);
@@ -386,7 +385,7 @@ TYPED_TEST(Hybrid, GeneratesCorrectMatrixData)
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{0.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
 }
@@ -488,6 +487,3 @@ TYPED_TEST(Hybrid, GetCorrectAutomatic)
 
     ASSERT_NO_THROW(gko::as<strategy2>(mtx->template get_strategy<Mtx2>()));
 }
-
-
-}  // namespace

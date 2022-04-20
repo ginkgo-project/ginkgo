@@ -94,7 +94,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                 const auto out_idx = row + ell_stride * i;
                 const auto in_idx = i + row_begin;
                 const bool use = i < row_size;
-                ell_cols[out_idx] = use ? cols[in_idx] : 0;
+                ell_cols[out_idx] =
+                    use ? cols[in_idx] : invalid_index<IndexType>();
                 ell_vals[out_idx] =
                     use ? vals[in_idx] : zero<device_value_type>();
             }

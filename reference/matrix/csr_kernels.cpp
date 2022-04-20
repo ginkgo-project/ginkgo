@@ -418,7 +418,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
                  i <
                  (slice_sets[slice] + slice_lengths[slice]) * slice_size + row;
                  i += slice_size) {
-                col_idxs[i] = 0;
+                col_idxs[i] = invalid_index<IndexType>();
                 vals[i] = zero<ValueType>();
             }
         }
@@ -446,7 +446,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             result->val_at(row, i) = zero<ValueType>();
-            result->col_at(row, i) = 0;
+            result->col_at(row, i) = invalid_index<IndexType>();
         }
         for (size_type col_idx = 0; col_idx < row_ptrs[row + 1] - row_ptrs[row];
              col_idx++) {
@@ -783,13 +783,8 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
          i++) {
         for (size_type j = 0; j < result->get_ell_stride(); j++) {
             result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = 0;
+            result->ell_col_at(j, i) = invalid_index<IndexType>();
         }
-    }
-    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
-        coo_val[i] = zero<ValueType>();
-        coo_col[i] = 0;
-        coo_row[i] = 0;
     }
 
     const auto csr_row_ptrs = source->get_const_row_ptrs();

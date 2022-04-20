@@ -306,8 +306,8 @@ void Ell<ValueType, IndexType>::write(mat_data& data) const
     for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
         for (size_type i = 0; i < tmp->num_stored_elements_per_row_; ++i) {
             const auto val = tmp->val_at(row, i);
-            if (is_nonzero(val)) {
-                const auto col = tmp->col_at(row, i);
+            const auto col = tmp->col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
                 data.nonzeros.emplace_back(row, col, val);
             }
         }

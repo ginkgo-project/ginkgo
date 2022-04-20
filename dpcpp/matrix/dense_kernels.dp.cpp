@@ -371,7 +371,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; col_idx < max_nnz_per_row; col_idx++) {
-                cols[col_idx * stride + row] = 0;
+                cols[col_idx * stride + row] = invalid_index<IndexType>();
                 vals[col_idx * stride + row] = zero<ValueType>();
             }
         });
@@ -437,7 +437,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
             }
             for (; ell_count < ell_lim; ell_count++) {
                 ell_vals[ell_idx] = zero<ValueType>();
-                ell_cols[ell_idx] = 0;
+                ell_cols[ell_idx] = invalid_index<IndexType>();
                 ell_idx += ell_stride;
             }
             auto coo_idx = coo_row_ptrs[row];
@@ -490,7 +490,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; out_idx < slice_end; out_idx += slice_size) {
-                col_idxs[out_idx] = 0;
+                col_idxs[out_idx] = invalid_index<IndexType>();
                 vals[out_idx] = zero<ValueType>();
             }
         });

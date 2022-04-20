@@ -53,7 +53,7 @@ __device__ void spmv_kernel(
             for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
                 const auto ind = tidx + idx * stride;
                 const auto col_idx = col[ind];
-                if (col_idx < idx) {
+                if (col_idx == invalid_index<IndexType>()) {
                     break;
                 } else {
                     temp += val(ind) * b(col_idx, column_id);
@@ -81,7 +81,7 @@ __device__ void spmv_kernel(
                  idx < num_stored_elements_per_row; idx += step_size) {
                 const auto ind = x + idx * stride;
                 const auto col_idx = col[ind];
-                if (col_idx < idx) {
+                if (col_idx == invalid_index<IndexType>()) {
                     break;
                 } else {
                     temp += val(ind) * b(col_idx, column_id);

@@ -324,7 +324,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
              i < max_nnz_per_row; i += config::warp_size) {
             const auto out_idx = row + i * result_stride;
             values[out_idx] = zero<ValueType>();
-            col_idxs[out_idx] = 0;
+            col_idxs[out_idx] = invalid_index<IndexType>();
         }
     }
 }
@@ -375,7 +375,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
              i < ell_max_nnz_per_row; i += config::warp_size) {
             const auto out_idx = row + i * ell_stride;
             ell_values[out_idx] = zero<ValueType>();
-            ell_col_idxs[out_idx] = 0;
+            ell_col_idxs[out_idx] = invalid_index<IndexType>();
         }
     }
 }
@@ -416,7 +416,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
         for (auto i = base_idx + lane * slice_size; i < slice_end;
              i += config::warp_size * slice_size) {
             values[i] = zero<ValueType>();
-            col_idxs[i] = 0;
+            col_idxs[i] = invalid_index<IndexType>();
         }
     }
 }

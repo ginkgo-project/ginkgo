@@ -724,6 +724,16 @@ protected:
         }
         {
             SCOPED_TRACE(
+                "Sparse Matrix with variable row nnz and some numerical zeros "
+                "(200x100)");
+            auto data = gen_mtx_data(200, 100, 10, 50);
+            for (int i = 0; i < data.nonzeros.size() / 4; i++) {
+                data.nonzeros[i * 4].value = gko::zero<value_type>();
+            }
+            guarded_fn(data);
+        }
+        {
+            SCOPED_TRACE(
                 "Sparse Matrix with heavily imbalanced row nnz (200x100)");
             guarded_fn(
                 gen_mtx_data(200, 100, std::poisson_distribution<>{1.5}));
