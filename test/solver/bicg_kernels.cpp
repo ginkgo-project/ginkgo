@@ -287,7 +287,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
 
 
