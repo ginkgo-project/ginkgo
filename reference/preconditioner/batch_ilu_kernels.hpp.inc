@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
+// only works for ILU(0) for now
 template <typename ValueType>
 inline void generate(const int num_rows,
                      const int* const __restrict__ a_row_ptrs,
@@ -48,37 +48,32 @@ inline void generate(const int num_rows,
     for (int irow = 0; irow < num_rows; irow++) {
         for (int jz = a_row_ptrs[irow]; jz < a_row_ptrs[irow + 1]; jz++) {
             const int col = a_col_idxs[jz];
+            const auto minrowcol = std::min(irow, col);
+            ValueType sum{};
+            for (int kz = l_row_ptrs[irow]; l_col_idxs[kz] < minrowcol; kz++) {
+                const int l_col = l_col_idxs[kz];
+                for (int lz = u_row_ptrs[l_col]; lz < u_row_ptrs[l_col + 1];
+                     lz++) {
+                    if (u_col_idxs[lz] == col) {
+                        sum += l_values[kz] * u_values[lz];
+                    }
+                }
+            }
             if (irow > col) {
                 // lower
                 assert(l_col_idxs[l_nnz] == col);
-                ValueType sum{};
-                for (int kz = l_row_ptrs[irow]; l_col_idxs[kz] < col; kz++) {
-                    const int l_col = l_col_idxs[kz];
-                    for (int lz = u_row_ptrs[l_col]; lz < u_row_ptrs[l_col + 1];
-                         lz++) {
-                        if (u_col_idxs[lz] == col) {
-                            sum += l_values[kz] * u_values[lz];
-                        }
-                    }
-                }
                 l_values[l_nnz] =
-                    (a_values[jz] - sum) / u_values[u_row_ptrs[irow]];
+                    (a_values[jz] - sum) / u_values[u_row_ptrs[col]];
                 l_nnz++;
             } else {
                 // upper
                 assert(u_col_idxs[u_nnz] == col);
-                ValueType sum{};
-                for (int kz = l_row_ptrs[irow]; l_col_idxs[kz] < irow; kz++) {
-                    const int l_col = l_col_idxs[kz];
-                    for (int lz = u_row_ptrs[l_col]; lz < u_row_ptrs[l_col + 1];
-                         lz++) {
-                        if (u_col_idxs[lz] == col) {
-                            sum += l_values[kz] * u_values[lz];
-                        }
-                    }
-                }
                 u_values[u_nnz] = a_values[jz] - sum;
                 u_nnz++;
+                if (irow == col) {
+                    l_values[l_nnz] = 1.0;
+                    l_nnz++;
+                }
             }
         }
     }

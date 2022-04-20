@@ -51,6 +51,21 @@ namespace test {
 
 
 /**
+ * Converts a vector of unique pointers to a vector of shared pointers.
+ */
+template <typename T>
+std::vector<std::shared_ptr<T>> share(std::vector<std::unique_ptr<T>>&& objs)
+{
+    std::vector<std::shared_ptr<T>> out;
+    out.reserve(objs.size());
+    for (auto& obj : objs) {
+        out.push_back(std::move(obj));
+    }
+    return out;
+}
+
+
+/**
  * Generates a batch of random matrices of the specified type.
  */
 template <typename MatrixType, typename NonzeroDistribution,
