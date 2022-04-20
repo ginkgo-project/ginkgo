@@ -217,8 +217,9 @@ struct BatchSystem {
     std::unique_ptr<vec_type> b;
 };
 
+
 /**
- * Generate a bach of randomly changed, almost-tridiagonal matrices and
+ * Generate a batch of randomly changed, almost-tridiagonal matrices and
  * a RHS vector.
  */
 template <typename MatrixType>
