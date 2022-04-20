@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 
 
+#include "core/base/kernel_declaration.hpp"
+
+
 namespace gko {
 namespace kernels {
 
@@ -53,70 +56,30 @@ namespace kernels {
  * @param exec  The executor on which to run the kernel.
  * @param a  The batch of matrices for which to build the preconditioner.
  */
-#define GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(_type)                    \
+#define GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(ValueType, IndexType)     \
     void generate_split(std::shared_ptr<const DefaultExecutor> exec,          \
                         gko::preconditioner::batch_factorization_type f_type, \
-                        const matrix::BatchCsr<_type>* a,                     \
-                        matrix::BatchCsr<_type>* l,                           \
-                        matrix::BatchCsr<_type>* u)
+                        const matrix::BatchCsr<ValueType, IndexType>* a,      \
+                        matrix::BatchCsr<ValueType, IndexType>* l,            \
+                        matrix::BatchCsr<ValueType, IndexType>* u)
 
-#define GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(_type)                     \
-    void apply_split(                                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::BatchCsr<_type>* l, const matrix::BatchCsr<_type>* u, \
-        const matrix::BatchDense<_type>* r, matrix::BatchDense<_type>* z)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                        \
-    template <typename ValueType>                           \
-    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(ValueType); \
-    template <typename ValueType>                           \
-    GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(ValueType)
+#define GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(ValueType, IndexType) \
+    void apply_split(std::shared_ptr<const DefaultExecutor> exec,      \
+                     const matrix::BatchCsr<ValueType, IndexType>* l,  \
+                     const matrix::BatchCsr<ValueType, IndexType>* u,  \
+                     const matrix::BatchDense<ValueType>* r,           \
+                     matrix::BatchDense<ValueType>* z)
 
 
-namespace omp {
-namespace batch_ilu {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_ilu
-}  // namespace omp
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL(ValueType, IndexType)
 
 
-namespace cuda {
-namespace batch_ilu {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_ilu
-}  // namespace cuda
-
-
-namespace reference {
-namespace batch_ilu {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_ilu
-}  // namespace reference
-
-
-namespace hip {
-namespace batch_ilu {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_ilu
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace batch_ilu {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace batch_ilu
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_ilu,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
