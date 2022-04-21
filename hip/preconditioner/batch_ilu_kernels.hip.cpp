@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 
@@ -52,6 +54,7 @@ constexpr size_type default_block_size = 256;
 
 
 #include "common/cuda_hip/preconditioner/batch_ilu_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
 
 
 }  // namespace
@@ -88,11 +91,16 @@ void apply_split(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::BatchDense<ValueType>* r,
                  matrix::BatchDense<ValueType>* z)
 {
-    const auto num_rows = static_cast<int>(a->get_size().at(0)[0]);
+    const auto num_rows = static_cast<int>(l->get_size().at(0)[0]);
     const auto nbatch = l->get_num_batch_entries();
-    const auto nnz = static_cast<int>(a->get_num_stored_elements() / nbatch);
-    const auto l_nnz = static_cast<int>(l->get_num_stored_elements() / nbatch);
-    const auto u_nnz = static_cast<int>(u->get_num_stored_elements() / nbatch);
+    // const auto l_nnz = static_cast<int>(l->get_num_stored_elements() /
+    // nbatch); const auto u_nnz = static_cast<int>(u->get_num_stored_elements()
+    // / nbatch);
+    const auto l_ub = get_batch_struct(l);
+    const auto u_ub = get_batch_struct(u);
+    hipLaunchKernelGGL(apply, nbatch, default_block_size, 0, 0, l_ub, u_ub,
+                       as_hip_type(r->get_const_values()),
+                       as_hip_type(z->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
