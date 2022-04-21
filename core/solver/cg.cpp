@@ -113,22 +113,27 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     array<char> reduction_tmp{exec};
 
-    auto r = this->create_workspace_with_config_of(0, dense_b);
-    auto z = this->create_workspace_with_config_of(1, dense_b);
-    auto p = this->create_workspace_with_config_of(2, dense_b);
-    auto q = this->create_workspace_with_config_of(3, dense_b);
+    auto r = this->create_workspace_with_config_of(vector_residual, dense_b);
+    auto z = this->create_workspace_with_config_of(
+        vector_preconditioned_residual, dense_b);
+    auto p =
+        this->create_workspace_with_config_of(vector_search_direction, dense_b);
+    auto q = this->create_workspace_with_config_of(vector_search_direction2,
+                                                   dense_b);
 
     auto alpha = this->template create_workspace_scalar<ValueType>(
-        4, dense_b->get_size()[1]);
+        scalar_alpha, dense_b->get_size()[1]);
     auto beta = this->template create_workspace_scalar<ValueType>(
-        5, dense_b->get_size()[1]);
+        scalar_beta, dense_b->get_size()[1]);
     auto prev_rho = this->template create_workspace_scalar<ValueType>(
-        6, dense_b->get_size()[1]);
+        scalar_prev_rho, dense_b->get_size()[1]);
     auto rho = this->template create_workspace_scalar<ValueType>(
-        7, dense_b->get_size()[1]);
+        scalar_rho, dense_b->get_size()[1]);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(8, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(9, 1);
+    auto one_op =
+        this->template create_workspace_scalar<ValueType>(scalar_one, 1);
+    auto neg_one_op =
+        this->template create_workspace_scalar<ValueType>(scalar_minus_one, 1);
     one_op->fill(one<ValueType>());
     neg_one_op->fill(-one<ValueType>());
 
