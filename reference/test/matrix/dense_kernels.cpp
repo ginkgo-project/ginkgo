@@ -637,12 +637,14 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
     using T = typename TestFixture::value_type;
     using T_nc = gko::remove_complex<T>;
     using NormVector = gko::matrix::Dense<T_nc>;
+    gko::Array<char> tmp{this->exec};
     auto mtx(gko::initialize<Mtx>(
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get());
+        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get(),
+        tmp);
 
     EXPECT_EQ(result->at(0, 0), T_nc{9.0});
     EXPECT_EQ(result->at(0, 1), T_nc{25.0});
