@@ -47,6 +47,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace distributed {
+
+
+template <typename ValueType>
+class Vector;
+
+
+}
+
+
 namespace matrix {
 
 
@@ -137,6 +147,7 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
+    friend class distributed::Vector<ValueType>;
 
 public:
     using EnableLinOp<Dense>::convert_to;

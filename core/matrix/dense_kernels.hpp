@@ -151,6 +151,15 @@ namespace kernels {
                              const device_matrix_data<_type, _prec>& data, \
                              matrix::Dense<_type>* output)
 
+#define GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(_type)               \
+    void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec, \
+                               const matrix::Dense<_type>* x,               \
+                               matrix::Dense<remove_complex<_type>>* result)
+
+#define GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(_type)               \
+    void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
+                      matrix::Dense<_type>* data)
+
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Dense<_type>* source,          \
@@ -341,6 +350,10 @@ namespace kernels {
     GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(ValueType);                      \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);              \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(ValueType);                       \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                       \

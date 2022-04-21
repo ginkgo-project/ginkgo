@@ -93,6 +93,8 @@ namespace distributed {
  *                         exceed this index type's maximum value.
  * @tparam GlobalIndexType  The index type used for the global indices. Needs
  *                          to be at least as large a type as LocalIndexType.
+ *
+ * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Partition

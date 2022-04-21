@@ -412,6 +412,40 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
 
 
+template <typename ValueType>
+void compute_squared_norm2(std::shared_ptr<const ReferenceExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           matrix::Dense<remove_complex<ValueType>>* result)
+{
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<remove_complex<ValueType>>();
+    }
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) += squared_norm(x->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
+
+
+template <typename ValueType>
+void compute_sqrt(std::shared_ptr<const ReferenceExecutor> exec,
+                  matrix::Dense<ValueType>* data)
+{
+    for (size_type i = 0; i < data->get_size()[0]; ++i) {
+        for (size_type j = 0; j < data->get_size()[1]; ++j) {
+            data->at(i, j) = sqrt(data->at(i, j));
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Dense<ValueType>* source, const int64*,
