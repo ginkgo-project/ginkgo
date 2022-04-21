@@ -37,14 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
-#include <ginkgo/core/preconditioner/ilu.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
 
 
-#include "core/factorization/factorization_kernels.hpp"
-#include "core/factorization/ilu_kernels.hpp"
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/batch.hpp"
@@ -100,6 +95,32 @@ TEST_F(BatchIlu, GenerateIsEquivalentToReference)
     const auto tol = 500 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(l_factor, d_l_factor, tol);
     GKO_ASSERT_BATCH_MTX_NEAR(u_factor, d_u_factor, tol);
+}
+
+
+TEST_F(BatchIlu, ApplyIsEquivalentToReference)
+{
+    using BDense = gko::matrix::BatchDense<value_type>;
+    auto prec_fact = prec_type::build().on(ref);
+    auto prec = prec_fact->generate(mtx);
+    auto l_factor = prec->get_const_lower_factor();
+    auto u_factor = prec->get_const_upper_factor();
+    auto d_l_factor = gko::clone(d_exec, l_factor);
+    auto d_u_factor = gko::clone(d_exec, u_factor);
+    auto rv = gko::test::generate_uniform_batch_random_matrix<BDense>(
+        nbatch, nrows, 1, std::uniform_int_distribution<>(1, 1),
+        std::normal_distribution<real_type>(0.0, 1.0), rand_engine, false, ref);
+    auto z = BDense::create(ref, rv->get_size());
+    auto d_rv = gko::as<BDense>(gko::clone(d_exec, rv));
+    auto d_z = BDense::create(d_exec, rv->get_size());
+
+    gko::kernels::reference::batch_ilu::apply_split(ref, l_factor, u_factor,
+                                                    rv.get(), z.get());
+    gko::kernels::hip::batch_ilu::apply_split(
+        d_exec, d_l_factor.get(), d_u_factor.get(), d_rv.get(), d_z.get());
+
+    const auto tol = 10 * r<value_type>::value;
+    GKO_ASSERT_BATCH_MTX_NEAR(z, d_z, tol);
 }
 
 
