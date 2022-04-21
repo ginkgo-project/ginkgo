@@ -151,10 +151,11 @@ namespace kernels {
                              const device_matrix_data<_type, _prec>& data, \
                              matrix::Dense<_type>* output)
 
-#define GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(_type)               \
-    void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                               const matrix::Dense<_type>* x,               \
-                               matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(_type)                \
+    void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec,  \
+                               const matrix::Dense<_type>* x,                \
+                               matrix::Dense<remove_complex<_type>>* result, \
+                               array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(_type)               \
     void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
