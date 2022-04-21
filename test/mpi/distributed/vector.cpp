@@ -90,15 +90,12 @@ private:
 template <typename ValueLocalGlobalIndexType>
 class VectorCreation : public ::testing::Test {
 public:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
     using md_type = gko::matrix_data<value_type, global_index_type>;
@@ -386,6 +383,9 @@ public:
         dense_real_res = real_dense_type ::create(exec);
         real_res = real_dense_type ::create(exec);
 
+        dense_tmp = gko::Array<char>(exec);
+        tmp = gko::Array<char>(exec);
+
         auto num_parts =
             static_cast<gko::distributed::comm_index_type>(comm.size());
         auto mapping =
@@ -419,7 +419,10 @@ public:
         y = gko::clone(exec, tmp_y);
     }
 
-    void SetUp() override { ASSERT_GT(comm.size(), 0); }
+    void SetUp() override
+    {
+        ASSERT_GT(comm.size(), 0);
+    }
 
     void TearDown() override
     {
@@ -455,6 +458,8 @@ public:
     std::unique_ptr<dense_type> res;
     std::unique_ptr<real_dense_type> dense_real_res;
     std::unique_ptr<real_dense_type> real_res;
+    gko::array<char> dense_tmp;
+    gko::array<char> tmp;
 
     std::shared_ptr<HostToDeviceLogger> logger;
 
@@ -476,6 +481,19 @@ TYPED_TEST(VectorReductions, ComputesDotProductIsSameAsDense)
 }
 
 
+TYPED_TEST(VectorReductions, ComputesDotProductWithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_dot(this->y.get(), this->res.get(), this->tmp);
+    this->dense_x->compute_dot(this->dense_y.get(), this->dense_res.get(),
+                               this->dense_tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
+}
+
+
 TYPED_TEST(VectorReductions, ComputesConjDotProductIsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
@@ -483,6 +501,19 @@ TYPED_TEST(VectorReductions, ComputesConjDotProductIsSameAsDense)
 
     this->x->compute_conj_dot(this->y.get(), this->res.get());
     this->dense_x->compute_conj_dot(this->dense_y.get(), this->dense_res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputesConjDotProductWithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_conj_dot(this->y.get(), this->res.get(), this->tmp);
+    this->dense_x->compute_conj_dot(this->dense_y.get(), this->dense_res.get(),
+                                    this->dense_tmp);
 
     GKO_ASSERT_MTX_NEAR(this->res, this->dense_res, r<value_type>::value);
 }
@@ -501,6 +532,19 @@ TYPED_TEST(VectorReductions, ComputesNorm2IsSameAsDense)
 }
 
 
+TYPED_TEST(VectorReductions, ComputesNorm2WithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_norm2(this->real_res.get(), this->tmp);
+    this->dense_x->compute_norm2(this->dense_real_res.get(), this->dense_tmp);
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
 TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
 {
     using value_type = typename TestFixture::value_type;
@@ -508,6 +552,19 @@ TYPED_TEST(VectorReductions, ComputesNorm1IsSameAsDense)
 
     this->x->compute_norm1(this->real_res.get());
     this->dense_x->compute_norm1(this->dense_real_res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(VectorReductions, ComputesNorm1WithTmpIsSameAsDense)
+{
+    using value_type = typename TestFixture::value_type;
+    this->init_result();
+
+    this->x->compute_norm1(this->real_res.get(), this->tmp);
+    this->dense_x->compute_norm1(this->dense_real_res.get(), this->dense_tmp);
 
     GKO_ASSERT_MTX_NEAR(this->real_res, this->dense_real_res,
                         r<value_type>::value);
