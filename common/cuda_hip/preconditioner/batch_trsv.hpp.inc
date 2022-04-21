@@ -71,7 +71,7 @@ public:
             for (int iz = l_factor_.row_ptrs[i];
                  iz < l_factor_.row_ptrs[i + 1] - 1; iz += config::warp_size) {
                 ValueType val =
-                    l_factor_.values[iz] * r[l_factor_.col_idxs[iz]];
+                    l_factor_.values[iz] * z[l_factor_.col_idxs[iz]];
                 ValueType sumit =
                     reduce(tile_grp, val,
                            [](ValueType a, ValueType b) { return a + b; });
@@ -83,8 +83,8 @@ public:
                 z[i] = (r[i] - sum) /
                        l_factor_.values[l_factor_.row_ptrs[i + 1] - 1];
             }
+            tile_grp.sync();
         }
-        tile_grp.sync();
         for (int i = u_factor_.num_rows - 1; i >= 0; i--) {
             ValueType sum{};
             for (int iz = u_factor_.row_ptrs[i] + 1;
@@ -101,6 +101,7 @@ public:
             if (tile_grp.thread_rank() == 0) {
                 z[i] = (z[i] - sum) / u_factor_.values[u_factor_.row_ptrs[i]];
             }
+            tile_grp.sync();
         }
     }
 
@@ -108,3 +109,16 @@ private:
     batch_csr::BatchEntry<const ValueType> l_factor_;
     batch_csr::BatchEntry<const ValueType> u_factor_;
 };
+
+
+template <typename ValueType>
+__global__ void apply(const int num_rows, const int l_nnz,
+                      const int* const __restrict__ l_row_ptrs,
+                      const int* const __restrict__ l_col_idxs,
+                      const ValueType* const __restrict__ l_values,
+                      const int u_nnz, const int* const __restrict__ u_row_ptrs,
+                      const int* const __restrict__ u_col_idxs,
+                      const ValueType* const __restrict__ u_values,
+                      const ValueType* const __restrict__ r,
+                      ValueType* const __restrict__ x)
+{}
