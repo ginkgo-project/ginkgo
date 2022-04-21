@@ -116,6 +116,22 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    constexpr static int num_work_vectors = 10;
+    constexpr static int vector_residual = 0;
+    constexpr static int vector_preconditioned_residual = 1;
+    constexpr static int vector_search_direction = 2;
+    constexpr static int vector_search_direction2 = 3;
+    constexpr static int scalar_alpha = 4;
+    constexpr static int scalar_beta = 5;
+    constexpr static int scalar_prev_rho = 6;
+    constexpr static int scalar_rho = 7;
+    constexpr static int scalar_one = 8;
+    constexpr static int scalar_minus_one = 9;
+    constexpr static std::array<const char*, num_work_vectors> vector_names{
+        {"residual", "precond_residual", "search_direction",
+         "search_direction2", "alpha", "beta", "prev_rho", "rho", "one",
+         "minus_one"}};
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
