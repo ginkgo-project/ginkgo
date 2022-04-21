@@ -112,13 +112,18 @@ private:
 
 
 template <typename ValueType>
-__global__ void apply(const int num_rows, const int l_nnz,
-                      const int* const __restrict__ l_row_ptrs,
-                      const int* const __restrict__ l_col_idxs,
-                      const ValueType* const __restrict__ l_values,
-                      const int u_nnz, const int* const __restrict__ u_row_ptrs,
-                      const int* const __restrict__ u_col_idxs,
-                      const ValueType* const __restrict__ u_values,
+__global__ void apply(gko::batch_csr::UniformBatch<const ValueType> l,
+                      gko::batch_csr::UniformBatch<const ValueType> u,
                       const ValueType* const __restrict__ r,
-                      ValueType* const __restrict__ x)
-{}
+                      ValueType* const __restrict__ z)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < l.num_batch; batch_id++) {
+        auto l_b = gko::batch::batch_entry(l, batch_id);
+        auto u_b = gko::batch::batch_entry(u, batch_id);
+        auto r_b = gko::batch::batch_entry_ptr(r, 1, l.num_rows, batch_id);
+        auto z_b = gko::batch::batch_entry_ptr(z, 1, l.num_rows, batch_id);
+        BatchExactTrsvSeparate<ValueType> trsv;
+        trsv.generate(l_b, u_b);
+        trsv.apply(r_b, z_b);
+    }
+}
