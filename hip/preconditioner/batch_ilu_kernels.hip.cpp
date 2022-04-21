@@ -45,19 +45,36 @@ namespace gko {
 namespace kernels {
 namespace hip {
 namespace batch_ilu {
+namespace {
+
+
+constexpr size_type default_block_size = 256;
+
+
+#include "common/cuda_hip/preconditioner/batch_ilu_kernels.hpp.inc"
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
 void generate_split(std::shared_ptr<const DefaultExecutor> exec,
                     gko::preconditioner::batch_factorization_type,
                     const matrix::BatchCsr<ValueType, IndexType>* const a,
-                    matrix::BatchCsr<ValueType, IndexType>* const l_factor,
-                    matrix::BatchCsr<ValueType, IndexType>* const u_factor)
+                    matrix::BatchCsr<ValueType, IndexType>* const l,
+                    matrix::BatchCsr<ValueType, IndexType>* const u)
 {
-    const auto a_ub = get_batch_struct(a);
-    const auto l_ub = get_batch_struct(l_factor);
-    const auto u_ub = get_batch_struct(u_factor);
-    GKO_NOT_IMPLEMENTED;
+    const auto num_rows = static_cast<int>(a->get_size().at(0)[0]);
+    const auto nbatch = a->get_num_batch_entries();
+    const auto nnz = static_cast<int>(a->get_num_stored_elements() / nbatch);
+    const auto l_nnz = static_cast<int>(l->get_num_stored_elements() / nbatch);
+    const auto u_nnz = static_cast<int>(u->get_num_stored_elements() / nbatch);
+    generate<<<nbatch, default_block_size>>>(
+        nbatch, num_rows, nnz, a->get_const_row_ptrs(), a->get_const_col_idxs(),
+        as_hip_type(a->get_const_values()), l_nnz, l->get_const_row_ptrs(),
+        l->get_const_col_idxs(), as_hip_type(l->get_values()), u_nnz,
+        u->get_const_row_ptrs(), u->get_const_col_idxs(),
+        as_hip_type(u->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
@@ -69,7 +86,14 @@ void apply_split(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::BatchCsr<ValueType, IndexType>* l,
                  const matrix::BatchCsr<ValueType, IndexType>* u,
                  const matrix::BatchDense<ValueType>* r,
-                 matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
+                 matrix::BatchDense<ValueType>* z)
+{
+    const auto num_rows = static_cast<int>(a->get_size().at(0)[0]);
+    const auto nbatch = l->get_num_batch_entries();
+    const auto nnz = static_cast<int>(a->get_num_stored_elements() / nbatch);
+    const auto l_nnz = static_cast<int>(l->get_num_stored_elements() / nbatch);
+    const auto u_nnz = static_cast<int>(u->get_num_stored_elements() / nbatch);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
