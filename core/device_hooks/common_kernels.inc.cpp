@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
+#include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
@@ -142,6 +143,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     _macro(InputValueType, OutputValueType, IndexType)           \
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)
+
+#define GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
+    template <typename ValueType, typename LocalIndexType, \
+              typename GlobalIndexType>                    \
+    _macro(ValueType, LocalIndexType, GlobalIndexType)     \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                 \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)
 
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
@@ -242,6 +250,16 @@ GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_PARTITION_IS_ORDERED);
 }  // namespace partition
 
 
+namespace distributed_vector {
+
+
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL);
+
+
+}
+
+
 namespace dense {
 
 
@@ -263,6 +281,8 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);

@@ -152,7 +152,7 @@ using uint64 = std::uint64_t;
 
 
 /**
- *
+ * Unsigned integer type capable of holding a pointer to void
  */
 using uintptr = std::uintptr_t;
 
@@ -559,6 +559,73 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #endif
 
 
+/**
+ * Instantiates a template for each non-complex value, local and global index
+ * type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take three arguments, which are replaced by the
+ *                value, the local and the global index types.
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
+    _macro)                                                                     \
+    template _macro(float, int32, int32);                                       \
+    template _macro(float, int32, int64);                                       \
+    template _macro(float, int64, int64);                                       \
+    template <>                                                                 \
+    _macro(double, int32, int32) GKO_NOT_IMPLEMENTED;                           \
+    template <>                                                                 \
+    _macro(double, int32, int64) GKO_NOT_IMPLEMENTED;                           \
+    template <>                                                                 \
+    _macro(double, int64, int64) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
+    _macro)                                                                     \
+    template _macro(float, int32, int32);                                       \
+    template _macro(float, int32, int64);                                       \
+    template _macro(float, int64, int64);                                       \
+    template _macro(double, int32, int32);                                      \
+    template _macro(double, int32, int64);                                      \
+    template _macro(double, int64, int64)
+#endif
+
+
+/**
+ * Instantiates a template for each value and index type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, which are replaced by the
+ *                value and index types.
+ */
+#if GINKGO_DPCPP_SINGLE_MODE
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
+        _macro);                                                            \
+    template _macro(std::complex<float>, int32, int32);                     \
+    template _macro(std::complex<float>, int32, int64);                     \
+    template _macro(std::complex<float>, int64, int64);                     \
+    template <>                                                             \
+    _macro(std::complex<double>, int32, int32) GKO_NOT_IMPLEMENTED;         \
+    template <>                                                             \
+    _macro(std::complex<double>, int32, int64) GKO_NOT_IMPLEMENTED;         \
+    template <>                                                             \
+    _macro(std::complex<double>, int64, int64) GKO_NOT_IMPLEMENTED
+#else
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)  \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE( \
+        _macro);                                                            \
+    template _macro(std::complex<float>, int32, int32);                     \
+    template _macro(std::complex<float>, int32, int64);                     \
+    template _macro(std::complex<float>, int64, int64);                     \
+    template _macro(std::complex<double>, int32, int32);                    \
+    template _macro(std::complex<double>, int32, int64);                    \
+    template _macro(std::complex<double>, int64, int64)
+#endif
+
+
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
     template <>                                                            \
@@ -580,8 +647,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template <>                                                   \
     _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED
 #else
-
-
 /**
  * Instantiates a template for each value type conversion pair compiled by
  * Ginkgo.
