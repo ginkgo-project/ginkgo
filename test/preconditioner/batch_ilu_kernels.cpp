@@ -65,7 +65,7 @@ protected:
 
     BatchIlu()
         : ref(gko::ReferenceExecutor::create()),
-          d_exec(gko::CudaExecutor::create(0, ref)),
+          d_exec(gko::HipExecutor::create(0, ref)),
           mtx(gko::share(gko::test::generate_uniform_batch_random_matrix<Mtx>(
               nbatch, nrows, nrows,
               std::uniform_int_distribution<>(min_nnz_row, nrows),
@@ -74,7 +74,7 @@ protected:
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> d_exec;
+    std::shared_ptr<const gko::HipExecutor> d_exec;
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
@@ -97,7 +97,7 @@ TEST_F(BatchIlu, GenerateIsEquivalentToReference)
     auto u_factor = prec->get_const_upper_factor();
     auto d_l_factor = d_prec->get_const_lower_factor();
     auto d_u_factor = d_prec->get_const_upper_factor();
-    const auto tol = 10 * r<value_type>::value;
+    const auto tol = 500 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(l_factor, d_l_factor, tol);
     GKO_ASSERT_BATCH_MTX_NEAR(u_factor, d_u_factor, tol);
 }
