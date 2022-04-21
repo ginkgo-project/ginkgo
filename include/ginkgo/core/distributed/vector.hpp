@@ -243,6 +243,20 @@ public:
     void compute_dot(const LinOp* b, LinOp* result) const;
 
     /**
+     * Computes the column-wise dot product of this (multi-)vector and `b` using
+     * a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_dot(const LinOp* b, LinOp* result, array<char>& tmp) const;
+
+    /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
      * using a global reduction.
      *
@@ -252,6 +266,21 @@ public:
      *                of columns of this)
      */
     void compute_conj_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
+     * using a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_conj_dot(const LinOp* b, LinOp* result,
+                          array<char>& tmp) const;
 
     /**
      * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
@@ -264,6 +293,19 @@ public:
     void compute_norm2(LinOp* result) const;
 
     /**
+     * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
+     * reduction.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm2(LinOp* result, array<char>& tmp) const;
+
+    /**
      * Computes the column-wise (L^1) norm of this (multi-)vector.
      *
      * @param result  a Dense row matrix, used to store the norm
@@ -271,6 +313,18 @@ public:
      *                of columns of this)
      */
     void compute_norm1(LinOp* result) const;
+
+    /**
+     * Computes the column-wise (L^1) norm of this (multi-)vector.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm1(LinOp* result, array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
