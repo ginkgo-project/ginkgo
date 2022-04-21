@@ -357,6 +357,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
     const Matrix& other)
 {
     if (this != &other) {
+        GKO_ASSERT_EQ(other.get_communicator().size(),
+                      this->get_communicator().size());
         this->set_size(other.get_size());
         diag_mtx_->copy_from(other.diag_mtx_.get());
         offdiag_mtx_->copy_from(other.offdiag_mtx_.get());
@@ -380,6 +382,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
     Matrix&& other) noexcept
 {
     if (this != &other) {
+        GKO_ASSERT_EQ(other.get_communicator().size(),
+                      this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
         diag_mtx_->move_from(other.diag_mtx_.get());
