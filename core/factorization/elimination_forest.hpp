@@ -30,29 +30,45 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#ifndef GKO_CORE_FACTORIZATION_ELIMINATION_FOREST_HPP_
+#define GKO_CORE_FACTORIZATION_ELIMINATION_FOREST_HPP_
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+
+
+#include "core/components/disjoint_sets.hpp"
 
 
 namespace gko {
-namespace matrices {
+namespace factorization {
 
 
-const char* location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char* location_ani1_chol_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_chol.mtx";
-const char* location_ani1_amd_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_amd.mtx";
-const char* location_ani1_amd_chol_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/ani1_amd_chol.mtx";
-const char* location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char* location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char* location_1138_bus_mtx =
-    "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+template <typename IndexType>
+struct elimination_forest {
+    elimination_forest(std::shared_ptr<const Executor> host_exec,
+                       IndexType size);
+
+    void set_executor(std::shared_ptr<const Executor> exec);
+
+    Array<IndexType> parents;
+    Array<IndexType> child_ptrs;
+    Array<IndexType> children;
+    Array<IndexType> postorder;
+    Array<IndexType> inv_postorder;
+    Array<IndexType> postorder_parents;
+};
 
 
-}  // namespace matrices
+template <typename ValueType, typename IndexType>
+elimination_forest<IndexType> compute_elim_forest(
+    const matrix::Csr<ValueType, IndexType>* mtx);
+
+
+}  // namespace factorization
 }  // namespace gko
 
 
-#endif  // GKO_MATRICES_CONFIG_HPP_
+#endif  // GKO_CORE_FACTORIZATION_ELIMINATION_FOREST_HPP_
