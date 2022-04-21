@@ -214,6 +214,25 @@ class Vector;
  * This will set the dimensions of the global and local matrices automatically
  * by deducing the sizes from the partitions.
  *
+ * By default the Matrix type uses Csr for both local matrices. It is possible
+ * to explicitly change the datatype for the local matrices, with the constraint
+ * that the new type should implement the LinOp and ReadableFromMatrixData
+ * interface. The type can be set by:
+ * ```
+ * auto mat = Matrix<ValueType, LocalIndexType[, ...]>::create(
+ *   exec, comm,
+ *   Ell<ValueType, LocalIndexType>::create(exec).get(),
+ *   Coo<ValueType, LocalIndexType>::create(exec).get());
+ * ```
+ * Alternatively, the helper function with_matrix_type can be used:
+ * ```
+ * auto mat = Matrix<ValueType, LocalIndexType>::create(
+ *   exec, comm,
+ *   with_matrix_type<Ell>(),
+ *   with_matrix_type<Coo>());
+ * ```
+ * @see with_matrix_type
+ *
  * The Matrix LinOp supports the following operations:
  * ```cpp
  * distributed::Matrix *A;       // distributed matrix
