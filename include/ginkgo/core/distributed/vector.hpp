@@ -342,6 +342,11 @@ public:
      */
     std::unique_ptr<const real_type> create_real_view() const;
 
+    /**
+     * @copydoc create_real_view
+     */
+    std::unique_ptr<real_type> create_real_view();
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size

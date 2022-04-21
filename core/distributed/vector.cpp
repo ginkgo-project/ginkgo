@@ -412,8 +412,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
@@ -467,6 +467,20 @@ Vector<ValueType>::create_real_view() const
                              dim<2>{num_global_rows, num_cols},
                              const_cast<typename real_type::local_vector_type*>(
                                  local_.create_real_view().get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view()
+{
+    const auto num_global_rows = this->get_size()[0];
+    const auto num_cols =
+        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
+
+    return real_type::create(this->get_executor(), this->get_communicator(),
+                             dim<2>{num_global_rows, num_cols},
+                             local_.create_real_view().get());
 }
 
 
