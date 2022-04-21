@@ -119,8 +119,8 @@ void BatchIlu<ValueType, IndexType>::generate(
                l_factor_->get_row_ptrs());
     exec->copy(nrows + 1, first_U->get_const_row_ptrs(),
                u_factor_->get_row_ptrs());
-    exec->copy(nnz, first_L->get_const_col_idxs(), l_factor_->get_col_idxs());
-    exec->copy(nnz, first_U->get_const_col_idxs(), u_factor_->get_col_idxs());
+    exec->copy(l_nnz, first_L->get_const_col_idxs(), l_factor_->get_col_idxs());
+    exec->copy(u_nnz, first_U->get_const_col_idxs(), u_factor_->get_col_idxs());
 
     // compute ILU factorization into the split factor matrices
     exec->run(batch_ilu::make_generate_split(parameters_.factorization_type,
