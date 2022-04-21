@@ -288,6 +288,9 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
                      std::shared_ptr<solver::SolveStruct>& solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
 {
+    if (matrix->get_size()[0] == 0) {
+        return;
+    }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         solve_struct = std::make_shared<CudaSolveStruct<ValueType, IndexType>>(
             exec, matrix, num_rhs, is_upper);
@@ -306,6 +309,9 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* x)
 {
+    if (matrix->get_size()[0] == 0) {
+        return;
+    }
     using vec = matrix::Dense<ValueType>;
 
     if (cusparse::is_supported<ValueType, IndexType>::value) {

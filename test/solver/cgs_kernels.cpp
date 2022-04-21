@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -63,6 +63,7 @@ protected:
 #else
     using value_type = double;
 #endif
+    using index_type = int;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
@@ -73,8 +74,12 @@ protected:
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
 
-        mtx = gen_mtx(123, 123, 125);
-        gko::test::make_diag_dominant(mtx.get());
+        auto data = gko::matrix_data<value_type, index_type>(
+            gko::dim<2>{123, 123},
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::test::make_diag_dominant(data);
+        mtx = Mtx::create(ref, data.size, 125);
+        mtx->read(data);
         d_mtx = gko::clone(exec, mtx);
         exec_cgs_factory =
             Solver::build()
@@ -303,8 +308,8 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1e3);
 }
 
 
@@ -322,8 +327,8 @@ TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 5e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5e3);
 }
 
 }  // namespace

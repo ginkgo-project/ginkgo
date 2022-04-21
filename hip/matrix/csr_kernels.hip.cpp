@@ -346,11 +346,10 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
@@ -443,11 +442,10 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
@@ -747,6 +745,9 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
@@ -770,6 +771,9 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         const auto block_size = default_block_size;
         const auto grid_size =

@@ -1123,7 +1123,9 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
         components::fill_array(exec, c->get_values(),
                                c->get_num_stored_elements(), zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
@@ -1162,6 +1164,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
             [&max_length_per_row](int compiled_info) {
@@ -1214,7 +1217,9 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+    } else if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
         const IndexType nwarps = a->get_num_srow_elements();
@@ -1279,6 +1284,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
             [&max_length_per_row](int compiled_info) {

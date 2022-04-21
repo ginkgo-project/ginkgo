@@ -126,7 +126,8 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     kernels::hip::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                 tmp);
 
-    const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
+    const auto grid_dim_2 =
+        ceildiv(std::max<size_type>(num_rows, 1) * num_rhs, default_block_size);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(initialize_2_2_kernel<block_size>), grid_dim_2,
         block_dim, 0, 0, residual->get_size()[0], residual->get_size()[1],
@@ -146,6 +147,9 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
                     matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
                     const stopping_status* stop_status)
 {
+    if (hessenberg_iter->get_size()[1] == 0) {
+        return;
+    }
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     auto hipblas_handle = exec->get_hipblas_handle();

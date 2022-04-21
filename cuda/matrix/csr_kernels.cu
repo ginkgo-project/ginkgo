@@ -448,12 +448,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                            a->get_strategy())) {
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                // as a fall-back: use average row length
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
@@ -509,11 +508,10 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 max_length_per_row = strategy->get_max_length_per_row();
             } else {
                 // as a fall-back: use average row length, at least 1
-                max_length_per_row = std::max<size_type>(
-                    a->get_num_stored_elements() /
-                        std::max<size_type>(a->get_size()[0], 1),
-                    1);
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             }
+            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
                 [&max_length_per_row](int compiled_info) {
@@ -914,6 +912,9 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                const matrix::Csr<ValueType, IndexType>* orig,
                matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
@@ -962,6 +963,9 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* orig,
                     matrix::Csr<ValueType, IndexType>* trans)
 {
+    if (orig->get_size()[0] == 0) {
+        return;
+    }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         const auto block_size = default_block_size;
         const auto grid_size =

@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/executor.hpp"
 
@@ -254,8 +254,12 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53);
-    gko::test::make_hpd(mtx.get());
+    auto data = gko::matrix_data<value_type, index_type>(
+        gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
+        rand_engine);
+    gko::test::make_hpd(data);
+    auto mtx = Mtx::create(ref, data.size, 53);
+    mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);
     auto d_mtx = gko::clone(exec, mtx);
@@ -283,7 +287,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
 
 

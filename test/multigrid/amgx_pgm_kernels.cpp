@@ -55,8 +55,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -144,15 +144,26 @@ protected:
         strongest_neighbor.get_data()[n - 1] = n - 1;
         coarse_vector = gen_mtx(n, nrhs);
         fine_vector = gen_mtx(m, nrhs);
-        auto weight = gen_mtx(m, m);
-        make_weight(weight.get());
+
+        auto weight_data =
+            gko::test::generate_random_matrix_data<value_type, index_type>(
+                m, m, std::uniform_int_distribution<>(m, m),
+                std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::test::make_symmetric(weight_data);
+        gko::test::make_diag_dominant(weight_data);
         weight_csr = Csr::create(ref);
-        weight->convert_to(weight_csr.get());
+        weight_csr->read(weight_data);
+        // only works for real value cases.
+        weight_csr->compute_absolute_inplace();
         weight_diag = weight_csr->extract_diagonal();
-        auto system_dense = gen_mtx(m, m);
-        gko::test::make_hpd(system_dense.get());
+
+        auto system_data =
+            gko::test::generate_random_matrix_data<value_type, index_type>(
+                m, m, std::uniform_int_distribution<>(m, m),
+                std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::test::make_hpd(system_data);
         system_mtx = Csr::create(ref);
-        system_dense->convert_to(system_mtx.get());
+        system_mtx->read(system_data);
 
         d_agg = gko::Array<index_type>(exec, agg);
         d_unfinished_agg = gko::Array<index_type>(exec, unfinished_agg);
@@ -162,14 +173,6 @@ protected:
         d_weight_csr = gko::clone(exec, weight_csr);
         d_weight_diag = gko::clone(exec, weight_diag);
         d_system_mtx = gko::clone(exec, system_mtx);
-    }
-
-    void make_weight(Mtx* mtx)
-    {
-        gko::test::make_symmetric(mtx);
-        // only works for real value cases.
-        mtx->compute_absolute_inplace();
-        gko::test::make_diag_dominant(mtx);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
