@@ -383,13 +383,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec,
                            const matrix::Dense<ValueType>* x,
-                           matrix::Dense<remove_complex<ValueType>>* result)
+                           matrix::Dense<remove_complex<ValueType>>* result,
+                           array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
-        x->get_size(), x);
+        x->get_size(), tmp, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
