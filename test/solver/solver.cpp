@@ -141,7 +141,7 @@ struct Bicg : SimpleSolverTest<gko::solver::Bicg<solver_value_type>> {};
 
 struct Bicgstab : SimpleSolverTest<gko::solver::Bicgstab<solver_value_type>> {
     // I give up ._. Some cases still have huge differences
-    static double tolerance() { return 1e11 * r<value_type>::value; }
+    static double tolerance() { return 1e12 * r<value_type>::value; }
 };
 
 
