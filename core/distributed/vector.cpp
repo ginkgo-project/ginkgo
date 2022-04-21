@@ -306,12 +306,22 @@ void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
 template <typename ValueType>
 void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_dot(b, result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
+                                    array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
-                                          dense_res.get());
+                                          dense_res.get(), tmp);
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -331,12 +341,22 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 template <typename ValueType>
 void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_conj_dot(b, result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
+                                         array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
     this->get_local_vector()->compute_conj_dot(
-        as<Vector>(b)->get_local_vector(), dense_res.get());
+        as<Vector>(b)->get_local_vector(), dense_res.get(), tmp);
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -356,13 +376,21 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 template <typename ValueType>
 void Vector<ValueType>::compute_norm2(LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_norm2(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm2(LinOp* result, array<char>& tmp) const
+{
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
     exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
-                                                 dense_res.get()));
+                                                 dense_res.get(), tmp));
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -382,6 +410,14 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
 
 template <typename ValueType>
 void Vector<ValueType>::compute_norm1(LinOp* result) const
+{
+    array<char> tmp{this->get_executor()};
+    this->compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1(LinOp* result, array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
