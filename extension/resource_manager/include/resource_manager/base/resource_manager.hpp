@@ -108,7 +108,6 @@ public:
         std::shared_ptr<const Executor> exec = nullptr,
         std::shared_ptr<const LinOp> linop = nullptr)
     {
-        std::cout << "create_from_config2" << std::endl;
         auto ptr = create_from_config<T>(item, base, exec, linop, this);
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
@@ -134,14 +133,11 @@ public:
         rapidjson::Value& item, std::shared_ptr<const Executor> exec = nullptr,
         std::shared_ptr<const LinOp> linop = nullptr)
     {
-        std::cout << "create_from_config" << std::endl;
         auto ptr = GenericHelper<T>::build(item, exec, linop, this);
-        std::cout << "finish build" << std::endl;
         // if need to store the data, how to do that
         if (item.HasMember("name")) {
             this->insert_data<T>(item["name"].GetString(), ptr);
         }
-        std::cout << "insert_data" << ptr << std::endl;
         return ptr;
     }
 
@@ -180,13 +176,11 @@ public:
         } else {
             auto val = config_map_.find(key);
             if (val != config_map_.end()) {
-                std::cout << "build map" << key << std::endl;
                 rapidjson::StringBuffer buffer;
 
                 buffer.Clear();
                 rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
                 config_map_.at(key)->Accept(writer);
-                std::cout << std::string(buffer.GetString()) << std::endl;
                 return this->build_item<T>(*(val->second));
             }
         }
@@ -314,13 +308,10 @@ void ResourceManager::build_item(rapidjson::Value& item)
     if (ptr == nullptr) {
         auto ptr =
             create_from_config<LinOp>(item, base, nullptr, nullptr, this);
-        std::cout << "123" << std::endl;
         if (ptr == nullptr) {
-            std::cout << "LinOpFactory" << std::endl;
             auto ptr = create_from_config<LinOpFactory>(item, base, nullptr,
                                                         nullptr, this);
             if (ptr == nullptr) {
-                std::cout << "StopFactory" << std::endl;
                 auto ptr = create_from_config<CriterionFactory>(
                     item, base, nullptr, nullptr, this);
                 if (ptr == nullptr) {
@@ -345,7 +336,6 @@ void ResourceManager::put_item(rapidjson::Value& item)
 {
     assert(item.HasMember("name"));
     std::string name = item["name"].GetString();
-    std::cout << "put_item " << name << std::endl;
     // Deep Copy will require the dom to keep the allocator
     // rapidjson::Document dom;
     // dom.CopyFrom(item, dom.GetAllocator());
@@ -359,7 +349,6 @@ void ResourceManager::put_item(rapidjson::Value& item)
     buffer.Clear();
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
     config_map_.at(name)->Accept(writer);
-    std::cout << std::string(buffer.GetString()) << std::endl;
 }
 
 

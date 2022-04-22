@@ -174,15 +174,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         std::shared_ptr<const Executor> exec,                                 \
         std::shared_ptr<const LinOp> linop, ResourceManager* manager)         \
     {                                                                         \
-        std::cout << "search on enum " << base << std::endl;                  \
         ENUM_MAP(_base_type##Select, _enum_type, std::shared_ptr<_base_type>, \
                  _list, static);                                              \
         auto it = _base_type##Select.find(base);                              \
         if (it == _base_type##Select.end()) {                                 \
-            std::cout << "Not Found" << std::endl;                            \
             return nullptr;                                                   \
         } else {                                                              \
-            std::cout << "Found!" << std::endl;                               \
             return it->second(item, exec, linop, manager);                    \
         }                                                                     \
     }                                                                         \
@@ -209,7 +206,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         rapidjson::Value & item, std::shared_ptr<const Executor> exec,       \
         std::shared_ptr<const LinOp> linop, ResourceManager * manager)       \
     {                                                                        \
-        std::cout << "enter bridge" << std::endl;                            \
         return call<_impl_type>(item, exec, linop, manager);                 \
     }                                                                        \
     static_assert(true,                                                      \
@@ -268,8 +264,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define SET_POINTER_VECTOR(_param_type, _param_name)                         \
     if (item_alias_.HasMember(#_param_name)) {                               \
-        std::cout << "pointer_vector executor " << exec_alias_.get()         \
-                  << std::endl;                                              \
         factory_alias_.with_##_param_name(get_pointer_vector<_param_type>(   \
             item_alias_[#_param_name], exec_alias_, linop_alias_,            \
             manager_alias_));                                                \
@@ -379,9 +373,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           ResourceManager* manager)                          \
         {                                                                    \
             assert(item.HasMember("base"));                                  \
-            std::cout << "build base" << item["base"].GetString() << " "     \
-                      << get_base_class(item["base"].GetString())            \
-                      << std::endl;                                          \
             return create_from_config<_base_type>(                           \
                 item, get_base_class(item["base"].GetString()), exec, linop, \
                 manager);                                                    \
@@ -407,7 +398,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           std::shared_ptr<const LinOp> linop,                  \
                           ResourceManager* manager)                            \
         {                                                                      \
-            std::cout << #_base << exec.get() << std::endl;                    \
             auto factory = get_pointer<typename _base<_type>::Factory>(        \
                 item["factory"], exec, linop, manager);                        \
             auto mtx = get_pointer<const LinOp>(item["generate"], exec, linop, \
@@ -427,7 +417,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           std::shared_ptr<const LinOp> linop,                  \
                           ResourceManager* manager)                            \
         {                                                                      \
-            std::cout << #_base << exec.get() << std::endl;                    \
             auto factory = get_pointer<typename _base::Factory>(               \
                 item["factory"], exec, linop, manager);                        \
             auto mtx = get_pointer<const LinOp>(item["generate"], exec, linop, \

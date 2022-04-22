@@ -57,7 +57,6 @@ struct Generic<gko::CudaExecutor> {
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "Cuda" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto ptr = CudaExecutor::create(device_id, ReferenceExecutor::create());
         add_logger(ptr, item, exec, linop, manager);
@@ -77,7 +76,6 @@ struct Generic<gko::HipExecutor> {
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "Hip" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto ptr = HipExecutor::create(device_id, ReferenceExecutor::create());
         add_logger(ptr, item, exec, linop, manager);
@@ -97,7 +95,6 @@ struct Generic<gko::DpcppExecutor> {
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        std::cout << "Dpcpp" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto device_type =
             get_value_with_default(item, "device_type", std::string("all"));

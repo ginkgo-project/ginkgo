@@ -54,7 +54,6 @@ std::unordered_map<std::string,
     selector_map{{"cycle", [](const size_type level,
                               const gko::LinOp*) { return level % 2; }},
                  {"firstfortop", [](const size_type level, const gko::LinOp*) {
-                      std::cout << "level " << level << std::endl;
                       return (level == 0) ? 0 : 1;
                   }}};
 auto& level_selector_map = selector_map;

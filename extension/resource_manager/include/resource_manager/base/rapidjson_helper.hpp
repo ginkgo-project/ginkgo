@@ -378,10 +378,8 @@ std::shared_ptr<T> get_pointer(rapidjson::Value& item,
         }
     } else {
         if (item.IsString()) {
-            std::cout << "search item" << std::endl;
             std::string opt = item.GetString();
             ptr = manager->search_data<T_non_const>(opt);
-            std::cout << "get ptr " << ptr.get() << std::endl;
         } else if (item.IsObject()) {
             ptr = manager->build_item<T_non_const>(item, exec, linop);
         } else {
@@ -519,18 +517,13 @@ std::vector<std::shared_ptr<const T>> get_pointer_vector(
     std::vector<std::shared_ptr<const T>> vec;
     if (item.IsArray()) {
         for (auto& v : item.GetArray()) {
-            std::cout << "item " << exec.get() << std::endl;
             auto ptr = get_pointer<const T>(v, exec, linop, manager);
-            std::cout << "array " << ptr << std::endl;
             vec.emplace_back(ptr);
         }
     } else {
-        std::cout << "object or string" << std::endl;
         auto ptr = get_pointer<const T>(item, exec, linop, manager);
-        std::cout << "item " << ptr << std::endl;
         vec.emplace_back(ptr);
     }
-    std::cout << "vec " << vec.size() << std::endl;
     return vec;
 }
 
