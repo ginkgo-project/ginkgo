@@ -72,8 +72,12 @@ protected:
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
           mapping{ref},
-          diag{ref},
-          offdiag{ref},
+          diag_row_idxs{ref},
+          diag_col_idxs{ref},
+          diag_values{ref},
+          offdiag_row_idxs{ref},
+          offdiag_col_idxs{ref},
+          offdiag_values{ref},
           gather_idxs{ref},
           recv_offsets{ref},
           local_to_global_ghost{ref}
@@ -136,28 +140,29 @@ protected:
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
              ++part) {
             gko::kernels::reference::distributed_matrix::build_diag_offdiag(
-                ref, input, row_partition, col_partition, part, diag, offdiag,
-                gather_idxs, recv_offsets.get_data(), local_to_global_ghost);
+                ref, input, row_partition, col_partition, part, diag_row_idxs,
+                diag_col_idxs, diag_values, offdiag_row_idxs, offdiag_col_idxs,
+                offdiag_values, gather_idxs, recv_offsets.get_data(),
+                local_to_global_ghost);
 
-            assert_device_matrix_data_equal(diag, ref_diags[part]);
-            assert_device_matrix_data_equal(offdiag, ref_offdiags[part]);
+            assert_device_matrix_data_equal(diag_row_idxs, diag_col_idxs,
+                                            diag_values, ref_diags[part]);
+            assert_device_matrix_data_equal(offdiag_row_idxs, offdiag_col_idxs,
+                                            offdiag_values, ref_offdiags[part]);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, ref_gather_idxs[part]);
             GKO_ASSERT_ARRAY_EQ(recv_offsets, ref_recv_offsets[part]);
         }
     }
 
-    template <typename Data1, typename Data2>
-    void assert_device_matrix_data_equal(Data1& first, Data2& second)
+    template <typename A1, typename A2, typename A3, typename Data2>
+    void assert_device_matrix_data_equal(A1& row_idxs, A2& col_idxs, A3& values,
+                                         Data2& second)
     {
-        auto size_first = first.get_size();
-        auto size_second = second.get_size();
-        auto arrays_first = first.empty_out();
         auto array_second = second.empty_out();
 
-        GKO_ASSERT_EQUAL_DIMENSIONS(size_first, size_second);
-        GKO_ASSERT_ARRAY_EQ(arrays_first.row_idxs, array_second.row_idxs);
-        GKO_ASSERT_ARRAY_EQ(arrays_first.col_idxs, array_second.col_idxs);
-        GKO_ASSERT_ARRAY_EQ(arrays_first.values, array_second.values);
+        GKO_ASSERT_ARRAY_EQ(row_idxs, array_second.row_idxs);
+        GKO_ASSERT_ARRAY_EQ(col_idxs, array_second.col_idxs);
+        GKO_ASSERT_ARRAY_EQ(values, array_second.values);
     }
 
     gko::device_matrix_data<value_type, global_index_type>
@@ -182,8 +187,12 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::Array<comm_index_type> mapping;
-    gko::device_matrix_data<value_type, local_index_type> diag;
-    gko::device_matrix_data<value_type, local_index_type> offdiag;
+    gko::Array<local_index_type> diag_row_idxs;
+    gko::Array<local_index_type> diag_col_idxs;
+    gko::Array<value_type> diag_values;
+    gko::Array<local_index_type> offdiag_row_idxs;
+    gko::Array<local_index_type> offdiag_col_idxs;
+    gko::Array<value_type> offdiag_values;
     gko::Array<local_index_type> gather_idxs;
     gko::Array<comm_index_type> recv_offsets;
     gko::Array<global_index_type> local_to_global_ghost;
@@ -514,9 +523,10 @@ TYPED_TEST(Matrix, BuildGhostMapContinuous)
     for (int local_id = 0; local_id < num_parts; ++local_id) {
         gko::kernels::reference::distributed_matrix::build_diag_offdiag(
             this->ref, this->create_input_full_rank(), partition.get(),
-            partition.get(), local_id, this->diag, this->offdiag,
-            this->gather_idxs, this->recv_offsets.get_data(),
-            this->local_to_global_ghost);
+            partition.get(), local_id, this->diag_row_idxs, this->diag_col_idxs,
+            this->diag_values, this->offdiag_row_idxs, this->offdiag_col_idxs,
+            this->offdiag_values, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_ghost);
 
         GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_ghost);
     }
@@ -542,9 +552,10 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
     for (int local_id = 0; local_id < num_parts; ++local_id) {
         gko::kernels::reference::distributed_matrix::build_diag_offdiag(
             this->ref, this->create_input_full_rank(), partition.get(),
-            partition.get(), local_id, this->diag, this->offdiag,
-            this->gather_idxs, this->recv_offsets.get_data(),
-            this->local_to_global_ghost);
+            partition.get(), local_id, this->diag_row_idxs, this->diag_col_idxs,
+            this->diag_values, this->offdiag_row_idxs, this->offdiag_col_idxs,
+            this->offdiag_values, this->gather_idxs,
+            this->recv_offsets.get_data(), this->local_to_global_ghost);
 
         GKO_ASSERT_ARRAY_EQ(result[local_id], this->local_to_global_ghost);
     }

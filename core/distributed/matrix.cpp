@@ -147,18 +147,36 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     this->set_size(global_dim);
 
     // temporary storage for the output
-    device_matrix_data<value_type, local_index_type> diag_data{exec};
-    device_matrix_data<value_type, local_index_type> offdiag_data{exec};
+    Array<local_index_type> diag_row_idxs{exec};
+    Array<local_index_type> diag_col_idxs{exec};
+    Array<value_type> diag_values{exec};
+    Array<local_index_type> offdiag_row_idxs{exec};
+    Array<local_index_type> offdiag_col_idxs{exec};
+    Array<value_type> offdiag_values{exec};
     Array<local_index_type> recv_gather_idxs{exec};
     Array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
 
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
         data, make_temporary_clone(exec, row_partition).get(),
-        make_temporary_clone(exec, col_partition).get(), local_part, diag_data,
-        offdiag_data, recv_gather_idxs, recv_offsets_array.get_data(),
-        local_to_global_ghost_));
+        make_temporary_clone(exec, col_partition).get(), local_part,
+        diag_row_idxs, diag_col_idxs, diag_values, offdiag_row_idxs,
+        offdiag_col_idxs, offdiag_values, recv_gather_idxs,
+        recv_offsets_array.get_data(), local_to_global_ghost_));
 
+    // read the local matrix data
+    const auto num_diag_rows =
+        static_cast<size_type>(row_partition->get_part_size(local_part));
+    const auto num_diag_cols =
+        static_cast<size_type>(col_partition->get_part_size(local_part));
+    const auto num_ghost_cols = local_to_global_ghost_.get_num_elems();
+    device_matrix_data<value_type, local_index_type> diag_data{
+        exec, dim<2>{num_diag_rows, num_diag_cols}, std::move(diag_row_idxs),
+        std::move(diag_col_idxs), std::move(diag_values)};
+    device_matrix_data<value_type, local_index_type> offdiag_data{
+        exec, dim<2>{num_diag_rows, num_ghost_cols},
+        std::move(offdiag_row_idxs), std::move(offdiag_col_idxs),
+        std::move(offdiag_values)};
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
         ->read(diag_data);
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->offdiag_mtx_)
