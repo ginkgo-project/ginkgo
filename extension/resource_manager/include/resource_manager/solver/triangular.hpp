@@ -97,7 +97,6 @@ constexpr auto trs_list =
         rapidjson::Value & item, std::shared_ptr<const Executor> exec,        \
         std::shared_ptr<const LinOp> linop, ResourceManager * manager)        \
     {                                                                         \
-        std::cout << "build_" #_CATEGORY "_trs_factory" << std::endl;         \
         auto vt = get_value_with_default(                                     \
             item, "ValueType", get_default_string<handle_type::ValueType>()); \
         auto it = get_value_with_default(                                     \
@@ -114,7 +113,6 @@ constexpr auto trs_list =
         rapidjson::Value & item, std::shared_ptr<const Executor> exec,        \
         std::shared_ptr<const LinOp> linop, ResourceManager * manager)        \
     {                                                                         \
-        std::cout << "build_" #_CATEGORY "_trs" << std::endl;                 \
         auto vt = get_value_with_default(                                     \
             item, "ValueType", get_default_string<handle_type::ValueType>()); \
         auto it = get_value_with_default(                                     \

@@ -138,7 +138,6 @@ create_from_config<RM_LinOp, RM_LinOp::AmgxPgm, gko::LinOp>(
                                get_default_string<handle_type::IndexType>()));
     // combine them together, base_string has higher priority than type_string
     auto combined = combine_template(base_string, remove_space(type_string));
-    std::cout << "generate AMGX_PGM " << combined << std::endl;
     auto ptr = amgx_pgm_select<gko::multigrid::AmgxPgm>(
         amgx_pgm_list, [=](std::string key) { return key == combined; }, item,
         exec, linop, manager);

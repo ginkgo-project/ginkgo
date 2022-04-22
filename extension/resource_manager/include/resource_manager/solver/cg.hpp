@@ -113,11 +113,9 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
     auto type_string = create_type_name(  // trick for clang-format
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()));
-    std::cout << "cg" << type_string << std::endl;
     auto ptr = cg_select<gko::solver::Cg>(
         cg_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
-    std::cout << "finish cg_select " << ptr.get() << std::endl;
     return std::move(ptr);
 }
 
