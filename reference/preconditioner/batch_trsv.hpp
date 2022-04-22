@@ -113,4 +113,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif
+#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_TRSV_HPP_

@@ -30,14 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+
 
 #include <limits>
 
 
 #include <gtest/gtest.h>
-
-
-#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 
 
 #include "core/preconditioner/batch_ilu_kernels.hpp"
