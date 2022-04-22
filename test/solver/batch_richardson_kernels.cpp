@@ -195,8 +195,8 @@ TEST_F(BatchRich, StencilSystemJacobiLoggerIsCorrect)
 TEST_F(BatchRich, BetterRelaxationFactorGivesBetterConvergence)
 {
     using T = value_type;
-    const Options opts{1000, 1e-8,
-                       gko::stop::batch::ToleranceType::relative, 1.0};
+    const Options opts{1000, 1e-8, gko::stop::batch::ToleranceType::relative,
+                       1.0};
     const Options opts_slower{1000, 1e-8,
                               gko::stop::batch::ToleranceType::relative, 0.8};
 
