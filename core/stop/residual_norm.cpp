@@ -106,10 +106,10 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
 {
     if (use_distributed(linops...)) {
         if (any_is_complex<ValueType>(linops...)) {
-            precision_dispatch_distributed<to_complex<ValueType>>(
+            distributed::precision_dispatch<to_complex<ValueType>>(
                 std::forward<Function>(fn), linops...);
         } else {
-            precision_dispatch_distributed<ValueType>(
+            distributed::precision_dispatch<ValueType>(
                 std::forward<Function>(fn), linops...);
         }
     } else {
