@@ -50,9 +50,10 @@ void build_diag_offdiag(
         row_partition,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part,
-    device_matrix_data<ValueType, LocalIndexType>& diag_data,
-    device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
+    comm_index_type local_part, Array<LocalIndexType>& diag_row_idxs,
+    Array<LocalIndexType>& diag_col_idxs, Array<ValueType>& diag_values,
+    Array<LocalIndexType>& offdiag_row_idxs,
+    Array<LocalIndexType>& offdiag_col_idxs, Array<ValueType>& offdiag_values,
     Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
     Array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
 
