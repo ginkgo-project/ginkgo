@@ -176,7 +176,7 @@ public:
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* solutino, const uint8& stopping_id,
-        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */

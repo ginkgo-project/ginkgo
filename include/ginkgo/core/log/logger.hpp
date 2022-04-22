@@ -50,7 +50,7 @@ namespace gko {
 
 /* Eliminate circular dependencies the hard way */
 template <typename ValueType>
-class Array;
+class array;
 class Executor;
 class LinOp;
 class LinOpFactory;
@@ -390,7 +390,7 @@ public:                                                              \
         20, criterion_check_completed, const stop::Criterion* criterion,
         const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* x,
         const uint8& stopping_id, const bool& set_finalized,
-        const Array<stopping_status>* status, const bool& one_changed,
+        const array<stopping_status>* status, const bool& one_changed,
         const bool& all_converged)
 protected:
     /**
@@ -414,7 +414,7 @@ protected:
         const stop::Criterion* criterion, const size_type& it, const LinOp* r,
         const LinOp* tau, const LinOp* implicit_tau_sq, const LinOp* x,
         const uint8& stopping_id, const bool& set_finalized,
-        const Array<stopping_status>* status, const bool& one_changed,
+        const array<stopping_status>* status, const bool& one_changed,
         const bool& all_converged) const
     {
         this->on_criterion_check_completed(criterion, it, r, tau, x,
