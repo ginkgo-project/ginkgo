@@ -50,7 +50,7 @@ using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 template <typename ValueType>
 void apply(std::shared_ptr<const DpcppExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            gko::log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;
