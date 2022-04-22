@@ -37,7 +37,7 @@ Supported systems and requirements:
   + Intel compiler: 2018+
   + Apple LLVM: 8.0+
   + CUDA module: CUDA 9.0+
-  + HIP module: ROCm 3.5+
+  + HIP module: ROCm 4.0+
   + DPC++ module: Intel OneAPI 2021.3. Set the CXX compiler to `dpcpp`.
 + Windows
   + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+

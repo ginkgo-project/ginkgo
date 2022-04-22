@@ -72,8 +72,8 @@
     - private_ci
     - nvidia-gpu
 
-.use_gko-rocm35-openmpi-gnu5-llvm50:
-  image: ginkgohub/rocm:35-openmpi-gnu5-llvm50
+.use_gko-rocm40-openmpi-gnu5-llvm50:
+  image: ginkgohub/rocm:40-openmpi-gnu5-llvm50
   tags:
     - private_ci
     - amdci

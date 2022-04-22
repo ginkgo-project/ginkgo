@@ -530,12 +530,12 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
-# ROCm 3.5 and friends
-build/amd/nompi/gcc/rocm35/debug/shared:
+# ROCm 4.0 and friends
+build/amd/nompi/gcc/rocm40/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
-    - .use_gko-rocm35-openmpi-gnu5-llvm50
+    - .use_gko-rocm40-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -544,11 +544,11 @@ build/amd/nompi/gcc/rocm35/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/openmpi/clang/rocm35/release/static:
+build/amd/openmpi/clang/rocm40/release/static:
   <<: *default_build_with_test
   extends:
     - .full_test_condition
-    - .use_gko-rocm35-openmpi-gnu5-llvm50
+    - .use_gko-rocm40-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
