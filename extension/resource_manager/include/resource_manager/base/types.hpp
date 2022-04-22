@@ -63,12 +63,14 @@ using Executor = ::gko::Executor;
 using LinOp = ::gko::LinOp;
 using LinOpFactory = ::gko::LinOpFactory;
 using CriterionFactory = ::gko::stop::CriterionFactory;
+using Logger = ::gko::log::Logger;
 using ExecutorMap = std::unordered_map<std::string, std::shared_ptr<Executor>>;
 using LinOpMap = std::unordered_map<std::string, std::shared_ptr<LinOp>>;
 using LinOpFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<LinOpFactory>>;
 using CriterionFactoryMap =
     std::unordered_map<std::string, std::shared_ptr<CriterionFactory>>;
+using LoggerMap = std::unordered_map<std::string, std::shared_ptr<Logger>>;
 
 
 /**
@@ -103,6 +105,12 @@ template <typename T>
 struct map_type<T, typename std::enable_if<std::is_convertible<
                        T*, CriterionFactory*>::value>::type> {
     using type = CriterionFactoryMap;
+};
+
+template <typename T>
+struct map_type<
+    T, typename std::enable_if<std::is_convertible<T*, Logger*>::value>::type> {
+    using type = LoggerMap;
 };
 
 
@@ -140,6 +148,12 @@ struct base_type<T, typename std::enable_if<std::is_convertible<
     using type = CriterionFactory;
 };
 
+template <typename T>
+struct base_type<
+    T, typename std::enable_if<std::is_convertible<T*, Logger*>::value>::type> {
+    using type = Logger;
+};
+
 
 #define ENUM_EXECUTER(_expand)                                           \
     _expand(Executor, 0), _expand(CudaExecutor), _expand(DpcppExecutor), \
@@ -173,6 +187,10 @@ ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
 ENUM_CLASS(RM_CriterionFactory, int, ENUM_CRITERIONFACTORY);
 
+#define ENUM_LOGGER(_expand) _expand(Logger, 0), _expand(Convergence)
+
+ENUM_CLASS(RM_Logger, int, ENUM_LOGGER);
+
 
 /**
  * gkobase give the base type according to the enum class type
@@ -202,6 +220,11 @@ struct gkobase<RM_LinOpFactory> {
 template <>
 struct gkobase<RM_CriterionFactory> {
     using type = CriterionFactory;
+};
+
+template <>
+struct gkobase<RM_Logger> {
+    using type = Logger;
 };
 
 

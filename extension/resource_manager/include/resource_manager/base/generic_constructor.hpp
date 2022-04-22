@@ -63,6 +63,7 @@ DECLARE_SELECTION(LinOp, RM_LinOp);
 DECLARE_SELECTION(LinOpFactory, RM_LinOpFactory);
 DECLARE_SELECTION(Executor, RM_Executor);
 DECLARE_SELECTION(CriterionFactory, RM_CriterionFactory);
+DECLARE_SELECTION(Logger, RM_Logger);
 
 
 /**
@@ -88,6 +89,7 @@ CREATE_DEFAULT_IMPL(Executor);
 CREATE_DEFAULT_IMPL(LinOp);
 CREATE_DEFAULT_IMPL(LinOpFactory);
 CREATE_DEFAULT_IMPL(CriterionFactory);
+CREATE_DEFAULT_IMPL(Logger);
 
 
 /**
@@ -123,6 +125,7 @@ GENERIC_BASE_IMPL(Executor);
 GENERIC_BASE_IMPL(LinOp);
 GENERIC_BASE_IMPL(LinOpFactory);
 GENERIC_BASE_IMPL(CriterionFactory);
+GENERIC_BASE_IMPL(Logger);
 
 
 /**
@@ -200,6 +203,7 @@ std::shared_ptr<U> create_from_config(rapidjson::Value& item,
                                       std::shared_ptr<const LinOp> linop,
                                       ResourceManager* manager)
 {
+    std::cout << "empty" << std::endl;
     return nullptr;
 }
 
