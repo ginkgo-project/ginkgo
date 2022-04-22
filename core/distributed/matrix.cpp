@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/matrix.hpp>
 
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -297,30 +298,33 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* b, LinOp* x) const
 {
-    auto dense_b = as<global_vector_type>(b);
-    auto dense_x = as<global_vector_type>(x);
-    auto x_exec = x->get_executor();
-    auto local_x = gko::matrix::Dense<ValueType>::create(
-        x_exec, dense_x->get_local_vector()->get_size(),
-        gko::make_array_view(
-            x_exec, dense_x->get_local_vector()->get_num_stored_elements(),
-            dense_x->get_local_values()),
-        dense_x->get_local_vector()->get_stride());
-    if (this->get_const_local_offdiag()->get_size()) {
-        auto req = this->communicate(dense_b->get_local_vector());
-        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
-        req.wait();
-        auto exec = this->get_executor();
-        auto needs_host_buffer =
-            exec->get_master() != exec && !gko::mpi::is_gpu_aware();
-        if (needs_host_buffer) {
-            recv_buffer_->copy_from(host_recv_buffer_.get());
-        }
-        offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                            one_scalar_.get(), local_x.get());
-    } else {
-        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
-    }
+    distributed::precision_dispatch_real_complex<ValueType>(
+        [this](const auto dense_b, auto dense_x) {
+            auto x_exec = dense_x->get_executor();
+            auto local_x = gko::matrix::Dense<ValueType>::create(
+                x_exec, dense_x->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    x_exec,
+                    dense_x->get_local_vector()->get_num_stored_elements(),
+                    dense_x->get_local_values()),
+                dense_x->get_local_vector()->get_stride());
+            if (this->get_const_local_offdiag()->get_size()) {
+                auto req = this->communicate(dense_b->get_local_vector());
+                diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+                req.wait();
+                auto exec = this->get_executor();
+                auto needs_host_buffer =
+                    exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+                if (needs_host_buffer) {
+                    recv_buffer_->copy_from(host_recv_buffer_.get());
+                }
+                offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+                                    one_scalar_.get(), local_x.get());
+            } else {
+                diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+            }
+        },
+        b, x);
 }
 
 
@@ -328,34 +332,36 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    auto dense_b = as<global_vector_type>(b);
-    auto dense_x = as<global_vector_type>(x);
-    const auto x_exec = x->get_executor();
-    auto local_x = gko::matrix::Dense<ValueType>::create(
-        x_exec, dense_x->get_local_vector()->get_size(),
-        gko::make_array_view(
-            x_exec, dense_x->get_local_vector()->get_num_stored_elements(),
-            dense_x->get_local_values()),
-        dense_x->get_local_vector()->get_stride());
-    auto local_alpha = as<local_vector_type>(alpha);
-    auto local_beta = as<local_vector_type>(beta);
-    if (this->get_const_local_offdiag()->get_size()) {
-        auto req = this->communicate(dense_b->get_local_vector());
-        diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         local_x.get());
-        req.wait();
-        auto exec = this->get_executor();
-        auto needs_host_buffer =
-            exec->get_master() != exec && !gko::mpi::is_gpu_aware();
-        if (needs_host_buffer) {
-            recv_buffer_->copy_from(host_recv_buffer_.get());
-        }
-        offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), one_scalar_.get(),
-                            local_x.get());
-    } else {
-        diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         local_x.get());
-    }
+    distributed::precision_dispatch_real_complex<ValueType>(
+        [this](const auto local_alpha, const auto dense_b,
+               const auto local_beta, auto dense_x) {
+            const auto x_exec = dense_x->get_executor();
+            auto local_x = gko::matrix::Dense<ValueType>::create(
+                x_exec, dense_x->get_local_vector()->get_size(),
+                gko::make_array_view(
+                    x_exec,
+                    dense_x->get_local_vector()->get_num_stored_elements(),
+                    dense_x->get_local_values()),
+                dense_x->get_local_vector()->get_stride());
+            if (this->get_const_local_offdiag()->get_size()) {
+                auto req = this->communicate(dense_b->get_local_vector());
+                diag_mtx_->apply(local_alpha, dense_b->get_local_vector(),
+                                 local_beta, local_x.get());
+                req.wait();
+                auto exec = this->get_executor();
+                auto needs_host_buffer =
+                    exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+                if (needs_host_buffer) {
+                    recv_buffer_->copy_from(host_recv_buffer_.get());
+                }
+                offdiag_mtx_->apply(local_alpha, recv_buffer_.get(),
+                                    one_scalar_.get(), local_x.get());
+            } else {
+                diag_mtx_->apply(local_alpha, dense_b->get_local_vector(),
+                                 local_beta, local_x.get());
+            }
+        },
+        alpha, b, beta, x);
 }
 
 
