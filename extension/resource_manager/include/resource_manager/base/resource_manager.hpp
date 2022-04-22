@@ -219,6 +219,7 @@ public:
         this->output_map_info<LinOpMap>();
         this->output_map_info<LinOpFactoryMap>();
         this->output_map_info<CriterionFactoryMap>();
+        this->output_map_info<LoggerMap>();
     }
 
     /**
@@ -265,6 +266,7 @@ private:
         linopfactory_map_;
     std::unordered_map<std::string, std::shared_ptr<CriterionFactory>>
         criterionfactory_map_;
+    std::unordered_map<std::string, std::shared_ptr<Logger>> logger_map_;
     std::unordered_map<std::string, rapidjson::Value*> config_map_;
 };
 
@@ -293,6 +295,12 @@ CriterionFactoryMap& ResourceManager::get_map_impl<CriterionFactoryMap>()
     return criterionfactory_map_;
 }
 
+template <>
+LoggerMap& ResourceManager::get_map_impl<LoggerMap>()
+{
+    return logger_map_;
+}
+
 
 void ResourceManager::build_item(rapidjson::Value& item)
 {
@@ -315,6 +323,14 @@ void ResourceManager::build_item(rapidjson::Value& item)
                 std::cout << "StopFactory" << std::endl;
                 auto ptr = create_from_config<CriterionFactory>(
                     item, base, nullptr, nullptr, this);
+                if (ptr == nullptr) {
+                    std::cout << "Logger" << std::endl;
+                    auto ptr = create_from_config<Logger>(item, base, nullptr,
+                                                          nullptr, this);
+                    std::cout << "logger " << name << " " << ptr << std::endl;
+                } else {
+                }
+            } else {
             }
         } else {
         }

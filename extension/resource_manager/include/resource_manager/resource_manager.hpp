@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/types.hpp"
 #include "resource_manager/executor/executor.hpp"
 #include "resource_manager/factorization/ilu.hpp"
+#include "resource_manager/log/convergence.hpp"
 #include "resource_manager/matrix/csr.hpp"
 #include "resource_manager/matrix/dense.hpp"
 #include "resource_manager/multigrid/amgx_pgm.hpp"
@@ -58,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/stop/iteration.hpp"
 #include "resource_manager/stop/residual_norm.hpp"
 
+
 namespace gko {
 namespace extension {
 namespace resource_manager {
@@ -68,6 +70,7 @@ IMPLEMENT_SELECTION(LinOp, RM_LinOp, ENUM_LINOP);
 IMPLEMENT_SELECTION(LinOpFactory, RM_LinOpFactory, ENUM_LINOPFACTORY);
 IMPLEMENT_SELECTION(CriterionFactory, RM_CriterionFactory,
                     ENUM_CRITERIONFACTORY);
+IMPLEMENT_SELECTION(Logger, RM_Logger, ENUM_LOGGER);
 
 
 }  // namespace resource_manager
