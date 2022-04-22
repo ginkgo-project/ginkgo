@@ -83,10 +83,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_split(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchCsr<ValueType, IndexType>* l,
-                 const matrix::BatchCsr<ValueType, IndexType>* u,
-                 const matrix::BatchDense<ValueType>* r,
-                 matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
+                 const matrix::BatchCsr<ValueType, IndexType>* const l,
+                 const matrix::BatchCsr<ValueType, IndexType>* const u,
+                 const matrix::BatchDense<ValueType>* const r,
+                 matrix::BatchDense<ValueType>* const z)
+{
+    const auto num_rows = static_cast<int>(l->get_size().at(0)[0]);
+    const auto nbatch = l->get_num_batch_entries();
+    const auto l_ub = get_batch_struct(l);
+    const auto u_ub = get_batch_struct(u);
+    using d_value_type = cuda_type<ValueType>;
+    using trsv_type = BatchExactTrsvSeparate<d_value_type>;
+    using prec_type = BatchIluSplit<d_value_type, trsv_type>;
+    prec_type prec(l_ub, u_ub, trsv_type());
+    apply<<<nbatch, default_block_size>>>(prec, nbatch, num_rows,
+                                          as_cuda_type(r->get_const_values()),
+                                          as_cuda_type(z->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
