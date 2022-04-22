@@ -51,10 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 #ifndef GKO_COMPILING_DPCPP
+
+
+namespace {
 
 
 class BatchRich : public ::testing::Test {
