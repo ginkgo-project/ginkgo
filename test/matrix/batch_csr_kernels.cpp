@@ -51,10 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
+#ifndef GKO_COMPILING_DPCPP
+
+
 namespace {
-
-
-#ifndef GINKGO_COMPILING_DPCPP
 
 
 class BatchCsr : public ::testing::Test {
@@ -361,5 +361,6 @@ TEST_F(BatchCsr, AddScaleIdentityIsEquivalentToReference)
 
 
 }  // namespace
+
 
 #endif
