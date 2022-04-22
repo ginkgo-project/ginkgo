@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 
@@ -53,6 +52,7 @@ namespace {
 constexpr size_type default_block_size = 256;
 
 
+#include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
 
@@ -72,8 +72,9 @@ void generate_split(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = static_cast<int>(a->get_num_stored_elements() / nbatch);
     const auto l_nnz = static_cast<int>(l->get_num_stored_elements() / nbatch);
     const auto u_nnz = static_cast<int>(u->get_num_stored_elements() / nbatch);
-    generate<<<nbatch, default_block_size>>>(
-        nbatch, num_rows, nnz, a->get_const_row_ptrs(), a->get_const_col_idxs(),
+    hipLaunchKernelGGL(
+        generate, nbatch, default_block_size, 0, 0, nbatch, num_rows, nnz,
+        a->get_const_row_ptrs(), a->get_const_col_idxs(),
         as_hip_type(a->get_const_values()), l_nnz, l->get_const_row_ptrs(),
         l->get_const_col_idxs(), as_hip_type(l->get_values()), u_nnz,
         u->get_const_row_ptrs(), u->get_const_col_idxs(),
@@ -86,20 +87,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_split(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::BatchCsr<ValueType, IndexType>* l,
-                 const matrix::BatchCsr<ValueType, IndexType>* u,
-                 const matrix::BatchDense<ValueType>* r,
-                 matrix::BatchDense<ValueType>* z)
+                 const matrix::BatchCsr<ValueType, IndexType>* const l,
+                 const matrix::BatchCsr<ValueType, IndexType>* const u,
+                 const matrix::BatchDense<ValueType>* const r,
+                 matrix::BatchDense<ValueType>* const z)
 {
     const auto num_rows = static_cast<int>(l->get_size().at(0)[0]);
     const auto nbatch = l->get_num_batch_entries();
-    // const auto l_nnz = static_cast<int>(l->get_num_stored_elements() /
-    // nbatch); const auto u_nnz = static_cast<int>(u->get_num_stored_elements()
-    // / nbatch);
     const auto l_ub = get_batch_struct(l);
     const auto u_ub = get_batch_struct(u);
-    hipLaunchKernelGGL(apply, nbatch, default_block_size, 0, 0, l_ub, u_ub,
-                       as_hip_type(r->get_const_values()),
+    using hip_value_type = hip_type<ValueType>;
+    using trsv_type = BatchExactTrsvSeparate<hip_value_type>;
+    using prec_type = BatchIluSplit<hip_value_type, trsv_type>;
+    prec_type prec(l_ub, u_ub, trsv_type());
+    hipLaunchKernelGGL(apply, nbatch, default_block_size, 0, 0, prec, nbatch,
+                       num_rows, as_hip_type(r->get_const_values()),
                        as_hip_type(z->get_values()));
 }
 

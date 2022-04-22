@@ -58,26 +58,32 @@ public:
         u_factor_ = u_factor;
     }
 
+    /*
+     * Applies the triangular solves.
+     *
+     * TODO: Add a proper parallel triangular solve.
+     */
     __device__ __forceinline__ void apply(const ValueType* const __restrict__ r,
                                           ValueType* const __restrict__ z) const
     {
-        auto tile_grp = group::tiled_partition<config::warp_size>(
-            group::this_thread_block());
-        if (threadIdx.x / config::warp_size > 0) {
+        constexpr auto tile_size = config::warp_size;
+        auto tile_grp =
+            group::tiled_partition<tile_size>(group::this_thread_block());
+        if (threadIdx.x / tile_size > 0) {
             return;
         }
         for (int i = 0; i < l_factor_.num_rows; i++) {
             ValueType sum{};
-            for (int iz = l_factor_.row_ptrs[i];
-                 iz < l_factor_.row_ptrs[i + 1] - 1; iz += config::warp_size) {
+            for (int iz = l_factor_.row_ptrs[i] + tile_grp.thread_rank();
+                 iz < l_factor_.row_ptrs[i + 1] - 1; iz += tile_size) {
                 ValueType val =
                     l_factor_.values[iz] * z[l_factor_.col_idxs[iz]];
-                ValueType sumit =
-                    reduce(tile_grp, val,
-                           [](ValueType a, ValueType b) { return a + b; });
-                if (tile_grp.thread_rank() == 0) {
-                    sum += sumit;
-                }
+                sum += val;
+            }
+            tile_grp.sync();
+#pragma unroll
+            for (int k = static_cast<int>(tile_size) / 2; k > 0; k /= 2) {
+                sum += tile_grp.shfl_down(sum, k);
             }
             if (tile_grp.thread_rank() == 0) {
                 z[i] = (r[i] - sum) /
@@ -87,16 +93,16 @@ public:
         }
         for (int i = u_factor_.num_rows - 1; i >= 0; i--) {
             ValueType sum{};
-            for (int iz = u_factor_.row_ptrs[i] + 1;
-                 iz < u_factor_.row_ptrs[i + 1]; iz += config::warp_size) {
+            for (int iz = u_factor_.row_ptrs[i] + 1 + tile_grp.thread_rank();
+                 iz < u_factor_.row_ptrs[i + 1]; iz += tile_size) {
                 ValueType val =
                     u_factor_.values[iz] * z[u_factor_.col_idxs[iz]];
-                ValueType sumit =
-                    reduce(tile_grp, val,
-                           [](ValueType a, ValueType b) { return a + b; });
-                if (tile_grp.thread_rank() == 0) {
-                    sum += sumit;
-                }
+                sum += val;
+            }
+            tile_grp.sync();
+#pragma unroll
+            for (int k = static_cast<int>(tile_size) / 2; k > 0; k /= 2) {
+                sum += tile_grp.shfl_down(sum, k);
             }
             if (tile_grp.thread_rank() == 0) {
                 z[i] = (z[i] - sum) / u_factor_.values[u_factor_.row_ptrs[i]];
@@ -111,19 +117,17 @@ private:
 };
 
 
-template <typename ValueType>
-__global__ void apply(gko::batch_csr::UniformBatch<const ValueType> l,
-                      gko::batch_csr::UniformBatch<const ValueType> u,
-                      const ValueType* const __restrict__ r,
+template <typename IluType, typename ValueType>
+__global__ void apply(IluType prec, const size_type batch_size,
+                      const int num_rows, const ValueType* const __restrict__ r,
                       ValueType* const __restrict__ z)
 {
-    for (size_type batch_id = blockIdx.x; batch_id < l.num_batch; batch_id++) {
-        auto l_b = gko::batch::batch_entry(l, batch_id);
-        auto u_b = gko::batch::batch_entry(u, batch_id);
-        auto r_b = gko::batch::batch_entry_ptr(r, 1, l.num_rows, batch_id);
-        auto z_b = gko::batch::batch_entry_ptr(z, 1, l.num_rows, batch_id);
-        BatchExactTrsvSeparate<ValueType> trsv;
-        trsv.generate(l_b, u_b);
-        trsv.apply(r_b, z_b);
+    for (size_type batch_id = blockIdx.x; batch_id < batch_size;
+         batch_id += gridDim.x) {
+        auto r_b = gko::batch::batch_entry_ptr(r, 1, num_rows, batch_id);
+        auto z_b = gko::batch::batch_entry_ptr(z, 1, num_rows, batch_id);
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      nullptr);
+        prec.apply(0, r_b, z_b);
     }
 }
