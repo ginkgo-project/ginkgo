@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/matrix/batch_struct.hpp"
 
 
@@ -51,7 +52,9 @@ namespace {
 constexpr size_type default_block_size = 256;
 
 
+#include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
 
 
 }  // namespace
