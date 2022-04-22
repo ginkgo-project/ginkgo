@@ -335,9 +335,12 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
 #if GINKGO_BUILD_MPI
 
 
+namespace distributed {
+
+
 template <typename ValueType>
 detail::temporary_conversion<distributed::Vector<ValueType>>
-make_temporary_conversion_distributed(LinOp* matrix)
+make_temporary_conversion(LinOp* matrix)
 {
     auto result = detail::temporary_conversion<distributed::Vector<ValueType>>::
         template create<distributed::Vector<next_precision<ValueType>>>(matrix);
@@ -350,7 +353,7 @@ make_temporary_conversion_distributed(LinOp* matrix)
 
 template <typename ValueType>
 detail::temporary_conversion<const distributed::Vector<ValueType>>
-make_temporary_conversion_distributed(const LinOp* matrix)
+make_temporary_conversion(const LinOp* matrix)
 {
     auto result =
         detail::temporary_conversion<const distributed::Vector<ValueType>>::
@@ -364,10 +367,96 @@ make_temporary_conversion_distributed(const LinOp* matrix)
 
 
 template <typename ValueType, typename Function, typename... Args>
-void precision_dispatch_distributed(Function fn, Args*... linops)
+void precision_dispatch(Function fn, Args*... linops)
 {
-    fn(make_temporary_conversion_distributed<ValueType>(linops).get()...);
+    fn(distributed::make_temporary_conversion<ValueType>(linops).get()...);
 }
+
+
+template <typename ValueType, typename Function>
+void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
+{
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        using Vector = distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
+    } else {
+        distributed::precision_dispatch<ValueType>(fn, in, out);
+    }
+}
+
+
+template <typename ValueType, typename Function>
+void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
+                                     const LinOp* in, LinOp* out)
+{
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+        using Vector = distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dense_alpha.get(),
+           dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
+    } else {
+        fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
+           distributed::make_temporary_conversion<ValueType>(in).get(),
+           distributed::make_temporary_conversion<ValueType>(out).get());
+    }
+}
+
+
+template <typename ValueType, typename Function>
+void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
+                                     const LinOp* in, const LinOp* beta,
+                                     LinOp* out)
+{
+    auto complex_to_real =
+        !(is_complex<ValueType>() ||
+          dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
+    if (complex_to_real) {
+        auto dense_in =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(in);
+        auto dense_out =
+            distributed::make_temporary_conversion<to_complex<ValueType>>(out);
+        auto dense_alpha = gko::make_temporary_conversion<ValueType>(alpha);
+        auto dense_beta = gko::make_temporary_conversion<ValueType>(beta);
+        using Vector = distributed::Vector<ValueType>;
+        // These dynamic_casts are only needed to make the code compile
+        // If ValueType is complex, this branch will never be taken
+        // If ValueType is real, the cast is a no-op
+        fn(dense_alpha.get(),
+           dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
+           dense_beta.get(),
+           dynamic_cast<Vector*>(dense_out->create_real_view().get()));
+    } else {
+        fn(gko::make_temporary_conversion<ValueType>(alpha).get(),
+           distributed::make_temporary_conversion<ValueType>(in).get(),
+           gko::make_temporary_conversion<ValueType>(beta).get(),
+           distributed::make_temporary_conversion<ValueType>(out).get());
+    }
+}
+
+
+}  // namespace distributed
 
 
 template <typename ValueType, typename Function>
@@ -375,27 +464,9 @@ void precision_dispatch_real_complex_distributed(Function fn, const LinOp* in,
                                                  LinOp* out)
 {
     if (dynamic_cast<const distributed::DistributedBase*>(in)) {
-        auto complex_to_real =
-            !(is_complex<ValueType>() ||
-              dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    out);
-            using Vector = distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            precision_dispatch_distributed<ValueType>(fn, in, out);
-        }
+        distributed::precision_dispatch_real_complex<ValueType>(fn, in, out);
     } else {
-        precision_dispatch_real_complex<ValueType>(fn, in, out);
+        gko::precision_dispatch_real_complex<ValueType>(fn, in, out);
     }
 }
 
@@ -406,31 +477,10 @@ void precision_dispatch_real_complex_distributed(Function fn,
                                                  const LinOp* in, LinOp* out)
 {
     if (dynamic_cast<const distributed::DistributedBase*>(in)) {
-        auto complex_to_real =
-            !(is_complex<ValueType>() ||
-              dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    out);
-            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-            using Vector = distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dense_alpha.get(),
-               dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            fn(make_temporary_conversion<ValueType>(alpha).get(),
-               make_temporary_conversion_distributed<ValueType>(in).get(),
-               make_temporary_conversion_distributed<ValueType>(out).get());
-        }
+        distributed::precision_dispatch_real_complex<ValueType>(fn, alpha, in,
+                                                                out);
     } else {
-        precision_dispatch_real_complex<ValueType>(fn, alpha, in, out);
+        gko::precision_dispatch_real_complex<ValueType>(fn, alpha, in, out);
     }
 }
 
@@ -442,34 +492,11 @@ void precision_dispatch_real_complex_distributed(Function fn,
                                                  const LinOp* beta, LinOp* out)
 {
     if (dynamic_cast<const distributed::DistributedBase*>(in)) {
-        auto complex_to_real =
-            !(is_complex<ValueType>() ||
-              dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in));
-        if (complex_to_real) {
-            auto dense_in =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    in);
-            auto dense_out =
-                make_temporary_conversion_distributed<to_complex<ValueType>>(
-                    out);
-            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-            auto dense_beta = make_temporary_conversion<ValueType>(beta);
-            using Vector = distributed::Vector<ValueType>;
-            // These dynamic_casts are only needed to make the code compile
-            // If ValueType is complex, this branch will never be taken
-            // If ValueType is real, the cast is a no-op
-            fn(dense_alpha.get(),
-               dynamic_cast<const Vector*>(dense_in->create_real_view().get()),
-               dense_beta.get(),
-               dynamic_cast<Vector*>(dense_out->create_real_view().get()));
-        } else {
-            fn(make_temporary_conversion<ValueType>(alpha).get(),
-               make_temporary_conversion_distributed<ValueType>(in).get(),
-               make_temporary_conversion<ValueType>(beta).get(),
-               make_temporary_conversion_distributed<ValueType>(out).get());
-        }
+        distributed::precision_dispatch_real_complex<ValueType>(fn, alpha, in,
+                                                                beta, out);
     } else {
-        precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta, out);
+        gko::precision_dispatch_real_complex<ValueType>(fn, alpha, in, beta,
+                                                        out);
     }
 }
 
