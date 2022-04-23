@@ -82,8 +82,8 @@ std::unique_ptr<LinOp> apply_inner_operators(
     auto op_size = operators.back()->get_size();
     auto out_dim = gko::dim<2>{op_size[0], num_rhs};
     auto out_size = out_dim[0] * num_rhs;
-    auto out = Dense::create(
-        exec, out_dim, Array<ValueType>::view(exec, out_size, data), num_rhs);
+    auto out = Dense::create(exec, out_dim,
+                             make_array_view(exec, out_size, data), num_rhs);
     // for operators with initial guess: set initial guess
     if (operators.back()->apply_uses_initial_guess()) {
         if (op_size[0] == op_size[1]) {
@@ -111,8 +111,7 @@ std::unique_ptr<LinOp> apply_inner_operators(
             data + (reversed_storage ? storage_size - out_size : size_type{});
         reversed_storage = !reversed_storage;
         out = Dense::create(exec, out_dim,
-                            Array<ValueType>::view(exec, out_size, out_data),
-                            num_rhs);
+                            make_array_view(exec, out_size, out_data), num_rhs);
         // for operators with initial guess: set initial guess
         if (operators[i]->apply_uses_initial_guess()) {
             if (op_size[0] == op_size[1]) {

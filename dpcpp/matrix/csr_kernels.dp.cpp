@@ -676,16 +676,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, ValueType* c,
                              const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subgroup_size)]] {
-                abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
-                                                       row_ptrs, b, b_stride, c,
-                                                       c_stride, item_ct1);
-            });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
+                        c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, val, col_idxs, row_ptrs, b,
+                                     b_stride, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
@@ -718,14 +729,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, const ValueType* beta,
                              ValueType* c, const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_classical_spmv<subgroup_size>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, b,
-                                 b_stride, beta, c, c_stride, item_ct1);
-                         });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
+                        beta, c, c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, alpha, val, col_idxs, row_ptrs,
+                                     b, b_stride, beta, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
@@ -1125,9 +1149,15 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "load_balance") {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: zero output
+        dense::fill(exec, c, zero<ValueType>());
+        return;
+    }
+    if (a->get_strategy()->get_name() == "load_balance") {
+        dense::fill(exec, c, zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
@@ -1139,8 +1169,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -1219,7 +1247,14 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
 {
     if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "load_balance") {
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: scale output
+        dense::scale(exec, beta, c);
+        return;
+    }
+    if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
         const IndexType nwarps = a->get_num_srow_elements();
@@ -1235,8 +1270,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {

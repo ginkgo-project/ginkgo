@@ -755,6 +755,25 @@ Array<ValueType> make_array_view(std::shared_ptr<const Executor> exec,
 }
 
 
+/**
+ * Helper function to create a const array view deducing the value type.
+ *
+ * @param exec  the executor on which the array resides
+ * @param size  the number of elements for the array
+ * @param data  the pointer to the array we create a view on.
+ *
+ * @tparam ValueType  the type of the array elements
+ *
+ * @return `Array<ValueType>::const_view(exec, size, data)`
+ */
+template <typename ValueType>
+detail::ConstArrayView<ValueType> make_const_array_view(
+    std::shared_ptr<const Executor> exec, size_type size, const ValueType* data)
+{
+    return Array<ValueType>::const_view(exec, size, data);
+}
+
+
 namespace detail {
 
 

@@ -855,46 +855,12 @@ public:
      * real with a reinterpret_cast with twice the number of columns and
      * double the stride.
      */
-    std::unique_ptr<Dense<remove_complex<ValueType>>> create_real_view()
-    {
-        const auto num_rows = this->get_size()[0];
-        const bool complex = is_complex<ValueType>();
-        const auto num_cols =
-            complex ? 2 * this->get_size()[1] : this->get_size()[1];
-        const auto stride =
-            complex ? 2 * this->get_stride() : this->get_stride();
-
-        return Dense<remove_complex<ValueType>>::create(
-            this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
-                this->get_executor(), num_rows * stride,
-                reinterpret_cast<remove_complex<ValueType>*>(
-                    this->get_values())),
-            stride);
-    }
+    std::unique_ptr<real_type> create_real_view();
 
     /**
      * @copydoc create_real_view()
      */
-    std::unique_ptr<const Dense<remove_complex<ValueType>>> create_real_view()
-        const
-    {
-        const auto num_rows = this->get_size()[0];
-        const bool complex = is_complex<ValueType>();
-        const auto num_cols =
-            complex ? 2 * this->get_size()[1] : this->get_size()[1];
-        const auto stride =
-            complex ? 2 * this->get_stride() : this->get_stride();
-
-        return Dense<remove_complex<ValueType>>::create(
-            this->get_executor(), dim<2>{num_rows, num_cols},
-            Array<remove_complex<ValueType>>::view(
-                this->get_executor(), num_rows * stride,
-                const_cast<remove_complex<ValueType>*>(
-                    reinterpret_cast<const remove_complex<ValueType>*>(
-                        this->get_const_values()))),
-            stride);
-    }
+    std::unique_ptr<const real_type> create_real_view() const;
 
     /**
      * Creates a constant (immutable) Dense matrix from a constant array.
@@ -1102,24 +1068,8 @@ protected:
      *        instead of create_submatrix(const span, const span, const
      *        size_type).
      */
-    virtual std::unique_ptr<Dense> create_submatrix_impl(const span& rows,
-                                                         const span& columns,
-                                                         const size_type stride)
-    {
-        row_major_range range_this{this->get_values(), this->get_size()[0],
-                                   this->get_size()[1], this->get_stride()};
-        auto range_result = range_this(rows, columns);
-        // TODO: can result in HUGE padding - which will be copied with the
-        // vector
-        return Dense::create(
-            this->get_executor(),
-            dim<2>{range_result.length(0), range_result.length(1)},
-            Array<ValueType>::view(
-                this->get_executor(),
-                range_result.length(0) * range_this.length(1) - columns.begin,
-                range_result->data),
-            stride);
-    }
+    virtual std::unique_ptr<Dense> create_submatrix_impl(
+        const span& rows, const span& columns, const size_type stride);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

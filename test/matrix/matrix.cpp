@@ -81,6 +81,8 @@ struct SimpleMatrixTest {
     {}
 
     static void check_property(const std::unique_ptr<matrix_type>&) {}
+
+    static bool supports_strides() { return true; }
 };
 
 struct DenseWithDefaultStride
@@ -200,36 +202,33 @@ struct CsrWithAutomaticalStrategy
 struct Ell : SimpleMatrixTest<gko::matrix::Ell<matrix_value_type, int>> {};
 
 
-struct FbcsrBlocksize1
-    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
+template <int block_size>
+struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static bool preserves_zeros() { return false; }
 
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
-        return matrix_type::create(exec, size, 0, 1);
+        size[0] = gko::ceildiv(size[0], block_size) * block_size;
+        size[1] = gko::ceildiv(size[1], block_size) * block_size;
+        return matrix_type::create(exec, size, 0, block_size);
     }
 
     static void check_property(const std::unique_ptr<matrix_type>& mtx)
     {
-        ASSERT_EQ(mtx->get_block_size(), 1);
+        ASSERT_EQ(mtx->get_block_size(), block_size);
     }
-};
 
-struct FbcsrBlocksize2
-    : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
-    static bool preserves_zeros() { return false; }
-
-    static std::unique_ptr<matrix_type> create(
-        std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
+    static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
     {
-        return matrix_type::create(exec, size, 0, 2);
+        data.size[0] = gko::ceildiv(data.size[0], block_size) * block_size;
+        data.size[1] = gko::ceildiv(data.size[1], block_size) * block_size;
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
-    {
-        ASSERT_EQ(mtx->get_block_size(), 2);
-    }
+#ifdef GKO_COMPILING_HIP
+    // Fbcsr support in rocSPARSE is buggy w.r.t. strides
+    static bool supports_strides() { return false; }
+#endif
 };
 
 
@@ -440,12 +439,11 @@ protected:
     }
 
     template <typename VecType = Vec>
-    test_pair<VecType> gen_in_vec(const test_pair<Mtx>& mtx, int nrhs,
-                                  int stride)
+    test_pair<VecType> gen_in_vec(const test_pair<Mtx>& mtx, int nrhs)
     {
         auto size = gko::dim<2>{mtx.ref->get_size()[1],
                                 static_cast<gko::size_type>(nrhs)};
-        auto result = VecType::create(ref, size, stride);
+        auto result = VecType::create(ref, size);
         result->read(gen_dense_data<typename VecType::value_type,
                                     typename Mtx::index_type>(size));
         return {std::move(result), exec};
@@ -466,12 +464,11 @@ protected:
     }
 
     template <typename VecType = Vec>
-    test_pair<VecType> gen_out_vec(const test_pair<Mtx>& mtx, int nrhs,
-                                   int stride)
+    test_pair<VecType> gen_out_vec(const test_pair<Mtx>& mtx, int nrhs)
     {
         auto size = gko::dim<2>{mtx.ref->get_size()[0],
                                 static_cast<gko::size_type>(nrhs)};
-        auto result = VecType::create(ref, size, stride);
+        auto result = VecType::create(ref, size);
         result->read(gen_dense_data<typename VecType::value_type,
                                     typename Mtx::index_type>(size));
         return {std::move(result), exec};
@@ -484,9 +481,10 @@ protected:
     template <typename TestFunction>
     void forall_matrix_data_scenarios(TestFunction fn)
     {
-        auto guarded_fn = [&](auto mtx) {
+        auto guarded_fn = [&](auto data) {
             try {
-                fn(std::move(mtx));
+                Config::modify_data(data);
+                fn(std::move(data));
             } catch (std::exception& e) {
                 FAIL() << e.what();
             }
@@ -506,6 +504,14 @@ protected:
         {
             SCOPED_TRACE("Zero matrix (200x100)");
             guarded_fn(gen_mtx_data(200, 100, 0, 0));
+        }
+        {
+            SCOPED_TRACE("Small Sparse Matrix with variable row nnz (10x10)");
+            guarded_fn(gen_mtx_data(10, 10, 1, 5));
+        }
+        {
+            SCOPED_TRACE("Small Dense Matrix (10x10)");
+            guarded_fn(gen_mtx_data(10, 10, 10, 10));
         }
         {
             SCOPED_TRACE("Sparse Matrix with some zeros rows (200x100)");
@@ -568,6 +574,34 @@ protected:
     }
 
     template <typename VecType = Vec, typename MtxType, typename TestFunction>
+    void run_strided(const test_pair<MtxType>& mtx, int rhs, int in_stride,
+                     int out_stride, TestFunction fn)
+    {
+        // create slightly bigger vectors
+        auto in_padded = gen_in_vec<VecType>(mtx, in_stride);
+        auto out_padded = gen_out_vec<VecType>(mtx, out_stride);
+        const auto in_rows = gko::span(0, mtx.ref->get_size()[1]);
+        const auto out_rows = gko::span(0, mtx.ref->get_size()[0]);
+        const auto cols = gko::span(0, rhs);
+        const auto out_pad_cols = gko::span(rhs, out_stride);
+        // create views of the padding and in/out vectors
+        auto out_padding = test_pair<VecType>{
+            out_padded.ref->create_submatrix(out_rows, out_pad_cols),
+            out_padded.dev->create_submatrix(out_rows, out_pad_cols)};
+        auto orig_padding = out_padding.ref->clone();
+        auto in =
+            test_pair<VecType>{in_padded.ref->create_submatrix(in_rows, cols),
+                               in_padded.dev->create_submatrix(in_rows, cols)};
+        auto out = test_pair<VecType>{
+            out_padded.ref->create_submatrix(out_rows, cols),
+            out_padded.dev->create_submatrix(out_rows, cols)};
+        fn(std::move(in), std::move(out));
+        // check that padding was unmodified
+        GKO_ASSERT_MTX_NEAR(out_padding.ref, orig_padding, 0.0);
+        GKO_ASSERT_MTX_NEAR(out_padding.dev, orig_padding, 0.0);
+    }
+
+    template <typename VecType = Vec, typename MtxType, typename TestFunction>
     void forall_vector_scenarios(const test_pair<MtxType>& mtx, TestFunction fn)
     {
         auto guarded_fn = [&](auto b, auto x) {
@@ -579,53 +613,48 @@ protected:
         };
         {
             SCOPED_TRACE("Multivector with 0 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 0, 0),
-                       gen_out_vec<VecType>(mtx, 0, 0));
+            guarded_fn(gen_in_vec<VecType>(mtx, 0),
+                       gen_out_vec<VecType>(mtx, 0));
         }
         {
             SCOPED_TRACE("Single vector");
-            guarded_fn(gen_in_vec<VecType>(mtx, 1, 1),
-                       gen_out_vec<VecType>(mtx, 1, 1));
+            guarded_fn(gen_in_vec<VecType>(mtx, 1),
+                       gen_out_vec<VecType>(mtx, 1));
         }
-        {
+        if (Config::supports_strides()) {
             SCOPED_TRACE("Single strided vector");
-            guarded_fn(gen_in_vec<VecType>(mtx, 1, 2),
-                       gen_out_vec<VecType>(mtx, 1, 3));
+            run_strided(mtx, 1, 2, 3, guarded_fn);
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector
             // viewed as interleaved real/imag vector
             using complex_vec = gko::to_complex<VecType>;
-            {
+            if (Config::supports_strides()) {
                 SCOPED_TRACE("Single strided complex vector");
-                guarded_fn(gen_in_vec<complex_vec>(mtx, 1, 2),
-                           gen_out_vec<complex_vec>(mtx, 1, 3));
+                run_strided<complex_vec>(mtx, 1, 2, 3, guarded_fn);
             }
-            {
+            if (Config::supports_strides()) {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                guarded_fn(gen_in_vec<complex_vec>(mtx, 2, 3),
-                           gen_out_vec<complex_vec>(mtx, 2, 4));
+                run_strided<complex_vec>(mtx, 2, 3, 4, guarded_fn);
             }
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 2, 2),
-                       gen_out_vec<VecType>(mtx, 2, 2));
+            guarded_fn(gen_in_vec<VecType>(mtx, 2),
+                       gen_out_vec<VecType>(mtx, 2));
         }
-        {
+        if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 2 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 2, 3),
-                       gen_out_vec<VecType>(mtx, 2, 4));
+            run_strided(mtx, 2, 3, 4, guarded_fn);
         }
         {
             SCOPED_TRACE("Multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 40, 40),
-                       gen_out_vec<VecType>(mtx, 40, 40));
+            guarded_fn(gen_in_vec<VecType>(mtx, 40),
+                       gen_out_vec<VecType>(mtx, 40));
         }
-        {
+        if (Config::supports_strides()) {
             SCOPED_TRACE("Strided multivector with 40 columns");
-            guarded_fn(gen_in_vec<VecType>(mtx, 40, 43),
-                       gen_out_vec<VecType>(mtx, 40, 45));
+            run_strided(mtx, 40, 43, 45, guarded_fn);
         }
     }
 
@@ -637,18 +666,21 @@ protected:
 
 using MatrixTypes = ::testing::Types<
     DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
-    // The strategies have issues with zero rows
-    /*
-    #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
-        defined(GKO_COMPILING_DPCPP)
-        CsrWithClassicalStrategy, CsrWithMergePathStrategy,
-        CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
-        CsrWithAutomaticalStrategy,
-    #endif
-    */
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
+    defined(GKO_COMPILING_DPCPP)
+    CsrWithClassicalStrategy, CsrWithMergePathStrategy,
+    CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
+    CsrWithAutomaticalStrategy,
+#endif
     Ell,
-    // Fbcsr is slightly broken
-    /*FbcsrBlocksize1, FbcsrBlocksize2,*/
+#ifdef GKO_COMPILING_OMP
+    // CUDA doesn't allow blocksize 1
+    Fbcsr<1>,
+#endif
+#if defined(GKO_COMPILING_OMP) || defined(GKO_COMPILING_CUDA) || \
+    defined(GKO_COMPILING_HIP)
+    Fbcsr<2>, Fbcsr<3>,
+#endif
     SellpDefaultParameters, Sellp32Factor2, HybridDefaultStrategy,
     HybridColumnLimitStrategy, HybridImbalanceLimitStrategy,
     HybridImbalanceBoundedLimitStrategy, HybridMinStorageStrategy,
@@ -771,13 +803,30 @@ TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
-        auto ref_result = Dense::create(this->ref);
-        auto dev_result = Dense::create(this->exec);
+        const auto size = mtx.ref->get_size();
+        const auto stride = size[1] + 5;
+        const auto padded_size = gko::dim<2>{size[0], stride};
+        auto ref_padded = Dense::create(this->ref, padded_size);
+        auto dev_padded = Dense::create(this->exec, padded_size);
+        ref_padded->fill(12345);
+        dev_padded->fill(12345);
+        const auto rows = gko::span{0, size[0]};
+        const auto cols = gko::span{0, size[1]};
+        const auto pad_cols = gko::span{size[1], stride};
+        auto ref_result = ref_padded->create_submatrix(rows, cols);
+        auto dev_result = dev_padded->create_submatrix(rows, cols);
+        auto ref_padding = ref_padded->create_submatrix(rows, pad_cols);
+        auto dev_padding = dev_padded->create_submatrix(rows, pad_cols);
+        auto orig_padding = ref_padding->clone();
 
         mtx.ref->convert_to(ref_result.get());
         mtx.dev->convert_to(dev_result.get());
 
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        ASSERT_EQ(ref_result->get_stride(), stride);
+        ASSERT_EQ(dev_result->get_stride(), stride);
+        GKO_ASSERT_MTX_NEAR(ref_padding, orig_padding, 0.0);
+        GKO_ASSERT_MTX_NEAR(dev_padding, orig_padding, 0.0);
     });
 }
 
@@ -788,10 +837,13 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
-        auto ref_src = Dense::create(this->ref);
-        auto dev_src = Dense::create(this->exec);
+        const auto stride = data.size[0] + 2;
+        auto ref_src = Dense::create(this->ref, data.size, stride);
+        auto dev_src = Dense::create(this->exec, data.size, stride);
         ref_src->read(data);
         dev_src->read(data);
+        ASSERT_EQ(ref_src->get_stride(), stride);
+        ASSERT_EQ(dev_src->get_stride(), stride);
         auto ref_result = TestConfig::create(this->ref, data.size);
         auto dev_result = TestConfig::create(this->exec, data.size);
 
@@ -813,7 +865,6 @@ TYPED_TEST(Matrix, ReadWriteRoundtrip)
         auto new_mtx = TestConfig::create(this->exec, data.size);
         gko::matrix_data<value_type, index_type> out_data;
 
-        TestConfig::modify_data(data);
         new_mtx->read(data);
         new_mtx->write(out_data);
 

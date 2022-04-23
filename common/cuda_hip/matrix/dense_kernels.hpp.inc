@@ -34,6 +34,172 @@ namespace kernel {
 
 
 template <typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void count_nonzero_blocks_per_row(
+        size_type num_block_rows, size_type num_block_cols, size_type stride,
+        int block_size, const ValueType* __restrict__ source,
+        IndexType* __restrict__ block_row_nnz)
+{
+    const auto brow =
+        thread::get_subwarp_id_flat<config::warp_size, IndexType>();
+
+    if (brow >= num_block_rows) {
+        return;
+    }
+
+    const auto bs_sq = block_size * block_size;
+    const auto num_cols = num_block_cols * block_size;
+    auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = static_cast<IndexType>(warp.thread_rank());
+    constexpr auto full_mask = ~config::lane_mask_type{};
+    constexpr auto one_mask = config::lane_mask_type{1};
+    bool first_block_nonzero = false;
+    IndexType block_count{};
+    for (IndexType base_col = 0; base_col < num_cols;
+         base_col += config::warp_size) {
+        const auto col = base_col + lane;
+        const auto block_local_col = col % block_size;
+        // which is the first column in the current block?
+        const auto block_base_col = col - block_local_col;
+        // collect nonzero bitmask
+        bool local_nonzero = false;
+        for (int local_row = 0; local_row < block_size; local_row++) {
+            const auto row = local_row + brow * block_size;
+            local_nonzero |=
+                col < num_cols && is_nonzero(source[row * stride + col]);
+        }
+        auto nonzero_mask =
+            warp.ballot(local_nonzero) | (first_block_nonzero ? 1u : 0u);
+        // only consider threads in the current block
+        const auto first_thread = block_base_col - base_col;
+        const auto last_thread = first_thread + block_size;
+        // HIP compiles these assertions in Release, traps unconditionally
+        // assert(first_thread < int(config::warp_size));
+        // assert(last_thread >= 0);
+        // mask off everything below first_thread
+        const auto lower_mask =
+            first_thread < 0 ? full_mask : ~((one_mask << first_thread) - 1u);
+        // mask off everything from last_thread
+        const auto upper_mask = last_thread >= config::warp_size
+                                    ? full_mask
+                                    : ((one_mask << last_thread) - 1u);
+        const auto block_mask = upper_mask & lower_mask;
+        const auto local_mask = nonzero_mask & block_mask;
+        // last column in the block increments the counter
+        block_count +=
+            (block_local_col == block_size - 1 && local_mask) ? 1 : 0;
+        // if we need to store something for the next iteration
+        if ((base_col + config::warp_size) % block_size != 0) {
+            // check whether the last block (incomplete) in this warp is nonzero
+            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            bool last_block_nonzero =
+                (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
+            first_block_nonzero = last_block_nonzero;
+        } else {
+            first_block_nonzero = false;
+        }
+    }
+    block_count = reduce(warp, block_count,
+                         [](IndexType a, IndexType b) { return a + b; });
+    if (lane == 0) {
+        block_row_nnz[brow] = block_count;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void convert_to_fbcsr(
+    size_type num_block_rows, size_type num_block_cols, size_type stride,
+    int block_size, const ValueType* __restrict__ source,
+    const IndexType* __restrict__ block_row_ptrs,
+    IndexType* __restrict__ block_cols, ValueType* __restrict__ blocks)
+{
+    const auto brow =
+        thread::get_subwarp_id_flat<config::warp_size, IndexType>();
+
+    if (brow >= num_block_rows) {
+        return;
+    }
+
+    const auto bs_sq = block_size * block_size;
+    const auto num_cols = num_block_cols * block_size;
+    auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = static_cast<IndexType>(warp.thread_rank());
+    constexpr auto full_mask = ~config::lane_mask_type{};
+    constexpr auto one_mask = config::lane_mask_type{1};
+    const auto lane_prefix_mask = (one_mask << warp.thread_rank()) - 1u;
+    bool first_block_nonzero = false;
+    auto block_base_nz = block_row_ptrs[brow];
+    for (IndexType base_col = 0; base_col < num_cols;
+         base_col += config::warp_size) {
+        const auto col = base_col + lane;
+        const auto block_local_col = col % block_size;
+        // which is the first column in the current block?
+        const auto block_base_col = col - block_local_col;
+        // collect nonzero bitmask
+        bool local_nonzero = false;
+        for (int local_row = 0; local_row < block_size; local_row++) {
+            const auto row = local_row + brow * block_size;
+            local_nonzero |=
+                col < num_cols && is_nonzero(source[row * stride + col]);
+        }
+        auto nonzero_mask =
+            warp.ballot(local_nonzero) | (first_block_nonzero ? 1u : 0u);
+        // only consider threads in the current block
+        const auto first_thread = block_base_col - base_col;
+        const auto last_thread = first_thread + block_size;
+        // HIP compiles these assertions in Release, traps unconditionally
+        // assert(first_thread < int(config::warp_size));
+        // assert(last_thread >= 0);
+        // mask off everything below first_thread
+        const auto lower_mask =
+            first_thread < 0 ? full_mask : ~((one_mask << first_thread) - 1u);
+        // mask off everything from last_thread
+        const auto upper_mask = last_thread >= config::warp_size
+                                    ? full_mask
+                                    : ((one_mask << last_thread) - 1u);
+        const auto block_mask = upper_mask & lower_mask;
+        const auto local_mask = nonzero_mask & block_mask;
+        const auto block_nonzero_mask =
+            warp.ballot(local_mask && (block_local_col == block_size - 1));
+
+        // count how many Fbcsr blocks come before the Fbcsr block handled by
+        // the local group of threads
+        const auto block_nz =
+            block_base_nz + popcnt(block_nonzero_mask & lane_prefix_mask);
+        // now in a second sweep, store the actual elements
+        if (local_mask) {
+            if (block_local_col == block_size - 1) {
+                block_cols[block_nz] = col / block_size;
+            }
+            // only if we encountered elements in this column
+            if (local_nonzero) {
+                for (int local_row = 0; local_row < block_size; local_row++) {
+                    const auto row = local_row + brow * block_size;
+                    blocks[local_row + block_local_col * block_size +
+                           block_nz * bs_sq] = source[row * stride + col];
+                }
+            }
+        }
+        // if we need to store something for the next iteration
+        if ((base_col + config::warp_size) % block_size != 0) {
+            // check whether the last block (incomplete) in this warp is nonzero
+            auto local_block_nonzero_mask = warp.ballot(local_mask != 0u);
+            bool last_block_nonzero =
+                (local_block_nonzero_mask >> (config::warp_size - 1)) != 0u;
+            first_block_nonzero = last_block_nonzero;
+        } else {
+            first_block_nonzero = false;
+        }
+        // advance by the completed blocks
+        block_base_nz += popcnt(block_nonzero_mask);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     size_type num_rows, size_type num_cols, size_type stride,
     const ValueType* __restrict__ source, const int64* __restrict__ row_ptrs,

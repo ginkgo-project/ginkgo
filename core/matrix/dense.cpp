@@ -462,31 +462,30 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
 template <typename ValueType>
 void Dense<ValueType>::convert_to(Dense<ValueType>* result) const
 {
-    if (this->get_size() && result->get_size() == this->get_size()) {
-        // we need to create a executor-local clone of the target data, that
-        // will be copied back later.
-        auto exec = this->get_executor();
-        auto result_array = make_temporary_output_clone(exec, &result->values_);
-        // create a (value, not pointer to avoid allocation overhead) view
-        // matrix on the array to avoid special-casing cross-executor copies
-        auto tmp_result =
-            Dense{exec, result->get_size(),
-                  Array<ValueType>::view(exec, result_array->get_num_elems(),
-                                         result_array->get_data()),
-                  result->get_stride()};
-        exec->run(dense::make_copy(this, &tmp_result));
-    } else {
-        result->values_ = this->values_;
-        result->stride_ = this->stride_;
-        result->set_size(this->get_size());
+    if (result->get_size() != this->get_size()) {
+        result->resize(this->get_size());
     }
+    // we need to create a temporary clone of the target data to write to
+    auto exec = this->get_executor();
+    auto result_output = make_temporary_clone(exec, &result->values_);
+    // create a (value, not pointer to avoid allocation overhead) view
+    // matrix on the array to avoid special-casing cross-executor copies
+    auto tmp_result =
+        Dense{exec, this->get_size(),
+              make_array_view(exec, result_output->get_num_elems(),
+                              result_output->get_data()),
+              result->get_stride()};
+    exec->run(dense::make_copy(this, &tmp_result));
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::move_to(Dense<ValueType>* result)
 {
-    this->convert_to(result);
+    result->values_ = std::move(this->values_);
+    result->stride_ = std::exchange(this->stride_, 0);
+    result->set_size(this->get_size());
+    this->resize(gko::dim<2>{});
 }
 
 
@@ -628,6 +627,7 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
         exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
     tmp->col_idxs_.resize_and_reset(nnz_blocks);
     tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
+    tmp->values_.fill(zero<ValueType>());
     tmp->set_size(this->get_size());
     exec->run(dense::make_convert_to_fbcsr(this, tmp.get()));
 }
@@ -1581,6 +1581,64 @@ void Dense<ValueType>::add_scaled_identity_impl(const LinOp* const a,
                 dense_alpha, dense_beta, dense_x));
         },
         a, b, this);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view()
+{
+    const auto num_rows = this->get_size()[0];
+    constexpr bool complex = is_complex<ValueType>();
+    const auto num_cols =
+        complex ? 2 * this->get_size()[1] : this->get_size()[1];
+    const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
+
+    return Dense<remove_complex<ValueType>>::create(
+        this->get_executor(), dim<2>{num_rows, num_cols},
+        make_array_view(
+            this->get_executor(), num_rows * stride,
+            reinterpret_cast<remove_complex<ValueType>*>(this->get_values())),
+        stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const typename Dense<ValueType>::real_type>
+Dense<ValueType>::create_real_view() const
+{
+    const auto num_rows = this->get_size()[0];
+    constexpr bool complex = is_complex<ValueType>();
+    const auto num_cols =
+        complex ? 2 * this->get_size()[1] : this->get_size()[1];
+    const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
+
+    return Dense<remove_complex<ValueType>>::create_const(
+        this->get_executor(), dim<2>{num_rows, num_cols},
+        make_const_array_view(
+            this->get_executor(), num_rows * stride,
+            reinterpret_cast<const remove_complex<ValueType>*>(
+                this->get_const_values())),
+        stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
+    const span& rows, const span& columns, const size_type stride)
+{
+    row_major_range range_this{this->get_values(), this->get_size()[0],
+                               this->get_size()[1], this->get_stride()};
+    auto range_result = range_this(rows, columns);
+    size_type storage_size =
+        rows.length() > 0
+            ? range_result.length(0) * this->get_stride() - columns.begin
+            : 0;
+    return Dense::create(
+        this->get_executor(),
+        dim<2>{range_result.length(0), range_result.length(1)},
+        make_array_view(this->get_executor(), storage_size, range_result->data),
+        stride);
 }
 
 
