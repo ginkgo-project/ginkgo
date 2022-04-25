@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     using Rm = gko::extension::resource_manager::ResourceManager;
 
@@ -74,5 +74,11 @@ int main(int argc, char *argv[])
     std::cout << "Solution (x):\n";
     write(std::cout, lend(x));
 
+    auto logger =
+        resource_manager.search_data<gko::log::Convergence<double>>("conv");
+    if (logger != nullptr) {
+        std::cout << "conv: " << logger->get_num_iterations() << " iters."
+                  << std::endl;
+    }
     return 0;
 }

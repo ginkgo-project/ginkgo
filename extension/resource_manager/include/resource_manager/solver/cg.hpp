@@ -100,6 +100,7 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     auto ptr = cg_factory_select<gko::solver::Cg>(
         cg_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
+    add_logger(ptr, item, exec, linop, manager);
     return std::move(ptr);
 }
 
@@ -117,6 +118,7 @@ create_from_config<RM_LinOp, RM_LinOp::Cg, gko::LinOp>(
     auto ptr = cg_select<gko::solver::Cg>(
         cg_list, [=](std::string key) { return key == type_string; }, item,
         exec, linop, manager);
+    add_logger(ptr, item, exec, linop, manager);
     std::cout << "finish cg_select " << ptr.get() << std::endl;
     return std::move(ptr);
 }

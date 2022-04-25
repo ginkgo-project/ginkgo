@@ -67,6 +67,7 @@ struct Generic<typename gko::stop::Iteration::Factory, gko::stop::Iteration> {
             SET_VALUE(size_type, max_iters);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

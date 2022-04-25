@@ -26,6 +26,12 @@
         "read": "data/x0.mtx"
     },
     {
+        "name": "conv",
+        "base": "Convergence",
+        "ValueType": "double",
+        "exec": "executor"
+    },
+    {
         "name": "solver",
         "base": "Cg",
         "factory": {
@@ -36,7 +42,8 @@
                     "name": "20Iter",
                     "base": "IterationFactory",
                     "max_iters": 20,
-                    "exec": "executor"
+                    "exec": "executor",
+                    "logger": "conv"
                 }
             ]
         },
