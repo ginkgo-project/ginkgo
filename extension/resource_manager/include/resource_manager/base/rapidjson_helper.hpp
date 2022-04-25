@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/resource_manager.hpp"
 #include "resource_manager/base/types.hpp"
+#include "resource_manager/log/mask_type.hpp"
 
 
 namespace gko {
@@ -209,6 +210,31 @@ gko::stop::mode get_value<gko::stop::mode>(rapidjson::Value& item,
         // avoid the warning about return type
         return gko::stop::mode::absolute;
     }
+}
+
+
+// It can not use the overload get_value because mask_type is uint.
+gko::log::Logger::mask_type get_mask_value_with_default(
+    rapidjson::Value& item, std::string key,
+    gko::log::Logger::mask_type default_val)
+{
+    gko::log::Logger::mask_type mask_value = 0;
+    if (item.HasMember(key.c_str())) {
+        auto& mask_item = item[key.c_str()];
+        if (mask_item.IsString()) {
+            mask_value |= mask_type_map.at(get_value<std::string>(item, key));
+        } else if (mask_item.IsArray()) {
+            for (auto& it : mask_item.GetArray()) {
+                mask_value |= mask_type_map.at(it.GetString());
+            }
+        } else {
+            assert(false);
+        }
+    } else {
+        mask_value = default_val;
+    }
+
+    return mask_value;
 }
 
 

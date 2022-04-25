@@ -79,8 +79,8 @@ struct Generic<gko::HipExecutor> {
     {
         std::cout << "Hip" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
-        auto ptr = HipExecutor::create(device_id, ReferenceExecutor::create())
-            add_logger(ptr, item, exec, linop, manager);
+        auto ptr = HipExecutor::create(device_id, ReferenceExecutor::create());
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
