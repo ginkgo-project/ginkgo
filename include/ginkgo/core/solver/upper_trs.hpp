@@ -114,6 +114,14 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    UpperTrs(const UpperTrs&);
+
+    UpperTrs(UpperTrs&&);
+
+    UpperTrs& operator=(const UpperTrs&);
+
+    UpperTrs& operator=(UpperTrs&&);
+
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 

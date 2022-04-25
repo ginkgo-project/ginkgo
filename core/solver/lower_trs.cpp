@@ -65,6 +65,52 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
+    : EnableLinOp<LowerTrs>(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
+    : EnableLinOp<LowerTrs>(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
+    const LowerTrs& other)
+{
+    if (this != &other) {
+        EnableLinOp<LowerTrs>::operator=(other);
+        EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
+        this->generate();
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
+    LowerTrs&& other)
+{
+    if (this != &other) {
+        EnableLinOp<LowerTrs>::operator=(std::move(other));
+        EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
+        if (this->get_executor() == other.get_executor()) {
+            this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
+        } else {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::transpose() const
 {
     return transposed_type::build()
@@ -87,9 +133,11 @@ std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
 template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
-    this->get_executor()->run(
-        lower_trs::make_generate(this->get_system_matrix().get(),
-                                 this->solve_struct_, parameters_.num_rhs));
+    if (this->get_system_matrix()) {
+        this->get_executor()->run(
+            lower_trs::make_generate(this->get_system_matrix().get(),
+                                     this->solve_struct_, parameters_.num_rhs));
+    }
 }
 
 
