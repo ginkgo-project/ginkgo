@@ -98,14 +98,14 @@ public:
      *
      * @return the Krylov dimension
      */
-    size_type get_krylov_dim() const { return krylov_dim_; }
+    size_type get_krylov_dim() const { return parameters_.krylov_dim; }
 
     /**
      * Sets the Krylov dimension
      *
      * @param other  the new Krylov dimension
      */
-    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
+    void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -157,15 +157,10 @@ protected:
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.krylov_dim) {
-            krylov_dim_ = parameters_.krylov_dim;
-        } else {
-            krylov_dim_ = default_krylov_dim;
+        if (!parameters_.krylov_dim) {
+            parameters_.krylov_dim = default_krylov_dim;
         }
     }
-
-private:
-    size_type krylov_dim_;
 };
 
 

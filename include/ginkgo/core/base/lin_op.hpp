@@ -245,9 +245,11 @@ public:
 
     LinOp& operator=(LinOp&& other)
     {
-        EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
-        this->set_size(other.get_size());
-        other.set_size({});
+        if (this != &other) {
+            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            this->set_size(other.get_size());
+            other.set_size({});
+        }
         return *this;
     }
 
@@ -256,10 +258,8 @@ public:
     LinOp(LinOp&& other)
         : EnableAbstractPolymorphicObject<LinOp>{static_cast<
               EnableAbstractPolymorphicObject<LinOp>&&>(other)},
-          size_{other.size_}
-    {
-        other.set_size({});
-    }
+          size_{std::exchange(other.size_, dim<2>{})}
+    {}
 
 protected:
     /**

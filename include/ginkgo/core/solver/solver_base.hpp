@@ -45,8 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-
-
 namespace solver {
 
 
@@ -163,7 +161,10 @@ protected:
 
 
 /**
- * A LinOp implementing this interface stores a system matrix.
+ * A LinOp deriving from this CRTP class stores a system matrix.
+ *
+ * @tparam DerivedType  the CRTP type that derives from this
+ * @tparam MatrixType  the concrete matrix type to be stored as system_matrix
  *
  * @ingroup solver
  * @ingroup LinOp
@@ -258,6 +259,14 @@ private:
 };
 
 
+/**
+ * A LinOp deriving from this CRTP class stores a stopping criterion factory.
+ *
+ * @tparam DerivedType  the CRTP type that derives from this
+ *
+ * @ingroup solver
+ * @ingroup LinOp
+ */
 template <typename DerivedType>
 class EnableIterativeBase : public IterativeBase {
 public:
@@ -316,6 +325,9 @@ private:
 /**
  * A LinOp implementing this interface stores a system matrix and stopping
  * criterion factory.
+ *
+ * @tparam ValueType  the value type that iterative solver uses for its vectors
+ * @tparam DerivedType  the CRTP type that derives from this
  *
  * @ingroup solver
  * @ingroup LinOp

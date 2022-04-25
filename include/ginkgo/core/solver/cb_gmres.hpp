@@ -134,14 +134,14 @@ public:
      *
      * @return the Krylov dimension
      */
-    size_type get_krylov_dim() const { return krylov_dim_; }
+    size_type get_krylov_dim() const { return parameters_.krylov_dim; }
 
     /**
      * Sets the Krylov dimension
      *
      * @param other  the new Krylov dimension
      */
-    void set_krylov_dim(size_type other) { krylov_dim_ = other; }
+    void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
     /**
      * Returns the storage precision used internally.
@@ -150,7 +150,7 @@ public:
      */
     cb_gmres::storage_precision get_storage_precision() const
     {
-        return storage_precision_;
+        return parameters_.storage_precision;
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -207,14 +207,8 @@ protected:
                                transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()},
-          krylov_dim_{parameters_.krylov_dim},
-          storage_precision_{parameters_.storage_precision}
+          parameters_{factory->get_parameters()}
     {}
-
-private:
-    size_type krylov_dim_;
-    cb_gmres::storage_precision storage_precision_;
 };
 
 

@@ -112,6 +112,9 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     const auto problem_size = this->get_size()[0];
     const auto nrhs = dense_b->get_size()[1];
+    const auto subspace_dim = this->get_subspace_dim();
+    const auto is_deterministic = this->get_deterministic();
+    const auto kappa = this->get_kappa();
 
     auto residual = Vector::create_with_config_of(dense_b);
     auto v = Vector::create_with_config_of(dense_b);
@@ -119,15 +122,15 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     auto helper = Vector::create_with_config_of(dense_b);
 
     auto m =
-        Vector::create(exec, gko::dim<2>{subspace_dim_, subspace_dim_ * nrhs});
+        Vector::create(exec, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
 
     auto g =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
+        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
     auto u =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim_ * nrhs});
+        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
 
-    auto f = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
-    auto c = Vector::create(exec, gko::dim<2>{subspace_dim_, nrhs});
+    auto f = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
+    auto c = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
 
     auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
@@ -143,12 +146,12 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     // matrix containing the subspace vectors in row major order is called P,
     // subspace_vectors actually contains P^H.
     auto subspace_vectors =
-        Vector::create(exec, gko::dim<2>(subspace_dim_, problem_size));
+        Vector::create(exec, gko::dim<2>(subspace_dim, problem_size));
 
     // Initialization
     // m = identity
     exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
-                                   deterministic_, &stop_status));
+                                   is_deterministic, &stop_status));
 
     // omega = 1
     exec->run(
@@ -209,7 +212,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         // f = P^H * residual
         subspace_vectors->apply(residual.get(), f.get());
 
-        for (size_type k = 0; k < subspace_dim_; k++) {
+        for (size_type k = 0; k < subspace_dim; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
@@ -261,7 +264,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         // end if
         // residual -= omega * t
         // dense_x += omega * v
-        exec->run(idr::make_compute_omega(nrhs, kappa_, tht.get(),
+        exec->run(idr::make_compute_omega(nrhs, kappa, tht.get(),
                                           residual_norm.get(), omega.get(),
                                           &stop_status));
 
@@ -282,7 +285,7 @@ void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             // If ValueType is complex, the subspace matrix P will be complex
             // anyway.
-            if (!is_complex<ValueType>() && complex_subspace_) {
+            if (!is_complex<ValueType>() && this->get_complex_subspace()) {
                 auto complex_b = dense_b->make_complex();
                 auto complex_x = dense_x->make_complex();
                 this->iterate(complex_b.get(), complex_x.get());
