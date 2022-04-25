@@ -1130,8 +1130,9 @@ TYPED_TEST(Matrix, CopyAssignIsCorrect)
         auto mtx2 = Mtx::create(this->exec);
         mtx->read(data);
 
-        *mtx2 = *mtx;
+        auto& result = (*mtx2 = *mtx);
 
+        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
     });
@@ -1148,8 +1149,9 @@ TYPED_TEST(Matrix, MoveAssignIsCorrect)
         mtx->read(data);
         auto orig_mtx = mtx->clone();
 
-        *mtx2 = std::move(*mtx);
+        auto& result = (*mtx2 = std::move(*mtx));
 
+        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
         TestConfig::assert_empty_state(mtx.get());
@@ -1166,8 +1168,9 @@ TYPED_TEST(Matrix, CopyAssignToDifferentExecutorIsCorrect)
         auto mtx2 = Mtx::create(this->ref);
         mtx->read(data);
 
-        *mtx2 = *mtx;
+        auto& result = (*mtx2 = *mtx);
 
+        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
     });
@@ -1184,8 +1187,9 @@ TYPED_TEST(Matrix, MoveAssignToDifferentExecutorIsCorrect)
         mtx->read(data);
         auto orig_mtx = mtx->clone();
 
-        *mtx2 = std::move(*mtx);
+        auto& result = (*mtx2 = std::move(*mtx));
 
+        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
         TestConfig::assert_empty_state(mtx.get());
