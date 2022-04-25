@@ -55,6 +55,10 @@ namespace gko {
  * * zero if `op_k` is rectangular
  * as an initial guess.
  *
+ * Composition ensures that all LinOps passed to its constructor use the same
+ * executor, and if not, copies the operators to the executor of the first
+ * operator.
+ *
  * @tparam ValueType  precision of input and result vectors
  *
  * @ingroup LinOp

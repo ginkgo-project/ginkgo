@@ -106,55 +106,67 @@ public:
      * Gets the subspace dimension of the solver.
      *
      * @return the subspace Dimension*/
-    size_type get_subspace_dim() const { return subspace_dim_; }
+    size_type get_subspace_dim() const { return parameters_.subspace_dim; }
 
     /**
      * Sets the subspace dimension of the solver.
      *
      * @param other  the new subspace Dimension*/
-    void set_subspace_dim(const size_type other) { subspace_dim_ = other; }
+    void set_subspace_dim(const size_type other)
+    {
+        parameters_.subspace_dim = other;
+    }
 
     /**
      * Gets the kappa parameter of the solver.
      *
      * @return the kappa parameter
      */
-    remove_complex<ValueType> get_kappa() const { return kappa_; }
+    remove_complex<ValueType> get_kappa() const { return parameters_.kappa; }
 
     /**
      * Sets the kappa parameter of the solver.
      *
      * @param other  the new kappa parameter
      */
-    void set_kappa(const remove_complex<ValueType> other) { kappa_ = other; }
+    void set_kappa(const remove_complex<ValueType> other)
+    {
+        parameters_.kappa = other;
+    }
 
     /**
      * Gets the deterministic parameter of the solver.
      *
      * @return the deterministic parameter
      */
-    bool get_deterministic() const { return deterministic_; }
+    bool get_deterministic() const { return parameters_.deterministic; }
 
     /**
      * Sets the deterministic parameter of the solver.
      *
      * @param other  the new deterministic parameter
      */
-    void set_deterministic(const bool other) { deterministic_ = other; }
+    void set_deterministic(const bool other)
+    {
+        parameters_.deterministic = other;
+    }
 
     /**
      * Gets the complex_subspace parameter of the solver.
      *
      * @return the complex_subspace parameter
      */
-    bool get_complex_subspace() const { return complex_subspace_; }
+    bool get_complex_subspace() const { return parameters_.complex_subspace; }
 
     /**
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
      */
-    void set_complex_subpsace(const bool other) { complex_subspace_ = other; }
+    void set_complex_subpsace(const bool other)
+    {
+        parameters_.complex_subspace = other;
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -234,18 +246,8 @@ protected:
                            gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()},
-          subspace_dim_{parameters_.subspace_dim},
-          kappa_{parameters_.kappa},
-          deterministic_{parameters_.deterministic},
-          complex_subspace_{parameters_.complex_subspace}
+          parameters_{factory->get_parameters()}
     {}
-
-private:
-    size_type subspace_dim_{};
-    remove_complex<ValueType> kappa_;
-    bool deterministic_{};
-    bool complex_subspace_{};
 };
 
 

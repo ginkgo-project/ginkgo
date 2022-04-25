@@ -225,6 +225,7 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         const auto num_rows = this->get_size()[0];
         const auto num_rhs = dense_b->get_size()[1];
+        const auto krylov_dim = this->get_krylov_dim();
         auto residual = Vector::create_with_config_of(dense_b);
         /* The dimensions {x, y, z} explained for the krylov_bases:
          * - x: selects the krylov vector (which has krylov_dim + 1 vectors)
@@ -232,7 +233,7 @@ void CbGmres<ValueType>::apply_dense_impl(
          * - z: selects which column-element of said krylov vector should be
          *      used
          */
-        const dim<3> krylov_bases_dim{krylov_dim_ + 1, num_rows, num_rhs};
+        const dim<3> krylov_bases_dim{krylov_dim + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
 
@@ -240,16 +241,15 @@ void CbGmres<ValueType>::apply_dense_impl(
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
             Vector::create_with_config_of(dense_b);
         auto hessenberg = Vector::create(
-            exec,
-            dim<2>{krylov_dim_ + 1, krylov_dim_ * dense_b->get_size()[1]});
+            exec, dim<2>{krylov_dim + 1, krylov_dim * dense_b->get_size()[1]});
         auto buffer = Vector::create(
-            exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
+            exec, dim<2>{krylov_dim + 1, dense_b->get_size()[1]});
         auto givens_sin =
-            Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+            Vector::create(exec, dim<2>{krylov_dim, dense_b->get_size()[1]});
         auto givens_cos =
-            Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+            Vector::create(exec, dim<2>{krylov_dim, dense_b->get_size()[1]});
         auto residual_norm_collection = Vector::create(
-            exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
+            exec, dim<2>{krylov_dim + 1, dense_b->get_size()[1]});
         auto residual_norm =
             VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
         // 1st row of arnoldi_norm: == eta * norm2(old_next_krylov_basis)
@@ -265,7 +265,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         array<size_type> final_iter_nums(this->get_executor(),
                                          dense_b->get_size()[1]);
         auto y =
-            Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+            Vector::create(exec, dim<2>{krylov_dim, dense_b->get_size()[1]});
 
         bool one_changed{};
         array<stopping_status> stop_status(this->get_executor(),
@@ -282,7 +282,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         // Initialization
         exec->run(cb_gmres::make_initialize_1(
             dense_b, residual.get(), givens_sin.get(), givens_cos.get(),
-            &stop_status, krylov_dim_));
+            &stop_status, krylov_dim));
         // residual = dense_b
         // givens_sin = givens_cos = 0
         this->get_system_matrix()->apply(neg_one_op.get(), dense_x,
@@ -292,7 +292,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         exec->run(cb_gmres::make_initialize_2(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
             arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
-            &final_iter_nums, krylov_dim_));
+            &final_iter_nums, krylov_dim));
         // residual_norm = norm(residual)
         // residual_norm_collection = {residual_norm, 0, ..., 0}
         // krylov_bases(:, 1) = residual / residual_norm
@@ -324,16 +324,15 @@ void CbGmres<ValueType>::apply_dense_impl(
         }
         // Start only after this value with performing forced iterations after
         // convergence detection
-        constexpr decltype(total_iter) start_force_reset{10};
+        constexpr int start_force_reset{10};
         bool perform_reset{false};
         // Fraction of the krylov_dim_ (or total_iter if it is lower),
         // determining the number of forced iteration to perform
-        constexpr decltype(krylov_dim_) forced_iteration_fraction{10};
-        const decltype(krylov_dim_) forced_limit{krylov_dim_ /
-                                                 forced_iteration_fraction};
+        constexpr size_type forced_iteration_fraction{10};
+        const size_type forced_limit{krylov_dim / forced_iteration_fraction};
         // Counter for the forced iterations. Start at max in order to properly
         // test convergence at the beginning
-        decltype(krylov_dim_) forced_iterations{forced_limit};
+        size_type forced_iterations{forced_limit};
 
         while (true) {
             ++total_iter;
@@ -393,7 +392,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                 }
             }
 
-            if (perform_reset || restart_iter == krylov_dim_) {
+            if (perform_reset || restart_iter == krylov_dim) {
                 perform_reset = false;
                 // Restart
                 // use a view in case this is called earlier
@@ -423,7 +422,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     residual.get(), residual_norm.get(),
                     residual_norm_collection.get(), arnoldi_norm.get(),
                     krylov_bases_range, next_krylov_basis.get(),
-                    &final_iter_nums, krylov_dim_));
+                    &final_iter_nums, krylov_dim));
                 // residual_norm = norm(residual)
                 // residual_norm_collection = {residual_norm, 0, ..., 0}
                 // krylov_bases(:, 1) = residual / residual_norm
@@ -501,7 +500,7 @@ void CbGmres<ValueType>::apply_dense_impl(
     };  // End of apply_lambda
 
     // Look which precision to use as the storage type
-    helper<ValueType>::call(apply_templated, storage_precision_);
+    helper<ValueType>::call(apply_templated, this->get_storage_precision());
 }
 
 

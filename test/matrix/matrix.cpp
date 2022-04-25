@@ -80,7 +80,7 @@ struct SimpleMatrixTest {
                          typename MtxType::index_type>& data)
     {}
 
-    static void check_property(const std::unique_ptr<matrix_type>&) {}
+    static void check_property(const matrix_type*) {}
 
     static bool supports_strides() { return true; }
 
@@ -110,7 +110,7 @@ struct DenseWithCustomStride : DenseWithDefaultStride {
         return matrix_type::create(exec, size, size[0] + 10);
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_EQ(mtx->get_stride(), mtx->get_size()[0] + 10);
     }
@@ -135,8 +135,7 @@ struct Coo : SimpleMatrixTest<gko::matrix::Coo<matrix_value_type, int>> {
     }
 };
 
-struct CsrWithDefaultStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrBase : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
     static void assert_empty_state(const matrix_type* mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -147,8 +146,15 @@ struct CsrWithDefaultStrategy
             0);
         ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
         ASSERT_EQ(mtx->get_const_values(), nullptr);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
-            mtx->get_strategy().get()));
+    }
+};
+
+struct CsrWithDefaultStrategy : CsrBase {
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        CsrBase::assert_empty_state(mtx);
+        ASSERT_EQ(typeid(*mtx->create_default()->get_strategy()),
+                  typeid(*mtx->get_strategy()));
     }
 };
 
@@ -157,8 +163,7 @@ struct CsrWithDefaultStrategy
     defined(GKO_COMPILING_DPCPP)
 
 
-struct CsrWithClassicalStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrWithClassicalStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -166,7 +171,7 @@ struct CsrWithClassicalStrategy
                                    std::make_shared<matrix_type::classical>());
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
             mtx->get_strategy().get()));
@@ -174,21 +179,13 @@ struct CsrWithClassicalStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
-            0);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        CsrBase::assert_empty_state(mtx);
         ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
             mtx->get_strategy().get()));
     }
 };
 
-struct CsrWithMergePathStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrWithMergePathStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -196,7 +193,7 @@ struct CsrWithMergePathStrategy
                                    std::make_shared<matrix_type::merge_path>());
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
             mtx->get_strategy().get()));
@@ -204,21 +201,13 @@ struct CsrWithMergePathStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
-            0);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        CsrBase::assert_empty_state(mtx);
         ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
             mtx->get_strategy().get()));
     }
 };
 
-struct CsrWithSparselibStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrWithSparselibStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -226,7 +215,7 @@ struct CsrWithSparselibStrategy
                                    std::make_shared<matrix_type::sparselib>());
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
             mtx->get_strategy().get()));
@@ -234,21 +223,13 @@ struct CsrWithSparselibStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
-            0);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        CsrBase::assert_empty_state(mtx);
         ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
             mtx->get_strategy().get()));
     }
 };
 
-struct CsrWithLoadBalanceStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrWithLoadBalanceStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -257,7 +238,7 @@ struct CsrWithLoadBalanceStrategy
                                        gko::EXEC_TYPE::create(0, exec)));
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
             mtx->get_strategy().get()));
@@ -265,21 +246,13 @@ struct CsrWithLoadBalanceStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
-            0);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        CsrBase::assert_empty_state(mtx);
         ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
             mtx->get_strategy().get()));
     }
 };
 
-struct CsrWithAutomaticalStrategy
-    : SimpleMatrixTest<gko::matrix::Csr<matrix_value_type, int>> {
+struct CsrWithAutomaticalStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -288,7 +261,7 @@ struct CsrWithAutomaticalStrategy
                                        gko::EXEC_TYPE::create(0, exec)));
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
             mtx->get_strategy().get()));
@@ -296,14 +269,7 @@ struct CsrWithAutomaticalStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_NE(mtx->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_row_ptrs()),
-            0);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        CsrBase::assert_empty_state(mtx);
         ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
             mtx->get_strategy().get()));
     }
@@ -338,7 +304,7 @@ struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
         return matrix_type::create(exec, size, 0, block_size);
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_EQ(mtx->get_block_size(), block_size);
     }
@@ -346,6 +312,7 @@ struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
     static void assert_empty_state(const matrix_type* mtx)
     {
         ASSERT_FALSE(mtx->get_size());
+        ASSERT_EQ(mtx->get_block_size(), block_size);
     }
 
     static void modify_data(gko::matrix_data<matrix_value_type, int>& data)
@@ -361,14 +328,8 @@ struct Fbcsr : SimpleMatrixTest<gko::matrix::Fbcsr<matrix_value_type, int>> {
 };
 
 
-struct SellpDefaultParameters
+struct SellpBase
     : SimpleMatrixTest<gko::matrix::Sellp<matrix_value_type, int>> {
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
-    {
-        ASSERT_EQ(mtx->get_stride_factor(), 1);
-        ASSERT_EQ(mtx->get_slice_size(), 64);
-    }
-
     static void assert_empty_state(const matrix_type* mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -381,20 +342,33 @@ struct SellpDefaultParameters
         ASSERT_EQ(mtx->get_const_slice_lengths(), nullptr);
         ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
         ASSERT_EQ(mtx->get_const_values(), nullptr);
+    }
+};
+
+
+struct SellpDefaultParameters : SellpBase {
+    static void check_property(const matrix_type* mtx)
+    {
+        ASSERT_EQ(mtx->get_stride_factor(), 1);
+        ASSERT_EQ(mtx->get_slice_size(), 64);
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        SellpBase::assert_empty_state(mtx);
         ASSERT_EQ(mtx->get_stride_factor(), 1);
         ASSERT_EQ(mtx->get_slice_size(), 64);
     }
 };
 
-struct Sellp32Factor2
-    : SimpleMatrixTest<gko::matrix::Sellp<matrix_value_type, int>> {
+struct Sellp32Factor2 : SellpBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
         return matrix_type::create(exec, size, 32, 2, 0);
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         ASSERT_EQ(mtx->get_stride_factor(), 2);
         ASSERT_EQ(mtx->get_slice_size(), 32);
@@ -402,23 +376,14 @@ struct Sellp32Factor2
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_EQ(mtx->get_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_total_cols(), 0);
-        ASSERT_NE(mtx->get_const_slice_sets(), nullptr);
-        ASSERT_EQ(
-            mtx->get_executor()->copy_val_to_host(mtx->get_const_slice_sets()),
-            0);
-        ASSERT_EQ(mtx->get_const_slice_lengths(), nullptr);
-        ASSERT_EQ(mtx->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_values(), nullptr);
+        SellpBase::assert_empty_state(mtx);
         ASSERT_EQ(mtx->get_stride_factor(), 2);
         ASSERT_EQ(mtx->get_slice_size(), 32);
     }
 };
 
 
-struct HybridDefaultStrategy
+struct HybridBase
     : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
     static void assert_empty_state(const matrix_type* mtx)
     {
@@ -437,8 +402,23 @@ struct HybridDefaultStrategy
     }
 };
 
-struct HybridColumnLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+
+struct HybridDefaultStrategy : HybridBase {
+    static void check_property(const matrix_type* mtx)
+    {
+        auto strategy = dynamic_cast<const matrix_type::automatic*>(
+            mtx->get_strategy().get());
+        ASSERT_TRUE(strategy);
+    }
+
+    static void assert_empty_state(const matrix_type* mtx)
+    {
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
+    }
+};
+
+struct HybridColumnLimitStrategy : HybridBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -446,7 +426,7 @@ struct HybridColumnLimitStrategy
             exec, size, 0, std::make_shared<matrix_type::column_limit>(10));
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         auto strategy = dynamic_cast<const matrix_type::column_limit*>(
             mtx->get_strategy().get());
@@ -456,23 +436,12 @@ struct HybridColumnLimitStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_FALSE(mtx->get_coo()->get_size());
-        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
-        ASSERT_FALSE(mtx->get_ell()->get_size());
-        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
-        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_ell_stride(), 0);
-        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
     }
 };
 
-struct HybridImbalanceLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+struct HybridImbalanceLimitStrategy : HybridBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -480,7 +449,7 @@ struct HybridImbalanceLimitStrategy
             exec, size, 0, std::make_shared<matrix_type::imbalance_limit>(0.5));
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         auto strategy = dynamic_cast<const matrix_type::imbalance_limit*>(
             mtx->get_strategy().get());
@@ -490,23 +459,12 @@ struct HybridImbalanceLimitStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_FALSE(mtx->get_coo()->get_size());
-        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
-        ASSERT_FALSE(mtx->get_ell()->get_size());
-        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
-        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_ell_stride(), 0);
-        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
     }
 };
 
-struct HybridImbalanceBoundedLimitStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+struct HybridImbalanceBoundedLimitStrategy : HybridBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -515,7 +473,7 @@ struct HybridImbalanceBoundedLimitStrategy
             std::make_shared<matrix_type::imbalance_bounded_limit>(0.5, 0.01));
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         auto strategy =
             dynamic_cast<const matrix_type::imbalance_bounded_limit*>(
@@ -527,23 +485,12 @@ struct HybridImbalanceBoundedLimitStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_FALSE(mtx->get_coo()->get_size());
-        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
-        ASSERT_FALSE(mtx->get_ell()->get_size());
-        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
-        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_ell_stride(), 0);
-        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
     }
 };
 
-struct HybridMinStorageStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+struct HybridMinStorageStrategy : HybridBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -552,7 +499,7 @@ struct HybridMinStorageStrategy
             std::make_shared<matrix_type::minimal_storage_limit>());
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         auto strategy = dynamic_cast<const matrix_type::minimal_storage_limit*>(
             mtx->get_strategy().get());
@@ -561,23 +508,12 @@ struct HybridMinStorageStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_FALSE(mtx->get_coo()->get_size());
-        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
-        ASSERT_FALSE(mtx->get_ell()->get_size());
-        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
-        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_ell_stride(), 0);
-        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
     }
 };
 
-struct HybridAutomaticStrategy
-    : SimpleMatrixTest<gko::matrix::Hybrid<matrix_value_type, int>> {
+struct HybridAutomaticStrategy : HybridBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -585,7 +521,7 @@ struct HybridAutomaticStrategy
                                    std::make_shared<matrix_type::automatic>());
     }
 
-    static void check_property(const std::unique_ptr<matrix_type>& mtx)
+    static void check_property(const matrix_type* mtx)
     {
         auto strategy = dynamic_cast<const matrix_type::automatic*>(
             mtx->get_strategy().get());
@@ -594,18 +530,8 @@ struct HybridAutomaticStrategy
 
     static void assert_empty_state(const matrix_type* mtx)
     {
-        ASSERT_FALSE(mtx->get_size());
-        ASSERT_FALSE(mtx->get_coo()->get_size());
-        ASSERT_EQ(mtx->get_coo_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_const_coo_row_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_coo_values(), nullptr);
-        ASSERT_FALSE(mtx->get_ell()->get_size());
-        ASSERT_EQ(mtx->get_ell_num_stored_elements_per_row(), 0);
-        ASSERT_EQ(mtx->get_ell_num_stored_elements(), 0);
-        ASSERT_EQ(mtx->get_ell_stride(), 0);
-        ASSERT_EQ(mtx->get_const_ell_col_idxs(), nullptr);
-        ASSERT_EQ(mtx->get_const_ell_values(), nullptr);
+        HybridBase::assert_empty_state(mtx);
+        check_property(mtx);
     }
 };
 
@@ -813,8 +739,8 @@ protected:
     {
         auto guarded_fn = [&](auto mtx) {
             try {
-                T::check_property(mtx.ref);
-                T::check_property(mtx.dev);
+                T::check_property(mtx.ref.get());
+                T::check_property(mtx.dev.get());
                 fn(std::move(mtx));
             } catch (std::exception& e) {
                 FAIL() << e.what();

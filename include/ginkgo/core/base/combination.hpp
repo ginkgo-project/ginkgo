@@ -47,6 +47,10 @@ namespace gko {
  * The Combination class can be used to construct a linear combination of
  * multiple linear operators `c1 * op1 + c2 * op2 + ... + ck * opk`.
  *
+ * Combination ensures that all LinOps passed to its constructor use the same
+ * executor, and if not, copies the operators to the executor of the first
+ * operator.
+ *
  * @tparam ValueType  precision of input and result vectors
  *
  * @ingroup LinOp
