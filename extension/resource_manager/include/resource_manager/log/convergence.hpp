@@ -66,8 +66,10 @@ struct Generic<typename gko::log::Convergence<ValueType>> {
     {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto ptr = share(gko::log::Convergence<ValueType>::create(exec_ptr));
-        // TODO: add event_mask
+        auto mask_value = get_mask_value_with_default(
+            item, "enabled_events", gko::log::Logger::all_events_mask);
+        auto ptr =
+            gko::log::Convergence<ValueType>::create(exec_ptr, mask_value);
         return std::move(ptr);
     }
 };
