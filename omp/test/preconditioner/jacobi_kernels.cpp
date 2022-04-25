@@ -406,7 +406,7 @@ TEST_F(Jacobi, OmpScalarApplyEquivalentToRef)
         gko::test::generate_random_matrix_data<value_type, index_type>(
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
-    gko::test::make_diag_dominant(dense_data);
+    gko::utils::make_diag_dominant(dense_data);
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
@@ -472,7 +472,7 @@ TEST_F(Jacobi, OmpScalarLinearCombinationApplyEquivalentToRef)
         gko::test::generate_random_matrix_data<value_type, index_type>(
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
-    gko::test::make_diag_dominant(dense_data);
+    gko::utils::make_diag_dominant(dense_data);
     auto dense_smtx = gko::share(Vec::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));

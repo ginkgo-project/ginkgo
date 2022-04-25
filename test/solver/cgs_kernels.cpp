@@ -77,7 +77,7 @@ protected:
         auto data = gko::matrix_data<value_type, index_type>(
             gko::dim<2>{123, 123},
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
-        gko::test::make_diag_dominant(data);
+        gko::utils::make_diag_dominant(data);
         mtx = Mtx::create(ref, data.size, 125);
         mtx->read(data);
         d_mtx = gko::clone(exec, mtx);

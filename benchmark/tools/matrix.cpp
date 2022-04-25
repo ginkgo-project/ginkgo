@@ -84,30 +84,30 @@ int main(int argc, char** argv)
     for (int argi = binary ? 2 : 1; argi < argc; argi++) {
         std::string arg{argv[argi]};
         if (arg == "lower-triangular") {
-            gko::test::make_lower_triangular(data);
+            gko::utils::make_lower_triangular(data);
         } else if (arg == "upper-triangular") {
-            gko::test::make_upper_triangular(data);
+            gko::utils::make_upper_triangular(data);
         } else if (arg == "remove-diagonal") {
-            gko::test::make_remove_diagonal(data);
+            gko::utils::make_remove_diagonal(data);
         } else if (arg == "remove-zeros") {
             data.remove_zeros();
         } else if (arg == "unit-diagonal") {
-            gko::test::make_unit_diagonal(data);
+            gko::utils::make_unit_diagonal(data);
         } else if (arg == "symmetric") {
-            gko::test::make_symmetric(data);
+            gko::utils::make_symmetric(data);
         } else if (arg == "skew-symmetric") {
-            gko::test::make_symmetric_generic(data, [](auto v) { return -v; });
+            gko::utils::make_symmetric_generic(data, [](auto v) { return -v; });
         } else if (arg == "hermitian") {
-            gko::test::make_hermitian(data);
+            gko::utils::make_hermitian(data);
         } else if (arg == "skew-hermitian") {
-            gko::test::make_symmetric_generic(
+            gko::utils::make_symmetric_generic(
                 data, [](auto v) { return -gko::conj(v); });
         } else if (arg == "diagonal-dominant") {
-            gko::test::make_diag_dominant(data);
+            gko::utils::make_diag_dominant(data);
         } else if (arg == "spd") {
-            gko::test::make_spd(data);
+            gko::utils::make_spd(data);
         } else if (arg == "hpd") {
-            gko::test::make_hpd(data);
+            gko::utils::make_hpd(data);
         } else {
             std::cerr << "Unknown operation " << arg << std::endl;
             return 1;

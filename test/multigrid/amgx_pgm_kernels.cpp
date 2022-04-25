@@ -149,8 +149,8 @@ protected:
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 m, m, std::uniform_int_distribution<>(m, m),
                 std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
-        gko::test::make_symmetric(weight_data);
-        gko::test::make_diag_dominant(weight_data);
+        gko::utils::make_symmetric(weight_data);
+        gko::utils::make_diag_dominant(weight_data);
         weight_csr = Csr::create(ref);
         weight_csr->read(weight_data);
         // only works for real value cases.
@@ -161,7 +161,7 @@ protected:
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 m, m, std::uniform_int_distribution<>(m, m),
                 std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
-        gko::test::make_hpd(system_data);
+        gko::utils::make_hpd(system_data);
         system_mtx = Csr::create(ref);
         system_mtx->read(system_data);
 
