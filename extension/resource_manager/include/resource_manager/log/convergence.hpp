@@ -105,4 +105,4 @@ create_from_config<RM_Logger, RM_Logger::Convergence, gko::log::Logger>(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_convergence_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_CONVERGENCE_HPP_

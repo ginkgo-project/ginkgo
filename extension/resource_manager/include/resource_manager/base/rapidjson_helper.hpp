@@ -465,6 +465,24 @@ std::vector<std::shared_ptr<const T>> get_pointer_vector(
 }
 
 
+template <typename Type>
+void add_logger(Type& obj, rapidjson::Value& item,
+                std::shared_ptr<const Executor> exec,
+                std::shared_ptr<const LinOp> linop, ResourceManager* manager)
+{
+    if (item.HasMember("logger")) {
+        auto& logger = item["logger"];
+        if (logger.IsArray()) {
+            for (auto& it : logger.GetArray()) {
+                obj->add_logger(get_pointer<Logger>(it, exec, linop, manager));
+            }
+        } else {
+            obj->add_logger(get_pointer<Logger>(logger, exec, linop, manager));
+        }
+    }
+}
+
+
 }  // namespace resource_manager
 }  // namespace extension
 }  // namespace gko

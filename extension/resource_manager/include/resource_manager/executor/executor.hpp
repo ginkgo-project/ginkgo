@@ -59,7 +59,9 @@ struct Generic<gko::CudaExecutor> {
     {
         std::cout << "Cuda" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
-        return CudaExecutor::create(device_id, ReferenceExecutor::create());
+        auto ptr = CudaExecutor::create(device_id, ReferenceExecutor::create());
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
     }
 };
 
@@ -77,7 +79,9 @@ struct Generic<gko::HipExecutor> {
     {
         std::cout << "Hip" << std::endl;
         auto device_id = get_value_with_default(item, "device_id", 0);
-        return HipExecutor::create(device_id, ReferenceExecutor::create());
+        auto ptr = HipExecutor::create(device_id, ReferenceExecutor::create())
+            add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
     }
 };
 
@@ -97,8 +101,10 @@ struct Generic<gko::DpcppExecutor> {
         auto device_id = get_value_with_default(item, "device_id", 0);
         auto device_type =
             get_value_with_default(item, "device_type", std::string("all"));
-        return DpcppExecutor::create(device_id, ReferenceExecutor::create(),
-                                     device_type);
+        auto ptr = DpcppExecutor::create(device_id, ReferenceExecutor::create(),
+                                         device_type);
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
     }
 };
 
@@ -115,7 +121,9 @@ struct Generic<gko::ReferenceExecutor> {
                       ResourceManager* manager)
     {
         std::cout << "Reference" << std::endl;
-        return ReferenceExecutor::create();
+        auto ptr = ReferenceExecutor::create();
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
     }
 };
 
@@ -132,7 +140,9 @@ struct Generic<gko::OmpExecutor> {
                       ResourceManager* manager)
     {
         std::cout << "Omp" << std::endl;
-        return OmpExecutor::create();
+        auto ptr = OmpExecutor::create();
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
     }
 };
 
