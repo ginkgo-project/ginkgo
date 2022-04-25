@@ -61,7 +61,7 @@ GKO_REGISTER_OPERATION(local_to_global, idx_set::local_to_global);
 
 template <typename IndexType>
 void index_set<IndexType>::populate_subsets(
-    const gko::Array<IndexType>& indices, const bool is_sorted)
+    const gko::array<IndexType>& indices, const bool is_sorted)
 {
     auto exec = this->get_executor();
     this->num_stored_indices_ = indices.get_num_elems();
@@ -84,9 +84,9 @@ IndexType index_set<IndexType>::get_global_index(const IndexType index) const
 {
     auto exec = this->get_executor();
     const auto local_idx =
-        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+        array<IndexType>(exec, std::initializer_list<IndexType>{index});
     auto global_idx =
-        Array<IndexType>(exec, this->map_local_to_global(local_idx, true));
+        array<IndexType>(exec, this->map_local_to_global(local_idx, true));
 
     return exec->copy_val_to_host(global_idx.get_data());
 }
@@ -97,22 +97,22 @@ IndexType index_set<IndexType>::get_local_index(const IndexType index) const
 {
     auto exec = this->get_executor();
     const auto global_idx =
-        Array<IndexType>(exec, std::initializer_list<IndexType>{index});
+        array<IndexType>(exec, std::initializer_list<IndexType>{index});
     auto local_idx =
-        Array<IndexType>(exec, this->map_global_to_local(global_idx, true));
+        array<IndexType>(exec, this->map_global_to_local(global_idx, true));
 
     return exec->copy_val_to_host(local_idx.get_data());
 }
 
 
 template <typename IndexType>
-Array<IndexType> index_set<IndexType>::to_global_indices() const
+array<IndexType> index_set<IndexType>::to_global_indices() const
 {
     auto exec = this->get_executor();
     auto num_elems = exec->copy_val_to_host(
         this->superset_cumulative_indices_.get_const_data() +
         this->superset_cumulative_indices_.get_num_elems() - 1);
-    auto decomp_indices = gko::Array<IndexType>(exec, num_elems);
+    auto decomp_indices = gko::array<IndexType>(exec, num_elems);
     exec->run(idx_set::make_to_global_indices(
         this->get_num_subsets(), this->get_subsets_begin(),
         this->get_subsets_end(), this->get_superset_indices(),
@@ -123,12 +123,12 @@ Array<IndexType> index_set<IndexType>::to_global_indices() const
 
 
 template <typename IndexType>
-Array<IndexType> index_set<IndexType>::map_local_to_global(
-    const Array<IndexType>& local_indices, const bool is_sorted) const
+array<IndexType> index_set<IndexType>::map_local_to_global(
+    const array<IndexType>& local_indices, const bool is_sorted) const
 {
     auto exec = this->get_executor();
     auto global_indices =
-        gko::Array<IndexType>(exec, local_indices.get_num_elems());
+        gko::array<IndexType>(exec, local_indices.get_num_elems());
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(idx_set::make_local_to_global(
@@ -141,12 +141,12 @@ Array<IndexType> index_set<IndexType>::map_local_to_global(
 
 
 template <typename IndexType>
-Array<IndexType> index_set<IndexType>::map_global_to_local(
-    const Array<IndexType>& global_indices, const bool is_sorted) const
+array<IndexType> index_set<IndexType>::map_global_to_local(
+    const array<IndexType>& global_indices, const bool is_sorted) const
 {
     auto exec = this->get_executor();
     auto local_indices =
-        gko::Array<IndexType>(exec, global_indices.get_num_elems());
+        gko::array<IndexType>(exec, global_indices.get_num_elems());
 
     GKO_ASSERT(this->get_num_subsets() >= 1);
     exec->run(idx_set::make_global_to_local(

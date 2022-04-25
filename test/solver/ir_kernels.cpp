@@ -93,16 +93,16 @@ protected:
 
 TEST_F(Ir, InitializeIsEquivalentToRef)
 {
-    auto stop_status = gko::Array<gko::stopping_status>(ref, 43);
+    auto stop_status = gko::array<gko::stopping_status>(ref, 43);
     for (size_t i = 0; i < stop_status.get_num_elems(); ++i) {
         stop_status.get_data()[i].reset();
     }
-    auto d_stop_status = gko::Array<gko::stopping_status>(exec, stop_status);
+    auto d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
 
     gko::kernels::reference::ir::initialize(ref, &stop_status);
     gko::kernels::EXEC_NAMESPACE::ir::initialize(exec, &d_stop_status);
 
-    auto tmp = gko::Array<gko::stopping_status>(ref, d_stop_status);
+    auto tmp = gko::array<gko::stopping_status>(ref, d_stop_status);
     for (int i = 0; i < stop_status.get_num_elems(); ++i) {
         ASSERT_EQ(stop_status.get_const_data()[i], tmp.get_const_data()[i]);
     }

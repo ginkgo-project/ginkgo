@@ -108,7 +108,7 @@ public:
      */
     static std::unique_ptr<const RowGatherer> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<IndexType>&& row_idxs)
+        gko::detail::const_array_view<IndexType>&& row_idxs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -165,7 +165,7 @@ protected:
                     LinOp* out) const override;
 
 private:
-    gko::Array<index_type> row_idxs_;
+    gko::array<index_type> row_idxs_;
 };
 
 

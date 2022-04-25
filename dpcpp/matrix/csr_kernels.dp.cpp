@@ -1043,8 +1043,8 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
         ceildiv(total, spmv_block_size * items_per_thread);
     const dim3 grid(grid_num);
     const dim3 block(spmv_block_size);
-    Array<IndexType> row_out(exec, grid_num);
-    Array<ValueType> val_out(exec, grid_num);
+    array<IndexType> row_out(exec, grid_num);
+    array<ValueType> val_out(exec, grid_num);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         if (alpha == nullptr && beta == nullptr) {
@@ -1407,7 +1407,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>* row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1678,7 +1678,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
-    Array<val_heap_element<ValueType, IndexType>> heap_array(
+    array<val_heap_element<ValueType, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
@@ -1763,7 +1763,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // first sweep: count nnz for each row
 
-    Array<val_heap_element<ValueType, IndexType>> heap_array(
+    array<val_heap_element<ValueType, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
@@ -1980,8 +1980,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
-                      Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+                      array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
+                      array<ValueType>& values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
@@ -1999,7 +1999,7 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
     const auto cols = orig->get_const_col_idxs();
     const auto vals = orig->get_const_values();
 
-    Array<IndexType> counts{exec, num_cols + 1};
+    array<IndexType> counts{exec, num_cols + 1};
     auto tmp_counts = counts.get_data();
     auto out_row_ptrs = trans->get_row_ptrs();
     auto out_cols = trans->get_col_idxs();
@@ -2199,7 +2199,7 @@ void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
-    Array<bool> is_sorted_device_array{exec, {true}};
+    array<bool> is_sorted_device_array{exec, {true}};
     const auto num_rows = to_check->get_size()[0];
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto cols = to_check->get_const_col_idxs();

@@ -63,7 +63,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
-    using Arr = gko::Array<int>;
+    using Arr = gko::array<int>;
     using Vec = gko::matrix::Dense<>;
     using Mtx = gko::matrix::Csr<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
@@ -901,8 +901,8 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
-    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
+    auto drow_nnz = gko::array<int>(this->cuda, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
@@ -922,22 +922,22 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
     gko::kernels::reference::components::prefix_sum(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
-    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+    auto drow_nnz = gko::array<int>(this->cuda, row_nnz);
     auto smat1 =
         Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->ref, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+                    std::move(gko::array<ValueType>(this->ref, num_nnz)),
+                    std::move(gko::array<IndexType>(this->ref, num_nnz)),
                     std::move(row_nnz));
     auto sdmat1 =
         Mtx::create(this->cuda, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->cuda, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->cuda, num_nnz)),
+                    std::move(gko::array<ValueType>(this->cuda, num_nnz)),
+                    std::move(gko::array<IndexType>(this->cuda, num_nnz)),
                     std::move(drow_nnz));
 
 

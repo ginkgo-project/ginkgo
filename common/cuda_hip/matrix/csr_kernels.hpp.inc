@@ -819,15 +819,15 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      Array<IndexType>& block_row_ptr_array,
-                      Array<IndexType>& block_col_idx_array,
-                      Array<ValueType>& block_value_array)
+                      array<IndexType>& block_row_ptr_array,
+                      array<IndexType>& block_col_idx_array,
+                      array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = source->get_num_stored_elements();
-    Array<IndexType> in_row_idxs{exec, nnz};
-    Array<IndexType> in_col_idxs{exec, nnz};
-    Array<ValueType> in_values{exec, nnz};
+    array<IndexType> in_row_idxs{exec, nnz};
+    array<IndexType> in_col_idxs{exec, nnz};
+    array<ValueType> in_values{exec, nnz};
     exec->copy(nnz, source->get_const_col_idxs(), in_col_idxs.get_data());
     exec->copy(nnz, source->get_const_values(), in_values.get_data());
     components::convert_ptrs_to_idxs(exec, source->get_const_row_ptrs(),
@@ -873,8 +873,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = static_cast<size_type>(
         thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
     // allocate storage
-    Array<IndexType> block_row_idx_array{exec, num_blocks};
-    Array<size_type> block_ptr_array{exec, num_blocks};
+    array<IndexType> block_row_idx_array{exec, num_blocks};
+    array<size_type> block_ptr_array{exec, num_blocks};
     block_col_idx_array.resize_and_reset(num_blocks);
     block_value_array.resize_and_reset(num_blocks * bs * bs);
     auto row_idxs = block_row_idx_array.get_data();

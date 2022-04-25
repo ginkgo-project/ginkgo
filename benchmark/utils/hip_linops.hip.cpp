@@ -180,7 +180,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     hipsparseOperation_t trans_;
@@ -257,7 +257,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     hipsparseOperation_t trans_;
@@ -357,7 +357,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     hipsparseOperation_t trans_;
     hipsparseHybMat_t hyb_;

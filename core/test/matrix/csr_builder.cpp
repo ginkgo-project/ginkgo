@@ -90,8 +90,8 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     struct mock_strategy : public Mtx::strategy_type {
-        virtual void process(const gko::Array<index_type>&,
-                             gko::Array<index_type>*) override
+        virtual void process(const gko::array<index_type>&,
+                             gko::array<index_type>*) override
         {
             *was_called = true;
         }

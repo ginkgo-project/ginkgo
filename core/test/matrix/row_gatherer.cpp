@@ -63,7 +63,7 @@ protected:
     RowGatherer()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::RowGatherer<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 1}})),
+              exec, gko::dim<2>{4, 3}, gko::array<i_type>{exec, {1, 0, 2, 1}})),
           in(gko::initialize<Vec>(
               {{1.0, -1.0, 3.0}, {0.0, -2.0, 1.0}, {2.0, 0.0, -2.0}}, exec)),
           out(gko::initialize<OutVec>({{0.0, -1.0, 1.0},
@@ -158,7 +158,7 @@ TYPED_TEST(RowGatherer, CanBeCreatedFromExistingConstData)
 
     auto const_mtx = gko::matrix::RowGatherer<i_type>::create_const(
         this->exec, gko::dim<2>{4, 3},
-        gko::Array<i_type>::const_view(this->exec, 4, row_idxs));
+        gko::array<i_type>::const_view(this->exec, 4, row_idxs));
 
     this->assert_equal_to_original_mtx(const_mtx.get());
 }

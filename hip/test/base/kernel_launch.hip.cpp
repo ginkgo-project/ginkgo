@@ -116,9 +116,9 @@ protected:
     }
 
     std::shared_ptr<gko::HipExecutor> exec;
-    gko::Array<int> zero_array;
-    gko::Array<int> iota_array;
-    gko::Array<int> iota_transp_array;
+    gko::array<int> zero_array;
+    gko::array<int> iota_array;
+    gko::array<int> iota_transp_array;
     std::unique_ptr<gko::matrix::Dense<>> iota_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense2;
@@ -148,7 +148,7 @@ TEST_F(KernelLaunch, Runs1D)
 }
 
 
-void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::Array<int>& data)
+void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::array<int>& data)
 {
     gko::kernels::hip::run_kernel(
         exec,
@@ -233,7 +233,7 @@ TEST_F(KernelLaunch, Runs2D)
 }
 
 
-void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::Array<int>& data)
+void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::array<int>& data)
 {
     gko::kernels::hip::run_kernel(
         exec,
@@ -312,7 +312,7 @@ TEST_F(KernelLaunch, Runs2DDense)
 
 void run1d_reduction(std::shared_ptr<gko::HipExecutor> exec)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::hip::run_kernel_reduction(
         exec,
@@ -357,7 +357,7 @@ TEST_F(KernelLaunch, Reduction1D) { run1d_reduction(exec); }
 
 void run2d_reduction(std::shared_ptr<gko::HipExecutor> exec)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::hip::run_kernel_reduction(
         exec,
@@ -416,10 +416,10 @@ void run2d_row_reduction(std::shared_ptr<gko::HipExecutor> exec)
         for (auto num_cols : {0, 10, 100, 1000, 10000}) {
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
-            gko::Array<int64> host_ref{exec->get_master(),
+            gko::array<int64> host_ref{exec->get_master(),
                                        static_cast<size_type>(2 * num_rows)};
             std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
-            gko::Array<int64> output{exec, host_ref};
+            gko::array<int64> output{exec, host_ref};
             for (int64 i = 0; i < num_rows; i++) {
                 // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
                 // row i and storing it with stride 2
@@ -468,9 +468,9 @@ void run2d_col_reduction(std::shared_ptr<gko::HipExecutor> exec)
              {0, 1, 2, 3, 4, 5, 7, 8, 9, 16, 31, 32, 63, 127, 128, 129}) {
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
-            gko::Array<int64> host_ref{exec->get_master(),
+            gko::array<int64> host_ref{exec->get_master(),
                                        static_cast<size_type>(num_cols)};
-            gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
+            gko::array<int64> output{exec, static_cast<size_type>(num_cols)};
             for (int64 i = 0; i < num_cols; i++) {
                 // we are computing 2 * sum {j=0, j<row} (i+1)*(j+1) for each
                 // column i

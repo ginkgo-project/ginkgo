@@ -68,7 +68,7 @@ protected:
     using Mtx = gko::matrix::Dense<vtype>;
     using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
-    using Arr = gko::Array<itype>;
+    using Arr = gko::array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using Diagonal = gko::matrix::Diagonal<vtype>;
     using MixedComplexMtx =
@@ -652,9 +652,9 @@ TEST_F(Dense, ConvertsEmptyToSellp)
 TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
-    gko::Array<gko::size_type> nnz_per_row(ref);
+    gko::array<gko::size_type> nnz_per_row(ref);
     nnz_per_row.resize_and_reset(x->get_size()[0]);
-    gko::Array<gko::size_type> dnnz_per_row(omp);
+    gko::array<gko::size_type> dnnz_per_row(omp);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
     gko::kernels::reference::dense::count_nonzeros_per_row(

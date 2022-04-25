@@ -354,10 +354,10 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<size_type> slice_lengths_;
-    Array<size_type> slice_sets_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<size_type> slice_lengths_;
+    array<size_type> slice_sets_;
     size_type slice_size_;
     size_type stride_factor_;
 };

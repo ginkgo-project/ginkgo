@@ -84,7 +84,7 @@ template <int subwarp_size, typename ValueType, typename IndexType>
 void threshold_filter_approx(syn::value_list<int, subwarp_size>,
                              std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>* tmp,
+                             IndexType rank, array<ValueType>* tmp,
                              remove_complex<ValueType>* threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)
@@ -182,7 +182,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter_approx,
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>& tmp,
+                             IndexType rank, array<ValueType>& tmp,
                              remove_complex<ValueType>& threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)

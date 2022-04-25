@@ -204,7 +204,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->value_ =
-        Array<ValueType>(result->get_executor(), {one<ValueType>()});
+        array<ValueType>(result->get_executor(), {one<ValueType>()});
 }
 
 

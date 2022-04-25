@@ -116,7 +116,7 @@ protected:
         mtx_diag = weight->extract_diagonal();
     }
 
-    void create_mtx(Mtx* fine, WeightMtx* weight, gko::Array<index_type>* agg,
+    void create_mtx(Mtx* fine, WeightMtx* weight, gko::array<index_type>* agg,
                     Mtx* coarse)
     {
         auto agg_val = agg->get_data();
@@ -208,7 +208,7 @@ protected:
     std::shared_ptr<Mtx> coarse;
     std::shared_ptr<WeightMtx> weight;
     std::shared_ptr<gko::matrix::Diagonal<real_type>> mtx_diag;
-    gko::Array<index_type> agg;
+    gko::array<index_type> agg;
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;
     std::shared_ptr<Vec> restrict_ans;
@@ -299,8 +299,8 @@ TYPED_TEST(AmgxPgm, CanBeCleared)
 TYPED_TEST(AmgxPgm, MatchEdge)
 {
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> agg(this->exec, 5);
-    gko::Array<index_type> snb(this->exec, 5);
+    gko::array<index_type> agg(this->exec, 5);
+    gko::array<index_type> snb(this->exec, 5);
     auto agg_val = agg.get_data();
     auto snb_val = snb.get_data();
     for (int i = 0; i < 5; i++) {
@@ -327,7 +327,7 @@ TYPED_TEST(AmgxPgm, MatchEdge)
 TYPED_TEST(AmgxPgm, CountUnagg)
 {
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> agg(this->exec, 5);
+    gko::array<index_type> agg(this->exec, 5);
     auto agg_val = agg.get_data();
     index_type num_unagg = 0;
     agg_val[0] = 0;
@@ -345,7 +345,7 @@ TYPED_TEST(AmgxPgm, CountUnagg)
 TYPED_TEST(AmgxPgm, Renumber)
 {
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> agg(this->exec, 5);
+    gko::array<index_type> agg(this->exec, 5);
     auto agg_val = agg.get_data();
     index_type num_agg = 0;
     agg_val[0] = 0;
@@ -462,8 +462,8 @@ TYPED_TEST(AmgxPgm, AdvancedApply)
 TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
 {
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> strongest_neighbor(this->exec, 5);
-    gko::Array<index_type> agg(this->exec, 5);
+    gko::array<index_type> strongest_neighbor(this->exec, 5);
+    gko::array<index_type> agg(this->exec, 5);
     auto snb_vals = strongest_neighbor.get_data();
     auto agg_vals = agg.get_data();
     for (int i = 0; i < 5; i++) {
@@ -486,8 +486,8 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
 TYPED_TEST(AmgxPgm, AssignToExistAgg)
 {
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> agg(this->exec, 5);
-    gko::Array<index_type> intermediate_agg(this->exec, 0);
+    gko::array<index_type> agg(this->exec, 5);
+    gko::array<index_type> intermediate_agg(this->exec, 0);
     auto agg_vals = agg.get_data();
     // 0 - 2, 1 - 3
     agg_vals[0] = 0;
@@ -523,11 +523,11 @@ TYPED_TEST(AmgxPgm, GenerateMgLevel)
 
     auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
-    auto row_gather_view = gko::Array<index_type>::const_view(
+    auto row_gather_view = gko::array<index_type>::const_view(
         this->exec, row_gatherer->get_size()[0],
         row_gatherer->get_const_row_idxs());
     auto expected_row_gather =
-        gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
+        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
     GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);
@@ -570,11 +570,11 @@ TYPED_TEST(AmgxPgm, GenerateMgLevelOnUnsortedMatrix)
 
     auto coarse_fine = mglevel_sort->generate(matrix);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
-    auto row_gather_view = gko::Array<index_type>::const_view(
+    auto row_gather_view = gko::array<index_type>::const_view(
         this->exec, row_gatherer->get_size()[0],
         row_gatherer->get_const_row_idxs());
     auto expected_row_gather =
-        gko::Array<index_type>(this->exec, {0, 1, 0, 1, 0});
+        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
 
     GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
                         restrict_op, r<value_type>::value);

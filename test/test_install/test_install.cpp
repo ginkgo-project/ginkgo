@@ -203,8 +203,8 @@ int main()
     // core/base/array.hpp
     {
         using type1 = int;
-        using ArrayType = gko::Array<type1>;
-        ArrayType test;
+        using array_type = gko::array<type1>;
+        array_type test;
     }
 
     // core/base/combination.hpp

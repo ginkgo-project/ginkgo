@@ -69,7 +69,7 @@ protected:
     using Mtx = gko::matrix::Dense<vtype>;
     using MixedMtx = gko::matrix::Dense<gko::next_precision<vtype>>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
-    using Arr = gko::Array<itype>;
+    using Arr = gko::array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using MixedComplexMtx =
         gko::matrix::Dense<gko::next_precision<std::complex<vtype>>>;
@@ -578,9 +578,9 @@ TEST_F(Dense, ConvertsEmptyToSellp)
 TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
-    gko::Array<gko::size_type> nnz_per_row(ref);
+    gko::array<gko::size_type> nnz_per_row(ref);
     nnz_per_row.resize_and_reset(x->get_size()[0]);
-    gko::Array<gko::size_type> dnnz_per_row(dpcpp);
+    gko::array<gko::size_type> dnnz_per_row(dpcpp);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
     gko::kernels::reference::dense::count_nonzeros_per_row(
@@ -588,7 +588,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     gko::kernels::dpcpp::dense::count_nonzeros_per_row(dpcpp, dx.get(),
                                                        dnnz_per_row.get_data());
 
-    auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
+    auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
     for (gko::size_type i = 0; i < nnz_per_row.get_num_elems(); i++) {
         ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
     }

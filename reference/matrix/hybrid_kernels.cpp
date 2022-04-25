@@ -58,7 +58,7 @@ namespace hybrid {
 
 
 void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                          const Array<size_type>& row_nnz, size_type ell_lim,
+                          const array<size_type>& row_nnz, size_type ell_lim,
                           int64* coo_row_ptrs)
 {
     for (size_type row = 0; row < row_nnz.get_num_elems(); row++) {
@@ -73,7 +73,7 @@ void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
 
 
 void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                     const Array<int64>& row_ptrs, size_type* row_nnzs)
+                     const array<int64>& row_ptrs, size_type* row_nnzs)
 {
     for (size_type i = 0; i < row_ptrs.get_num_elems() - 1; i++) {
         row_nnzs[i] =

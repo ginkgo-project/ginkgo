@@ -191,7 +191,7 @@ TEST_F(DpcppExecutor, CopiesDataToCPU)
 {
     int orig[] = {3, 8};
     auto* copy = dpcpp->alloc<int>(2);
-    gko::Array<bool> is_set(ref, 1);
+    gko::array<bool> is_set(ref, 1);
 
     dpcpp->copy_from(ref.get(), 2, orig, copy);
 
@@ -236,7 +236,7 @@ TEST_F(DpcppExecutor, CopiesDataFromDpcppToDpcpp)
     }
 
     int copy[2];
-    gko::Array<bool> is_set(ref, 1);
+    gko::array<bool> is_set(ref, 1);
     auto orig = dpcpp->alloc<int>(2);
     dpcpp->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.single_task([=]() { init_data(orig); });
@@ -275,8 +275,8 @@ TEST_F(DpcppExecutor, FreeAfterKernel)
     auto dpcpp =
         gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create());
     {
-        gko::Array<float> x(dpcpp, length);
-        gko::Array<float> y(dpcpp, length);
+        gko::array<float> x(dpcpp, length);
+        gko::array<float> y(dpcpp, length);
         auto x_val = x.get_data();
         auto y_val = y.get_data();
         dpcpp->get_queue()->submit([&](sycl::handler& cgh) {

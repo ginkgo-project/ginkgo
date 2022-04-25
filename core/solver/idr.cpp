@@ -100,7 +100,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     auto exec = this->get_executor();
 
-    Array<char> reduction_tmp{exec};
+    array<char> reduction_tmp{exec};
 
     auto one_op =
         initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
@@ -136,7 +136,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     auto alpha = Vector::create(exec, gko::dim<2>{1, nrhs});
 
     bool one_changed{};
-    Array<stopping_status> stop_status(exec, nrhs);
+    array<stopping_status> stop_status(exec, nrhs);
 
     // The dense matrix containing the randomly generated subspace vectors.
     // Stored in column major order and complex conjugated. So, if the

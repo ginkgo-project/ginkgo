@@ -72,7 +72,7 @@ void cholesky_symbolic_count(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz, Array<IndexType>& tmp_storage)
+    IndexType* row_nnz, array<IndexType>& tmp_storage)
 {
     const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     if (num_rows == 0) {
@@ -97,13 +97,13 @@ void cholesky_symbolic_count(
     {
         const auto handle = exec->get_cusparse_handle();
         auto descr = cusparse::create_mat_descr();
-        Array<IndexType> permutation_array(exec, mtx_nnz);
+        array<IndexType> permutation_array(exec, mtx_nnz);
         auto permutation = permutation_array.get_data();
         components::fill_seq_array(exec, permutation, mtx_nnz);
         size_type buffer_size{};
         cusparse::csrsort_buffer_size(handle, num_rows, num_rows, mtx_nnz,
                                       row_ptrs, postorder_cols, buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
+        array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
         cusparse::csrsort(handle, num_rows, num_rows, mtx_nnz, descr, row_ptrs,
                           postorder_cols, permutation, buffer);
@@ -130,7 +130,7 @@ void cholesky_symbolic_factorize(
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
     matrix::Csr<ValueType, IndexType>* l_factor,
-    const Array<IndexType>& tmp_storage)
+    const array<IndexType>& tmp_storage)
 {
     const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     if (num_rows == 0) {

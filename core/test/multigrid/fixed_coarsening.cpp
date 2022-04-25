@@ -62,7 +62,7 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           fixed_coarsening_factory(
               MgLevel::build()
-                  .with_coarse_rows(gko::Array<index_type>(exec, {2, 3}))
+                  .with_coarse_rows(gko::array<index_type>(exec, {2, 3}))
                   .with_skip_sorting(true)
                   .on(exec))
     {}
@@ -96,7 +96,7 @@ TYPED_TEST(FixedCoarseningFactory, SetCoarseRows)
     using T = typename TestFixture::index_type;
     GKO_ASSERT_ARRAY_EQ(
         this->fixed_coarsening_factory->get_parameters().coarse_rows,
-        gko::Array<T>(this->exec, {2, 3}));
+        gko::array<T>(this->exec, {2, 3}));
 }
 
 

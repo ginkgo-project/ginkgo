@@ -117,7 +117,7 @@ protected:
         tht = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, nrhs);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, nrhs);
         for (size_t i = 0; i < nrhs; ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -137,7 +137,7 @@ protected:
         d_omega = gko::clone(cuda, omega);
         d_tht = gko::clone(cuda, tht);
         d_residual_norm = gko::clone(cuda, residual_norm);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             cuda, *stop_status);
     }
 
@@ -167,7 +167,7 @@ protected:
     std::unique_ptr<Mtx> omega;
     std::unique_ptr<Mtx> tht;
     std::unique_ptr<Mtx> residual_norm;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -183,7 +183,7 @@ protected:
     std::unique_ptr<Mtx> d_omega;
     std::unique_ptr<Mtx> d_tht;
     std::unique_ptr<Mtx> d_residual_norm;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 

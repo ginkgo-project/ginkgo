@@ -120,7 +120,7 @@ protected:
     template <typename T>
     bool test_real_is_finite_kernel()
     {
-        gko::Array<bool> result(cuda, 1);
+        gko::array<bool> result(cuda, 1);
         test_real_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
@@ -129,7 +129,7 @@ protected:
     template <typename T>
     bool test_complex_is_finite_kernel()
     {
-        gko::Array<bool> result(cuda, 1);
+        gko::array<bool> result(cuda, 1);
         test_complex_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();

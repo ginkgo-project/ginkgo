@@ -337,9 +337,9 @@ public:
      */
     static std::unique_ptr<const Fbcsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -428,9 +428,9 @@ protected:
 
 private:
     int bs_;                      ///< Block size
-    Array<value_type> values_;    ///< Non-zero values of all blocks
-    Array<index_type> col_idxs_;  ///< Block-column indices of all blocks
-    Array<index_type> row_ptrs_;  ///< Block-row pointers into @ref col_idxs_
+    array<value_type> values_;    ///< Non-zero values of all blocks
+    array<index_type> col_idxs_;  ///< Block-column indices of all blocks
+    array<index_type> row_ptrs_;  ///< Block-row pointers into @ref col_idxs_
 };
 
 

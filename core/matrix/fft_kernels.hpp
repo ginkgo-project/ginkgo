@@ -47,20 +47,20 @@ namespace kernels {
     void fft(std::shared_ptr<const DefaultExecutor> exec,             \
              const matrix::Dense<std::complex<ValueType>>* b,         \
              matrix::Dense<std::complex<ValueType>>* x, bool inverse, \
-             Array<char>& buffer)
+             array<char>& buffer)
 
 #define GKO_DECLARE_FFT2_KERNEL(ValueType)                                \
     void fft2(std::shared_ptr<const DefaultExecutor> exec,                \
               const matrix::Dense<std::complex<ValueType>>* b,            \
               matrix::Dense<std::complex<ValueType>>* x, size_type size1, \
-              size_type size2, bool inverse, Array<char>& buffer)
+              size_type size2, bool inverse, array<char>& buffer)
 
 #define GKO_DECLARE_FFT3_KERNEL(ValueType)                                \
     void fft3(std::shared_ptr<const DefaultExecutor> exec,                \
               const matrix::Dense<std::complex<ValueType>>* b,            \
               matrix::Dense<std::complex<ValueType>>* x, size_type size1, \
               size_type size2, size_type size3, bool inverse,             \
-              Array<char>& buffer)
+              array<char>& buffer)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES    \

@@ -107,7 +107,7 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     auto exec = this->get_executor();
 
-    Array<char> reduction_tmp{exec};
+    array<char> reduction_tmp{exec};
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -125,7 +125,7 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto rho_t = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
+    array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator

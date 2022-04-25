@@ -52,7 +52,7 @@ namespace set_all_statuses {
 
 void set_all_statuses(std::shared_ptr<const DpcppExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status>* stop_status)
+                      array<stopping_status>* stop_status)
 {
     auto size = stop_status->get_num_elems();
     stopping_status* __restrict__ stop_status_ptr = stop_status->get_data();

@@ -61,9 +61,9 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        vals = gko::Array<value_type>{ref, total_size};
-        dvals = gko::Array<value_type>{exec, total_size};
-        seqs = gko::Array<value_type>{ref, total_size};
+        vals = gko::array<value_type>{ref, total_size};
+        dvals = gko::array<value_type>{exec, total_size};
+        seqs = gko::array<value_type>{ref, total_size};
         std::fill_n(vals.get_data(), total_size, T(1523));
         std::iota(seqs.get_data(), seqs.get_data() + total_size, 0);
     }
@@ -78,9 +78,9 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
-    gko::Array<value_type> vals;
-    gko::Array<value_type> dvals;
-    gko::Array<value_type> seqs;
+    gko::array<value_type> vals;
+    gko::array<value_type> dvals;
+    gko::array<value_type> seqs;
 };
 
 TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes,

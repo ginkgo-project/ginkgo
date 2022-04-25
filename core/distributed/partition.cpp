@@ -57,7 +57,7 @@ GKO_REGISTER_OPERATION(has_ordered_parts, partition::has_ordered_parts);
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
-    std::shared_ptr<const Executor> exec, const Array<comm_index_type>& mapping,
+    std::shared_ptr<const Executor> exec, const array<comm_index_type>& mapping,
     comm_index_type num_parts)
 {
     auto local_mapping = make_temporary_clone(exec, &mapping);
@@ -75,7 +75,7 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
 template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
-    std::shared_ptr<const Executor> exec, const Array<GlobalIndexType>& ranges)
+    std::shared_ptr<const Executor> exec, const array<GlobalIndexType>& ranges)
 {
     auto local_ranges = make_temporary_clone(exec, &ranges);
     auto result = Partition::create(
@@ -95,7 +95,7 @@ Partition<LocalIndexType, GlobalIndexType>::build_from_global_size_uniform(
     std::shared_ptr<const Executor> exec, comm_index_type num_parts,
     GlobalIndexType global_size)
 {
-    Array<GlobalIndexType> ranges(exec, num_parts + 1);
+    array<GlobalIndexType> ranges(exec, num_parts + 1);
     exec->run(partition::make_build_ranges_from_global_size(
         num_parts, global_size, ranges));
     return Partition::build_from_contiguous(exec, ranges);

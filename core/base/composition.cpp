@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 template <typename ValueType>
 std::unique_ptr<LinOp> apply_inner_operators(
     const std::vector<std::shared_ptr<const LinOp>>& operators,
-    Array<ValueType>& storage, const LinOp* rhs)
+    array<ValueType>& storage, const LinOp* rhs)
 {
     using Dense = matrix::Dense<ValueType>;
     // determine amount of necessary storage:

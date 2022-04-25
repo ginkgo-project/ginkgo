@@ -163,8 +163,8 @@ TYPED_TEST(Ell, CanBeCreatedFromExistingConstData)
 
     auto mtx = gko::matrix::Ell<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::const_view(this->exec, 8, values),
-        gko::Array<index_type>::const_view(this->exec, 8, col_idxs), 2, 4);
+        gko::array<value_type>::const_view(this->exec, 8, values),
+        gko::array<index_type>::const_view(this->exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);

@@ -58,7 +58,7 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<T>& a,
+    static void assert_equal_to_original_x(gko::array<T>& a,
                                            bool check_zero = true)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
@@ -69,7 +69,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
+    gko::array<T> x;
 };
 
 TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
@@ -77,7 +77,7 @@ TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
 
 TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     ASSERT_EQ(a.get_executor(), nullptr);
     ASSERT_EQ(a.get_num_elems(), 0);
@@ -86,7 +86,7 @@ TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)
 
 TYPED_TEST(Array, CanBeEmpty)
 {
-    gko::Array<TypeParam> a(this->exec);
+    gko::array<TypeParam> a(this->exec);
 
     ASSERT_EQ(a.get_num_elems(), 0);
 }
@@ -94,7 +94,7 @@ TYPED_TEST(Array, CanBeEmpty)
 
 TYPED_TEST(Array, ReturnsNullWhenEmpty)
 {
-    gko::Array<TypeParam> a(this->exec);
+    gko::array<TypeParam> a(this->exec);
 
     EXPECT_EQ(a.get_const_data(), nullptr);
     ASSERT_EQ(a.get_data(), nullptr);
@@ -103,7 +103,7 @@ TYPED_TEST(Array, ReturnsNullWhenEmpty)
 
 TYPED_TEST(Array, CanBeCreatedFromExistingData)
 {
-    gko::Array<TypeParam> a{this->exec, 3, new TypeParam[3],
+    gko::array<TypeParam> a{this->exec, 3, new TypeParam[3],
                             std::default_delete<TypeParam[]>{}};
 
     EXPECT_EQ(a.get_num_elems(), 3);
@@ -112,7 +112,7 @@ TYPED_TEST(Array, CanBeCreatedFromExistingData)
 
 TYPED_TEST(Array, CanBeCreatedFromDataOnExecutor)
 {
-    gko::Array<TypeParam> a{this->exec, 3,
+    gko::array<TypeParam> a{this->exec, 3,
                             this->exec->template alloc<TypeParam>(3)};
 
     EXPECT_EQ(a.get_num_elems(), 3);
@@ -124,7 +124,7 @@ TYPED_TEST(Array, CanBeCreatedFromRange)
     using std::begin;
     auto data = {1, 2, 3};
 
-    gko::Array<TypeParam> a{this->exec, begin(data), end(data)};
+    gko::array<TypeParam> a{this->exec, begin(data), end(data)};
 
     EXPECT_EQ(a.get_const_data()[0], TypeParam{1});
     EXPECT_EQ(a.get_const_data()[1], TypeParam{2});
@@ -134,7 +134,7 @@ TYPED_TEST(Array, CanBeCreatedFromRange)
 
 TYPED_TEST(Array, CanBeCreatedFromInitializerList)
 {
-    gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
+    gko::array<TypeParam> a{this->exec, {1, 2, 3}};
 
     EXPECT_EQ(a.get_const_data()[0], TypeParam{1});
     EXPECT_EQ(a.get_const_data()[1], TypeParam{2});
@@ -167,7 +167,7 @@ TYPED_TEST(Array, KnowsItsExecutor)
 
 TYPED_TEST(Array, CanBeCopyConstructed)
 {
-    gko::Array<TypeParam> a(this->x);
+    gko::array<TypeParam> a(this->x);
     this->x.get_data()[0] = 7;
 
     this->assert_equal_to_original_x(a);
@@ -176,7 +176,7 @@ TYPED_TEST(Array, CanBeCopyConstructed)
 
 TYPED_TEST(Array, CanBeMoveConstructed)
 {
-    gko::Array<TypeParam> a(std::move(this->x));
+    gko::array<TypeParam> a(std::move(this->x));
 
     this->assert_equal_to_original_x(a);
 }
@@ -184,7 +184,7 @@ TYPED_TEST(Array, CanBeMoveConstructed)
 
 TYPED_TEST(Array, CanBeCopyConstructedToADifferentExecutor)
 {
-    gko::Array<TypeParam> a{this->exec, this->x};
+    gko::array<TypeParam> a{this->exec, this->x};
 
     this->assert_equal_to_original_x(a);
 }
@@ -192,7 +192,7 @@ TYPED_TEST(Array, CanBeCopyConstructedToADifferentExecutor)
 
 TYPED_TEST(Array, CanBeMoveConstructedToADifferentExecutor)
 {
-    gko::Array<TypeParam> a{this->exec, std::move(this->x)};
+    gko::array<TypeParam> a{this->exec, std::move(this->x)};
 
     this->assert_equal_to_original_x(a);
 }
@@ -201,7 +201,7 @@ TYPED_TEST(Array, CanBeMoveConstructedToADifferentExecutor)
 TYPED_TEST(Array, CanBeCopied)
 {
     auto omp = gko::OmpExecutor::create();
-    gko::Array<TypeParam> a(omp, 3);
+    gko::array<TypeParam> a(omp, 3);
 
     a = this->x;
     this->x.get_data()[0] = 7;
@@ -212,7 +212,7 @@ TYPED_TEST(Array, CanBeCopied)
 
 TYPED_TEST(Array, CanBeCopiedToExecutorlessArray)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     a = this->x;
 
@@ -223,7 +223,7 @@ TYPED_TEST(Array, CanBeCopiedToExecutorlessArray)
 
 TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     this->x = a;
 
@@ -235,7 +235,7 @@ TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
 TYPED_TEST(Array, CanBeMoved)
 {
     auto omp = gko::OmpExecutor::create();
-    gko::Array<TypeParam> a(omp, 3);
+    gko::array<TypeParam> a(omp, 3);
 
     a = std::move(this->x);
 
@@ -245,7 +245,7 @@ TYPED_TEST(Array, CanBeMoved)
 
 TYPED_TEST(Array, CanBeMovedToExecutorlessArray)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     a = std::move(this->x);
 
@@ -256,7 +256,7 @@ TYPED_TEST(Array, CanBeMovedToExecutorlessArray)
 
 TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     this->x = std::move(a);
 
@@ -384,7 +384,7 @@ public:
 TYPED_TEST(Array, CustomDeleterCannotBeResized)
 {
     TypeParam data[] = {1, 2, 3};
-    auto view_custom_deleter = gko::Array<TypeParam>(
+    auto view_custom_deleter = gko::array<TypeParam>(
         this->exec, 3, data, my_null_deleter<TypeParam[]>{});
 
     EXPECT_THROW(view_custom_deleter.resize_and_reset(1), gko::NotSupported);
@@ -395,7 +395,7 @@ TYPED_TEST(Array, CustomDeleterCannotBeResized)
 
 TYPED_TEST(Array, CanBeAssignedAnExecutor)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     a.set_executor(this->exec);
 
@@ -430,8 +430,8 @@ TYPED_TEST(Array, ViewModifiesOriginalData)
 
 TYPED_TEST(Array, CopyArrayToArray)
 {
-    gko::Array<TypeParam> array(this->exec, {1, 2, 3});
-    gko::Array<TypeParam> array2(this->exec, {5, 4, 2, 1});
+    gko::array<TypeParam> array(this->exec, {1, 2, 3});
+    gko::array<TypeParam> array2(this->exec, {5, 4, 2, 1});
 
     array = array2;
 
@@ -471,7 +471,7 @@ TYPED_TEST(Array, CopyViewToArray)
 {
     TypeParam data[] = {1, 2, 3, 4};
     auto view = gko::make_array_view(this->exec, 4, data);
-    gko::Array<TypeParam> array(this->exec, {5, 4, 2});
+    gko::array<TypeParam> array(this->exec, {5, 4, 2});
 
     array = view;
     view.get_data()[0] = 2;
@@ -489,8 +489,8 @@ TYPED_TEST(Array, CopyArrayToView)
 {
     TypeParam data[] = {1, 2, 3};
     auto view = gko::make_array_view(this->exec, 3, data);
-    gko::Array<TypeParam> array_size2(this->exec, {5, 4});
-    gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
+    gko::array<TypeParam> array_size2(this->exec, {5, 4});
+    gko::array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
 
     view = array_size2;
 
@@ -505,8 +505,8 @@ TYPED_TEST(Array, CopyArrayToView)
 
 TYPED_TEST(Array, MoveArrayToArray)
 {
-    gko::Array<TypeParam> array(this->exec, {1, 2, 3});
-    gko::Array<TypeParam> array2(this->exec, {5, 4, 2, 1});
+    gko::array<TypeParam> array(this->exec, {1, 2, 3});
+    gko::array<TypeParam> array2(this->exec, {5, 4, 2, 1});
     auto data2 = array2.get_data();
 
     array = std::move(array2);
@@ -549,7 +549,7 @@ TYPED_TEST(Array, MoveViewToView)
 TYPED_TEST(Array, MoveViewToArray)
 {
     TypeParam data[] = {1, 2, 3, 4};
-    gko::Array<TypeParam> array(this->exec, {5, 4, 2});
+    gko::array<TypeParam> array(this->exec, {5, 4, 2});
     auto view = gko::make_array_view(this->exec, 4, data);
 
     array = std::move(view);
@@ -573,8 +573,8 @@ TYPED_TEST(Array, MoveArrayToView)
 {
     TypeParam data[] = {1, 2, 3};
     auto view = gko::make_array_view(this->exec, 3, data);
-    gko::Array<TypeParam> array_size2(this->exec, {5, 4});
-    gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
+    gko::array<TypeParam> array_size2(this->exec, {5, 4});
+    gko::array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
     auto size2_ptr = array_size2.get_data();
     auto size4_ptr = array_size4.get_data();
 

@@ -95,7 +95,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
         stop_status.get_data()[0].reset();
 
         ASSERT_FALSE(
@@ -123,7 +123,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
         stop_status.get_data()[0].reset();
 
         ASSERT_FALSE(
@@ -151,7 +151,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
         stop_status.get_data()[0].reset();
 
         ASSERT_FALSE(
@@ -200,7 +200,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
         gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
 
@@ -230,7 +230,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
             gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
 
@@ -260,7 +260,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
             gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+        gko::array<gko::stopping_status> stop_status(this->exec_, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
 
@@ -322,7 +322,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -362,7 +362,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
@@ -427,7 +427,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -470,7 +470,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
@@ -535,7 +535,7 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -577,7 +577,7 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
@@ -640,7 +640,7 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 1);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -680,7 +680,7 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
+    gko::array<gko::stopping_status> stop_status(this->exec_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 

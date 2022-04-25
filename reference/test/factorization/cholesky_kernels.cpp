@@ -63,7 +63,7 @@ protected:
     Cholesky() : ref(gko::ReferenceExecutor::create()), tmp{ref} {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    gko::Array<index_type> tmp;
+    gko::array<index_type> tmp;
 };
 
 TYPED_TEST_SUITE(Cholesky, gko::test::ValueIndexTypes,
@@ -87,7 +87,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountExample)
          {0, 1, 0, 1, 1, 0, 0, 1, 0, 1}},
         this->ref);
     auto forest = gko::factorization::compute_elim_forest(mtx.get());
-    gko::Array<index_type> row_nnz{this->ref, 10};
+    gko::array<index_type> row_nnz{this->ref, 10};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
         this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
@@ -153,7 +153,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountSeparable)
          {0, 0, 0, 0, 1, 0, 1, 0, 1, 1}},
         this->ref);
     auto forest = gko::factorization::compute_elim_forest(mtx.get());
-    gko::Array<index_type> row_nnz{this->ref, 10};
+    gko::array<index_type> row_nnz{this->ref, 10};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
         this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
@@ -209,7 +209,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1)
     std::ifstream stream{gko::matrices::location_ani1_mtx};
     auto mtx = gko::read<matrix_type>(stream, this->ref);
     auto forest = gko::factorization::compute_elim_forest(mtx.get());
-    gko::Array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
+    gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
         this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
@@ -252,7 +252,7 @@ TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
     std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
     auto mtx = gko::read<matrix_type>(stream, this->ref);
     auto forest = gko::factorization::compute_elim_forest(mtx.get());
-    gko::Array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
+    gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
 
     gko::kernels::reference::cholesky::cholesky_symbolic_count(
         this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);

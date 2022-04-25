@@ -75,7 +75,7 @@ protected:
     using Mtx = gko::matrix::Dense<vtype>;
     using MixedMtx = gko::matrix::Dense<mixed_type>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<vtype>>;
-    using Arr = gko::Array<itype>;
+    using Arr = gko::array<itype>;
     using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
     using Diagonal = gko::matrix::Diagonal<vtype>;
     using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
@@ -654,7 +654,7 @@ TEST_F(
 TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
 {
     auto mat = gen_mtx<Mtx>(532, 532);
-    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
+    gko::array<Mtx::value_type> diag_values(this->ref, 532);
     gko::kernels::reference::components::fill_array(
         this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
     auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
@@ -674,7 +674,7 @@ TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
 TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
 {
     auto mat = gen_mtx<Mtx>(532, 532);
-    gko::Array<Mtx::value_type> diag_values(this->ref, 532);
+    gko::array<Mtx::value_type> diag_values(this->ref, 532);
     gko::kernels::reference::components::fill_array(
         this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
     auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
@@ -1021,7 +1021,7 @@ TEST_F(Dense, ComputeDotWithPreallocatedTmpIsEquivalentToRef)
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
     auto ddot = Mtx::create(ref, dot_size);
-    gko::Array<char> tmp{exec, 12345};
+    gko::array<char> tmp{exec, 12345};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_dot(y.get(), dot_expected.get());
@@ -1038,7 +1038,7 @@ TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
     auto ddot = Mtx::create(ref, dot_size);
-    gko::Array<char> tmp{exec};
+    gko::array<char> tmp{exec};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_dot(y.get(), dot_expected.get());
@@ -1071,7 +1071,7 @@ TEST_F(Dense, ComputeConjDotWithPreallocatedTmpIsEquivalentToRef)
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
     auto ddot = Mtx::create(ref, dot_size);
-    gko::Array<char> tmp{exec, 12345};
+    gko::array<char> tmp{exec, 12345};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_conj_dot(y.get(), dot_expected.get());
@@ -1088,7 +1088,7 @@ TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
     auto dot_size = gko::dim<2>{1, x->get_size()[1]};
     auto dot_expected = Mtx::create(ref, dot_size);
     auto ddot = Mtx::create(ref, dot_size);
-    gko::Array<char> tmp{ref};
+    gko::array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_conj_dot(y.get(), dot_expected.get());
@@ -1121,7 +1121,7 @@ TEST_F(Dense, ComputeNorm1WithPreallocatedTmpIsEquivalentToRef)
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
     auto dnorm = NormVector::create(ref, norm_size);
-    gko::Array<char> tmp{exec, 12345};
+    gko::array<char> tmp{exec, 12345};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_norm1(norm_expected.get());
@@ -1138,7 +1138,7 @@ TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
     auto dnorm = NormVector::create(ref, norm_size);
-    gko::Array<char> tmp{ref};
+    gko::array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_norm1(norm_expected.get());
@@ -1171,7 +1171,7 @@ TEST_F(Dense, ComputeNorm2WithPreallocatedTmpIsEquivalentToRef)
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
     auto dnorm = NormVector::create(ref, norm_size);
-    gko::Array<char> tmp{ref};
+    gko::array<char> tmp{ref};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_norm1(norm_expected.get());
@@ -1188,7 +1188,7 @@ TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
     auto norm_expected = NormVector::create(ref, norm_size);
     auto dnorm = NormVector::create(ref, norm_size);
-    gko::Array<char> tmp{exec, 12345};
+    gko::array<char> tmp{exec, 12345};
 
     // all parameters are on ref to check cross-executor calls
     x->compute_norm1(norm_expected.get());

@@ -94,10 +94,10 @@ public:
 
         /**
          * Calls the parent Criterion object's check method
-         * @copydoc Criterion::check(uint8, bool, Array<stopping_status>, bool)
+         * @copydoc Criterion::check(uint8, bool, array<stopping_status>, bool)
          */
         bool check(uint8 stopping_id, bool set_finalized,
-                   Array<stopping_status>* stop_status, bool* one_changed) const
+                   array<stopping_status>* stop_status, bool* one_changed) const
         {
             auto converged = parent_->check(stopping_id, set_finalized,
                                             stop_status, one_changed, *this);
@@ -150,7 +150,7 @@ public:
      * @returns whether convergence was completely reached
      */
     bool check(uint8 stopping_id, bool set_finalized,
-               Array<stopping_status>* stop_status, bool* one_changed,
+               array<stopping_status>* stop_status, bool* one_changed,
                const Updater& updater)
     {
         this->template log<log::Logger::criterion_check_started>(
@@ -170,7 +170,7 @@ public:
 protected:
     /**
      * Implementers of Criterion should override this function instead
-     * of check(uint8, bool, Array<stopping_status>*, bool*, const Updater&).
+     * of check(uint8, bool, array<stopping_status>*, bool*, const Updater&).
      *
      * This checks whether convergence was reached for a certain criterion.
      * The actual implantation of the criterion goes here.
@@ -185,7 +185,7 @@ protected:
      * @returns whether convergence was completely reached
      */
     virtual bool check_impl(uint8 stopping_id, bool set_finalized,
-                            Array<stopping_status>* stop_status,
+                            array<stopping_status>* stop_status,
                             bool* one_changed, const Updater& updater) = 0;
 
     /**
@@ -199,7 +199,7 @@ protected:
      * @param stop_status  status of the stopping criterion
      */
     void set_all_statuses(uint8 stopping_id, bool set_finalized,
-                          Array<stopping_status>* stop_status);
+                          array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<Criterion>(exec)

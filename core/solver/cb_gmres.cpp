@@ -260,22 +260,22 @@ void CbGmres<ValueType>::apply_dense_impl(
         //                          (ONLY when using a scalar accessor)
         auto arnoldi_norm =
             VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
-        Array<size_type> final_iter_nums(this->get_executor(),
+        array<size_type> final_iter_nums(this->get_executor(),
                                          dense_b->get_size()[1]);
         auto y =
             Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
 
         bool one_changed{};
-        Array<stopping_status> stop_status(this->get_executor(),
+        array<stopping_status> stop_status(this->get_executor(),
                                            dense_b->get_size()[1]);
         // reorth_status and num_reorth are both helper variables for GPU
         // implementations at the moment.
         // num_reorth := Number of vectors which require a re-orthogonalization
         // reorth_status := stopping status for the re-orthogonalization,
         //                  marking which RHS requires one, and which does not
-        Array<stopping_status> reorth_status(this->get_executor(),
+        array<stopping_status> reorth_status(this->get_executor(),
                                              dense_b->get_size()[1]);
-        Array<size_type> num_reorth(this->get_executor(), 1);
+        array<size_type> num_reorth(this->get_executor(), 1);
 
         // Initialization
         exec->run(cb_gmres::make_initialize_1(
@@ -310,11 +310,11 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto after_preconditioner =
             matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
-        Array<bool> stop_encountered_rhs(exec->get_master(),
+        array<bool> stop_encountered_rhs(exec->get_master(),
                                          dense_b->get_size()[1]);
-        Array<bool> fully_converged_rhs(exec->get_master(),
+        array<bool> fully_converged_rhs(exec->get_master(),
                                         dense_b->get_size()[1]);
-        Array<stopping_status> host_stop_status(
+        array<stopping_status> host_stop_status(
             this->get_executor()->get_master(), stop_status);
         for (size_type i = 0; i < stop_encountered_rhs.get_num_elems(); ++i) {
             stop_encountered_rhs.get_data()[i] = false;

@@ -246,7 +246,7 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result, Array<char>& tmp)
+                 matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     run_kernel_col_reduction_cached(
         exec,
@@ -264,7 +264,7 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result, Array<char>& tmp)
+                      matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     run_kernel_col_reduction_cached(
         exec,
@@ -282,7 +282,7 @@ template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
                    matrix::Dense<remove_complex<ValueType>>* result,
-                   Array<char>& tmp)
+                   array<char>& tmp)
 {
     run_kernel_col_reduction_cached(
         exec,
@@ -298,7 +298,7 @@ template <typename ValueType>
 void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
                    matrix::Dense<remove_complex<ValueType>>* result,
-                   Array<char>& tmp)
+                   array<char>& tmp)
 {
     run_kernel_col_reduction_cached(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
@@ -314,7 +314,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              size_type& result)
 {
-    Array<size_type> partial{exec, source->get_size()[0] + 1};
+    array<size_type> partial{exec, source->get_size()[0] + 1};
     count_nonzeros_per_row(exec, source, partial.get_data());
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto partial) { return partial[i]; },
@@ -336,7 +336,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                         size_type* slice_sets, size_type* slice_lengths)
 {
     const auto num_rows = source->get_size()[0];
-    Array<size_type> row_nnz{exec, num_rows};
+    array<size_type> row_nnz{exec, num_rows};
     count_nonzeros_per_row(exec, source, row_nnz.get_data());
     const auto num_slices =
         static_cast<size_type>(ceildiv(num_rows, slice_size));
@@ -382,7 +382,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<IndexType>* permutation_indices,
+                  const array<IndexType>* permutation_indices,
                   const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
@@ -400,7 +400,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* permutation_indices,
+                      const array<IndexType>* permutation_indices,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
@@ -418,7 +418,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<IndexType>* row_idxs,
+                const array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
@@ -438,7 +438,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_idxs,
+                         const array<IndexType>* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -464,7 +464,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<IndexType>* permutation_indices,
+                    const array<IndexType>* permutation_indices,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* column_permuted)
 {
@@ -482,7 +482,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType>* permutation_indices,
+                         const array<IndexType>* permutation_indices,
                          const matrix::Dense<ValueType>* orig,
                          matrix::Dense<ValueType>* row_permuted)
 {
@@ -500,7 +500,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const Array<IndexType>* permutation_indices,
+                            const array<IndexType>* permutation_indices,
                             const matrix::Dense<ValueType>* orig,
                             matrix::Dense<ValueType>* column_permuted)
 {

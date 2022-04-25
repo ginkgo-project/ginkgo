@@ -176,7 +176,7 @@ private:
 
     IndexType& parent(IndexType x) { return parents_.get_data()[x]; }
 
-    Array<IndexType> parents_;
+    array<IndexType> parents_;
 };
 
 

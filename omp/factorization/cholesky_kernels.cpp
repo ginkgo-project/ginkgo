@@ -59,7 +59,7 @@ void cholesky_symbolic_count(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    IndexType* row_nnz, Array<IndexType>& tmp_storage)
+    IndexType* row_nnz, array<IndexType>& tmp_storage)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -112,7 +112,7 @@ void cholesky_symbolic_factorize(
     const matrix::Csr<ValueType, IndexType>* mtx,
     const factorization::elimination_forest<IndexType>& forest,
     matrix::Csr<ValueType, IndexType>* l_factor,
-    const Array<IndexType>& tmp_storage)
+    const array<IndexType>& tmp_storage)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();

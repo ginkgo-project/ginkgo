@@ -102,7 +102,7 @@ protected:
         for (int i = 0; i < num_elements; ++i) {
             ref_shared.get_data()[i] = dist(rng);
         }
-        ddata = gko::Array<gko::int32>{cuda, ref_shared};
+        ddata = gko::array<gko::int32>{cuda, ref_shared};
         ref_warp = ref_shared;
         std::sort(ref_shared.get_data(), ref_shared.get_data() + num_elements);
         std::sort(ref_warp.get_data(),
@@ -112,9 +112,9 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     std::default_random_engine rng;
-    gko::Array<gko::int32> ref_shared;
-    gko::Array<gko::int32> ref_warp;
-    gko::Array<gko::int32> ddata;
+    gko::array<gko::int32> ref_shared;
+    gko::array<gko::int32> ref_warp;
+    gko::array<gko::int32> ddata;
 };
 
 

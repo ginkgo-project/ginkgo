@@ -51,7 +51,7 @@ namespace components {
 template <typename ValueType, typename IndexType>
 void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
                 const device_matrix_data<ValueType, IndexType>& in,
-                Array<matrix_data_entry<ValueType, IndexType>>& out)
+                array<matrix_data_entry<ValueType, IndexType>>& out)
 {
     for (size_type i = 0; i < in.get_num_elems(); i++) {
         out.get_data()[i] = {in.get_const_row_idxs()[i],
@@ -66,7 +66,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<matrix_data_entry<ValueType, IndexType>>& in,
+                const array<matrix_data_entry<ValueType, IndexType>>& in,
                 device_matrix_data<ValueType, IndexType>& out)
 {
     for (size_type i = 0; i < in.get_num_elems(); i++) {
@@ -83,17 +83,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<ValueType>& values, Array<IndexType>& row_idxs,
-                  Array<IndexType>& col_idxs)
+                  array<ValueType>& values, array<IndexType>& row_idxs,
+                  array<IndexType>& col_idxs)
 {
     auto size = values.get_num_elems();
     auto nnz = static_cast<size_type>(
         std::count_if(values.get_const_data(), values.get_const_data() + size,
                       is_nonzero<ValueType>));
     if (nnz < size) {
-        Array<ValueType> new_values{exec, nnz};
-        Array<IndexType> new_row_idxs{exec, nnz};
-        Array<IndexType> new_col_idxs{exec, nnz};
+        array<ValueType> new_values{exec, nnz};
+        array<IndexType> new_row_idxs{exec, nnz};
+        array<IndexType> new_col_idxs{exec, nnz};
         size_type out_i{};
         for (size_type i = 0; i < size; i++) {
             if (is_nonzero(values.get_const_data()[i])) {
@@ -115,8 +115,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
-                    Array<ValueType>& values, Array<IndexType>& row_idxs,
-                    Array<IndexType>& col_idxs)
+                    array<ValueType>& values, array<IndexType>& row_idxs,
+                    array<IndexType>& col_idxs)
 {
     auto row = invalid_index<IndexType>();
     auto col = invalid_index<IndexType>();
@@ -132,9 +132,9 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
         }
     }
     if (count_unique < size) {
-        Array<ValueType> new_values{exec, count_unique};
-        Array<IndexType> new_row_idxs{exec, count_unique};
-        Array<IndexType> new_col_idxs{exec, count_unique};
+        array<ValueType> new_values{exec, count_unique};
+        array<IndexType> new_row_idxs{exec, count_unique};
+        array<IndexType> new_col_idxs{exec, count_unique};
         row = invalid_index<IndexType>();
         col = invalid_index<IndexType>();
         int64 out_i = -1;
@@ -166,7 +166,7 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
+    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
                                                        data.get_num_elems()};
     soa_to_aos(exec, data, tmp);
     std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());

@@ -79,10 +79,10 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
         return;
     }
 
-    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
-    Array<bool> needs_change_host{exec->get_master(), 1};
+    array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
+    array<bool> needs_change_host{exec->get_master(), 1};
     needs_change_host.get_data()[0] = false;
-    Array<bool> needs_change_device{exec, 1};
+    array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
     auto cuda_old_values = as_cuda_type(mtx->get_const_values());
@@ -120,8 +120,8 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
                               mtx->get_num_stored_elements();
 
 
-    Array<ValueType> new_values{exec, new_num_elems};
-    Array<IndexType> new_col_idxs{exec, new_num_elems};
+    array<ValueType> new_values{exec, new_num_elems};
+    array<IndexType> new_col_idxs{exec, new_num_elems};
     auto cuda_new_values = as_cuda_type(new_values.get_data());
     auto cuda_new_col_idxs = as_cuda_type(new_col_idxs.get_data());
 

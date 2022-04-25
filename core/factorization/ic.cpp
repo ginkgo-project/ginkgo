@@ -92,7 +92,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     // Extract lower factor: compute non-zeros
     const auto matrix_size = local_system_matrix->get_size();
     const auto num_rows = matrix_size[0];
-    Array<IndexType> l_row_ptrs{exec, num_rows + 1};
+    array<IndexType> l_row_ptrs{exec, num_rows + 1};
     exec->run(ic_factorization::make_initialize_row_ptrs_l(
         local_system_matrix.get(), l_row_ptrs.get_data()));
 
@@ -101,8 +101,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         exec->copy_val_to_host(l_row_ptrs.get_data() + num_rows));
 
     // Init arrays
-    Array<IndexType> l_col_idxs{exec, l_nnz};
-    Array<ValueType> l_vals{exec, l_nnz};
+    array<IndexType> l_col_idxs{exec, l_nnz};
+    array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<matrix_type> l_factor = matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), parameters_.l_strategy);

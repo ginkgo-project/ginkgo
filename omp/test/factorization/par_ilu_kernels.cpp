@@ -154,10 +154,10 @@ protected:
                        std::unique_ptr<Csr>* l_omp, std::unique_ptr<Csr>* u_omp)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-        gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> l_row_ptrs_omp{omp, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_omp{omp, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_omp{omp, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_omp{omp, num_row_ptrs};
 
         initialize_row_ptrs(
             l_row_ptrs_ref.get_data(), u_row_ptrs_ref.get_data(),
@@ -290,10 +290,10 @@ TYPED_TEST(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
 {
     using index_type = typename TestFixture::index_type;
     auto num_row_ptrs = this->csr_ref->get_size()[0] + 1;
-    gko::Array<index_type> l_row_ptrs_array_ref(this->ref, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_ref(this->ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_omp(this->omp, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_omp(this->omp, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_omp(this->omp, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_omp(this->omp, num_row_ptrs);
     auto l_row_ptrs_ref = l_row_ptrs_array_ref.get_data();
     auto u_row_ptrs_ref = u_row_ptrs_array_ref.get_data();
     auto l_row_ptrs_omp = l_row_ptrs_array_omp.get_data();

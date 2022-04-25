@@ -133,11 +133,11 @@ protected:
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, n);
         givens_cos = gen_mtx(gko::solver::default_krylov_dim, n);
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
-        final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(ref, n);
+        final_iter_nums = std::make_unique<gko::array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
@@ -154,10 +154,10 @@ protected:
         d_residual_norm_collection = gko::clone(omp, residual_norm_collection);
         d_givens_sin = gko::clone(omp, givens_sin);
         d_givens_cos = gko::clone(omp, givens_cos);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             omp, *stop_status);
         d_final_iter_nums =
-            std::make_unique<gko::Array<gko::size_type>>(omp, *final_iter_nums);
+            std::make_unique<gko::array<gko::size_type>>(omp, *final_iter_nums);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -182,8 +182,8 @@ protected:
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
-    std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::size_type>> final_iter_nums;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_before_preconditioner;
@@ -197,8 +197,8 @@ protected:
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
-    std::unique_ptr<gko::Array<gko::size_type>> d_final_iter_nums;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::size_type>> d_final_iter_nums;
 };
 
 

@@ -249,7 +249,7 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType>* residual,
                   matrix::Dense<ValueType>* givens_sin,
                   matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+                  array<stopping_status>* stop_status, size_type krylov_dim)
 {
     using norm_type = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
@@ -276,7 +276,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
                   matrix::Dense<ValueType>* residual_norm_collection,
                   matrix::Dense<ValueType>* krylov_bases,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     using norm_type = remove_complex<ValueType>;
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
@@ -310,8 +310,8 @@ void step_1(std::shared_ptr<const OmpExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType>* residual_norm_collection,
             matrix::Dense<ValueType>* krylov_bases,
             matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-            Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status)
+            array<size_type>* final_iter_nums,
+            const array<stopping_status>* stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
@@ -338,7 +338,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType>* hessenberg,
             matrix::Dense<ValueType>* y,
             matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+            const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums->get_const_data());

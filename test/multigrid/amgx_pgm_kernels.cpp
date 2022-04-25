@@ -100,7 +100,7 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
-    gko::Array<index_type> gen_array(gko::size_type num, index_type min_val,
+    gko::array<index_type> gen_array(gko::size_type num, index_type min_val,
                                      index_type max_val)
     {
         return gko::test::generate_random_array<index_type>(
@@ -108,7 +108,7 @@ protected:
             ref);
     }
 
-    gko::Array<index_type> gen_agg_array(gko::size_type num,
+    gko::array<index_type> gen_agg_array(gko::size_type num,
                                          gko::size_type num_agg)
     {
         auto agg_array = gen_array(num, 0, num_agg - 1);
@@ -165,9 +165,9 @@ protected:
         system_mtx = Csr::create(ref);
         system_mtx->read(system_data);
 
-        d_agg = gko::Array<index_type>(exec, agg);
-        d_unfinished_agg = gko::Array<index_type>(exec, unfinished_agg);
-        d_strongest_neighbor = gko::Array<index_type>(exec, strongest_neighbor);
+        d_agg = gko::array<index_type>(exec, agg);
+        d_unfinished_agg = gko::array<index_type>(exec, unfinished_agg);
+        d_strongest_neighbor = gko::array<index_type>(exec, strongest_neighbor);
         d_coarse_vector = gko::clone(exec, coarse_vector);
         d_fine_vector = gko::clone(exec, fine_vector);
         d_weight_csr = gko::clone(exec, weight_csr);
@@ -180,13 +180,13 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    gko::Array<index_type> agg;
-    gko::Array<index_type> unfinished_agg;
-    gko::Array<index_type> strongest_neighbor;
+    gko::array<index_type> agg;
+    gko::array<index_type> unfinished_agg;
+    gko::array<index_type> strongest_neighbor;
 
-    gko::Array<index_type> d_agg;
-    gko::Array<index_type> d_unfinished_agg;
-    gko::Array<index_type> d_strongest_neighbor;
+    gko::array<index_type> d_agg;
+    gko::array<index_type> d_unfinished_agg;
+    gko::array<index_type> d_strongest_neighbor;
 
     std::unique_ptr<Mtx> coarse_vector;
     std::unique_ptr<Mtx> fine_vector;
@@ -285,7 +285,7 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 {
     initialize_data();
     auto d_x = d_unfinished_agg;
-    auto d_intermediate_agg = gko::Array<index_type>(exec, 0);
+    auto d_intermediate_agg = gko::array<index_type>(exec, 0);
     index_type d_num_unagg;
 
     gko::kernels::EXEC_NAMESPACE::amgx_pgm::assign_to_exist_agg(
@@ -314,10 +314,10 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRef)
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
     auto row_gatherer = gko::as<RowGatherer>(mg_level->get_prolong_op());
     auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
-    auto row_gather_view = gko::Array<index_type>::const_view(
+    auto row_gather_view = gko::array<index_type>::const_view(
         row_gatherer->get_executor(), row_gatherer->get_size()[0],
         row_gatherer->get_const_row_idxs());
-    auto d_row_gather_view = gko::Array<index_type>::const_view(
+    auto d_row_gather_view = gko::array<index_type>::const_view(
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
         d_row_gatherer->get_const_row_idxs());
 
@@ -347,10 +347,10 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
     auto row_gatherer = gko::as<RowGatherer>(mg_level->get_prolong_op());
     auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
-    auto row_gather_view = gko::Array<index_type>::const_view(
+    auto row_gather_view = gko::array<index_type>::const_view(
         row_gatherer->get_executor(), row_gatherer->get_size()[0],
         row_gatherer->get_const_row_idxs());
-    auto d_row_gather_view = gko::Array<index_type>::const_view(
+    auto d_row_gather_view = gko::array<index_type>::const_view(
         d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
         d_row_gatherer->get_const_row_idxs());
 

@@ -76,7 +76,7 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 {
     auto block_results_val = source;
     size_type grid_dim = size;
-    auto block_results = Array<ValueType>(exec);
+    auto block_results = array<ValueType>(exec);
     if (size > default_reduce_block_size) {
         const auto n = ceildiv(size, default_reduce_block_size);
         grid_dim =
@@ -91,7 +91,7 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
         block_results_val = block_results.get_const_data();
     }
 
-    auto d_result = Array<ValueType>(exec, 1);
+    auto d_result = array<ValueType>(exec, 1);
 
     hipLaunchKernelGGL(reduce_add_array, 1, default_reduce_block_size, 0, 0,
                        grid_dim, as_hip_type(block_results_val),

@@ -65,7 +65,7 @@ public:
 
 protected:
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status>* stop_status, bool* one_changed,
+                    array<stopping_status>* stop_status, bool* one_changed,
                     const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)

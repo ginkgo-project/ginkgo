@@ -69,7 +69,7 @@ public:
     cusparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
     // Return shared pointer not plain pointer such that CusparseGenericSpMV
-    // uses gko::Array to allocate buffer.
+    // uses gko::array to allocate buffer.
     std::shared_ptr<const gko::CudaExecutor> get_gpu_exec() const
     {
         return gpu_exec_;
@@ -193,7 +193,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
@@ -268,7 +268,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
@@ -345,7 +345,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
@@ -451,7 +451,7 @@ private:
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
     cusparseAlgMode_t algmode_;
-    mutable gko::Array<char> buffer_;
+    mutable gko::array<char> buffer_;
 };
 
 
@@ -551,7 +551,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     cusparseOperation_t trans_;
     cusparseHybMat_t hyb_;
@@ -568,7 +568,7 @@ private:
 template <typename ValueType>
 void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
                            const cusparseSpMatDescr_t mat,
-                           const gko::Array<ValueType>& scalars,
+                           const gko::array<ValueType>& scalars,
                            const gko::LinOp* b, gko::LinOp* x,
                            cusparseOperation_t trans, cusparseSpMVAlg_t alg)
 {
@@ -594,7 +594,7 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
         &buffer_size));
-    gko::Array<char> buffer_array(gpu_exec, buffer_size);
+    gko::array<char> buffer_array(gpu_exec, buffer_size);
     auto dbuffer = buffer_array.get_data();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
@@ -691,7 +691,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<csr> csr_;
     cusparseOperation_t trans_;
@@ -783,7 +783,7 @@ protected:
 
 private:
     // Contains {alpha, beta}
-    gko::Array<ValueType> scalars{
+    gko::array<ValueType> scalars{
         this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
     std::shared_ptr<coo> coo_;
     cusparseOperation_t trans_;

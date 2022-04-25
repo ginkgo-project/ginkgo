@@ -70,7 +70,7 @@ void compute(std::shared_ptr<const DefaultExecutor> exec,
                                m->get_const_values(), m->get_const_row_ptrs(),
                                m->get_const_col_idxs(), info, buffer_size);
 
-    Array<char> buffer{exec, buffer_size};
+    array<char> buffer{exec, buffer_size};
 
     // set up IC(0)
     hipsparse::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),

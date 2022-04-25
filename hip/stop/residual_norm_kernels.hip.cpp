@@ -96,8 +96,8 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, Array<stopping_status>* stop_status,
-                   Array<bool>* device_storage, bool* all_converged,
+                   bool setFinalized, array<stopping_status>* stop_status,
+                   array<bool>* device_storage, bool* all_converged,
                    bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
@@ -180,8 +180,8 @@ void implicit_residual_norm(
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    bool setFinalized, array<stopping_status>* stop_status,
+    array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));

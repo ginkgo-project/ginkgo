@@ -168,7 +168,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
                                ValueType* result, size_type size,
-                               Array<char>& tmp, MappedKernelArgs... args)
+                               array<char>& tmp, MappedKernelArgs... args)
 {
     constexpr int oversubscription = 4;
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
@@ -211,7 +211,7 @@ template <std::uint32_t cfg, typename ValueType, typename KernelFunction,
 void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
-                               ValueType* result, dim<2> size, Array<char>& tmp,
+                               ValueType* result, dim<2> size, array<char>& tmp,
                                MappedKernelArgs... args)
 {
     constexpr int oversubscription = 4;
@@ -261,7 +261,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, dim<2> size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
         as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
@@ -283,7 +283,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, size_type size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
         as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
@@ -510,7 +510,7 @@ void run_generic_col_reduction_small(syn::value_list<int, ssg_size>,
                                      int64 max_workgroups, KernelFunction fn,
                                      ReductionOp op, FinalizeOp finalize,
                                      ValueType identity, ValueType* result,
-                                     dim<2> size, Array<char>& tmp,
+                                     dim<2> size, array<char>& tmp,
                                      MappedKernelArgs... args)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
@@ -558,7 +558,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, size_type result_stride,
-                                     dim<2> size, Array<char>& tmp,
+                                     dim<2> size, array<char>& tmp,
                                      MappedKernelArgs... args)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
@@ -612,7 +612,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
-                                     Array<char>& tmp, MappedKernelArgs... args)
+                                     array<char>& tmp, MappedKernelArgs... args)
 {
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
@@ -679,7 +679,7 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, size_type result_stride,
-                                     dim<2> size, Array<char>& tmp,
+                                     dim<2> size, array<char>& tmp,
                                      KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
@@ -703,7 +703,7 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
-                                     Array<char>& tmp, KernelArgs&&... args)
+                                     array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
         as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {

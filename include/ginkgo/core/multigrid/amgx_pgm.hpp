@@ -192,7 +192,7 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    Array<IndexType> agg_;
+    array<IndexType> agg_;
 };
 
 

@@ -88,7 +88,7 @@ def get_unique_ptr_data_ptr(val):
 
 
 class GkoArrayPrinter:
-    "Print a gko::Array"
+    "Print a gko::array"
 
     class _iterator(Iterator):
         def __init__(self, exec, start, size):
@@ -185,7 +185,7 @@ def lookup_type(val):
     if not str(val.type.unqualified()).startswith('gko::'):
         return None
     suffix = str(val.type.unqualified())[5:]
-    if suffix.startswith('Array'):
+    if suffix.startswith('array'):
         return GkoArrayPrinter(val)
     return None
 

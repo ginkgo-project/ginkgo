@@ -67,7 +67,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType)             \
     void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<IndexType>& row_ptrs,            \
+                             const array<IndexType>& row_ptrs,            \
                              size_type& max_nnz)
 
 #define GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \

@@ -72,7 +72,7 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result, Array<char>& tmp)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     // OpenMP uses the unified kernel.
     compute_dot(exec, x, y, result, tmp);
@@ -87,7 +87,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
                                matrix::Dense<ValueType>* result,
-                               Array<char>& tmp)
+                               array<char>& tmp)
 {
     compute_conj_dot(exec, x, y, result, tmp);
 }
@@ -100,7 +100,7 @@ template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
                             matrix::Dense<remove_complex<ValueType>>* result,
-                            Array<char>& tmp)
+                            array<char>& tmp)
 {
     compute_norm2(exec, x, result, tmp);
 }

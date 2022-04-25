@@ -153,7 +153,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType>& row_ptrs, size_type& max_nnz)
+                         const array<IndexType>& row_ptrs, size_type& max_nnz)
 {
     max_nnz = 0;
     const auto ptrs = row_ptrs.get_const_data();

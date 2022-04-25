@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<ValueType>& values, Array<IndexType>& row_idxs,
-                  Array<IndexType>& col_idxs)
+                  array<ValueType>& values, array<IndexType>& row_idxs,
+                  array<IndexType>& col_idxs)
 {
     // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
     // due to overly generic assignment operator and constructor leading to
@@ -52,9 +52,9 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         using tuple_type =
             thrust::tuple<IndexType, IndexType, device_value_type>;
         // allocate new storage
-        Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
+        array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
         // copy nonzeros
         auto it = thrust::make_zip_iterator(thrust::make_tuple(
             thrust::device_pointer_cast(row_idxs.get_const_data()),
@@ -82,8 +82,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
-                    Array<ValueType>& values, Array<IndexType>& row_idxs,
-                    Array<IndexType>& col_idxs)
+                    array<ValueType>& values, array<IndexType>& row_idxs,
+                    array<IndexType>& col_idxs)
 {
     using device_value_type = device_member_type<ValueType>;
     const auto size = values.get_num_elems();
@@ -101,9 +101,9 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
         }));
     if (new_size < size) {
         // allocate new storage
-        Array<ValueType> new_values{exec, new_size};
-        Array<IndexType> new_row_idxs{exec, new_size};
-        Array<IndexType> new_col_idxs{exec, new_size};
+        array<ValueType> new_values{exec, new_size};
+        array<IndexType> new_row_idxs{exec, new_size};
+        array<IndexType> new_col_idxs{exec, new_size};
         // reduce duplicates
         auto in_locs = thrust::make_zip_iterator(
             thrust::make_tuple(thrust::device_pointer_cast(rows),

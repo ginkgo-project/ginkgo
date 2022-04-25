@@ -221,7 +221,7 @@ struct matrix_accessor {
  *
  * By default, it only maps std::complex to the corresponding device
  * representation of the complex type. There are specializations for dealing
- * with gko::Array and gko::matrix::Dense (both const and mutable) that map them
+ * with gko::array and gko::matrix::Dense (both const and mutable) that map them
  * to plain pointers or matrix_accessor objects.
  *
  * @tparam T  the type being mapped. It will be used based on a
@@ -268,18 +268,18 @@ struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
 };
 
 template <typename ValueType>
-struct to_device_type_impl<Array<ValueType>&> {
+struct to_device_type_impl<array<ValueType>&> {
     using type = device_type<ValueType>*;
-    static type map_to_device(Array<ValueType>& array)
+    static type map_to_device(array<ValueType>& array)
     {
         return as_device_type(array.get_data());
     }
 };
 
 template <typename ValueType>
-struct to_device_type_impl<const Array<ValueType>&> {
+struct to_device_type_impl<const array<ValueType>&> {
     using type = const device_type<ValueType>*;
-    static type map_to_device(const Array<ValueType>& array)
+    static type map_to_device(const array<ValueType>& array)
     {
         return as_device_type(array.get_const_data());
     }

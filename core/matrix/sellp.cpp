@@ -181,7 +181,7 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     slice_lengths_.resize_and_reset(ceildiv(size[0], slice_size_));
     slice_sets_.resize_and_reset(ceildiv(size[0], slice_size_) + 1);
     this->set_size(size);
-    Array<int64> row_ptrs{exec, size[0] + 1};
+    array<int64> row_ptrs{exec, size[0] + 1};
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(sellp::make_convert_idxs_to_ptrs(local_data->get_const_row_idxs(),
                                                local_data->get_num_elems(),

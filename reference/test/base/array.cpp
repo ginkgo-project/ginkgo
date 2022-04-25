@@ -58,7 +58,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> x;
+    gko::array<T> x;
 };
 
 TYPED_TEST_SUITE(Array, gko::test::ValueAndIndexTypes, TypenameNameGenerator);
@@ -78,7 +78,7 @@ TYPED_TEST(Array, CanBeFilledWithValue)
 
 TYPED_TEST(Array, CanBeReduced)
 {
-    auto out = gko::Array<TypeParam>(this->exec, I<TypeParam>{1});
+    auto out = gko::array<TypeParam>(this->exec, I<TypeParam>{1});
 
     gko::reduce_add(this->x, out);
 

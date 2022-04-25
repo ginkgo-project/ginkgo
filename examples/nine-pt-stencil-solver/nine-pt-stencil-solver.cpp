@@ -219,8 +219,8 @@ void solve_system(const std::string& executor_string,
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
-    using val_array = gko::Array<ValueType>;
-    using idx_array = gko::Array<IndexType>;
+    using val_array = gko::array<ValueType>;
+    using idx_array = gko::array<IndexType>;
     const auto& dp = discretization_points;
     const gko::size_type dp_2 = dp * dp;
 

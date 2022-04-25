@@ -85,11 +85,11 @@ namespace {
 
 template <typename IndexType>
 void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
-                     const gko::Array<IndexType>& agg, IndexType* row_ptrs,
+                     const gko::array<IndexType>& agg, IndexType* row_ptrs,
                      IndexType* col_idxs)
 {
     const IndexType num = agg.get_num_elems();
-    gko::Array<IndexType> row_idxs(exec, agg);
+    gko::array<IndexType> row_idxs(exec, agg);
     exec->run(amgx_pgm::make_fill_seq_array(col_idxs, num));
     // sort the pair (int, agg) to (row_idxs, col_idxs)
     exec->run(amgx_pgm::make_sort_agg(num, row_idxs.get_data(), col_idxs));
@@ -103,13 +103,13 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     std::shared_ptr<const Executor> exec,
     const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::Array<IndexType>& agg)
+    const gko::array<IndexType>& agg)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
-    gko::Array<IndexType> row_idxs(exec, nnz);
-    gko::Array<IndexType> col_idxs(exec, nnz);
-    gko::Array<ValueType> vals(exec, nnz);
+    gko::array<IndexType> row_idxs(exec, nnz);
+    gko::array<IndexType> col_idxs(exec, nnz);
+    gko::array<ValueType> vals(exec, nnz);
     exec->copy_from(exec.get(), nnz, fine_csr->get_const_values(),
                     vals.get_data());
     // map row_ptrs to coarse row index
@@ -155,8 +155,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     using weight_csr_type = remove_complex<csr_type>;
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
-    Array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
-    Array<IndexType> intermediate_agg(this->get_executor(),
+    array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
+    array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
     const csr_type* amgxpgm_op =

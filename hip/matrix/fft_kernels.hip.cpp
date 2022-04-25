@@ -121,7 +121,7 @@ public:
     template <int d, typename InValueType, typename OutValueType>
     void setup(std::array<size_type, d> fft_size, size_type in_batch_stride,
                size_type out_batch_stride, size_type batch_count,
-               Array<char>& work_area)
+               array<char>& work_area)
     {
         static_assert(d == 1 || d == 2 || d == 3,
                       "Only 1D, 2D or 3D FFT supported");
@@ -176,7 +176,7 @@ template <typename ValueType>
 void fft(std::shared_ptr<const DefaultExecutor> exec,
          const matrix::Dense<std::complex<ValueType>>* b,
          matrix::Dense<std::complex<ValueType>>* x, bool inverse,
-         Array<char>& buffer)
+         array<char>& buffer)
 {
     hipfft_handle handle;
     handle.template setup<1, std::complex<ValueType>, std::complex<ValueType>>(
@@ -192,7 +192,7 @@ template <typename ValueType>
 void fft2(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, bool inverse, Array<char>& buffer)
+          size_type size2, bool inverse, array<char>& buffer)
 {
     hipfft_handle handle;
     handle.template setup<2, std::complex<ValueType>, std::complex<ValueType>>(
@@ -208,7 +208,7 @@ template <typename ValueType>
 void fft3(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, size_type size3, bool inverse, Array<char>& buffer)
+          size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
     hipfft_handle handle;
     handle.template setup<3, std::complex<ValueType>, std::complex<ValueType>>(

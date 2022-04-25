@@ -67,8 +67,8 @@ namespace idx_set {
 
 template <typename IndexType>
 void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* local_indices,
-                      Array<bool>* validity_array)
+                      const array<IndexType>* local_indices,
+                      array<bool>* validity_array)
 {
     auto num_elems = local_indices->get_num_elems();
     for (size_type i = 0; i < num_elems; ++i) {
@@ -105,13 +105,13 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
-                      const Array<IndexType>* indices,
-                      Array<IndexType>* subset_begin,
-                      Array<IndexType>* subset_end,
-                      Array<IndexType>* superset_indices, const bool is_sorted)
+                      const array<IndexType>* indices,
+                      array<IndexType>* subset_begin,
+                      array<IndexType>* subset_end,
+                      array<IndexType>* superset_indices, const bool is_sorted)
 {
     auto num_indices = indices->get_num_elems();
-    auto tmp_indices = gko::Array<IndexType>(*indices);
+    auto tmp_indices = gko::array<IndexType>(*indices);
     // Sort the indices if not sorted.
     if (!is_sorted) {
         std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
@@ -147,13 +147,13 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
     GKO_ASSERT(tmp_subset_begin.size() == tmp_subset_end.size());
     GKO_ASSERT((tmp_subset_begin.size() + 1) ==
                tmp_subset_superset_index.size());
-    *subset_begin = std::move(gko::Array<IndexType>(
+    *subset_begin = std::move(gko::array<IndexType>(
         exec, tmp_subset_begin.data(),
         tmp_subset_begin.data() + tmp_subset_begin.size()));
     *subset_end = std::move(
-        gko::Array<IndexType>(exec, tmp_subset_end.data(),
+        gko::array<IndexType>(exec, tmp_subset_end.data(),
                               tmp_subset_end.data() + tmp_subset_end.size()));
-    *superset_indices = std::move(gko::Array<IndexType>(
+    *superset_indices = std::move(gko::array<IndexType>(
         exec, tmp_subset_superset_index.data(),
         tmp_subset_superset_index.data() + tmp_subset_superset_index.size()));
 }

@@ -169,8 +169,8 @@ protected:
     std::unique_ptr<typename Bj::Factory> bj_factory;
     std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
+    gko::array<index_type> block_pointers;
+    gko::array<gko::precision_reduction> block_precisions;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<Bj> bj;
     std::unique_ptr<Bj> adaptive_bj;
@@ -209,7 +209,7 @@ TYPED_TEST(Jacobi, CanBeCopied)
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -227,7 +227,7 @@ TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -246,7 +246,7 @@ TYPED_TEST(Jacobi, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto tmp = clone(this->bj);
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)
@@ -265,7 +265,7 @@ TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     auto tmp = clone(this->adaptive_bj);
-    gko::Array<index_type> empty(this->exec, 1);
+    gko::array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
     auto copy = Bj::build()
                     .with_block_pointers(empty)

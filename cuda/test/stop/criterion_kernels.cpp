@@ -72,7 +72,7 @@ TEST_F(Criterion, SetsOneStopStatus)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
 
     stop_status.set_executor(cuda_);
@@ -90,7 +90,7 @@ TEST_F(Criterion, SetsMultipleStopStatuses)
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
-    gko::Array<gko::stopping_status> stop_status(ref_, 3);
+    gko::array<gko::stopping_status> stop_status(ref_, 3);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.get_data()[2].reset();

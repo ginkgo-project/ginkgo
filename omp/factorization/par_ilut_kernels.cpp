@@ -69,8 +69,8 @@ namespace par_ilut_factorization {
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
-                      IndexType rank, Array<ValueType>& tmp,
-                      Array<remove_complex<ValueType>>&,
+                      IndexType rank, array<ValueType>& tmp,
+                      array<remove_complex<ValueType>>&,
                       remove_complex<ValueType>& threshold)
 {
     auto values = m->get_const_values();
@@ -187,7 +187,7 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>& tmp,
+                             IndexType rank, array<ValueType>& tmp,
                              remove_complex<ValueType>& threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)

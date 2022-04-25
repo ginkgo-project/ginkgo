@@ -67,9 +67,9 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     gko::size_type total_size;
-    gko::Array<value_type> expected;
-    gko::Array<value_type> vals;
-    gko::Array<value_type> seqs;
+    gko::array<value_type> expected;
+    gko::array<value_type> vals;
+    gko::array<value_type> seqs;
 };
 
 TYPED_TEST_SUITE(FillArray, gko::test::ValueAndIndexTypes,

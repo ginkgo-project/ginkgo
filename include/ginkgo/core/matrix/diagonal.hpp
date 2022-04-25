@@ -180,7 +180,7 @@ public:
      */
     static std::unique_ptr<const Diagonal> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::ConstArrayView<ValueType>&& values)
+        gko::detail::const_array_view<ValueType>&& values)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -240,7 +240,7 @@ protected:
 
 
 private:
-    Array<value_type> values_;
+    array<value_type> values_;
 };
 
 

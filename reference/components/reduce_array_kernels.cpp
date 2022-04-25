@@ -44,10 +44,10 @@ namespace components {
 
 template <typename ValueType>
 void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<ValueType>& array, Array<ValueType>& val)
+                      const array<ValueType>& arr, array<ValueType>& val)
 {
     val.get_data()[0] = std::accumulate(
-        array.get_const_data(), array.get_const_data() + array.get_num_elems(),
+        arr.get_const_data(), arr.get_const_data() + arr.get_num_elems(),
         val.get_const_data()[0]);
 }
 

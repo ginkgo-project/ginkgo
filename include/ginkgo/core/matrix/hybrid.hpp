@@ -131,11 +131,11 @@ public:
          *                                         part
          * @param coo_nnz  the output number of nonzeros of the coo part
          */
-        void compute_hybrid_config(const Array<size_type>& row_nnz,
+        void compute_hybrid_config(const array<size_type>& row_nnz,
                                    size_type* ell_num_stored_elements_per_row,
                                    size_type* coo_nnz)
         {
-            Array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
+            array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
                                          row_nnz.get_num_elems());
             ref_row_nnz = row_nnz;
             ell_num_stored_elements_per_row_ =
@@ -170,7 +170,7 @@ public:
          * @return the number of stored elements per row of the ell part
          */
         virtual size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const = 0;
+            array<size_type>* row_nnz) const = 0;
 
     protected:
         /**
@@ -181,7 +181,7 @@ public:
          *
          * @return the number of nonzeros of the coo part
          */
-        size_type compute_coo_nnz(const Array<size_type>& row_nnz) const
+        size_type compute_coo_nnz(const array<size_type>& row_nnz) const
         {
             size_type coo_nnz = 0;
             auto row_nnz_val = row_nnz.get_const_data();
@@ -215,7 +215,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return num_columns_;
         }
@@ -253,7 +253,7 @@ public:
         }
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             auto row_nnz_val = row_nnz->get_data();
             auto num_rows = row_nnz->get_num_elems();
@@ -295,7 +295,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             auto num_rows = row_nnz->get_num_elems();
             auto ell_cols =
@@ -341,7 +341,7 @@ public:
         {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }
@@ -370,7 +370,7 @@ public:
         automatic() : strategy_(imbalance_bounded_limit(1.0 / 3.0, 0.001)) {}
 
         size_type compute_ell_num_stored_elements_per_row(
-            Array<size_type>* row_nnz) const override
+            array<size_type>* row_nnz) const override
         {
             return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
         }

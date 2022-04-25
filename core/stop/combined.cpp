@@ -38,7 +38,7 @@ namespace stop {
 
 
 bool Combined::check_impl(uint8 stoppingId, bool setFinalized,
-                          Array<stopping_status>* stop_status,
+                          array<stopping_status>* stop_status,
                           bool* one_changed, const Updater& updater)
 {
     bool one_converged = false;

@@ -52,8 +52,8 @@ namespace components {
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<ValueType>& values, Array<IndexType>& row_idxs,
-                  Array<IndexType>& col_idxs)
+                  array<ValueType>& values, array<IndexType>& row_idxs,
+                  array<IndexType>& col_idxs)
 {
     const auto size = values.get_num_elems();
     const auto num_threads = omp_get_max_threads();
@@ -73,9 +73,9 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
                      partial_counts.begin());
     auto nnz = static_cast<size_type>(partial_counts.back());
     if (nnz < size) {
-        Array<ValueType> new_values{exec, nnz};
-        Array<IndexType> new_row_idxs{exec, nnz};
-        Array<IndexType> new_col_idxs{exec, nnz};
+        array<ValueType> new_values{exec, nnz};
+        array<IndexType> new_row_idxs{exec, nnz};
+        array<IndexType> new_col_idxs{exec, nnz};
 #pragma omp parallel num_threads(num_threads)
         {
             const auto tidx = static_cast<size_type>(omp_get_thread_num());
@@ -106,12 +106,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
-                    size_type num_rows, Array<ValueType>& values,
-                    Array<IndexType>& row_idxs, Array<IndexType>& col_idxs)
+                    size_type num_rows, array<ValueType>& values,
+                    array<IndexType>& row_idxs, array<IndexType>& col_idxs)
 {
     const auto size = values.get_num_elems();
-    Array<int64> row_ptrs_array{exec, num_rows + 1};
-    Array<int64> out_row_ptrs_array{exec, num_rows + 1};
+    array<int64> row_ptrs_array{exec, num_rows + 1};
+    array<int64> out_row_ptrs_array{exec, num_rows + 1};
     components::convert_idxs_to_ptrs(exec, row_idxs.get_const_data(),
                                      row_idxs.get_num_elems(), num_rows,
                                      row_ptrs_array.get_data());
@@ -133,9 +133,9 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,
     components::prefix_sum(exec, out_row_ptrs, num_rows + 1);
     const auto out_size = static_cast<size_type>(out_row_ptrs[num_rows]);
     if (out_size < size) {
-        Array<ValueType> new_values{exec, out_size};
-        Array<IndexType> new_row_idxs{exec, out_size};
-        Array<IndexType> new_col_idxs{exec, out_size};
+        array<ValueType> new_values{exec, out_size};
+        array<IndexType> new_row_idxs{exec, out_size};
+        array<IndexType> new_col_idxs{exec, out_size};
 #pragma omp parallel for
         for (IndexType row = 0; row < num_rows; row++) {
             auto out_i = out_row_ptrs[row] - 1;
@@ -166,7 +166,7 @@ template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec,
                     device_matrix_data<ValueType, IndexType>& data)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
+    array<matrix_data_entry<ValueType, IndexType>> tmp{exec,
                                                        data.get_num_elems()};
     soa_to_aos(exec, data, tmp);
     std::sort(tmp.get_data(), tmp.get_data() + tmp.get_num_elems());

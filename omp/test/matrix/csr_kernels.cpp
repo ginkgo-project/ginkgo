@@ -63,7 +63,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
-    using Arr = gko::Array<int>;
+    using Arr = gko::array<int>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
@@ -704,9 +704,9 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     row_nnz.fill(gko::zero<int>());
-    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    auto drow_nnz = gko::array<int>(this->omp, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
@@ -726,23 +726,23 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
     gko::kernels::reference::components::prefix_sum(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
-    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    auto drow_nnz = gko::array<int>(this->omp, row_nnz);
     auto smat1 =
         Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->ref, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+                    std::move(gko::array<ValueType>(this->ref, num_nnz)),
+                    std::move(gko::array<IndexType>(this->ref, num_nnz)),
                     std::move(row_nnz));
     auto sdmat1 =
         Mtx::create(this->omp, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->omp, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->omp, num_nnz)),
+                    std::move(gko::array<ValueType>(this->omp, num_nnz)),
+                    std::move(gko::array<IndexType>(this->omp, num_nnz)),
                     std::move(drow_nnz));
 
 
@@ -768,9 +768,9 @@ TEST_F(Csr, CalculateNnzPerRowInindex_setIsEquivalentToRef)
     gko::index_set<IndexType> drset(this->omp, rset);
     gko::index_set<IndexType> dcset(this->omp, cset);
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
-    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    auto drow_nnz = gko::array<int>(this->omp, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
@@ -794,23 +794,23 @@ TEST_F(Csr, ComputeSubmatrixFromindex_setIsEquivalentToRef)
     gko::index_set<IndexType> drset(this->omp, rset);
     gko::index_set<IndexType> dcset(this->omp, cset);
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rset.get_num_elems() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
         this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
     gko::kernels::reference::components::prefix_sum(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rset.get_num_elems()];
-    auto drow_nnz = gko::Array<int>(this->omp, row_nnz);
+    auto drow_nnz = gko::array<int>(this->omp, row_nnz);
     auto smat1 = Mtx::create(
         this->ref, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::Array<ValueType>(this->ref, num_nnz)),
-        std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+        std::move(gko::array<ValueType>(this->ref, num_nnz)),
+        std::move(gko::array<IndexType>(this->ref, num_nnz)),
         std::move(row_nnz));
     auto sdmat1 = Mtx::create(
         this->omp, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::Array<ValueType>(this->omp, num_nnz)),
-        std::move(gko::Array<IndexType>(this->omp, num_nnz)),
+        std::move(gko::array<ValueType>(this->omp, num_nnz)),
+        std::move(gko::array<IndexType>(this->omp, num_nnz)),
         std::move(drow_nnz));
 
     gko::kernels::reference::csr::compute_submatrix_from_index_set(

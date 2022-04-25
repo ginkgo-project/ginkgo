@@ -580,7 +580,7 @@ void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
         auto one_op =
             initialize<matrix::Dense<value_type>>({one<value_type>()}, exec);
         constexpr uint8 RelativeStoppingId{1};
-        Array<stopping_status> stop_status(exec, b->get_size()[1]);
+        array<stopping_status> stop_status(exec, b->get_size()[1]);
         bool one_changed{};
         auto state =
             MultigridState(system_matrix_.get(), this, b->get_size()[1]);

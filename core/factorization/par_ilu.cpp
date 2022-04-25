@@ -99,8 +99,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
-    Array<IndexType> l_row_ptrs{exec, number_rows + 1};
-    Array<IndexType> u_row_ptrs{exec, number_rows + 1};
+    array<IndexType> l_row_ptrs{exec, number_rows + 1};
+    array<IndexType> u_row_ptrs{exec, number_rows + 1};
     exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
         csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
@@ -112,13 +112,13 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     // Since `row_ptrs` of L and U is already created, the matrix can be
     // directly created with it
-    Array<IndexType> l_col_idxs{exec, l_nnz};
-    Array<ValueType> l_vals{exec, l_nnz};
+    array<IndexType> l_col_idxs{exec, l_nnz};
+    array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<CsrMatrix> l_factor = l_matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), l_strategy);
-    Array<IndexType> u_col_idxs{exec, u_nnz};
-    Array<ValueType> u_vals{exec, u_nnz};
+    array<IndexType> u_col_idxs{exec, u_nnz};
+    array<ValueType> u_vals{exec, u_nnz};
     std::shared_ptr<CsrMatrix> u_factor = u_matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
         std::move(u_row_ptrs), u_strategy);

@@ -60,14 +60,14 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        vals = gko::Array<float>{ref, total_size};
-        cvals = gko::Array<std::complex<float>>{ref, total_size};
-        vals2 = gko::Array<double>{ref, 1};
-        expected_float = gko::Array<float>{ref, 1};
-        expected_double = gko::Array<double>{ref, 1};
-        dvals = gko::Array<float>{exec};
-        dcvals = gko::Array<std::complex<float>>{exec};
-        dvals2 = gko::Array<double>{exec};
+        vals = gko::array<float>{ref, total_size};
+        cvals = gko::array<std::complex<float>>{ref, total_size};
+        vals2 = gko::array<double>{ref, 1};
+        expected_float = gko::array<float>{ref, 1};
+        expected_double = gko::array<double>{ref, 1};
+        dvals = gko::array<float>{exec};
+        dcvals = gko::array<std::complex<float>>{exec};
+        dvals2 = gko::array<double>{exec};
         auto maxval = 1e10f;
         std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
@@ -96,21 +96,21 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<float> vals;
-    gko::Array<float> dvals;
-    gko::Array<double> vals2;
-    gko::Array<double> dvals2;
-    gko::Array<float> expected_float;
-    gko::Array<double> expected_double;
-    gko::Array<std::complex<float>> cvals;
-    gko::Array<std::complex<float>> dcvals;
+    gko::array<float> vals;
+    gko::array<float> dvals;
+    gko::array<double> vals2;
+    gko::array<double> dvals2;
+    gko::array<float> expected_float;
+    gko::array<double> expected_double;
+    gko::array<std::complex<float>> cvals;
+    gko::array<std::complex<float>> dcvals;
 };
 
 
 TEST_F(PrecisionConversion, ConvertsReal)
 {
-    gko::Array<double> dtmp;
-    gko::Array<float> dout;
+    gko::array<double> dtmp;
+    gko::array<float> dout;
 
     dtmp = dvals;
     dout = dtmp;
@@ -121,8 +121,8 @@ TEST_F(PrecisionConversion, ConvertsReal)
 
 TEST_F(PrecisionConversion, ConvertsRealViaRef)
 {
-    gko::Array<double> tmp{ref};
-    gko::Array<float> dout;
+    gko::array<double> tmp{ref};
+    gko::array<float> dout;
 
     tmp = dvals;
     dout = tmp;
@@ -133,8 +133,8 @@ TEST_F(PrecisionConversion, ConvertsRealViaRef)
 
 TEST_F(PrecisionConversion, ConvertsComplex)
 {
-    gko::Array<std::complex<double>> dtmp;
-    gko::Array<std::complex<float>> dout;
+    gko::array<std::complex<double>> dtmp;
+    gko::array<std::complex<float>> dout;
 
     dtmp = dcvals;
     dout = dtmp;
@@ -145,8 +145,8 @@ TEST_F(PrecisionConversion, ConvertsComplex)
 
 TEST_F(PrecisionConversion, ConversionRounds)
 {
-    gko::Array<float> dtmp;
-    gko::Array<double> dout;
+    gko::array<float> dtmp;
+    gko::array<double> dout;
 
     dtmp = dvals2;
     dout = dtmp;
@@ -158,8 +158,8 @@ TEST_F(PrecisionConversion, ConversionRounds)
 
 TEST_F(PrecisionConversion, ConvertsRealFromRef)
 {
-    gko::Array<double> dtmp;
-    gko::Array<float> dout;
+    gko::array<double> dtmp;
+    gko::array<float> dout;
 
     dtmp = vals;
     dout = dtmp;
@@ -170,8 +170,8 @@ TEST_F(PrecisionConversion, ConvertsRealFromRef)
 
 TEST_F(PrecisionConversion, ConvertsComplexFromRef)
 {
-    gko::Array<std::complex<double>> dtmp;
-    gko::Array<std::complex<float>> dout;
+    gko::array<std::complex<double>> dtmp;
+    gko::array<std::complex<float>> dout;
 
     dtmp = cvals;
     dout = dtmp;

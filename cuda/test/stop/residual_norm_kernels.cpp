@@ -88,7 +88,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForRhsResNorm)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -134,7 +134,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForRhsResNorm)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -179,7 +179,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForRelResNorm)
         rel_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -224,7 +224,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForRelResNorm)
         rel_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -269,7 +269,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalForAbsResNorm)
         abs_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -314,7 +314,7 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForAbsResNorm)
         abs_factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -378,7 +378,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -422,7 +422,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -486,7 +486,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -530,7 +530,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -594,7 +594,7 @@ TEST_F(ImplicitResidualNorm, WaitsTillResidualGoal)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -638,7 +638,7 @@ TEST_F(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);
@@ -700,7 +700,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 1);
+    gko::array<gko::stopping_status> stop_status(ref_, 1);
     stop_status.get_data()[0].reset();
     stop_status.set_executor(cuda_);
 
@@ -742,7 +742,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(ref_, 2);
+    gko::array<gko::stopping_status> stop_status(ref_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
     stop_status.set_executor(cuda_);

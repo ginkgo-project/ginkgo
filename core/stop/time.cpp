@@ -38,7 +38,7 @@ namespace stop {
 
 
 bool Time::check_impl(uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status>* stop_status, bool* one_changed,
+                      array<stopping_status>* stop_status, bool* one_changed,
                       const Updater& updater)
 {
     bool result = clock::now() - start_ >= time_limit_;

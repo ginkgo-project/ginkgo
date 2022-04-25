@@ -55,12 +55,12 @@ public:
     /**
      * Returns the column index array of the CSR matrix.
      */
-    Array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
+    array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
      * Returns the value array of the CSR matrix.
      */
-    Array<ValueType>& get_value_array() { return matrix_->values_; }
+    array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
      * Initializes a CsrBuilder from an existing CSR matrix.

@@ -158,10 +158,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
-                         int block_size, Array<IndexType>& row_ptrs,
-                         Array<IndexType>& col_idxs, Array<ValueType>& values)
+                         int block_size, array<IndexType>& row_ptrs,
+                         array<IndexType>& col_idxs, array<ValueType>& values)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> block_ordered{
+    array<matrix_data_entry<ValueType, IndexType>> block_ordered{
         exec, data.get_num_elems()};
     components::soa_to_aos(exec, data, block_ordered);
     const auto in_nnz = data.get_num_elems();

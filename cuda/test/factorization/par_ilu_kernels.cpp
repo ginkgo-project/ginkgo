@@ -150,10 +150,10 @@ protected:
                        std::unique_ptr<Csr>* u_cuda)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-        gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> l_row_ptrs_cuda{cuda, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_cuda{cuda, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_cuda{cuda, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_cuda{cuda, num_row_ptrs};
 
         initialize_row_ptrs(
             l_row_ptrs_ref.get_data(), u_row_ptrs_ref.get_data(),
@@ -277,10 +277,10 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsNonSquareEquivalentToRef)
 TEST_F(ParIlu, KernelInitializeRowPtrsLUEquivalentToRef)
 {
     auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-    gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_cuda(cuda, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_cuda(cuda, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_cuda(cuda, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_cuda(cuda, num_row_ptrs);
 
     initialize_row_ptrs(
         l_row_ptrs_array_ref.get_data(), u_row_ptrs_array_ref.get_data(),

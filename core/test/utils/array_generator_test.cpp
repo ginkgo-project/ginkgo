@@ -58,7 +58,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    gko::Array<T> array;
+    gko::array<T> array;
 
     template <typename InputIterator, typename ValueType, typename Closure>
     ValueType get_nth_moment(int n, ValueType c, InputIterator sample_start,

@@ -257,8 +257,8 @@ public:
      */
     static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -374,8 +374,8 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
 };

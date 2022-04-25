@@ -59,8 +59,8 @@ protected:
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    gko::Array<value_type> out;
-    gko::Array<value_type> vals;
+    gko::array<value_type> out;
+    gko::array<value_type> vals;
 };
 
 TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,

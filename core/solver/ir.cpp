@@ -107,7 +107,7 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto inner_solution = Vector::create_with_config_of(dense_b);
 
     bool one_changed{};
-    Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);

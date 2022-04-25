@@ -105,10 +105,10 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     const auto i_cols = inverse_mtx->get_const_col_idxs();
     auto i_vals = inverse_mtx->get_values();
     // RHS for local dense system
-    gko::Array<ValueType> rhs_array{exec, row_size_limit};
+    gko::array<ValueType> rhs_array{exec, row_size_limit};
     auto rhs = rhs_array.get_data();
     // memory for dense dense system
-    gko::Array<ValueType> dense_system_array{exec,
+    gko::array<ValueType> dense_system_array{exec,
                                              row_size_limit * row_size_limit};
     auto dense_system_ptr = dense_system_array.get_data();
     // stores the next free index in the excess rhs/solution

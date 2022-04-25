@@ -110,9 +110,9 @@ protected:
     }
 
     std::shared_ptr<gko::OmpExecutor> exec;
-    gko::Array<int> zero_array;
-    gko::Array<int> iota_array;
-    gko::Array<int> iota_transp_array;
+    gko::array<int> zero_array;
+    gko::array<int> iota_array;
+    gko::array<int> iota_transp_array;
     std::unique_ptr<gko::matrix::Dense<>> iota_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense;
     std::unique_ptr<gko::matrix::Dense<>> zero_dense2;
@@ -276,7 +276,7 @@ TEST_F(KernelLaunch, Runs2DDense)
 
 TEST_F(KernelLaunch, Reduction1D)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
@@ -312,7 +312,7 @@ TEST_F(KernelLaunch, Reduction1D)
 
 TEST_F(KernelLaunch, Reduction2DSmallRows)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
@@ -336,7 +336,7 @@ TEST_F(KernelLaunch, Reduction2DSmallRows)
 
 TEST_F(KernelLaunch, Reduction2DLargeRows)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     for (int cols = 0; cols < 17; cols++) {
         gko::kernels::omp::run_kernel_reduction(
@@ -360,7 +360,7 @@ TEST_F(KernelLaunch, Reduction2DLargeRows)
 
 TEST_F(KernelLaunch, Reduction2D)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::omp::run_kernel_reduction(
         exec,
@@ -386,10 +386,10 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
     // if OMP_NUM_THREADS >= 2
     int num_rows = 4;
     int num_cols = 100;
-    gko::Array<int64> host_ref{exec->get_master(),
+    gko::array<int64> host_ref{exec->get_master(),
                                static_cast<size_type>(2 * num_rows)};
     std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
-    gko::Array<int64> output{exec, host_ref};
+    gko::array<int64> output{exec, host_ref};
     for (int i = 0; i < num_rows; i++) {
         // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
         // row i and storing it with stride 2
@@ -420,10 +420,10 @@ TEST_F(KernelLaunch, ReductionRow2D)
 {
     int num_rows = 1000;
     int num_cols = 100;
-    gko::Array<int64> host_ref{exec->get_master(),
+    gko::array<int64> host_ref{exec->get_master(),
                                static_cast<size_type>(2 * num_rows)};
     std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
-    gko::Array<int64> output{exec, host_ref};
+    gko::array<int64> output{exec, host_ref};
     for (int i = 0; i < num_rows; i++) {
         // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
         // row i and storing it with stride 2
@@ -454,9 +454,9 @@ TEST_F(KernelLaunch, ReductionCol2D)
     for (int num_rows : {0, 1, 10, 1000, 1000}) {
         for (int num_cols :
              {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 40, 100, 1000}) {
-            gko::Array<int64> host_ref{exec->get_master(),
+            gko::array<int64> host_ref{exec->get_master(),
                                        static_cast<size_type>(num_cols)};
-            gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
+            gko::array<int64> output{exec, static_cast<size_type>(num_cols)};
             for (int i = 0; i < num_cols; i++) {
                 // we are computing 2 * sum {j=0, j<row} (i+1)*(j+1) for each
                 // column i

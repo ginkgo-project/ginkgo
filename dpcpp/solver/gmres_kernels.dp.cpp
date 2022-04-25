@@ -443,7 +443,7 @@ void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<ValueType>* residual,
                   matrix::Dense<ValueType>* givens_sin,
                   matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+                  array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -469,7 +469,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
                   matrix::Dense<ValueType>* residual_norm_collection,
                   matrix::Dense<ValueType>* krylov_bases,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
@@ -479,7 +479,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
-    Array<char> tmp{exec};
+    array<char> tmp{exec};
 
     kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                   tmp);
@@ -574,7 +574,7 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
                      matrix::Dense<ValueType>* hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>>* residual_norm,
                      matrix::Dense<ValueType>* residual_norm_collection,
-                     size_type iter, const Array<stopping_status>* stop_status)
+                     size_type iter, const array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -602,8 +602,8 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType>* residual_norm_collection,
             matrix::Dense<ValueType>* krylov_bases,
             matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-            Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status)
+            array<size_type>* final_iter_nums,
+            const array<stopping_status>* stop_status)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -624,7 +624,7 @@ void solve_upper_triangular(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Dense<ValueType>* residual_norm_collection,
     const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
-    const Array<size_type>* final_iter_nums)
+    const array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -647,7 +647,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
                   const matrix::Dense<ValueType>* krylov_bases,
                   const matrix::Dense<ValueType>* y,
                   matrix::Dense<ValueType>* before_preconditioner,
-                  const Array<size_type>* final_iter_nums)
+                  const array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
@@ -681,7 +681,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType>* hessenberg,
             matrix::Dense<ValueType>* y,
             matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+            const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
                            final_iter_nums);

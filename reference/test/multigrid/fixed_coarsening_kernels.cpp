@@ -109,7 +109,7 @@ protected:
         mg_level = fixed_coarsening_factory->generate(mtx);
     }
 
-    void create_mtx(Mtx* fine, gko::Array<index_type>* coarse_rows, Mtx* coarse)
+    void create_mtx(Mtx* fine, gko::array<index_type>* coarse_rows, Mtx* coarse)
     {
         auto coarse_rows_val = coarse_rows->get_data();
         coarse_rows_val[0] = 0;
@@ -179,8 +179,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> coarse;
-    gko::Array<index_type> coarse_rows;
-    gko::Array<index_type> gen_coarse_rows;
+    gko::array<index_type> coarse_rows;
+    gko::array<index_type> gen_coarse_rows;
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;
     std::shared_ptr<Vec> restrict_ans;
@@ -356,7 +356,7 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCsrMatrix)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto coarse_rows = gko::Array<index_type>(this->exec, {0, 2, 3});
+    auto coarse_rows = gko::array<index_type>(this->exec, {0, 2, 3});
     auto mglevel_sort =
         MgLevel::build().with_coarse_rows(coarse_rows).on(this->exec);
     /* this unsorted matrix is stored as this->fine:
@@ -395,7 +395,7 @@ TYPED_TEST(FixedCoarsening, GenerateMgLevelOnUnsortedCooMatrix)
     using CooMtx = typename TestFixture::CooMtx;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto coarse_rows = gko::Array<index_type>(this->exec, {0, 2, 3});
+    auto coarse_rows = gko::array<index_type>(this->exec, {0, 2, 3});
     auto mglevel_sort =
         MgLevel::build().with_coarse_rows(coarse_rows).on(this->exec);
     /* this unsorted matrix is stored as this->fine:

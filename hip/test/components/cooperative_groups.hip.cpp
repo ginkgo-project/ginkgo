@@ -96,8 +96,8 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
-    gko::Array<bool> result;
-    gko::Array<bool> dresult;
+    gko::array<bool> result;
+    gko::array<bool> dresult;
 };
 
 
@@ -297,9 +297,9 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
     uint64_t x = 0x401022C90008B240;
     double x_dbl{};
     std::memcpy(&x_dbl, &x, sizeof(x_dbl));
-    gko::Array<double> value(ref, config::warp_size);
-    gko::Array<double> answer(ref, config::warp_size);
-    gko::Array<double> dvalue(hip);
+    gko::array<double> value(ref, config::warp_size);
+    gko::array<double> answer(ref, config::warp_size);
+    gko::array<double> dvalue(hip);
     for (int i = 0; i < value.get_num_elems(); i++) {
         value.get_data()[i] = x_dbl;
         answer.get_data()[i] = value.get_data()[i] * (1 << num);
@@ -320,9 +320,9 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
     uint64_t x = 0x401022C90008B240;
     double x_dbl{};
     std::memcpy(&x_dbl, &x, sizeof(x_dbl));
-    gko::Array<std::complex<double>> value(ref, config::warp_size);
-    gko::Array<std::complex<double>> answer(ref, config::warp_size);
-    gko::Array<std::complex<double>> dvalue(hip);
+    gko::array<std::complex<double>> value(ref, config::warp_size);
+    gko::array<std::complex<double>> answer(ref, config::warp_size);
+    gko::array<std::complex<double>> dvalue(hip);
     for (int i = 0; i < value.get_num_elems(); i++) {
         value.get_data()[i] = std::complex<double>{x_dbl, x_dbl};
         answer.get_data()[i] =

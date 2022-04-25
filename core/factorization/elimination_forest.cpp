@@ -48,7 +48,7 @@ void compute_elim_forest_parent_impl(std::shared_ptr<const Executor> host_exec,
                                      IndexType* parent)
 {
     disjoint_sets<IndexType> subtrees{host_exec, num_rows};
-    Array<IndexType> subtree_root_array{host_exec,
+    array<IndexType> subtree_root_array{host_exec,
                                         static_cast<size_type>(num_rows)};
     // pseudo-root one past the last row to deal with disconnected matrices
     const auto unattached = num_rows;
@@ -108,7 +108,7 @@ void compute_elim_forest_postorder_impl(
     const IndexType* child_ptr, const IndexType* child, IndexType size,
     IndexType* postorder, IndexType* inv_postorder)
 {
-    Array<IndexType> current_child_array{host_exec,
+    array<IndexType> current_child_array{host_exec,
                                          static_cast<size_type>(size + 1)};
     current_child_array.fill(0);
     auto current_child = current_child_array.get_data();

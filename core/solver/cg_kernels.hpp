@@ -58,7 +58,7 @@ namespace cg {
                     matrix::Dense<_type>* z, matrix::Dense<_type>* p,        \
                     matrix::Dense<_type>* q, matrix::Dense<_type>* prev_rho, \
                     matrix::Dense<_type>* rho,                               \
-                    Array<stopping_status>* stop_status)
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CG_STEP_1_KERNEL(_type)                             \
@@ -66,7 +66,7 @@ namespace cg {
                 matrix::Dense<_type>* p, const matrix::Dense<_type>* z, \
                 const matrix::Dense<_type>* rho,                        \
                 const matrix::Dense<_type>* prev_rho,                   \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_CG_STEP_2_KERNEL(_type)                                   \
@@ -75,7 +75,7 @@ namespace cg {
                 const matrix::Dense<_type>* p, const matrix::Dense<_type>* q, \
                 const matrix::Dense<_type>* beta,                             \
                 const matrix::Dense<_type>* rho,                              \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES             \

@@ -53,7 +53,7 @@ template <typename ValueType>
 void fft(std::shared_ptr<const DefaultExecutor> exec,
          const matrix::Dense<std::complex<ValueType>>* b,
          matrix::Dense<std::complex<ValueType>>* x, bool inverse,
-         Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+         array<char>& buffer) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT_KERNEL);
 
@@ -63,7 +63,7 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
           size_type size2, bool inverse,
-          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+          array<char>& buffer) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT2_KERNEL);
 
@@ -73,7 +73,7 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
           size_type size2, size_type size3, bool inverse,
-          Array<char>& buffer) GKO_NOT_IMPLEMENTED;
+          array<char>& buffer) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_FFT3_KERNEL);
 

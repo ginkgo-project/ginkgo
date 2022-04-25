@@ -69,7 +69,7 @@ public:
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* solution, const uint8& stopping_id,
-        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_stopped) const override;
 
     void on_criterion_check_completed(
@@ -77,7 +77,7 @@ public:
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* implicit_sq_resnorm, const LinOp* solution,
         const uint8& stopping_id, const bool& set_finalized,
-        const Array<stopping_status>* status, const bool& one_changed,
+        const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
     /**

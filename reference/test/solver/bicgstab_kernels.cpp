@@ -123,7 +123,7 @@ protected:
         small_z = small_zero->clone();
         small_y = small_zero->clone();
         small_p = small_zero->clone();
-        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
         stopped.stop(1, false);
         finalized.stop(1, true);
         non_stopped.reset();
@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<Mtx> small_z;
     std::unique_ptr<Mtx> small_y;
     std::unique_ptr<Mtx> small_p;
-    gko::Array<gko::stopping_status> small_stop;
+    gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status finalized;
     gko::stopping_status non_stopped;

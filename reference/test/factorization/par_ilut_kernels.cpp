@@ -210,8 +210,8 @@ protected:
 
         gko::remove_complex<ValueType> res{};
         gko::remove_complex<ValueType> dres{};
-        gko::Array<ValueType> tmp(ref);
-        gko::Array<gko::remove_complex<ValueType>> tmp2(ref);
+        gko::array<ValueType> tmp(ref);
+        gko::array<gko::remove_complex<ValueType>> tmp2(ref);
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, result);
 
@@ -253,7 +253,7 @@ protected:
         auto res_mtx2 = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo2 = Coo::create(exec, mtx->get_size());
 
-        auto tmp = gko::Array<typename Mtx::value_type>{exec};
+        auto tmp = gko::array<typename Mtx::value_type>{exec};
         gko::remove_complex<typename Mtx::value_type> threshold{};
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
@@ -427,7 +427,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    auto tmp = gko::Array<value_type>{this->ref};
+    auto tmp = gko::array<value_type>{this->ref};
     gko::remove_complex<value_type> threshold{};
     Coo* null_coo = nullptr;
     index_type rank{};

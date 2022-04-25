@@ -196,7 +196,7 @@ template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::read(const device_mat_data& data)
 {
     auto exec = this->get_executor();
-    Array<int64> row_ptrs(exec, data.get_size()[0] + 1);
+    array<int64> row_ptrs(exec, data.get_size()[0] + 1);
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(ell::make_convert_idxs_to_ptrs(
         local_data->get_const_row_idxs(), local_data->get_num_elems(),

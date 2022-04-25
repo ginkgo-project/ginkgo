@@ -54,8 +54,8 @@ namespace amgx_pgm {
 
 template <typename IndexType>
 void match_edge(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<IndexType>& strongest_neighbor,
-                Array<IndexType>& agg)
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
 {
     run_kernel(
         exec,
@@ -80,9 +80,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const DefaultExecutor> exec,
-                 const Array<IndexType>& agg, IndexType* num_unagg)
+                 const array<IndexType>& agg, IndexType* num_unagg)
 {
-    Array<IndexType> d_result(exec, 1);
+    array<IndexType> d_result(exec, 1);
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto array) { return array[i] == -1; },
         GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(),
@@ -96,10 +96,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 template <typename IndexType>
 void renumber(std::shared_ptr<const DefaultExecutor> exec,
-              Array<IndexType>& agg, IndexType* num_agg)
+              array<IndexType>& agg, IndexType* num_agg)
 {
     const auto num = agg.get_num_elems();
-    Array<IndexType> agg_map(exec, num + 1);
+    array<IndexType> agg_map(exec, num + 1);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto tidx, auto agg, auto agg_map) {
@@ -168,7 +168,7 @@ void count_unrepeated_nnz(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* col_idxs, size_type* coarse_nnz)
 {
     if (nnz > 1) {
-        Array<IndexType> d_result(exec, 1);
+        array<IndexType> d_result(exec, 1);
         run_kernel_reduction(
             exec,
             [] GKO_KERNEL(auto i, auto row_idxs, auto col_idxs) {
@@ -192,8 +192,8 @@ template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& strongest_neighbor)
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& strongest_neighbor)
 {
     run_kernel(
         exec,
@@ -253,8 +253,8 @@ template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* weight_mtx,
                          const matrix::Diagonal<ValueType>* diag,
-                         Array<IndexType>& agg,
-                         Array<IndexType>& intermediate_agg)
+                         array<IndexType>& agg,
+                         array<IndexType>& intermediate_agg)
 {
     const auto num = agg.get_num_elems();
     if (intermediate_agg.get_num_elems() > 0) {

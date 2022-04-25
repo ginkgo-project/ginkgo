@@ -228,8 +228,8 @@ public:
      */
     static std::unique_ptr<const SparsityCsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs,
         ValueType value = one<ValueType>())
     {
         // cast const-ness away, but return a const object afterwards,
@@ -309,9 +309,9 @@ protected:
                     LinOp* x) const override;
 
 private:
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
-    Array<value_type> value_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
+    array<value_type> value_;
 };
 
 

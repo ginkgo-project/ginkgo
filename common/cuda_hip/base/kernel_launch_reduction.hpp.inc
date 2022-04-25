@@ -122,7 +122,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, size_type size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
     constexpr auto block_size = default_block_size;
@@ -159,7 +159,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, dim<2> size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
     constexpr auto block_size = default_block_size;
@@ -380,7 +380,7 @@ void run_generic_col_reduction_small(
     syn::value_list<int, subwarp_size>, int64 max_blocks,
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
     ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
-    dim<2> size, Array<char>& tmp, MappedKernelArgs... args)
+    dim<2> size, array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -425,7 +425,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
 void run_kernel_row_reduction_cached(
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
     ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
-    size_type result_stride, dim<2> size, Array<char>& tmp,
+    size_type result_stride, dim<2> size, array<char>& tmp,
     KernelArgs&&... args)
 {
     using subwarp_sizes =
@@ -476,7 +476,7 @@ template <typename ValueType, typename KernelFunction, typename ReductionOp,
 void run_kernel_col_reduction_cached(
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
     ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
-    dim<2> size, Array<char>& tmp, KernelArgs&&... args)
+    dim<2> size, array<char>& tmp, KernelArgs&&... args)
 {
     using subwarp_sizes =
         syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;

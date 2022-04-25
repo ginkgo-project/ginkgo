@@ -70,9 +70,9 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     gko::size_type total_size;
-    gko::Array<value_type> inplace_expected;
-    gko::Array<abs_type> outplace_expected;
-    gko::Array<value_type> vals;
+    gko::array<value_type> inplace_expected;
+    gko::array<abs_type> outplace_expected;
+    gko::array<value_type> vals;
 };
 
 TYPED_TEST_SUITE(AbsoluteArray, gko::test::ValueTypes, TypenameNameGenerator);
@@ -93,7 +93,7 @@ TYPED_TEST(AbsoluteArray, OutplaceEqualsExpected)
 {
     using T = typename TestFixture::value_type;
     using AbsT = typename TestFixture::abs_type;
-    gko::Array<AbsT> abs_vals(this->ref, this->total_size);
+    gko::array<AbsT> abs_vals(this->ref, this->total_size);
 
     gko::kernels::reference::components::outplace_absolute_array(
         this->ref, this->vals.get_const_data(), this->total_size,

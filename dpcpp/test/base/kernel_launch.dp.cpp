@@ -124,9 +124,9 @@ protected:
     }
 
     std::shared_ptr<gko::DpcppExecutor> exec;
-    gko::Array<int> zero_array;
-    gko::Array<int> iota_array;
-    gko::Array<int> iota_transp_array;
+    gko::array<int> zero_array;
+    gko::array<int> iota_array;
+    gko::array<int> iota_transp_array;
     std::unique_ptr<Mtx> iota_dense;
     std::unique_ptr<Mtx> zero_dense;
     std::unique_ptr<Mtx> zero_dense2;
@@ -293,7 +293,7 @@ TEST_F(KernelLaunch, Runs2DDense)
 
 TEST_F(KernelLaunch, Reduction1D)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -343,7 +343,7 @@ TEST_F(KernelLaunch, Reduction1D)
 
 TEST_F(KernelLaunch, Reduction2D)
 {
-    gko::Array<int64> output{exec, 1};
+    gko::array<int64> output{exec, 1};
 
     gko::kernels::dpcpp::run_kernel_reduction(
         exec,
@@ -400,10 +400,10 @@ TEST_F(KernelLaunch, ReductionRow2D)
         for (auto num_cols : {0, 1, 10, 100, 1000, 10000}) {
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
-            gko::Array<int64> host_ref{exec->get_master(),
+            gko::array<int64> host_ref{exec->get_master(),
                                        static_cast<size_type>(2 * num_rows)};
             std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
-            gko::Array<int64> output{exec, host_ref};
+            gko::array<int64> output{exec, host_ref};
             for (int i = 0; i < num_rows; i++) {
                 // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
                 // row i and storing it with stride 2
@@ -441,9 +441,9 @@ TEST_F(KernelLaunch, ReductionCol2D)
              {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 40, 100, 1000}) {
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
-            gko::Array<int64> host_ref{exec->get_master(),
+            gko::array<int64> host_ref{exec->get_master(),
                                        static_cast<size_type>(num_cols)};
-            gko::Array<int64> output{exec, static_cast<size_type>(num_cols)};
+            gko::array<int64> output{exec, static_cast<size_type>(num_cols)};
             for (int i = 0; i < num_cols; i++) {
                 // we are computing 2 * sum {j=0, j<row} (i+1)*(j+1) for each
                 // column i

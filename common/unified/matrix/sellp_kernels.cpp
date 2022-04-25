@@ -54,7 +54,7 @@ namespace sellp {
 
 template <typename IndexType>
 void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<IndexType>& row_ptrs, size_type slice_size,
+                        const array<IndexType>& row_ptrs, size_type slice_size,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {

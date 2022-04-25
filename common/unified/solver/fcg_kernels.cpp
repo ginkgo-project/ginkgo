@@ -57,7 +57,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* t,
                 matrix::Dense<ValueType>* prev_rho,
                 matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* rho_t,
-                Array<stopping_status>* stop_status)
+                array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -86,7 +86,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* z,
             const matrix::Dense<ValueType>* rho_t,
             const matrix::Dense<ValueType>* prev_rho,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -111,7 +111,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType>* q,
             const matrix::Dense<ValueType>* beta,
             const matrix::Dense<ValueType>* rho,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,

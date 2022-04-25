@@ -46,18 +46,18 @@ namespace kernels {
 
 #define GKO_PARTITION_COUNT_RANGES                                 \
     void count_ranges(std::shared_ptr<const DefaultExecutor> exec, \
-                      const Array<comm_index_type>& mapping,       \
+                      const array<comm_index_type>& mapping,       \
                       size_type& num_ranges)
 
 #define GKO_PARTITION_BUILD_FROM_CONTIGUOUS(GlobalIndexType)                \
     void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec, \
-                               const Array<GlobalIndexType>& ranges,        \
+                               const array<GlobalIndexType>& ranges,        \
                                GlobalIndexType* range_bounds,               \
                                comm_index_type* part_ids)
 
 #define GKO_PARTITION_BUILD_FROM_MAPPING(GlobalIndexType)                \
     void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec, \
-                            const Array<comm_index_type>& mapping,       \
+                            const array<comm_index_type>& mapping,       \
                             GlobalIndexType* range_bounds,               \
                             comm_index_type* part_ids)
 
@@ -65,7 +65,7 @@ namespace kernels {
     void build_ranges_from_global_size(                         \
         std::shared_ptr<const DefaultExecutor> exec,            \
         comm_index_type num_parts, GlobalIndexType global_size, \
-        Array<GlobalIndexType>& ranges)
+        array<GlobalIndexType>& ranges)
 
 #define GKO_DECLARE_PARTITION_BUILD_STARTING_INDICES(LocalIndexType,          \
                                                      GlobalIndexType)         \

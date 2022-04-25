@@ -53,7 +53,7 @@ namespace idr {
     void initialize(std::shared_ptr<const DefaultExecutor> exec,   \
                     const size_type nrhs, matrix::Dense<_type>* m, \
                     matrix::Dense<_type>* subspace_vectors,        \
-                    bool deterministic, Array<stopping_status>* stop_status)
+                    bool deterministic, array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_IDR_STEP_1_KERNEL(_type)                                 \
@@ -62,7 +62,7 @@ namespace idr {
         const size_type k, const matrix::Dense<_type>* m,                    \
         const matrix::Dense<_type>* f, const matrix::Dense<_type>* residual, \
         const matrix::Dense<_type>* g, matrix::Dense<_type>* c,              \
-        matrix::Dense<_type>* v, const Array<stopping_status>* stop_status)
+        matrix::Dense<_type>* v, const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_IDR_STEP_2_KERNEL(_type)                            \
@@ -71,7 +71,7 @@ namespace idr {
                 const matrix::Dense<_type>* omega,                      \
                 const matrix::Dense<_type>* preconditioned_vector,      \
                 const matrix::Dense<_type>* c, matrix::Dense<_type>* u, \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_IDR_STEP_3_KERNEL(_type)                                 \
@@ -82,7 +82,7 @@ namespace idr {
                 matrix::Dense<_type>* m, matrix::Dense<_type>* f,            \
                 matrix::Dense<_type>* alpha, matrix::Dense<_type>* residual, \
                 matrix::Dense<_type>* x,                                     \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(_type)                         \
@@ -91,7 +91,7 @@ namespace idr {
         const remove_complex<_type> kappa, const matrix::Dense<_type>* tht, \
         const matrix::Dense<remove_complex<_type>>* residual_norm,          \
         matrix::Dense<_type>* omega,                                        \
-        const Array<stopping_status>* stop_status)
+        const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \
