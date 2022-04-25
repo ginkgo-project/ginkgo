@@ -71,7 +71,7 @@ void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
                           ValueType* result, size_type size,
                           KernelArgs&&... args)
 {
-    Array<char> cache{exec};
+    array<char> cache{exec};
     run_kernel_reduction_cached(exec, fn, op, finalize, identity, result, size,
                                 cache, std::forward<KernelArgs>(args)...);
 }
@@ -84,7 +84,7 @@ void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
                           FinalizeOp finalize, ValueType identity,
                           ValueType* result, dim<2> size, KernelArgs&&... args)
 {
-    Array<char> cache{exec};
+    array<char> cache{exec};
     run_kernel_reduction_cached(exec, fn, op, finalize, identity, result, size,
                                 cache, std::forward<KernelArgs>(args)...);
 }
@@ -98,7 +98,7 @@ void run_kernel_row_reduction(std::shared_ptr<const DefaultExecutor> exec,
                               ValueType* result, size_type result_stride,
                               dim<2> size, KernelArgs&&... args)
 {
-    Array<char> cache{exec};
+    array<char> cache{exec};
     run_kernel_row_reduction_cached(exec, fn, op, finalize, identity, result,
                                     result_stride, size, cache,
                                     std::forward<KernelArgs>(args)...);
@@ -113,7 +113,7 @@ void run_kernel_col_reduction(std::shared_ptr<const DefaultExecutor> exec,
                               ValueType* result, dim<2> size,
                               KernelArgs&&... args)
 {
-    Array<char> cache{exec};
+    array<char> cache{exec};
     run_kernel_col_reduction_cached(exec, fn, op, finalize, identity, result,
                                     size, cache,
                                     std::forward<KernelArgs>(args)...);

@@ -87,7 +87,7 @@ TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes,
 TYPED_TEST(Partition, BuildsFromMapping)
 {
     using part_type = typename TestFixture::part_type;
-    gko::Array<comm_index_type> mapping{
+    gko::array<comm_index_type> mapping{
         this->ref, {2, 2, 0, 1, 1, 2, 0, 0, 1, 0, 1, 1, 1, 2, 2, 0}};
     comm_index_type num_parts = 3;
     gko::size_type num_ranges = 10;
@@ -112,7 +112,7 @@ TYPED_TEST(Partition, BuildsFromMapping)
 TYPED_TEST(Partition, BuildsFromMappingWithEmptyParts)
 {
     using part_type = typename TestFixture::part_type;
-    gko::Array<comm_index_type> mapping{
+    gko::array<comm_index_type> mapping{
         this->ref, {3, 3, 0, 1, 1, 3, 0, 0, 1, 0, 1, 1, 1, 3, 3, 0}};
     comm_index_type num_parts = 5;
     gko::size_type num_ranges = 10;
@@ -138,7 +138,7 @@ TYPED_TEST(Partition, BuildsFromRanges)
 {
     using global_index_type = typename TestFixture::global_index_type;
     using part_type = typename TestFixture::part_type;
-    gko::Array<global_index_type> ranges{this->ref, {0, 5, 5, 7, 9, 10}};
+    gko::array<global_index_type> ranges{this->ref, {0, 5, 5, 7, 9, 10}};
 
     auto partition = part_type::build_from_contiguous(this->ref, ranges);
 
@@ -158,7 +158,7 @@ TYPED_TEST(Partition, BuildsFromRangeWithSingleElement)
 {
     using global_index_type = typename TestFixture::global_index_type;
     using part_type = typename TestFixture::part_type;
-    gko::Array<global_index_type> ranges{this->ref, {0}};
+    gko::array<global_index_type> ranges{this->ref, {0}};
 
     auto partition = part_type::build_from_contiguous(this->ref, ranges);
 
@@ -226,7 +226,7 @@ TYPED_TEST(Partition, IsConnected)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}}, 3);
+        this->ref, gko::array<comm_index_type>{this->ref, {0, 0, 1, 1, 2}}, 3);
 
     ASSERT_TRUE(part->has_connected_parts());
 }
@@ -236,7 +236,7 @@ TYPED_TEST(Partition, IsConnectedWithEmptyParts)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}}, 6);
+        this->ref, gko::array<comm_index_type>{this->ref, {0, 0, 2, 2, 5}}, 6);
 
     ASSERT_TRUE(part->has_connected_parts());
 }
@@ -246,7 +246,7 @@ TYPED_TEST(Partition, IsConnectedUnordered)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3);
+        this->ref, gko::array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3);
 
     ASSERT_TRUE(part->has_connected_parts());
     ASSERT_FALSE(part->has_ordered_parts());
@@ -257,7 +257,7 @@ TYPED_TEST(Partition, IsConnectedFail)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}}, 3);
+        this->ref, gko::array<comm_index_type>{this->ref, {0, 1, 2, 0, 1}}, 3);
 
     ASSERT_FALSE(part->has_connected_parts());
 }
@@ -267,7 +267,7 @@ TYPED_TEST(Partition, IsOrdered)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}}, 3);
+        this->ref, gko::array<comm_index_type>{this->ref, {0, 1, 1, 2, 2}}, 3);
 
     ASSERT_TRUE(part->has_ordered_parts());
 }
@@ -277,7 +277,7 @@ TYPED_TEST(Partition, IsOrderedWithEmptyParts)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {0, 2, 2, 5, 5}}, 6);
+        this->ref, gko::array<comm_index_type>{this->ref, {0, 2, 2, 5, 5}}, 6);
 
     ASSERT_TRUE(part->has_ordered_parts());
 }
@@ -287,7 +287,7 @@ TYPED_TEST(Partition, IsOrderedFail)
 {
     using part_type = typename TestFixture::part_type;
     auto part = part_type::build_from_mapping(
-        this->ref, gko::Array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3);
+        this->ref, gko::array<comm_index_type>{this->ref, {1, 1, 0, 0, 2}}, 3);
 
     ASSERT_FALSE(part->has_ordered_parts());
 }

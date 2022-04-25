@@ -104,10 +104,10 @@ TYPED_TEST(index_set, KnowsItsExecutor)
 
 TYPED_TEST(index_set, CanBeCopyConstructed)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -120,10 +120,10 @@ TYPED_TEST(index_set, CanBeCopyConstructed)
 
 TYPED_TEST(index_set, CanBeMoveConstructed)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -137,10 +137,10 @@ TYPED_TEST(index_set, CanBeMoveConstructed)
 
 TYPED_TEST(index_set, CanBeCopyAssigned)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -153,10 +153,10 @@ TYPED_TEST(index_set, CanBeCopyAssigned)
 
 TYPED_TEST(index_set, CanBeMoveAssigned)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -170,10 +170,10 @@ TYPED_TEST(index_set, CanBeMoveAssigned)
 
 TYPED_TEST(index_set, KnowsItsSize)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -183,10 +183,10 @@ TYPED_TEST(index_set, KnowsItsSize)
 
 TYPED_TEST(index_set, CanBeConstructedFromIndices)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -205,10 +205,10 @@ TYPED_TEST(index_set, CanBeConstructedFromIndices)
 
 TYPED_TEST(index_set, CanBeConvertedToGlobalIndices)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
     auto out_arr = idx_set.to_global_indices();
@@ -219,10 +219,10 @@ TYPED_TEST(index_set, CanBeConvertedToGlobalIndices)
 
 TYPED_TEST(index_set, CanBeConstructedFromNonSortedIndices)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {9, 1, 4, 2, 6, 8, 0, 7}};
-    auto begin_comp = gko::Array<TypeParam>{this->exec, {0, 4, 6}};
-    auto end_comp = gko::Array<TypeParam>{this->exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<TypeParam>{this->exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {9, 1, 4, 2, 6, 8, 0, 7}};
+    auto begin_comp = gko::array<TypeParam>{this->exec, {0, 4, 6}};
+    auto end_comp = gko::array<TypeParam>{this->exec, {3, 5, 10}};
+    auto superset_comp = gko::array<TypeParam>{this->exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -241,7 +241,7 @@ TYPED_TEST(index_set, CanBeConstructedFromNonSortedIndices)
 
 TYPED_TEST(index_set, CanDetectContiguousindex_sets)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 3, 4, 5, 6}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 3, 4, 5, 6}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -252,7 +252,7 @@ TYPED_TEST(index_set, CanDetectContiguousindex_sets)
 
 TYPED_TEST(index_set, CanDetectNonContiguousindex_sets)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -263,7 +263,7 @@ TYPED_TEST(index_set, CanDetectNonContiguousindex_sets)
 
 TYPED_TEST(index_set, CanDetectElementInindex_set)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 3, 4, 5, 6}};
 
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
@@ -274,7 +274,7 @@ TYPED_TEST(index_set, CanDetectElementInindex_set)
 
 TYPED_TEST(index_set, CanGetGlobalIndex)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
     ASSERT_EQ(idx_set.get_num_elems(), 8);
@@ -291,9 +291,9 @@ TYPED_TEST(index_set, CanGetGlobalIndex)
 
 TYPED_TEST(index_set, CanGetGlobalIndexFromSortedArrays)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto lidx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 4, 6, 7}};
-    auto gidx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 6, 8, 9}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto lidx_arr = gko::array<TypeParam>{this->exec, {0, 1, 4, 6, 7}};
+    auto gidx_arr = gko::array<TypeParam>{this->exec, {0, 1, 6, 8, 9}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
@@ -307,9 +307,9 @@ TYPED_TEST(index_set, CanGetGlobalIndexFromSortedArrays)
 
 TYPED_TEST(index_set, CanGetGlobalIndexFromUnsortedArrays)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto lidx_arr = gko::Array<TypeParam>{this->exec, {4, 7, 0, 6, 1}};
-    auto gidx_arr = gko::Array<TypeParam>{this->exec, {6, 9, 0, 8, 1}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto lidx_arr = gko::array<TypeParam>{this->exec, {4, 7, 0, 6, 1}};
+    auto gidx_arr = gko::array<TypeParam>{this->exec, {6, 9, 0, 8, 1}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
@@ -323,7 +323,7 @@ TYPED_TEST(index_set, CanGetGlobalIndexFromUnsortedArrays)
 
 TYPED_TEST(index_set, CanGetLocalIndex)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
 
     ASSERT_EQ(idx_set.get_num_elems(), 8);
@@ -337,7 +337,7 @@ TYPED_TEST(index_set, CanGetLocalIndex)
 
 TYPED_TEST(index_set, CanDetectNonExistentIndices)
 {
-    auto idx_arr = gko::Array<TypeParam>{
+    auto idx_arr = gko::array<TypeParam>{
         this->exec, {0, 8, 1, 2, 3, 4, 6, 11, 9, 5, 7, 28, 39}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 45, idx_arr};
 
@@ -349,9 +349,9 @@ TYPED_TEST(index_set, CanDetectNonExistentIndices)
 
 TYPED_TEST(index_set, CanGetLocalIndexFromSortedArrays)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto gidx_arr = gko::Array<TypeParam>{this->exec, {0, 4, 6, 8, 9}};
-    auto lidx_arr = gko::Array<TypeParam>{this->exec, {0, 3, 4, 6, 7}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto gidx_arr = gko::array<TypeParam>{this->exec, {0, 4, 6, 8, 9}};
+    auto lidx_arr = gko::array<TypeParam>{this->exec, {0, 3, 4, 6, 7}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 
@@ -365,9 +365,9 @@ TYPED_TEST(index_set, CanGetLocalIndexFromSortedArrays)
 
 TYPED_TEST(index_set, CanGetLocalIndexFromUnsortedArrays)
 {
-    auto idx_arr = gko::Array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto gidx_arr = gko::Array<TypeParam>{this->exec, {6, 0, 4, 8, 9}};
-    auto lidx_arr = gko::Array<TypeParam>{this->exec, {4, 0, 3, 6, 7}};
+    auto idx_arr = gko::array<TypeParam>{this->exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto gidx_arr = gko::array<TypeParam>{this->exec, {6, 0, 4, 8, 9}};
+    auto lidx_arr = gko::array<TypeParam>{this->exec, {4, 0, 3, 6, 7}};
     auto idx_set = gko::index_set<TypeParam>{this->exec, 10, idx_arr};
     ASSERT_EQ(idx_set.get_num_elems(), 8);
 

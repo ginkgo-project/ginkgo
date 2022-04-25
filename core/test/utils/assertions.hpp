@@ -361,7 +361,7 @@ template <typename MatrixData1, typename MatrixData2>
 template <typename ValueType>
 ::testing::AssertionResult array_equal_impl(
     const std::string& first_expression, const std::string& second_expression,
-    const Array<ValueType>& first, const Array<ValueType>& second)
+    const array<ValueType>& first, const array<ValueType>& second)
 {
     const auto num_elems1 = first.get_num_elems();
     const auto num_elems2 = second.get_num_elems();
@@ -374,8 +374,8 @@ template <typename ValueType>
     }
 
     auto exec = first.get_executor()->get_master();
-    Array<ValueType> first_array(exec, first);
-    Array<ValueType> second_array(exec, second);
+    array<ValueType> first_array(exec, first);
+    array<ValueType> second_array(exec, second);
     for (size_type i = 0; i < num_elems1; ++i) {
         if (!(first_array.get_const_data()[i] ==
               second_array.get_const_data()[i])) {
@@ -619,16 +619,16 @@ template <typename LinOp1, typename T>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(const std::string& first_expression,
                                        const std::string& second_expression,
-                                       const Array<ValueType>& first,
-                                       const Array<ValueType>& second)
+                                       const array<ValueType>& first,
+                                       const array<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second);
 }
 
 /**
- * array_equal overload: where `first` is a ConstArrayView.
- * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * array_equal overload: where `first` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
  * `second`.
  *
  * @copydoc array_equal
@@ -636,16 +636,16 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const gko::detail::ConstArrayView<ValueType>& first,
-    const Array<ValueType>& second)
+    const gko::detail::const_array_view<ValueType>& first,
+    const array<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression,
                                     first.copy_to_array(), second);
 }
 
 /**
- * array_equal overload: where `second` is a ConstArrayView.
- * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * array_equal overload: where `second` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
  * `second`
  *
  * @copydoc array_equal
@@ -653,16 +653,16 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const Array<ValueType>& first,
-    const gko::detail::ConstArrayView<ValueType>& second)
+    const array<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second.copy_to_array());
 }
 
 /**
- * array_equal overload: where both `first` and `second` are ConstArrayViews.
- * It creates Array copies of the ConstArrayView and then compare `first` and
+ * array_equal overload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
  * `second`
  *
  * @copydoc array_equal
@@ -670,8 +670,8 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const gko::detail::ConstArrayView<ValueType>& first,
-    const gko::detail::ConstArrayView<ValueType>& second)
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression,
                                     first.copy_to_array(),
@@ -683,20 +683,20 @@ template <typename ValueType>
 ::testing::AssertionResult array_equal(const std::string& first_expression,
                                        const std::string& second_expression,
                                        std::initializer_list<ValueType> first,
-                                       const Array<ValueType>& second)
+                                       const array<ValueType>& second)
 {
     return array_equal(first_expression, second_expression,
-                       Array<ValueType>{second.get_executor(), first}, second);
+                       array<ValueType>{second.get_executor(), first}, second);
 }
 
 template <typename ValueType>
 ::testing::AssertionResult array_equal(const std::string& first_expression,
                                        const std::string& second_expression,
-                                       const Array<ValueType>& first,
+                                       const array<ValueType>& first,
                                        std::initializer_list<ValueType> second)
 {
     return array_equal(first_expression, second_expression, first,
-                       Array<ValueType>{first.get_executor(), second});
+                       array<ValueType>{first.get_executor(), second});
 }
 
 
@@ -941,7 +941,7 @@ T* plain_ptr(T* ptr)
 
 
 /**
- * Checks if two `gko::Array`s are equal.
+ * Checks if two `gko::array`s are equal.
  *
  * Each value of _array1 is tested against the corresponding value in
  * _array2 with the operator `==` for equality.

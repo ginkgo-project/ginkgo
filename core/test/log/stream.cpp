@@ -694,7 +694,7 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompleted)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream ptrstream;
     ptrstream << criterion.get();
     std::stringstream true_in_stream;
@@ -725,7 +725,7 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream true_in_stream;
     true_in_stream << true;
 

@@ -94,7 +94,7 @@ public:
          * This array specifies the rows of the fine matrix which should be
          * selected as rows for the coarse matrix.
          */
-        Array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
+        array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be

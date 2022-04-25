@@ -100,8 +100,8 @@ void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
 
     const auto old_nnz = mtx->get_num_stored_elements();
     const size_type new_nnz = old_nnz + missing_elements;
-    Array<ValueType> new_values_array{exec, new_nnz};
-    Array<IndexType> new_col_idxs_array{exec, new_nnz};
+    array<ValueType> new_values_array{exec, new_nnz};
+    array<IndexType> new_col_idxs_array{exec, new_nnz};
     auto new_values = new_values_array.get_data();
     auto new_col_idxs = new_col_idxs_array.get_data();
     IndexType added_elements{};

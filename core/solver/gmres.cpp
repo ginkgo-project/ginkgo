@@ -134,12 +134,12 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
         NormVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    Array<size_type> final_iter_nums(this->get_executor(),
+    array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
 
     bool one_changed{};
-    Array<stopping_status> stop_status(this->get_executor(),
+    array<stopping_status> stop_status(this->get_executor(),
                                        dense_b->get_size()[1]);
 
     // Initialization

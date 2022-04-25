@@ -164,7 +164,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                              bs, b->get_const_values(), &beta, c->get_values());
         } else {
             const auto trans_stride = nrows;
-            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
+            auto trans_c = array<ValueType>(exec, nrows * nrhs);
             hipsparse::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                              HIPSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              &alpha, descr, values, row_ptrs, col_idxs, bs,
@@ -222,7 +222,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                              b->get_const_values(), betap, c->get_values());
         } else {
             const auto trans_stride = nrows;
-            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
+            auto trans_c = array<ValueType>(exec, nrows * nrhs);
             dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
                             trans_stride, trans_c.get_data());
             hipsparse::bsrmm(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
@@ -312,7 +312,7 @@ void is_sorted_by_column_index(
     bool* const is_sorted)
 {
     *is_sorted = true;
-    auto gpu_array = Array<bool>(exec, 1);
+    auto gpu_array = array<bool>(exec, 1);
     // need to initialize the GPU value to true
     exec->copy_from(exec->get_master().get(), 1, is_sorted,
                     gpu_array.get_data());

@@ -49,7 +49,7 @@ namespace components {
 template <typename ValueType, typename IndexType>
 void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,
                 const device_matrix_data<ValueType, IndexType>& in,
-                Array<matrix_data_entry<ValueType, IndexType>>& out)
+                array<matrix_data_entry<ValueType, IndexType>>& out)
 {
     run_kernel(
         exec,
@@ -66,7 +66,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<matrix_data_entry<ValueType, IndexType>>& in,
+                const array<matrix_data_entry<ValueType, IndexType>>& in,
                 device_matrix_data<ValueType, IndexType>& out)
 {
     run_kernel(

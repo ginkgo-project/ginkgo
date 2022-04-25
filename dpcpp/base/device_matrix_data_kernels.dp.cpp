@@ -51,8 +51,8 @@ namespace components {
 
 template <typename ValueType, typename IndexType>
 void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
-                  Array<ValueType>& values, Array<IndexType>& row_idxs,
-                  Array<IndexType>& col_idxs)
+                  array<ValueType>& values, array<IndexType>& row_idxs,
+                  array<IndexType>& col_idxs)
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     auto size = values.get_num_elems();
@@ -63,9 +63,9 @@ void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,
         [](ValueType val) { return is_nonzero<ValueType>(val); });
     if (nnz < size) {
         // allocate new storage
-        Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
+        array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
         // copy nonzeros
         auto input_it = oneapi::dpl::make_zip_iterator(
             row_idxs.get_const_data(), col_idxs.get_const_data(),
@@ -88,8 +88,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
-                    Array<ValueType>& values, Array<IndexType>& row_idxs,
-                    Array<IndexType>& col_idxs)
+                    array<ValueType>& values, array<IndexType>& row_idxs,
+                    array<IndexType>& col_idxs)
 {
     using nonzero_type = matrix_data_entry<ValueType, IndexType>;
     auto size = values.get_num_elems();
@@ -111,9 +111,9 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
         GKO_NOT_IMPLEMENTED;
         /* TODO uncomment once oneDPL reduce_by_segment is fixed
         // allocate new storage
-        Array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
-        Array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
+        array<ValueType> new_values{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_row_idxs{exec, static_cast<size_type>(nnz)};
+        array<IndexType> new_col_idxs{exec, static_cast<size_type>(nnz)};
         // copy nonzeros
         auto out_loc_it = oneapi::dpl::make_zip_iterator(
             new_row_idxs.get_data(), new_col_idxs.get_data());

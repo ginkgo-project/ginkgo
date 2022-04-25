@@ -160,7 +160,8 @@ private:
 
 
 template <typename ValueType>
-using ConstArrayView = const_array_view<ValueType>;
+using ConstArrayView [[deprecated("please use const_array_view")]] =
+    const_array_view<ValueType>;
 
 
 template <typename ValueType>
@@ -713,7 +714,7 @@ private:
 
 
 template <typename ValueType>
-using Array = array<ValueType>;
+using Array [[deprecated("please use array")]] = array<ValueType>;
 
 
 /**
@@ -772,13 +773,13 @@ array<ValueType> make_array_view(std::shared_ptr<const Executor> exec,
  *
  * @tparam ValueType  the type of the array elements
  *
- * @return `Array<ValueType>::const_view(exec, size, data)`
+ * @return `array<ValueType>::const_view(exec, size, data)`
  */
 template <typename ValueType>
-detail::ConstArrayView<ValueType> make_const_array_view(
+detail::const_array_view<ValueType> make_const_array_view(
     std::shared_ptr<const Executor> exec, size_type size, const ValueType* data)
 {
-    return Array<ValueType>::const_view(exec, size, data);
+    return array<ValueType>::const_view(exec, size, data);
 }
 
 

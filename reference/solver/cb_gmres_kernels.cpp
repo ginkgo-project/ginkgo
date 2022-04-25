@@ -311,7 +311,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<ValueType>* residual,
                   matrix::Dense<ValueType>* givens_sin,
                   matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+                  array<stopping_status>* stop_status, size_type krylov_dim)
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
@@ -336,7 +336,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                   Accessor3d krylov_bases,
                   matrix::Dense<ValueType>* next_krylov_basis,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     static_assert(
         std::is_same<ValueType,
@@ -407,9 +407,9 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
             matrix::Dense<ValueType>* buffer_iter,
             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
-            size_type iter, Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status, Array<stopping_status>*,
-            Array<size_type>*)
+            size_type iter, array<size_type>* final_iter_nums,
+            const array<stopping_status>* stop_status, array<stopping_status>*,
+            array<size_type>*)
 {
     static_assert(
         std::is_same<ValueType,
@@ -440,7 +440,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Dense<ValueType>* hessenberg,
             matrix::Dense<ValueType>* y,
             matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+            const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums->get_const_data());

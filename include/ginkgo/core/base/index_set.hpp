@@ -98,9 +98,9 @@ public:
         : exec_(std::move(exec)),
           index_space_size_{0},
           num_stored_indices_{0},
-          subsets_begin_{Array<index_type>(exec_)},
-          subsets_end_{Array<index_type>(exec_)},
-          superset_cumulative_indices_{Array<index_type>(exec_)}
+          subsets_begin_{array<index_type>(exec_)},
+          subsets_end_{array<index_type>(exec_)},
+          superset_cumulative_indices_{array<index_type>(exec_)}
     {}
 
     /**
@@ -125,7 +125,7 @@ public:
     {
         GKO_ASSERT(index_space_size_ > 0);
         this->populate_subsets(
-            Array<IndexType>(this->get_executor(), init_list), is_sorted);
+            array<IndexType>(this->get_executor(), init_list), is_sorted);
     }
 
     /**
@@ -140,7 +140,7 @@ public:
      */
     explicit index_set(std::shared_ptr<const gko::Executor> exec,
                        const index_type size,
-                       const gko::Array<index_type>& indices,
+                       const gko::array<index_type>& indices,
                        const bool is_sorted = false)
         : exec_(std::move(exec)), index_space_size_(size)
     {
@@ -291,7 +291,7 @@ public:
      * == 4` and `idx_set.get_global_index(7) == 9`
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       For repeated queries, it is more efficient to use the Array
+     *       For repeated queries, it is more efficient to use the array
      *       functions that take and return arrays which allow for more
      *       throughput.
      *
@@ -312,7 +312,7 @@ public:
      * == 3` and `idx_set.get_local_index(6) == 4`.
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       For repeated queries, it is more efficient to use the Array
+     *       For repeated queries, it is more efficient to use the array
      *       functions that take and return arrays which allow for more
      *       throughput.
      *
@@ -339,8 +339,8 @@ public:
      * @note Passing local indices from [0, size) is equivalent to using the
      *       @to_global_indices function.
      */
-    Array<index_type> map_local_to_global(
-        const Array<index_type>& local_indices,
+    array<index_type> map_local_to_global(
+        const array<index_type>& local_indices,
         const bool is_sorted = false) const;
 
     /**
@@ -355,17 +355,17 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
      */
-    Array<index_type> map_global_to_local(
-        const Array<index_type>& global_indices,
+    array<index_type> map_global_to_local(
+        const array<index_type>& global_indices,
         const bool is_sorted = false) const;
 
     /**
-     * This function allows the user obtain a decompresed global_indices Array
+     * This function allows the user obtain a decompresed global_indices array
      * from the indices stored in the index set
      *
      * @return  the decompressed set of indices.
      */
-    Array<index_type> to_global_indices() const;
+    array<index_type> to_global_indices() const;
 
     /**
      * Checks if the individual global indeices exist in the index set.
@@ -374,10 +374,10 @@ public:
      * @param is_sorted  a parameter that specifies if the query array is sorted
      *                   or not. `true` if sorted.
      *
-     * @return  the Array that contains element wise whether the corresponding
+     * @return  the array that contains element wise whether the corresponding
      *          global index in the index set or not.
      */
-    Array<bool> contains(const Array<index_type>& global_indices,
+    array<bool> contains(const array<index_type>& global_indices,
                          const bool is_sorted = false) const;
 
     /**
@@ -435,15 +435,15 @@ public:
     }
 
 private:
-    void populate_subsets(const gko::Array<index_type>& indices,
+    void populate_subsets(const gko::array<index_type>& indices,
                           const bool is_sorted);
 
     std::shared_ptr<const Executor> exec_;
     index_type index_space_size_;
     index_type num_stored_indices_;
-    gko::Array<index_type> subsets_begin_;
-    gko::Array<index_type> subsets_end_;
-    gko::Array<index_type> superset_cumulative_indices_;
+    gko::array<index_type> subsets_begin_;
+    gko::array<index_type> subsets_end_;
+    gko::array<index_type> superset_cumulative_indices_;
 };
 
 

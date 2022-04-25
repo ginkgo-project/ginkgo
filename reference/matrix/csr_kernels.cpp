@@ -463,8 +463,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
-                      Array<ValueType>& values)
+                      array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
+                      array<ValueType>& values)
 {
     using entry = matrix_data_entry<ValueType, IndexType>;
     const auto num_rows = source->get_size()[0];
@@ -476,7 +476,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     const auto in_vals = source->get_const_values();
     const auto nnz = source->get_num_stored_elements();
     auto out_row_ptrs = row_ptrs.get_data();
-    Array<entry> entry_array{exec, nnz};
+    array<entry> entry_array{exec, nnz};
     auto entries = entry_array.get_data();
     for (IndexType row = 0; row < num_rows; row++) {
         for (auto nz = in_row_ptrs[row]; nz < in_row_ptrs[row + 1]; nz++) {
@@ -605,7 +605,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>* row_nnz)
 {
     size_type res_row = 0;
     for (auto row = row_span.begin; row < row_span.end; ++row) {

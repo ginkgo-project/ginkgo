@@ -141,7 +141,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         inverted = extend_sparsity(exec, to_invert, power);
     } else {
         // Extract lower triangular part: compute non-zeros
-        Array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
+        array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
         exec->run(isai::make_initialize_row_ptrs_l(
             to_invert.get(), inverted_row_ptrs.get_data()));
 
@@ -150,8 +150,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             exec->copy_val_to_host(inverted_row_ptrs.get_data() + num_rows));
 
         // Init arrays
-        Array<IndexType> inverted_col_idxs{exec, inverted_nnz};
-        Array<ValueType> inverted_vals{exec, inverted_nnz};
+        array<IndexType> inverted_col_idxs{exec, inverted_nnz};
+        array<ValueType> inverted_vals{exec, inverted_nnz};
         auto inverted_base = share(Csr::create(
             exec, dim<2>{num_rows, num_rows}, std::move(inverted_vals),
             std::move(inverted_col_idxs), std::move(inverted_row_ptrs)));
@@ -167,10 +167,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     // This stores the beginning of the RHS for the sparse block associated with
     // each row of inverted_l
-    Array<IndexType> excess_block_ptrs{exec, num_rows + 1};
+    array<IndexType> excess_block_ptrs{exec, num_rows + 1};
     // This stores the beginning of the non-zeros belonging to each row in the
     // system of excess blocks
-    Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
+    array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
     if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
@@ -183,10 +183,10 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     }
 
     auto host_excess_block_ptrs_array =
-        Array<IndexType>(exec->get_master(), excess_block_ptrs);
+        array<IndexType>(exec->get_master(), excess_block_ptrs);
     auto host_excess_block_ptrs = host_excess_block_ptrs_array.get_const_data();
     auto host_excess_row_ptrs_full_array =
-        Array<IndexType>(exec->get_master(), excess_row_ptrs_full);
+        array<IndexType>(exec->get_master(), excess_row_ptrs_full);
     auto host_excess_row_ptrs_full =
         host_excess_row_ptrs_full_array.get_const_data();
     auto total_excess_dim = host_excess_block_ptrs[num_rows];

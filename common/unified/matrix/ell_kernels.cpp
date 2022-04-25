@@ -54,9 +54,9 @@ namespace ell {
 
 template <typename IndexType>
 void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType>& row_ptrs, size_type& max_nnz)
+                         const array<IndexType>& row_ptrs, size_type& max_nnz)
 {
-    Array<size_type> result{exec, 1};
+    array<size_type> result{exec, 1};
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto row_ptrs) {

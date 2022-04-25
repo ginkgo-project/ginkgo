@@ -97,10 +97,10 @@ protected:
 
 TEST_F(index_set, CanBeCopiedBetweenExecutors)
 {
-    auto idx_arr = gko::Array<T>{exec, {0, 1, 2, 4, 6, 7, 8, 9}};
-    auto begin_comp = gko::Array<T>{exec, {0, 4, 6}};
-    auto end_comp = gko::Array<T>{exec, {3, 5, 10}};
-    auto superset_comp = gko::Array<T>{exec, {0, 3, 4, 8}};
+    auto idx_arr = gko::array<T>{exec, {0, 1, 2, 4, 6, 7, 8, 9}};
+    auto begin_comp = gko::array<T>{exec, {0, 4, 6}};
+    auto end_comp = gko::array<T>{exec, {3, 5, 10}};
+    auto superset_comp = gko::array<T>{exec, {0, 3, 4, 8}};
 
     auto idx_set = gko::index_set<T>{exec, 10, idx_arr};
     auto hip_idx_set = gko::index_set<T>(hip, idx_set);

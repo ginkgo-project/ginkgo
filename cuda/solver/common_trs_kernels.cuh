@@ -85,7 +85,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     cusparseSpMatDescr_t descr_a;
 
     // Implicit parameter in spsm_solve, therefore stored here.
-    Array<char> work;
+    array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
@@ -189,7 +189,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     csrsm2Info_t solve_info;
     cusparseSolvePolicy_t policy;
     cusparseMatDescr_t factor_descr;
-    mutable Array<char> work;
+    mutable array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
@@ -526,8 +526,8 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     // Initialize x to all NaNs.
     dense::fill(exec, x, nan<ValueType>());
 
-    Array<bool> nan_produced(exec, 1);
-    Array<IndexType> atomic_counter(exec, 1);
+    array<bool> nan_produced(exec, 1);
+    array<IndexType> atomic_counter(exec, 1);
     sptrsv_init_kernel<<<1, 1>>>(nan_produced.get_data(),
                                  atomic_counter.get_data());
 

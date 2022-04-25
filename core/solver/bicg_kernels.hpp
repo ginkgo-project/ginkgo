@@ -60,7 +60,7 @@ namespace bicg {
                     matrix::Dense<_type>* rho, matrix::Dense<_type>* r2,     \
                     matrix::Dense<_type>* z2, matrix::Dense<_type>* p2,      \
                     matrix::Dense<_type>* q2,                                \
-                    Array<stopping_status>* stop_status)
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_1_KERNEL(_type)                             \
@@ -69,7 +69,7 @@ namespace bicg {
                 matrix::Dense<_type>* p2, const matrix::Dense<_type>* z2, \
                 const matrix::Dense<_type>* rho,                          \
                 const matrix::Dense<_type>* prev_rho,                     \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_2_KERNEL(_type)                                  \
@@ -79,7 +79,7 @@ namespace bicg {
                 const matrix::Dense<_type>* q, const matrix::Dense<_type>* q2, \
                 const matrix::Dense<_type>* beta,                              \
                 const matrix::Dense<_type>* rho,                               \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES               \

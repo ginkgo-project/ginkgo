@@ -112,8 +112,8 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
         matrices;
-    gko::Array<index_type> tmp;
-    gko::Array<index_type> dtmp;
+    gko::array<index_type> tmp;
+    gko::array<index_type> dtmp;
 };
 
 using Types = ::testing::Types<std::tuple<float, gko::int32>>;
@@ -131,8 +131,8 @@ TYPED_TEST(Cholesky, KernelSymbolicCount)
         const auto dmtx = gko::clone(this->exec, mtx);
         auto forest = gko::factorization::compute_elim_forest(mtx.get());
         auto dforest = gko::factorization::compute_elim_forest(dmtx.get());
-        gko::Array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
-        gko::Array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
+        gko::array<index_type> row_nnz{this->ref, mtx->get_size()[0]};
+        gko::array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
 
         gko::kernels::reference::cholesky::cholesky_symbolic_count(
             this->ref, mtx.get(), forest, row_nnz.get_data(), this->tmp);
@@ -155,7 +155,7 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
         const auto dmtx = gko::clone(this->exec, mtx);
         const auto num_rows = mtx->get_size()[0];
         const auto forest = gko::factorization::compute_elim_forest(mtx.get());
-        gko::Array<index_type> row_ptrs{this->ref, num_rows + 1};
+        gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::cholesky_symbolic_count(
             this->ref, mtx.get(), forest, row_ptrs.get_data(), this->tmp);
         gko::kernels::reference::components::prefix_sum(
@@ -163,16 +163,16 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorize)
         const auto nnz =
             static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
         auto l_factor = matrix_type::create(
-            this->ref, mtx->get_size(), gko::Array<value_type>{this->ref, nnz},
-            gko::Array<index_type>{this->ref, nnz}, row_ptrs);
+            this->ref, mtx->get_size(), gko::array<value_type>{this->ref, nnz},
+            gko::array<index_type>{this->ref, nnz}, row_ptrs);
         auto dl_factor = matrix_type::create(
             this->exec, mtx->get_size(),
-            gko::Array<value_type>{this->exec, nnz},
-            gko::Array<index_type>{this->exec, nnz}, row_ptrs);
+            gko::array<value_type>{this->exec, nnz},
+            gko::array<index_type>{this->exec, nnz}, row_ptrs);
         // need to call the device kernels to initialize dtmp
         const auto dforest =
             gko::factorization::compute_elim_forest(dmtx.get());
-        gko::Array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
+        gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
         gko::kernels::EXEC_NAMESPACE::cholesky::cholesky_symbolic_count(
             this->exec, dmtx.get(), dforest, dtmp_ptrs.get_data(), this->dtmp);
 

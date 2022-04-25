@@ -99,8 +99,8 @@ protected:
             mtx = Mtx::create(ref);
             mtx->read(mtx_data::diag(begin(blocks), end(blocks)));
         }
-        gko::Array<gko::int32> block_ptrs(ref, block_pointers);
-        gko::Array<gko::precision_reduction> block_prec(ref, block_precisions);
+        gko::array<gko::int32> block_ptrs(ref, block_pointers);
+        gko::array<gko::precision_reduction> block_prec(ref, block_precisions);
         if (block_prec.get_num_elems() == 0) {
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
@@ -592,7 +592,7 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
     auto bj =
         Bj::build()
             .with_max_block_size(13u)
-            .with_block_pointers(gko::Array<gko::int32>(cuda, {0, 2, 4}))
+            .with_block_pointers(gko::array<gko::int32>(cuda, {0, 2, 4}))
             .with_storage_optimization(gko::precision_reduction::autodetect())
             .with_accuracy(0.1)
             .on(cuda)

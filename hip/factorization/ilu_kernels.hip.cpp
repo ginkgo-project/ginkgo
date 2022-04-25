@@ -70,7 +70,7 @@ void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
                                 m->get_const_values(), m->get_const_row_ptrs(),
                                 m->get_const_col_idxs(), info, buffer_size);
 
-    Array<char> buffer{exec, buffer_size};
+    array<char> buffer{exec, buffer_size};
 
     // set up ILU(0)
     hipsparse::ilu0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),

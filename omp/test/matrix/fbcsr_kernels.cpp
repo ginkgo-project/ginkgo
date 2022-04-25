@@ -62,7 +62,7 @@ class Fbcsr : public ::testing::Test {
 protected:
     using real_type = double;
     using index_type = int;
-    using Arr = gko::Array<index_type>;
+    using Arr = gko::array<index_type>;
     using Mtx = gko::matrix::Fbcsr<real_type, index_type>;
     using Vec = gko::matrix::Dense<real_type>;
     using ComplexVec = gko::matrix::Dense<std::complex<real_type>>;

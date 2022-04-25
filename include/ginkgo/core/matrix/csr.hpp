@@ -197,8 +197,8 @@ public:
          * @param mtx_row_ptrs  the row pointers of the matrix
          * @param mtx_srow  the srow of the matrix
          */
-        virtual void process(const Array<index_type>& mtx_row_ptrs,
-                             Array<index_type>* mtx_srow) = 0;
+        virtual void process(const array<index_type>& mtx_row_ptrs,
+                             array<index_type>* mtx_srow) = 0;
 
         /**
          * Computes the srow size according to the number of nonzeros.
@@ -235,11 +235,11 @@ public:
          */
         classical() : strategy_type("classical"), max_length_per_row_(0) {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-            Array<index_type> row_ptrs_host(host_mtx_exec);
+            array<index_type> row_ptrs_host(host_mtx_exec);
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
             const index_type* row_ptrs{};
@@ -285,8 +285,8 @@ public:
          */
         merge_path() : strategy_type("merge_path") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -310,8 +310,8 @@ public:
          */
         cusparse() : strategy_type("cusparse") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -334,8 +334,8 @@ public:
          */
         sparselib() : strategy_type("sparselib") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -414,8 +414,8 @@ public:
               strategy_name_(strategy_name)
         {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             auto nwarps = mtx_srow->get_num_elems();
 
@@ -426,8 +426,8 @@ public:
                                            mtx_srow->get_executor()};
                 const bool is_mtx_on_host{host_mtx_exec ==
                                           mtx_row_ptrs.get_executor()};
-                Array<index_type> row_ptrs_host(host_mtx_exec);
-                Array<index_type> srow_host(host_srow_exec);
+                array<index_type> row_ptrs_host(host_mtx_exec);
+                array<index_type> srow_host(host_srow_exec);
                 const index_type* row_ptrs{};
                 index_type* srow{};
                 if (is_srow_on_host) {
@@ -605,8 +605,8 @@ public:
               max_length_per_row_(0)
         {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
@@ -626,7 +626,7 @@ public:
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
-            Array<index_type> row_ptrs_host(host_mtx_exec);
+            array<index_type> row_ptrs_host(host_mtx_exec);
             const index_type* row_ptrs{};
             if (is_mtx_on_host) {
                 row_ptrs = mtx_row_ptrs.get_const_data();
@@ -774,22 +774,22 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<LinOp> permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -967,9 +967,9 @@ public:
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs,
         std::shared_ptr<strategy_type> strategy)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -985,9 +985,9 @@ public:
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs)
     {
         return Csr::create_const(exec, size, std::move(values),
                                  std::move(col_idxs), std::move(row_ptrs),
@@ -1281,10 +1281,10 @@ protected:
     virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
-    Array<index_type> srow_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
+    array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;

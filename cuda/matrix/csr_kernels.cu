@@ -129,8 +129,8 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
         ceildiv(total, spmv_block_size * items_per_thread);
     const auto grid = grid_num;
     const auto block = spmv_block_size;
-    Array<IndexType> row_out(exec, grid_num);
-    Array<ValueType> val_out(exec, grid_num);
+    array<IndexType> row_out(exec, grid_num);
+    array<ValueType> val_out(exec, grid_num);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         if (alpha == nullptr && beta == nullptr) {
@@ -366,7 +366,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
         cusparse::spmv_buffersize<ValueType>(handle, trans, alpha, mat, vecb,
                                              beta, vecc, alg, &buffer_size);
 
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::spmv<ValueType>(handle, trans, alpha, mat, vecb, beta, vecc,
                                   alg, buffer);
@@ -383,7 +383,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const CudaExecutor> exec,
                                              vecb, beta, vecc, alg,
                                              &buffer_size);
 
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::spmm<ValueType>(handle, trans, trans, alpha, mat, vecb, beta,
                                   vecc, alg, buffer);
@@ -582,7 +582,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
         b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
         null_index, null_index, info, buffer_size);
-    Array<char> buffer_array(exec, buffer_size);
+    array<char> buffer_array(exec, buffer_size);
     auto buffer = buffer_array.get_data();
 
     // count nnz
@@ -626,7 +626,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
     cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
                                      c_descr, spgemm_descr, buffer1_size,
                                      nullptr);
-    Array<char> buffer1{exec, buffer1_size};
+    array<char> buffer1{exec, buffer1_size};
     cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr, &beta,
                                      c_descr, spgemm_descr, buffer1_size,
                                      buffer1.get_data());
@@ -636,7 +636,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
     cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
                              spgemm_descr, buffer1.get_data(), buffer2_size,
                              nullptr);
-    Array<char> buffer2{exec, buffer2_size};
+    array<char> buffer2{exec, buffer2_size};
     cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta, c_descr,
                              spgemm_descr, buffer1.get_data(), buffer2_size,
                              buffer2.get_data());
@@ -756,7 +756,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
                                  a_row_ptrs, a_col_idxs, b_descr, b_nnz,
                                  b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
                                  d_row_ptrs, d_col_idxs, info, buffer_size);
-    Array<char> buffer_array(exec, buffer_size);
+    array<char> buffer_array(exec, buffer_size);
     auto buffer = buffer_array.get_data();
 
     // count nnz
@@ -803,7 +803,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
     cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
                                      &zero_val, c_descr, spgemm_descr,
                                      buffer1_size, nullptr);
-    Array<char> buffer1{exec, buffer1_size};
+    array<char> buffer1{exec, buffer1_size};
     cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
                                      &zero_val, c_descr, spgemm_descr,
                                      buffer1_size, buffer1.get_data());
@@ -813,16 +813,16 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
     cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
                              c_descr, spgemm_descr, buffer1.get_data(),
                              buffer2_size, nullptr);
-    Array<char> buffer2{exec, buffer2_size};
+    array<char> buffer2{exec, buffer2_size};
     cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
                              c_descr, spgemm_descr, buffer1.get_data(),
                              buffer2_size, buffer2.get_data());
 
     // write result to temporary storage
     auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
-    Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
-    Array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
-    Array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
+    array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
+    array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
+    array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
     cusparse::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
                                c_tmp_col_idxs_array.get_data(),
                                c_tmp_vals_array.get_data());
@@ -939,7 +939,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::transpose(
             exec->get_cusparse_handle(), orig->get_size()[0],
@@ -994,7 +994,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, &buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::transpose(
             exec->get_cusparse_handle(), orig->get_size()[0],
@@ -1115,7 +1115,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>* row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1200,12 +1200,12 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
         auto vals = to_sort->get_values();
 
         // copy values
-        Array<ValueType> tmp_vals_array(exec, nnz);
+        array<ValueType> tmp_vals_array(exec, nnz);
         exec->copy(nnz, vals, tmp_vals_array.get_data());
         auto tmp_vals = tmp_vals_array.get_const_data();
 
         // init identity permutation
-        Array<IndexType> permutation_array(exec, nnz);
+        array<IndexType> permutation_array(exec, nnz);
         auto permutation = permutation_array.get_data();
         cusparse::create_identity_permutation(handle, nnz, permutation);
 
@@ -1213,7 +1213,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
         size_type buffer_size{};
         cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
                                       buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
+        array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
 
         // sort column indices
@@ -1247,7 +1247,7 @@ void is_sorted_by_column_index(
 {
     *is_sorted = true;
     auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto gpu_array = array<bool>{exec, cpu_array};
     auto block_size = default_block_size;
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, block_size);
@@ -1298,7 +1298,7 @@ void check_diagonal_entries_exist(
     if (num_warps > 0) {
         const size_type num_blocks =
             num_warps / (default_block_size / config::warp_size);
-        Array<bool> has_diags(exec, {true});
+        array<bool> has_diags(exec, {true});
         kernel::check_diagonal_entries<<<num_blocks, default_block_size>>>(
             static_cast<IndexType>(
                 std::min(mtx->get_size()[0], mtx->get_size()[1])),

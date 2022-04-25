@@ -49,11 +49,11 @@ namespace kernels {
 
 #define GKO_DECLARE_HYBRID_COMPUTE_ROW_NNZ                            \
     void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
-                         const Array<int64>& row_ptrs, size_type* row_nnzs)
+                         const array<int64>& row_ptrs, size_type* row_nnzs)
 
 #define GKO_DECLARE_HYBRID_COMPUTE_COO_ROW_PTRS_KERNEL                     \
     void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec, \
-                              const Array<size_type>& row_nnz,             \
+                              const array<size_type>& row_nnz,             \
                               size_type ell_lim, int64* coo_row_ptrs)
 
 #define GKO_DECLARE_HYBRID_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \

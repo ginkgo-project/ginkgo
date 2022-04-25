@@ -74,9 +74,9 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
                   storage_scheme,
-              Array<remove_complex<ValueType>>& conditioning,
-              Array<precision_reduction>& block_precisions,
-              const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
+              array<remove_complex<ValueType>>& conditioning,
+              array<precision_reduction>& block_precisions,
+              const array<IndexType>& block_pointers, array<ValueType>& blocks)
 {
     components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
                            zero<ValueType>());

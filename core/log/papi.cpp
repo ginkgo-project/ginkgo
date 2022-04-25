@@ -233,7 +233,7 @@ void Papi<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stoppingId, const bool& setFinalized,
-    const Array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
     using Vector = matrix::Dense<ValueType>;

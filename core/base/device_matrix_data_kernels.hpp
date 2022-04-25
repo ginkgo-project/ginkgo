@@ -54,25 +54,25 @@ namespace kernels {
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SOA_TO_AOS_KERNEL(ValueType, IndexType) \
     void soa_to_aos(std::shared_ptr<const DefaultExecutor> exec,               \
                     const device_matrix_data<ValueType, IndexType>& in,        \
-                    Array<matrix_data_entry<ValueType, IndexType>>& out)
+                    array<matrix_data_entry<ValueType, IndexType>>& out)
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_AOS_TO_SOA_KERNEL(ValueType, IndexType) \
     void aos_to_soa(std::shared_ptr<const DefaultExecutor> exec,               \
-                    const Array<matrix_data_entry<ValueType, IndexType>>& in,  \
+                    const array<matrix_data_entry<ValueType, IndexType>>& in,  \
                     device_matrix_data<ValueType, IndexType>& out)
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL(ValueType,       \
                                                            IndexType)       \
     void remove_zeros(std::shared_ptr<const DefaultExecutor> exec,          \
-                      Array<ValueType>& values, Array<IndexType>& row_idxs, \
-                      Array<IndexType>& col_idxs)
+                      array<ValueType>& values, array<IndexType>& row_idxs, \
+                      array<IndexType>& col_idxs)
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SUM_DUPLICATES_KERNEL(ValueType, \
                                                              IndexType) \
     void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec,    \
-                        size_type num_rows, Array<ValueType>& values,   \
-                        Array<IndexType>& row_idxs,                     \
-                        Array<IndexType>& col_idxs)
+                        size_type num_rows, array<ValueType>& values,   \
+                        array<IndexType>& row_idxs,                     \
+                        array<IndexType>& col_idxs)
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA_SORT_ROW_MAJOR_KERNEL(ValueType, \
                                                              IndexType) \

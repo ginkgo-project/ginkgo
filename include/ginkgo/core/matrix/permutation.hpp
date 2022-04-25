@@ -145,7 +145,7 @@ public:
      */
     static std::unique_ptr<const Permutation> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::ConstArrayView<IndexType>&& perm_idxs,
+        gko::detail::const_array_view<IndexType>&& perm_idxs,
         mask_type enabled_permute = row_permute)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -257,7 +257,7 @@ protected:
 
 
 private:
-    Array<index_type> permutation_;
+    array<index_type> permutation_;
     size_type row_size_;
     size_type col_size_;
     mask_type enabled_permute_;

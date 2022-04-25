@@ -141,7 +141,7 @@ protected:
         gamma->at(2) = 0.0;
         rho_prev->at(2) = 0.0;
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -163,7 +163,7 @@ protected:
         d_gamma = gko::clone(exec, gamma);
         d_rho_prev = gko::clone(exec, rho_prev);
         d_rho = gko::clone(exec, rho);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
 
@@ -192,7 +192,7 @@ protected:
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -209,7 +209,7 @@ protected:
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 

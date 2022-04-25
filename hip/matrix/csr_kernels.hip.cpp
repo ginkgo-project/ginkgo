@@ -128,8 +128,8 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
         ceildiv(total, spmv_block_size * items_per_thread);
     const auto grid = grid_num;
     const auto block = spmv_block_size;
-    Array<IndexType> row_out(exec, grid_num);
-    Array<ValueType> val_out(exec, grid_num);
+    array<IndexType> row_out(exec, grid_num);
+    array<ValueType> val_out(exec, grid_num);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         if (alpha == nullptr && beta == nullptr) {
@@ -506,7 +506,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
             zero_nnz, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
         // count nnz
@@ -630,11 +630,11 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
             handle, m, n, k, &one_value, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
             IndexType{}, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
         // count nnz
-        Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
+        array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
         auto c_tmp_row_ptrs = c_tmp_row_ptrs_array.get_data();
         IndexType c_nnz{};
         hipsparse::spgemm_nnz(
@@ -643,8 +643,8 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
             null_index, c_descr, c_tmp_row_ptrs, &c_nnz, info, buffer);
 
         // accumulate non-zeros for A * B
-        Array<IndexType> c_tmp_col_idxs_array(exec, c_nnz);
-        Array<ValueType> c_tmp_vals_array(exec, c_nnz);
+        array<IndexType> c_tmp_col_idxs_array(exec, c_nnz);
+        array<ValueType> c_tmp_vals_array(exec, c_nnz);
         auto c_tmp_col_idxs = c_tmp_col_idxs_array.get_data();
         auto c_tmp_vals = c_tmp_vals_array.get_data();
         hipsparse::spgemm(handle, m, n, k, &one_value, a_descr, a_nnz, a_vals,
@@ -895,7 +895,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>* row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -982,12 +982,12 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
         auto vals = to_sort->get_values();
 
         // copy values
-        Array<ValueType> tmp_vals_array(exec, nnz);
+        array<ValueType> tmp_vals_array(exec, nnz);
         exec->copy(nnz, vals, tmp_vals_array.get_data());
         auto tmp_vals = tmp_vals_array.get_const_data();
 
         // init identity permutation
-        Array<IndexType> permutation_array(exec, nnz);
+        array<IndexType> permutation_array(exec, nnz);
         auto permutation = permutation_array.get_data();
         hipsparse::create_identity_permutation(handle, nnz, permutation);
 
@@ -995,7 +995,7 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
         size_type buffer_size{};
         hipsparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
                                        buffer_size);
-        Array<char> buffer_array{exec, buffer_size};
+        array<char> buffer_array{exec, buffer_size};
         auto buffer = buffer_array.get_data();
 
         // sort column indices
@@ -1022,7 +1022,7 @@ void is_sorted_by_column_index(
 {
     *is_sorted = true;
     auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto gpu_array = array<bool>{exec, cpu_array};
     auto block_size = default_block_size;
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, block_size);
@@ -1074,7 +1074,7 @@ void check_diagonal_entries_exist(
     if (num_warps > 0) {
         const size_type num_blocks =
             num_warps / (default_block_size / config::warp_size);
-        Array<bool> has_diags(exec, {true});
+        array<bool> has_diags(exec, {true});
         hipLaunchKernelGGL(kernel::check_diagonal_entries, num_blocks,
                            default_block_size, 0, 0,
                            static_cast<IndexType>(std::min(mtx->get_size()[0],

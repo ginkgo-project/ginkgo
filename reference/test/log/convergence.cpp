@@ -63,7 +63,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
@@ -91,7 +91,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithConvCheck)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -120,7 +120,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithStopCheck)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].stop(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -149,7 +149,7 @@ TYPED_TEST(Convergence, CanResetConvergenceStatus)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
     using Mtx = gko::matrix::Dense<TypeParam>;
@@ -177,7 +177,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     using Mtx = gko::matrix::Dense<TypeParam>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;

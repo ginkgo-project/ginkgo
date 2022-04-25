@@ -282,7 +282,7 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result, Array<char>&)
+                 matrix::Dense<ValueType>* result, array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -301,7 +301,7 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result, Array<char>& tmp)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     compute_dot(exec, x, y, result, tmp);
 }
@@ -314,7 +314,7 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result, Array<char>&)
+                      matrix::Dense<ValueType>* result, array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -334,7 +334,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
                                matrix::Dense<ValueType>* result,
-                               Array<char>& tmp)
+                               array<char>& tmp)
 {
     compute_conj_dot(exec, x, y, result, tmp);
 }
@@ -347,7 +347,7 @@ template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
                    matrix::Dense<remove_complex<ValueType>>* result,
-                   Array<char>&)
+                   array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -369,7 +369,7 @@ template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
                             matrix::Dense<remove_complex<ValueType>>* result,
-                            Array<char>& tmp)
+                            array<char>& tmp)
 {
     compute_norm2(exec, x, result, tmp);
 }
@@ -382,7 +382,7 @@ template <typename ValueType>
 void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
                    matrix::Dense<remove_complex<ValueType>>* result,
-                   Array<char>&)
+                   array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -812,7 +812,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                  const Array<IndexType>* permutation_indices,
+                  const array<IndexType>* permutation_indices,
                   const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
@@ -831,7 +831,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                      const Array<IndexType>* permutation_indices,
+                      const array<IndexType>* permutation_indices,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
@@ -850,7 +850,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
-                const Array<IndexType>* row_idxs,
+                const array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
@@ -869,7 +869,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_idxs,
+                         const array<IndexType>* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -894,7 +894,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                    const Array<IndexType>* permutation_indices,
+                    const array<IndexType>* permutation_indices,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* column_permuted)
 {
@@ -912,7 +912,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const Array<IndexType>* permutation_indices,
+                         const array<IndexType>* permutation_indices,
                          const matrix::Dense<ValueType>* orig,
                          matrix::Dense<ValueType>* row_permuted)
 {
@@ -930,7 +930,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                            const Array<IndexType>* permutation_indices,
+                            const array<IndexType>* permutation_indices,
                             const matrix::Dense<ValueType>* orig,
                             matrix::Dense<ValueType>* column_permuted)
 {

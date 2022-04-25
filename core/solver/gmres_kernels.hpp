@@ -54,7 +54,7 @@ namespace gmres {
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const matrix::Dense<_type>* b, matrix::Dense<_type>* residual,      \
         matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
-        Array<stopping_status>* stop_status, size_type krylov_dim)
+        array<stopping_status>* stop_status, size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)                       \
@@ -63,7 +63,7 @@ namespace gmres {
                       matrix::Dense<remove_complex<_type>>* residual_norm, \
                       matrix::Dense<_type>* residual_norm_collection,      \
                       matrix::Dense<_type>* krylov_bases,                  \
-                      Array<size_type>* final_iter_nums, size_type krylov_dim)
+                      array<size_type>* final_iter_nums, size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                         \
@@ -74,8 +74,8 @@ namespace gmres {
                 matrix::Dense<_type>* residual_norm_collection,        \
                 matrix::Dense<_type>* krylov_bases,                    \
                 matrix::Dense<_type>* hessenberg_iter, size_type iter, \
-                Array<size_type>* final_iter_nums,                     \
-                const Array<stopping_status>* stop_status)
+                array<size_type>* final_iter_nums,                     \
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                        \
@@ -85,7 +85,7 @@ namespace gmres {
                 const matrix::Dense<_type>* hessenberg,               \
                 matrix::Dense<_type>* y,                              \
                 matrix::Dense<_type>* before_preconditioner,          \
-                const Array<size_type>* final_iter_nums)
+                const array<size_type>* final_iter_nums)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

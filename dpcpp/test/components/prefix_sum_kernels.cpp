@@ -82,8 +82,8 @@ protected:
     std::shared_ptr<gko::DpcppExecutor> exec;
     std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
+    gko::array<index_type> vals;
+    gko::array<index_type> dvals;
 };
 
 
