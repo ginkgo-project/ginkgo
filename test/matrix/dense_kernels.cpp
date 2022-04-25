@@ -1341,10 +1341,10 @@ TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
     gko::Array<char> tmp{ref};
     gko::Array<char> dtmp{exec};
 
-    gko::kernels::reference::dense::compute_squared_norm2(ref, x.get(),
-                                                          norm_expected.get(), tmp);
-    gko::kernels::EXEC_NAMESPACE::dense::compute_squared_norm2(exec, dx.get(),
-                                                               dnorm.get(), dtmp);
+    gko::kernels::reference::dense::compute_squared_norm2(
+        ref, x.get(), norm_expected.get(), tmp);
+    gko::kernels::EXEC_NAMESPACE::dense::compute_squared_norm2(
+        exec, dx.get(), dnorm.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(dnorm, norm_expected, r<vtype>::value);
 }
