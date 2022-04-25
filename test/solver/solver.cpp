@@ -776,8 +776,9 @@ TYPED_TEST(Solver, CopyAssignSameExecutor)
                                .on(this->exec)
                                ->generate(Mtx::create(this->exec));
 
-            *solver2 = *solver.dev;
+            auto& result = (*solver2 = *solver.dev);
 
+            ASSERT_EQ(&result, solver2.get());
             ASSERT_EQ(solver2->get_size(), solver.dev->get_size());
             ASSERT_EQ(solver2->get_executor(), solver.dev->get_executor());
             ASSERT_EQ(solver2->get_system_matrix(),
@@ -805,8 +806,9 @@ TYPED_TEST(Solver, MoveAssignSameExecutor)
             auto precond = Config::get_preconditioner(solver.dev.get());
             auto stop = Config::get_stop_criterion_factory(solver.dev.get());
 
-            *solver2 = std::move(*solver.dev);
+            auto& result = (*solver2 = std::move(*solver.dev));
 
+            ASSERT_EQ(&result, solver2.get());
             // moved-to object
             ASSERT_EQ(solver2->get_size(), size);
             ASSERT_EQ(solver2->get_executor(), this->exec);
@@ -831,8 +833,9 @@ TYPED_TEST(Solver, CopyAssignCrossExecutor)
                                .on(this->exec)
                                ->generate(Mtx::create(this->exec));
 
-            *solver2 = *solver.ref;
+            auto& result = (*solver2 = *solver.ref);
 
+            ASSERT_EQ(&result, solver2.get());
             ASSERT_EQ(solver2->get_size(), solver.ref->get_size());
             ASSERT_EQ(solver2->get_executor(), this->exec);
             if (solver.ref->get_system_matrix()) {
@@ -869,8 +872,9 @@ TYPED_TEST(Solver, MoveAssignCrossExecutor)
             auto precond = Config::get_preconditioner(solver.ref.get());
             auto stop = Config::get_stop_criterion_factory(solver.ref.get());
 
-            *solver2 = std::move(*solver.ref);
+            auto& result = (*solver2 = std::move(*solver.ref));
 
+            ASSERT_EQ(&result, solver2.get());
             // moved-to object
             ASSERT_EQ(solver2->get_size(), size);
             ASSERT_EQ(solver2->get_executor(), this->exec);
