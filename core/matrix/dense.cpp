@@ -467,14 +467,13 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
         EnableLinOp<Dense>::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
-            stride_ = other.get_stride();
-            values_.resize_and_reset(this->get_size()[0] * stride_);
+            this->stride_ = this->get_size()[1];
+            this->values_.resize_and_reset(this->get_size()[0] * this->stride_);
         }
         // we need to create a executor-local clone of the target data, that
         // will be copied back later.
         auto exec = other.get_executor();
-        auto exec_values_array =
-            make_temporary_output_clone(exec, &this->values_);
+        auto exec_values_array = make_temporary_clone(exec, &this->values_);
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
         auto exec_this_view =

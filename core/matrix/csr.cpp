@@ -151,8 +151,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
         srow_ = std::move(other.srow_);
-        strategy_ =
-            std::exchange(other.strategy_, std::make_shared<sparselib>());
+        strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
             detail::strategy_rebuild_helper(this);
         }

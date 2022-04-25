@@ -83,7 +83,6 @@ class UpperTrs;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
                  public EnableSolverBase<LowerTrs<ValueType, IndexType>,
-
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<LowerTrs>;
@@ -114,6 +113,14 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    LowerTrs(const LowerTrs&);
+
+    LowerTrs(LowerTrs&&);
+
+    LowerTrs& operator=(const LowerTrs&);
+
+    LowerTrs& operator=(LowerTrs&&);
 
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
