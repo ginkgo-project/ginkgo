@@ -87,7 +87,7 @@ struct SimpleSolverTest {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the matrix is well-conditioned
-        gko::test::make_hpd(data, 2.0);
+        gko::utils::make_hpd(data, 2.0);
     }
 
     static typename solver_type::parameters_type build(
@@ -275,8 +275,8 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
-        gko::test::make_hpd(data, 1.2);
-        gko::test::make_lower_triangular(data);
+        gko::utils::make_hpd(data, 1.2);
+        gko::utils::make_lower_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
@@ -316,8 +316,8 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
-        gko::test::make_hpd(data, 1.2);
-        gko::test::make_upper_triangular(data);
+        gko::utils::make_hpd(data, 1.2);
+        gko::utils::make_upper_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
