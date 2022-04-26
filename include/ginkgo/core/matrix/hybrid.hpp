@@ -746,8 +746,8 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::shared_ptr<ell_type> ell_;
-    std::shared_ptr<coo_type> coo_;
+    std::unique_ptr<ell_type> ell_;
+    std::unique_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
 };
 
