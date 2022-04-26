@@ -79,6 +79,7 @@ struct Generic<typename gko::preconditioner::Ilu<
             SET_POINTER(LinOpFactory, factorization_factory);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

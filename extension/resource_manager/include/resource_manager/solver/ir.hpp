@@ -83,6 +83,7 @@ struct Generic<typename gko::solver::Ir<ValueType>::Factory,
             SET_VALUE(ValueType, relaxation_factor);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
