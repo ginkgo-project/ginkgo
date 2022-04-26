@@ -496,8 +496,8 @@ void add_logger(Type& obj, rapidjson::Value& item,
                 std::shared_ptr<const Executor> exec,
                 std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    if (item.HasMember("logger")) {
-        auto& logger = item["logger"];
+    if (item.HasMember("add_loggers")) {
+        auto& logger = item["add_loggers"];
         if (logger.IsArray()) {
             for (auto& it : logger.GetArray()) {
                 obj->add_logger(get_pointer<Logger>(it, exec, linop, manager));

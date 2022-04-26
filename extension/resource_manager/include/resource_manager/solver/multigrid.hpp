@@ -101,6 +101,7 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             SET_VALUE(bool, zero_guess);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

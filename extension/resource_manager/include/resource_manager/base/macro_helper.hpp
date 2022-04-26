@@ -403,6 +403,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             auto mtx = get_pointer<const LinOp>(item["generate"], exec, linop, \
                                                 manager);                      \
             auto ptr = factory->generate(mtx);                                 \
+            add_logger(ptr, item, exec, linop, manager);                       \
             return std::move(ptr);                                             \
         }                                                                      \
     }

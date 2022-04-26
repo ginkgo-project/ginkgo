@@ -80,6 +80,7 @@ constexpr auto trs_list =
                 SET_VALUE(gko::size_type, num_rhs);                           \
                 SET_EXECUTOR;                                                 \
             }();                                                              \
+            add_logger(ptr, item, exec, linop, manager);                      \
             return ptr;                                                       \
         }                                                                     \
     };                                                                        \

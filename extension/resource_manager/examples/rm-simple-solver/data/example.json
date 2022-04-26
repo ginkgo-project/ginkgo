@@ -43,7 +43,7 @@
                     "base": "IterationFactory",
                     "max_iters": 20,
                     "exec": "executor",
-                    "logger": "conv"
+                    "add_loggers": "conv"
                 }
             ]
         },

@@ -78,6 +78,7 @@ struct Generic<
             SET_VALUE(remove_complex<ValueType>, accuracy);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

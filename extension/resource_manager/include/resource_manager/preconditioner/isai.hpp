@@ -79,6 +79,7 @@ struct Generic<
             SET_POINTER(LinOpFactory, excess_solver_factory);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };

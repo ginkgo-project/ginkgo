@@ -72,6 +72,7 @@ struct Generic<typename gko::stop::ResidualNorm<ValueType>::Factory,
             SET_VALUE(gko::stop::mode, baseline);
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
