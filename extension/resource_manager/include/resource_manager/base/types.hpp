@@ -187,7 +187,9 @@ ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
 ENUM_CLASS(RM_CriterionFactory, int, ENUM_CRITERIONFACTORY);
 
-#define ENUM_LOGGER(_expand) _expand(Logger, 0), _expand(Convergence)
+#define ENUM_LOGGER(_expand)                                                  \
+    _expand(Logger, 0), _expand(Convergence), _expand(Papi), _expand(Record), \
+        _expand(Stream)
 
 ENUM_CLASS(RM_Logger, int, ENUM_LOGGER);
 

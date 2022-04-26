@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/papi.hpp>
 
 
+#if GKO_HAVE_PAPI_SDE
+
+
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
@@ -55,15 +58,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Papi) to ENUM_LOGGER
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LoggerFactory::)PapiFactory and (RM_Logger::)Papi and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<gko::log::Papi<ValueType>> {
     using type = std::shared_ptr<gko::log::Papi<ValueType>>;
@@ -76,7 +70,6 @@ struct Generic<gko::log::Papi<ValueType>> {
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto mask_value = get_mask_value_with_default(
             item, "enabled_events", gko::log::Logger::all_events_mask);
-        // TODO: consider other thing from constructor
         auto ptr = gko::log::Papi<ValueType>::create(exec_ptr, mask_value);
         return std::move(ptr);
     }
@@ -120,4 +113,5 @@ create_from_config<RM_Logger, RM_Logger::Papi, gko::log::Logger>(
 }  // namespace gko
 
 
+#endif  // GKO_HAVE_PAPI_SDE
 #endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_PAPI_HPP_
