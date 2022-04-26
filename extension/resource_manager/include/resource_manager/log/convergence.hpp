@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_CONVERGENCE_HPP_
 
 
-#include <fstream>
-
-
 #include <ginkgo/core/log/convergence.hpp>
 
 
@@ -44,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
+#include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/template_helper.hpp"
 #include "resource_manager/base/type_default.hpp"
 #include "resource_manager/base/type_pack.hpp"
 #include "resource_manager/base/type_resolving.hpp"
@@ -57,7 +56,7 @@ namespace resource_manager {
 
 
 template <typename ValueType>
-struct Generic<typename gko::log::Convergence<ValueType>> {
+struct Generic<gko::log::Convergence<ValueType>> {
     using type = std::shared_ptr<gko::log::Convergence<ValueType>>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
@@ -89,15 +88,20 @@ create_from_config<RM_Logger, RM_Logger::Convergence, gko::log::Logger>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    // go though the type
-    std::cout << "convergence build" << std::endl;
+    // get the template from base
+    std::string base_string;
+    if (item.HasMember("base")) {
+        base_string = get_base_template(item["base"].GetString());
+    }
+    // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()));
+    // combine them together, base_string has higher priority than type_string
+    auto combined = combine_template(base_string, remove_space(type_string));
     auto ptr = convergence_select<gko::log::Convergence>(
-        convergence_list, [=](std::string key) { return key == type_string; },
+        convergence_list, [=](std::string key) { return key == combined; },
         item, exec, linop, manager);
-    std::cout << "convergence finish" << std::endl;
     return std::move(ptr);
 }
 
