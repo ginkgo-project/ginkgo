@@ -67,6 +67,7 @@ GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, ell::fill_in_dense);
+GKO_REGISTER_OPERATION(copy, ell::copy);
 GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros_per_row, ell::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
@@ -87,11 +88,38 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
     const Ell& other)
 {
     if (&other != this) {
+        const auto old_size = this->get_size();
         EnableLinOp<Ell>::operator=(other);
-        values_ = other.values_;
-        col_idxs_ = other.col_idxs_;
-        num_stored_elements_per_row_ = other.num_stored_elements_per_row_;
-        stride_ = other.stride_;
+        // NOTE: keep this consistent with resize(...)
+        if (old_size != other.get_size() ||
+            this->get_num_stored_elements_per_row() !=
+                other.get_num_stored_elements_per_row()) {
+            this->num_stored_elements_per_row_ =
+                other.get_num_stored_elements_per_row();
+            this->stride_ = other.get_size()[0];
+            const auto alloc_size =
+                this->stride_ * this->num_stored_elements_per_row_;
+            this->values_.resize_and_reset(alloc_size);
+            this->col_idxs_.resize_and_reset(alloc_size);
+        }
+        // we need to create a executor-local clone of the target data, that
+        // will be copied back later. Need temporary_clone, not
+        // temporary_output_clone to avoid overwriting padding
+        auto exec = other.get_executor();
+        auto exec_values_array = make_temporary_clone(exec, &this->values_);
+        auto exec_cols_array = make_temporary_clone(exec, &this->col_idxs_);
+        // create a (value, not pointer to avoid allocation overhead) view
+        // matrix on the array to avoid special-casing cross-executor copies
+        auto exec_this_view =
+            Ell{exec,
+                this->get_size(),
+                make_array_view(exec, exec_values_array->get_num_elems(),
+                                exec_values_array->get_data()),
+                make_array_view(exec, exec_cols_array->get_num_elems(),
+                                exec_cols_array->get_data()),
+                this->get_num_stored_elements_per_row(),
+                this->get_stride()};
+        exec->run(ell::make_copy(&other, &exec_this_view));
     }
     return *this;
 }
