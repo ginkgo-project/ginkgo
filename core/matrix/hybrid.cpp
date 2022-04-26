@@ -90,8 +90,8 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<Hybrid>::operator=(other);
         auto exec = this->get_executor();
-        coo_ = gko::clone(exec, other.coo_);
-        ell_ = gko::clone(exec, other.ell_);
+        *coo_ = *other.coo_;
+        *ell_ = *other.ell_;
         strategy_ = other.strategy_;
     }
     return *this;
@@ -105,13 +105,9 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<Hybrid>::operator=(std::move(other));
         auto exec = this->get_executor();
-        coo_ = std::exchange(other.coo_, coo_type::create(exec));
-        ell_ = std::exchange(other.ell_, ell_type::create(exec));
+        *coo_ = std::move(*other.coo_);
+        *ell_ = std::move(*other.ell_);
         strategy_ = other.strategy_;
-        if (other.get_executor() != exec) {
-            coo_ = gko::clone(exec, coo_);
-            ell_ = gko::clone(exec, ell_);
-        }
     }
     return *this;
 }
