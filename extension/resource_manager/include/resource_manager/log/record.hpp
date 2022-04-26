@@ -54,15 +54,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Record) to ENUM_LOGGER
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LoggerFactory::)RecordFactory and (RM_Logger::)Record and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <>
 struct Generic<gko::log::Record> {
     using type = std::shared_ptr<gko::log::Record>;
@@ -75,8 +66,9 @@ struct Generic<gko::log::Record> {
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto mask_value = get_mask_value_with_default(
             item, "enabled_events", gko::log::Logger::all_events_mask);
-        // TODO: consider other thing from constructor
-        auto ptr = gko::log::Record::create(exec_ptr, mask_value);
+        auto max_storage =
+            get_value_with_default<gko::size_type>(item, "max_storage", 1);
+        auto ptr = gko::log::Record::create(exec_ptr, mask_value, max_storage);
         return std::move(ptr);
     }
 };
