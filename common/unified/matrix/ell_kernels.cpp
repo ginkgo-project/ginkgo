@@ -127,6 +127,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Ell<ValueType, IndexType>* source,
+          matrix::Ell<ValueType, IndexType>* result)
+{
+    // ELL is stored in column-major, so we swap row and column parameters
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto ell_col, auto row, auto in_ell_stride, auto in_cols,
+                      auto in_vals, auto out_ell_stride, auto out_cols,
+                      auto out_vals) {
+            const auto in = row + ell_col * in_ell_stride;
+            const auto out = row + ell_col * out_ell_stride;
+            out_cols[out] = in_cols[in];
+            out_vals[out] = in_vals[in];
+        },
+        dim<2>{source->get_num_stored_elements_per_row(),
+               source->get_size()[0]},
+        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
+        source->get_const_values(), static_cast<int64>(result->get_stride()),
+        result->get_col_idxs(), result->get_values());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Ell<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
