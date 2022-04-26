@@ -46,7 +46,7 @@ extract_namespace_class() {
 
 contain_factory() {
     local namespace_str="$1"
-    if [[ "${namespace_str}" =~ matrix|executor ]]; then
+    if [[ "${namespace_str}" =~ matrix|executor|log ]]; then
         echo "false"
     else
         echo "true"
@@ -124,6 +124,8 @@ get_base() {
         echo "Executor"
     elif [[ "${input}" =~ "stop" ]]; then
         echo "Criterion"
+    elif [[ "${input}" =~ "log" ]]; then
+        echo "Logger"
     else
         echo "LinOp"
     fi
@@ -305,9 +307,9 @@ generate_linop_generic() {
     local local_class_type="$2"
     local local_readable="$3"
 
-    echo "template <${template_type}>
-        struct Generic<${class_type}> {
-        using type = std::shared_ptr<${class_type}>;
+    echo "template <${local_template_type}>
+        struct Generic<${local_class_type}> {
+        using type = std::shared_ptr<${local_local_class_type}>;
         static type build(rapidjson::Value &item,
                         std::shared_ptr<const Executor> exec,
                         std::shared_ptr<const LinOp> linop,
@@ -317,12 +319,12 @@ generate_linop_generic() {
             get_pointer_check<Executor>(item, \"exec\", exec, linop, manager);
             auto size = get_value_with_default(item, \"dim\", gko::dim<2>{});
             // TODO: consider other thing from constructor
-            auto ptr = share(${class_type}::create(exec_ptr, size));
+            auto ptr = share(${local_class_type}::create(exec_ptr, size));
         "
-    if [[ "${readable}" == "true" ]]; then
+    if [[ "${local_readable}" == "true" ]]; then
         echo "if (item.HasMember(\"read\")) {
             std::ifstream mtx_fd(item[\"read\"].GetString());
-            auto data = gko::read_raw<typename ${class_type}::value_type, typename ${class_type}::index_type>(mtx_fd);
+            auto data = gko::read_raw<typename ${local_class_type}::value_type, typename ${local_class_type}::index_type>(mtx_fd);
             ptr->read(data);
             }
         "
@@ -331,6 +333,29 @@ generate_linop_generic() {
         }
     };"
 }
+
+generate_logger_generic() {
+    local local_template_type="$1"
+    local local_class_type="$2"
+
+    echo "template <${local_template_type}>
+        struct Generic<${local_class_type}> {
+        using type = std::shared_ptr<${local_class_type}>;
+        static type build(rapidjson::Value &item,
+                        std::shared_ptr<const Executor> exec,
+                        std::shared_ptr<const LinOp> linop,
+                        ResourceManager *manager)
+        {
+            auto exec_ptr =
+            get_pointer_check<Executor>(item, \"exec\", exec, linop, manager);
+            auto mask_value = get_mask_value_with_default(item, \"enabled_events\", gko::log::Logger::all_events_mask);
+            // TODO: consider other thing from constructor
+            auto ptr = ${local_class_type}::create(exec_ptr, mask_value);
+            return std::move(ptr);
+        }
+    };"
+}
+
 
 # copy the input file to current folder with clang-format allowing long line to avoid the concate the line issue
 input_file="$1"
@@ -351,6 +376,8 @@ rm_class_factory=${RM_CLASS_FACTORY:="${rm_class}Factory"}
 base_namespace="gko::"
 if [[ "${base}" == "Criterion" ]]; then
     base_namespace="gko::stop::"
+elif [[ "${base}" == "Logger" ]]; then
+    base_namespace="gko::log::"
 fi
 echo "Handle ${namespace}::${class}"
 echo "Base ${base}"
@@ -476,7 +503,7 @@ echo "// TODO: Please add the corresponding to the resource_manager/base/types.h
 if [[ "$handle_factory" == "true" ]]; then
     echo "// Add _expand(${rm_class_factory}) to ENUM_${base^^}FACTORY" >> ${rm_file}
 fi
-if [[ "${base}" == "LinOp" ]]; then
+if [[ "$base" == "LinOp" ]] || [[ "$base" == "Logger" ]]; then
     echo "// Add _expand(${rm_class}) to ENUM_${base^^}" >> ${rm_file}
 fi
 echo "// If need to override the generated enum for RM, use RM_CLASS or RM_CLASS_FACTORY env and rerun the generated script." >> ${rm_file}
@@ -500,6 +527,9 @@ if [[ "${base}" == "LinOp" ]]; then
     else
         echo "$(generate_linop_generic "${template_type}" "${class_type}" "${readable}")" >> ${rm_file}
     fi
+    echo "" >> ${rm_file}
+elif [[ "${base}" == "Logger" ]]; then
+    echo "$(generate_logger_generic "${template_type}" "${class_type}")" >> ${rm_file}
     echo "" >> ${rm_file}
 fi
 echo "" >> "${rm_file}"
@@ -528,7 +558,7 @@ if [ "${num}" -gt "0" ]; then
     if [[ "$handle_factory" == "true" ]]; then
         echo "ENABLE_SELECTION${selection_suffix}(${rm_class_factory_snake}_select, call, std::shared_ptr<${base_namespace}${base}Factory>, get_actual_factory_type${selection_addition});" >> ${rm_file}
     fi
-    if [[ "$base" == "LinOp" ]]; then
+    if [[ "$base" == "LinOp" ]] || [[ "$base" == "Logger" ]]; then
         echo "ENABLE_SELECTION${selection_suffix}(${rm_class_snake}_select, call, std::shared_ptr<${base_namespace}${base}>, get_actual_type${selection_addition});" >> ${rm_file}
     fi
     echo "" >> ${rm_file}
@@ -551,7 +581,7 @@ if [[ "${num}" == "0" ]]; then
     if [[ "$handle_factory" == "true" ]]; then
         echo "IMPLEMENT_BRIDGE(RM_${base}Factory, ${rm_class_factory}, ${namespace}::${class}::Factory);" >> "${rm_file}"
     fi
-    if [[ "${base}" == "LinOp" ]]; then
+    if [[ "$base" == "LinOp" ]] || [[ "$base" == "Logger" ]]; then
         echo "IMPLEMENT_BRIDGE(RM_${base}, ${rm_class}, ${namespace}::${class});" >> "${rm_file}"
     fi
     echo "" >> "${rm_file}"
@@ -565,7 +595,7 @@ else
         echo "" >> "${rm_file}"
     fi
     # create_from_config for itself
-    if [[ "$base" == "LinOp" ]]; then
+    if [[ "$base" == "LinOp" ]] || [[ "$base" == "Logger" ]]; then
         echo "$(generate_create_from_config "${base_namespace}${base}" "RM_$base" \
                 "${rm_class}" "${type_value_with_default}" \
                 "${rm_class_snake}_select" "${select_type}" "${rm_class_snake}_list")" >> "${rm_file}"
