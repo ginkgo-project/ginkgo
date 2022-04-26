@@ -1000,13 +1000,29 @@ public:
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
         const span& row_span, const span& column_span) const;
 
-    Csr& operator=(const Csr& other);
+    /**
+     * Copy-assigns a Csr matrix. Preserves executor, copies everything else.
+     */
+    Csr& operator=(const Csr&);
 
-    Csr& operator=(Csr&& other);
+    /**
+     * Move-assigns a Csr matrix. Preserves executor, moves the data and leaves
+     * the moved-from object in an empty state (0x0 LinOp with unchanged
+     * executor and strategy, no nonzeros and valid row pointers).
+     */
+    Csr& operator=(Csr&&);
 
-    Csr(const Csr& other);
+    /**
+     * Copy-constructs a Csr matrix. Inherits executor, strategy and data.
+     */
+    Csr(const Csr&);
 
-    Csr(Csr&& other);
+    /**
+     * Move-constructs a Csr matrix. Inherits executor and strategy, moves the
+     * data and leaves the moved-from object in an empty state (0x0 LinOp with
+     * unchanged executor and strategy, no nonzeros and valid row pointers).
+     */
+    Csr(Csr&&);
 
 protected:
     /**

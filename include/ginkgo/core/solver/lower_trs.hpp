@@ -114,12 +114,33 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Copy-assigns a triangular solver. Preserves the executor, shallow-copies
+     * the system matrix. If the executors mismatch, clones system matrix onto
+     * this executor. Solver analysis information will be regenerated.
+     */
     LowerTrs(const LowerTrs&);
 
+    /**
+     * Move-assigns a triangular solver. Preserves the executor, moves
+     * the system matrix. If the executors mismatch, clones system matrix onto
+     * this executor and regenerates solver analysis information. Moved-from
+     * object is empty (0x0 and nullptr system matrix)
+     */
     LowerTrs(LowerTrs&&);
 
+    /**
+     * Copy-constructs a triangular solver. Preserves the executor,
+     * shallow-copies the system matrix. Solver analysis information will be
+     * regenerated.
+     */
     LowerTrs& operator=(const LowerTrs&);
 
+    /**
+     * Move-constructs a triangular solver. Preserves the executor, moves
+     * the system matrix and solver analysis information. Moved-from
+     * object is empty (0x0 and nullptr system matrix)
+     */
     LowerTrs& operator=(LowerTrs&&);
 
 protected:

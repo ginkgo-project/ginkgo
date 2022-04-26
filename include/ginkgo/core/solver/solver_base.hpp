@@ -85,6 +85,10 @@ public:
         Preconditionable::set_preconditioner(new_precond);
     }
 
+    /**
+     * Creates a shallow copy of the provided preconditioner, clones it onto
+     * this executor if executors don't match.
+     */
     EnablePreconditionable& operator=(const EnablePreconditionable& other)
     {
         if (&other != this) {
@@ -93,6 +97,11 @@ public:
         return *this;
     }
 
+    /**
+     * Moves the provided preconditioner, clones it onto this executor if
+     * executors don't match. The moved-from object has a nullptr
+     * preconditioner.
+     */
     EnablePreconditionable& operator=(EnablePreconditionable&& other)
     {
         if (&other != this) {
@@ -109,11 +118,18 @@ public:
         set_preconditioner(std::move(preconditioner));
     }
 
+    /**
+     * Creates a shallow copy of the provided preconditioner.
+     */
     EnablePreconditionable(const EnablePreconditionable& other)
     {
         *this = other;
     }
 
+    /**
+     * Moves the provided preconditioner. The moved-from object has a nullptr
+     * preconditioner.
+     */
     EnablePreconditionable(EnablePreconditionable&& other)
     {
         *this = std::move(other);
@@ -172,6 +188,10 @@ protected:
 template <typename DerivedType, typename MatrixType = LinOp>
 class EnableSolverBase : public SolverBase<MatrixType> {
 public:
+    /**
+     * Creates a shallow copy of the provided system matrix, clones it onto
+     * this executor if executors don't match.
+     */
     EnableSolverBase& operator=(const EnableSolverBase& other)
     {
         if (&other != this) {
@@ -180,6 +200,10 @@ public:
         return *this;
     }
 
+    /**
+     * Moves the provided system matrix, clones it onto this executor if
+     * executors don't match. The moved-from object has a nullptr system matrix.
+     */
     EnableSolverBase& operator=(EnableSolverBase&& other)
     {
         if (&other != this) {
@@ -196,8 +220,15 @@ public:
         set_system_matrix(std::move(system_matrix));
     }
 
+    /**
+     * Creates a shallow copy of the provided system matrix.
+     */
     EnableSolverBase(const EnableSolverBase& other) { *this = other; }
 
+    /**
+     * Moves the provided system matrix. The moved-from object has a nullptr
+     * system matrix.
+     */
     EnableSolverBase(EnableSolverBase&& other) { *this = std::move(other); }
 
 protected:
@@ -270,6 +301,10 @@ private:
 template <typename DerivedType>
 class EnableIterativeBase : public IterativeBase {
 public:
+    /**
+     * Creates a shallow copy of the provided stopping criterion, clones it onto
+     * this executor if executors don't match.
+     */
     EnableIterativeBase& operator=(const EnableIterativeBase& other)
     {
         if (&other != this) {
@@ -278,6 +313,11 @@ public:
         return *this;
     }
 
+    /**
+     * Moves the provided stopping criterion, clones it onto this executor if
+     * executors don't match. The moved-from object has a nullptr
+     * stopping criterion.
+     */
     EnableIterativeBase& operator=(EnableIterativeBase&& other)
     {
         if (&other != this) {
@@ -295,8 +335,15 @@ public:
         set_stop_criterion_factory(std::move(stop_factory));
     }
 
+    /**
+     * Creates a shallow copy of the provided stopping criterion.
+     */
     EnableIterativeBase(const EnableIterativeBase& other) { *this = other; }
 
+    /**
+     * Moves the provided stopping criterion. The moved-from object has a
+     * nullptr stopping criterion.
+     */
     EnableIterativeBase(EnableIterativeBase&& other)
     {
         *this = std::move(other);

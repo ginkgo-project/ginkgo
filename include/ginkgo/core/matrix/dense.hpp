@@ -882,13 +882,31 @@ public:
             stride});
     }
 
-    Dense& operator=(const Dense& other);
+    /**
+     * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
+     * matrix with minimal stride if the dimensions don't match, then copies the
+     * data over, ignoring padding.
+     */
+    Dense& operator=(const Dense&);
 
-    Dense& operator=(Dense&& other);
+    /**
+     * Move-assigns a Dense matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with empty Array).
+     */
+    Dense& operator=(Dense&&);
 
-    Dense(const Dense& other);
+    /**
+     * Copy-constructs a Dense matrix. Inherits executor and dimensions, but
+     * copies data without padding.
+     */
+    Dense(const Dense&);
 
-    Dense(Dense&& other);
+    /**
+     * Move-constructs a Dense matrix. Inherits executor, dimensions and data
+     * with padding. The moved-from object is empty (0x0 with empty Array).
+     */
+    Dense(Dense&&);
 
 protected:
     /**

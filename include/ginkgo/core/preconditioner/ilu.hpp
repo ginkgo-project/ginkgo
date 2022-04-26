@@ -206,6 +206,11 @@ public:
         return std::move(transposed);
     }
 
+    /**
+     * Copy-assigns an ILU preconditioner. Preserves the executor,
+     * shallow-copies the solvers and parameters. Creates a clone of the solvers
+     * if they are on the wrong executor.
+     */
     Ilu& operator=(const Ilu& other)
     {
         if (&other != this) {
@@ -222,6 +227,12 @@ public:
         return *this;
     }
 
+    /**
+     * Move-assigns an ILU preconditioner. Preserves the executor,
+     * moves the solvers and parameters. Creates a clone of the solvers
+     * if they are on the wrong executor. The moved-from object is empty (0x0
+     * with nullptr solvers and default parameters)
+     */
     Ilu& operator=(Ilu&& other)
     {
         if (&other != this) {
@@ -238,8 +249,17 @@ public:
         return *this;
     }
 
+    /**
+     * Copy-constructs an ILU preconditioner. Inherits the executor,
+     * shallow-copies the solvers and parameters.
+     */
     Ilu(const Ilu& other) : Ilu{other.get_executor()} { *this = other; }
 
+    /**
+     * Move-constructs an ILU preconditioner. Inherits the executor,
+     * moves the solvers and parameters. The moved-from object is empty (0x0
+     * with nullptr solvers and default parameters)
+     */
     Ilu(Ilu&& other) : Ilu{other.get_executor()} { *this = std::move(other); }
 
 protected:

@@ -632,13 +632,31 @@ public:
     template <typename HybType>
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
-    Hybrid& operator=(const Hybrid& other);
+    /**
+     * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
+     * Ell and Coo matrices.
+     */
+    Hybrid& operator=(const Hybrid&);
 
-    Hybrid& operator=(Hybrid&& other);
+    /**
+     * Move-assigns a Hybrid matrix. Preserves the executor, move-assigns the
+     * Ell and Coo matrices. The moved-from matrix is empty (0x0 with empty
+     * Ell/Coo matrices).
+     */
+    Hybrid& operator=(Hybrid&&);
 
-    Hybrid(const Hybrid& other);
+    /**
+     * Copy-assigns a Hybrid matrix. Inherits the executor, copies the Ell and
+     * Coo matrices.
+     */
+    Hybrid(const Hybrid&);
 
-    Hybrid(Hybrid&& other);
+    /**
+     * Move-assigns a Hybrid matrix. Inherits the executor, moves the Ell and
+     * Coo matrices. The moved-from matrix is empty (0x0 with empty Ell/Coo
+     * matrices).
+     */
+    Hybrid(Hybrid&&);
 
 protected:
     /**

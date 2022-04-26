@@ -489,7 +489,7 @@ public:
      * + `a` is an array and `b` is a view, `b` becomes the only valid array
      *    of `a`.
      *
-     * In all the previous cases, `a` becomes invalid (e.g., a `nullptr`).
+     * In all the previous cases, `a` becomes empty (e.g., a `nullptr`).
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
