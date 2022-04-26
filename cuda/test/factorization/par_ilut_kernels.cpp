@@ -93,25 +93,24 @@ protected:
             std::uniform_int_distribution<>(1, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<>(10, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], true,
-            std::uniform_int_distribution<>(1, mtx_size[0]),
+            mtx_size[0], true, std::uniform_int_distribution<>(1, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l_complex =
             gko::test::generate_random_lower_triangular_matrix<ComplexCsr>(
-                mtx_size[0], mtx_size[0], false,
+                mtx_size[0], false,
                 std::uniform_int_distribution<>(10, mtx_size[0]),
                 std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<>(10, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u_complex =
             gko::test::generate_random_upper_triangular_matrix<ComplexCsr>(
-                mtx_size[0], mtx_size[0], false,
+                mtx_size[0], false,
                 std::uniform_int_distribution<>(10, mtx_size[0]),
                 std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 

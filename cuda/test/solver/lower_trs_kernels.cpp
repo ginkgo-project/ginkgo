@@ -85,17 +85,16 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::unique_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_l_mtx(int size)
     {
         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
-            num_rows, num_cols, false,
-            std::uniform_int_distribution<>(num_cols, num_cols),
+            size, false, std::uniform_int_distribution<>(size),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(int m, int n)
     {
-        mtx = gen_l_mtx(m, m);
+        mtx = gen_l_mtx(m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);

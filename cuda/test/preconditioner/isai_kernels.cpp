@@ -110,7 +110,7 @@ protected:
             mtx->copy_from(spd_mtx.get());
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
-                n, n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
+                n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
                 gko::dim<2>{n, n});
         }
         inverse = clone_allocations(mtx.get());

@@ -81,11 +81,10 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::shared_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
+    std::shared_ptr<Mtx> gen_u_mtx(int size)
     {
         return gko::test::generate_random_upper_triangular_matrix<Mtx>(
-            num_rows, num_cols, false,
-            std::uniform_int_distribution<>(num_cols, num_cols),
+            size, false, std::uniform_int_distribution<>(size, size),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
@@ -99,7 +98,7 @@ protected:
         d_x = gko::clone(omp, x);
         dt_b = gko::clone(omp, b);
         dt_x = gko::clone(omp, x);
-        mat = gen_u_mtx(m, m);
+        mat = gen_u_mtx(m);
         csr_mat = CsrMtx::create(ref);
         mat->convert_to(csr_mat.get());
         d_mat = gko::clone(omp, mat);
