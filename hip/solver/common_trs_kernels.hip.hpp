@@ -59,7 +59,7 @@ namespace solver {
 
 
 struct SolveStruct {
-    virtual void dummy(){};
+    virtual ~SolveStruct() = default;
 };
 
 
