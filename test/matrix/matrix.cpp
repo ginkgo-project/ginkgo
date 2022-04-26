@@ -972,6 +972,24 @@ TYPED_TEST(Matrix, ConvertToCsrIsEquivalentToRef)
 }
 
 
+TYPED_TEST(Matrix, MoveToCsrIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Csr =
+        gko::matrix::Csr<typename Mtx::value_type, typename Mtx::index_type>;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        auto ref_result = Csr::create(this->ref);
+        auto dev_result = Csr::create(this->exec);
+
+        mtx.ref->move_to(ref_result.get());
+        mtx.dev->move_to(dev_result.get());
+
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
+    });
+}
+
+
 TYPED_TEST(Matrix, ConvertFromCsrIsEquivalentToRef)
 {
     using TestConfig = typename TestFixture::Config;
@@ -988,6 +1006,29 @@ TYPED_TEST(Matrix, ConvertFromCsrIsEquivalentToRef)
 
         ref_src->convert_to(ref_result.get());
         dev_src->convert_to(dev_result.get());
+
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
+    });
+}
+
+
+TYPED_TEST(Matrix, MoveFromCsrIsEquivalentToRef)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Csr =
+        gko::matrix::Csr<typename Mtx::value_type, typename Mtx::index_type>;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        auto ref_src = Csr::create(this->ref);
+        auto dev_src = Csr::create(this->exec);
+        ref_src->read(data);
+        dev_src->read(data);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
+
+        ref_src->move_to(ref_result.get());
+        dev_src->move_to(dev_result.get());
 
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
@@ -1028,6 +1069,39 @@ TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
 }
 
 
+TYPED_TEST(Matrix, MoveToDenseIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    this->forall_matrix_scenarios([&](auto mtx) {
+        const auto size = mtx.ref->get_size();
+        const auto stride = size[1] + 5;
+        const auto padded_size = gko::dim<2>{size[0], stride};
+        auto ref_padded = Dense::create(this->ref, padded_size);
+        auto dev_padded = Dense::create(this->exec, padded_size);
+        ref_padded->fill(12345);
+        dev_padded->fill(12345);
+        const auto rows = gko::span{0, size[0]};
+        const auto cols = gko::span{0, size[1]};
+        const auto pad_cols = gko::span{size[1], stride};
+        auto ref_result = ref_padded->create_submatrix(rows, cols);
+        auto dev_result = dev_padded->create_submatrix(rows, cols);
+        auto ref_padding = ref_padded->create_submatrix(rows, pad_cols);
+        auto dev_padding = dev_padded->create_submatrix(rows, pad_cols);
+        auto orig_padding = ref_padding->clone();
+
+        mtx.ref->move_to(ref_result.get());
+        mtx.dev->move_to(dev_result.get());
+
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        ASSERT_EQ(ref_result->get_stride(), stride);
+        ASSERT_EQ(dev_result->get_stride(), stride);
+        GKO_ASSERT_MTX_NEAR(ref_padding, orig_padding, 0.0);
+        GKO_ASSERT_MTX_NEAR(dev_padding, orig_padding, 0.0);
+    });
+}
+
+
 TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
 {
     using TestConfig = typename TestFixture::Config;
@@ -1046,6 +1120,31 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
 
         ref_src->convert_to(ref_result.get());
         dev_src->convert_to(dev_result.get());
+
+        GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
+        GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
+    });
+}
+
+
+TYPED_TEST(Matrix, MoveFromDenseIsEquivalentToRef)
+{
+    using TestConfig = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    this->forall_matrix_data_scenarios([&](auto data) {
+        const auto stride = data.size[0] + 2;
+        auto ref_src = Dense::create(this->ref, data.size, stride);
+        auto dev_src = Dense::create(this->exec, data.size, stride);
+        ref_src->read(data);
+        dev_src->read(data);
+        ASSERT_EQ(ref_src->get_stride(), stride);
+        ASSERT_EQ(dev_src->get_stride(), stride);
+        auto ref_result = TestConfig::create(this->ref, data.size);
+        auto dev_result = TestConfig::create(this->exec, data.size);
+
+        ref_src->move_to(ref_result.get());
+        dev_src->move_to(dev_result.get());
 
         GKO_ASSERT_MTX_NEAR(ref_result, dev_result, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(ref_result, dev_result);
