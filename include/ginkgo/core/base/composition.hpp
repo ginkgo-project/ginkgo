@@ -89,13 +89,32 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    Composition& operator=(const Composition& other);
+    /**
+     * Copy-assigns a Composition. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor.
+     */
+    Composition& operator=(const Composition&);
 
-    Composition& operator=(Composition&& other);
+    /**
+     * Move-assigns a Composition. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor,
+     * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
+     * without operators) afterwards.
+     */
+    Composition& operator=(Composition&&);
 
-    Composition(const Composition& other);
+    /**
+     * Copy-constructs a Composition. This inherits the executor of the input
+     * Composition and all of its operators with shared ownership.
+     */
+    Composition(const Composition&);
 
-    Composition(Composition&& other);
+    /**
+     * Move-constructs a Composition. This inherits the executor of the input
+     * Composition and all of its operators. The moved-from object is empty (0x0
+     * LinOp without operators) afterwards.
+     */
+    Composition(Composition&&);
 
 protected:
     void add_operators() {}
@@ -129,7 +148,7 @@ protected:
      * Creates a composition of operators using the operators in a range.
      *
      * @tparam Iterator  a class representing iterators over the
-     *                  perators of the linear combination
+     *                   operators of the composition
      *
      * @param begin  iterator pointing to the first operator
      * @param end  iterator pointing behind the last operator

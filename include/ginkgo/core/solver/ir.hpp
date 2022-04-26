@@ -141,13 +141,35 @@ public:
      */
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
-    Ir& operator=(const Ir& other);
+    /**
+     * Copy-assigns an IR solver. Preserves the executor, shallow-copies inner
+     * solver, stopping criterion and system matrix. If the executors mismatch,
+     * clones inner solver, stopping criterion and system matrix onto this
+     * executor.
+     */
+    Ir& operator=(const Ir&);
 
-    Ir& operator=(Ir&& other);
+    /**
+     * Move-assigns an IR solver. Preserves the executor, moves inner solver,
+     * stopping criterion and system matrix. If the executors mismatch, clones
+     * inner solver, stopping criterion and system matrix onto this executor.
+     * The moved-from object is empty (0x0 and nullptr inner solver, stopping
+     * criterion and system matrix)
+     */
+    Ir& operator=(Ir&&);
 
-    Ir(const Ir& other);
+    /**
+     * Copy-constructs an IR solver. Inherits the executor, shallow-copies inner
+     * solver, stopping criterion and system matrix.
+     */
+    Ir(const Ir&);
 
-    Ir(Ir&& other);
+    /**
+     * Move-constructs an IR solver. Preserves the executor, moves inner solver,
+     * stopping criterion and system matrix. The moved-from object is empty (0x0
+     * and nullptr inner solver, stopping criterion and system matrix)
+     */
+    Ir(Ir&&);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

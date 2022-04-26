@@ -350,13 +350,30 @@ public:
                       gko::detail::array_const_cast(std::move(row_ptrs))});
     }
 
-    Fbcsr& operator=(const Fbcsr& other);
+    /**
+     * Copy-assigns an Fbcsr matrix. Preserves the executor, copies data and
+     * block size from the input.
+     */
+    Fbcsr& operator=(const Fbcsr&);
 
-    Fbcsr& operator=(Fbcsr&& other);
+    /**
+     * Move-assigns an Fbcsr matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with no nonzeros, but valid row pointers).
+     */
+    Fbcsr& operator=(Fbcsr&&);
 
-    Fbcsr(const Fbcsr& other);
+    /**
+     * Copy-constructs an Ell matrix. Inherits executor and data.
+     */
+    Fbcsr(const Fbcsr&);
 
-    Fbcsr(Fbcsr&& other);
+    /**
+     * Move-constructs an Fbcsr matrix. Inherits executor and data. The
+     * moved-from object is empty (0x0 with no nonzeros, but valid row
+     * pointers).
+     */
+    Fbcsr(Fbcsr&&);
 
 protected:
     /**

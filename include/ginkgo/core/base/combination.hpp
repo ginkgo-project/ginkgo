@@ -92,13 +92,32 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    Combination& operator=(const Combination& other);
+    /**
+     * Copy-assigns a Combination. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor.
+     */
+    Combination& operator=(const Combination&);
 
-    Combination& operator=(Combination&& other);
+    /**
+     * Move-assigns a Combination. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor,
+     * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
+     * without operators) afterwards.
+     */
+    Combination& operator=(Combination&&);
 
-    Combination(const Combination& other);
+    /**
+     * Copy-constructs a Combination. This inherits the executor of the input
+     * Combination and all of its operators with shared ownership.
+     */
+    Combination(const Combination&);
 
-    Combination(Combination&& other);
+    /**
+     * Move-constructs a Combination. This inherits the executor of the input
+     * Combination and all of its operators. The moved-from object is empty (0x0
+     * LinOp without operators) afterwards.
+     */
+    Combination(Combination&&);
 
 protected:
     void add_operators() {}
