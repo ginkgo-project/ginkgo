@@ -126,8 +126,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_allocation_started(const Executor* exec,
                                               const size_type& num_bytes) const
 {
-    os_ << prefix_ << "allocation started on " << demangle_name(exec)
-        << " with " << bytes_name(num_bytes) << std::endl;
+    *os_ << prefix_ << "allocation started on " << demangle_name(exec)
+         << " with " << bytes_name(num_bytes) << std::endl;
 }
 
 
@@ -136,9 +136,9 @@ void Stream<ValueType>::on_allocation_completed(const Executor* exec,
                                                 const size_type& num_bytes,
                                                 const uintptr& location) const
 {
-    os_ << prefix_ << "allocation completed on " << demangle_name(exec)
-        << " at " << location_name(location) << " with "
-        << bytes_name(num_bytes) << std::endl;
+    *os_ << prefix_ << "allocation completed on " << demangle_name(exec)
+         << " at " << location_name(location) << " with "
+         << bytes_name(num_bytes) << std::endl;
 }
 
 
@@ -146,8 +146,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_free_started(const Executor* exec,
                                         const uintptr& location) const
 {
-    os_ << prefix_ << "free started on " << demangle_name(exec) << " at "
-        << location_name(location) << std::endl;
+    *os_ << prefix_ << "free started on " << demangle_name(exec) << " at "
+         << location_name(location) << std::endl;
 }
 
 
@@ -155,8 +155,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_free_completed(const Executor* exec,
                                           const uintptr& location) const
 {
-    os_ << prefix_ << "free completed on " << demangle_name(exec) << " at "
-        << location_name(location) << std::endl;
+    *os_ << prefix_ << "free completed on " << demangle_name(exec) << " at "
+         << location_name(location) << std::endl;
 }
 
 
@@ -167,10 +167,10 @@ void Stream<ValueType>::on_copy_started(const Executor* from,
                                         const uintptr& location_to,
                                         const size_type& num_bytes) const
 {
-    os_ << prefix_ << "copy started from " << demangle_name(from) << " to "
-        << demangle_name(to) << " from " << location_name(location_from)
-        << " to " << location_name(location_to) << " with "
-        << bytes_name(num_bytes) << std::endl;
+    *os_ << prefix_ << "copy started from " << demangle_name(from) << " to "
+         << demangle_name(to) << " from " << location_name(location_from)
+         << " to " << location_name(location_to) << " with "
+         << bytes_name(num_bytes) << std::endl;
 }
 
 
@@ -181,10 +181,10 @@ void Stream<ValueType>::on_copy_completed(const Executor* from,
                                           const uintptr& location_to,
                                           const size_type& num_bytes) const
 {
-    os_ << prefix_ << "copy completed from " << demangle_name(from) << " to "
-        << demangle_name(to) << " from " << location_name(location_from)
-        << " to " << location_name(location_to) << " with "
-        << bytes_name(num_bytes) << std::endl;
+    *os_ << prefix_ << "copy completed from " << demangle_name(from) << " to "
+         << demangle_name(to) << " from " << location_name(location_from)
+         << " to " << location_name(location_to) << " with "
+         << bytes_name(num_bytes) << std::endl;
 }
 
 
@@ -192,8 +192,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_operation_launched(const Executor* exec,
                                               const Operation* operation) const
 {
-    os_ << prefix_ << demangle_name(operation) << " started on "
-        << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(operation) << " started on "
+         << demangle_name(exec) << std::endl;
 }
 
 
@@ -201,8 +201,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_operation_completed(const Executor* exec,
                                                const Operation* operation) const
 {
-    os_ << prefix_ << demangle_name(operation) << " completed on "
-        << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(operation) << " completed on "
+         << demangle_name(exec) << std::endl;
 }
 
 
@@ -210,8 +210,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_create_started(
     const Executor* exec, const PolymorphicObject* po) const
 {
-    os_ << prefix_ << "PolymorphicObject create started from "
-        << demangle_name(po) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << "PolymorphicObject create started from "
+         << demangle_name(po) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -220,8 +220,8 @@ void Stream<ValueType>::on_polymorphic_object_create_completed(
     const Executor* exec, const PolymorphicObject* input,
     const PolymorphicObject* output) const
 {
-    os_ << prefix_ << demangle_name(output) << " create completed from "
-        << demangle_name(input) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(output) << " create completed from "
+         << demangle_name(input) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -230,8 +230,8 @@ void Stream<ValueType>::on_polymorphic_object_copy_started(
     const Executor* exec, const PolymorphicObject* from,
     const PolymorphicObject* to) const
 {
-    os_ << prefix_ << demangle_name(from) << " copy started to "
-        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(from) << " copy started to "
+         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -240,8 +240,8 @@ void Stream<ValueType>::on_polymorphic_object_copy_completed(
     const Executor* exec, const PolymorphicObject* from,
     const PolymorphicObject* to) const
 {
-    os_ << prefix_ << demangle_name(from) << " copy completed to "
-        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(from) << " copy completed to "
+         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -250,8 +250,8 @@ void Stream<ValueType>::on_polymorphic_object_move_started(
     const Executor* exec, const PolymorphicObject* from,
     const PolymorphicObject* to) const
 {
-    os_ << prefix_ << demangle_name(from) << " move started to "
-        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(from) << " move started to "
+         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -260,8 +260,8 @@ void Stream<ValueType>::on_polymorphic_object_move_completed(
     const Executor* exec, const PolymorphicObject* from,
     const PolymorphicObject* to) const
 {
-    os_ << prefix_ << demangle_name(from) << " move completed to "
-        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+    *os_ << prefix_ << demangle_name(from) << " move completed to "
+         << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
 }
 
 
@@ -269,8 +269,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_deleted(
     const Executor* exec, const PolymorphicObject* po) const
 {
-    os_ << prefix_ << demangle_name(po) << " deleted on " << demangle_name(exec)
-        << std::endl;
+    *os_ << prefix_ << demangle_name(po) << " deleted on "
+         << demangle_name(exec) << std::endl;
 }
 
 
@@ -278,15 +278,15 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
                                                const LinOp* x) const
 {
-    os_ << prefix_ << "apply started on A " << demangle_name(A) << " with b "
-        << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
+    *os_ << prefix_ << "apply started on A " << demangle_name(A) << " with b "
+         << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
     if (verbose_) {
-        os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
-            << std::endl;
-        os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
-            << std::endl;
-        os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
-            << std::endl;
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+             << std::endl;
+        *os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+             << std::endl;
+        *os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+             << std::endl;
     }
 }
 
@@ -295,15 +295,15 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
                                                  const LinOp* x) const
 {
-    os_ << prefix_ << "apply completed on A " << demangle_name(A) << " with b "
-        << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
+    *os_ << prefix_ << "apply completed on A " << demangle_name(A) << " with b "
+         << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
     if (verbose_) {
-        os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
-            << std::endl;
-        os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
-            << std::endl;
-        os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
-            << std::endl;
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+             << std::endl;
+        *os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+             << std::endl;
+        *os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+             << std::endl;
     }
 }
 
@@ -315,21 +315,21 @@ void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
                                                         const LinOp* beta,
                                                         const LinOp* x) const
 {
-    os_ << prefix_ << "advanced apply started on A " << demangle_name(A)
-        << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
-        << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
-        << std::endl;
+    *os_ << prefix_ << "advanced apply started on A " << demangle_name(A)
+         << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
+         << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
+         << std::endl;
     if (verbose_) {
-        os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
-            << std::endl;
-        os_ << demangle_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
-            << std::endl;
-        os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
-            << std::endl;
-        os_ << demangle_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
-            << std::endl;
-        os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
-            << std::endl;
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+             << std::endl;
+        *os_ << demangle_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
+             << std::endl;
+        *os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+             << std::endl;
+        *os_ << demangle_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
+             << std::endl;
+        *os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+             << std::endl;
     }
 }
 
@@ -341,21 +341,21 @@ void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
                                                           const LinOp* beta,
                                                           const LinOp* x) const
 {
-    os_ << prefix_ << "advanced apply completed on A " << demangle_name(A)
-        << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
-        << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
-        << std::endl;
+    *os_ << prefix_ << "advanced apply completed on A " << demangle_name(A)
+         << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
+         << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
+         << std::endl;
     if (verbose_) {
-        os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
-            << std::endl;
-        os_ << demangle_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
-            << std::endl;
-        os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
-            << std::endl;
-        os_ << demangle_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
-            << std::endl;
-        os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
-            << std::endl;
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
+             << std::endl;
+        *os_ << demangle_name(alpha) << as<gko::matrix::Dense<ValueType>>(alpha)
+             << std::endl;
+        *os_ << demangle_name(b) << as<gko::matrix::Dense<ValueType>>(b)
+             << std::endl;
+        *os_ << demangle_name(beta) << as<gko::matrix::Dense<ValueType>>(beta)
+             << std::endl;
+        *os_ << demangle_name(x) << as<gko::matrix::Dense<ValueType>>(x)
+             << std::endl;
     }
 }
 
@@ -364,8 +364,8 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_started(
     const LinOpFactory* factory, const LinOp* input) const
 {
-    os_ << prefix_ << "generate started for " << demangle_name(factory)
-        << " with input " << demangle_name(input) << std::endl;
+    *os_ << prefix_ << "generate started for " << demangle_name(factory)
+         << " with input " << demangle_name(input) << std::endl;
 }
 
 
@@ -373,9 +373,9 @@ template <typename ValueType>
 void Stream<ValueType>::on_linop_factory_generate_completed(
     const LinOpFactory* factory, const LinOp* input, const LinOp* output) const
 {
-    os_ << prefix_ << "generate completed for " << demangle_name(factory)
-        << " with input " << demangle_name(input) << " produced "
-        << demangle_name(output) << std::endl;
+    *os_ << prefix_ << "generate completed for " << demangle_name(factory)
+         << " with input " << demangle_name(input) << " produced "
+         << demangle_name(output) << std::endl;
 }
 
 
@@ -385,23 +385,23 @@ void Stream<ValueType>::on_criterion_check_started(
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stopping_id, const bool& set_finalized) const
 {
-    os_ << prefix_ << "check started for " << demangle_name(criterion)
-        << " at iteration " << num_iterations << " with ID "
-        << static_cast<int>(stopping_id) << " and finalized set to "
-        << set_finalized << std::endl;
+    *os_ << prefix_ << "check started for " << demangle_name(criterion)
+         << " at iteration " << num_iterations << " with ID "
+         << static_cast<int>(stopping_id) << " and finalized set to "
+         << set_finalized << std::endl;
     if (verbose_) {
         if (residual != nullptr) {
-            os_ << demangle_name(residual)
-                << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
+            *os_ << demangle_name(residual)
+                 << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
         }
         if (residual_norm != nullptr) {
-            os_ << demangle_name(residual_norm)
-                << as<gko::matrix::Dense<ValueType>>(residual_norm)
-                << std::endl;
+            *os_ << demangle_name(residual_norm)
+                 << as<gko::matrix::Dense<ValueType>>(residual_norm)
+                 << std::endl;
         }
         if (solution != nullptr) {
-            os_ << demangle_name(solution)
-                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
+            *os_ << demangle_name(solution)
+                 << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
         }
     }
 }
@@ -415,28 +415,28 @@ void Stream<ValueType>::on_criterion_check_completed(
     const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
-    os_ << prefix_ << "check completed for " << demangle_name(criterion)
-        << " at iteration " << num_iterations << " with ID "
-        << static_cast<int>(stoppingId) << " and finalized set to "
-        << setFinalized << ". It changed one RHS " << oneChanged
-        << ", stopped the iteration process " << converged << std::endl;
+    *os_ << prefix_ << "check completed for " << demangle_name(criterion)
+         << " at iteration " << num_iterations << " with ID "
+         << static_cast<int>(stoppingId) << " and finalized set to "
+         << setFinalized << ". It changed one RHS " << oneChanged
+         << ", stopped the iteration process " << converged << std::endl;
 
     if (verbose_) {
         array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
-        os_ << tmp.get_const_data();
+        *os_ << tmp.get_const_data();
         if (residual != nullptr) {
-            os_ << demangle_name(residual)
-                << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
+            *os_ << demangle_name(residual)
+                 << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
         }
         if (residual_norm != nullptr) {
-            os_ << demangle_name(residual_norm)
-                << as<gko::matrix::Dense<ValueType>>(residual_norm)
-                << std::endl;
+            *os_ << demangle_name(residual_norm)
+                 << as<gko::matrix::Dense<ValueType>>(residual_norm)
+                 << std::endl;
         }
         if (solution != nullptr) {
-            os_ << demangle_name(solution)
-                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
+            *os_ << demangle_name(solution)
+                 << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
         }
     }
 }
@@ -460,28 +460,28 @@ void Stream<ValueType>::on_iteration_complete(
     const LinOp* solution, const LinOp* residual_norm,
     const LinOp* implicit_sq_residual_norm) const
 {
-    os_ << prefix_ << "iteration " << num_iterations
-        << " completed with solver " << demangle_name(solver)
-        << " with residual " << demangle_name(residual) << ", solution "
-        << demangle_name(solution) << ", residual_norm "
-        << demangle_name(residual_norm) << " and implicit_sq_residual_norm "
-        << demangle_name(implicit_sq_residual_norm) << std::endl;
+    *os_ << prefix_ << "iteration " << num_iterations
+         << " completed with solver " << demangle_name(solver)
+         << " with residual " << demangle_name(residual) << ", solution "
+         << demangle_name(solution) << ", residual_norm "
+         << demangle_name(residual_norm) << " and implicit_sq_residual_norm "
+         << demangle_name(implicit_sq_residual_norm) << std::endl;
     if (verbose_) {
-        os_ << demangle_name(residual)
-            << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
+        *os_ << demangle_name(residual)
+             << as<gko::matrix::Dense<ValueType>>(residual) << std::endl;
         if (solution != nullptr) {
-            os_ << demangle_name(solution)
-                << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
+            *os_ << demangle_name(solution)
+                 << as<gko::matrix::Dense<ValueType>>(solution) << std::endl;
         }
         if (residual_norm != nullptr) {
-            os_ << demangle_name(residual_norm)
-                << as<gko::matrix::Dense<ValueType>>(residual_norm)
-                << std::endl;
+            *os_ << demangle_name(residual_norm)
+                 << as<gko::matrix::Dense<ValueType>>(residual_norm)
+                 << std::endl;
         }
         if (implicit_sq_residual_norm != nullptr) {
-            os_ << demangle_name(implicit_sq_residual_norm)
-                << as<gko::matrix::Dense<ValueType>>(implicit_sq_residual_norm)
-                << std::endl;
+            *os_ << demangle_name(implicit_sq_residual_norm)
+                 << as<gko::matrix::Dense<ValueType>>(implicit_sq_residual_norm)
+                 << std::endl;
         }
     }
 }

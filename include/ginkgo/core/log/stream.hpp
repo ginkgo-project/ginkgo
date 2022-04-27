@@ -213,7 +213,7 @@ public:
      */
     static std::unique_ptr<Stream> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cout, bool verbose = false)
+        std::ostream& os = std::cerr, bool verbose = false)
     {
         return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
     }
@@ -233,7 +233,7 @@ protected:
     [[deprecated("use three-parameter constructor")]] explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cout, bool verbose = false)
+        std::ostream& os = std::cerr, bool verbose = false)
         : Stream(enabled_events, os, verbose)
     {}
 
@@ -250,13 +250,13 @@ protected:
      */
     explicit Stream(
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cout, bool verbose = false)
-        : Logger(enabled_events), os_(os), verbose_(verbose)
+        std::ostream& os = std::cerr, bool verbose = false)
+        : Logger(enabled_events), os_(&os), verbose_(verbose)
     {}
 
 
 private:
-    std::ostream& os_;
+    std::ostream* os_;
     static constexpr const char* prefix_ = "[LOG] >>> ";
     bool verbose_;
 };
