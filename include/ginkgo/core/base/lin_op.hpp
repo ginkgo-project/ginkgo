@@ -483,7 +483,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> permute(
-        const Array<IndexType>* permutation_indices) const
+        const array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->row_permute(permutation_indices))
             ->column_permute(permutation_indices);
@@ -501,7 +501,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType>* permutation_indices) const
+        const array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->inverse_row_permute(permutation_indices))
             ->inverse_column_permute(permutation_indices);
@@ -518,7 +518,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the column permutation of the Permutable
@@ -532,7 +532,7 @@ public:
      * @return a pointer to the new column permuted object
      */
     virtual std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -545,7 +545,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -559,7 +559,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 };
 
 

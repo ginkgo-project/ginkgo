@@ -162,7 +162,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                             b->get_const_values(), &beta, c->get_values());
         } else {
             const auto trans_stride = nrows;
-            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
+            auto trans_c = array<ValueType>(exec, nrows * nrhs);
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             CUSPARSE_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                             &alpha, descr, values, row_ptrs, col_idxs, bs,
@@ -220,7 +220,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                             b->get_const_values(), betap, c->get_values());
         } else {
             const auto trans_stride = nrows;
-            auto trans_c = Array<ValueType>(exec, nrows * nrhs);
+            auto trans_c = array<ValueType>(exec, nrows * nrhs);
             dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
                             trans_stride, trans_c.get_data());
             cusparse::bsrmm(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -323,7 +323,7 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             exec->get_cusparse_handle(), orig->get_num_block_rows(),
             orig->get_num_block_cols(), nnzb, orig->get_const_values(),
             orig->get_const_row_ptrs(), orig->get_const_col_idxs(), bs, bs);
-        Array<char> buffer_array(exec, buffer_size);
+        array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
         cusparse::bsr_transpose(
             exec->get_cusparse_handle(), orig->get_num_block_rows(),
@@ -372,7 +372,7 @@ void is_sorted_by_column_index(
     bool* const is_sorted)
 {
     *is_sorted = true;
-    auto gpu_array = Array<bool>(exec, 1);
+    auto gpu_array = array<bool>(exec, 1);
     // need to initialize the GPU value to true
     exec->copy_from(exec->get_master().get(), 1, is_sorted,
                     gpu_array.get_data());

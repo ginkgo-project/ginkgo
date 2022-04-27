@@ -60,7 +60,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
                                ValueType* result, size_type size,
-                               Array<char>& tmp, MappedKernelArgs... args)
+                               array<char>& tmp, MappedKernelArgs... args)
 {
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto ssize = static_cast<int64>(size);
@@ -95,7 +95,7 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
-                                     Array<char>& tmp, MappedKernelArgs... args)
+                                     array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -164,7 +164,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, size_type size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     run_kernel_reduction_impl(exec, fn, op, finalize, identity, result, size,
                               tmp, map_to_device(args)...);
@@ -177,7 +177,7 @@ void run_kernel_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
                                  ValueType* result, dim<2> size,
-                                 Array<char>& tmp, KernelArgs&&... args)
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     const auto cols = static_cast<int64>(size[1]);
     constexpr int block_size = 8;
@@ -204,7 +204,7 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                    KernelFunction fn, ReductionOp op,
                                    FinalizeOp finalize, ValueType identity,
                                    ValueType* result, size_type result_stride,
-                                   dim<2> size, Array<char>& tmp,
+                                   dim<2> size, array<char>& tmp,
                                    MappedKernelArgs... args)
 {
     constexpr int block_size = 8;
@@ -298,7 +298,7 @@ void run_kernel_col_reduction_sized_impl(
     syn::value_list<int, remainder_cols>,
     std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
     FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
-    Array<char>& tmp, MappedKernelArgs... args)
+    array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -377,7 +377,7 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, size_type result_stride,
-                                     dim<2> size, Array<char>& tmp,
+                                     dim<2> size, array<char>& tmp,
                                      KernelArgs&&... args)
 {
     run_kernel_row_reduction_impl(exec, fn, op, finalize, identity, result,
@@ -392,7 +392,7 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
-                                     Array<char>& tmp, KernelArgs&&... args)
+                                     array<char>& tmp, KernelArgs&&... args)
 {
     constexpr auto block_size = 8;
     using remainders = syn::as_list<syn::range<0, block_size, 1>>;

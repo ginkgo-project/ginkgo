@@ -48,7 +48,7 @@ namespace gko {
  * This type is a device-side equivalent to matrix_data.
  * It stores the data necessary to initialize any matrix format in Ginkgo in
  * individual value, column and row index arrays together with associated matrix
- * dimensions. matrix_data uses Array-of-Structs storage (AoS), while
+ * dimensions. matrix_data uses array-of-Structs storage (AoS), while
  * device_matrix_data uses Struct-of-Arrays (SoA).
  *
  * @note To be used with a Ginkgo matrix type, the entry array must be sorted in
@@ -249,9 +249,9 @@ public:
      * Stores the internal arrays of a device_matrix_data object.
      */
     struct arrays {
-        Array<index_type> row_idxs;
-        Array<index_type> col_idxs;
-        Array<value_type> values;
+        array<index_type> row_idxs;
+        array<index_type> col_idxs;
+        array<value_type> values;
     };
 
     /**
@@ -264,9 +264,9 @@ public:
 
 private:
     dim<2> size_;
-    Array<index_type> row_idxs_;
-    Array<index_type> col_idxs_;
-    Array<value_type> values_;
+    array<index_type> row_idxs_;
+    array<index_type> col_idxs_;
+    array<value_type> values_;
 };
 
 

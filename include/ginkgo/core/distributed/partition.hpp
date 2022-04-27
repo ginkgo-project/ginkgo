@@ -244,7 +244,7 @@ public:
      */
     static std::unique_ptr<Partition> build_from_mapping(
         std::shared_ptr<const Executor> exec,
-        const Array<comm_index_type>& mapping, comm_index_type num_parts);
+        const array<comm_index_type>& mapping, comm_index_type num_parts);
 
     /**
      * Builds a partition consisting of contiguous ranges, one for each part.
@@ -259,7 +259,7 @@ public:
      */
     static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
-        const Array<global_index_type>& ranges);
+        const array<global_index_type>& ranges);
 
     /**
      * Builds a partition by evenly distributing the global range.
@@ -308,10 +308,10 @@ private:
     comm_index_type num_parts_;
     comm_index_type num_empty_parts_;
     global_index_type size_;
-    Array<global_index_type> offsets_;
-    Array<local_index_type> starting_indices_;
-    Array<local_index_type> part_sizes_;
-    Array<comm_index_type> part_ids_;
+    array<global_index_type> offsets_;
+    array<local_index_type> starting_indices_;
+    array<local_index_type> part_sizes_;
+    array<comm_index_type> part_ids_;
 };
 
 

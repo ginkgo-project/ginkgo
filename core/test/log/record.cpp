@@ -512,7 +512,7 @@ TEST(Record, CatchesCriterionCheckCompletedOld)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
@@ -542,7 +542,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, nullptr,

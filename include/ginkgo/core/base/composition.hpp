@@ -163,7 +163,7 @@ protected:
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
-    mutable Array<ValueType> storage_;
+    mutable array<ValueType> storage_;
 };
 
 

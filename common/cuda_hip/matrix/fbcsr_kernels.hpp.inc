@@ -154,9 +154,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
-                         int block_size, Array<IndexType>& block_row_ptr_array,
-                         Array<IndexType>& block_col_idx_array,
-                         Array<ValueType>& block_value_array)
+                         int block_size, array<IndexType>& block_row_ptr_array,
+                         array<IndexType>& block_col_idx_array,
+                         array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = data.get_num_elems();
@@ -201,8 +201,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = static_cast<size_type>(
         thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
     // allocate storage
-    Array<IndexType> block_row_idx_array{exec, num_blocks};
-    Array<size_type> block_ptr_array{exec, num_blocks};
+    array<IndexType> block_row_idx_array{exec, num_blocks};
+    array<size_type> block_ptr_array{exec, num_blocks};
     block_col_idx_array.resize_and_reset(num_blocks);
     block_value_array.resize_and_reset(num_blocks * bs * bs);
     auto block_row_idxs = block_row_idx_array.get_data();

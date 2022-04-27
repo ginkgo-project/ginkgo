@@ -144,20 +144,20 @@ protected:
         givens_sin = gen_mtx(default_krylov_dim_mixed, n);
         givens_cos = gen_mtx(default_krylov_dim_mixed, n);
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
         reorth_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < reorth_status->get_num_elems(); ++i) {
             reorth_status->get_data()[i].reset();
         }
-        final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(ref, n);
+        final_iter_nums = std::make_unique<gko::array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < final_iter_nums->get_num_elems(); ++i) {
             final_iter_nums->get_data()[i] = 5;
         }
-        num_reorth = std::make_unique<gko::Array<gko::size_type>>(ref, n);
+        num_reorth = std::make_unique<gko::array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < num_reorth->get_num_elems(); ++i) {
             num_reorth->get_data()[i] = 5;
         }
@@ -178,19 +178,19 @@ protected:
         d_residual_norm_collection = gko::clone(cuda, residual_norm_collection);
         d_givens_sin = gko::clone(cuda, givens_sin);
         d_givens_cos = gko::clone(cuda, givens_cos);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             cuda, *stop_status);
-        d_reorth_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_reorth_status = std::make_unique<gko::array<gko::stopping_status>>(
             cuda, *reorth_status);
-        d_final_iter_nums = std::make_unique<gko::Array<gko::size_type>>(
+        d_final_iter_nums = std::make_unique<gko::array<gko::size_type>>(
             cuda, *final_iter_nums);
         d_num_reorth =
-            std::make_unique<gko::Array<gko::size_type>>(cuda, *num_reorth);
+            std::make_unique<gko::array<gko::size_type>>(cuda, *num_reorth);
     }
 
     void assert_krylov_bases_near()
     {
-        gko::Array<storage_type> d_to_host{ref};
+        gko::array<storage_type> d_to_host{ref};
         auto& krylov_bases = range_helper.get_bases();
         d_to_host = d_range_helper.get_bases();
         const auto tolerance = r<storage_type>::value;
@@ -222,10 +222,10 @@ protected:
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
-    std::unique_ptr<gko::Array<gko::stopping_status>> reorth_status;
-    std::unique_ptr<gko::Array<gko::size_type>> final_iter_nums;
-    std::unique_ptr<gko::Array<gko::size_type>> num_reorth;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> reorth_status;
+    std::unique_ptr<gko::array<gko::size_type>> final_iter_nums;
+    std::unique_ptr<gko::array<gko::size_type>> num_reorth;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_before_preconditioner;
@@ -242,10 +242,10 @@ protected:
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_reorth_status;
-    std::unique_ptr<gko::Array<gko::size_type>> d_final_iter_nums;
-    std::unique_ptr<gko::Array<gko::size_type>> d_num_reorth;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_reorth_status;
+    std::unique_ptr<gko::array<gko::size_type>> d_final_iter_nums;
+    std::unique_ptr<gko::array<gko::size_type>> d_num_reorth;
 };
 
 

@@ -78,7 +78,7 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result, Array<char>& tmp)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
@@ -103,7 +103,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
                                matrix::Dense<ValueType>* result,
-                               Array<char>& tmp)
+                               array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
@@ -127,7 +127,7 @@ template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
                             matrix::Dense<remove_complex<ValueType>>* result,
-                            Array<char>& tmp)
+                            array<char>& tmp)
 {
     if (x->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {

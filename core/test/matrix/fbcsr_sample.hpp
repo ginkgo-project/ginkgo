@@ -154,12 +154,12 @@ public:
      */
     std::unique_ptr<Csr> generate_csr() const
     {
-        gko::Array<index_type> csrrow(exec, {0, 6, 12, 18, 24, 30, 36});
-        gko::Array<index_type> csrcols(
+        gko::array<index_type> csrrow(exec, {0, 6, 12, 18, 24, 30, 36});
+        gko::array<index_type> csrcols(
             exec, {3, 4, 5, 9, 10, 11, 3, 4, 5, 9, 10, 11, 3, 4, 5, 9, 10, 11,
                    0, 1, 2, 6, 7,  8,  0, 1, 2, 6, 7,  8,  0, 1, 2, 6, 7,  8});
         // clang-format off
-        gko::Array<value_type> csrvals(exec, I<value_type>
+        gko::array<value_type> csrvals(exec, I<value_type>
             {2, 3, 4, 4, 5, 6, 5, 6, 7, 7, 8, 9, 0, 9, 0,
 	         10, 11, 12, 2, 3, 4, 0, 7, 8, 5, 6, 7,
 	         9, 10, 11, 8, 9, 10, 12,
@@ -175,8 +175,8 @@ public:
      */
     std::unique_ptr<SparCsr> generate_sparsity_csr() const
     {
-        gko::Array<IndexType> colids(exec, nbnz);
-        gko::Array<IndexType> rowptrs(exec, nbrows + 1);
+        gko::array<IndexType> colids(exec, nbnz);
+        gko::array<IndexType> rowptrs(exec, nbrows + 1);
         const std::unique_ptr<const Fbcsr> fbmat = generate_fbcsr();
         for (index_type i = 0; i < nbrows + 1; i++) {
             rowptrs.get_data()[i] = fbmat->get_const_row_ptrs()[i];
@@ -189,7 +189,7 @@ public:
     }
 
     /**
-     * @return Array of COO triplets that represent the matrix
+     * @return array of COO triplets that represent the matrix
      *
      * @note The order of the triplets assumes the blocks are stored row-major
      */
@@ -235,7 +235,7 @@ public:
     }
 
     /**
-     * @return Array of COO triplets that represent the matrix; includes
+     * @return array of COO triplets that represent the matrix; includes
      *         explicit zeros
      *
      * @note The order of the triplets assumes the blocks are stored row-major
@@ -303,9 +303,9 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        gko::Array<index_type> r(exec, {0, 1, 3, 4});
-        gko::Array<index_type> c(exec, {0, 0, 3, 2});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<index_type> r(exec, {0, 1, 3, 4});
+        gko::array<index_type> c(exec, {0, 0, 3, 2});
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = 0.15 + fbcsr_test_offset;
@@ -330,10 +330,10 @@ public:
 
     std::unique_ptr<Csr> generate_csr() const
     {
-        gko::Array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
-        gko::Array<index_type> c(
+        gko::array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
+        gko::array<index_type> c(
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = 0.15 + fbcsr_test_offset;
@@ -358,13 +358,13 @@ public:
 
     std::unique_ptr<Diagonal> extract_diagonal() const
     {
-        gko::Array<ValueType> dvals(exec, {1, 0, 0, 0, -12, -11});
+        gko::array<ValueType> dvals(exec, {1, 0, 0, 0, -12, -11});
         return Diagonal::create(exec, nrows, dvals);
     }
 
-    gko::Array<index_type> getNonzerosPerRow() const
+    gko::array<index_type> getNonzerosPerRow() const
     {
-        return gko::Array<index_type>(exec, {2, 2, 4, 4, 2, 2});
+        return gko::array<index_type>(exec, {2, 2, 4, 4, 2, 2});
     }
 
 
@@ -406,9 +406,9 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        gko::Array<index_type> c(exec, {1, 1});
-        gko::Array<index_type> r(exec, {0, 1, 2});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<index_type> c(exec, {1, 1});
+        gko::array<index_type> r(exec, {0, 1, 2});
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = i;
@@ -454,9 +454,9 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        gko::Array<index_type> r(exec, {0, 1, 3, 4});
-        gko::Array<index_type> c(exec, {0, 0, 3, 2});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<index_type> r(exec, {0, 1, 3, 4});
+        gko::array<index_type> c(exec, {0, 0, 3, 2});
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = 0.15 + fbcsr_test_offset;
@@ -482,10 +482,10 @@ public:
 
     std::unique_ptr<Csr> generate_csr() const
     {
-        gko::Array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
-        gko::Array<index_type> c(
+        gko::array<index_type> r(exec, {0, 2, 4, 8, 12, 14, 16});
+        gko::array<index_type> c(
             exec, {0, 1, 0, 1, 0, 1, 6, 7, 0, 1, 6, 7, 4, 5, 4, 5});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = 0.15 + fbcsr_test_offset;
@@ -539,11 +539,11 @@ public:
 
     std::unique_ptr<Fbcsr> generate_fbcsr() const
     {
-        gko::Array<index_type> r(exec, {0, 8, 19, 30});
-        gko::Array<index_type> c(
+        gko::array<index_type> r(exec, {0, 8, 19, 30});
+        gko::array<index_type> c(
             exec, {0,  1,  20, 15, 12, 18, 5, 28, 3,  10, 29, 5,  9,  2,  16,
                    12, 21, 2,  0,  1,  5,  9, 12, 15, 17, 20, 22, 24, 27, 28});
-        gko::Array<value_type> vals(exec, nnz);
+        gko::array<value_type> vals(exec, nnz);
         value_type* const v = vals.get_data();
         for (IndexType i = 0; i < nnz; i++) {
             v[i] = static_cast<value_type>(i + 0.15 + fbcsr_test_offset);

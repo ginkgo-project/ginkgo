@@ -52,7 +52,7 @@ void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType* counts,
     // prefix_sum should only be performed on a valid array
     if (num_entries > 0) {
         auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-        Array<IndexType> block_sum_array(exec, num_blocks - 1);
+        array<IndexType> block_sum_array(exec, num_blocks - 1);
         auto block_sums = block_sum_array.get_data();
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),

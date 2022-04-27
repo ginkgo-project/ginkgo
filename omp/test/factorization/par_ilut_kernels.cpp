@@ -180,10 +180,10 @@ protected:
 
         gko::remove_complex<value_type> res{};
         gko::remove_complex<value_type> dres{};
-        gko::Array<value_type> tmp(ref);
-        gko::Array<gko::remove_complex<value_type>> tmp2(ref);
-        gko::Array<value_type> dtmp(omp);
-        gko::Array<gko::remove_complex<value_type>> dtmp2(omp);
+        gko::array<value_type> tmp(ref);
+        gko::array<gko::remove_complex<value_type>> tmp2(ref);
+        gko::array<value_type> dtmp(omp);
+        gko::array<gko::remove_complex<value_type>> dtmp2(omp);
 
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, res);
@@ -227,8 +227,8 @@ protected:
         auto res_coo = Coo::create(ref, mtx_size);
         auto dres_coo = Coo::create(omp, mtx_size);
 
-        gko::Array<value_type> tmp(ref);
-        gko::Array<value_type> dtmp(omp);
+        gko::array<value_type> tmp(ref);
+        gko::array<value_type> dtmp(omp);
         gko::remove_complex<value_type> threshold{};
         gko::remove_complex<value_type> dthreshold{};
 
@@ -365,8 +365,8 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->omp, this->mtx_size);
     Coo* null_coo = nullptr;
-    gko::Array<value_type> tmp(this->ref);
-    gko::Array<value_type> dtmp(this->omp);
+    gko::array<value_type> tmp(this->ref);
+    gko::array<value_type> dtmp(this->omp);
     gko::remove_complex<value_type> threshold{};
     gko::remove_complex<value_type> dthreshold{};
     index_type rank{};

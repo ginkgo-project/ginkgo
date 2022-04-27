@@ -72,7 +72,7 @@ void Rcm<ValueType, IndexType>::generate(
 {
     const IndexType num_rows = adjacency_matrix->get_size()[0];
     const auto mtx = adjacency_matrix.get();
-    auto degrees = Array<IndexType>(exec, num_rows);
+    auto degrees = array<IndexType>(exec, num_rows);
     // RCM is only valid for symmetric matrices. Need to add an expensive check
     // for symmetricity here ?
     exec->run(rcm::make_get_degree_of_nodes(num_rows, mtx->get_const_row_ptrs(),

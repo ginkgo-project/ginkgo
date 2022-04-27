@@ -85,7 +85,7 @@ protected:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status>* stop_status, bool* one_changed,
+                    array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
@@ -178,7 +178,7 @@ protected:
     std::unique_ptr<NormVector> starting_tau_{};
     std::unique_ptr<NormVector> u_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
-    Array<bool> device_storage_;
+    array<bool> device_storage_;
 
 private:
     mode baseline_{mode::rhs_norm};
@@ -294,7 +294,7 @@ protected:
     // check_impl needs to be overwritten again since we focus on the implicit
     // residual here
     bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status>* stop_status, bool* one_changed,
+                    array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)

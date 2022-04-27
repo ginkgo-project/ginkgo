@@ -48,7 +48,7 @@ namespace set_all_statuses {
 
 
 void set_all_statuses(std::shared_ptr<const OmpExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status>* stop_status)
+                      bool setFinalized, array<stopping_status>* stop_status)
 {
 #pragma omp parallel for
     for (int i = 0; i < stop_status->get_num_elems(); i++) {

@@ -60,7 +60,7 @@ protected:
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Permutation<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 3}}))
+              exec, gko::dim<2>{4, 3}, gko::array<i_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
@@ -149,7 +149,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
     const i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create_const(
-        this->exec, 3, gko::Array<i_type>::const_view(this->exec, 3, data));
+        this->exec, 3, gko::array<i_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }

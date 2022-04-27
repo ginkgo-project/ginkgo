@@ -282,7 +282,7 @@ public:
         auto exec = mtx_->get_executor();
         const auto size = mtx_->get_size();
         // randomly permute n/2 rows with limited distances
-        gko::Array<itype> permutation_array(exec->get_master(), size[0]);
+        gko::array<itype> permutation_array(exec->get_master(), size[0]);
         auto permutation = permutation_array.get_data();
         std::iota(permutation, permutation + size[0], 0);
         std::default_random_engine rng(FLAGS_seed);

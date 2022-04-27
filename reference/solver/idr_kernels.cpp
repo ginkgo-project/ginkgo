@@ -62,7 +62,7 @@ void solve_lower_triangular(const size_type nrhs,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
                             matrix::Dense<ValueType>* c,
-                            const Array<stopping_status>* stop_status)
+                            const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < f->get_size()[1]; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -86,7 +86,7 @@ void update_g_and_u(const size_type nrhs, const size_type k,
                     const matrix::Dense<ValueType>* m,
                     matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
                     matrix::Dense<ValueType>* u,
-                    const Array<stopping_status>* stop_status)
+                    const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -135,7 +135,7 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type nrhs, matrix::Dense<ValueType>* m,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
-                Array<stopping_status>* stop_status)
+                array<stopping_status>* stop_status)
 {
     // Initialize M
     for (size_type i = 0; i < nrhs; i++) {
@@ -196,7 +196,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             const matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
             matrix::Dense<ValueType>* v,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     // Compute c = M \ f
     solve_lower_triangular(nrhs, m, f, c, stop_status);
@@ -224,7 +224,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* omega,
             const matrix::Dense<ValueType>* preconditioned_vector,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
@@ -251,7 +251,7 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
             matrix::Dense<ValueType>* f, matrix::Dense<ValueType>*,
             matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
 
@@ -292,7 +292,7 @@ void compute_omega(
     std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
-    matrix::Dense<ValueType>* omega, const Array<stopping_status>* stop_status)
+    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {

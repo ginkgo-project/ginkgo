@@ -52,8 +52,8 @@ namespace idx_set {
 
 template <typename IndexType>
 void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* local_indices,
-                      Array<bool>* validity_array)
+                      const array<IndexType>* local_indices,
+                      array<bool>* validity_array)
 {
     run_kernel(
         exec,

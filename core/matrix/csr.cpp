@@ -239,8 +239,8 @@ void Csr<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
     const auto num_cols = this->get_size()[1];
-    Array<size_type> row_nnz{exec, num_rows};
-    Array<int64> coo_row_ptrs{exec, num_rows + 1};
+    array<size_type> row_nnz{exec, num_rows};
+    array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(csr::make_convert_ptrs_to_sizes(this->get_const_row_ptrs(),
                                               num_rows, row_nnz.get_data()));
     size_type ell_lim{};
@@ -308,7 +308,7 @@ void Csr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     if (!result->value_.get_data()) {
         result->value_ =
-            Array<ValueType>(result->get_executor(), {one<ValueType>()});
+            array<ValueType>(result->get_executor(), {one<ValueType>()});
     }
     result->set_size(this->get_size());
 }
@@ -456,7 +456,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -464,7 +464,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
     auto permute_cpy =
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
-    Array<IndexType> inv_permutation(exec, this->get_size()[1]);
+    array<IndexType> inv_permutation(exec, this->get_size()[1]);
 
     exec->run(csr::make_invert_permutation(
         this->get_size()[1],
@@ -479,7 +479,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -498,7 +498,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
@@ -516,14 +516,14 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
     auto exec = this->get_executor();
     auto permute_cpy =
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
-    Array<IndexType> inv_permutation(exec, this->get_size()[1]);
+    array<IndexType> inv_permutation(exec, this->get_size()[1]);
 
     exec->run(csr::make_invert_permutation(
         this->get_size()[1],
@@ -539,7 +539,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
     auto exec = this->get_executor();
@@ -557,7 +557,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
-    const Array<IndexType>* permutation_indices) const
+    const array<IndexType>* permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
     auto exec = this->get_executor();
@@ -600,15 +600,15 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     using Mat = Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
     auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
-    Array<IndexType> row_ptrs(exec, row_span.length() + 1);
+    array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
         this, row_span, column_span, &row_ptrs));
     exec->run(csr::make_prefix_sum(row_ptrs.get_data(), row_span.length() + 1));
     auto num_nnz =
         exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
     auto sub_mat = Mat::create(exec, sub_mat_size,
-                               std::move(Array<ValueType>(exec, num_nnz)),
-                               std::move(Array<IndexType>(exec, num_nnz)),
+                               std::move(array<ValueType>(exec, num_nnz)),
+                               std::move(array<IndexType>(exec, num_nnz)),
                                std::move(row_ptrs), this->get_strategy());
     exec->run(csr::make_compute_submatrix(this, row_span, column_span,
                                           sub_mat.get()));
@@ -644,7 +644,7 @@ Csr<ValueType, IndexType>::create_submatrix(
         auto submat_num_rows = row_index_set.get_num_elems();
         auto submat_num_cols = col_index_set.get_num_elems();
         auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
-        Array<IndexType> row_ptrs(exec, submat_num_rows + 1);
+        array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
             this, row_index_set, col_index_set, row_ptrs.get_data()));
         exec->run(
@@ -652,8 +652,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         auto num_nnz =
             exec->copy_val_to_host(row_ptrs.get_data() + sub_mat_size[0]);
         auto sub_mat = Mat::create(exec, sub_mat_size,
-                                   std::move(Array<ValueType>(exec, num_nnz)),
-                                   std::move(Array<IndexType>(exec, num_nnz)),
+                                   std::move(array<ValueType>(exec, num_nnz)),
+                                   std::move(array<IndexType>(exec, num_nnz)),
                                    std::move(row_ptrs), this->get_strategy());
         exec->run(csr::make_compute_submatrix_from_index_set(
             this, row_index_set, col_index_set, sub_mat.get()));

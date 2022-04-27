@@ -58,15 +58,15 @@ namespace test {
  * @param engine  a random engine
  * @param exec  executor where the array should be allocated
  *
- * @return Array<ValueType>
+ * @return array<ValueType>
  */
 template <typename ValueType, typename ValueDistribution, typename Engine>
-Array<ValueType> generate_random_array(size_type num,
+array<ValueType> generate_random_array(size_type num,
                                        ValueDistribution&& value_dist,
                                        Engine&& engine,
                                        std::shared_ptr<const Executor> exec)
 {
-    Array<ValueType> array(exec->get_master(), num);
+    array<ValueType> array(exec->get_master(), num);
     auto val = array.get_data();
     for (int i = 0; i < num; i++) {
         val[i] = detail::get_rand_value<ValueType>(value_dist, engine);

@@ -121,7 +121,7 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingConstData)
 
     auto diag = gko::matrix::Diagonal<value_type>::create_const(
         this->exec, 3,
-        gko::Array<value_type>::const_view(this->exec, 3, values));
+        gko::array<value_type>::const_view(this->exec, 3, values));
 
     ASSERT_EQ(diag->get_const_values(), values);
 }

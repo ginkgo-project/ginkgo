@@ -166,7 +166,7 @@ protected:
                                         : this->get_executor();
 
         auto adjacency_matrix = SparsityMatrix::create(cpu_exec);
-        Array<IndexType> degrees;
+        array<IndexType> degrees;
 
         // The adjacency matrix has to be square.
         GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);

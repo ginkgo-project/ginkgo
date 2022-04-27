@@ -58,7 +58,7 @@ namespace fcg {
                     matrix::Dense<_type>* q, matrix::Dense<_type>* t,          \
                     matrix::Dense<_type>* prev_rho, matrix::Dense<_type>* rho, \
                     matrix::Dense<_type>* rho_t,                               \
-                    Array<stopping_status>* stop_status)
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_1_KERNEL(_type)                            \
@@ -66,7 +66,7 @@ namespace fcg {
                 matrix::Dense<_type>* p, const matrix::Dense<_type>* z, \
                 const matrix::Dense<_type>* rho_t,                      \
                 const matrix::Dense<_type>* prev_rho,                   \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_2_KERNEL(_type)                                  \
@@ -75,7 +75,7 @@ namespace fcg {
         matrix::Dense<_type>* r, matrix::Dense<_type>* t,                     \
         const matrix::Dense<_type>* p, const matrix::Dense<_type>* q,         \
         const matrix::Dense<_type>* beta, const matrix::Dense<_type>* rho,    \
-        const Array<stopping_status>* stop_status)
+        const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \

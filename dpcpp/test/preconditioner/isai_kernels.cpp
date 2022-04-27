@@ -165,9 +165,9 @@ TEST_F(Isai, DpcppIsaiGenerateLinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 536, 31);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -188,9 +188,9 @@ TEST_F(Isai, DpcppIsaiGenerateUinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper, 615, 31);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -211,9 +211,9 @@ TEST_F(Isai, DpcppIsaiGenerateAinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::general, 615, 15);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -234,9 +234,9 @@ TEST_F(Isai, DpcppIsaiGenerateSpdinverseShortIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 15);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -257,9 +257,9 @@ TEST_F(Isai, DpcppIsaiGenerateLinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 554, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -280,9 +280,9 @@ TEST_F(Isai, DpcppIsaiGenerateUinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper, 695, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_tri_inverse(
@@ -303,9 +303,9 @@ TEST_F(Isai, DpcppIsaiGenerateAinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::general, 695, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -326,9 +326,9 @@ TEST_F(Isai, DpcppIsaiGenerateSpdinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
-    gko::Array<index_type> da1(dpcpp, num_rows + 1);
+    gko::array<index_type> da1(dpcpp, num_rows + 1);
     auto da2 = da1;
 
     gko::kernels::reference::isai::generate_general_inverse(
@@ -349,12 +349,12 @@ TEST_F(Isai, DpcppIsaiGenerateExcessLinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 518, 40);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
-    gko::Array<index_type> da2(dpcpp, a2);
+    gko::array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da2(dpcpp, a2);
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
@@ -380,12 +380,12 @@ TEST_F(Isai, DpcppIsaiGenerateExcessUinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper, 673, 51);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
-    gko::Array<index_type> da2(dpcpp, a2);
+    gko::array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da2(dpcpp, a2);
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
@@ -411,12 +411,12 @@ TEST_F(Isai, DpcppIsaiGenerateExcessAinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::general, 100, 51);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
-    gko::Array<index_type> da2(dpcpp, a2);
+    gko::array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da2(dpcpp, a2);
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
@@ -442,12 +442,12 @@ TEST_F(Isai, DpcppIsaiGenerateExcessSpdinverseLongIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
-    gko::Array<index_type> da2(dpcpp, a2);
+    gko::array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da2(dpcpp, a2);
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
@@ -473,12 +473,12 @@ TEST_F(Isai, DpcppIsaiGeneratePartialExcessIsEquivalentToRef)
 {
     initialize_data(matrix_type::general, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
-    gko::Array<index_type> da2(dpcpp, a2);
+    gko::array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da2(dpcpp, a2);
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_nnz = a2.get_data()[10] - a2.get_data()[5];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
@@ -504,11 +504,11 @@ TEST_F(Isai, DpcppIsaiScaleExcessSolutionIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -528,11 +528,11 @@ TEST_F(Isai, DpcppIsaiScalePartialExcessSolutionIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -551,11 +551,11 @@ TEST_F(Isai, DpcppIsaiScatterExcessSolutionLIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower, 572, 52);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -577,11 +577,11 @@ TEST_F(Isai, DpcppIsaiScatterExcessSolutionUIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper, 702, 45);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_tri_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -604,11 +604,11 @@ TEST_F(Isai, DpcppIsaiScatterExcessSolutionAIsEquivalentToRef)
 {
     initialize_data(matrix_type::general, 702, 45);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -631,11 +631,11 @@ TEST_F(Isai, DpcppIsaiScatterExcessSolutionSpdIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
@@ -658,11 +658,11 @@ TEST_F(Isai, DpcppIsaiScatterPartialExcessSolutionIsEquivalentToRef)
 {
     initialize_data(matrix_type::spd, 100, 64);
     const auto num_rows = mtx->get_size()[0];
-    gko::Array<index_type> a1(ref, num_rows + 1);
+    gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
         ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
-    gko::Array<index_type> da1(dpcpp, a1);
+    gko::array<index_type> da1(dpcpp, a1);
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);

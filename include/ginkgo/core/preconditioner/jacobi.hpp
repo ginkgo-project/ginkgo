@@ -366,7 +366,7 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
+        gko::array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
                                                             nullptr);
 
     private:
@@ -378,13 +378,13 @@ public:
             {}
 
             storage_optimization_type(
-                const Array<precision_reduction>& block_wise_opt)
+                const array<precision_reduction>& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{block_wise_opt}
             {}
 
             storage_optimization_type(
-                Array<precision_reduction>&& block_wise_opt)
+                array<precision_reduction>&& block_wise_opt)
                 : is_block_wise{block_wise_opt.get_num_elems() > 0},
                   block_wise{std::move(block_wise_opt)}
             {}
@@ -393,7 +393,7 @@ public:
 
             bool is_block_wise;
             precision_reduction of_all_blocks;
-            gko::Array<precision_reduction> block_wise;
+            gko::array<precision_reduction> block_wise;
         };
 
     public:
@@ -401,10 +401,10 @@ public:
          * The precisions to use for the blocks of the matrix.
          *
          * This parameter can either be a single instance of precision_reduction
-         * or an Array of precision_reduction values. If set to
+         * or an array of precision_reduction values. If set to
          * `precision_reduction(0, 0)` (this is the default), a regular
          * full-precision block-Jacobi will be used. Any other value (or an
-         * Array of values) will map to the adaptive variant.
+         * array of values) will map to the adaptive variant.
          *
          * The best starting point when evaluating the potential of the adaptive
          * version is to set this parameter to
@@ -440,7 +440,7 @@ public:
          * on the conditioning of the block.
          *
          * If the number of diagonal blocks is larger than the number of
-         * elements in the passed Array, the entire Array will be replicated
+         * elements in the passed array, the entire array will be replicated
          * until enough values are available. For example, if the original array
          * contained two precisions `(x, y)` and the preconditioner contains 5
          * blocks, the array will be transformed into `(x, y, x, y, x)` before
@@ -462,7 +462,7 @@ public:
          * `precision_reduction::autodetect()` will be replaced with the value
          * representing the precision used for the corresponding block.
          * If the non-adaptive version of Jacobi is used, the
-         * `storage_optimization.block_wise` Array will be empty.
+         * `storage_optimization.block_wise` array will be empty.
          */
         storage_optimization_type GKO_FACTORY_PARAMETER_VECTOR(
             storage_optimization, precision_reduction(0, 0));
@@ -611,8 +611,8 @@ protected:
 private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};
     size_type num_blocks_;
-    Array<value_type> blocks_;
-    Array<remove_complex<value_type>> conditioning_;
+    array<value_type> blocks_;
+    array<remove_complex<value_type>> conditioning_;
 };
 
 

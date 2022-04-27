@@ -163,8 +163,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
     const auto num_rows = this->get_size()[0];
     {
         auto tmp = make_temporary_clone(exec, result);
-        Array<IndexType> ell_row_ptrs{exec, num_rows + 1};
-        Array<IndexType> coo_row_ptrs{exec, num_rows + 1};
+        array<IndexType> ell_row_ptrs{exec, num_rows + 1};
+        array<IndexType> coo_row_ptrs{exec, num_rows + 1};
         exec->run(hybrid::make_ell_count_nonzeros_per_row(
             this->get_ell(), ell_row_ptrs.get_data()));
         exec->run(
@@ -212,11 +212,11 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     const auto num_rows = data.get_size()[0];
     const auto num_cols = data.get_size()[1];
     auto local_data = make_temporary_clone(exec, &data);
-    Array<int64> row_ptrs{exec, num_rows + 1};
+    array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_convert_idxs_to_ptrs(
         local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
         row_ptrs.get_data()));
-    Array<size_type> row_nnz{exec, data.get_size()[0]};
+    array<size_type> row_nnz{exec, data.get_size()[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
     size_type ell_max_nnz{};
     size_type coo_nnz{};
@@ -226,7 +226,7 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
         // TODO remove temporary fix after ELL gains true structural zeros
         ell_max_nnz = num_cols;
     }
-    Array<int64> coo_row_ptrs{exec, num_rows + 1};
+    array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
                                                 coo_row_ptrs.get_data()));
     coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);

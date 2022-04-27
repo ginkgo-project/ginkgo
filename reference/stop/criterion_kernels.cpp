@@ -49,7 +49,7 @@ namespace set_all_statuses {
 
 void set_all_statuses(std::shared_ptr<const ReferenceExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
-                      Array<stopping_status>* stop_status)
+                      array<stopping_status>* stop_status)
 {
     for (int i = 0; i < stop_status->get_num_elems(); i++) {
         stop_status->get_data()[i].stop(stoppingId, setFinalized);
