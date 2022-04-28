@@ -11,7 +11,7 @@ function(ginkgo_benchmark_add_tuning_maybe name)
 endfunction()
 
 function(ginkgo_benchmark_cusparse_linops type def)
-    add_library(cusparse_linops_${type} utils/cuda_linops.cu)
+    add_library(cusparse_linops_${type} utils/cuda_linops.cpp)
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         # remove false positive CUDA warnings when calling one<T>() and zero<T>()
         target_compile_options(cusparse_linops_${type}
@@ -117,7 +117,7 @@ if (GINKGO_BUILD_CUDA)
     ginkgo_benchmark_cusparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
     ginkgo_benchmark_cusparse_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
-    add_library(cuda_timer utils/cuda_timer.cu)
+    add_library(cuda_timer utils/cuda_timer.cpp)
     target_link_libraries(cuda_timer ginkgo ${CUDA_RUNTIME_LIBS})
     target_include_directories(cuda_timer SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 endif()
@@ -151,6 +151,10 @@ add_subdirectory(solver)
 add_subdirectory(sparse_blas)
 add_subdirectory(spmv)
 add_subdirectory(tools)
+
+if(GINKGO_BUILD_MPI)
+    add_subdirectory(distributed)
+endif()
 
 add_custom_target(make_run_all_benchmarks ALL)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
