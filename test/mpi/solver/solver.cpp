@@ -352,6 +352,12 @@ protected:
             guarded_fn(gen_mtx(part, num_rows, num_rows, std::min(10, num_rows),
                                num_rows));
         }
+        {
+            SCOPED_TRACE("Sparse Matrix with neighborhood communication (50x50)");
+            auto mat = gen_mtx(50, 50, 10, 50);
+            mat->use_neighbor_comm();
+            guarded_fn(std::move(mat));
+        }
     }
 
     template <typename TestFunction>

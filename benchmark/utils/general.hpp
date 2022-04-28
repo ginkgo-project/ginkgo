@@ -315,6 +315,48 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
          }}};
 
 
+#if GINKGO_BUILD_MPI
+
+
+const std::map<std::string,
+               std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
+    executor_factory_mpi{
+        {"reference",
+         [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
+        {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
+        {"cuda",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+                 comm, gko::CudaExecutor::get_num_devices());
+             return gko::CudaExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
+                 gko::allocation_mode::device);
+         }},
+        {"hip",
+         [](MPI_Comm comm) {
+             FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+                 comm, gko::HipExecutor::get_num_devices());
+             return gko::HipExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+         }},
+        {"dpcpp", [](MPI_Comm comm) {
+             if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                 FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+                     comm, gko::DpcppExecutor::get_num_devices("gpu"));
+             } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                 FLAGS_device_id = gko::mpi::map_rank_to_device_id(
+                     comm, gko::DpcppExecutor::get_num_devices("cpu"));
+             } else {
+                 GKO_NOT_IMPLEMENTED;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create());
+         }}};
+
+
+#endif
+
+
 // returns the appropriate executor, as set by the executor flag
 std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 {
