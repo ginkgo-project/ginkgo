@@ -310,6 +310,54 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
          }}};
 
 
+#if GINKGO_BUILD_MPI
+
+
+const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(
+                                gko::mpi::communicator)>>
+    executor_factory_mpi{
+        {"reference",
+         [](gko::mpi::communicator) {
+             return gko::ReferenceExecutor::create();
+         }},
+        {"omp",
+         [](gko::mpi::communicator) { return gko::OmpExecutor::create(); }},
+        {"cuda",
+         [](gko::mpi::communicator comm) {
+             auto lr = comm.node_local_rank();
+             auto nd = gko::CudaExecutor::get_num_devices();
+             FLAGS_device_id = lr % nd;
+             return gko::CudaExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+         }},
+        {"hip",
+         [](gko::mpi::communicator comm) {
+             auto lr = comm.node_local_rank();
+             auto nd = gko::HipExecutor::get_num_devices();
+             FLAGS_device_id = lr % nd;
+             return gko::HipExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+         }},
+        {"dpcpp", [](gko::mpi::communicator comm) {
+             if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                 auto lr = comm.node_local_rank();
+                 auto nd = gko::DpcppExecutor::get_num_devices("gpu");
+                 FLAGS_device_id = lr % nd;
+             } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                 auto lr = comm.node_local_rank();
+                 auto nd = gko::DpcppExecutor::get_num_devices("cpu");
+                 FLAGS_device_id = lr % nd;
+             } else {
+                 GKO_NOT_IMPLEMENTED;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::ReferenceExecutor::create());
+         }}};
+
+
+#endif
+
+
 // returns the appropriate executor, as set by the executor flag
 std::shared_ptr<gko::Executor> get_executor()
 {
