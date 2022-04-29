@@ -1,3 +1,9 @@
+.use_status-job-settings:
+  image: ginkgohub/cpu:openmpi-gnu9-llvm8
+  tags:
+    - private_ci
+    - status-jobs
+
 .use_gko-nocuda-openmpi-gnu9-llvm8:
   image: ginkgohub/cpu:openmpi-gnu9-llvm8
   tags:
