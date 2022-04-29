@@ -308,38 +308,36 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
             break;
         }
 
-        // #if GINKGO_BUILD_MPI
-        //         auto dist_mat =
-        //             gko::as<const gko::distributed::Matrix<ValueType,
-        //             int32>>(
-        //                 this->get_system_matrix());
+#if GINKGO_BUILD_MPI
+        auto dist_mat =
+            gko::as<const gko::distributed::Matrix<ValueType, int32>>(
+                this->get_system_matrix());
 
-        //         if (solver_->apply_uses_initial_guess()) {
-        //             // Use the inner solver to solve
-        //             // A * inner_solution = residual
-        //             // with residual as initial guess.
-        //             inner_solution->copy_from(lend(residual));
-        //             solver_->apply(lend(residual), lend(inner_solution));
+        if (solver_->apply_uses_initial_guess()) {
+            // Use the inner solver to solve
+            // A * inner_solution = residual
+            // with residual as initial guess.
+            inner_solution->copy_from(lend(residual));
+            solver_->apply(lend(residual), lend(inner_solution));
 
-        //             // x = x + relaxation_factor * inner_solution
-        //             dense_x->add_scaled(lend(relaxation_factor_),
-        //             lend(inner_solution));
+            // x = x + relaxation_factor * inner_solution
+            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
 
-        //             // residual = b - A * x
-        //             residual->copy_from(dense_b);
-        //             dist_mat->apply(lend(neg_one_op), dense_x, lend(one_op),
-        //                             lend(residual));
-        //         } else {
-        //             // x = x + relaxation_factor * A \ residual
-        //             solver_->apply(lend(relaxation_factor_), lend(residual),
-        //                            lend(one_op), dense_x);
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            dist_mat->apply(lend(this->neg_one_op_), dense_x,
+                            lend(this->one_op_), lend(residual));
+        } else {
+            // x = x + relaxation_factor * A \ residual
+            solver_->apply(lend(relaxation_factor_), lend(residual),
+                           lend(this->one_op_), dense_x);
 
-        //             // residual = b - A * x
-        //             residual->copy_from(dense_b);
-        //             dist_mat->apply(lend(neg_one_op), dense_x, lend(one_op),
-        //                             lend(residual));
-        //         }
-        // #else
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            dist_mat->apply(lend(this->neg_one_op_), dense_x,
+                            lend(this->one_op_), lend(residual));
+        }
+#else
         if (this->get_solver()->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
@@ -378,7 +376,7 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
                                              lend(this->one_op_),
                                              lend(residual), handle);
         }
-        // #endif
+#endif
     }
     return handle;
 }
