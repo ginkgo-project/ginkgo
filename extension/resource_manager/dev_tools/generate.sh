@@ -60,14 +60,17 @@ prepare_rmfactory_param() {
     local shared_regex=" *(std::)?shared_ptr<(.*)>$"
     local function_regex=" *(std::)?function<(.*)>"
     local array_regex=" *(gko::)?Array<(.*)>"
+    local strategy_regex="typename ([^ ]*)::strategy_type"
     local is_vector="false"
     local is_pointer="false"
     if [[ "$local_type" =~ $function_regex ]]; then
-        echo "SET_FUNCTION($local_type, $local_name); // TODO: please create a map ${local_name}_map to handle the function ${BASH_REMATCH[2]}"
-        echo ""
+        echo "SET_FUNCTION($local_type, $local_name); /* TODO: please create a map ${local_name}_map to handle the function ${BASH_REMATCH[2]} */"
         return
     elif [[ "$local_type" =~ $array_regex ]]; then
         echo "SET_ARRAY(${BASH_REMATCH[2]}, ${local_name});"
+        return
+    elif [[ "$local_type" =~ ${strategy_regex} ]]; then
+        echo "SET_CSR_STRATEGY(${BASH_REMATCH[1]}, ${local_name});"
         return
     fi
     if [[ "$local_type" =~ $vector_regex ]]; then
@@ -81,8 +84,7 @@ prepare_rmfactory_param() {
     if [[ "$is_pointer" == "false" && "$is_vector" == "false" ]]; then
         echo "SET_VALUE($local_type, $local_name);"
     elif [[ "$is_pointer" == "false" && "$is_vector" == "false" ]]; then
-        echo "assert(false); SET_VALUE_VECTOR($local_type, $local_name); // not yet considered"
-        echo ""
+        echo "assert(false); SET_VALUE_VECTOR($local_type, $local_name); /* not yet considered */"
     elif [[ "$is_pointer" == "true" && "$is_vector" == "false" ]]; then
         echo "SET_POINTER($local_type, $local_name);"
     else
@@ -203,7 +205,7 @@ generate_template_list_content() {
         if [[ "$(check_exist "TT_LIST_G_PARTIAL(${local_type_name}")" == "false" ]]; then
             if [[ "${local_type}" =~ typename|class ]]; then
                 echo "tt_list<${local_type_default}>${sep} // TODO: ${local_todo}"
-            else 
+            else
                 echo "tt_list<${local_type_default}>${sep} // TODO: The type is ${local_type}, which should be wrapped in integral_constant. ${local_todo}"
             fi
         else
@@ -297,6 +299,7 @@ struct Generic<typename ${local_class_type}::Factory, ${local_class_type}> {
             ${local_factory_set}
             SET_EXECUTOR;
         }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };"
@@ -309,7 +312,7 @@ generate_linop_generic() {
 
     echo "template <${local_template_type}>
         struct Generic<${local_class_type}> {
-        using type = std::shared_ptr<${local_local_class_type}>;
+        using type = std::shared_ptr<${local_class_type}>;
         static type build(rapidjson::Value &item,
                         std::shared_ptr<const Executor> exec,
                         std::shared_ptr<const LinOp> linop,
@@ -329,7 +332,8 @@ generate_linop_generic() {
             }
         "
     fi
-    echo "return std::move(ptr);
+    echo "  add_logger(ptr, item, exec, linop, manager);
+            return std::move(ptr);
         }
     };"
 }

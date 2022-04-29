@@ -72,45 +72,7 @@ struct Generic<typename gko::matrix::Csr<ValueType, IndexType>> {
         using Csr = gko::matrix::Csr<ValueType, IndexType>;
         auto strategy =
             get_value_with_default(item, "strategy", std::string("sparselib"));
-        std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
-        if (strategy == std::string("sparselib") ||
-            strategy == std::string("cusparse")) {
-            strategy_ptr = std::make_shared<typename Csr::sparselib>();
-        } else if (strategy == std::string("automatical")) {
-            if (auto explicit_exec =
-                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
-                        exec_ptr)) {
-                strategy_ptr =
-                    std::make_shared<typename Csr::automatical>(explicit_exec);
-            } else if (auto explicit_exec =
-                           std::dynamic_pointer_cast<const gko::HipExecutor>(
-                               exec_ptr)) {
-                strategy_ptr =
-                    std::make_shared<typename Csr::automatical>(explicit_exec);
-            } else {
-                strategy_ptr = std::make_shared<typename Csr::automatical>(256);
-            }
-        } else if (strategy == std::string("load_balance")) {
-            if (auto explicit_exec =
-                    std::dynamic_pointer_cast<const gko::CudaExecutor>(
-                        exec_ptr)) {
-                strategy_ptr =
-                    std::make_shared<typename Csr::load_balance>(explicit_exec);
-            } else if (auto explicit_exec =
-                           std::dynamic_pointer_cast<const gko::HipExecutor>(
-                               exec_ptr)) {
-                strategy_ptr =
-                    std::make_shared<typename Csr::load_balance>(explicit_exec);
-            } else {
-                strategy_ptr =
-                    std::make_shared<typename Csr::load_balance>(256);
-            }
-
-        } else if (strategy == std::string("merge_path")) {
-            strategy_ptr = std::make_shared<typename Csr::merge_path>();
-        } else if (strategy == std::string("classical")) {
-            strategy_ptr = std::make_shared<typename Csr::classical>();
-        }
+        auto strategy_ptr = get_csr_strategy<Csr>(strategy, exec_ptr);
         auto ptr = share(gko::matrix::Csr<ValueType, IndexType>::create(
             exec_ptr, size, nnz, strategy_ptr));
 

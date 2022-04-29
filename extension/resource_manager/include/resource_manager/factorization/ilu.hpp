@@ -67,8 +67,8 @@ struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
         auto ptr = [&]() {
             BUILD_FACTORY(PACK(gko::factorization::Ilu<ValueType, IndexType>),
                           manager, item, exec, linop);
-            // SET_POINTER(typename matrix_type::strategy_type, l_strategy);
-            // SET_POINTER(typename matrix_type::strategy_type, u_strategy);
+            SET_CSR_STRATEGY(matrix_type, l_strategy);
+            SET_CSR_STRATEGY(matrix_type, u_strategy);
             SET_VALUE(bool, skip_sorting);
             SET_EXECUTOR;
         }();

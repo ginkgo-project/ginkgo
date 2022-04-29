@@ -318,6 +318,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+#define SET_CSR_STRATEGY(_param_type, _param_name)                           \
+    if (item_alias_.HasMember(#_param_name)) {                               \
+        std::string name{#_param_name};                                      \
+        factory_alias_.with_##_param_name(get_csr_strategy<_param_type>(     \
+            get_value<std::string>(item_alias_, name), exec_alias_));        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
 
 /**
  * SET_EXECUTOR is to set the executor of factory and return the factory type
