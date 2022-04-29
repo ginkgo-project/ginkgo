@@ -53,6 +53,20 @@ DEFINE_bool(graph_comm, false,
             "If true, the matrix will use neighborhood communication.");
 
 
+template <typename T>
+double closest_nth_root(T v, int n)
+{
+    auto root = std::pow(v, 1. / static_cast<double>(n));
+    auto root_floor = std::floor(root);
+    auto root_ceil = std::ceil(root);
+    if (root - root_floor > root_ceil - root) {
+        return root_ceil;
+    } else {
+        return root_floor;
+    }
+}
+
+
 /**
  * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
  * creates a 5-pt stencil, if it is false creates a 9-pt stencil. If
@@ -78,7 +92,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     std::cout << coords[0] << "|" << coords[1] << std::endl;
 
     const auto dp =
-        static_cast<IndexType>(std::ceil(std::pow(target_local_size, 1. / 2.)));
+        static_cast<IndexType>(closest_nth_root(target_local_size, 2));
     const auto global_size = static_cast<gko::size_type>(dp * dp * comm.size());
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{global_size, global_size});
@@ -133,7 +147,7 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     MPI_Cart_coords(cart_comm, comm.rank(), coords.size(), coords.data());
 
     const auto dp =
-        static_cast<IndexType>(std::ceil(std::pow(target_local_size, 1. / 3.)));
+        static_cast<IndexType>(closest_nth_root(target_local_size, 3));
     const auto global_size = dp * dp * dp * comm.size();
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{global_size, global_size});
@@ -242,6 +256,8 @@ int main(int argc, char* argv[])
     }
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
+    std::cout << comm.rank() << ": " << comm.node_local_rank() << " "
+              << FLAGS_device_id << std::endl;
 
     const auto num_target_rows = FLAGS_target_rows;
     const auto dim = FLAGS_dim;
