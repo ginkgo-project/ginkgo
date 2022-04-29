@@ -267,8 +267,7 @@ public:
      * which will have size 0x0 and unchanged executor afterwards.
      */
     LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>{static_cast<
-              EnableAbstractPolymorphicObject<LinOp>&&>(other)},
+        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
           size_{std::exchange(other.size_, dim<2>{})}
     {}
 
