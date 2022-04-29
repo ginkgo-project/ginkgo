@@ -86,14 +86,14 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             SET_POINTER_VECTOR(const LinOpFactory, post_smoother);
             SET_POINTER_VECTOR(const LinOpFactory, mid_smoother);
             SET_VALUE(bool, post_uses_pre);
-            // SET_VALUE(multigrid::mid_smooth_type, mid_case);
+            SET_VALUE(gko::solver::multigrid::mid_smooth_type, mid_case);
             SET_VALUE(size_type, max_levels);
             SET_VALUE(size_type, min_coarse_rows);
             SET_POINTER_VECTOR(const LinOpFactory, coarsest_solver);
             SET_FUNCTION(
                 std::function<size_type(const size_type, const LinOp*)>,
                 solver_selector);
-            // SET_VALUE(multigrid::cycle, cycle);
+            SET_VALUE(gko::solver::multigrid::cycle, cycle);
             SET_VALUE(size_type, kcycle_base);
             SET_VALUE(double, kcycle_rel_tol);
             SET_VALUE(std::complex<double>, smoother_relax);

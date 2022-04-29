@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
@@ -209,6 +210,49 @@ gko::stop::mode get_value<gko::stop::mode>(rapidjson::Value& item,
         assert(false);
         // avoid the warning about return type
         return gko::stop::mode::absolute;
+    }
+}
+
+template <>
+gko::solver::multigrid::mid_smooth_type
+get_value<gko::solver::multigrid::mid_smooth_type>(rapidjson::Value& item,
+                                                   std::string& key)
+{
+    auto str = get_value<std::string>(item, key);
+    if (str == "both") {
+        return gko::solver::multigrid::mid_smooth_type::both;
+    } else if (str == "post_smoother") {
+        return gko::solver::multigrid::mid_smooth_type::post_smoother;
+    } else if (str == "pre_smoother") {
+        return gko::solver::multigrid::mid_smooth_type::pre_smoother;
+    } else if (str == "standalone") {
+        return gko::solver::multigrid::mid_smooth_type::standalone;
+    } else {
+        assert(false);
+        // avoid the warning about return type
+        return gko::solver::multigrid::mid_smooth_type::both;
+    }
+}
+
+template <>
+gko::solver::multigrid::cycle get_value<gko::solver::multigrid::cycle>(
+    rapidjson::Value& item, std::string& key)
+{
+    auto str = get_value<std::string>(item, key);
+    if (str == "v") {
+        return gko::solver::multigrid::cycle::v;
+    } else if (str == "f") {
+        return gko::solver::multigrid::cycle::f;
+    } else if (str == "w") {
+        return gko::solver::multigrid::cycle::w;
+    } else if (str == "kfcg") {
+        return gko::solver::multigrid::cycle::kfcg;
+    } else if (str == "kgcr") {
+        return gko::solver::multigrid::cycle::kgcr;
+    } else {
+        assert(false);
+        // avoid the warning about return type
+        return gko::solver::multigrid::cycle::v;
     }
 }
 
@@ -506,6 +550,50 @@ void add_logger(Type& obj, rapidjson::Value& item,
             obj->add_logger(get_pointer<Logger>(logger, exec, linop, manager));
         }
     }
+}
+
+
+template <class Csr>
+std::shared_ptr<typename Csr::strategy_type> get_csr_strategy(
+    const std::string& strategy, std::shared_ptr<const Executor> exec_ptr)
+{
+    std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
+    if (strategy == std::string("sparselib") ||
+        strategy == std::string("cusparse")) {
+        strategy_ptr = std::make_shared<typename Csr::sparselib>();
+    } else if (strategy == std::string("automatical")) {
+        if (auto explicit_exec =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec_ptr)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::automatical>(explicit_exec);
+        } else if (auto explicit_exec =
+                       std::dynamic_pointer_cast<const gko::HipExecutor>(
+                           exec_ptr)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::automatical>(explicit_exec);
+        } else {
+            strategy_ptr = std::make_shared<typename Csr::automatical>(256);
+        }
+    } else if (strategy == std::string("load_balance")) {
+        if (auto explicit_exec =
+                std::dynamic_pointer_cast<const gko::CudaExecutor>(exec_ptr)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::load_balance>(explicit_exec);
+        } else if (auto explicit_exec =
+                       std::dynamic_pointer_cast<const gko::HipExecutor>(
+                           exec_ptr)) {
+            strategy_ptr =
+                std::make_shared<typename Csr::load_balance>(explicit_exec);
+        } else {
+            strategy_ptr = std::make_shared<typename Csr::load_balance>(256);
+        }
+
+    } else if (strategy == std::string("merge_path")) {
+        strategy_ptr = std::make_shared<typename Csr::merge_path>();
+    } else if (strategy == std::string("classical")) {
+        strategy_ptr = std::make_shared<typename Csr::classical>();
+    }
+    return std::move(strategy_ptr);
 }
 
 
