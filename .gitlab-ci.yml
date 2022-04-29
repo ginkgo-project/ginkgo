@@ -24,7 +24,7 @@ status_pending:
   extends:
     - .default_variables
     - .pr_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     STATUS_CONTEXT: "quick"
   script: |
@@ -37,7 +37,7 @@ status_success:
   extends:
     - .default_variables
     - .pr_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     STATUS_CONTEXT: "quick"
   # we always exit with the code 3 such that it will process when retrying
@@ -54,7 +54,7 @@ status_failure:
   extends:
     - .default_variables
     - .pr_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     STATUS_CONTEXT: "quick"
   # we always exit with the code 3 such that it will process when retrying
@@ -73,7 +73,7 @@ sync:
   extends:
     - .default_variables
     - .before_script_git_template
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     GIT_STRATEGY: none
     PRIVATE_REPO: git@gitlab.com:ginkgo-project/ginkgo.git
@@ -95,7 +95,7 @@ trigger_pipeline:
   extends:
     - .default_variables
     - .pr_condition
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     STATUS_CONTEXT: "quick"
   script:
@@ -893,7 +893,7 @@ gh-pages:
     - .default_variables
     - .deploy_condition
     - .before_script_git_template
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   variables:
     PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
   script:
@@ -991,7 +991,7 @@ new-issue-on-failure:
   stage: on-failure
   extends:
     - .default_variables
-    - .use_gko-nocuda-openmpi-gnu9-llvm8
+    - .use_status-job-settings
   script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20in%20${CI_PROJECT_NAME}%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels&description=${CI_PIPELINE_URL}"
   when: on_failure
   only:
