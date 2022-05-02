@@ -54,15 +54,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Fft) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)FftFactory and (RM_LinOp::)Fft and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <>
 struct Generic<gko::matrix::Fft> {
     using type = std::shared_ptr<gko::matrix::Fft>;
@@ -73,10 +64,52 @@ struct Generic<gko::matrix::Fft> {
     {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto size = get_value_with_default(item, "size", size_type{});
-        // auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(gko::matrix::Fft::create(exec_ptr, size));
+        auto size1 = get_value_with_default(item, "size1", size_type{});
+        auto inverse = get_value_with_default(item, "inverse", false);
+        auto ptr = share(gko::matrix::Fft::create(exec_ptr, size1, inverse));
+
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
+    }
+};
+
+template <>
+struct Generic<gko::matrix::Fft2> {
+    using type = std::shared_ptr<gko::matrix::Fft2>;
+    static type build(rapidjson::Value& item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager* manager)
+    {
+        auto exec_ptr =
+            get_pointer_check<Executor>(item, "exec", exec, linop, manager);
+        auto size1 = get_value_with_default(item, "size1", size_type{});
+        auto size2 = get_value_with_default(item, "size2", size1);
+        auto inverse = get_value_with_default(item, "inverse", false);
+        auto ptr =
+            share(gko::matrix::Fft2::create(exec_ptr, size1, size2, inverse));
+
+        add_logger(ptr, item, exec, linop, manager);
+        return std::move(ptr);
+    }
+};
+
+template <>
+struct Generic<gko::matrix::Fft3> {
+    using type = std::shared_ptr<gko::matrix::Fft3>;
+    static type build(rapidjson::Value& item,
+                      std::shared_ptr<const Executor> exec,
+                      std::shared_ptr<const LinOp> linop,
+                      ResourceManager* manager)
+    {
+        auto exec_ptr =
+            get_pointer_check<Executor>(item, "exec", exec, linop, manager);
+        auto size1 = get_value_with_default(item, "size1", size_type{});
+        auto size2 = get_value_with_default(item, "size2", size1);
+        auto size3 = get_value_with_default(item, "size3", size2);
+        auto inverse = get_value_with_default(item, "inverse", false);
+        auto ptr = share(
+            gko::matrix::Fft3::create(exec_ptr, size1, size2, size3, inverse));
 
         add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
@@ -85,6 +118,8 @@ struct Generic<gko::matrix::Fft> {
 
 
 IMPLEMENT_BRIDGE(RM_LinOp, Fft, gko::matrix::Fft);
+IMPLEMENT_BRIDGE(RM_LinOp, Fft2, gko::matrix::Fft2);
+IMPLEMENT_BRIDGE(RM_LinOp, Fft3, gko::matrix::Fft3);
 
 
 }  // namespace resource_manager

@@ -92,7 +92,7 @@ TEST(Csr, CsrStandAloneWithSizeNnz)
 {
     using type = gko::matrix::Csr<double>;
     const char json[] =
-        "{\"base\": \"Csr\", \"dim\": [3, 4], \"nnz\": 10, \"exec\": "
+        "{\"base\": \"Csr\", \"dim\": [3, 4], \"num_nonzeros\": 10, \"exec\": "
         "{\"base\": \"ReferenceExecutor\"}}";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -112,7 +112,7 @@ TEST(Csr, CsrStandAloneWithSizeNnzInheritExecutor)
 {
     using type = gko::matrix::Csr<double>;
     const char json[] =
-        "{\"base\": \"Csr\", \"dim\": [3, 4], \"nnz\": 10, \"exec\": "
+        "{\"base\": \"Csr\", \"dim\": [3, 4], \"num_nonzeros\": 10, \"exec\": "
         "\"inherit\"}";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -136,7 +136,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutor)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -162,7 +162,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorMergePath)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \"strategy\": \"merge_path\", \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \"strategy\": \"merge_path\", \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -188,7 +188,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorClassical)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \"strategy\": \"classical\", \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \"strategy\": \"classical\", \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -213,7 +213,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorCusparse)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \"strategy\": \"cusparse\", \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \"strategy\": \"cusparse\", \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -239,7 +239,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorLoadBalance)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \"strategy\": \"load_balance\", \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \"strategy\": \"load_balance\", \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
@@ -264,7 +264,7 @@ TEST(Csr, CsrManagerWithSizeNnzExecutorAutomatical)
     const char json[] =
         "[{\"name\": \"ref\", \"base\": \"ReferenceExecutor\"}, \
           {\"name\": \"mtx\", \"base\": \"Csr\", \
-           \"dim\": [3, 4], \"nnz\": 10, \"strategy\": \"automatical\", \
+           \"dim\": [3, 4], \"num_nonzeros\": 10, \"strategy\": \"automatical\", \
            \"exec\": \"ref\"}]";
     rapidjson::StringStream s(json);
     rapidjson::Document d;
