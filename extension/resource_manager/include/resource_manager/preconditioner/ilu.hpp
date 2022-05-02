@@ -55,16 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IluFactory) to ENUM_LINOPFACTORY
-// Add _expand(Ilu) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IluFactory and (RM_LinOp::)Ilu and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename LSolverType, typename USolverType, bool ReverseApply,
           typename IndexType>
 struct Generic<typename gko::preconditioner::Ilu<
@@ -83,8 +73,8 @@ struct Generic<typename gko::preconditioner::Ilu<
                 PACK(gko::preconditioner::Ilu<LSolverType, USolverType,
                                               ReverseApply, IndexType>),
                 manager, item, exec, linop);
-            SET_POINTER(typename l_solver_type::Factory, l_solver_factory);
-            SET_POINTER(typename u_solver_type::Factory, u_solver_factory);
+            SET_POINTER(typename LSolverType::Factory, l_solver_factory);
+            SET_POINTER(typename USolverType::Factory, u_solver_factory);
             SET_POINTER(LinOpFactory, factorization_factory);
             SET_EXECUTOR;
         }();
@@ -129,10 +119,12 @@ constexpr auto ilu_list = typename span_list<
                                   // TT_LIST_G_PARTIAL, please condider adding
                                   // it into type_default.hpp if it reused for
                                   // many times.
-    tt_list<false>,  // TODO: The type is bool, which should be wrapped in
-                     // integral_constant. Can not find ReverseApply in with
-                     // TT_LIST_G_PARTIAL, please condider adding it into
-                     // type_default.hpp if it reused for many times.
+    tt_list<std::true_type,
+            std::false_type>,  // TODO: The type is bool, which should be
+                               // wrapped in integral_constant. Can not find
+                               // ReverseApply in with TT_LIST_G_PARTIAL, please
+                               // condider adding it into type_default.hpp if it
+                               // reused for many times.
     tt_list_g_t<handle_type::IndexType>>::type();
 
 

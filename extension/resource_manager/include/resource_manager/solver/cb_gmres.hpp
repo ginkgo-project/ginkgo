@@ -55,16 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(CbGmresFactory) to ENUM_LINOPFACTORY
-// Add _expand(CbGmres) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)CbGmresFactory and (RM_LinOp::)CbGmres and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<typename gko::solver::CbGmres<ValueType>::Factory,
                gko::solver::CbGmres<ValueType>> {
@@ -78,7 +68,7 @@ struct Generic<typename gko::solver::CbGmres<ValueType>::Factory,
         auto ptr = [&]() {
             BUILD_FACTORY(gko::solver::CbGmres<ValueType>, manager, item, exec,
                           linop);
-            SET_VALUE(cb_gmres::storage_precision, storage_precision);
+            // SET_VALUE(cb_gmres::storage_precision, storage_precision);
             SET_POINTER_VECTOR(const stop::CriterionFactory, criteria);
             SET_POINTER(const LinOpFactory, preconditioner);
             SET_POINTER(const LinOp, generated_preconditioner);

@@ -162,34 +162,49 @@ struct base_type<
 ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
 
 
-#define ENUM_LINOP(_expand)                                                   \
-    _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Cg), _expand(Isai), \
-        _expand(Jacobi), _expand(Multigrid), _expand(Ilu), _expand(LowerTrs), \
-        _expand(UpperTrs), _expand(IluFactorization), _expand(AmgxPgm),       \
-        _expand(Ir), _expand(LinOpWithOutFactory), _expand(Csr),              \
-        _expand(Dense)
+#define ENUM_LINOP(_expand)                                                  \
+    _expand(LinOp, 0), _expand(LinOpWithFactory), _expand(Ic), _expand(Ilu), \
+        _expand(Jacobi), _expand(Isai), _expand(AmgxPgm),                    \
+        _expand(FixedCoarsening), _expand(Rcm), _expand(Perturbation),       \
+        _expand(Cgs), _expand(Bicg), _expand(Fcg), _expand(LowerTrs),        \
+        _expand(Cg), _expand(Idr), _expand(Multigrid), _expand(UpperTrs),    \
+        _expand(Ir), _expand(Gmres), _expand(Bicgstab), _expand(CbGmres),    \
+        _expand(ParIlu), _expand(IcFactorization), _expand(ParIct),          \
+        _expand(ParIlut), _expand(IluFactorization), _expand(ParIc),         \
+        _expand(LinOpWithOutFactory), _expand(Diagonal), _expand(Coo),       \
+        _expand(Identity), _expand(Csr), _expand(SparsityCsr),               \
+        _expand(Permutation), _expand(Sellp), _expand(Hybrid),               \
+        _expand(RowGatherer), _expand(Fft), _expand(Dense), _expand(Ell),    \
+        _expand(Fbcsr)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 
 
 #define ENUM_LINOPFACTORY(_expand)                                             \
-    _expand(LinOpFactory, 0), _expand(CgFactory), _expand(IsaiFactory),        \
-        _expand(JacobiFactory), _expand(IluFactory), _expand(LowerTrsFactory), \
-        _expand(UpperTrsFactory), _expand(IluFactorizationFactory),            \
-        _expand(MultigridFactory), _expand(AmgxPgmFactory), _expand(IrFactory)
+    _expand(LinOpFactory, 0), _expand(IcFactory), _expand(IluFactory),         \
+        _expand(JacobiFactory), _expand(IsaiFactory), _expand(AmgxPgmFactory), \
+        _expand(FixedCoarseningFactory), _expand(RcmFactory),                  \
+        _expand(PerturbationFactory), _expand(CgsFactory),                     \
+        _expand(BicgFactory), _expand(FcgFactory), _expand(LowerTrsFactory),   \
+        _expand(CgFactory), _expand(IdrFactory), _expand(MultigridFactory),    \
+        _expand(UpperTrsFactory), _expand(IrFactory), _expand(GmresFactory),   \
+        _expand(BicgstabFactory), _expand(CbGmresFactory),                     \
+        _expand(ParIluFactory), _expand(IcFactorizationFactory),               \
+        _expand(ParIctFactory), _expand(ParIlutFactory),                       \
+        _expand(IluFactorizationFactory), _expand(ParIcFactory)
 
 ENUM_CLASS(RM_LinOpFactory, int, ENUM_LINOPFACTORY);
 
 
-#define ENUM_CRITERIONFACTORY(_expand)                       \
-    _expand(CriterionFactory, 0), _expand(IterationFactory), \
-        _expand(ResidualNormFactory)
+#define ENUM_CRITERIONFACTORY(_expand)                          \
+    _expand(CriterionFactory, 0), _expand(ResidualNormFactory), \
+        _expand(IterationFactory), _expand(TimeFactory)
 
 ENUM_CLASS(RM_CriterionFactory, int, ENUM_CRITERIONFACTORY);
 
-#define ENUM_LOGGER(_expand)                                                  \
-    _expand(Logger, 0), _expand(Convergence), _expand(Papi), _expand(Record), \
-        _expand(Stream)
+#define ENUM_LOGGER(_expand)                                   \
+    _expand(Logger, 0), _expand(Convergence), _expand(Record), \
+        _expand(Stream), _expand(Papi)
 
 ENUM_CLASS(RM_Logger, int, ENUM_LOGGER);
 

@@ -55,16 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IcFactory) to ENUM_LINOPFACTORY
-// Add _expand(Ic) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IcFactory and (RM_LinOp::)Ic and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename LSolverType, typename IndexType>
 struct Generic<
     typename gko::preconditioner::Ic<LSolverType, IndexType>::Factory,
@@ -79,7 +69,7 @@ struct Generic<
         auto ptr = [&]() {
             BUILD_FACTORY(PACK(gko::preconditioner::Ic<LSolverType, IndexType>),
                           manager, item, exec, linop);
-            SET_POINTER(typename l_solver_type::Factory, l_solver_factory);
+            SET_POINTER(typename LSolverType::Factory, l_solver_factory);
             SET_POINTER(LinOpFactory, factorization_factory);
             SET_EXECUTOR;
         }();

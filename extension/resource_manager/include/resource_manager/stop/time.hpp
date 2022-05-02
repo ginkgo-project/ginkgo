@@ -54,15 +54,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(TimeFactory) to ENUM_CRITERIONFACTORY
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_CriterionFactory::)TimeFactory and (RM_Criterion::)Time and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <>
 struct Generic<typename gko::stop::Time::Factory, gko::stop::Time> {
     using type = std::shared_ptr<typename gko::stop::Time::Factory>;
@@ -73,7 +64,7 @@ struct Generic<typename gko::stop::Time::Factory, gko::stop::Time> {
     {
         auto ptr = [&]() {
             BUILD_FACTORY(gko::stop::Time, manager, item, exec, linop);
-            SET_VALUE(std::chrono::nanoseconds, time_limit);
+            // SET_VALUE(std::chrono::nanoseconds, time_limit);
             SET_EXECUTOR;
         }();
         add_logger(ptr, item, exec, linop, manager);

@@ -73,7 +73,8 @@ struct Generic<gko::matrix::Fft> {
     {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto size = get_value_with_default(item, "dim", gko::dim<2>{});
+        auto size = get_value_with_default(item, "size", size_type{});
+        // auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         // TODO: consider other thing from constructor
         auto ptr = share(gko::matrix::Fft::create(exec_ptr, size));
 

@@ -59,15 +59,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Hybrid) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)HybridFactory and (RM_LinOp::)Hybrid and their snake case
-// in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<gko::matrix::Hybrid<ValueType, IndexType>> {
     using type = std::shared_ptr<gko::matrix::Hybrid<ValueType, IndexType>>;
@@ -79,6 +70,9 @@ struct Generic<gko::matrix::Hybrid<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
+        // auto num_stored_elements_per_row = get_value_with_default(item,
+        // "num_stored_elements_per_row", size[1]); auto stride =
+        // get_value_with_default(item, "stride", size[0]); auto strategy
         // TODO: consider other thing from constructor
         auto ptr = share(
             gko::matrix::Hybrid<ValueType, IndexType>::create(exec_ptr, size));

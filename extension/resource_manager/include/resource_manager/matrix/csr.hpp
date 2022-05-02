@@ -79,9 +79,14 @@ struct Generic<gko::matrix::Csr<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(
-            gko::matrix::Csr<ValueType, IndexType>::create(exec_ptr, size));
+        auto num_nonzeros =
+            get_value_with_default(item, "num_nonzeros", size_type{});
+        using Csr = gko::matrix::Csr<ValueType, IndexType>;
+        auto strategy =
+            get_value_with_default(item, "strategy", std::string("sparselib"));
+        auto strategy_ptr = get_csr_strategy<Csr>(strategy, exec_ptr);
+        auto ptr = share(gko::matrix::Csr<ValueType, IndexType>::create(
+            exec_ptr, size, num_nonzeros, strategy_ptr));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());

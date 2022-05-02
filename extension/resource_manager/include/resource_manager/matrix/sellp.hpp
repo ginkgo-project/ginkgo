@@ -59,15 +59,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Sellp) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)SellpFactory and (RM_LinOp::)Sellp and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType, typename IndexType>
 struct Generic<gko::matrix::Sellp<ValueType, IndexType>> {
     using type = std::shared_ptr<gko::matrix::Sellp<ValueType, IndexType>>;
@@ -79,9 +70,14 @@ struct Generic<gko::matrix::Sellp<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(
-            gko::matrix::Sellp<ValueType, IndexType>::create(exec_ptr, size));
+        auto slize_size = get_value_with_default(
+            item, "slize_size", gko::matrix::default_slice_size);
+        auto stride_factor = get_value_with_default(
+            item, "stride_factor", gko::matrix::default_stride_factor);
+        auto total_cols = get_value_with_default(
+            item, "total_cols", gko::ceildiv(size[0], slize_size) * size[1]);
+        auto ptr = share(gko::matrix::Sellp<ValueType, IndexType>::create(
+            exec_ptr, size, slize_size, stride_factor, total_cols));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());

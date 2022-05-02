@@ -80,9 +80,10 @@ struct Generic<gko::matrix::SparsityCsr<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
+        auto num_nonzeros =
+            get_value_with_default(item, "num_nonzeros", gko::size_type{});
         auto ptr = share(gko::matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec_ptr, size));
+            exec_ptr, size, num_nonzeros));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());
