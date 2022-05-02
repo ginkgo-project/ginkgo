@@ -90,8 +90,8 @@ void apply_split(std::shared_ptr<const DefaultExecutor> exec,
     auto uub = gko::kernels::host::get_batch_struct(u);
     auto rub = gko::kernels::host::get_batch_struct(r);
     auto zub = gko::kernels::host::get_batch_struct(z);
-    using trsv_type = gko::kernels::host::BatchExactTrsvSeparate<ValueType>;
-    using prec_type = gko::kernels::host::BatchIluSplit<ValueType, trsv_type>;
+    using trsv_type = gko::kernels::host::batch_exact_trsv_split<ValueType>;
+    using prec_type = gko::kernels::host::batch_ilu_split<ValueType, trsv_type>;
     prec_type prec(lub, uub, trsv_type());
     for (size_type batch = 0; batch < l->get_num_batch_entries(); ++batch) {
         const auto r_b = gko::batch::batch_entry(rub, batch);
