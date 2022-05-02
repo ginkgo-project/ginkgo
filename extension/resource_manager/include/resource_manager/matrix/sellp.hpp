@@ -75,7 +75,9 @@ struct Generic<gko::matrix::Sellp<ValueType, IndexType>> {
         auto stride_factor = get_value_with_default(
             item, "stride_factor", gko::matrix::default_stride_factor);
         auto total_cols = get_value_with_default(
-            item, "total_cols", gko::ceildiv(size[0], slize_size) * size[1]);
+            item, "total_cols",
+            static_cast<gko::size_type>(gko::ceildiv(size[0], slize_size) *
+                                        size[1]));
         auto ptr = share(gko::matrix::Sellp<ValueType, IndexType>::create(
             exec_ptr, size, slize_size, stride_factor, total_cols));
 
