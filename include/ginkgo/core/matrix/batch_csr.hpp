@@ -265,18 +265,35 @@ protected:
      * Creates an uninitialized BatchCsr matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
+     * @param size  an object describing the size of the batch matrices.
+     * @param num_nonzeros  number of nonzeros in each of the batch matrices
+     */
+    BatchCsr(std::shared_ptr<const Executor> exec,
+             const batch_dim<2>& size = batch_dim<2>{},
+             size_type num_nonzeros = {})
+        : EnableBatchLinOp<BatchCsr>(exec, size),
+          values_(exec, num_nonzeros * size.get_num_batch_entries()),
+          col_idxs_(exec, num_nonzeros),
+          row_ptrs_(exec, (size.at(0)[0]) + 1)
+    {
+        if (!size.stores_equal_sizes()) {
+            GKO_NOT_IMPLEMENTED;
+        }
+    }
+
+
+    /**
+     * Creates an uninitialized BatchCsr matrix of the specified size.
+     *
+     * @param exec  Executor associated to the matrix
      * @param num_batch_entries  the number of batches to be stored
      * @param size  the common size of all the batch matrices
      * @param num_nonzeros  number of nonzeros in each of the batch matrices
      */
     BatchCsr(std::shared_ptr<const Executor> exec,
-             const size_type num_batch_entries = {},
-             const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
-        : EnableBatchLinOp<BatchCsr>(exec,
-                                     batch_dim<2>(num_batch_entries, size)),
-          values_(exec, num_nonzeros * num_batch_entries),
-          col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, (size[0]) + 1)
+             const size_type num_batch_entries, const dim<2>& size,
+             size_type num_nonzeros)
+        : BatchCsr(exec, batch_dim<>{num_batch_entries, size}, num_nonzeros)
     {}
 
 
