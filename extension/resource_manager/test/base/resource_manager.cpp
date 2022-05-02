@@ -52,8 +52,9 @@ TEST(ResourceManager, PutIsLazyGenerate)
 {
     const char json[] =
         "[\
+        {\"name\": \"ref\", \"base\": \"ReferenceExecutor\"},\
         {\
-         \"name\": \"dense\", \"base\": \"Dense\", \"exec\": {\"base\": \"ReferenceExecutor\"}\
+         \"name\": \"dense\", \"base\": \"Dense\", \"exec\": \"ref\"\
         },\
         {\"base\": \"Cg\",\
           \"name\": \"cg\",\
@@ -61,7 +62,7 @@ TEST(ResourceManager, PutIsLazyGenerate)
               \"criteria\": [\
                   {\"base\": \"IterationFactory\", \"max_iters\": 20}\
               ],\
-              \"exec\": {\"base\": \"ReferenceExecutor\"}\
+              \"exec\": \"ref\"\
           }, \
           \"generate\": \"dense\" \
          }]";
@@ -81,7 +82,7 @@ TEST(ResourceManager, PutIsLazyGenerate)
     auto dense = rm.search_data<gko::LinOp>(std::string("dense"));
 
     ASSERT_NE(dense, nullptr);
-    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 0);
+    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 1);
     ASSERT_EQ(rm.get_map<gko::LinOp>().size(), 1);
     ASSERT_EQ(rm.get_map<gko::LinOpFactory>().size(), 0);
     ASSERT_EQ(rm.get_map<gko::stop::CriterionFactory>().size(), 0);
@@ -92,7 +93,7 @@ TEST(ResourceManager, PutIsLazyGenerate)
     ASSERT_NE(cg, nullptr);
     ASSERT_EQ(cg->get_system_matrix(), dense);
     ASSERT_EQ(rm.search_data<gko::LinOp>(std::string("dense")), dense);
-    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 0);
+    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 1);
     ASSERT_EQ(rm.get_map<gko::LinOp>().size(), 2);
     ASSERT_EQ(rm.get_map<gko::LinOpFactory>().size(), 0);
     ASSERT_EQ(rm.get_map<gko::stop::CriterionFactory>().size(), 0);
@@ -104,7 +105,7 @@ TEST(ResourceManager, PutIsLazyGenerate)
     // it will generate the dependency
     auto cg_2 = rm.search_data<gko::LinOp>(std::string("cg"));
     ASSERT_NE(cg_2, cg);
-    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 0);
+    ASSERT_EQ(rm.get_map<gko::Executor>().size(), 1);
     ASSERT_EQ(rm.get_map<gko::LinOp>().size(), 2);
     ASSERT_EQ(rm.get_map<gko::LinOpFactory>().size(), 0);
     ASSERT_EQ(rm.get_map<gko::stop::CriterionFactory>().size(), 0);

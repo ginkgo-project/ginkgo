@@ -55,16 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IsaiFactory) to ENUM_LINOPFACTORY
-// Add _expand(Isai) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IsaiFactory and (RM_LinOp::)Isai and their snake case in
-// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <gko::preconditioner::isai_type IsaiType, typename ValueType,
           typename IndexType>
 struct Generic<

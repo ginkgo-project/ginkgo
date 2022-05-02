@@ -174,8 +174,8 @@ ENUM_CLASS(RM_Executor, int, ENUM_EXECUTER);
         _expand(LinOpWithOutFactory), _expand(Diagonal), _expand(Coo),       \
         _expand(Identity), _expand(Csr), _expand(SparsityCsr),               \
         _expand(Permutation), _expand(Sellp), _expand(Hybrid),               \
-        _expand(RowGatherer), _expand(Fft), _expand(Dense), _expand(Ell),    \
-        _expand(Fbcsr)
+        _expand(RowGatherer), _expand(Fft), _expand(Fft2), _expand(Fft3),    \
+        _expand(Dense), _expand(Ell), _expand(Fbcsr)
 
 ENUM_CLASS(RM_LinOp, int, ENUM_LINOP);
 

@@ -59,8 +59,8 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// : Please add this header file into resource_manager/resource_manager.hpp
+// : Please add the corresponding to the resource_manager/base/types.hpp
 // Add _expand(Fbcsr) to ENUM_LINOP
 // If need to override the generated enum for RM, use RM_CLASS or
 // RM_CLASS_FACTORY env and rerun the generated script. Or replace the

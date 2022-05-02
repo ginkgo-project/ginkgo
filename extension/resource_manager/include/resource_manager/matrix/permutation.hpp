@@ -55,15 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Permutation) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)PermutationFactory and (RM_LinOp::)Permutation and their
-// snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename IndexType>
 struct Generic<gko::matrix::Permutation<IndexType>> {
     using type = std::shared_ptr<gko::matrix::Permutation<IndexType>>;
@@ -75,10 +66,16 @@ struct Generic<gko::matrix::Permutation<IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        // auto mask_type enabled_permute , with row_permute
-        auto ptr =
-            share(gko::matrix::Permutation<IndexType>::create(exec_ptr, size));
+        auto enabled_permute_str =
+            get_value_with_default(item, "mask_type", "row_permute"s);
+        auto enabled_permute = gko::matrix::row_permute;
+        if (enabled_permute_str == "column_permute") {
+            enabled_permute = gko::matrix::column_permute;
+        } else if (enabled_permute_str == "inverse_permute") {
+            enabled_permute = gko::matrix::inverse_permute;
+        }
+        auto ptr = share(gko::matrix::Permutation<IndexType>::create(
+            exec_ptr, size, enabled_permute));
 
         add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
