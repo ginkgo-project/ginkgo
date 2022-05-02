@@ -95,8 +95,8 @@ void apply_split(std::shared_ptr<const DefaultExecutor> exec,
     const auto l_ub = get_batch_struct(l);
     const auto u_ub = get_batch_struct(u);
     using d_value_type = cuda_type<ValueType>;
-    using trsv_type = BatchExactTrsvSeparate<d_value_type>;
-    using prec_type = BatchIluSplit<d_value_type, trsv_type>;
+    using trsv_type = batch_exact_trsv_split<d_value_type>;
+    using prec_type = batch_ilu_split<d_value_type, trsv_type>;
     prec_type prec(l_ub, u_ub, trsv_type());
     apply<<<nbatch, default_block_size>>>(prec, nbatch, num_rows,
                                           as_cuda_type(r->get_const_values()),
