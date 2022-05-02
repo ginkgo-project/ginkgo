@@ -55,15 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(RowGatherer) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)RowGathererFactory and (RM_LinOp::)RowGatherer and their
-// snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename IndexType>
 struct Generic<gko::matrix::RowGatherer<IndexType>> {
     using type = std::shared_ptr<gko::matrix::RowGatherer<IndexType>>;
@@ -75,7 +66,6 @@ struct Generic<gko::matrix::RowGatherer<IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
         auto ptr =
             share(gko::matrix::RowGatherer<IndexType>::create(exec_ptr, size));
 

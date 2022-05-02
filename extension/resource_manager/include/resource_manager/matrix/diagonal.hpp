@@ -59,15 +59,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Diagonal) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)DiagonalFactory and (RM_LinOp::)Diagonal and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<gko::matrix::Diagonal<ValueType>> {
     using type = std::shared_ptr<gko::matrix::Diagonal<ValueType>>;
@@ -78,8 +69,7 @@ struct Generic<gko::matrix::Diagonal<ValueType>> {
     {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
+        auto size = get_value_with_default(item, "dim", gko::size_type{});
         auto ptr =
             share(gko::matrix::Diagonal<ValueType>::create(exec_ptr, size));
 

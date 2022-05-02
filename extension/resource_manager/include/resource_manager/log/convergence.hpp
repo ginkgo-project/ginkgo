@@ -55,15 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Convergence) to ENUM_LOGGER
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LoggerFactory::)ConvergenceFactory and (RM_Logger::)Convergence and their
-// snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<gko::log::Convergence<ValueType>> {
     using type = std::shared_ptr<gko::log::Convergence<ValueType>>;
@@ -76,7 +67,6 @@ struct Generic<gko::log::Convergence<ValueType>> {
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto mask_value = get_mask_value_with_default(
             item, "enabled_events", gko::log::Logger::all_events_mask);
-        // TODO: consider other thing from constructor
         auto ptr =
             gko::log::Convergence<ValueType>::create(exec_ptr, mask_value);
         return std::move(ptr);

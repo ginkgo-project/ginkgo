@@ -55,15 +55,6 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(ResidualNormFactory) to ENUM_CRITERIONFACTORY
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_CriterionFactory::)ResidualNormFactory and (RM_Criterion::)ResidualNorm
-// and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
-
-
 template <typename ValueType>
 struct Generic<typename gko::stop::ResidualNorm<ValueType>::Factory,
                gko::stop::ResidualNorm<ValueType>> {
@@ -78,7 +69,7 @@ struct Generic<typename gko::stop::ResidualNorm<ValueType>::Factory,
             BUILD_FACTORY(gko::stop::ResidualNorm<ValueType>, manager, item,
                           exec, linop);
             SET_VALUE(remove_complex<ValueType>, reduction_factor);
-            SET_VALUE(mode, baseline);
+            SET_VALUE(gko::stop::mode, baseline);
             SET_EXECUTOR;
         }();
         add_logger(ptr, item, exec, linop, manager);

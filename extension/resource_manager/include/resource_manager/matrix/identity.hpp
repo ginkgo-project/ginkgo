@@ -55,13 +55,7 @@ namespace extension {
 namespace resource_manager {
 
 
-// TODO: Please add this header file into resource_manager/resource_manager.hpp
-// TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Identity) to ENUM_LINOP
-// If need to override the generated enum for RM, use RM_CLASS or
-// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IdentityFactory and (RM_LinOp::)Identity and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+// TODO: IdentityFactory?
 
 
 template <typename ValueType>
@@ -75,7 +69,6 @@ struct Generic<gko::matrix::Identity<ValueType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
         auto ptr =
             share(gko::matrix::Identity<ValueType>::create(exec_ptr, size));
 

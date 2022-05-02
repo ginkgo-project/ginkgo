@@ -79,8 +79,9 @@ struct Generic<gko::matrix::Dense<ValueType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // TODO: consider other thing from constructor
-        auto ptr = share(gko::matrix::Dense<ValueType>::create(exec_ptr, size));
+        auto stride = get_value_with_default(item, "stride", size[1]);
+        auto ptr = share(
+            gko::matrix::Dense<ValueType>::create(exec_ptr, size, stride));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());

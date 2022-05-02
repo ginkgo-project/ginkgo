@@ -76,6 +76,7 @@ struct Generic<gko::matrix::Permutation<IndexType>> {
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         // TODO: consider other thing from constructor
+        // auto mask_type enabled_permute , with row_permute
         auto ptr =
             share(gko::matrix::Permutation<IndexType>::create(exec_ptr, size));
 
