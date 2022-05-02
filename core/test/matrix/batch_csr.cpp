@@ -229,7 +229,7 @@ TYPED_TEST(BatchCsr, CanBeCreatedFromExistingData)
     index_type row_ptrs[] = {0, 2, 3, 4};
 
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
-        this->exec, 2, gko::dim<2>{3, 2},
+        this->exec, gko::batch_dim<>(2, gko::dim<2>{3, 2}),
         gko::Array<value_type>::view(this->exec, 8, values),
         gko::Array<index_type>::view(this->exec, 4, col_idxs),
         gko::Array<index_type>::view(this->exec, 4, row_ptrs));
