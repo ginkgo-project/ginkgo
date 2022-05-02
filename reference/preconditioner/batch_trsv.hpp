@@ -47,7 +47,7 @@ namespace host {
  * Exact batch triangular solves with separately stored L and U matrices.
  */
 template <typename ValueType>
-class BatchExactTrsvSeparate {
+class batch_exact_trsv_split {
 public:
     using value_type = ValueType;
 
