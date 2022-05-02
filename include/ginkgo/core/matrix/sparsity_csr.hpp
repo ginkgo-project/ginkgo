@@ -239,6 +239,32 @@ public:
             gko::detail::array_const_cast(std::move(row_ptrs)), value});
     }
 
+    /**
+     * Copy-assigns a SparsityCsr matrix. Preserves executor, copies everything
+     * else.
+     */
+    SparsityCsr& operator=(const SparsityCsr&);
+
+    /**
+     * Move-assigns a SparsityCsr matrix. Preserves executor, moves the data and
+     * leaves the moved-from object in an empty state (0x0 LinOp with unchanged
+     * executor, no nonzeros and valid row pointers).
+     */
+    SparsityCsr& operator=(SparsityCsr&&);
+
+    /**
+     * Copy-constructs a SparsityCsr matrix. Inherits executor, strategy and
+     * data.
+     */
+    SparsityCsr(const SparsityCsr&);
+
+    /**
+     * Move-constructs a SparsityCsr matrix. Inherits executor, moves the data
+     * and leaves the moved-from object in an empty state (0x0 LinOp with
+     * unchanged executor, no nonzeros and valid row pointers).
+     */
+    SparsityCsr(SparsityCsr&&);
+
 protected:
     /**
      * Creates an uninitialized SparsityCsr matrix of the specified size.

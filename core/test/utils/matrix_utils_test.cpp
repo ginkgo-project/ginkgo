@@ -78,27 +78,27 @@ TYPED_TEST_SUITE(MatrixUtils, gko::test::ValueTypes, TypenameNameGenerator);
 
 TYPED_TEST(MatrixUtils, MakeSymmetricThrowsError)
 {
-    ASSERT_THROW(gko::test::make_symmetric(this->rectangular_data),
+    ASSERT_THROW(gko::utils::make_symmetric(this->rectangular_data),
                  gko::DimensionMismatch);
 }
 
 TYPED_TEST(MatrixUtils, MakeHermitianThrowsError)
 {
-    ASSERT_THROW(gko::test::make_hermitian(this->rectangular_data),
+    ASSERT_THROW(gko::utils::make_hermitian(this->rectangular_data),
                  gko::DimensionMismatch);
 }
 
 
 TYPED_TEST(MatrixUtils, MakeDiagDominantThrowsError)
 {
-    ASSERT_THROW(gko::test::make_diag_dominant(this->data, 0.9),
+    ASSERT_THROW(gko::utils::make_diag_dominant(this->data, 0.9),
                  gko::ValueMismatch);
 }
 
 
 TYPED_TEST(MatrixUtils, MakeHpdMatrixThrowsError)
 {
-    ASSERT_THROW(gko::test::make_hpd(this->data, 1.0), gko::ValueMismatch);
+    ASSERT_THROW(gko::utils::make_hpd(this->data, 1.0), gko::ValueMismatch);
 }
 
 
@@ -106,7 +106,7 @@ TYPED_TEST(MatrixUtils, MakeLowerTriangularCorrectly)
 {
     auto orig_mtx = TestFixture::mtx_type::create(this->exec);
     orig_mtx->read(this->data);
-    gko::test::make_lower_triangular(this->data);
+    gko::utils::make_lower_triangular(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -125,7 +125,7 @@ TYPED_TEST(MatrixUtils, MakeUpperTriangularCorrectly)
 {
     auto orig_mtx = TestFixture::mtx_type::create(this->exec);
     orig_mtx->read(this->data);
-    gko::test::make_upper_triangular(this->data);
+    gko::utils::make_upper_triangular(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -142,7 +142,7 @@ TYPED_TEST(MatrixUtils, MakeUpperTriangularCorrectly)
 
 TYPED_TEST(MatrixUtils, MakeRemoveDiagonalCorrectly)
 {
-    gko::test::make_remove_diagonal(this->data);
+    gko::utils::make_remove_diagonal(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -155,7 +155,7 @@ TYPED_TEST(MatrixUtils, MakeRemoveDiagonalCorrectly)
 
 TYPED_TEST(MatrixUtils, MakeUnitDiagonalCorrectly)
 {
-    gko::test::make_unit_diagonal(this->data);
+    gko::utils::make_unit_diagonal(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -168,7 +168,7 @@ TYPED_TEST(MatrixUtils, MakeUnitDiagonalCorrectly)
 
 TYPED_TEST(MatrixUtils, MakeSymmetricCorrectly)
 {
-    gko::test::make_symmetric(this->data);
+    gko::utils::make_symmetric(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -182,7 +182,7 @@ TYPED_TEST(MatrixUtils, MakeSymmetricCorrectly)
 
 TYPED_TEST(MatrixUtils, MakeHermitianCorrectly)
 {
-    gko::test::make_hermitian(this->data);
+    gko::utils::make_hermitian(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -198,7 +198,7 @@ TYPED_TEST(MatrixUtils, MakeDiagDominantCorrectly)
 {
     using T = typename TestFixture::value_type;
 
-    gko::test::make_diag_dominant(this->data);
+    gko::utils::make_diag_dominant(this->data);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -219,7 +219,7 @@ TYPED_TEST(MatrixUtils, MakeDiagDominantWithRatioCorrectly)
     using T = typename TestFixture::value_type;
     gko::remove_complex<T> ratio = 1.001;
 
-    gko::test::make_diag_dominant(this->data, ratio);
+    gko::utils::make_diag_dominant(this->data, ratio);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -244,7 +244,7 @@ TYPED_TEST(MatrixUtils, MakeDiagDominantWithEmptyOffdiagRowCorrectly)
     data.nonzeros.emplace_back(0, 0, gko::one<value_type>());
     data.nonzeros.emplace_back(1, 1, gko::zero<value_type>());
 
-    gko::test::make_diag_dominant(data, 1.0);
+    gko::utils::make_diag_dominant(data, 1.0);
 
     ASSERT_EQ(data.nonzeros.size(), 3);
     ASSERT_EQ(data.nonzeros[0], (entry{0, 0, gko::one<value_type>()}));
@@ -258,9 +258,9 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixCorrectly)
     using T = typename TestFixture::value_type;
     auto cpy_data = this->data;
 
-    gko::test::make_hpd(this->data, 1.001);
-    gko::test::make_hermitian(cpy_data);
-    gko::test::make_diag_dominant(cpy_data, 1.001);
+    gko::utils::make_hpd(this->data, 1.001);
+    gko::utils::make_hermitian(cpy_data);
+    gko::utils::make_diag_dominant(cpy_data, 1.001);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -276,9 +276,9 @@ TYPED_TEST(MatrixUtils, MakeHpdMatrixWithRatioCorrectly)
     gko::remove_complex<T> ratio = 1.00001;
     auto cpy_data = this->data;
 
-    gko::test::make_hpd(this->data, ratio);
-    gko::test::make_hermitian(cpy_data);
-    gko::test::make_diag_dominant(cpy_data, ratio);
+    gko::utils::make_hpd(this->data, ratio);
+    gko::utils::make_hermitian(cpy_data);
+    gko::utils::make_diag_dominant(cpy_data, ratio);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -293,9 +293,9 @@ TYPED_TEST(MatrixUtils, MakeSpdMatrixCorrectly)
     using T = typename TestFixture::value_type;
     auto cpy_data = this->data;
 
-    gko::test::make_spd(this->data, 1.001);
-    gko::test::make_symmetric(cpy_data);
-    gko::test::make_diag_dominant(cpy_data, 1.001);
+    gko::utils::make_spd(this->data, 1.001);
+    gko::utils::make_symmetric(cpy_data);
+    gko::utils::make_diag_dominant(cpy_data, 1.001);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -311,9 +311,9 @@ TYPED_TEST(MatrixUtils, MakeSpdMatrixWithRatioCorrectly)
     gko::remove_complex<T> ratio = 1.00001;
     auto cpy_data = this->data;
 
-    gko::test::make_spd(this->data, ratio);
-    gko::test::make_symmetric(cpy_data);
-    gko::test::make_diag_dominant(cpy_data, ratio);
+    gko::utils::make_spd(this->data, ratio);
+    gko::utils::make_symmetric(cpy_data);
+    gko::utils::make_diag_dominant(cpy_data, ratio);
 
     auto mtx = TestFixture::mtx_type::create(this->exec);
     mtx->read(this->data);
@@ -334,7 +334,7 @@ TEST(MatrixUtils, RemoveDiagonalEntry)
         exec);
     const int row_to_remove = 2;
 
-    gko::test::remove_diagonal_entry_from_row(b.get(), row_to_remove);
+    gko::utils::remove_diagonal_entry_from_row(b.get(), row_to_remove);
 
     const auto rowptrs = b->get_const_row_ptrs();
     const auto colidxs = b->get_const_col_idxs();
@@ -360,7 +360,7 @@ TEST(MatrixUtils, ModifyToEnsureAllDiagonalEntries)
          I<T>{0.0, -4.0, 2.2, -2.0}, I<T>{0.0, -3.0, 1.5, 1.0}},
         exec);
 
-    gko::test::ensure_all_diagonal_entries(b.get());
+    gko::utils::ensure_all_diagonal_entries(b.get());
 
     const auto rowptrs = b->get_const_row_ptrs();
     const auto colidxs = b->get_const_col_idxs();

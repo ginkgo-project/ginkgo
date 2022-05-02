@@ -76,6 +76,7 @@ struct SimpleSolverTest {
     using value_type = typename solver_type::value_type;
     using index_type = gko::int32;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
+    using precond_type = gko::preconditioner::Jacobi<value_type, index_type>;
 
     static bool is_iterative() { return true; }
 
@@ -86,7 +87,7 @@ struct SimpleSolverTest {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the matrix is well-conditioned
-        gko::test::make_hpd(data, 2.0);
+        gko::utils::make_hpd(data, 2.0);
     }
 
     static typename solver_type::parameters_type build(
@@ -108,9 +109,18 @@ struct SimpleSolverTest {
                                .with_max_iters(iteration_count)
                                .on(exec))
             .with_preconditioner(
-                gko::preconditioner::Jacobi<value_type, index_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec));
+                precond_type::build().with_max_block_size(1u).on(exec));
+    }
+
+    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    {
+        return solver->get_preconditioner().get();
+    }
+
+    static const gko::stop::CriterionFactory* get_stop_criterion_factory(
+        const solver_type* solver)
+    {
+        return solver->get_stop_criterion_factory().get();
     }
 
     static void assert_empty_state(const solver_type* mtx)
@@ -169,9 +179,7 @@ struct Idr : SimpleSolverTest<gko::solver::Idr<solver_value_type>> {
                                .on(exec))
             .with_deterministic(true)
             .with_preconditioner(
-                gko::preconditioner::Jacobi<value_type, index_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+                precond_type::build().with_max_block_size(1u).on(exec))
             .with_subspace_dim(dimension);
     }
 };
@@ -189,9 +197,12 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
                                .with_max_iters(iteration_count)
                                .on(exec))
             .with_solver(
-                gko::preconditioner::Jacobi<value_type, index_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec));
+                precond_type::build().with_max_block_size(1u).on(exec));
+    }
+
+    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    {
+        return solver->get_solver().get();
     }
 };
 
@@ -220,9 +231,7 @@ struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
                                .with_max_iters(iteration_count)
                                .on(exec))
             .with_preconditioner(
-                gko::preconditioner::Jacobi<value_type, index_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+                precond_type::build().with_max_block_size(1u).on(exec))
             .with_krylov_dim(dimension);
     }
 };
@@ -250,9 +259,7 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
                                .with_max_iters(iteration_count)
                                .on(exec))
             .with_preconditioner(
-                gko::preconditioner::Jacobi<value_type, index_type>::build()
-                    .with_max_block_size(1u)
-                    .on(exec))
+                precond_type::build().with_max_block_size(1u).on(exec))
             .with_krylov_dim(dimension);
     }
 };
@@ -268,8 +275,8 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
-        gko::test::make_hpd(data, 1.2);
-        gko::test::make_lower_triangular(data);
+        gko::utils::make_hpd(data, 1.2);
+        gko::utils::make_lower_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
@@ -284,6 +291,17 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     {
         assert(false);
         return solver_type::build();
+    }
+
+    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    {
+        return nullptr;
+    }
+
+    static const gko::stop::CriterionFactory* get_stop_criterion_factory(
+        const solver_type* solver)
+    {
+        return nullptr;
     }
 };
 
@@ -298,8 +316,8 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
-        gko::test::make_hpd(data, 1.2);
-        gko::test::make_upper_triangular(data);
+        gko::utils::make_hpd(data, 1.2);
+        gko::utils::make_upper_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
@@ -314,6 +332,17 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     {
         assert(false);
         return solver_type::build();
+    }
+
+    static const gko::LinOp* get_preconditioner(const solver_type* solver)
+    {
+        return nullptr;
+    }
+
+    static const gko::stop::CriterionFactory* get_stop_criterion_factory(
+        const solver_type* solver)
+    {
+        return nullptr;
     }
 };
 
@@ -340,6 +369,7 @@ class Solver : public ::testing::Test {
 protected:
     using Config = T;
     using SolverType = typename T::solver_type;
+    using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
     using index_type = gko::int32;
     using value_type = typename Mtx::value_type;
@@ -480,6 +510,31 @@ protected:
             }
         };
         {
+            SCOPED_TRACE("Defaulted solver");
+            guarded_fn(test_pair<SolverType>{Config::build(ref, 0)
+                                                 .on(ref)
+                                                 ->generate(mtx.ref)
+                                                 ->create_default(),
+                                             Config::build(exec, 0)
+                                                 .on(exec)
+                                                 ->generate(mtx.dev)
+                                                 ->create_default()});
+        }
+        {
+            SCOPED_TRACE("Cleared solver");
+            test_pair<SolverType> pair{
+                Config::build(ref, 0).on(ref)->generate(mtx.ref),
+                Config::build(exec, 0).on(exec)->generate(mtx.dev)};
+            pair.ref->clear();
+            pair.dev->clear();
+            guarded_fn(std::move(pair));
+        }
+        {
+            SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
+            guarded_fn(test_pair<SolverType>{
+                Config::build(ref, 0).on(ref)->generate(mtx.ref), exec});
+        }
+        {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
             guarded_fn(test_pair<SolverType>{
                 Config::build(ref, 0).on(ref)->generate(mtx.ref),
@@ -532,8 +587,7 @@ protected:
             guarded_fn(gen_in_vec<VecType>(solver, 1, 1),
                        gen_out_vec<VecType>(solver, 1, 1));
         }
-        // GMRES and others are currently broken w.r.t lucky breakdown
-        /*if (Config::is_iterative()) {
+        /*if (Config::is_iterative() && solver.ref->get_system_matrix()) {
             SCOPED_TRACE("Single vector with correct initial guess");
             auto in = gen_in_vec<VecType>(solver, 1, 1);
             auto out = gen_out_vec<VecType>(solver, 1, 1);
@@ -581,6 +635,15 @@ protected:
             guarded_fn(gen_in_vec<VecType>(solver, 40, 43),
                        gen_out_vec<VecType>(solver, 40, 45));
         }
+    }
+
+    void assert_empty_state(const SolverType* solver,
+                            std::shared_ptr<const gko::Executor> expected_exec)
+    {
+        ASSERT_FALSE(solver->get_size());
+        ASSERT_EQ(solver->get_executor(), expected_exec);
+        ASSERT_EQ(solver->get_system_matrix(), nullptr);
+        ASSERT_EQ(Config::get_preconditioner(solver), nullptr);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -670,6 +733,189 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
 
                     GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->mixed_tol(x));
                 });
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        auto solver =
+            Config::build(this->ref, 0).on(this->exec)->generate(mtx.ref);
+
+        ASSERT_EQ(solver->get_system_matrix()->get_executor(), this->exec);
+        ASSERT_EQ(solver->get_executor(), this->exec);
+        if (Config::is_iterative()) {
+            ASSERT_EQ(Config::get_stop_criterion_factory(solver.get())
+                          ->get_executor(),
+                      this->exec);
+        }
+        if (Config::is_preconditionable()) {
+            auto precond = Config::get_preconditioner(solver.get());
+            ASSERT_EQ(precond->get_executor(), this->exec);
+            ASSERT_TRUE(dynamic_cast<
+                        const gko::matrix::Identity<typename Mtx::value_type>*>(
+                precond));
+        }
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver->get_system_matrix()), mtx.ref,
+                            0.0);
+    });
+}
+
+
+TYPED_TEST(Solver, CopyAssignSameExecutor)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            auto solver2 = Config::build(this->exec, 0)
+                               .on(this->exec)
+                               ->generate(Mtx::create(this->exec));
+
+            auto& result = (*solver2 = *solver.dev);
+
+            ASSERT_EQ(&result, solver2.get());
+            ASSERT_EQ(solver2->get_size(), solver.dev->get_size());
+            ASSERT_EQ(solver2->get_executor(), solver.dev->get_executor());
+            ASSERT_EQ(solver2->get_system_matrix(),
+                      solver.dev->get_system_matrix());
+            ASSERT_EQ(Config::get_stop_criterion_factory(solver2.get()),
+                      Config::get_stop_criterion_factory(solver.dev.get()));
+            ASSERT_EQ(Config::get_preconditioner(solver2.get()),
+                      Config::get_preconditioner(solver.dev.get()));
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, MoveAssignSameExecutor)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    this->forall_matrix_scenarios([this](auto in_mtx) {
+        this->forall_solver_scenarios(in_mtx, [this](auto solver) {
+            auto solver2 = Config::build(this->exec, 0)
+                               .on(this->exec)
+                               ->generate(Mtx::create(this->exec));
+            auto size = solver.dev->get_size();
+            auto mtx = solver.dev->get_system_matrix();
+            auto precond = Config::get_preconditioner(solver.dev.get());
+            auto stop = Config::get_stop_criterion_factory(solver.dev.get());
+
+            auto& result = (*solver2 = std::move(*solver.dev));
+
+            ASSERT_EQ(&result, solver2.get());
+            // moved-to object
+            ASSERT_EQ(solver2->get_size(), size);
+            ASSERT_EQ(solver2->get_executor(), this->exec);
+            ASSERT_EQ(solver2->get_system_matrix(), mtx);
+            ASSERT_EQ(Config::get_stop_criterion_factory(solver2.get()), stop);
+            ASSERT_EQ(Config::get_preconditioner(solver2.get()), precond);
+            // moved-from object
+            this->assert_empty_state(solver.dev.get(), this->exec);
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, CopyAssignCrossExecutor)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Precond = typename TestFixture::Precond;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            auto solver2 = Config::build(this->exec, 0)
+                               .on(this->exec)
+                               ->generate(Mtx::create(this->exec));
+
+            auto& result = (*solver2 = *solver.ref);
+
+            ASSERT_EQ(&result, solver2.get());
+            ASSERT_EQ(solver2->get_size(), solver.ref->get_size());
+            ASSERT_EQ(solver2->get_executor(), this->exec);
+            if (solver.ref->get_system_matrix()) {
+                GKO_ASSERT_MTX_NEAR(
+                    gko::as<Mtx>(solver2->get_system_matrix()),
+                    gko::as<Mtx>(solver.ref->get_system_matrix()), 0.0);
+                // TODO no easy way to compare stopping criteria cross-executor
+                auto precond = Config::get_preconditioner(solver2.get());
+                if (dynamic_cast<const Precond*>(precond)) {
+                    GKO_ASSERT_MTX_NEAR(
+                        gko::as<Precond>(precond),
+                        gko::as<Precond>(
+                            Config::get_preconditioner(solver.ref.get())),
+                        0.0);
+                }
+            }
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, MoveAssignCrossExecutor)
+{
+    using Config = typename TestFixture::Config;
+    using Mtx = typename TestFixture::Mtx;
+    using Precond = typename TestFixture::Precond;
+    this->forall_matrix_scenarios([this](auto in_mtx) {
+        this->forall_solver_scenarios(in_mtx, [this](auto solver) {
+            auto solver2 = Config::build(this->exec, 0)
+                               .on(this->exec)
+                               ->generate(Mtx::create(this->exec));
+            auto size = solver.ref->get_size();
+            auto mtx = solver.ref->get_system_matrix();
+            auto precond = Config::get_preconditioner(solver.ref.get());
+            auto stop = Config::get_stop_criterion_factory(solver.ref.get());
+
+            auto& result = (*solver2 = std::move(*solver.ref));
+
+            ASSERT_EQ(&result, solver2.get());
+            // moved-to object
+            ASSERT_EQ(solver2->get_size(), size);
+            ASSERT_EQ(solver2->get_executor(), this->exec);
+            if (solver.ref->get_system_matrix()) {
+                GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver2->get_system_matrix()),
+                                    gko::as<Mtx>(mtx), 0.0);
+                // TODO no easy way to compare stopping criteria cross-executor
+                auto new_precond = Config::get_preconditioner(solver2.get());
+                if (dynamic_cast<const Precond*>(new_precond)) {
+                    GKO_ASSERT_MTX_NEAR(gko::as<Precond>(new_precond),
+                                        gko::as<Precond>(precond), 0.0);
+                }
+            }
+            // moved-from object
+            this->assert_empty_state(solver.ref.get(), this->ref);
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, ClearIsEmpty)
+{
+    using Config = typename TestFixture::Config;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            solver.dev->clear();
+
+            this->assert_empty_state(solver.dev.get(), this->exec);
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, CreateDefaultIsEmpty)
+{
+    using Config = typename TestFixture::Config;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            auto default_solver = solver.dev->create_default();
+
+            this->assert_empty_state(default_solver.get(), this->exec);
         });
     });
 }

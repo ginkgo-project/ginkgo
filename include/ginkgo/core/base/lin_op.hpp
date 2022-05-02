@@ -241,6 +241,36 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
+    LinOp& operator=(const LinOp&) = default;
+
+    /**
+     * Move-assigns a LinOp. Preserves the executor and moves the size.
+     * The moved-from object has size 0x0 afterwards, but its executor is
+     * unchanged.
+     */
+    LinOp& operator=(LinOp&& other)
+    {
+        if (this != &other) {
+            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            this->set_size(other.get_size());
+            other.set_size({});
+        }
+        return *this;
+    }
+
+    /** Copy-constructs a LinOp. Inherits executor and size from the input. */
+    LinOp(const LinOp&) = default;
+
+    /**
+     * Move-constructs a LinOp. Inherits executor and size from the input,
+     * which will have size 0x0 and unchanged executor afterwards.
+     */
+    LinOp(LinOp&& other)
+        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
+          size_{std::exchange(other.size_, dim<2>{})}
+    {}
+
 protected:
     /**
      * Creates a linear operator.

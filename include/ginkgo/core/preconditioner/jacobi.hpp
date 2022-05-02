@@ -299,6 +299,32 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Copy-assigns a Jacobi preconditioner. Preserves executor, copies all
+     * data and parameters.
+     */
+    Jacobi& operator=(const Jacobi& other);
+
+    /**
+     * Move-assigns a Jacobi preconditioner. Preserves executor, moves all data
+     * and parameters. The moved-from object will be empty (0x0 and default
+     * parameters).
+     */
+    Jacobi& operator=(Jacobi&& other);
+
+    /**
+     * Copy-constructs a Jacobi preconditioner. Inherits executor, copies all
+     * data and parameters.
+     */
+    Jacobi(const Jacobi& other);
+
+    /**
+     * Move-assigns a Jacobi preconditioner. Inherits executor, moves all data
+     * and parameters. The moved-from object will be empty (0x0 and default
+     * parameters).
+     */
+    Jacobi(Jacobi&& other);
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

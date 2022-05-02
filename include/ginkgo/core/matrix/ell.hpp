@@ -269,6 +269,32 @@ public:
             num_stored_elements_per_row, stride});
     }
 
+    /**
+     * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
+     * matrix with minimal stride if the dimensions don't match, then copies the
+     * data over, ignoring padding.
+     */
+    Ell& operator=(const Ell&);
+
+    /**
+     * Move-assigns an Ell matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with empty Array).
+     */
+    Ell& operator=(Ell&&);
+
+    /**
+     * Copy-constructs an Ell matrix. Inherits executor and dimensions, but
+     * copies data without padding.
+     */
+    Ell(const Ell&);
+
+    /**
+     * Move-constructs an Ell matrix. Inherits executor, dimensions and data
+     * with padding. The moved-from object is empty (0x0 with empty Array).
+     */
+    Ell(Ell&&);
+
 protected:
     /**
      * Creates an uninitialized Ell matrix of the specified size.

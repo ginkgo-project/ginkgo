@@ -139,6 +139,8 @@ class Dense
     friend class Dense<to_complex<ValueType>>;
 
 public:
+    using EnableLinOp<Dense>::convert_to;
+    using EnableLinOp<Dense>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
@@ -206,10 +208,6 @@ public:
     }
 
     friend class Dense<next_precision<ValueType>>;
-
-    void convert_to(Dense<ValueType>* result) const override;
-
-    void move_to(Dense<ValueType>* result) override;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 
@@ -883,6 +881,32 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(values)),
             stride});
     }
+
+    /**
+     * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
+     * matrix with minimal stride if the dimensions don't match, then copies the
+     * data over, ignoring padding.
+     */
+    Dense& operator=(const Dense&);
+
+    /**
+     * Move-assigns a Dense matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with empty Array).
+     */
+    Dense& operator=(Dense&&);
+
+    /**
+     * Copy-constructs a Dense matrix. Inherits executor and dimensions, but
+     * copies data without padding.
+     */
+    Dense(const Dense&);
+
+    /**
+     * Move-constructs a Dense matrix. Inherits executor, dimensions and data
+     * with padding. The moved-from object is empty (0x0 with empty Array).
+     */
+    Dense(Dense&&);
 
 protected:
     /**

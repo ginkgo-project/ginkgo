@@ -67,7 +67,7 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -80,7 +80,7 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -90,6 +90,9 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
@@ -146,9 +149,10 @@ void Bicgstab<ValueType>::apply_dense_impl(
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
     rr->copy_from(r.get());
@@ -187,8 +191,8 @@ void Bicgstab<ValueType>::apply_dense_impl(
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
 
-        get_preconditioner()->apply(p.get(), y.get());
-        system_matrix_->apply(y.get(), v.get());
+        this->get_preconditioner()->apply(p.get(), y.get());
+        this->get_system_matrix()->apply(y.get(), v.get());
         rr->compute_conj_dot(v.get(), beta.get(), reduction_tmp);
         // alpha = rho / beta
         // s = r - alpha * v
@@ -210,8 +214,8 @@ void Bicgstab<ValueType>::apply_dense_impl(
             break;
         }
 
-        get_preconditioner()->apply(s.get(), z.get());
-        system_matrix_->apply(z.get(), t.get());
+        this->get_preconditioner()->apply(s.get(), z.get());
+        this->get_system_matrix()->apply(z.get(), t.get());
         s->compute_conj_dot(t.get(), gamma.get(), reduction_tmp);
         t->compute_conj_dot(t.get(), beta.get(), reduction_tmp);
         // omega = gamma / beta
@@ -229,6 +233,9 @@ template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                      const LinOp* beta, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();

@@ -290,6 +290,32 @@ public:
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
 
+    /**
+     * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
+     * parameters.
+     */
+    Sellp& operator=(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Preserves the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp& operator=(Sellp&&);
+
+    /**
+     * Copy-assigns a Sellp matrix. Inherits the executor, copies the data and
+     * parameters.
+     */
+    Sellp(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Inherits the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp(Sellp&&);
+
 protected:
     /**
      * Creates an uninitialized Sellp matrix of the specified size.

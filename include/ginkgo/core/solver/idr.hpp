@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -79,25 +80,16 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Idr : public EnableLinOp<Idr<ValueType>>,
-            public Preconditionable,
-            public Transposable {
+class Idr
+    : public EnableLinOp<Idr<ValueType>>,
+      public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
+      public Transposable {
     friend class EnableLinOp<Idr>;
     friend class EnablePolymorphicObject<Idr, LinOp>;
 
 public:
     using value_type = ValueType;
     using transposed_type = Idr<ValueType>;
-
-    /**
-     * Gets the system operator (matrix) of the linear system.
-     *
-     * @return the system operator (matrix)
-     */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -111,80 +103,70 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
     /**
-     * Gets the stopping criterion factory of the solver.
-     *
-     * @return the stopping criterion factory
-     */
-    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
-
-    /**
-     * Sets the stopping criterion of the solver.
-     *
-     * @param other  the new stopping criterion factory
-     */
-    void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
-
-    /**
      * Gets the subspace dimension of the solver.
      *
      * @return the subspace Dimension*/
-    size_type get_subspace_dim() const { return subspace_dim_; }
+    size_type get_subspace_dim() const { return parameters_.subspace_dim; }
 
     /**
      * Sets the subspace dimension of the solver.
      *
      * @param other  the new subspace Dimension*/
-    void set_subspace_dim(const size_type other) { subspace_dim_ = other; }
+    void set_subspace_dim(const size_type other)
+    {
+        parameters_.subspace_dim = other;
+    }
 
     /**
      * Gets the kappa parameter of the solver.
      *
      * @return the kappa parameter
      */
-    remove_complex<ValueType> get_kappa() const { return kappa_; }
+    remove_complex<ValueType> get_kappa() const { return parameters_.kappa; }
 
     /**
      * Sets the kappa parameter of the solver.
      *
      * @param other  the new kappa parameter
      */
-    void set_kappa(const remove_complex<ValueType> other) { kappa_ = other; }
+    void set_kappa(const remove_complex<ValueType> other)
+    {
+        parameters_.kappa = other;
+    }
 
     /**
      * Gets the deterministic parameter of the solver.
      *
      * @return the deterministic parameter
      */
-    bool get_deterministic() const { return deterministic_; }
+    bool get_deterministic() const { return parameters_.deterministic; }
 
     /**
      * Sets the deterministic parameter of the solver.
      *
      * @param other  the new deterministic parameter
      */
-    void set_deterministic(const bool other) { deterministic_ = other; }
+    void set_deterministic(const bool other)
+    {
+        parameters_.deterministic = other;
+    }
 
     /**
      * Gets the complex_subspace parameter of the solver.
      *
      * @return the complex_subspace parameter
      */
-    bool get_complex_subspace() const { return complex_subspace_; }
+    bool get_complex_subspace() const { return parameters_.complex_subspace; }
 
     /**
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
      */
-    void set_complex_subpsace(const bool other) { complex_subspace_ = other; }
+    void set_complex_subpsace(const bool other)
+    {
+        parameters_.complex_subspace = other;
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -262,35 +244,10 @@ protected:
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Idr>(factory->get_executor(),
                            gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
-    {
-        if (parameters_.generated_preconditioner) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
-                                        this);
-            set_preconditioner(parameters_.generated_preconditioner);
-        } else if (parameters_.preconditioner) {
-            set_preconditioner(
-                parameters_.preconditioner->generate(system_matrix_));
-        } else {
-            set_preconditioner(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
-        }
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
-        subspace_dim_ = parameters_.subspace_dim;
-        kappa_ = parameters_.kappa;
-        deterministic_ = parameters_.deterministic;
-        complex_subspace_ = parameters_.complex_subspace;
-    }
-
-private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    size_type subspace_dim_{};
-    remove_complex<ValueType> kappa_{};
-    bool deterministic_{};
-    bool complex_subspace_{};
+          EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
+              std::move(system_matrix), factory->get_parameters()},
+          parameters_{factory->get_parameters()}
+    {}
 };
 
 

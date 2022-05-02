@@ -120,6 +120,67 @@ GKO_REGISTER_OPERATION(check_diagonal_entries,
 
 
 template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
+    const Csr<ValueType, IndexType>& other)
+{
+    if (&other != this) {
+        EnableLinOp<Csr>::operator=(other);
+        // NOTE: as soon as strategies are improved, this can be reverted
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        row_ptrs_ = other.row_ptrs_;
+        srow_ = other.srow_;
+        if (this->get_executor() != other.get_executor()) {
+            other.convert_strategy_helper(this);
+        } else {
+            this->set_strategy(other.get_strategy()->copy());
+        }
+        // END NOTE
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
+    Csr<ValueType, IndexType>&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Csr>::operator=(std::move(other));
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        row_ptrs_ = std::move(other.row_ptrs_);
+        srow_ = std::move(other.srow_);
+        strategy_ = other.strategy_;
+        if (this->get_executor() != other.get_executor()) {
+            detail::strategy_rebuild_helper(this);
+        }
+        // restore other invariant
+        other.row_ptrs_.resize_and_reset(1);
+        other.row_ptrs_.fill(0);
+        other.make_srow();
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::Csr(const Csr<ValueType, IndexType>& other)
+    : Csr{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
+    : Csr{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     using ComplexDense = Dense<to_complex<ValueType>>;

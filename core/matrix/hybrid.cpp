@@ -84,6 +84,52 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    const Hybrid& other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(other);
+        auto exec = this->get_executor();
+        *coo_ = *other.coo_;
+        *ell_ = *other.ell_;
+        strategy_ = other.strategy_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    Hybrid&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        *coo_ = std::move(*other.coo_);
+        *ell_ = std::move(*other.ell_);
+        strategy_ = other.strategy_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(const Hybrid& other)
+    : Hybrid(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
+    : Hybrid(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(

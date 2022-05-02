@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace test {
+namespace utils {
 
 
 /**
@@ -311,7 +311,7 @@ void ensure_all_diagonal_entries(MtxType* const mtx)
 }
 
 
-}  // namespace test
+}  // namespace utils
 }  // namespace gko
 
 #endif  // GKO_CORE_UTILS_MATRIX_UTILS_HPP_

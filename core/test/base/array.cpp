@@ -198,6 +198,36 @@ TYPED_TEST(Array, CanBeMoveConstructedToADifferentExecutor)
 }
 
 
+TYPED_TEST(Array, MoveConstructedFromArrayExecutorlessIsEmpty)
+{
+    gko::Array<TypeParam> a{std::move(this->x)};
+
+    a = std::move(this->x);
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MoveConstructedFromArraySameExecutorIsEmpty)
+{
+    gko::Array<TypeParam> a{this->exec, std::move(this->x)};
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MoveConstructedFromArrayDifferentExecutorIsEmpty)
+{
+    gko::Array<TypeParam> a{gko::ReferenceExecutor::create(),
+                            std::move(this->x)};
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
 TYPED_TEST(Array, CanBeCopied)
 {
     auto omp = gko::OmpExecutor::create();
@@ -227,7 +257,7 @@ TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
 
     this->x = a;
 
-    ASSERT_NE(this->x.get_executor(), nullptr);
+    ASSERT_EQ(this->x.get_executor(), this->exec);
     ASSERT_EQ(this->x.get_num_elems(), 0);
 }
 
@@ -249,7 +279,7 @@ TYPED_TEST(Array, CanBeMovedToExecutorlessArray)
 
     a = std::move(this->x);
 
-    ASSERT_NE(a.get_executor(), nullptr);
+    ASSERT_EQ(a.get_executor(), this->exec);
     this->assert_equal_to_original_x(a);
 }
 
@@ -260,7 +290,40 @@ TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 
     this->x = std::move(a);
 
-    ASSERT_NE(this->x.get_executor(), nullptr);
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MovedFromArrayExecutorlessIsEmpty)
+{
+    gko::Array<TypeParam> a;
+
+    a = std::move(this->x);
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MovedFromArraySameExecutorIsEmpty)
+{
+    gko::Array<TypeParam> a{this->exec};
+
+    a = std::move(this->x);
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
+{
+    gko::Array<TypeParam> a{gko::ReferenceExecutor::create()};
+
+    a = std::move(this->x);
+
+    ASSERT_EQ(this->x.get_executor(), this->exec);
     ASSERT_EQ(this->x.get_num_elems(), 0);
 }
 

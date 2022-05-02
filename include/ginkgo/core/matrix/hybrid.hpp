@@ -633,22 +633,30 @@ public:
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
     /**
-     * Copies data from another Hybrid.
-     *
-     * @param other  the Hybrid to copy from
-     *
-     * @return this
+     * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
+     * Ell and Coo matrices.
      */
-    Hybrid& operator=(const Hybrid& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        EnableLinOp<Hybrid<ValueType, IndexType>>::operator=(other);
-        this->coo_->copy_from(other.get_coo());
-        this->ell_->copy_from(other.get_ell());
-        return *this;
-    }
+    Hybrid& operator=(const Hybrid&);
+
+    /**
+     * Move-assigns a Hybrid matrix. Preserves the executor, move-assigns the
+     * Ell and Coo matrices. The moved-from matrix is empty (0x0 with empty
+     * Ell/Coo matrices).
+     */
+    Hybrid& operator=(Hybrid&&);
+
+    /**
+     * Copy-assigns a Hybrid matrix. Inherits the executor, copies the Ell and
+     * Coo matrices.
+     */
+    Hybrid(const Hybrid&);
+
+    /**
+     * Move-assigns a Hybrid matrix. Inherits the executor, moves the Ell and
+     * Coo matrices. The moved-from matrix is empty (0x0 with empty Ell/Coo
+     * matrices).
+     */
+    Hybrid(Hybrid&&);
 
 protected:
     /**
@@ -732,9 +740,9 @@ protected:
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
         : EnableLinOp<Hybrid>(exec, size),
-          ell_(std::move(ell_type::create(
-              exec, size, num_stored_elements_per_row, stride))),
-          coo_(std::move(coo_type::create(exec, size, num_nonzeros))),
+          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
+                                stride)),
+          coo_(coo_type::create(exec, size, num_nonzeros)),
           strategy_(std::move(strategy))
     {}
 
@@ -756,8 +764,8 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::shared_ptr<ell_type> ell_;
-    std::shared_ptr<coo_type> coo_;
+    std::unique_ptr<ell_type> ell_;
+    std::unique_ptr<coo_type> coo_;
     std::shared_ptr<strategy_type> strategy_;
 };
 
