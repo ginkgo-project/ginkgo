@@ -63,7 +63,7 @@ GKO_REGISTER_OPERATION(spmv, bccoo::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, bccoo::advanced_spmv);
 GKO_REGISTER_OPERATION(spmv2, bccoo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, bccoo::advanced_spmv2);
-GKO_REGISTER_OPERATION(convert_to_compression, bccoo::convert_to_compression);
+GKO_REGISTER_OPERATION(convert_to_bccoo, bccoo::convert_to_bccoo);
 GKO_REGISTER_OPERATION(convert_to_next_precision,
                        bccoo::convert_to_next_precision);
 GKO_REGISTER_OPERATION(convert_to_coo, bccoo::convert_to_coo);
@@ -73,6 +73,7 @@ GKO_REGISTER_OPERATION(extract_diagonal, bccoo::extract_diagonal);
 GKO_REGISTER_OPERATION(compute_absolute_inplace,
                        bccoo::compute_absolute_inplace);
 GKO_REGISTER_OPERATION(compute_absolute, bccoo::compute_absolute);
+GKO_REGISTER_OPERATION(mem_size_bccoo, bccoo::mem_size_bccoo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
@@ -149,8 +150,8 @@ void Bccoo<ValueType, IndexType>::convert_to(
         exec->run(bccoo::make_get_default_block_size(&block_size));
         const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
-        Array<IndexType> rows(exec, num_blocks);
-        Array<IndexType> offsets(exec, num_blocks + 1);
+        array<IndexType> rows(exec, num_blocks);
+        array<IndexType> offsets(exec, num_blocks + 1);
 
         size_type mem_size{};
         if (exec == exec->get_master()) {
@@ -165,7 +166,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
                 block_size, &mem_size));
         }
 
-        Array<uint8> data(exec, mem_size);
+        array<uint8> data(exec, mem_size);
 
         auto tmp = Bccoo<ValueType, IndexType>::create(
             exec, this->get_size(), std::move(data), std::move(offsets),
@@ -176,54 +177,77 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
     */
     auto exec = this->get_executor();
+
+    gko::matrix::bccoo::compression compress_src = this->get_compression();
+    gko::matrix::bccoo::compression compress_res = result->get_compression();
+
+    //    size_type block_size = 1024;
+    //    exec->run(bccoo::make_get_default_block_size(&block_size));
+    size_type block_size = result->get_block_size();
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
+    auto num_stored_elements = this->get_num_stored_elements();
     const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
-    size_type block_size = 1024;
-    exec->run(bccoo::make_get_default_block_size(&block_size));
-    auto num_stored_elements = this->get_num_stored_elements();
-
-    Array<IndexType> rows(exec, num_blocks);
-    Array<IndexType> offsets(exec, num_blocks + 1);
-
-    size_type mem_size{};
-
-    gko::matrix::bccoo::compression compression_src = this->get_compression();
-    gko::matrix::bccoo::compression compression_res = result->get_compression();
+    size_type mem_size = 0;
+    //    exec->run(bccoo::make_mem_size_bccoo(this, result->get(),
+    //    compress_res,
+    exec->run(
+        bccoo::make_mem_size_bccoo(this, compress_res, block_size, &mem_size));
+    auto tmp = Bccoo<ValueType, IndexType>::create(
+        exec, this->get_size(), num_stored_elements, block_size, mem_size,
+        compress_res);
+    exec->run(bccoo::make_convert_to_bccoo(this, tmp.get()));
+    tmp->move_to(result);
 
     /*
-    if (result_executor is on GPU) { // ASK ABOUT THIS CONDITION
-            compression_res = gko::matrix::bccoo::compression::block;
-    }
+                    // Modify mem_size_bccoo to consider different values of
+    compression array<IndexType> rows(exec, num_blocks); array<IndexType>
+    offsets(exec, num_blocks + 1); size_type mem_size{};
+
+    //    if (result_executor is on GPU) { // ASK ABOUT THIS CONDITION
+    //            compress_res = gko::matrix::bccoo::compression::block;
+    //    }
+
+        if (compress_src == compress_res) {
+            // result = this->clone(exec); // ASK ABOUT THIS OPERATION
+            // Better copy each scalar/vector
+            // 		gko::array<type> new_rows(new_exec, rows);
+            // 		new_rows = rows;
+            // 		new_rows = rows->copy();
+            // 		new_rows->copy_from(rows);
+
+        } else if (compress_src == gko::matrix::bccoo::compression::element) {
+            // convert_from_element_to_block(this, result);
+        } else {
+            // convert_from_block_to_element(this, result);
+            // gko::matrix::bccoo::compression compress_res =
+            //
+    resource->get_compression();
+                                    // auto exec = this->get_executor();
+            // gko::matrix::bccoo::compression compression =
+            //
+    this->get_compression();
+                                    // size_type block_size =
+    this->get_block_size();
+                                    // size_type num_nonzeros =
+    this->get_num_stored_elements();
+                                    // size_type num_bytes =
+    this->get_num_bytes();
+                                    // num_bytes += num_nonzeros *
+    sizeof(new_precision);
+                                    // num_bytes -= num_nonzeros *
+    sizeof(ValueType);
+            // auto tmp = Bccoo<new_precision, IndexType>::create(
+            //         exec, this->get_size(), num_nonzeros, block_size,
+    num_bytes,
+            //         compression);
+            // exec->run(bccoo::make_convert_to_next_precision(this,
+    tmp.get()));
+            // tmp->move_to(result);
+        }
     */
-
-    if (compression_src == compression_res) {
-        // result = this->clone(exec); // ASK ABOUT THIS OPERATION
-        // Better copy each scalar/vector
-        // 		gko::Array<type> new_rows(new_exec, rows);
-        // 		new_rows = rows;
-        // 		new_rows = rows->copy();
-        // 		new_rows->copy_from(rows);
-
-    } else if (compression_src == gko::matrix::bccoo::compression::element) {
-        // convert_from_element_to_block(this, result);
-    } else {
-        // convert_from_block_to_element(this, result);
-        /*
-            gko::matrix::bccoo::compression compression_res =
-           resource->get_compression(); auto exec = this->get_executor();
-            gko::matrix::bccoo::compression compression =
-           this->get_compression(); size_type block_size =
-           this->get_block_size(); size_type num_nonzeros =
-           this->get_num_stored_elements(); size_type num_bytes =
-           this->get_num_bytes(); num_bytes += num_nonzeros *
-           sizeof(new_precision); num_bytes -= num_nonzeros * sizeof(ValueType);
-            auto tmp = Bccoo<new_precision, IndexType>::create(
-                exec, this->get_size(), num_nonzeros, block_size, num_bytes,
-                compression);
-            exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
-            tmp->move_to(result);
-        */
-    }
 }
 
 

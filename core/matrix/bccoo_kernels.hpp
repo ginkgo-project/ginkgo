@@ -90,11 +90,10 @@ namespace kernels {
                         matrix::bccoo::compression compress_res,           \
                         const size_type block_size_res, size_type* mem_size)
 
-#define GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL(ValueType, IndexType) \
-    void convert_to_compression(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Bccoo<ValueType, IndexType>* source,                    \
-        matrix::Bccoo<ValueType, IndexType>* result)
+#define GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType)      \
+    void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec,       \
+                          const matrix::Bccoo<ValueType, IndexType>* source, \
+                          matrix::Bccoo<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, \
                                                            IndexType) \
@@ -136,6 +135,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
     GKO_DECLARE_GET_DEFAULT_BLOCK_SIZE_KERNEL();                              \
+    GKO_DECLARE_GET_DEFAULT_COMPRESSION_KERNEL();                             \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_SPMV_KERNEL(ValueType, IndexType);                      \
     template <typename ValueType, typename IndexType>                         \
@@ -145,7 +145,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL(ValueType, IndexType);    \
+    GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_BCCOO_CONVERT_TO_NEXT_PRECISION_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                         \

@@ -337,6 +337,16 @@ public:
     bccoo::compression get_compression() const noexcept { return compression_; }
 
     /**
+     * Returns if the default compression is used
+     *
+     * @returns if the default compression is used
+     */
+    bool use_default_compression() const noexcept
+    {
+        return compression_ == bccoo::compression::def_value;
+    }
+
+    /**
      * Returns if the element compression is used
      *
      * @returns if the element compression is used
@@ -437,17 +447,13 @@ protected:
           num_nonzeros_{0},
           block_size_{0},
           compression_{bccoo::compression::def_value}
-    {
-        //			get_default_block_size(exec, &block_size_);
-        //      get_default_compression(exec, &compression_);
-    }
+    {}
 
     /**
      * Creates an empty BCCOO matrix
      *
      * @param exec  Executor associated to the matrix
      */
-    /* */
     Bccoo(std::shared_ptr<const Executor> exec, size_type block_size,
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, dim<2>{}),
@@ -460,7 +466,6 @@ protected:
           block_size_{block_size},
           compression_{compression}
     {}
-    /* */
     /**
      * Creates an uninitialized BCCOO matrix of the specified size.
      *

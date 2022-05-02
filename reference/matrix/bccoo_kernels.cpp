@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/format_conversion_kernels.hpp"
+#include "core/base/unaligned_access.hpp"
 #include "core/matrix/bccoo_helper.hpp"
 
 
@@ -185,40 +185,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    matrix::bccoo::compression commpress_res,
+                    matrix::bccoo::compression compress_res,
                     const size_type block_size_res,
                     size_type* mem_size)  // GKO_NOT_IMPLEMENTED;
-/* */
 {
-    auto num_blk_src = source->get_num_blocks();
     if ((source->get_block_size() == block_size_res) &&
-        (source->get_compression() == commpress_res)) {
+        (source->get_compression() == compress_res)) {  // A
         *mem_size = source->get_num_bytes();
     } else if ((source->use_element_compression()) &&
-               (commpress_res == matrix::bccoo::compression::element)) {
+               (compress_res == source->get_compression())) {  // B
+        //               (compress_res == matrix::bccoo::compression::element))
+        //               {
         auto* rows_data_src = source->get_const_rows();
         auto* offsets_data_src = source->get_const_offsets();
         auto* chunk_data_src = source->get_const_chunk();
         auto num_stored_elements = source->get_num_stored_elements();
         auto block_size_src = source->get_block_size();
-        /*
-                for (size_type i = 0; i < num_stored_elements; i++) {
-                    get_detect_newblock(rows_data_src, offsets_data_src,
-           nblk_src, blk_src, shf_src, row_src, col_src);
-                    put_detect_newblock(chunk_data_res, rows_data_res, nblk_res,
-                                        blk_res, shf_res, row_res, row_src -
-           row_res, col_res); uint8 ind_src = get_position_newrow_put(
-                        chunk_data_src, shf_src, row_src, col_src,
-           chunk_data_res, nblk_res, blk_res, rows_data_res, shf_res, row_res,
-           col_res); get_next_position_value(chunk_data_src, nblk_src, ind_src,
-           shf_src, col_src, val_src); val_res = val_src;
-                    put_next_position_value(chunk_data_res, nblk_res, col_src -
-           col_res, shf_res, col_res, val_res); get_detect_endblock(block_size,
-           nblk_src, blk_src); put_detect_endblock(offsets_data_res, shf_res,
-           block_size, nblk_res, blk_res);
-                }
-        */
-    } else if (source->use_element_compression()) {
+        /* */
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type col_src = 0;
+        size_type row_src = 0;
+        size_type shf_src = 0;
+        ValueType val_src;
+        size_type nblk_res = 0;
+        size_type blk_res = 0;
+        size_type col_res = 0;
+        size_type row_res = 0;
+        size_type shf_res = 0;
+        ValueType val_res;
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            // Reading (row,col,val) from source
+            get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
+                                blk_src, shf_src, row_src, col_src);
+            uint8 ind_src =
+                get_position_newrow(chunk_data_src, shf_src, row_src, col_src);
+            get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                    col_src, val_src);
+            get_detect_endblock(block_size_src, nblk_src, blk_src);
+            // Counting bytes to write (row,col,val) on result
+            cnt_detect_newblock(nblk_res, shf_res, row_res, row_src - row_res,
+                                col_res);
+            size_type col_src_res = cnt_position_newrow_mat_data(
+                row_src, col_src, shf_res, row_res, col_res);
+            cnt_next_position_value(col_src_res, shf_res, col_res, val_src,
+                                    nblk_res);
+            cnt_detect_endblock(block_size_res, nblk_res, blk_res);
+        }
+        *mem_size = shf_res;
+        /* */
+    } else if (source->use_element_compression()) {  // C
         auto* rows_data_src = source->get_const_rows();
         auto* offsets_data_src = source->get_const_offsets();
         auto* chunk_data_src = source->get_const_chunk();
@@ -242,6 +258,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             size_type col_frs = col_src;
             size_type col_dif = 0;
             for (size_type j = 0; j < block_size_local; j++) {
+                // Reading (row,col,val) from source
                 get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
                                     blk_src, shf_src, row_src, col_src);
                 uint8 ind_src = get_position_newrow(chunk_data_src, shf_src,
@@ -249,7 +266,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 get_next_position_value(chunk_data_src, nblk_src, ind_src,
                                         shf_src, col_src, val_src);
                 get_detect_endblock(block_size_src, nblk_src, blk_src);
-
+                // Analyzing the impact of (row,col,val) in the block
                 mul_row = mul_row || (row_src != row_frs);
                 if (col_src < col_frs) {
                     col_dif += (col_frs - col_src);
@@ -258,6 +275,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     col_dif = col_src - col_frs;
                 }
             }
+            // Counting bytes to write block on result
             if (mul_row) shf_res += block_size_local;
             if (col_dif <= 0xFF) {
                 shf_res += block_size_local;
@@ -278,7 +296,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             */
         }
         *mem_size = shf_res;
-    } else if (source->use_block_compression()) {
+        //    } else if (source->use_block_compression()) {
+    } else if (compress_res == matrix::bccoo::compression::element) {  // D
         size_type block_size_src = source->get_block_size();
         size_type num_bytes_src = source->get_num_bytes();
         size_type num_stored_elements = source->get_num_stored_elements();
@@ -321,11 +340,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                                mul_row, col_8bits, col_16bits, row_frs, col_frs,
                                shf_row, shf_col, shf_val);
             for (size_type j = 0; j < block_size_local; j++) {
+                // Reading (row,col,val) from source
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data_src, mul_row, col_8bits, col_16bits, row_frs,
                     col_frs, row_src, col_src, val_src, shf_row, shf_col,
                     shf_val);
-
+                // Counting bytes to write (row,col,val) on result
                 cnt_detect_newblock(nblk_res, shf_res, row_res,
                                     row_src - row_res, col_res);
                 size_type col_src_res = cnt_position_newrow_mat_data(
@@ -338,22 +358,596 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             shf_src = shf_val;
         }
         *mem_size = shf_res;
+    } else {  // E
+        size_type block_size_src = source->get_block_size();
+        size_type num_bytes_src = source->get_num_bytes();
+        size_type num_stored_elements = source->get_num_stored_elements();
+
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type row_src = 0;
+        size_type col_src = 0;
+        size_type shf_src = 0;
+        size_type shf_row_src = 0;
+        size_type shf_col_src = 0;
+        size_type shf_val_src = 0;
+
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto* cols_data_src = source->get_const_cols();
+        auto* types_data_src = source->get_const_types();
+        ValueType val_src;
+        size_type row_frs_src;
+        size_type col_frs_src;
+        bool mul_row_src;
+        bool col_8bits_src;
+        bool col_16bits_src;
+
+        size_type nblk_res = 0;
+        size_type blk_res = 0;
+        size_type row_res = 0;
+        size_type col_res = 0;
+        size_type shf_res = 0;
+        size_type shf_row_res = 0;
+        size_type shf_col_res = 0;
+        size_type shf_val_res = 0;
+
+        auto* rows_data_res = source->get_const_rows();
+        auto* offsets_data_res = source->get_const_offsets();
+        auto* chunk_data_res = source->get_const_chunk();
+        auto* cols_data_res = source->get_const_cols();
+        auto* types_data_res = source->get_const_types();
+        ValueType val_res;
+        size_type row_frs_res;
+        size_type col_frs_res;
+        size_type col_dif_res;
+        bool mul_row_res;
+        bool col_8bits_res;
+        bool col_16bits_res;
+        size_type i_res = 0;
+        size_type j_res = 0;
+        size_type block_size_local_res =
+            std::min(block_size_res, num_stored_elements - i_res);
+
+        for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+            size_type block_size_local_src =
+                std::min(block_size_src, num_stored_elements - i);
+            init_block_indices(
+                rows_data_src, cols_data_src, block_size_local_src, blk_src,
+                shf_src, types_data_src[blk_src], mul_row_src, col_8bits_src,
+                col_16bits_src, row_frs_src, col_frs_src, shf_row_src,
+                shf_col_src, shf_val_src);
+            for (size_type j = 0; j < block_size_local_src; j++) {
+                // Reading (row,col,val) from source
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data_src, mul_row_src, col_8bits_src, col_16bits_src,
+                    row_frs_src, col_frs_src, row_src, col_src, val_src,
+                    shf_row_res, shf_col_res, shf_val_res);
+                // Analyzing the impact of (row,col,val) in the block
+                mul_row_res = mul_row_res || (row_src != row_frs_res);
+                if (col_src < col_frs_res) {
+                    col_dif_res += (col_frs_res - col_src);
+                    col_frs_res = col_src;
+                } else if (col_src > (col_frs_res + col_dif_res)) {
+                    col_dif_res = col_src - col_frs_res;
+                }
+                j_res++;
+                if (j_res == block_size_local_res) {
+                    // Counting bytes to write block on result
+                    if (mul_row_res) shf_res += block_size_local_res;
+                    if (col_dif_res <= 0xFF) {
+                        shf_res += block_size_local_res;
+                    } else if (col_dif_res <= 0xFFFF) {
+                        shf_res += 2 * block_size_local_res;
+                    } else {
+                        shf_res += 4 * block_size_local_res;
+                    }
+                    shf_res += sizeof(ValueType) * block_size_local_res;
+                    i_res += block_size_local_res;
+                    block_size_local_res =
+                        std::min(block_size_res, num_stored_elements - i_res);
+                    j_res = 0;
+                }
+            }
+            blk_src++;
+            shf_src = shf_val_src;
+        }
+        *mem_size = shf_res;
     }
 }
-/* */
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
 
+
 template <typename ValueType, typename IndexType>
-void convert_to_compression(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Bccoo<ValueType, IndexType>* source,
-                            matrix::Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
+                      const matrix::Bccoo<ValueType, IndexType>* source,
+                      matrix::Bccoo<ValueType, IndexType>* result)
+//    GKO_NOT_IMPLEMENTED;
+{
+    auto block_size_res = result->get_block_size();
+    auto compress_res = result->get_compression();
+    if ((source->get_block_size() == result->get_block_size()) &&
+        (source->get_compression() == result->get_compression())) {  // A
+        if (source->use_element_compression()) {
+            /*
+            //						gko::array<IndexType>
+            //
+            rows_data_res(exec, source->get_const_rows()); auto rows_data_src =
+            source->get_const_rows(); auto rows_data_res = result->get_rows();
+            //						rows_data_res =
+            rows_data_src; std::memcpy( static_cast<unsigned
+            char*>(rows_data_res), static_cast<const unsigned
+            char*>(rows_data_src), source->get_num_blocks() *
+            sizeof(IndexType));
+            */
+            std::memcpy(static_cast<IndexType*>(result->get_rows()),
+                        static_cast<const IndexType*>(source->get_const_rows()),
+                        source->get_num_blocks() * sizeof(IndexType));
+            //						gko::array<IndexType>
+            //								offsets_data_res(exec,
+            // source->get_const_offsets());
+            // result->get_offsets() = source->get_const_offsets();
+            auto offsets_data_src = source->get_const_offsets();
+            auto offsets_data_res = result->get_offsets();
+            std::memcpy(static_cast<IndexType*>(offsets_data_res),
+                        static_cast<const IndexType*>(offsets_data_src),
+                        (source->get_num_blocks() + 1) * sizeof(IndexType));
+            //						gko::array<uint8>
+            //								chunk_data_res(exec,
+            // source->get_const_chunk());
+            // result->get_chunk() = source->get_const_chunk();
+            auto chunk_data_src = source->get_const_chunk();
+            auto chunk_data_res = result->get_chunk();
+            std::memcpy(static_cast<uint8*>(chunk_data_res),
+                        static_cast<const uint8*>(chunk_data_src),
+                        source->get_num_bytes() * sizeof(uint8));
+            //						size_type block_size =
+            // source->get_block_size();
+            // size_type num_nonzeros = source->get_num_stored_elements();
+
+        } else {
+            //						result->get_rows() =
+            // source->get_const_rows();
+            std::memcpy(static_cast<IndexType*>(result->get_rows()),
+                        static_cast<const IndexType*>(source->get_const_rows()),
+                        source->get_num_blocks() * sizeof(IndexType));
+            //						result->get_cols() =
+            // source->get_const_cols();
+            std::memcpy(static_cast<IndexType*>(result->get_cols()),
+                        static_cast<const IndexType*>(source->get_const_cols()),
+                        source->get_num_blocks() * sizeof(IndexType));
+            //						result->get_types() =
+            // source->get_const_types();
+            std::memcpy(static_cast<uint8*>(result->get_types()),
+                        static_cast<const uint8*>(source->get_const_types()),
+                        source->get_num_blocks() * sizeof(IndexType));
+            //						result->get_offsets() =
+            // source->get_const_offsets();
+            std::memcpy(
+                static_cast<IndexType*>(result->get_offsets()),
+                static_cast<const IndexType*>(source->get_const_offsets()),
+                (source->get_num_blocks() + 1) * sizeof(IndexType));
+            //						result->get_chunk() =
+            // source->get_const_chunk();
+            std::memcpy(static_cast<uint8*>(result->get_chunk()),
+                        static_cast<const uint8*>(source->get_const_chunk()),
+                        source->get_num_bytes() * sizeof(uint8));
+        }
+    } else if ((source->use_element_compression()) &&
+               (result->use_element_compression())) {  // B
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto num_stored_elements = source->get_num_stored_elements();
+        auto block_size_src = source->get_block_size();
+        /* */
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type col_src = 0;
+        size_type row_src = 0;
+        size_type shf_src = 0;
+        ValueType val_src;
+        auto* rows_data_res = result->get_rows();
+        auto* offsets_data_res = result->get_offsets();
+        auto* chunk_data_res = result->get_chunk();
+        auto block_size_res = result->get_block_size();
+        size_type nblk_res = 0;
+        size_type blk_res = 0;
+        size_type col_res = 0;
+        size_type row_res = 0;
+        size_type shf_res = 0;
+        ValueType val_res;
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            // Reading (row,col,val) from source
+            get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
+                                blk_src, shf_src, row_src, col_src);
+            uint8 ind_src =
+                get_position_newrow(chunk_data_src, shf_src, row_src, col_src);
+            get_next_position_value(chunk_data_src, nblk_src, ind_src, shf_src,
+                                    col_src, val_src);
+            get_detect_endblock(block_size_src, nblk_src, blk_src);
+            // Writing (row,col,val) to result
+            put_detect_newblock(rows_data_res, nblk_res, blk_res, row_res,
+                                row_src - row_res, col_res);
+            size_type col_src_res = put_position_newrow_mat_data(
+                row_src, col_src, chunk_data_res, shf_res, row_res, col_res);
+            put_next_position_value(chunk_data_res, nblk_res, col_src - col_res,
+                                    shf_res, col_res, val_src);
+            put_detect_endblock(offsets_data_res, shf_res, block_size_res,
+                                nblk_res, blk_res);
+        }
+    } else if (source->use_element_compression()) {  // C
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto num_stored_elements = source->get_num_stored_elements();
+        auto block_size_src = source->get_block_size();
+
+        // Computation of chunk
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type col_src = 0;
+        size_type row_src = 0;
+        size_type shf_src = 0;
+        ValueType val_src;
+
+        auto* rows_data_res = result->get_rows();
+        auto* offsets_data_res = result->get_offsets();
+        auto* chunk_data_res = result->get_chunk();
+        auto* cols_data_res = result->get_cols();
+        auto* types_data_res = result->get_types();
+        auto block_size_res = result->get_block_size();
+        size_type blk_res = 0;
+        size_type shf_res = 0;
+        size_type shf_row_res = 0;
+        size_type shf_col_res = 0;
+        size_type shf_val_res = 0;
+        ValueType val_res;
+        bool mul_row = false;
+
+        uint8 type_blk;
+        array<IndexType> rows_blk(exec, block_size_res);
+        array<IndexType> cols_blk(exec, block_size_res);
+        array<ValueType> vals_blk(exec, block_size_res);
+
+        offsets_data_res[0] = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size_res) {
+            size_type block_size_local =
+                std::min(block_size_res, num_stored_elements - i);
+            size_type row_frs = row_src;
+            size_type col_frs = col_src;
+            size_type col_dif = 0;
+            uint8 type_blk = 0;
+            for (size_type j = 0; j < block_size_local; j++) {
+                // Reading (row,col,val) from source
+                get_detect_newblock(rows_data_src, offsets_data_src, nblk_src,
+                                    blk_src, shf_src, row_src, col_src);
+                uint8 ind_src = get_position_newrow(chunk_data_src, shf_src,
+                                                    row_src, col_src);
+                get_next_position_value(chunk_data_src, nblk_src, ind_src,
+                                        shf_src, col_src, val_src);
+                get_detect_endblock(block_size_src, nblk_src, blk_src);
+                // Analyzing the impact of (row,col,val) in the block
+                rows_blk.get_data()[j] = row_src;
+                cols_blk.get_data()[j] = col_src;
+                vals_blk.get_data()[j] = val_src;
+                mul_row = mul_row || (row_src != row_frs);
+                if (col_src < col_frs) {
+                    col_dif += (col_frs - col_src);
+                    col_frs = col_src;
+                } else if (col_src > (col_frs + col_dif)) {
+                    col_dif = col_src - col_frs;
+                }
+            }
+            // Counting bytes to write block on result
+            if (mul_row) {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    row_src = rows_blk.get_data()[j];
+                    //										set_value_chunk<uint8>(chunk_data_res,
+                    // shf_res+j,
+                    set_value_chunk<uint8>(chunk_data_res, shf_res,
+                                           row_src - row_frs);
+                    shf_res++;
+                }
+                type_blk |= GKO_BCCOO_ROWS_MULTIPLE;
+                //								shf_res
+                //+= block_size_local;
+            }
+            if (col_dif <= 0xFF) {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    uint8 col_dif = cols_blk.get_data()[j] - col_frs;
+                    //									set_value_chunk<uint8>(chunk_data_res,
+                    // shf_res+j, col_dif);
+                    set_value_chunk<uint8>(chunk_data_res, shf_res, col_dif);
+                    shf_res++;
+                }
+                type_blk |= GKO_BCCOO_COLS_8BITS;
+                //                shf_res += block_size_local;
+            } else if (col_dif <= 0xFFFF) {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    uint16 col_dif = cols_blk.get_data()[j] - col_frs;
+                    //									set_value_chunk<uint16>(chunk_data_res,
+                    // shf_res+j, col_dif);
+                    set_value_chunk<uint16>(chunk_data_res, shf_res, col_dif);
+                    shf_res += 2;
+                }
+                type_blk |= GKO_BCCOO_COLS_16BITS;
+                //                shf_res += 2 * block_size_local;
+            } else {
+                for (size_type j = 0; j < block_size_local; j++) {
+                    uint32 col_dif = cols_blk.get_data()[j] - col_frs;
+                    //									set_value_chunk<uint32>(chunk_data_res,
+                    // shf_res+j, col_dif);
+                    set_value_chunk<uint32>(chunk_data_res, shf_res, col_dif);
+                    shf_res += 4;
+                }
+                //                shf_res += 4 * block_size_local;
+            }
+            for (size_type j = 0; j < block_size_local; j++) {
+                val_res = vals_blk.get_data()[j];
+                //							set_value_chunk<ValueType>(chunk_data_res,
+                // shf_res+j, val_res);
+                set_value_chunk<ValueType>(chunk_data_res, shf_res, val_res);
+                shf_res += sizeof(ValueType);
+            }
+            rows_data_res[blk_res] = row_frs;
+            cols_data_res[blk_res] = col_frs;
+            types_data_res[blk_res] = type_blk;
+            offsets_data_res[++blk_res] = shf_res;
+            //            shf_res += sizeof(ValueType) * block_size_local;
+            /*
+               uint8 type_blk = (mul_row)? 1: 0;
+               if (mul_row) { }
+               if (col_dif < 256) {
+                   type_blk |= GKO_BCCOO_COLS_8BITS;
+               } else if (col_dif < 65536) {
+                                                                        type_blk
+               |= GKO_BCCOO_COLS_16BITS; } else { }
+            */
+        }
+        //    } else if (source->use_block_compression()) {
+    } else if (compress_res == matrix::bccoo::compression::element) {  // D
+        size_type block_size_src = source->get_block_size();
+        size_type num_bytes_src = source->get_num_bytes();
+        size_type num_stored_elements = source->get_num_stored_elements();
+
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type row_src = 0;
+        size_type col_src = 0;
+        size_type shf_src = 0;
+        size_type shf_row = 0;
+        size_type shf_col = 0;
+        size_type shf_val = 0;
+
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto* cols_data_src = source->get_const_cols();
+        auto* types_data_src = source->get_const_types();
+        ValueType val_src;
+
+        size_type nblk_res = 0;
+        size_type blk_res = 0;
+        size_type row_res = 0;
+        size_type col_res = 0;
+        size_type shf_res = 0;
+
+        for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+            size_type block_size_local =
+                std::min(block_size_src, num_stored_elements - i);
+            size_type row_frs;
+            size_type col_frs;
+            size_type row_src;
+            size_type col_src;
+            ValueType val_src;
+            bool mul_row;
+            bool col_8bits;
+            bool col_16bits;
+            init_block_indices(rows_data_src, cols_data_src, block_size_local,
+                               blk_src, shf_src, types_data_src[blk_src],
+                               mul_row, col_8bits, col_16bits, row_frs, col_frs,
+                               shf_row, shf_col, shf_val);
+            for (size_type j = 0; j < block_size_local; j++) {
+                // Reading (row,col,val) from source
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data_src, mul_row, col_8bits, col_16bits, row_frs,
+                    col_frs, row_src, col_src, val_src, shf_row, shf_col,
+                    shf_val);
+                // Counting bytes to write (row,col,val) on result
+                cnt_detect_newblock(nblk_res, shf_res, row_res,
+                                    row_src - row_res, col_res);
+                size_type col_src_res = cnt_position_newrow_mat_data(
+                    row_src, col_src, shf_res, row_res, col_res);
+                cnt_next_position_value(col_src_res, shf_res, col_res, val_src,
+                                        nblk_res);
+                cnt_detect_endblock(block_size_res, nblk_res, blk_res);
+            }
+            blk_src++;
+            shf_src = shf_val;
+        }
+    } else {  // E
+        size_type block_size_src = source->get_block_size();
+        size_type num_bytes_src = source->get_num_bytes();
+        size_type num_stored_elements = source->get_num_stored_elements();
+
+        size_type nblk_src = 0;
+        size_type blk_src = 0;
+        size_type row_src = 0;
+        size_type col_src = 0;
+        size_type shf_src = 0;
+        size_type shf_row_src = 0;
+        size_type shf_col_src = 0;
+        size_type shf_val_src = 0;
+
+        auto* rows_data_src = source->get_const_rows();
+        auto* offsets_data_src = source->get_const_offsets();
+        auto* chunk_data_src = source->get_const_chunk();
+        auto* cols_data_src = source->get_const_cols();
+        auto* types_data_src = source->get_const_types();
+        ValueType val_src;
+        size_type row_frs_src;
+        size_type col_frs_src;
+        bool mul_row_src;
+        bool col_8bits_src;
+        bool col_16bits_src;
+
+        size_type nblk_res = 0;
+        size_type blk_res = 0;
+        size_type row_res = 0;
+        size_type col_res = 0;
+        size_type shf_res = 0;
+        size_type shf_row_res = 0;
+        size_type shf_col_res = 0;
+        size_type shf_val_res = 0;
+
+        auto* rows_data_res = result->get_rows();
+        auto* offsets_data_res = result->get_offsets();
+        auto* chunk_data_res = result->get_chunk();
+        auto* cols_data_res = result->get_cols();
+        auto* types_data_res = result->get_types();
+        ValueType val_res;
+        size_type row_frs_res;
+        size_type col_frs_res;
+        size_type col_dif_res;
+        bool mul_row_res;
+        bool col_8bits_res;
+        bool col_16bits_res;
+
+        uint8 type_blk;
+        array<IndexType> rows_blk_res(exec, block_size_res);
+        array<IndexType> cols_blk_res(exec, block_size_res);
+        array<ValueType> vals_blk_res(exec, block_size_res);
+
+        size_type i_res = 0;
+        size_type j_res = 0;
+        size_type block_size_local_res =
+            std::min(block_size_res, num_stored_elements - i_res);
+
+        offsets_data_res[0] = 0;
+        for (size_type i = 0; i < num_stored_elements; i += block_size_src) {
+            size_type block_size_local_src =
+                std::min(block_size_src, num_stored_elements - i);
+            init_block_indices(
+                rows_data_src, cols_data_src, block_size_local_src, blk_src,
+                shf_src, types_data_src[blk_src], mul_row_src, col_8bits_src,
+                col_16bits_src, row_frs_src, col_frs_src, shf_row_src,
+                shf_col_src, shf_val_src);
+            size_type row_frs_res = row_src;
+            size_type col_frs_res = col_src;
+            size_type col_dif_res = 0;
+            uint8 type_blk_res = 0;
+            for (size_type j = 0; j < block_size_local_src; j++) {
+                // Reading (row,col,val) from source
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data_src, mul_row_src, col_8bits_src, col_16bits_src,
+                    row_frs_src, col_frs_src, row_src, col_src, val_src,
+                    shf_row_res, shf_col_res, shf_val_res);
+                // Analyzing the impact of (row,col,val) in the block
+                rows_blk_res.get_data()[j] = row_src;
+                cols_blk_res.get_data()[j] = col_src;
+                vals_blk_res.get_data()[j] = val_src;
+                mul_row_res = mul_row_res || (row_src != row_frs_res);
+                if (col_src < col_frs_res) {
+                    col_dif_res += (col_frs_res - col_src);
+                    col_frs_res = col_src;
+                } else if (col_src > (col_frs_res + col_dif_res)) {
+                    col_dif_res = col_src - col_frs_res;
+                }
+                j_res++;
+                if (j_res == block_size_local_res) {
+                    // Counting bytes to write block on result
+                    if (mul_row_res) {
+                        for (size_type j_res = 0; j_res < block_size_local_res;
+                             j_res++) {
+                            row_src = rows_blk_res.get_data()[j];
+                            //                    				set_value_chunk<uint8>(chunk_data_res,
+                            //                    shf_res+j,
+                            set_value_chunk<uint8>(chunk_data_res, shf_res,
+                                                   row_src - row_frs_res);
+                            shf_res++;
+                        }
+                        type_blk |= GKO_BCCOO_ROWS_MULTIPLE;
+                        //												shf_res
+                        //+= block_size_local_res;
+                    }
+                    if (col_dif_res <= 0xFF) {
+                        for (size_type j_res = 0; j_res < block_size_local_res;
+                             j_res++) {
+                            uint8 col_dif =
+                                cols_blk_res.get_data()[j] - col_frs_res;
+                            //                  				set_value_chunk<uint8>(chunk_data_res,
+                            //                  shf_res+j, col_dif);
+                            set_value_chunk<uint8>(chunk_data_res, shf_res,
+                                                   col_dif);
+                            shf_res++;
+                        }
+                        type_blk_res |= GKO_BCCOO_COLS_8BITS;
+                        //                				shf_res
+                        //                += block_size_local_res;
+                    } else if (col_dif_res <= 0xFFFF) {
+                        for (size_type j_res = 0; j_res < block_size_local_res;
+                             j_res++) {
+                            uint16 col_dif =
+                                cols_blk_res.get_data()[j] - col_frs_res;
+                            //                  				set_value_chunk<uint16>(chunk_data_res,
+                            //                  shf_res+j, col_dif);
+                            set_value_chunk<uint16>(chunk_data_res, shf_res,
+                                                    col_dif);
+                            shf_res += 2;
+                        }
+                        type_blk_res |= GKO_BCCOO_COLS_16BITS;
+                        //                				shf_res
+                        //                +=
+                        //                2
+                        //                * block_size_local_res;
+                    } else {
+                        for (size_type j_res = 0; j_res < block_size_local_res;
+                             j_res++) {
+                            uint32 col_dif =
+                                cols_blk_res.get_data()[j] - col_frs_res;
+                            // set_value_chunk<uint32>(chunk_data_res,
+                            // shf_res+j, col_dif);
+                            set_value_chunk<uint32>(chunk_data_res, shf_res,
+                                                    col_dif);
+                            shf_res += 4;
+                        }
+
+                        // shf_res += 4
+                        // * block_size_local_res;
+                    }
+                    for (size_type j_res = 0; j_res < block_size_local_res;
+                         j_res++) {
+                        val_res = vals_blk_res.get_data()[j];
+                        // set_value_chunk<ValueType>(chunk_data_res,
+                        // shf_res+j, val_res);
+                        set_value_chunk<ValueType>(chunk_data_res, shf_res,
+                                                   val_res);
+                        shf_res += sizeof(ValueType);
+                    }
+                    rows_data_res[blk_res] = row_frs_res;
+                    cols_data_res[blk_res] = col_frs_res;
+                    types_data_res[blk_res] = type_blk_res;
+                    offsets_data_res[++blk_res] = shf_res;
+                    // shf_res += sizeof(ValueType)
+                    // * block_size_local_res;
+                    i_res += block_size_local_res;
+                    block_size_local_res =
+                        std::min(block_size_res, num_stored_elements - i_res);
+                    j_res = 0;
+                }
+            }
+            blk_src++;
+            shf_src = shf_val_src;
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_BCCOO_CONVERT_TO_COMPRESSION_KERNEL);
+    GKO_DECLARE_BCCOO_CONVERT_TO_BCCOO_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_next_precision(
@@ -477,25 +1071,6 @@ void convert_to_next_precision(
             blk_src++;
             blk_res++;
             offsets_data_res[blk_res] = shf_res;
-            /*
-    for (size_type j = 0; j < block_size_local; j++) {
-    row_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
-                            shf_src += 2;
-    col_src += get_value_chunk<uint16>(chunk_data_src, shf_src);
-                            shf_src += 2;
-    val_src += get_value_chunk<ValueType>(chunk_data_src, shf_src);
-                            shf_src += sizeof(ValueType);
-            set_value_chunk<uint16>(chunk_data_res, shf_res, row_src);
-                            shf_res += 2;
-            set_value_chunk<uint16>(chunk_data_res, shf_res, col_src);
-                            shf_res += 2;
-                            val_res = val_src;
-            set_value_chunk<new_precision>(chunk_data_res, shf_res, val_res);
-                            shf_res += sizeof(new_precision);
-                    }
-                    blk_src++; blk_res++;
-                    offsets_data_res[blk_res] = shf_res;
-            */
         }
     }
 }

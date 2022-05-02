@@ -85,6 +85,7 @@ namespace bccoo {
 
 
 GKO_REGISTER_OPERATION(get_default_block_size, bccoo::get_default_block_size);
+GKO_REGISTER_OPERATION(get_default_compression, bccoo::get_default_compression);
 
 
 }  // namespace bccoo
@@ -162,20 +163,25 @@ void Coo<ValueType, IndexType>::convert_to(
     Bccoo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto num_stored_elements = this->get_num_stored_elements();
 
-    //  const size_type block_size = 1024;
-    // JIAE TODO
-    //	const auto block_size = Bccoo<ValueType, IndexType>::
-    //	  compute_block_size( result->get_executor(), this.size(),
-    //    num_stored_elements);
-    size_type block_size = 1024;
-    exec->run(bccoo::make_get_default_block_size(&block_size));
+    bccoo::compression compression = result->get_compression();
+    if (result->use_default_compression()) {
+        exec->run(bccoo::make_get_default_compression(&compression));
+    }
+
+    //    size_type block_size = 1024;
+    //    exec->run(bccoo::make_get_default_block_size(&block_size));
+    size_type block_size = result->get_block_size();
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
+    auto num_stored_elements = this->get_num_stored_elements();
     const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
+    // JIAE TODO
+    // Modify mem_size_bccoo to consider different values of compression
     array<IndexType> rows(exec, num_blocks);
     array<IndexType> offsets(exec, num_blocks + 1);
-
     size_type mem_size{};
     if (exec == exec->get_master()) {
         exec->run(coo::make_mem_size_bccoo(this, rows.get_data(),
