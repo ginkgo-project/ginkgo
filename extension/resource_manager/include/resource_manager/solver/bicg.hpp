@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_BICG_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_BICG_HPP_
 
 
-#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
@@ -57,30 +57,30 @@ namespace resource_manager {
 
 // TODO: Please add this header file into resource_manager/resource_manager.hpp
 // TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(IluFactorizationFactory) to ENUM_LINOPFACTORY
-// Add _expand(IluFactorization) to ENUM_LINOP
+// Add _expand(BicgFactory) to ENUM_LINOPFACTORY
+// Add _expand(Bicg) to ENUM_LINOP
 // If need to override the generated enum for RM, use RM_CLASS or
 // RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LinOpFactory::)IluFactorizationFactory and (RM_LinOp::)IluFactorization
-// and their snake case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+// (RM_LinOpFactory::)BicgFactory and (RM_LinOp::)Bicg and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
-template <typename ValueType, typename IndexType>
-struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
-               gko::factorization::Ilu<ValueType, IndexType>> {
-    using type = std::shared_ptr<
-        typename gko::factorization::Ilu<ValueType, IndexType>::Factory>;
+template <typename ValueType>
+struct Generic<typename gko::solver::Bicg<ValueType>::Factory,
+               gko::solver::Bicg<ValueType>> {
+    using type =
+        std::shared_ptr<typename gko::solver::Bicg<ValueType>::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
         auto ptr = [&]() {
-            BUILD_FACTORY(PACK(gko::factorization::Ilu<ValueType, IndexType>),
-                          manager, item, exec, linop);
-            SET_CSR_STRATEGY(matrix_type, l_strategy);
-            SET_CSR_STRATEGY(matrix_type, u_strategy);
-            SET_VALUE(bool, skip_sorting);
+            BUILD_FACTORY(gko::solver::Bicg<ValueType>, manager, item, exec,
+                          linop);
+            SET_POINTER_VECTOR(const stop::CriterionFactory, criteria);
+            SET_POINTER(const LinOpFactory, preconditioner);
+            SET_POINTER(const LinOp, generated_preconditioner);
             SET_EXECUTOR;
         }();
         add_logger(ptr, item, exec, linop, manager);
@@ -88,53 +88,23 @@ struct Generic<typename gko::factorization::Ilu<ValueType, IndexType>::Factory,
     }
 };
 
-SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::factorization::Ilu,
-                               PACK(typename ValueType, typename IndexType),
-                               PACK(ValueType, IndexType));
+SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::solver::Bicg, typename ValueType,
+                               ValueType);
 
 
-ENABLE_SELECTION(ilu_factorization_factory_select, call,
-                 std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type);
-ENABLE_SELECTION(ilu_factorization_select, call, std::shared_ptr<gko::LinOp>,
+ENABLE_SELECTION(bicg_factory_select, call, std::shared_ptr<gko::LinOpFactory>,
+                 get_actual_factory_type);
+ENABLE_SELECTION(bicg_select, call, std::shared_ptr<gko::LinOp>,
                  get_actual_type);
 
 
-constexpr auto ilu_factorization_list =
-    typename span_list<tt_list_g_t<handle_type::ValueType>,
-                       tt_list_g_t<handle_type::IndexType>>::type();
+constexpr auto bicg_list =
+    typename span_list<tt_list_g_t<handle_type::ValueType>>::type();
 
 
 template <>
-std::shared_ptr<gko::LinOpFactory>
-create_from_config<RM_LinOpFactory, RM_LinOpFactory::IluFactorizationFactory,
-                   gko::LinOpFactory>(rapidjson::Value& item,
-                                      std::shared_ptr<const Executor> exec,
-                                      std::shared_ptr<const LinOp> linop,
-                                      ResourceManager* manager)
-{
-    // get the template from base
-    std::string base_string;
-    if (item.HasMember("base")) {
-        base_string = get_base_template(item["base"].GetString());
-    }
-    // get the individual type
-    auto type_string = create_type_name(  // trick for clang-format
-        get_value_with_default(item, "ValueType",
-                               get_default_string<handle_type::ValueType>()),
-        get_value_with_default(item, "IndexType",
-                               get_default_string<handle_type::IndexType>()));
-    // combine them together, base_string has higher priority than type_string
-    auto combined = combine_template(base_string, remove_space(type_string));
-    auto ptr = ilu_factorization_factory_select<gko::factorization::Ilu>(
-        ilu_factorization_list,
-        [=](std::string key) { return key == combined; }, item, exec, linop,
-        manager);
-    return std::move(ptr);
-}
-
-template <>
-std::shared_ptr<gko::LinOp>
-create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
+std::shared_ptr<gko::LinOpFactory> create_from_config<
+    RM_LinOpFactory, RM_LinOpFactory::BicgFactory, gko::LinOpFactory>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
@@ -146,15 +116,35 @@ create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
     // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
         get_value_with_default(item, "ValueType",
-                               get_default_string<handle_type::ValueType>()),
-        get_value_with_default(item, "IndexType",
-                               get_default_string<handle_type::IndexType>()));
+                               get_default_string<handle_type::ValueType>()));
     // combine them together, base_string has higher priority than type_string
     auto combined = combine_template(base_string, remove_space(type_string));
-    auto ptr = ilu_factorization_select<gko::factorization::Ilu>(
-        ilu_factorization_list,
-        [=](std::string key) { return key == combined; }, item, exec, linop,
-        manager);
+    auto ptr = bicg_factory_select<gko::solver::Bicg>(
+        bicg_list, [=](std::string key) { return key == combined; }, item, exec,
+        linop, manager);
+    return std::move(ptr);
+}
+
+template <>
+std::shared_ptr<gko::LinOp>
+create_from_config<RM_LinOp, RM_LinOp::Bicg, gko::LinOp>(
+    rapidjson::Value& item, std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const LinOp> linop, ResourceManager* manager)
+{
+    // get the template from base
+    std::string base_string;
+    if (item.HasMember("base")) {
+        base_string = get_base_template(item["base"].GetString());
+    }
+    // get the individual type
+    auto type_string = create_type_name(  // trick for clang-format
+        get_value_with_default(item, "ValueType",
+                               get_default_string<handle_type::ValueType>()));
+    // combine them together, base_string has higher priority than type_string
+    auto combined = combine_template(base_string, remove_space(type_string));
+    auto ptr = bicg_select<gko::solver::Bicg>(
+        bicg_list, [=](std::string key) { return key == combined; }, item, exec,
+        linop, manager);
     return std::move(ptr);
 }
 
@@ -164,4 +154,4 @@ create_from_config<RM_LinOp, RM_LinOp::IluFactorization, gko::LinOp>(
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_FACTORIZATION_ILU_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_BICG_HPP_

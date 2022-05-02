@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_TIME_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_TIME_HPP_
 
 
-#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
@@ -56,33 +56,33 @@ namespace resource_manager {
 
 // TODO: Please add this header file into resource_manager/resource_manager.hpp
 // TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Record) to ENUM_LOGGER
+// Add _expand(TimeFactory) to ENUM_CRITERIONFACTORY
 // If need to override the generated enum for RM, use RM_CLASS or
 // RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LoggerFactory::)RecordFactory and (RM_Logger::)Record and their snake
+// (RM_CriterionFactory::)TimeFactory and (RM_Criterion::)Time and their snake
 // case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
 template <>
-struct Generic<gko::log::Record> {
-    using type = std::shared_ptr<gko::log::Record>;
+struct Generic<typename gko::stop::Time::Factory, gko::stop::Time> {
+    using type = std::shared_ptr<typename gko::stop::Time::Factory>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
                       ResourceManager* manager)
     {
-        auto exec_ptr =
-            get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto mask_value = get_mask_value_with_default(
-            item, "enabled_events", gko::log::Logger::all_events_mask);
-        // TODO: consider other thing from constructor
-        auto ptr = gko::log::Record::create(exec_ptr, mask_value);
+        auto ptr = [&]() {
+            BUILD_FACTORY(gko::stop::Time, manager, item, exec, linop);
+            SET_VALUE(std::chrono::nanoseconds, time_limit);
+            SET_EXECUTOR;
+        }();
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
 
 
-IMPLEMENT_BRIDGE(RM_Logger, Record, gko::log::Record);
+IMPLEMENT_BRIDGE(RM_CriterionFactory, TimeFactory, gko::stop::Time::Factory);
 
 
 }  // namespace resource_manager
@@ -90,4 +90,4 @@ IMPLEMENT_BRIDGE(RM_Logger, Record, gko::log::Record);
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_STOP_TIME_HPP_

@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
-#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
+#ifndef GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_FFT_HPP_
+#define GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_FFT_HPP_
 
 
-#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/matrix/fft.hpp>
 
 
 #include "resource_manager/base/generic_constructor.hpp"
@@ -56,16 +56,16 @@ namespace resource_manager {
 
 // TODO: Please add this header file into resource_manager/resource_manager.hpp
 // TODO: Please add the corresponding to the resource_manager/base/types.hpp
-// Add _expand(Record) to ENUM_LOGGER
+// Add _expand(Fft) to ENUM_LINOP
 // If need to override the generated enum for RM, use RM_CLASS or
 // RM_CLASS_FACTORY env and rerun the generated script. Or replace the
-// (RM_LoggerFactory::)RecordFactory and (RM_Logger::)Record and their snake
-// case in IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+// (RM_LinOpFactory::)FftFactory and (RM_LinOp::)Fft and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
 
 
 template <>
-struct Generic<gko::log::Record> {
-    using type = std::shared_ptr<gko::log::Record>;
+struct Generic<gko::matrix::Fft> {
+    using type = std::shared_ptr<gko::matrix::Fft>;
     static type build(rapidjson::Value& item,
                       std::shared_ptr<const Executor> exec,
                       std::shared_ptr<const LinOp> linop,
@@ -73,16 +73,17 @@ struct Generic<gko::log::Record> {
     {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
-        auto mask_value = get_mask_value_with_default(
-            item, "enabled_events", gko::log::Logger::all_events_mask);
+        auto size = get_value_with_default(item, "dim", gko::dim<2>{});
         // TODO: consider other thing from constructor
-        auto ptr = gko::log::Record::create(exec_ptr, mask_value);
+        auto ptr = share(gko::matrix::Fft::create(exec_ptr, size));
+
+        add_logger(ptr, item, exec, linop, manager);
         return std::move(ptr);
     }
 };
 
 
-IMPLEMENT_BRIDGE(RM_Logger, Record, gko::log::Record);
+IMPLEMENT_BRIDGE(RM_LinOp, Fft, gko::matrix::Fft);
 
 
 }  // namespace resource_manager
@@ -90,4 +91,4 @@ IMPLEMENT_BRIDGE(RM_Logger, Record, gko::log::Record);
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_LOG_RECORD_HPP_
+#endif  // GKO_PUBLIC_EXT_RESOURCE_MANAGER_MATRIX_FFT_HPP_

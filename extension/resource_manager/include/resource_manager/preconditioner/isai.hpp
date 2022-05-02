@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_PRECONDITIONER_ISAI_HPP_
 
 
-#include <type_traits>
-
-
 #include <ginkgo/core/preconditioner/isai.hpp>
 
 
@@ -44,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
+#include "resource_manager/base/resource_manager.hpp"
+#include "resource_manager/base/template_helper.hpp"
 #include "resource_manager/base/type_default.hpp"
 #include "resource_manager/base/type_pack.hpp"
 #include "resource_manager/base/type_resolving.hpp"
@@ -56,8 +55,17 @@ namespace extension {
 namespace resource_manager {
 
 
-template <gko::preconditioner::isai_type IsaiType, typename ValueType,
-          typename IndexType>
+// TODO: Please add this header file into resource_manager/resource_manager.hpp
+// TODO: Please add the corresponding to the resource_manager/base/types.hpp
+// Add _expand(IsaiFactory) to ENUM_LINOPFACTORY
+// Add _expand(Isai) to ENUM_LINOP
+// If need to override the generated enum for RM, use RM_CLASS or
+// RM_CLASS_FACTORY env and rerun the generated script. Or replace the
+// (RM_LinOpFactory::)IsaiFactory and (RM_LinOp::)Isai and their snake case in
+// IMPLEMENT_BRIDGE, ENABLE_SELECTION, *_select, ...
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
 struct Generic<
     typename gko::preconditioner::Isai<IsaiType, ValueType, IndexType>::Factory,
     gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
@@ -84,13 +92,24 @@ struct Generic<
     }
 };
 
-
 SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Isai,
-                               PACK(gko::preconditioner::isai_type IsaiType,
-                                    typename ValueType, typename IndexType),
+                               PACK(isai_type IsaiType, typename ValueType,
+                                    typename IndexType),
                                PACK(IsaiType, ValueType, IndexType));
 
 
+// TODO: the class contain non type template, please create corresponding
+// actual_type like following into type_resolving.hpp and the corresponding
+// binding of integral_constant except the first one into types.hpp with its
+// string name in type_string.hpp
+/*
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+struct actual_type<type_list<
+    std::integral_constant<RM_LinOp, RM_LinOp::Isai>,
+    std::integral_constant<isai_type, IsaiType>, ValueType, IndexType>> {
+    using type = gko::preconditioner::Isai<IsaiType, ValueType, IndexType>;
+};
+*/
 ENABLE_SELECTION_ID(isai_factory_select, call,
                     std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type,
                     RM_LinOp, Isai);
@@ -98,10 +117,13 @@ ENABLE_SELECTION_ID(isai_select, call, std::shared_ptr<gko::LinOp>,
                     get_actual_type, RM_LinOp, Isai);
 
 
-constexpr auto isai_list =
-    typename span_list<tt_list<isai_lower, isai_upper, isai_general, isai_spd>,
-                       tt_list_g_t<handle_type::ValueType>,
-                       tt_list_g_t<handle_type::IndexType>>::type();
+constexpr auto isai_list = typename span_list<
+    tt_list<>,  // TODO: The type is isai_type, which should be wrapped in
+                // integral_constant. Can not find IsaiType in with
+                // TT_LIST_G_PARTIAL, please condider adding it into
+                // type_default.hpp if it reused for many times.
+    tt_list_g_t<handle_type::ValueType>,
+    tt_list_g_t<handle_type::IndexType>>::type();
 
 
 template <>
@@ -110,16 +132,26 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    // go though the type
+    // get the template from base
+    std::string base_string;
+    if (item.HasMember("base")) {
+        base_string = get_base_template(item["base"].GetString());
+    }
+    // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        get_required_value<std::string>(item, "IsaiType"),
+        /* TODO: can not find IsaiType with GET_DEFAULT_STRING_PARTIAL, please
+           condider adding it into type_default.hpp if it reused for many times.
+         */
+        get_value_with_default(item, "IsaiType", ""s),
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));
+    // combine them together, base_string has higher priority than type_string
+    auto combined = combine_template(base_string, remove_space(type_string));
     auto ptr = isai_factory_select<type_list>(
-        isai_list, [=](std::string key) { return key == type_string; }, item,
-        exec, linop, manager);
+        isai_list, [=](std::string key) { return key == combined; }, item, exec,
+        linop, manager);
     return std::move(ptr);
 }
 
@@ -129,16 +161,26 @@ create_from_config<RM_LinOp, RM_LinOp::Isai, gko::LinOp>(
     rapidjson::Value& item, std::shared_ptr<const Executor> exec,
     std::shared_ptr<const LinOp> linop, ResourceManager* manager)
 {
-    // go though the type
+    // get the template from base
+    std::string base_string;
+    if (item.HasMember("base")) {
+        base_string = get_base_template(item["base"].GetString());
+    }
+    // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        get_required_value<std::string>(item, "IsaiType"),
+        /* TODO: can not find IsaiType with GET_DEFAULT_STRING_PARTIAL, please
+           condider adding it into type_default.hpp if it reused for many times.
+         */
+        get_value_with_default(item, "IsaiType", ""s),
         get_value_with_default(item, "ValueType",
                                get_default_string<handle_type::ValueType>()),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));
+    // combine them together, base_string has higher priority than type_string
+    auto combined = combine_template(base_string, remove_space(type_string));
     auto ptr = isai_select<type_list>(
-        isai_list, [=](std::string key) { return key == type_string; }, item,
-        exec, linop, manager);
+        isai_list, [=](std::string key) { return key == combined; }, item, exec,
+        linop, manager);
     return std::move(ptr);
 }
 

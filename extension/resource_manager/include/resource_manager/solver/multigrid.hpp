@@ -34,17 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_EXT_RESOURCE_MANAGER_SOLVER_MULTIGRID_HPP_
 
 
-#include <type_traits>
-
-
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
-#include "resource_manager/base/function_map.hpp"
 #include "resource_manager/base/generic_constructor.hpp"
 #include "resource_manager/base/helper.hpp"
 #include "resource_manager/base/macro_helper.hpp"
 #include "resource_manager/base/rapidjson_helper.hpp"
+#include "resource_manager/base/resource_manager.hpp"
 #include "resource_manager/base/type_default.hpp"
 #include "resource_manager/base/type_pack.hpp"
 #include "resource_manager/base/type_resolving.hpp"
@@ -57,6 +54,7 @@ namespace extension {
 namespace resource_manager {
 
 
+// TODO: Please add this header file into resource_manager/resource_manager.hpp
 // TODO: Please add the corresponding to the resource_manager/base/types.hpp
 // Add _expand(MultigridFactory) to ENUM_LINOPFACTORY
 // Add _expand(Multigrid) to ENUM_LINOP
@@ -81,19 +79,23 @@ struct Generic<typename gko::solver::Multigrid::Factory,
             SET_POINTER_VECTOR(const gko::LinOpFactory, mg_level);
             SET_FUNCTION(
                 std::function<size_type(const size_type, const LinOp*)>,
-                level_selector);
+                level_selector); /* TODO: please create a map level_selector_map
+                                    to handle the function size_type(const
+                                    size_type, const LinOp*) */
             SET_POINTER_VECTOR(const LinOpFactory, pre_smoother);
             SET_POINTER_VECTOR(const LinOpFactory, post_smoother);
             SET_POINTER_VECTOR(const LinOpFactory, mid_smoother);
             SET_VALUE(bool, post_uses_pre);
-            SET_VALUE(gko::solver::multigrid::mid_smooth_type, mid_case);
+            SET_VALUE(multigrid::mid_smooth_type, mid_case);
             SET_VALUE(size_type, max_levels);
             SET_VALUE(size_type, min_coarse_rows);
             SET_POINTER_VECTOR(const LinOpFactory, coarsest_solver);
             SET_FUNCTION(
                 std::function<size_type(const size_type, const LinOp*)>,
-                solver_selector);
-            SET_VALUE(gko::solver::multigrid::cycle, cycle);
+                solver_selector); /* TODO: please create a map
+                                     solver_selector_map to handle the function
+                                     size_type(const size_type, const LinOp*) */
+            SET_VALUE(multigrid::cycle, cycle);
             SET_VALUE(size_type, kcycle_base);
             SET_VALUE(double, kcycle_rel_tol);
             SET_VALUE(std::complex<double>, smoother_relax);
@@ -105,7 +107,6 @@ struct Generic<typename gko::solver::Multigrid::Factory,
         return std::move(ptr);
     }
 };
-
 
 SIMPLE_LINOP_WITH_FACTORY_IMPL_BASE(gko::solver::Multigrid);
 
