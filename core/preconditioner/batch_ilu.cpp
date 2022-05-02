@@ -103,8 +103,10 @@ void BatchIlu<ValueType, IndexType>::generate(
     Array<IndexType> u_row_ptrs(exec, nrows + 1);
     exec->run(batch_ilu::make_unbatch_initialize_row_ptrs_l_u(
         first_csr.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
-    const auto l_nnz = exec->copy_val_to_host(&l_row_ptrs.get_data()[nrows]);
-    const auto u_nnz = exec->copy_val_to_host(&u_row_ptrs.get_data()[nrows]);
+    const auto l_nnz =
+        exec->copy_val_to_host(&l_row_ptrs.get_const_data()[nrows]);
+    const auto u_nnz =
+        exec->copy_val_to_host(&u_row_ptrs.get_const_data()[nrows]);
     auto first_L = unbatch_type::create(exec, unbatch_size, l_nnz);
     auto first_U = unbatch_type::create(exec, unbatch_size, u_nnz);
     exec->copy(nrows + 1, l_row_ptrs.get_const_data(), first_L->get_row_ptrs());
