@@ -363,7 +363,7 @@ do
     then
         echo -e "\t${TEMPLATE_FILES_DESCRIPTIONS[$i-1]}" | tee -a todo_"${name}".txt
     fi
-    echo ""                                              | tee -a todo_"${name}".txt
+    echo ""                                              | tee -a "todo_${name}.txt"
 done
 
 if [ $automatic_additions -eq 1 ]
