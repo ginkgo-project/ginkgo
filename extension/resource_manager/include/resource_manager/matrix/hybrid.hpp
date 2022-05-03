@@ -70,12 +70,75 @@ struct Generic<gko::matrix::Hybrid<ValueType, IndexType>> {
         auto exec_ptr =
             get_pointer_check<Executor>(item, "exec", exec, linop, manager);
         auto size = get_value_with_default(item, "dim", gko::dim<2>{});
-        // auto num_stored_elements_per_row = get_value_with_default(item,
-        // "num_stored_elements_per_row", size[1]); auto stride =
-        // get_value_with_default(item, "stride", size[0]); auto strategy
-        // TODO: consider other thing from constructor
-        auto ptr = share(
-            gko::matrix::Hybrid<ValueType, IndexType>::create(exec_ptr, size));
+        auto num_stored_elements_per_row = get_value_with_default(
+            item, "num_stored_elements_per_row", size[1]);
+        auto stride = get_value_with_default(item, "stride", size[0]);
+        using matrix_type = gko::matrix::Hybrid<ValueType, IndexType>;
+        std::shared_ptr<typename matrix_type::strategy_type> strategy;
+        auto strategy_str = remove_space(
+            get_value_with_default(item, "strategy", "automatic"s));
+        if (strategy_str == "automatic") {
+            strategy = std::make_shared<typename matrix_type::automatic>();
+        } else if (strategy_str == "minimal_storage_limit") {
+            strategy =
+                std::make_shared<typename matrix_type::minimal_storage_limit>();
+        } else if (strategy_str.find("column_limit") != std::string::npos) {
+            auto ls = strategy_str.find("(");
+            auto rs = strategy_str.find(")");
+            if (ls < rs && rs != std::string::npos) {
+                auto str = strategy_str.substr(ls + 1, rs - ls - 1);
+                gko::size_type num_column = std::stoull(str);
+                strategy = std::make_shared<typename matrix_type::column_limit>(
+                    num_column);
+            } else {
+                strategy =
+                    std::make_shared<typename matrix_type::column_limit>();
+            }
+        } else if (strategy_str.find("imbalance_limit") != std::string::npos) {
+            auto ls = strategy_str.find("(");
+            auto rs = strategy_str.find(")");
+            if (ls < rs && rs != std::string::npos) {
+                auto str = strategy_str.substr(ls + 1, rs - ls - 1);
+                double percent = std::stod(str);
+                strategy =
+                    std::make_shared<typename matrix_type::imbalance_limit>(
+                        percent);
+            } else {
+                strategy =
+                    std::make_shared<typename matrix_type::imbalance_limit>();
+            }
+        } else if (strategy_str.find("imbalance_bounded_limit") !=
+                   std::string::npos) {
+            auto ls = strategy_str.find("(");
+            auto comma = strategy_str.find(",");
+            auto rs = strategy_str.find(")");
+            // only percent
+            if (comma == std::string ::npos) {
+                if (ls < rs && rs != std::string::npos) {
+                    auto str = strategy_str.substr(ls + 1, rs - ls - 1);
+                    double percent = std::stod(str);
+                    strategy = std::make_shared<
+                        typename matrix_type::imbalance_bounded_limit>(percent);
+                } else {
+                    strategy = std::make_shared<
+                        typename matrix_type::imbalance_bounded_limit>();
+                }
+            } else if (ls != std::string::npos && rs != std::string::npos) {
+                // both percent and ratio
+                auto str = strategy_str.substr(ls + 1, comma - ls - 1);
+                double percent = std::stod(str);
+                str = strategy_str.substr(comma + 1, rs - comma - 1);
+                double ratio = std::stod(str);
+                strategy = std::make_shared<
+                    typename matrix_type::imbalance_bounded_limit>(percent,
+                                                                   ratio);
+            } else {
+                strategy = std::make_shared<
+                    typename matrix_type::imbalance_bounded_limit>();
+            }
+        }
+        auto ptr = share(gko::matrix::Hybrid<ValueType, IndexType>::create(
+            exec_ptr, size, num_stored_elements_per_row, stride, strategy));
 
         if (item.HasMember("read")) {
             std::ifstream mtx_fd(item["read"].GetString());

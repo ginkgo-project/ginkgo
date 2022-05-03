@@ -90,19 +90,6 @@ SIMPLE_LINOP_WITH_FACTORY_IMPL(gko::preconditioner::Ilu,
                                     IndexType));
 
 
-// TODO: the class contain non type template, please create corresponding
-// actual_type like following into type_resolving.hpp and the corresponding
-// binding of integral_constant except the first one into types.hpp with its
-// string name in type_string.hpp
-/*
-template <typename LSolverType, typename USolverType, bool ReverseApply,
-typename IndexType> struct actual_type<type_list<
-    std::integral_constant<RM_LinOp, RM_LinOp::Ilu>,
-    LSolverType, USolverType, std::integral_constant<bool, ReverseApply>,
-IndexType>> { using type = gko::preconditioner::Ilu<LSolverType, USolverType,
-ReverseApply, IndexType>;
-};
-*/
 ENABLE_SELECTION_ID(ilu_factory_select, call,
                     std::shared_ptr<gko::LinOpFactory>, get_actual_factory_type,
                     RM_LinOp, Ilu);
@@ -111,20 +98,15 @@ ENABLE_SELECTION_ID(ilu_select, call, std::shared_ptr<gko::LinOp>,
 
 
 constexpr auto ilu_list = typename span_list<
-    tt_list<solver::LowerTrs<>>,  // TODO: Can not find LSolverType in with
-                                  // TT_LIST_G_PARTIAL, please condider adding
-                                  // it into type_default.hpp if it reused for
-                                  // many times.
-    tt_list<solver::UpperTrs<>>,  // TODO: Can not find USolverType in with
-                                  // TT_LIST_G_PARTIAL, please condider adding
-                                  // it into type_default.hpp if it reused for
-                                  // many times.
-    tt_list<std::true_type,
-            std::false_type>,  // TODO: The type is bool, which should be
-                               // wrapped in integral_constant. Can not find
-                               // ReverseApply in with TT_LIST_G_PARTIAL, please
-                               // condider adding it into type_default.hpp if it
-                               // reused for many times.
+    tt_list<gko::solver::LowerTrs<>>,  // TODO: Can not find LSolverType in with
+                                       // TT_LIST_G_PARTIAL, please condider
+                                       // adding it into type_default.hpp if it
+                                       // reused for many times.
+    tt_list<gko::solver::UpperTrs<>>,  // TODO: Can not find USolverType in with
+                                       // TT_LIST_G_PARTIAL, please condider
+                                       // adding it into type_default.hpp if it
+                                       // reused for many times.
+    tt_list<std::true_type, std::false_type>,
     tt_list_g_t<handle_type::IndexType>>::type();
 
 
@@ -141,19 +123,10 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     }
     // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        /* TODO: can not find LSolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
         get_value_with_default(item, "LSolverType",
-                               get_string<solver::LowerTrs<>>()),
-        /* TODO: can not find USolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
+                               get_string<gko::solver::LowerTrs<>>()),
         get_value_with_default(item, "USolverType",
-                               get_string<solver::UpperTrs<>>()),
-        /* TODO: can not find ReverseApply with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
+                               get_string<gko::solver::UpperTrs<>>()),
         get_value_with_default(item, "ReverseApply", "false"s),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));
@@ -178,19 +151,10 @@ create_from_config<RM_LinOp, RM_LinOp::Ilu, gko::LinOp>(
     }
     // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        /* TODO: can not find LSolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
         get_value_with_default(item, "LSolverType",
-                               get_string<solver::LowerTrs<>>()),
-        /* TODO: can not find USolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
+                               get_string<gko::solver::LowerTrs<>>()),
         get_value_with_default(item, "USolverType",
-                               get_string<solver::UpperTrs<>>()),
-        /* TODO: can not find ReverseApply with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
+                               get_string<gko::solver::UpperTrs<>>()),
         get_value_with_default(item, "ReverseApply", "false"s),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));

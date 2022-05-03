@@ -89,10 +89,10 @@ ENABLE_SELECTION(ic_select, call, std::shared_ptr<gko::LinOp>, get_actual_type);
 
 
 constexpr auto ic_list = typename span_list<
-    tt_list<solver::LowerTrs<>>,  // TODO: Can not find LSolverType in with
-                                  // TT_LIST_G_PARTIAL, please condider adding
-                                  // it into type_default.hpp if it reused for
-                                  // many times.
+    tt_list<gko::solver::LowerTrs<>>,  // TODO: Can not find LSolverType in with
+                                       // TT_LIST_G_PARTIAL, please condider
+                                       // adding it into type_default.hpp if it
+                                       // reused for many times.
     tt_list_g_t<handle_type::IndexType>>::type();
 
 
@@ -109,11 +109,8 @@ std::shared_ptr<gko::LinOpFactory> create_from_config<
     }
     // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        /* TODO: can not find LSolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
         get_value_with_default(item, "LSolverType",
-                               get_string<solver::LowerTrs<>>()),
+                               get_string<gko::solver::LowerTrs<>>()),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));
     // combine them together, base_string has higher priority than type_string
@@ -137,11 +134,8 @@ create_from_config<RM_LinOp, RM_LinOp::Ic, gko::LinOp>(
     }
     // get the individual type
     auto type_string = create_type_name(  // trick for clang-format
-        /* TODO: can not find LSolverType with GET_DEFAULT_STRING_PARTIAL,
-           please condider adding it into type_default.hpp if it reused for many
-           times. */
         get_value_with_default(item, "LSolverType",
-                               get_string<solver::LowerTrs<>>()),
+                               get_string<gko::solver::LowerTrs<>>()),
         get_value_with_default(item, "IndexType",
                                get_default_string<handle_type::IndexType>()));
     // combine them together, base_string has higher priority than type_string
