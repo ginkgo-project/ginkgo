@@ -348,11 +348,11 @@ else
     echo -e "You can inspect the generated solver files in ${TMPDIR}."
 fi
 
-if [ -f todo_"${name}".txt ]; then
-    rm todo_"${name}".txt
+if [ -f "todo_${name}.txt" ]; then
+    rm "todo_${name}.txt"
 fi
 
-echo -e "\n###Summary:"                                                                 | tee -a todo_"${name}".txt
+echo -e "\n###Summary:"                                                                 | tee -a "todo_${name}.txt"
 for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
     destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
@@ -372,69 +372,69 @@ then
     do
         if [[ "${CMAKE_FILES[$i-1]}" != "" ]]
         then
-            echo "Modified ${CMAKE_FILES[$i-1]}"              | tee -a todo_"${name}".txt
+            echo "Modified ${CMAKE_FILES[$i-1]}"              | tee -a "todo_${name}.txt"
         fi
     done
-    echo "Modified core/device_hooks/common_kernels.inc.cpp"  | tee -a todo_"${name}".txt
+    echo "Modified core/device_hooks/common_kernels.inc.cpp"  | tee -a "todo_${name}.txt"
 fi
 
 if [ $automatic_additions -eq 0 ]
 then
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "The following CMakeLists have to be modified manually:"| tee -a todo_"${name}".txt
-    echo "core/CMakeLists.txt"                                | tee -a todo_"${name}".txt
-    echo "core/test/${source_type}/CMakeLists.txt"            | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "reference/CMakeLists.txt"                           | tee -a todo_"${name}".txt
-    echo "reference/test/${source_type}/CMakeLists.txt"       | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "omp/CMakeLists.txt"                                 | tee -a todo_"${name}".txt
-    echo "omp/test/${source_type}/CMakeLists.txt"             | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "cuda/CMakeLists.txt"                                | tee -a todo_"${name}".txt
-    echo "cuda/test/${source_type}/CMakeLists.txt"            | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "hip/CMakeLists.txt"                                 | tee -a todo_"${name}".txt
-    echo "hip/test/${source_type}/CMakeLists.txt"             | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "dpcpp/CMakeLists.txt"                               | tee -a todo_"${name}".txt
-    echo "dpcpp/test/${source_type}/CMakeLists.txt"           | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "The following header file has to be modified:"      | tee -a todo_"${name}".txt
-    echo "core/device_hooks/common_kernels.inc.cpp"           | tee -a todo_"${name}".txt
-    echo "Equivalent to the other solvers, the following part has to be appended:"  | tee -a todo_"${name}".txt
-    echo "##################################################" | tee -a todo_"${name}".txt
-    echo "#include #include \"core/solver/test_kernels.hpp\"" | tee -a todo_"${name}".txt
-    echo "// ..."                                             | tee -a todo_"${name}".txt
-    echo "namespace  ${name} {"                               | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "// template <typename ValueType>"                   | tee -a todo_"${name}".txt
-    echo "// GKO_DECLARE_${NAME}_INITIALIZE_KERNEL(ValueType)"| tee -a todo_"${name}".txt
-    echo "// GKO_NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a todo_"${name}".txt
-    echo "// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_${NAME}_INITIALIZE_KERNEL);" | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "// ..."                                             | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo "}  // namespace ${name}"                            | tee -a todo_"${name}".txt
-    echo "##################################################" | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
-    echo ""                                                   | tee -a todo_"${name}".txt
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "The following CMakeLists have to be modified manually:"| tee -a "todo_${name}.txt"
+    echo "core/CMakeLists.txt"                                | tee -a "todo_${name}.txt"
+    echo "core/test/${source_type}/CMakeLists.txt"            | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "reference/CMakeLists.txt"                           | tee -a "todo_${name}.txt"
+    echo "reference/test/${source_type}/CMakeLists.txt"       | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "omp/CMakeLists.txt"                                 | tee -a "todo_${name}.txt"
+    echo "omp/test/${source_type}/CMakeLists.txt"             | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "cuda/CMakeLists.txt"                                | tee -a "todo_${name}.txt"
+    echo "cuda/test/${source_type}/CMakeLists.txt"            | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "hip/CMakeLists.txt"                                 | tee -a "todo_${name}.txt"
+    echo "hip/test/${source_type}/CMakeLists.txt"             | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "dpcpp/CMakeLists.txt"                               | tee -a "todo_${name}.txt"
+    echo "dpcpp/test/${source_type}/CMakeLists.txt"           | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "The following header file has to be modified:"      | tee -a "todo_${name}.txt"
+    echo "core/device_hooks/common_kernels.inc.cpp"           | tee -a "todo_${name}.txt"
+    echo "Equivalent to the other solvers, the following part has to be appended:"  | tee -a "todo_${name}.txt"
+    echo "##################################################" | tee -a "todo_${name}.txt"
+    echo "#include #include \"core/solver/test_kernels.hpp\"" | tee -a "todo_${name}.txt"
+    echo "// ..."                                             | tee -a "todo_${name}.txt"
+    echo "namespace  ${name} {"                               | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "// template <typename ValueType>"                   | tee -a "todo_${name}.txt"
+    echo "// GKO_DECLARE_${NAME}_INITIALIZE_KERNEL(ValueType)"| tee -a "todo_${name}.txt"
+    echo "// GKO_NOT_COMPILED(GKO_HOOK_MODULE);"                  | tee -a "todo_${name}.txt"
+    echo "// GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_${NAME}_INITIALIZE_KERNEL);" | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "// ..."                                             | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo "}  // namespace ${name}"                            | tee -a "todo_${name}.txt"
+    echo "##################################################" | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
+    echo ""                                                   | tee -a "todo_${name}.txt"
 fi
 
-echo -e "\n\n\n### TODO:"                                         | tee -a todo_"${name}".txt
-echo -e "In all of the previous files ${source_name} was automatically replaced into ${name}. Ensure there is no inconsistency."                              | tee -a todo_"${name}".txt
-echo -e ""                                                    | tee -a todo_"${name}".txt
-echo -e "All the imported code was commented and TODO items were generated in the new files." | tee -a todo_"${name}".txt
-echo -e "Check all the modified files for \"// TODO (script:${name}):\" items"| tee -a todo_"${name}".txt
-echo -e "e.g. by using  grep -nR \"// TODO (script:${name}):\" ${GINKGO_ROOT_DIR} | grep -v \"create_new_algorithm.sh\" | grep -v \"todo_${name}.txt\"." | tee -a todo_"${name}".txt
-echo ""                                                       | tee -a todo_"${name}".txt
-echo "A tentative list of relevant TODO items follows:"       | tee -a todo_"${name}".txt
-grep -nR "// TODO (script:${name}):" "${GINKGO_ROOT_DIR}" | grep -v "create_new_algorithm.sh" | grep -v "todo_${name}.txt" | tee -a todo_"${name}".txt
+echo -e "\n\n\n### TODO:"                                         | tee -a "todo_${name}.txt"
+echo -e "In all of the previous files ${source_name} was automatically replaced into ${name}. Ensure there is no inconsistency."                              | tee -a "todo_${name}.txt"
+echo -e ""                                                    | tee -a "todo_${name}.txt"
+echo -e "All the imported code was commented and TODO items were generated in the new files." | tee -a "todo_${name}.txt"
+echo -e "Check all the modified files for \"// TODO (script:${name}):\" items"| tee -a "todo_${name}.txt"
+echo -e "e.g. by using  grep -nR \"// TODO (script:${name}):\" ${GINKGO_ROOT_DIR} | grep -v \"create_new_algorithm.sh\" | grep -v \"todo_${name}.txt\"." | tee -a "todo_${name}.txt"
+echo ""                                                       | tee -a "todo_${name}.txt"
+echo "A tentative list of relevant TODO items follows:"       | tee -a "todo_${name}.txt"
+grep -nR "// TODO (script:${name}):" "${GINKGO_ROOT_DIR}" | grep -v "create_new_algorithm.sh" | grep -v "todo_${name}.txt" | tee -a "todo_${name}.txt"
 
 
 echo "A summary of the required next steps has been written to:"
