@@ -193,7 +193,7 @@ done < "${UNFORMAT_FILE}"
 ${CLANG_FORMAT} -style=file "${EMBED_FILE}" > "${FORMAT_FILE}"
 
 # Add an extra host function so that the converted DPC++ code will look like CUDA.
-"${SCRIPT_DIR}"/add_host_function.sh "${FORMAT_FILE}" > "${EMBED_HOST_FILE}"
+"${SCRIPT_DIR}/add_host_function.sh" "${FORMAT_FILE}" > "${EMBED_HOST_FILE}"
 
 while IFS='' read -r line; do
     if [[ "${line}" =~ ${KERNEL_SYNTAX_START} ]] || [[ "${IN_SYNTAX}" = "true" ]]; then
