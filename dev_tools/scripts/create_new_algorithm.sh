@@ -24,7 +24,7 @@ function print_help {
 function list_sources {
     for type in solver preconditioner matrix factorization
     do
-	for i in "${GINKGO_ROOT_DIR}/core/${type}/"*.cpp;
+        for i in "${GINKGO_ROOT_DIR}/core/${type}/*.cpp";
         do
             echo "$type $(basename "$i" | cut -d"." -f1)"
         done
