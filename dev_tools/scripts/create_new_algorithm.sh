@@ -231,7 +231,7 @@ then
         for ((i=1; i<=${#CMAKE_FILES[@]}; i++))
         do
             sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-	    for j in "${GINKGO_ROOT_DIR}/${sourcepath}/"*;
+        for j in "${GINKGO_ROOT_DIR}/${sourcepath}/"*;
             do
                 filename=$(basename -- "$j")
                 shortname=$(echo "$filename" | cut -d"." -f1)
@@ -287,7 +287,7 @@ then
                         awk '/^target_sources/,/    .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  "$cmake_file" > tmp
                     fi
 
-		    mytmp=$(mktemp)
+                    mytmp=$(mktemp)
                     head -n$insert_to tmp > "$mytmp"
                     for line in "${sorted[@]}"
                     do
@@ -311,7 +311,7 @@ then
         header_block_begin=$(grep -n "#include \"" "$common_kernels_file" | head -n1 | sed 's/:.*//')
         grep -v '#include "' "$common_kernels_file" > tmp
 
-	mytmp=$(mktemp)
+    mytmp=$(mktemp)
         head -n$((header_block_begin-1)) tmp > "$mytmp"
         for line in "${headers_sorted[@]}"
         do
@@ -330,7 +330,7 @@ then
         unset GLOB_IGNORE
         old_code_block_end=$(grep -ne "}  // namespace ${source_name}$" "$common_kernels_file" | sed 's/:.*//')
 
-	mytmp=$(mktemp)
+    mytmp=$(mktemp)
         head -n"$old_code_block_end" "$common_kernels_file" > "$mytmp"
         echo -e "\n\n// TODO (script:${name}): adapt this block as needed" >> "$mytmp"
         for line in "${old_code_block[@]}"
