@@ -183,7 +183,7 @@ do
     mkdir -p "${TMPDIR}/${TEMPLATE_FILES_LOCATIONS[$i-1]}"
 
     # Evaluate the extension and try to find the matching files
-    for j in "${GINKGO_ROOT_DIR}/${sourcepath}/"*;
+    for j in "${GINKGO_ROOT_DIR}/${sourcepath}/*";
     do
         if [ -f "$j" ]
         then
