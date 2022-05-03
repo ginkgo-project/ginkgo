@@ -9,13 +9,14 @@ stages:
   - QoS_tools
   - on-failure
   - finalize-status
+  - benchmark-build
   - benchmark-cuda
   - benchmark-omp
   - benchmark-reference
 
 include:
-  - local: '.gitlab/condition.yml'
   - local: '.gitlab/image.yml'
+  - local: '.gitlab/rules.yml'
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
 
@@ -87,8 +88,6 @@ sync:
   only:
     - master
     - develop
-  except:
-    - schedules
 
 trigger_pipeline:
   stage: trigger_pipeline
@@ -133,9 +132,8 @@ trigger_pipeline:
         echo "Can not find the corresponding Pull Request"
       fi
   # Override variables condition from .pr_condition
-  only:
-    variables:
-      - $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
+  rules:
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
 
 # Build jobs
 # Job with example runs.
@@ -861,11 +859,9 @@ sonarqube_cov_:
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       ${sonar_branching}
     - bash <(curl -s https://codecov.io/bash) -f "\!*examples*" -f "\!*third_party*" -f "\!*c\\+\\+*" -f "\!*benchmark*"
-  except:
-    refs:
-      - develop
-      - master
-      - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_TAG
+      when: never
 
 # For long living branches, do not detect the PR. A PR would always be detected
 # (the one that was merged).
@@ -999,3 +995,47 @@ new-issue-on-failure:
       - develop
       - master
   dependencies: []
+
+
+## Benchmark SpMV
+benchmark-cuda-spmv-build:
+  extends:
+    - .build_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .benchmark-spmv-cuda-rules
+  stage: benchmark-build
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_HIP: "OFF"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 80
+    USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
+    KEEP_CONTAINER: "ON"
+    USE_SLURM: 0
+
+
+# The name must be of the same as above without `-build`
+benchmark-cuda-spmv:
+  extends:
+    - .benchmark_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-cuda110-mvapich2-gnu9-llvm9-intel2020
+    - .benchmark-spmv-cuda-rules
+  stage: benchmark-cuda
+  variables:
+    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
+    USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
+    SLURM_PARTITION: "accelerated"
+    SLURM_GRES: "gpu:1"
+    SLURM_EXCLUSIVE: "ON"
+    SLURM_TIME: "4:00:00"
+    BENCHMARK: "spmv"
+    EXECUTOR: "cuda"
+    SYSTEM_NAME: "A100"
+  dependencies: [ "benchmark-cuda-spmv-build" ]
