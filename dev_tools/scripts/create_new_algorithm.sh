@@ -245,7 +245,7 @@ then
                 if [[ $cmake_file == *"test/"* ]]
                 then
                     insert=$(grep -E "\(${sourcename}[_\)]{1}" "$cmake_file" | sed "s/$source_name/$name/")
-                    echo "$insert" >> $cmake_file
+                    echo "$insert" >> "$cmake_file"
                     sort < "$cmake_file" > tmp
                     mv tmp "$cmake_file"
                 elif [[ "$cmake_file" != "${GINKGO_ROOT_DIR}/" ]]
