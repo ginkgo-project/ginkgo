@@ -357,11 +357,11 @@ for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
     destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
 
-    echo "Created ${TEMPLATE_FILES_TYPES[$i-1]}"         | tee -a todo_"${name}".txt
-    echo "$destpath"                                     | tee -a todo_"${name}".txt
+    echo "Created ${TEMPLATE_FILES_TYPES[$i-1]}"         | tee -a "todo_${name}.txt"
+    echo "$destpath"                                     | tee -a "todo_${name}.txt"
     if [ "${TEMPLATE_FILES_DESCRIPTIONS[$i-1]}" != "" ]
     then
-        echo -e "\t${TEMPLATE_FILES_DESCRIPTIONS[$i-1]}" | tee -a todo_"${name}".txt
+        echo -e "\t${TEMPLATE_FILES_DESCRIPTIONS[$i-1]}" | tee -a "todo_${name}.txt"
     fi
     echo ""                                              | tee -a "todo_${name}.txt"
 done
