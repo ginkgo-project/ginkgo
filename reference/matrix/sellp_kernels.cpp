@@ -221,7 +221,7 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                  i++) {
                 const auto col = col_idxs[row + i * slice_size];
                 if (col != invalid_index<IndexType>()) {
-                    result->at(global_row, col) += vals[row + i * slice_size];
+                    result->at(global_row, col) = vals[row + i * slice_size];
                 }
             }
         }
