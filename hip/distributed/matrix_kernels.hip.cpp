@@ -50,12 +50,12 @@ void build_diag_offdiag(
         row_partition,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part, Array<LocalIndexType>& diag_row_idxs,
-    Array<LocalIndexType>& diag_col_idxs, Array<ValueType>& diag_values,
-    Array<LocalIndexType>& offdiag_row_idxs,
-    Array<LocalIndexType>& offdiag_col_idxs, Array<ValueType>& offdiag_values,
-    Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
-    Array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& offdiag_row_idxs,
+    array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
+    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_DIAG_OFFDIAG);
