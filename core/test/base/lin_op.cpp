@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -423,6 +424,22 @@ TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
               before_logger.linop_factory_generate_started + 1);
     ASSERT_EQ(logger->linop_factory_generate_completed,
               before_logger.linop_factory_generate_completed + 1);
+}
+
+
+TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
+{
+    auto ref2 = gko::ReferenceExecutor::create();
+    auto dummy = gko::share(DummyLinOp::create(ref2, gko::dim<2>{3, 5}));
+    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
+
+    auto op = factory->generate(dummy);
+
+    ASSERT_EQ(op->get_executor(), ref);
+    ASSERT_EQ(op->get_parameters().value, 6);
+    ASSERT_EQ(op->op_->get_executor(), ref);
+    ASSERT_NE(op->op_.get(), dummy.get());
+    ASSERT_TRUE(dynamic_cast<const DummyLinOp*>(op->op_.get()));
 }
 
 
