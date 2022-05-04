@@ -306,11 +306,11 @@ protected:
           size{5, 5},
           comm(gko::mpi::communicator(MPI_COMM_WORLD)),
           row_part{Partition::build_from_contiguous(
-              ref, gko::Array<global_index_type>(
+              ref, gko::array<global_index_type>(
                        ref, I<global_index_type>{0, 2, 4, 5}))},
           col_part{Partition::build_from_mapping(
               ref,
-              gko::Array<comm_index_type>(ref,
+              gko::array<comm_index_type>(ref,
                                           I<comm_index_type>{1, 1, 2, 0, 0}),
               3)},
           mat_input{size,
@@ -356,7 +356,7 @@ protected:
                 }
             }
         }
-        auto gather_idxs_view = gko::Array<global_index_type>::view(
+        auto gather_idxs_view = gko::array<global_index_type>::view(
             this->ref, gather_idxs.size(), gather_idxs.data());
         auto gathered_local = dense->row_gather(&gather_idxs_view);
 

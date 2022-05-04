@@ -147,14 +147,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     this->set_size(global_dim);
 
     // temporary storage for the output
-    Array<local_index_type> diag_row_idxs{exec};
-    Array<local_index_type> diag_col_idxs{exec};
-    Array<value_type> diag_values{exec};
-    Array<local_index_type> offdiag_row_idxs{exec};
-    Array<local_index_type> offdiag_col_idxs{exec};
-    Array<value_type> offdiag_values{exec};
-    Array<local_index_type> recv_gather_idxs{exec};
-    Array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
+    array<local_index_type> diag_row_idxs{exec};
+    array<local_index_type> diag_col_idxs{exec};
+    array<value_type> diag_values{exec};
+    array<local_index_type> offdiag_row_idxs{exec};
+    array<local_index_type> offdiag_col_idxs{exec};
+    array<value_type> offdiag_values{exec};
+    array<local_index_type> recv_gather_idxs{exec};
+    array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
 
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
