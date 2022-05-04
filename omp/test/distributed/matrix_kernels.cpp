@@ -89,28 +89,28 @@ protected:
                                                                        input};
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
              ++part) {
-            gko::Array<local_index_type> diag_row_idxs{ref};
-            gko::Array<local_index_type> diag_col_idxs{ref};
-            gko::Array<value_type> diag_values{ref};
-            gko::Array<local_index_type> d_diag_row_idxs{exec};
-            gko::Array<local_index_type> d_diag_col_idxs{exec};
-            gko::Array<value_type> d_diag_values{exec};
-            gko::Array<local_index_type> offdiag_row_idxs{ref};
-            gko::Array<local_index_type> offdiag_col_idxs{ref};
-            gko::Array<value_type> offdiag_values{ref};
-            gko::Array<local_index_type> d_offdiag_row_idxs{exec};
-            gko::Array<local_index_type> d_offdiag_col_idxs{exec};
-            gko::Array<value_type> d_offdiag_values{exec};
-            gko::Array<local_index_type> gather_idxs{ref};
-            gko::Array<local_index_type> d_gather_idxs{exec};
-            gko::Array<comm_index_type> recv_offsets{
+            gko::array<local_index_type> diag_row_idxs{ref};
+            gko::array<local_index_type> diag_col_idxs{ref};
+            gko::array<value_type> diag_values{ref};
+            gko::array<local_index_type> d_diag_row_idxs{exec};
+            gko::array<local_index_type> d_diag_col_idxs{exec};
+            gko::array<value_type> d_diag_values{exec};
+            gko::array<local_index_type> offdiag_row_idxs{ref};
+            gko::array<local_index_type> offdiag_col_idxs{ref};
+            gko::array<value_type> offdiag_values{ref};
+            gko::array<local_index_type> d_offdiag_row_idxs{exec};
+            gko::array<local_index_type> d_offdiag_col_idxs{exec};
+            gko::array<value_type> d_offdiag_values{exec};
+            gko::array<local_index_type> gather_idxs{ref};
+            gko::array<local_index_type> d_gather_idxs{exec};
+            gko::array<comm_index_type> recv_offsets{
                 ref, static_cast<gko::size_type>(
                          row_partition->get_num_parts() + 1)};
-            gko::Array<comm_index_type> d_recv_offsets{
+            gko::array<comm_index_type> d_recv_offsets{
                 exec, static_cast<gko::size_type>(
                           row_partition->get_num_parts() + 1)};
-            gko::Array<global_index_type> local_to_global_col{ref};
-            gko::Array<global_index_type> d_local_to_global_col{exec};
+            gko::array<global_index_type> local_to_global_col{ref};
+            gko::array<global_index_type> d_local_to_global_col{exec};
 
             gko::kernels::reference::distributed_matrix::build_diag_offdiag(
                 ref, input, row_partition, col_partition, part, diag_row_idxs,
@@ -159,7 +159,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyIsSameAsRef)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::Array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
+    gko::array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
 
     auto partition = gko::distributed::Partition<
@@ -253,9 +253,9 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyWithColPartitionIsSameAsRef)
     using value_type = typename TestFixture::value_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::Array<comm_index_type> row_mapping{this->ref,
+    gko::array<comm_index_type> row_mapping{this->ref,
                                             {1, 0, 2, 2, 0, 1, 1, 2}};
-    gko::Array<comm_index_type> col_mapping{this->ref,
+    gko::array<comm_index_type> col_mapping{this->ref,
                                             {0, 0, 2, 2, 2, 1, 1, 1}};
     comm_index_type num_parts = 3;
 
