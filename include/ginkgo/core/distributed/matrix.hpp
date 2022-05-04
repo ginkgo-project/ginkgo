@@ -505,8 +505,8 @@ private:
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
-    Array<local_index_type> gather_idxs_;
-    Array<global_index_type> local_to_global_ghost_;
+    array<local_index_type> gather_idxs_;
+    array<global_index_type> local_to_global_ghost_;
     ::gko::detail::DenseCache<value_type> one_scalar_;
     ::gko::detail::DenseCache<value_type> host_send_buffer_;
     ::gko::detail::DenseCache<value_type> host_recv_buffer_;
