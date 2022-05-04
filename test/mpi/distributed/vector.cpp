@@ -203,11 +203,11 @@ TYPED_TEST(VectorCreation, CanReadGlobalDeviceMatrixData)
     using value_type = typename TestFixture::value_type;
     d_md_type md{
         this->exec, gko::dim<2>{6, 2},
-        gko::Array<index_type>{
+        gko::array<index_type>{
             this->exec, I<index_type>{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5}},
-        gko::Array<index_type>{
+        gko::array<index_type>{
             this->exec, I<index_type>{0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}},
-        gko::Array<value_type>{
+        gko::array<value_type>{
             this->exec, I<value_type>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}}};
     auto part = gko::share(part_type::build_from_contiguous(
         this->exec, {this->exec, {0, 2, 4, 6}}));
