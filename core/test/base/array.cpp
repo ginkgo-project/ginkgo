@@ -200,7 +200,7 @@ TYPED_TEST(Array, CanBeMoveConstructedToADifferentExecutor)
 
 TYPED_TEST(Array, MoveConstructedFromArrayExecutorlessIsEmpty)
 {
-    gko::Array<TypeParam> a{std::move(this->x)};
+    gko::array<TypeParam> a{std::move(this->x)};
 
     a = std::move(this->x);
 
@@ -211,7 +211,7 @@ TYPED_TEST(Array, MoveConstructedFromArrayExecutorlessIsEmpty)
 
 TYPED_TEST(Array, MoveConstructedFromArraySameExecutorIsEmpty)
 {
-    gko::Array<TypeParam> a{this->exec, std::move(this->x)};
+    gko::array<TypeParam> a{this->exec, std::move(this->x)};
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
     ASSERT_EQ(this->x.get_num_elems(), 0);
@@ -220,7 +220,7 @@ TYPED_TEST(Array, MoveConstructedFromArraySameExecutorIsEmpty)
 
 TYPED_TEST(Array, MoveConstructedFromArrayDifferentExecutorIsEmpty)
 {
-    gko::Array<TypeParam> a{gko::ReferenceExecutor::create(),
+    gko::array<TypeParam> a{gko::ReferenceExecutor::create(),
                             std::move(this->x)};
 
     ASSERT_EQ(this->x.get_executor(), this->exec);
@@ -297,7 +297,7 @@ TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 
 TYPED_TEST(Array, MovedFromArrayExecutorlessIsEmpty)
 {
-    gko::Array<TypeParam> a;
+    gko::array<TypeParam> a;
 
     a = std::move(this->x);
 
@@ -308,7 +308,7 @@ TYPED_TEST(Array, MovedFromArrayExecutorlessIsEmpty)
 
 TYPED_TEST(Array, MovedFromArraySameExecutorIsEmpty)
 {
-    gko::Array<TypeParam> a{this->exec};
+    gko::array<TypeParam> a{this->exec};
 
     a = std::move(this->x);
 
@@ -319,7 +319,7 @@ TYPED_TEST(Array, MovedFromArraySameExecutorIsEmpty)
 
 TYPED_TEST(Array, MovedFromArrayDifferentExecutorIsEmpty)
 {
-    gko::Array<TypeParam> a{gko::ReferenceExecutor::create()};
+    gko::array<TypeParam> a{gko::ReferenceExecutor::create()};
 
     a = std::move(this->x);
 
