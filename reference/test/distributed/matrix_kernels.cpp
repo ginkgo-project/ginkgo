@@ -114,8 +114,8 @@ protected:
             ref_diags;
         std::vector<gko::device_matrix_data<value_type, local_index_type>>
             ref_offdiags;
-        std::vector<gko::Array<local_index_type>> ref_gather_idxs;
-        std::vector<gko::Array<comm_index_type>> ref_recv_offsets;
+        std::vector<gko::array<local_index_type>> ref_gather_idxs;
+        std::vector<gko::array<comm_index_type>> ref_recv_offsets;
 
         auto input = gko::device_matrix_data<value_type, global_index_type>{
             ref, size, input_rows, input_cols, input_vals};
@@ -186,16 +186,16 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    gko::Array<comm_index_type> mapping;
-    gko::Array<local_index_type> diag_row_idxs;
-    gko::Array<local_index_type> diag_col_idxs;
-    gko::Array<value_type> diag_values;
-    gko::Array<local_index_type> offdiag_row_idxs;
-    gko::Array<local_index_type> offdiag_col_idxs;
-    gko::Array<value_type> offdiag_values;
-    gko::Array<local_index_type> gather_idxs;
-    gko::Array<comm_index_type> recv_offsets;
-    gko::Array<global_index_type> local_to_global_ghost;
+    gko::array<comm_index_type> mapping;
+    gko::array<local_index_type> diag_row_idxs;
+    gko::array<local_index_type> diag_col_idxs;
+    gko::array<value_type> diag_values;
+    gko::array<local_index_type> offdiag_row_idxs;
+    gko::array<local_index_type> offdiag_col_idxs;
+    gko::array<value_type> offdiag_values;
+    gko::array<local_index_type> gather_idxs;
+    gko::array<comm_index_type> recv_offsets;
+    gko::array<global_index_type> local_to_global_ghost;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes);
@@ -336,7 +336,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagEmptyWithColPartition)
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, this->mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref,
+    gko::array<comm_index_type> col_mapping{this->ref,
                                             {0, 0, 2, 2, 2, 1, 1, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
@@ -363,7 +363,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagSmallWithColPartition)
     comm_index_type num_parts = 2;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, this->mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref, {0, 1}};
+    gko::array<comm_index_type> col_mapping{this->ref, {0, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
@@ -387,7 +387,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagNoOffdiagWithColPartition)
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, this->mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
+    gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
@@ -416,7 +416,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagNoDiagWithColPartition)
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, this->mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
+    gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
@@ -447,7 +447,7 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagMixedWithColPartition)
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, this->mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
+    gko::array<comm_index_type> col_mapping{this->ref, {0, 0, 2, 2, 1, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
@@ -478,11 +478,11 @@ TYPED_TEST(Matrix, BuildsDiagOffdiagNonSquare)
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
     using vt = typename TestFixture::value_type;
-    gko::Array<comm_index_type> row_mapping{this->ref, {1, 2, 0, 0, 2, 1}};
+    gko::array<comm_index_type> row_mapping{this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<lit, git>::build_from_mapping(
         this->ref, row_mapping, num_parts);
-    gko::Array<comm_index_type> col_mapping{this->ref, {0, 2, 2, 1}};
+    gko::array<comm_index_type> col_mapping{this->ref, {0, 2, 2, 1}};
     auto col_partition =
         gko::distributed::Partition<lit, git>::build_from_mapping(
             this->ref, col_mapping, num_parts);
@@ -517,7 +517,7 @@ TYPED_TEST(Matrix, BuildGhostMapContinuous)
                                                                  this->mapping,
                                                                  num_parts);
     this->recv_offsets.resize_and_reset(num_parts + 1);
-    gko::Array<global_index_type> result[num_parts] = {
+    gko::array<global_index_type> result[num_parts] = {
         {this->ref, {3}}, {this->ref, {0, 6}}, {this->ref, {4}}};
 
     for (int local_id = 0; local_id < num_parts; ++local_id) {
@@ -544,7 +544,7 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
                                                                  this->mapping,
                                                                  num_parts);
     this->recv_offsets.resize_and_reset(num_parts + 1);
-    gko::Array<global_index_type> result[num_parts] = {
+    gko::array<global_index_type> result[num_parts] = {
         {this->ref, {5}},
         {this->ref, {6, 2}},
         {this->ref, {4}}};  // the columns are sorted by their part_id
