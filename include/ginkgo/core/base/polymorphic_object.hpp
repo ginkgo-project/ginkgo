@@ -363,52 +363,55 @@ public:
         std::shared_ptr<const Executor> exec) const
     {
         return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
-            PolymorphicBase::create_default(std::move(exec)).release())};
+            this->PolymorphicBase::create_default(std::move(exec)).release())};
     }
 
     std::unique_ptr<AbstractObject> create_default() const
     {
-        return this->create_default(this->get_executor());
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::create_default().release())};
     }
 
     std::unique_ptr<AbstractObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
-        auto new_op = this->create_default(exec);
-        new_op->copy_from(this);
-        return new_op;
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::clone(std::move(exec)).release())};
     }
 
     std::unique_ptr<AbstractObject> clone() const
     {
-        return this->clone(this->get_executor());
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
+            this->PolymorphicBase::clone().release())};
     }
 
     AbstractObject* copy_from(const PolymorphicObject* other)
     {
-        return static_cast<AbstractObject*>(PolymorphicBase::copy_from(other));
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::copy_from(other));
     }
 
     AbstractObject* copy_from(std::unique_ptr<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
-            PolymorphicBase::copy_from(std::move(other)));
+            this->PolymorphicBase::copy_from(std::move(other)));
     }
 
     AbstractObject* move_from(PolymorphicObject* other)
     {
-        return static_cast<AbstractObject*>(PolymorphicBase::move_from(other));
+        return static_cast<AbstractObject*>(
+            this->PolymorphicBase::move_from(other));
     }
 
     AbstractObject* move_from(std::unique_ptr<PolymorphicObject> other)
     {
         return static_cast<AbstractObject*>(
-            PolymorphicBase::move_from(std::move(other)));
+            this->PolymorphicBase::move_from(std::move(other)));
     }
 
     AbstractObject* clear()
     {
-        return static_cast<AbstractObject*>(this->clear_impl());
+        return static_cast<AbstractObject*>(this->PolymorphicBase::clear());
     }
 };
 
