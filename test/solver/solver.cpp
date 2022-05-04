@@ -130,6 +130,8 @@ struct SimpleSolverTest {
         ASSERT_EQ(mtx->get_preconditioner(), nullptr);
         ASSERT_EQ(mtx->get_stopping_criterion_factory(), nullptr);
     }
+
+    static constexpr bool logs_iteration_complete() { return true;}
 };
 
 
@@ -303,6 +305,8 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     {
         return nullptr;
     }
+
+    static constexpr bool logs_iteration_complete() { return false;}
 };
 
 
@@ -344,6 +348,8 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     {
         return nullptr;
     }
+
+    static constexpr bool logs_iteration_complete() { return false;}
 };
 
 
@@ -361,6 +367,30 @@ struct test_pair {
               std::unique_ptr<ObjectType> dev_obj)
         : ref{std::move(ref_obj)}, dev{std::move(dev_obj)}
     {}
+
+    test_pair() = default;
+    test_pair(const test_pair& o) = default;
+    test_pair(test_pair&& o) noexcept = default;
+    test_pair& operator=(const test_pair& o) = default;
+    test_pair& operator=(test_pair&& o) noexcept = default;
+};
+
+
+struct DummyLogger : gko::log::Logger {
+    DummyLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(std::move(exec),
+                           gko::log::Logger::iteration_complete_mask)
+    {}
+
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::size_type& it, const gko::LinOp* r,
+                               const gko::LinOp* x = nullptr,
+                               const gko::LinOp* tau = nullptr) const override
+    {
+        iteration_complete++;
+    }
+
+    int mutable iteration_complete = 0;
 };
 
 
@@ -383,6 +413,7 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
+        logger = std::make_shared<DummyLogger>(exec);
     }
 
     void TearDown()
@@ -648,6 +679,7 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
+    std::shared_ptr<DummyLogger> logger;
 
     std::default_random_engine rand_engine;
 };
@@ -918,4 +950,28 @@ TYPED_TEST(Solver, CreateDefaultIsEmpty)
             this->assert_empty_state(default_solver.get(), this->exec);
         });
     });
+}
+
+
+TYPED_TEST(Solver, LogsIterationComplete)
+{
+    using Config = typename TestFixture::Config;
+    if(Config::logs_iteration_complete()) {
+        using Mtx = typename TestFixture::Mtx;
+        using Vec = typename TestFixture::Vec;
+        auto mtx = gko::share(Mtx::create(this->exec));
+        auto b = Vec::create(this->exec);
+        auto x = Vec::create(this->exec);
+        gko::size_type num_iteration(4);
+        auto solver = Config::build(this->exec, num_iteration)
+                          .on(this->exec)
+                          ->generate(mtx);
+        auto before_logger = *this->logger;
+        solver->add_logger(this->logger);
+
+        solver->apply(b.get(), x.get());
+
+        ASSERT_EQ(this->logger->iteration_complete,
+                  before_logger.iteration_complete + num_iteration + 1);
+    }
 }
