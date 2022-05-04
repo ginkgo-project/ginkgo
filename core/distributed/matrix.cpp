@@ -359,8 +359,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    Matrix&& other) noexcept
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(Matrix&& other)
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
@@ -396,8 +395,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>&
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
-    Matrix&& other) noexcept
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 {
     if (this != &other) {
         GKO_ASSERT_EQ(other.get_communicator().size(),
