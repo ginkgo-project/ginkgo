@@ -72,9 +72,9 @@ int main(int argc, char* argv[])
     using solver = gko::solver::Cg<ValueType>;
 
     // @sect3{Initialization and User Input Handling}
-    // Since this is an MPI program, we need to initialization and finalization
+    // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
-    // done wit the following helper construct that uses RAII to automize the
+    // done with the following helper construct that uses RAII to automize the
     // initialization and finalization.
     const gko::mpi::environment env(argc, argv);
 
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
     // @sect3{Creating the Distributed Matrix and Vectors}
     // As a first step, we create a partition of the rows. The partition
     // consists of ranges of consecutive rows which are assigned a part-id.
-    // These part-id will be used for the distributed data structures to
+    // These part-ids will be used for the distributed data structures to
     // determine which rows will be stored locally. In this example each rank
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
     A_host->read_distributed(A_data, partition.get());
     b_host->read_distributed(b_data, partition.get());
     x_host->read_distributed(x_data, partition.get());
-    // After reading, the matrix and vector can be move to the chosen executor,
+    // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
