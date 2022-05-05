@@ -390,7 +390,7 @@ struct DummyLogger : gko::log::Logger {
         iteration_complete++;
     }
 
-    int mutable iteration_complete = 0;
+    mutable int iteration_complete = 0;
 };
 
 

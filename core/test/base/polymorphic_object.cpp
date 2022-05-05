@@ -130,13 +130,13 @@ struct DummyLogger : gko::log::Logger {
         deleted++;
     }
 
-    int mutable create_started = 0;
-    int mutable create_completed = 0;
-    int mutable copy_started = 0;
-    int mutable copy_completed = 0;
-    int mutable move_started = 0;
-    int mutable move_completed = 0;
-    int mutable deleted = 0;
+    mutable int create_started = 0;
+    mutable int create_completed = 0;
+    mutable int copy_started = 0;
+    mutable int copy_completed = 0;
+    mutable int move_started = 0;
+    mutable int move_completed = 0;
+    mutable int deleted = 0;
 };
 
 
