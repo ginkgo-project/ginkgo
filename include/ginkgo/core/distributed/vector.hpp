@@ -315,7 +315,8 @@ public:
     void compute_norm1(LinOp* result) const;
 
     /**
-     * Computes the column-wise (L^1) norm of this (multi-)vector.
+     * Computes the column-wise (L^1) norm of this (multi-)vector using a global
+     * reduction.
      *
      * @param result  a Dense row matrix, used to store the norm
      *                (the number of columns in result must match the number
