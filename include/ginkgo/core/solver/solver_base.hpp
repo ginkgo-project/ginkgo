@@ -167,7 +167,7 @@ public:
     }
 
 protected:
-    void set_system_matrix(std::shared_ptr<const MatrixType> system_matrix)
+    void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
@@ -242,7 +242,7 @@ protected:
                 new_system_matrix = gko::clone(exec, new_system_matrix);
             }
         }
-        SolverBase<MatrixType>::set_system_matrix(new_system_matrix);
+        this->set_system_matrix_base(new_system_matrix);
     }
 
 private:
