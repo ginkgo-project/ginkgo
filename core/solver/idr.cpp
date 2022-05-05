@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 
 
@@ -90,12 +90,14 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-template <typename SubspaceType>
-void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
-                             matrix::Dense<SubspaceType>* dense_x) const
+template <typename VectorType>
+void Idr<ValueType>::iterate(const VectorType* dense_b,
+                             VectorType* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<SubspaceType>;
+    using SubspaceType = typename VectorType::value_type;
+    using Vector = VectorType;
+    using LocalVector = matrix::Dense<SubspaceType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
 
     auto exec = this->get_executor();
@@ -116,27 +118,26 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     const auto is_deterministic = this->get_deterministic();
     const auto kappa = this->get_kappa();
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto v = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-    auto helper = Vector::create_with_config_of(dense_b);
+    auto residual = detail::create_with_config_of(dense_b);
+    auto v = detail::create_with_config_of(dense_b);
+    auto t = detail::create_with_config_of(dense_b);
+    auto helper = detail::create_with_config_of(dense_b);
 
     auto m =
-        Vector::create(exec, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
+        Vector ::create(exec, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
 
     auto g =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
+        Vector ::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
     auto u =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
+        Vector ::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
 
     auto f = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
     auto c = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
 
-    auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
+    auto omega = LocalVector ::create(exec, gko::dim<2>{1, nrhs});
     auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
-    auto tht = Vector::create(exec, dim<2>{1, nrhs});
-    auto t_norm = NormVector::create(exec, dim<2>{1, nrhs});
-    auto alpha = Vector::create(exec, gko::dim<2>{1, nrhs});
+    auto tht = LocalVector ::create(exec, dim<2>{1, nrhs});
+    auto alpha = LocalVector ::create(exec, gko::dim<2>{1, nrhs});
 
     bool one_changed{};
     array<stopping_status> stop_status(exec, nrhs);
@@ -150,7 +151,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
+    exec->run(idr::make_initialize(nrhs, detail::get_local(m.get()),
+                                   detail::get_local(subspace_vectors.get()),
                                    is_deterministic, &stop_status));
 
     // omega = 1
@@ -215,15 +217,19 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         for (size_type k = 0; k < subspace_dim; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
-            exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
-                                       residual.get(), g.get(), c.get(),
-                                       v.get(), &stop_status));
+            exec->run(idr::make_step_1(
+                nrhs, k, detail::get_local(m.get()), detail::get_local(f.get()),
+                detail::get_local(residual.get()), detail::get_local(g.get()),
+                detail::get_local(c.get()), detail::get_local(v.get()),
+                &stop_status));
 
             this->get_preconditioner()->apply(v.get(), helper.get());
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
-            exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
-                                       c.get(), u.get(), &stop_status));
+            exec->run(idr::make_step_2(
+                nrhs, k, detail::get_local(omega.get()),
+                detail::get_local(helper.get()), detail::get_local(c.get()),
+                detail::get_local(u.get()), &stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
@@ -244,10 +250,13 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
-            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
-                                       helper.get(), u.get(), m.get(), f.get(),
-                                       alpha.get(), residual.get(), dense_x,
-                                       &stop_status));
+            exec->run(idr::make_step_3(
+                nrhs, k, detail::get_local(subspace_vectors.get()),
+                detail::get_local(g.get()), detail::get_local(helper.get()),
+                detail::get_local(u.get()), detail::get_local(m.get()),
+                detail::get_local(f.get()), detail::get_local(alpha.get()),
+                detail::get_local(residual.get()), detail::get_local(dense_x),
+                &stop_status));
         }
 
         this->get_preconditioner()->apply(residual.get(), helper.get());
@@ -264,9 +273,10 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         // end if
         // residual -= omega * t
         // dense_x += omega * v
-        exec->run(idr::make_compute_omega(nrhs, kappa, tht.get(),
-                                          residual_norm.get(), omega.get(),
-                                          &stop_status));
+        exec->run(idr::make_compute_omega(
+            nrhs, kappa, detail::get_local(tht.get()),
+            detail::get_local(residual_norm.get()),
+            detail::get_local(omega.get()), &stop_status));
 
         t->scale(subspace_neg_one_op.get());
         residual->add_scaled(omega.get(), t.get());
