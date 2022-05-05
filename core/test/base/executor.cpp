@@ -667,7 +667,7 @@ struct DummyLogger : public gko::log::Logger {
                                  const gko::size_type& num_bytes,
                                  const gko::uintptr& location) const override
     {
-        alloctaion_completed++;
+        allocation_completed++;
     }
 
     void on_free_started(const gko::Executor* exec,
@@ -714,14 +714,14 @@ struct DummyLogger : public gko::log::Logger {
         operation_completed++;
     }
 
-    int mutable allocation_started = 0;
-    int mutable alloctaion_completed = 0;
-    int mutable free_started = 0;
-    int mutable free_completed = 0;
-    int mutable copy_started = 0;
-    int mutable copy_completed = 0;
-    int mutable operation_launched = 0;
-    int mutable operation_completed = 0;
+    mutable int allocation_started = 0;
+    mutable int allocation_completed = 0;
+    mutable int free_started = 0;
+    mutable int free_completed = 0;
+    mutable int copy_started = 0;
+    mutable int copy_completed = 0;
+    mutable int operation_launched = 0;
+    mutable int operation_completed = 0;
 };
 
 
@@ -747,8 +747,8 @@ TEST_F(ExecutorLogging, LogsAllocationAndFree)
     exec->free(p);
 
     ASSERT_EQ(logger->allocation_started, before_logger.allocation_started + 1);
-    ASSERT_EQ(logger->alloctaion_completed,
-              before_logger.alloctaion_completed + 1);
+    ASSERT_EQ(logger->allocation_completed,
+              before_logger.allocation_completed + 1);
     ASSERT_EQ(logger->free_started, before_logger.free_started + 1);
     ASSERT_EQ(logger->free_completed, before_logger.free_completed + 1);
 }

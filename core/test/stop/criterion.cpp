@@ -68,8 +68,8 @@ struct DummyLogger : public gko::log::Logger {
     }
 
 
-    int mutable criterion_check_started = 0;
-    int mutable criterion_check_completed = 0;
+    mutable int criterion_check_started = 0;
+    mutable int criterion_check_completed = 0;
 };
 
 
