@@ -5,7 +5,7 @@ cmake_policy(SET CMP0074 NEW)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
@@ -14,7 +14,9 @@ set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Determine which modules can be compiled
-include(cmake/hip_path.cmake)
+if(NOT DEFINED GINKGO_BUILD_HIP OR GINKGO_BUILD_HIP)
+    include(cmake/hip_path.cmake)
+endif()
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
