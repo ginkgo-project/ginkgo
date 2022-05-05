@@ -71,23 +71,45 @@ enum class compression { def_value, element, block };
 
 
 /* // JIAE
-template <typename ValueType, typename IndexType>
-class BccooBuilder;
-*/
+ template <typename ValueType, typename IndexType>
+ class BccooBuilder;
+ */
 
 /**
  * BCCOO is a matrix format which only stores nonzero coeffficients
- * by blocks of consecutive elements.
+ * using an element or block compression.
  *
- * First the elements are sorted by row and column indexes, and, then,
- * only the pairs (column, value) are stored in a 1D array of bytes.
- * The column indexes can be stored directly or as the difference
- * from the previous element in the same row.
+ * In both cases, the object stores blocks of consecutive elements.
+ * The use of element compression allows that an specific compression
+ * criteria was applied to each element of a block,  whereas
+ * the block compresion forces that all elements in a block uses
+ * the same criteria, obviously the less restrictive.
  *
+ * In the element compression,  the elements are sorted by row
+ * and column indexes, and, then, the tuple (lev_compress, column, value)
+ * are stored in a 1D array of bytes. For each tuple, lev_compress
+ * determinates how the colums indexes will be stored, directly or
+ * as the difference from the previous element in the same row.
  * Two additional 1-D vectors complete the block structure. One of them
  * contains the starting point of each block in the array of bytes,
- * whereas the second one indicates the row index of the first pair
+ * whereas the second one indicates the row index of the first tuple
  * in the block.
+ *
+ * In the block compression, the elements are also sorted by row
+ * and column indexes, but in this case, the 1D array of bytes contains
+ * up to three vectors, whose size is equal to the block size, related,
+ * respectively, to the row indices, column indices and values. The row
+ * index vector is ommited if all elements of the block are in the same row.
+ * Both types of indices always refer to the difference to the corresponding
+ * minimum index in the block, which are stored in other 1D vectors.
+ * The row indexes always occupy 1 byte, whereas different compression
+ * alternatives can be used for the column indices.
+ * In fact, there are four additional vectors joint with the 1D array of bytes,
+ * containing, respectively, the starting point of each block in the array of
+ * bytes, the minimum of the row indexes in the block, the mininum of the row
+ * indexes in the block, and one byte per block including his main features,
+ * such as if it is s multirow block and the compression level of the column
+ * indices.
  *
  * The BCCOO LinOp supports different operations:
  *
@@ -138,42 +160,45 @@ public:
 
     void convert_to(Bccoo<ValueType, IndexType>* result) const override;
     /*
-       {
-           // converts *this to *result
-           // if they have different compressions, adjust one of them
-       }
-    */
+     {
+     // converts *this to *result
+     // if they have different compressions, adjust one of them
+     }
+     */
 
-    void move_to(Bccoo<ValueType, IndexType>* result) override
+    /*
+    void move_to(Bccoo<ValueType, IndexType>* result) override;
     {
         // converts *this to *result
     }
+    */
 
     void convert_to(
         Bccoo<next_precision<ValueType>, IndexType>* result) const override;
     /*
-        {
-            if (this->get_compression() == result->get_compression()) {
-                // convert *this -> result
-            } else {
-                auto copy =
-       this->change_compression_to(result->get_compression());
-                // convert copy -> result
-            }
-        }
-    */
+     {
+     if (this->get_compression() == result->get_compression()) {
+     // convert *this -> result
+     } else {
+     auto copy =
+     this->change_compression_to(result->get_compression());
+     // convert copy -> result
+     }
+     }
+     */
+
     void move_to(Bccoo<next_precision<ValueType>, IndexType>* result) override;
     /*
-        {
-            if (this->get_compression() == result->get_compression()) {
-                // convert *this -> result
-            } else {
-                auto copy =
-       this->change_compression_to(result->get_compression());
-                // convert copy -> result
-                //*this = 0;
-            }
-        }
+         {
+         if (this->get_compression() == result->get_compression()) {
+         // convert *this -> result
+         } else {
+         auto copy =
+         this->change_compression_to(result->get_compression());
+         // convert copy -> result
+         // *this = 0;
+         }
+         }
     */
 
     void convert_to(Coo<ValueType, IndexType>* other) const override;
@@ -198,18 +223,11 @@ public:
 
     void compute_absolute_inplace() override;
 
-    /*
-        std::unique_ptr<Bccoo> change_compression_to(bccoo::compression comp)
-                                                                                                                                                                                                                            const override;
-        {
-            // TODO
-        }
-    */
 
     /**
-     * Returns the row index of the first element of each block.
+     * Returns the minimum row index of the first element of each block.
      *
-     * @return the row index of the first element of each block.
+     * @return the minimum row index of the first element of each block.
      */
     index_type* get_rows() noexcept { return rows_.get_data(); }
 
@@ -226,9 +244,11 @@ public:
     }
 
     /**
-     * Returns the col index of the first element of each block.
+     * Returns the minimum col index of the first element of each block. Only
+     * for block compression.
      *
-     * @return the col index of the first element of each block.
+     * @return the minimum col index of the first element of each block. Only
+     * for block compression.
      */
     index_type* get_cols() noexcept { return cols_.get_data(); }
 
@@ -245,9 +265,11 @@ public:
     }
 
     /**
-     * Returns the type index of the first element of each block.
+     * Returns the type index of the first element of each block.  Only for
+     * block compression.
      *
-     * @return the type index of the first element of each block.
+     * @return the type index of the first element of each block. Only for block
+     * compression.
      */
     uint8* get_types() noexcept { return types_.get_data(); }
 
@@ -264,9 +286,9 @@ public:
     }
 
     /**
-     * Returns the offset related to the first element of each block.
+     * Returns the offset related to the first entry of each block.
      *
-     * @return the offset related to the first element of each block.
+     * @return the offset related to the first entry of each block.
      */
     index_type* get_offsets() noexcept { return offsets_.get_data(); }
 
@@ -283,7 +305,7 @@ public:
     }
 
     /**
-     * Returns the vector where column indexes and values are stored.
+     * Returns the vector where the data of each block is stored.
      *
      * @return the vector where column indexes and values are stored.
      */
@@ -365,6 +387,9 @@ public:
     {
         return compression_ == bccoo::compression::block;
     }
+
+    // JIAE it would be easier to understand to use
+    //        b = Bccoo * x + b
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -450,7 +475,7 @@ protected:
     {}
 
     /**
-     * Creates an empty BCCOO matrix
+     * Creates an empty BCCOO matrix, fixing compression level and blocksize
      *
      * @param exec  Executor associated to the matrix
      */
@@ -481,16 +506,16 @@ protected:
           bccoo::compression compression)
         : EnableLinOp<Bccoo>(exec, size),
           rows_(exec,
-                (block_size <= 0) ? 0 : ceildiv(num_nonzeros, block_size)),
+                (block_size == 0) ? 0 : ceildiv(num_nonzeros, block_size)),
           cols_(exec, ((compression == bccoo::compression::element) ||
-                       (block_size <= 0))
+                       (block_size == 0))
                           ? 0
                           : ceildiv(num_nonzeros, block_size)),
           types_(exec, ((compression == bccoo::compression::element) ||
-                        (block_size <= 0))
+                        (block_size == 0))
                            ? 0
                            : ceildiv(num_nonzeros, block_size)),
-          offsets_(exec, (block_size <= 0)
+          offsets_(exec, (block_size == 0)
                              ? 0
                              : ceildiv(num_nonzeros, block_size) + 1),
           chunk_(exec, num_bytes),

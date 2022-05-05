@@ -46,11 +46,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+// namespace matrix {
 
-const int GKO_BCCOO_ROWS_MULTIPLE = 1;
-const int GKO_BCCOO_COLS_8BITS = 2;
-const int GKO_BCCOO_COLS_16BITS = 4;
+// namespace bccoo {
 
+constexpr int cst_rows_multiple = 1;
+constexpr int cst_cols_8bits = 2;
+constexpr int cst_cols_16bits = 4;
+
+typedef struct compr_idxs {
+    size_type nblk;  // position in the block
+    size_type blk;   // active block
+    size_type row;   // row index
+    size_type col;   // column index
+    size_type shf;   // shift on the chunk
+} compr_idxs;
+
+typedef struct compr_blk_idxs {
+    size_type row_frs;  // minimum row index in a block
+    size_type col_frs;  // minimum column index in a block
+    size_type col_dif;  // maximum difference between column index in a block
+    size_type shf_row;  // shift in chunk where the rows vector starts
+    size_type shf_col;  // shift in chunk where the cols vector starts
+    size_type shf_val;  // shift in chunk where the vals vector starts
+    bool mul_row;  // determines if the block includes elements of several rows
+    bool col_8bits;   // determines that col_dif is greater than 0xFF
+    bool col_16bits;  // determines that col_dif is greater than 0xFFFF
+} blk_compr_idxs;
 
 inline void cnt_next_position(const size_type col_src_res, size_type& shf,
                               size_type& col)
@@ -362,9 +384,9 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
 inline void get_block_features(const uint8 type_blk, bool& mul_row,
                                                                                                                          bool& col_8bits, bool& col_16bits)
 {
-    mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-    col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-    col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+    mul_row = type_blk & cst_rows_multiple;
+    col_8bits = type_blk & cst_cols_8bits;
+    col_16bits = type_blk & cst_cols_16bits;
 }
 
 
@@ -402,9 +424,9 @@ inline void init_block_indices(const IndexType* rows_data,
                                size_type& shf_row, size_type& shf_col,
                                size_type& shf_val)
 {
-    mul_row = type_blk & GKO_BCCOO_ROWS_MULTIPLE;
-    col_8bits = type_blk & GKO_BCCOO_COLS_8BITS;
-    col_16bits = type_blk & GKO_BCCOO_COLS_16BITS;
+    mul_row = type_blk & cst_rows_multiple;
+    col_8bits = type_blk & cst_cols_8bits;
+    col_16bits = type_blk & cst_cols_16bits;
 
     row_frs = rows_data[blk];
     col_frs = cols_data[blk];
@@ -480,6 +502,10 @@ inline void get_block_position_value_put(uint8* chunk_data, bool mul_row,
     shf_val += sizeof(ValueType);
 }
 
+
+// }
+
+// }
 
 }  // namespace gko
 

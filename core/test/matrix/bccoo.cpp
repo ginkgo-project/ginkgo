@@ -54,31 +54,66 @@ protected:
 
     Bccoo()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, gko::dim<2>{2, 3}, index_type{4}, index_type{10},
+          mtx_elm(gko::matrix::Bccoo<value_type, index_type>::create(
+              exec, gko::dim<2>{2, 3}, index_type{4}, index_type{1},
               index_type{4 * (sizeof(value_type) + sizeof(index_type) + 1)},
-              gko::matrix::bccoo::compression::element))
+              gko::matrix::bccoo::compression::element)),
+          mtx_blk(gko::matrix::Bccoo<value_type, index_type>::create(
+              exec, gko::dim<2>{2, 3}, index_type{4}, index_type{1},
+              index_type{4 * (sizeof(value_type) + sizeof(index_type) + 1)},
+              gko::matrix::bccoo::compression::block))
     {
-        mtx->read({{2, 3},
-                   {{0, 0, 1.0},
-                    {0, 1, 3.0},
-                    {0, 2, 2.0},
-                    {1, 0, 0.0},
-                    {1, 1, 5.0},
-                    {1, 2, 0.0}}});
+        mtx_elm->read({{2, 3},
+                       {{0, 0, 1.0},
+                        {0, 1, 3.0},
+                        {0, 2, 2.0},
+                        {1, 0, 0.0},
+                        {1, 1, 5.0},
+                        {1, 2, 0.0}}});
+        std::cout << "TEST" << std::endl;
+        mtx_blk->read({{2, 3},
+                       {{0, 0, 1.0},
+                        {0, 1, 3.0},
+                        {0, 2, 2.0},
+                        {1, 0, 0.0},
+                        {1, 1, 5.0},
+                        {1, 2, 0.0}}});
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx_elm, mtx_blk;
 
-    void assert_equal_to_original_mtx(const Mtx* m)
+    void assert_equal_to_original_mtx_elm(const Mtx* m)
     {
+        auto rows_data = m->get_const_rows();
+        auto offsets_data = m->get_const_offsets();
         auto chunk_data = m->get_const_chunk();
-        gko::size_type block_size = m->get_block_size();
-        index_type ind = {};
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
+
+        gko::size_type block_size = m->get_block_size();
+
+        std::cout << "ROWS AND OFFSETS" << std::endl;
+        index_type row = {};
+        index_type offset = {};
+        for (index_type i = 0; i < m->get_num_blocks(); i++) {
+            std::cout << block_size << " - " << i << " - " << rows_data[i]
+                      << " - " << row << " - " << offsets_data[i] << " - "
+                      << offset << std::endl;
+            EXPECT_EQ(rows_data[i], row);
+            EXPECT_EQ(offsets_data[i], offset);
+            row += (block_size == 1) && (i == 2);
+            offset += (1 + sizeof(value_type)) * block_size +
+                      (((block_size == 2) || (block_size >= 4)) &&
+                       (i + block_size > 2));
+        }
+        std::cout << block_size << " - " << m->get_num_blocks() << " - "
+                  << offsets_data[m->get_num_blocks()] << " - " << offset
+                  << std::endl;
+        //       	EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
+
+        index_type ind = {};
         EXPECT_EQ(chunk_data[ind], 0x00);
         ind++;
         EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
@@ -112,8 +147,62 @@ protected:
                   value_type{5.0});
         ind += sizeof(value_type);
     }
+    /*
+        void assert_equal_to_original_mtx_blk(const Mtx* m)
+        {
+            auto rows_data = m->get_const_rows();
+            auto cols_data = m->get_const_cols();
+            auto types_data = m->get_const_types();
+            auto offsets_data = m->get_const_offsets();
+            auto chunk_data = m->get_const_chunk();
 
-    void assert_empty(const Mtx* m)
+            ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+            ASSERT_EQ(m->get_num_stored_elements(), 4);
+
+            gko::size_type block_size = m->get_block_size();
+
+                                    index_type row = { };
+                                    index_type col = { };
+                                    index_type type = { };
+                                    index_type offset = { };
+                                    for (index_type i=0; i<m->get_num_blocks();
+       i++) { EXPECT_EQ(rows_data[i], row); EXPECT_EQ(rows_data[i], offset); row
+       += (block_size == 1) && (i == 2); offset += (1 + sizeof(value_type)) *
+       block_size +
+                                                                                                    (((block_size == 2) || (block_size >= 4)) &&
+                                                                                                            (i + block_size > 2));
+                                    }
+
+            auto chunk_data = m->get_const_chunk();
+            gko::size_type block_size = m->get_block_size();
+            index_type ind = {};
+
+            ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+            ASSERT_EQ(m->get_num_stored_elements(), 4);
+
+                                    switch (block_size) {
+                                    case 1:
+                                            break;
+                                    case 2:
+                                            break;
+                                    case 3:
+                                            break;
+                                    default:
+                                            break;
+                                    }
+
+
+
+            EXPECT_EQ(chunk_data[ind], 0x00);
+            ind++;
+            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                      value_type{1.0});
+            ind += sizeof(value_type);
+
+
+                    }
+    */
+    void assert_empty_elm(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -131,23 +220,23 @@ TYPED_TEST_SUITE(Bccoo, gko::test::ValueIndexTypes);
 
 TYPED_TEST(Bccoo, KnowsItsSize)
 {
-    ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx->get_num_stored_elements(), 4);
+    ASSERT_EQ(this->mtx_elm->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx_elm->get_num_stored_elements(), 4);
 }
 
 
 TYPED_TEST(Bccoo, ContainsCorrectData)
 {
-    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
 }
 
 
 TYPED_TEST(Bccoo, CanBeEmpty)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx = Mtx::create(this->exec);
+    auto mtx_elm = Mtx::create(this->exec);
 
-    this->assert_empty(mtx.get());
+    this->assert_empty_elm(mtx_elm.get());
 }
 
 
@@ -178,16 +267,16 @@ TYPED_TEST(Bccoo, CanBeCreatedFromExistingData)
     gko::set_value_chunk<value_type>(chunk, ind, 4.0);
     ind += sizeof(value_type);
 
-    auto mtx = gko::matrix::Bccoo<value_type, index_type>::create(
+    auto mtx_elm = gko::matrix::Bccoo<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::array<gko::uint8>::view(this->exec, num_bytes, chunk),
         gko::array<index_type>::view(this->exec, 2, offsets),
         gko::array<index_type>::view(this->exec, 1, rows), 4, block_size);
 
-    ASSERT_EQ(mtx->get_num_stored_elements(), 4);
-    ASSERT_EQ(mtx->get_block_size(), block_size);
-    ASSERT_EQ(mtx->get_const_offsets(), offsets);
-    ASSERT_EQ(mtx->get_const_rows(), rows);
+    ASSERT_EQ(mtx_elm->get_num_stored_elements(), 4);
+    ASSERT_EQ(mtx_elm->get_block_size(), block_size);
+    ASSERT_EQ(mtx_elm->get_const_offsets(), offsets);
+    ASSERT_EQ(mtx_elm->get_const_rows(), rows);
 }
 
 
@@ -197,11 +286,12 @@ TYPED_TEST(Bccoo, CanBeCopied)
     using value_type = typename TestFixture::value_type;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(this->mtx.get());
+    copy->copy_from(this->mtx_elm.get());
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    *((value_type*)(this->mtx->get_chunk() + (2 + sizeof(value_type)))) = 5.0;
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
+    *((value_type*)(this->mtx_elm->get_chunk() + (2 + sizeof(value_type)))) =
+        5.0;
+    this->assert_equal_to_original_mtx_elm(copy.get());
 }
 
 
@@ -210,9 +300,9 @@ TYPED_TEST(Bccoo, CanBeMoved)
     using Mtx = typename TestFixture::Mtx;
     auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(this->mtx));
+    copy->copy_from(std::move(this->mtx_elm));
 
-    this->assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx_elm(copy.get());
 }
 
 
@@ -220,19 +310,20 @@ TYPED_TEST(Bccoo, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto clone = this->mtx->clone();
+    auto clone = this->mtx_elm->clone();
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    *((value_type*)(this->mtx->get_chunk() + (2 + sizeof(value_type)))) = 5.0;
-    this->assert_equal_to_original_mtx(dynamic_cast<Mtx*>(clone.get()));
+    this->assert_equal_to_original_mtx_elm(this->mtx_elm.get());
+    *((value_type*)(this->mtx_elm->get_chunk() + (2 + sizeof(value_type)))) =
+        5.0;
+    this->assert_equal_to_original_mtx_elm(dynamic_cast<Mtx*>(clone.get()));
 }
 
 
 TYPED_TEST(Bccoo, CanBeCleared)
 {
-    this->mtx->clear();
+    this->mtx_elm->clear();
 
-    this->assert_empty(this->mtx.get());
+    this->assert_empty_elm(this->mtx_elm.get());
 }
 
 
@@ -248,7 +339,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixData)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx_elm(m.get());
 }
 
 
@@ -268,7 +359,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyData)
 
     m->read(data);
 
-    this->assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx_elm(m.get());
 }
 
 
@@ -280,7 +371,7 @@ TYPED_TEST(Bccoo, GeneratesCorrectMatrixData)
     using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
     gko::matrix_data<value_type, index_type> data;
 
-    this->mtx->write(data);
+    this->mtx_elm->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
