@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
@@ -95,10 +94,27 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Inner preconditioner descriptor.
+         * Preconditioner factory.
          */
-        preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, preconditioner::batch::type::none);
+        std::shared_ptr<const BatchLinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         *
+         * Note that if scaling is requested (@sa left_scaling_op,
+         * @sa right_scaling_op), this is assumed to be generated from the
+         * scaled matrix.
+         */
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_preconditioner, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            left_scaling_op, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            right_scaling_op, nullptr);
 
         /**
          * Maximum number iterations allowed.
@@ -126,13 +142,14 @@ protected:
 
     explicit BatchCg(const Factory* factory,
                      std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<BatchCg>(factory->get_executor(),
-                                     std::move(system_matrix)),
+        : EnableBatchSolver<BatchCg>(
+              factory->get_executor(), std::move(system_matrix),
+              detail::extract_common_batch_params(factory->get_parameters())),
           parameters_{factory->get_parameters()}
     {}
 
 private:
-    void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
+    void solver_apply(const BatchLinOp* b, BatchLinOp* x,
                       BatchInfo* const info) const override;
 };
 

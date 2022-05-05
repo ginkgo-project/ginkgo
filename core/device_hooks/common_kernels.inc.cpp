@@ -67,6 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -153,6 +154,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     _macro(InputValueType, OutputValueType, IndexType)           \
         GKO_NOT_COMPILED(GKO_HOOK_MODULE);                       \
     GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(_macro)
+
+#define GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(_macro)                 \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(_macro)
 
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
@@ -1148,6 +1154,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 
 
 }  // namespace batch_jacobi
+
+
+namespace batch_ilu {
+
+
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
+
+
+}  // namespace batch_ilu
 
 
 namespace batch_identity {

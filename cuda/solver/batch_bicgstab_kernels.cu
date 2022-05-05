@@ -145,7 +145,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const value_type>& b,
                      const gko::batch_dense::UniformBatch<value_type>& x) const
     {
@@ -191,8 +191,8 @@ public:
         //          << "\n";
 
         apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
-            PrecType(), a, b.values, x.values, workspace.get_data());
+            shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger, prec,
+            a, b.values, x.values, workspace.get_data());
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
@@ -206,15 +206,15 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const CudaExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     using cu_value_type = cuda_type<ValueType>;
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<cu_value_type>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+        KernelCaller<cu_value_type>(exec, opts), opts, a, precon);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);

@@ -516,6 +516,23 @@ private:
 
 
 /**
+ * Transforms the input matrix A according to
+ * S_L*A*S_R where '*' denotes matrix multiplication, and S_L and S_R
+ * are the left and right transormation matrices.
+ *
+ * @param exec  Exector to run the operation on.
+ * @param left  Left transformation matrix.
+ * @param right  Right transformation matrix.
+ * @param mtx  System matrix to be transformed.
+ */
+template <typename ValueType>
+void two_sided_batch_transform(std::shared_ptr<const Executor> exec,
+                               const BatchDiagonal<ValueType>* left,
+                               const BatchDiagonal<ValueType>* right,
+                               BatchLinOp* mtx);
+
+
+/**
  * Transforms the input matrix A and vector b according to
  * S_L*A*S_R and S_L*b where '*' denotes matrix multiplication, and S_L and S_R
  * are the left and right transormation matrices.

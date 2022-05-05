@@ -358,6 +358,40 @@ __global__ void uniform_batch_scale(
     }
 }
 
+template <typename ValueType>
+__device__ __forceinline__ void batch_scale(
+    const int num_rows, const size_type stride, const int num_rhs,
+    const ValueType* const left_scale_vec,
+    const ValueType* const right_scale_vec, ValueType* const a)
+{
+    for (int iz = threadIdx.x; iz < num_rows * num_rhs; iz += blockDim.x) {
+        const int row = iz / num_rhs;
+        const int col = iz % num_rhs;
+        a[row * stride + col] *= left_scale_vec[row] * right_scale_vec[col];
+    }
+}
+
+template <typename ValueType>
+__global__ void uniform_batch_scale(
+    const int nrows, const size_type stride, const int nrhs,
+    const size_type num_batch,
+    const ValueType* const __restrict__ left_scale_vec,
+    const ValueType* const __restrict__ right_scale_vec,
+    ValueType* const __restrict__ a)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < num_batch;
+         batch_id += gridDim.x) {
+        // const auto a_b = gko::batch::batch_entry(a, batch_id);
+        const auto a_ptr =
+            gko::batch::batch_entry_ptr(a, stride, nrows, batch_id);
+        const auto ls_ptr =
+            gko::batch::batch_entry_ptr(left_scale_vec, 1, nrows, batch_id);
+        const auto rs_ptr =
+            gko::batch::batch_entry_ptr(right_scale_vec, 1, nrhs, batch_id);
+        batch_scale(nrows, stride, nrhs, ls_ptr, rs_ptr, a_ptr);
+    }
+}
+
 
 /**
  * Copies the values of one multi-vector into another.

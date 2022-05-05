@@ -33,17 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/batch_idr_kernels.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
-#include <ginkgo/core/base/math.hpp>
-
-
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace hip {
@@ -67,7 +56,7 @@ using BatchIdrOptions = gko::kernels::batch_idr::BatchIdrOptions<T>;
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata) GKO_NOT_IMPLEMENTED;

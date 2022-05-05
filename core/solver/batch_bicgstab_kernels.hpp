@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -54,7 +53,6 @@ namespace batch_bicgstab {
  */
 template <typename RealType>
 struct BatchBicgstabOptions {
-    preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
@@ -223,9 +221,9 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     void apply(std::shared_ptr<const DefaultExecutor> exec,              \
                const gko::kernels::batch_bicgstab::BatchBicgstabOptions< \
                    remove_complex<_type>>& options,                      \
-               const BatchLinOp* const a,                                \
-               const matrix::BatchDense<_type>* const b,                 \
-               matrix::BatchDense<_type>* const x,                       \
+               const BatchLinOp* a, const BatchLinOp* preconditioner,    \
+               const matrix::BatchDense<_type>* b,                       \
+               matrix::BatchDense<_type>* x,                             \
                gko::log::BatchLogData<_type>& logdata)
 
 

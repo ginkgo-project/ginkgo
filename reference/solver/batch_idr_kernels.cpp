@@ -50,8 +50,6 @@ namespace reference {
  * @ingroup batch_idr
  */
 namespace batch_idr {
-
-
 namespace {
 
 constexpr int max_num_rhs = 1;
@@ -77,7 +75,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -91,12 +89,11 @@ public:
             gko::kernels::batch_idr::local_memory_requirement<ValueType>(
                 nrows, nrhs, opts_.subspace_dim_val) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        // Array<unsigned char> local_space(exec_, local_size_bytes);
         std::vector<unsigned char> local_space(local_size_bytes);
 
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             batch_entry_idr_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                 ValueType>(opts_, logger, PrecType(), a, b, x,
+                                 ValueType>(opts_, logger, prec, a, b, x,
                                             ibatch, local_space.data());
         }
     }
@@ -110,14 +107,14 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const ReferenceExecutor> exec,
            const BatchIdrOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const prec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+        KernelCaller<ValueType>(exec, opts), opts, a, prec);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDR_APPLY_KERNEL);

@@ -30,43 +30,47 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_PRECONDITIONER_TYPES_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_PRECONDITIONER_TYPES_HPP_
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
-#include <string>
+#include <ginkgo/core/matrix/batch_csr.hpp>
+
+
+#include "core/matrix/batch_struct.hpp"
 
 
 namespace gko {
-namespace preconditioner {
-namespace batch {
+namespace kernels {
+namespace dpcpp {
+namespace batch_ilu {
 
 
-/**
- * Types of batch preconditioners available.
- */
-enum class type { none, jacobi };
-
-
-const char none_str[] = "none";
-const char jacobi_str[] = "jacobi";
-
-
-/**
- * Get a string name of an available batch preconditioner type.
- */
-inline std::string get_string_of(type prec_type)
+template <typename ValueType, typename IndexType>
+void generate_split(std::shared_ptr<const DefaultExecutor> exec,
+                    gko::preconditioner::batch_factorization_type,
+                    const matrix::BatchCsr<ValueType, IndexType>* const a,
+                    matrix::BatchCsr<ValueType, IndexType>* const l_factor,
+                    matrix::BatchCsr<ValueType, IndexType>* const u_factor)
 {
-    if (prec_type == type::none) {
-        return none_str;
-    } else {
-        return jacobi_str;
-    }
+    GKO_NOT_IMPLEMENTED;
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_SPLIT_GENERATE_KERNEL);
 
-}  // namespace batch
-}  // namespace preconditioner
+
+template <typename ValueType, typename IndexType>
+void apply_split(std::shared_ptr<const DefaultExecutor> exec,
+                 const matrix::BatchCsr<ValueType, IndexType>* l,
+                 const matrix::BatchCsr<ValueType, IndexType>* u,
+                 const matrix::BatchDense<ValueType>* r,
+                 matrix::BatchDense<ValueType>* z) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
+
+
+}  // namespace batch_ilu
+}  // namespace dpcpp
+}  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_PRECONDITIONER_TYPES_HPP_

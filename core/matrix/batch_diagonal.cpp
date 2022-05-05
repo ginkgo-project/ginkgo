@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
+#include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_diagonal_kernels.hpp"
 
 
@@ -57,6 +58,8 @@ namespace batch_diagonal {
 GKO_REGISTER_OPERATION(apply, batch_diagonal::apply);
 GKO_REGISTER_OPERATION(pre_diag_transform_csr,
                        batch_csr::pre_diag_transform_system);
+GKO_REGISTER_OPERATION(pre_diag_scale_csr, batch_csr::batch_scale);
+GKO_REGISTER_OPERATION(pre_diag_scale_dense, batch_dense::batch_scale);
 GKO_REGISTER_OPERATION(conj_transpose, batch_diagonal::conj_transpose);
 GKO_REGISTER_OPERATION(fill, components::fill_array);
 
@@ -256,6 +259,30 @@ void two_sided_batch_system_transform(
         BatchDense<_type>* rhs)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_TWO_SIDED_BATCH_SYSTEM_TRANSFORM);
+
+
+template <typename ValueType>
+void two_sided_batch_transform(const std::shared_ptr<const Executor> exec,
+                               const BatchDiagonal<ValueType>* const left,
+                               const BatchDiagonal<ValueType>* const right,
+                               BatchLinOp* const mtx)
+{
+    if (auto csrmtx = dynamic_cast<BatchCsr<ValueType>*>(mtx)) {
+        exec->run(batch_diagonal::make_pre_diag_scale_csr(left, right, csrmtx));
+    } else if (auto dmtx = dynamic_cast<BatchDense<ValueType>*>(mtx)) {
+        exec->run(batch_diagonal::make_pre_diag_scale_dense(left, right, dmtx));
+    } else {
+        GKO_NOT_SUPPORTED(mtx);
+    }
+}
+
+
+#define GKO_DECLARE_TWO_SIDED_BATCH_TRANSFORM(_type)                     \
+    void two_sided_batch_transform(std::shared_ptr<const Executor> exec, \
+                                   const BatchDiagonal<_type>* left_op,  \
+                                   const BatchDiagonal<_type>* rght_op,  \
+                                   BatchLinOp* mtx)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TWO_SIDED_BATCH_TRANSFORM);
 
 
 }  // namespace matrix

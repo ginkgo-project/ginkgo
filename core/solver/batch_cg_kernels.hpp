@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
 
@@ -52,7 +51,6 @@ namespace batch_cg {
  */
 template <typename RealType>
 struct BatchCgOptions {
-    preconditioner::batch::type preconditioner;
     int max_its;
     RealType residual_tol;
     ::gko::stop::batch::ToleranceType tol_type;
@@ -88,7 +86,8 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const gko::kernels::batch_cg::BatchCgOptions<remove_complex<_type>>& \
             options,                                                         \
-        const BatchLinOp* const a, const matrix::BatchDense<_type>* const b, \
+        const BatchLinOp* const a, const BatchLinOp* const precon,           \
+        const matrix::BatchDense<_type>* const b,                            \
         matrix::BatchDense<_type>* const x,                                  \
         gko::log::BatchLogData<_type>& logdata)
 

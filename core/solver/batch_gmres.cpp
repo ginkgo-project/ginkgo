@@ -58,6 +58,12 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(share(
+            as<BatchTransposable>(this->get_preconditioner())->transpose()))
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
@@ -73,6 +79,15 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(
+            share(as<BatchTransposable>(this->get_preconditioner())
+                      ->conj_transpose()))
+        .with_left_scaling_op(
+            share(as<BatchTransposable>(parameters_.left_scaling_op)
+                      ->conj_transpose()))
+        .with_right_scaling_op(
+            share(as<BatchTransposable>(parameters_.right_scaling_op)
+                      ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_restart(parameters_.restart)
@@ -84,19 +99,18 @@ std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const mtx,
-                                         const BatchLinOp* const b,
+void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const b,
                                          BatchLinOp* const x,
                                          BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
-             parameters_.residual_tol, parameters_.restart,
-             parameters_.tolerance_type};
+        opts{parameters_.max_iterations, parameters_.residual_tol,
+             parameters_.restart, parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_gmres::make_apply(
-        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        opts, this->system_matrix_.get(), this->preconditioner_.get(),
+        as<const Dense>(b), as<Dense>(x),
         *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
@@ -106,7 +120,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES);
 
 
 #define GKO_DECLARE_BATCH_GMRES_APPLY_FUNCTION(_type)                         \
-    void EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl(        \
+    EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::EnableBatchSolver(      \
+        std::shared_ptr<const Executor> exec,                                 \
+        std::shared_ptr<const BatchLinOp> system_matrix,                      \
+        detail::common_batch_params common_params);                           \
+    template void                                                             \
+    EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl(             \
         const BatchLinOp* b, BatchLinOp* x) const;                            \
     template void                                                             \
     EnableBatchSolver<BatchGmres<_type>, BatchLinOp>::apply_impl(             \

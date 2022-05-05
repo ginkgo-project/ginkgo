@@ -70,7 +70,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -87,11 +87,13 @@ public:
 #pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             // TODO: Align to cache line boundary
+            // TODO: Allocate and free once per thread rather than once per
+            // work-item.
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_bicgstab_impl<StopType, PrecType, LogType,
                                       BatchMatrixType, ValueType>(
-                opts_, logger, PrecType(), a, b, x, ibatch, local_space);
+                opts_, logger, prec, a, b, x, ibatch, local_space);
             free(local_space);
         }
     }
@@ -105,14 +107,14 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+        KernelCaller<ValueType>(exec, opts), opts, a, precon);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);

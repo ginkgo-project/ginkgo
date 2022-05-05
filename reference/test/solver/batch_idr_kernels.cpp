@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/matrix/batch_csr_kernels.hpp"
@@ -68,10 +69,11 @@ protected:
           sys_1(gko::test::get_poisson_problem<T>(exec, 1, nbatch))
     {
         auto execp = exec;
-        solve_fn = [execp](const Options opts, const Mtx* mtx, const BDense* b,
+        solve_fn = [execp](const Options opts, const Mtx* mtx,
+                           const gko::BatchLinOp* prec, const BDense* b,
                            BDense* x, LogData& logdata) {
             gko::kernels::reference::batch_idr::apply<value_type>(
-                execp, opts, mtx, b, x, logdata);
+                execp, opts, mtx, prec, b, x, logdata);
         };
     }
 
@@ -84,33 +86,33 @@ protected:
     std::shared_ptr<const BDense> b_1;
     std::shared_ptr<const BDense> xex_1;
     std::shared_ptr<RBDense> bnorm_1;
-    const Options opts_1{gko::preconditioner::batch::type::none,
-                         500,
-                         static_cast<real_type>(1e3) * eps,
-                         2,
-                         false,
-                         0.70,
-                         true,
-                         true,
-                         gko::stop::batch::ToleranceType::relative};
+    const Options opts_1{
+        500,  static_cast<real_type>(1e3) * eps,        2, false, 0.70, true,
+        true, gko::stop::batch::ToleranceType::relative};
 
     gko::test::LinSys<value_type> sys_1;
 
-    std::function<void(Options, const Mtx*, const BDense*, BDense*, LogData&)>
+    std::function<void(Options, const Mtx*, const gko::BatchLinOp*,
+                       const BDense*, BDense*, LogData&)>
         solve_fn;
 
     std::unique_ptr<typename solver_type::Factory> create_factory(
-        std::shared_ptr<const gko::Executor> exec, const Options& opts)
+        std::shared_ptr<const gko::Executor> exec, const Options& opts,
+        std::shared_ptr<gko::BatchLinOpFactory> prec_factory = nullptr,
+        std::shared_ptr<const BDiag> left_scale = nullptr,
+        std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
             .with_max_iterations(opts.max_its)
             .with_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
-            .with_preconditioner(opts.preconditioner)
+            .with_preconditioner(prec_factory)
             .with_subspace_dim(opts.subspace_dim_val)
             .with_smoothing(opts.to_use_smoothing)
             .with_deterministic(opts.deterministic_gen)
             .with_complex_subspace(opts.is_complex_subspace)
+            .with_left_scaling_op(left_scale)
+            .with_right_scaling_op(right_scale)
             .on(exec);
     }
 
@@ -164,15 +166,15 @@ TYPED_TEST(BatchIdr, UnitScalingDoesNotChangeResult)
 {
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto right_scale =
-        gko::batch_initialize<BDiag>(this->nbatch, {1.0, 1.0, 1.0}, this->exec);
-    auto factory = this->create_factory(this->exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.0, 1.0}, this->exec));
+    auto factory = this->create_factory(this->exec, this->opts_1, nullptr,
+                                        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -182,15 +184,15 @@ TYPED_TEST(BatchIdr, GeneralScalingDoesNotChangeResult)
 {
     using BDiag = typename TestFixture::BDiag;
     using Solver = typename TestFixture::solver_type;
-    auto left_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {0.8, 0.9, 0.95}, this->exec);
-    auto right_scale = gko::batch_initialize<BDiag>(
-        this->nbatch, {1.0, 1.5, 1.05}, this->exec);
-    auto factory = this->create_factory(this->exec, this->opts_1);
+    auto left_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {0.8, 0.9, 0.95}, this->exec));
+    auto right_scale = gko::share(gko::batch_initialize<BDiag>(
+        this->nbatch, {1.0, 1.5, 1.05}, this->exec));
+    auto factory = this->create_factory(this->exec, this->opts_1, nullptr,
+                                        left_scale, right_scale);
 
     auto result = gko::test::solve_poisson_uniform_core<Solver>(
-        this->exec, factory.get(), this->sys_1, 1, left_scale.get(),
-        right_scale.get());
+        this->exec, factory.get(), this->sys_1, 1);
 
     GKO_ASSERT_BATCH_MTX_NEAR(result.x, this->sys_1.xex, this->eps);
 }
@@ -211,7 +213,8 @@ TEST(BatchIdr, CanSolveWithoutScaling)
             .with_max_iterations(maxits)
             .with_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(
+                gko::preconditioner::BatchJacobi<T>::build().on(exec))
             .with_subspace_dim(static_cast<gko::size_type>(1))
             .with_smoothing(false)
             .with_deterministic(true)

@@ -50,11 +50,6 @@ template <typename ValueType>
 class BatchJacobi final {
 public:
     /**
-     * The size of the work vector required in case of static allocation.
-     */
-    // static constexpr int work_size = batch_config<ValueType>::max_num_rows;
-
-    /**
      * The size of the work vector required in case of dynamic allocation.
      */
     static int dynamic_work_size(const int nrows, int) { return nrows; }
@@ -68,7 +63,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_ell::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_ell::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;
@@ -93,7 +89,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_csr::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_csr::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;
@@ -117,7 +114,8 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by work_size or dynamic_work_size.
      */
-    void generate(const gko::batch_dense::BatchEntry<const ValueType>& mat,
+    void generate(size_type,
+                  const gko::batch_dense::BatchEntry<const ValueType>& mat,
                   ValueType* const work)
     {
         work_ = work;

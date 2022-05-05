@@ -70,7 +70,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const ValueType>& b,
                      const gko::batch_dense::UniformBatch<ValueType>& x) const
     {
@@ -89,16 +89,19 @@ public:
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
             /* Allocation by each thread has the following advantages:
              * - Should be automatically allocated on the correct NUMA domain.
-             * - No need to allocate memory enough for *all* threads while
-             *   only some threads are in flight at any given time.
-             * These should hopefully compensate for the allocation overhead.
+             * - No need to allocate memory enough for *all* work-items while
+             *   only some work-items are in flight at any given time.
+             * These should hopefully compensate for the allocation overhead -
+             *  maybe try jemalloc if that's an issue.
              * TODO: Align to cache line boundary.
+             * TODO: Allocate and free once per thread rather than once per
+             * work-item.
              */
             const auto local_space =
                 static_cast<unsigned char*>(malloc(local_size_bytes));
             batch_entry_cg_impl<StopType, PrecType, LogType, BatchMatrixType,
-                                ValueType>(opts_, logger, PrecType(), a, b, x,
-                                           ibatch, local_space);
+                                ValueType>(opts_, logger, prec, a, b, x, ibatch,
+                                           local_space);
             free(local_space);
         }
     }
@@ -119,14 +122,14 @@ using namespace gko::kernels::host;
 template <typename ValueType>
 void apply(std::shared_ptr<const OmpExecutor> exec,
            const BatchCgOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const prec,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<ValueType>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+        KernelCaller<ValueType>(exec, opts), opts, a, prec);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CG_APPLY_KERNEL);

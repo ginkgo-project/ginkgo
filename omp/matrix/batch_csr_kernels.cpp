@@ -114,23 +114,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void batch_scale(std::shared_ptr<const OmpExecutor> exec,
-                 const matrix::BatchDense<ValueType>* left_scale,
-                 const matrix::BatchDense<ValueType>* right_scale,
-                 matrix::BatchCsr<ValueType, IndexType>* mat)
+                 const matrix::BatchDiagonal<ValueType>* const left_scale,
+                 const matrix::BatchDiagonal<ValueType>* const right_scale,
+                 matrix::BatchCsr<ValueType, IndexType>* const mat)
 {
     if (!left_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     if (!right_scale->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
 
     const size_type nbatches = mat->get_num_batch_entries();
     const auto a_ub = host::get_batch_struct(mat);
-    const auto left_ub = host::get_batch_struct(left_scale);
-    const auto right_ub = host::get_batch_struct(right_scale);
+    const auto nrows = static_cast<int>(mat->get_size().at(0)[0]);
+    const auto ncols = static_cast<int>(mat->get_size().at(0)[1]);
+    const auto left_vals = left_scale->get_const_values();
+    const auto rght_vals = right_scale->get_const_values();
 
 #pragma omp parallel for
     for (size_type ibatch = 0; ibatch < nbatches; ibatch++) {
         auto a_b = gko::batch::batch_entry(a_ub, ibatch);
-        auto left_b = gko::batch::batch_entry(left_ub, ibatch);
-        auto right_b = gko::batch::batch_entry(right_ub, ibatch);
+        const auto left_b =
+            gko::batch::batch_entry_ptr(left_vals, 1, nrows, ibatch);
+        const auto right_b =
+            gko::batch::batch_entry_ptr(rght_vals, 1, ncols, ibatch);
         batch_scale(left_b, right_b, a_b);
     }
 }

@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 #include <ginkgo/core/stop/batch_stop_enum.hpp>
 
@@ -181,16 +180,32 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Inner preconditioner descriptor.
+         * Preconditioner factory.
          */
-        preconditioner::batch::type GKO_FACTORY_PARAMETER_SCALAR(
-            preconditioner, preconditioner::batch::type::none);
+        std::shared_ptr<const BatchLinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
+            preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         *
+         * Note that if scaling is requested (@sa left_scaling_op,
+         * @sa right_scaling_op), this is assumed to be generated from the
+         * scaled matrix.
+         */
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            generated_preconditioner, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            left_scaling_op, nullptr);
+
+        std::shared_ptr<const BatchLinOp> GKO_FACTORY_PARAMETER_SCALAR(
+            right_scaling_op, nullptr);
 
         /**
          * Maximum number iterations allowed.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
-
 
         /**
          * Residual tolerance.
@@ -199,19 +214,16 @@ public:
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-8);
 
-
         /**
          * Subspace Dimension
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim,
                                                static_cast<size_type>(2));
 
-
         /**
          * kappa value
          */
         real_type GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
-
 
         /**
          * If set to true, IDR is supposed to use a complex subspace S also for
@@ -229,7 +241,6 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(smoothing, true);
 
-
         /**
          * If set to true, the vectors spanning the subspace S are chosen
          * deterministically. This is mostly needed for testing purposes.
@@ -240,7 +251,6 @@ public:
          * The default behaviour is to choose the subspace vectors randomly.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(deterministic, false);
-
 
         /**
          * To specify which tolerance is to be considered.
@@ -259,13 +269,14 @@ protected:
 
     explicit BatchIdr(const Factory* factory,
                       std::shared_ptr<const BatchLinOp> system_matrix)
-        : EnableBatchSolver<BatchIdr>(factory->get_executor(),
-                                      std::move(system_matrix)),
+        : EnableBatchSolver<BatchIdr>(
+              factory->get_executor(), std::move(system_matrix),
+              detail::extract_common_batch_params(factory->get_parameters())),
           parameters_{factory->get_parameters()}
     {}
 
 private:
-    void solver_apply(const BatchLinOp* mtx, const BatchLinOp* b, BatchLinOp* x,
+    void solver_apply(const BatchLinOp* b, BatchLinOp* x,
                       BatchInfo* const info) const override;
 };
 

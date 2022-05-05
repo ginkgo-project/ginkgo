@@ -68,7 +68,7 @@ inline void batch_entry_richardson_impl(
     const gko::batch_dense::BatchEntry<real_type> init_res_norm_b{
         init_res_norm, static_cast<size_type>(nrhs), 1, nrhs};
 
-    prec.generate(a_b, prec_work);
+    prec.generate(ibatch, a_b, prec_work);
 
     // initial residual
     compute_norm2<ValueType>(gko::batch::to_const(b_b), norms_b);

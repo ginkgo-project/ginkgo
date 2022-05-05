@@ -87,7 +87,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a,
+    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
                      const gko::batch_dense::UniformBatch<const value_type>& b,
                      const gko::batch_dense::UniformBatch<value_type>& x) const
     {
@@ -118,13 +118,13 @@ public:
             static_cast<size_type>(shared_size * nbatch / sizeof(value_type)));
         hipLaunchKernekGGL(apply_kernel<StopType>, nbatch, default_block_size,
                            0, 0, global_gap, opts_.max_its, opts_.residual_tol,
-                           opts_.restart_num, logger, PrecType(), a, bptr, xptr,
+                           opts_.restart_num, logger, prec, a, bptr, xptr,
                            workspace.get_data());
 #else
         hipLaunchKernelGGL(apply_kernel<StopType>, nbatch, default_block_size,
                            shared_size, 0, global_gap, opts_.max_its,
-                           opts_.residual_tol, opts_.restart_num, logger,
-                           PrecType(), a, bptr, xptr);
+                           opts_.residual_tol, opts_.restart_num, logger, prec,
+                           a, bptr, xptr);
 #endif
         GKO_HIP_LAST_IF_ERROR_THROW;
     }
@@ -138,15 +138,15 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchGmresOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a,
+           const BatchLinOp* const a, const BatchLinOp* const precon,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     using d_value_type = hip_type<ValueType>;
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<d_value_type>(exec, opts), opts);
-    dispatcher.apply(a, b, x, logdata);
+        KernelCaller<d_value_type>(exec, opts), opts, a, precon);
+    dispatcher.apply(b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_GMRES_APPLY_KERNEL);

@@ -34,7 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 
 
-#include <ginkgo/core/preconditioner/batch_preconditioner_types.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_isai.hpp>
+#include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -99,7 +101,9 @@ using DeviceValueType = ValueType;
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
+#include "reference/preconditioner/batch_trsv.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 namespace gko {
@@ -148,18 +152,24 @@ public:
 template <typename KernelCaller, typename OptsType, typename ValueType>
 class BatchSolverDispatch {
 public:
+    using value_type = ValueType;
     using device_value_type = DeviceValueType<ValueType>;
 
     BatchSolverDispatch(
         const KernelCaller& kernel_caller, const OptsType& opts,
+        const BatchLinOp* const matrix, const BatchLinOp* const preconditioner,
         const gko::log::BatchLogType logger_type =
             gko::log::BatchLogType::simple_convergence_completion)
-        : caller_{kernel_caller}, opts_{opts}, logger_type_{logger_type}
+        : caller_{kernel_caller},
+          opts_{opts},
+          a_{matrix},
+          precon_{preconditioner},
+          logger_type_{logger_type}
     {}
 
     template <typename PrecType, typename BatchMatrixType, typename LogType>
     void dispatch_on_stop(
-        const LogType& logger, const BatchMatrixType& amat,
+        const LogType& logger, const BatchMatrixType& amat, PrecType prec,
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
@@ -167,13 +177,13 @@ public:
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::stop::SimpleAbsResidual<device_value_type>, LogType>(
-                logger, amat, b_b, x_b);
+                logger, amat, prec, b_b, x_b);
         } else if (opts_.tol_type ==
                    gko::stop::batch::ToleranceType::relative) {
             caller_.template call_kernel<
                 BatchMatrixType, PrecType,
                 device::stop::SimpleRelResidual<device_value_type>, LogType>(
-                logger, amat, b_b, x_b);
+                logger, amat, prec, b_b, x_b);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -185,13 +195,44 @@ public:
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
-        if (opts_.preconditioner == gko::preconditioner::batch::type::none) {
+        if (!precon_) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
-                logger, amat, b_b, x_b);
-        } else if (opts_.preconditioner ==
-                   gko::preconditioner::batch::type::jacobi) {
+                logger, amat, device::BatchIdentity<device_value_type>(), b_b,
+                x_b);
+        } else if (auto precjac = dynamic_cast<
+                       const preconditioner::BatchJacobi<value_type>*>(
+                       precon_)) {
             dispatch_on_stop<device::BatchJacobi<device_value_type>>(
-                logger, amat, b_b, x_b);
+                logger, amat, device::BatchJacobi<device_value_type>(), b_b,
+                x_b);
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchIlu<value_type>*>(precon_)) {
+            auto l_factor =
+                device::get_batch_struct(prec->get_const_lower_factor());
+            auto u_factor =
+                device::get_batch_struct(prec->get_const_upper_factor());
+            if (prec->get_parameters().trsv_type ==
+                gko::preconditioner::batch_trsv_type::exact) {
+                using trsv_type =
+                    device::batch_exact_trsv_split<device_value_type>;
+                // assuming split factors, or we need one more branch here
+                using ilu_type =
+                    device::batch_ilu_split<device_value_type, trsv_type>;
+                dispatch_on_stop(logger, amat,
+                                 ilu_type{l_factor, u_factor, trsv_type()}, b_b,
+                                 x_b);
+            } else {
+                // TODO: Implement other batch TRSV types
+                GKO_NOT_IMPLEMENTED;
+            }
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchIsai<value_type>*>(precon_)) {
+            auto approx_inv =
+                device::get_batch_struct(prec->get_const_approximate_inverse());
+            // TODO: Define device preconditioners, add the includes to files
+            //  like cuda/preconditioner/batch_preconditioners.cuh, and add a
+            //  dispatch.
+            GKO_NOT_IMPLEMENTED;
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -221,33 +262,34 @@ public:
      * Note: The correct backend-specific get_batch_struct function needs to be
      * available in the current scope.
      */
-    void apply(const BatchLinOp* const a,
-               const matrix::BatchDense<ValueType>* const b,
+    void apply(const matrix::BatchDense<ValueType>* const b,
                matrix::BatchDense<ValueType>* const x,
                log::BatchLogData<ValueType>& logdata)
     {
         const auto x_b = device::get_batch_struct(x);
         const auto b_b = device::get_batch_struct(b);
 
-        if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a)) {
+        if (auto amat = dynamic_cast<const matrix::BatchCsr<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else if (auto amat =
-                       dynamic_cast<const matrix::BatchEll<ValueType>*>(a)) {
+                       dynamic_cast<const matrix::BatchEll<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else if (auto amat =
-                       dynamic_cast<const matrix::BatchDense<ValueType>*>(a)) {
+                       dynamic_cast<const matrix::BatchDense<ValueType>*>(a_)) {
             auto m_b = device::get_batch_struct(amat);
             dispatch_on_logger(m_b, b_b, x_b, logdata);
         } else {
-            GKO_NOT_SUPPORTED(a);
+            GKO_NOT_SUPPORTED(a_);
         }
     }
 
 private:
     const KernelCaller caller_;
     const OptsType opts_;
+    const BatchLinOp* a_;
+    const BatchLinOp* precon_;
     const log::BatchLogType logger_type_;
 };
 
@@ -258,11 +300,12 @@ private:
 template <typename ValueType, typename KernelCaller, typename OptsType>
 BatchSolverDispatch<KernelCaller, OptsType, ValueType> create_dispatcher(
     const KernelCaller& kernel_caller, const OptsType& opts,
+    const BatchLinOp* const a, const BatchLinOp* const preconditioner,
     const log::BatchLogType logger_type =
         log::BatchLogType::simple_convergence_completion)
 {
     return BatchSolverDispatch<KernelCaller, OptsType, ValueType>(
-        kernel_caller, opts, logger_type);
+        kernel_caller, opts, a, preconditioner, logger_type);
 }
 
 

@@ -58,6 +58,12 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(share(
+            as<BatchTransposable>(this->get_preconditioner())->transpose()))
+        .with_left_scaling_op(share(
+            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+        .with_right_scaling_op(share(
+            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
@@ -73,6 +79,15 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
 {
     return build()
         .with_preconditioner(parameters_.preconditioner)
+        .with_generated_preconditioner(
+            share(as<BatchTransposable>(this->get_preconditioner())
+                      ->conj_transpose()))
+        .with_left_scaling_op(
+            share(as<BatchTransposable>(parameters_.left_scaling_op)
+                      ->conj_transpose()))
+        .with_right_scaling_op(
+            share(as<BatchTransposable>(parameters_.right_scaling_op)
+                      ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
         .with_residual_tol(parameters_.residual_tol)
         .with_tolerance_type(parameters_.tolerance_type)
@@ -84,19 +99,18 @@ std::unique_ptr<BatchLinOp> BatchRichardson<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void BatchRichardson<ValueType>::solver_apply(const BatchLinOp* const mtx,
-                                              const BatchLinOp* const b,
+void BatchRichardson<ValueType>::solver_apply(const BatchLinOp* const b,
                                               BatchLinOp* const x,
                                               BatchInfo* const info) const
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_rich::BatchRichardsonOptions<remove_complex<ValueType>>
-        opts{parameters_.preconditioner, parameters_.max_iterations,
-             parameters_.residual_tol, parameters_.tolerance_type,
-             parameters_.relaxation_factor};
+        opts{parameters_.max_iterations, parameters_.residual_tol,
+             parameters_.tolerance_type, parameters_.relaxation_factor};
     auto exec = this->get_executor();
     exec->run(batch_rich::make_apply(
-        opts, mtx, as<const Dense>(b), as<Dense>(x),
+        opts, this->system_matrix_.get(), this->preconditioner_.get(),
+        as<const Dense>(b), as<Dense>(x),
         *as<log::BatchLogData<ValueType>>(info->logdata.get())));
 }
 
@@ -106,7 +120,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_RICHARDSON);
 
 
 #define GKO_DECLARE_BATCH_RICH_APPLY_FUNCTION(_type)                          \
-    void EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl(   \
+    EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::EnableBatchSolver( \
+        std::shared_ptr<const Executor> exec,                                 \
+        std::shared_ptr<const BatchLinOp> system_matrix,                      \
+        detail::common_batch_params common_params);                           \
+    template void                                                             \
+    EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl(        \
         const BatchLinOp* b, BatchLinOp* x) const;                            \
     template void                                                             \
     EnableBatchSolver<BatchRichardson<_type>, BatchLinOp>::apply_impl(        \
