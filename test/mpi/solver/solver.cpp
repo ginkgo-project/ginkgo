@@ -347,7 +347,7 @@ protected:
     void forall_vector_scenarios(const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
-        ASSERT_TRUE(part);  // for some reason putting this in gen_vec results
+        ASSERT_TRUE(part);  // for some reason putting this in gen_[in|out]_vec results
                             // in errors?
         auto guarded_fn = [&](auto b, auto x) {
             try {

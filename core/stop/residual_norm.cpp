@@ -73,40 +73,59 @@ bool any_is_complex()
 }
 
 
-#if GINKGO_BUILD_MPI
-
-
 template <typename ValueType, typename LinOp, typename... Rest>
 bool any_is_complex(const LinOp* in, Rest&&... rest)
 {
-    return !(is_complex<ValueType>() ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in) ||
-             dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in)) ||
+#if GINKGO_BUILD_MPI
+    bool is_complex_distributed =
+        dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in);
+#else
+    bool is_complex_distributed = false;
+#endif
+
+    return !(is_complex<ValueType>() || is_complex_distributed ||
+             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
            any_is_complex<ValueType>(std::forward<Rest>(rest)...);
 }
 
 
+#if GINKGO_BUILD_MPI
+
+
 template <typename Arg>
-bool use_distributed(Arg* linop)
+bool is_distributed(Arg* linop)
 {
     return dynamic_cast<const distributed::DistributedBase*>(linop);
 }
 
 
 template <typename Arg, typename... Rest>
-bool use_distributed(Arg* linop, Rest*... rest)
+bool is_distributed(Arg* linop, Rest*... rest)
 {
-    bool is_distributed =
+    bool is_distributed_value =
         dynamic_cast<const distributed::DistributedBase*>(linop);
-    GKO_ASSERT(is_distributed == use_distributed(rest...));
-    return is_distributed;
+    GKO_ASSERT(is_distributed_value == is_distributed(rest...));
+    return is_distributed_value;
 }
+
+
+#endif
 
 
 template <typename ValueType, typename Function, typename... LinOps>
 void norm_dispatch(Function&& fn, LinOps*... linops)
 {
-    if (use_distributed(linops...)) {
+    auto dispatch_sequential = [](Function&& fn, LinOps*... linops) {
+        if (any_is_complex<ValueType>(linops...)) {
+            precision_dispatch<to_complex<ValueType>>(
+                std::forward<Function>(fn), linops...);
+        } else {
+            precision_dispatch<ValueType>(std::forward<Function>(fn),
+                                          linops...);
+        }
+    };
+#if GINKGO_BUILD_MPI
+    if (is_distributed(linops...)) {
         if (any_is_complex<ValueType>(linops...)) {
             distributed::precision_dispatch<to_complex<ValueType>>(
                 std::forward<Function>(fn), linops...);
@@ -115,42 +134,12 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
                 std::forward<Function>(fn), linops...);
         }
     } else {
-        if (any_is_complex<ValueType>(linops...)) {
-            precision_dispatch<to_complex<ValueType>>(
-                std::forward<Function>(fn), linops...);
-        } else {
-            precision_dispatch<ValueType>(std::forward<Function>(fn),
-                                          linops...);
-        }
+        dispatch_sequential(std::forward<Function>(fn), linops...);
     }
-}
-
-
 #else
-
-
-template <typename ValueType, typename LinOp, typename... Rest>
-bool any_is_complex(const LinOp* in, Rest&&... rest)
-{
-    return !(is_complex<ValueType>() ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
-           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
-}
-
-
-template <typename ValueType, typename Function, typename... LinOps>
-void norm_dispatch(Function&& fn, LinOps*... linops)
-{
-    if (any_is_complex<ValueType>(linops...)) {
-        precision_dispatch<to_complex<ValueType>>(std::forward<Function>(fn),
-                                                  linops...);
-    } else {
-        precision_dispatch<ValueType>(std::forward<Function>(fn), linops...);
-    }
-}
-
-
+    dispatch_sequential(std::forward<Function>(fn), linops...);
 #endif
+}
 
 
 template <typename ValueType>
