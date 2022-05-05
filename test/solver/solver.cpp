@@ -131,7 +131,7 @@ struct SimpleSolverTest {
         ASSERT_EQ(mtx->get_stopping_criterion_factory(), nullptr);
     }
 
-    static constexpr bool logs_iteration_complete() { return true;}
+    static constexpr bool logs_iteration_complete() { return true; }
 };
 
 
@@ -306,7 +306,7 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
         return nullptr;
     }
 
-    static constexpr bool logs_iteration_complete() { return false;}
+    static constexpr bool logs_iteration_complete() { return false; }
 };
 
 
@@ -349,7 +349,7 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
         return nullptr;
     }
 
-    static constexpr bool logs_iteration_complete() { return false;}
+    static constexpr bool logs_iteration_complete() { return false; }
 };
 
 
@@ -956,7 +956,7 @@ TYPED_TEST(Solver, CreateDefaultIsEmpty)
 TYPED_TEST(Solver, LogsIterationComplete)
 {
     using Config = typename TestFixture::Config;
-    if(Config::logs_iteration_complete()) {
+    if (Config::logs_iteration_complete()) {
         using Mtx = typename TestFixture::Mtx;
         using Vec = typename TestFixture::Vec;
         auto mtx = gko::share(Mtx::create(this->exec));
