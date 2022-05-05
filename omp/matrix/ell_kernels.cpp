@@ -97,9 +97,11 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a_vals(row + i * stride);
             auto col = a->col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
 #pragma unroll
-            for (size_type j = 0; j < num_rhs; j++) {
-                partial_sum[j] += val * b_vals(col, j);
+                for (size_type j = 0; j < num_rhs; j++) {
+                    partial_sum[j] += val * b_vals(col, j);
+                }
             }
         }
 #pragma unroll
@@ -152,9 +154,11 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 auto val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
+                if (col != invalid_index<IndexType>()) {
 #pragma unroll
-                for (size_type j = 0; j < block_size; j++) {
-                    partial_sum[j] += val * b_vals(col, j + rhs_base);
+                    for (size_type j = 0; j < block_size; j++) {
+                        partial_sum[j] += val * b_vals(col, j + rhs_base);
+                    }
                 }
             }
 #pragma unroll
@@ -167,8 +171,10 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             auto val = a_vals(row + i * stride);
             auto col = a->col_at(row, i);
-            for (size_type j = rounded_rhs; j < num_rhs; j++) {
-                partial_sum[j - rounded_rhs] += val * b_vals(col, j);
+            if (col != invalid_index<IndexType>()) {
+                for (size_type j = rounded_rhs; j < num_rhs; j++) {
+                    partial_sum[j - rounded_rhs] += val * b_vals(col, j);
+                }
             }
         }
         for (size_type j = rounded_rhs; j < num_rhs; j++) {

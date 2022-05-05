@@ -247,7 +247,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_stride(); j++) {
             result->val_at(j, i) = zero<ValueType>();
-            result->col_at(j, i) = 0;
+            result->col_at(j, i) = invalid_index<IndexType>();
         }
     }
 #pragma omp parallel for
@@ -343,7 +343,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
         }
         for (; ell_count < ell_lim; ell_count++) {
             result->ell_val_at(row, ell_count) = zero<ValueType>();
-            result->ell_col_at(row, ell_count) = 0;
+            result->ell_col_at(row, ell_count) = invalid_index<IndexType>();
         }
         auto coo_idx = coo_row_ptrs[row];
         for (; col < num_cols; col++) {
@@ -393,7 +393,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; sellp_idx < sellp_end; sellp_idx += slice_size) {
-                col_idxs[sellp_idx] = 0;
+                col_idxs[sellp_idx] = invalid_index<IndexType>();
                 vals[sellp_idx] = zero<ValueType>();
             }
         }

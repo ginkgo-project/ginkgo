@@ -281,14 +281,12 @@ void Sellp<ValueType, IndexType>::write(mat_data& data) const
              row_in_slice++) {
             auto row = slice * slice_size + row_in_slice;
             if (row < tmp->get_size()[0]) {
-                for (size_type i = 0; i < tmp->get_const_slice_lengths()[slice];
-                     i++) {
-                    const auto val = tmp->val_at(
-                        row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                    if (is_nonzero(val)) {
-                        const auto col =
-                            tmp->col_at(row_in_slice,
-                                        tmp->get_const_slice_sets()[slice], i);
+                const auto slice_len = tmp->get_const_slice_lengths()[slice];
+                const auto slice_offset = tmp->get_const_slice_sets()[slice];
+                for (size_type i = 0; i < slice_len; i++) {
+                    const auto col = tmp->col_at(row_in_slice, slice_offset, i);
+                    const auto val = tmp->val_at(row_in_slice, slice_offset, i);
+                    if (col != invalid_index<IndexType>()) {
                         data.nonzeros.emplace_back(row, col, val);
                     }
                 }

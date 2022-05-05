@@ -36,7 +36,7 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     size_type num_rows, size_type num_right_hand_sides, size_type b_stride,
     size_type c_stride, size_type slice_size,
     const size_type* __restrict__ slice_sets, const ValueType* __restrict__ a,
-    const IndexType* __restrict__ col, const ValueType* __restrict__ b,
+    const IndexType* __restrict__ cols, const ValueType* __restrict__ b,
     ValueType* __restrict__ c)
 {
     const auto row = thread::get_thread_id_flat();
@@ -47,7 +47,10 @@ __global__ __launch_bounds__(default_block_size) void spmv_kernel(
     if (row < num_rows && column_id < num_right_hand_sides) {
         for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
             const auto ind = row_in_slice + i * slice_size;
-            val += a[ind] * b[col[ind] * b_stride + column_id];
+            const auto col = cols[ind];
+            if (col != invalid_index<IndexType>()) {
+                val += a[ind] * b[col * b_stride + column_id];
+            }
         }
         c[row * c_stride + column_id] = val;
     }
@@ -60,7 +63,7 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
     size_type c_stride, size_type slice_size,
     const size_type* __restrict__ slice_sets,
     const ValueType* __restrict__ alpha, const ValueType* __restrict__ a,
-    const IndexType* __restrict__ col, const ValueType* __restrict__ b,
+    const IndexType* __restrict__ cols, const ValueType* __restrict__ b,
     const ValueType* __restrict__ beta, ValueType* __restrict__ c)
 {
     const auto row = thread::get_thread_id_flat();
@@ -71,7 +74,10 @@ __global__ __launch_bounds__(default_block_size) void advanced_spmv_kernel(
     if (row < num_rows && column_id < num_right_hand_sides) {
         for (auto i = slice_sets[slice_id]; i < slice_sets[slice_id + 1]; i++) {
             const auto ind = row_in_slice + i * slice_size;
-            val += a[ind] * b[col[ind] * b_stride + column_id];
+            const auto col = cols[ind];
+            if (col != invalid_index<IndexType>()) {
+                val += a[ind] * b[col * b_stride + column_id];
+            }
         }
         c[row * c_stride + column_id] =
             beta[0] * c[row * c_stride + column_id] + alpha[0] * val;

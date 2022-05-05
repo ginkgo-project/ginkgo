@@ -486,7 +486,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_stride(); j++) {
             result->val_at(j, i) = zero<ValueType>();
-            result->col_at(j, i) = 0;
+            result->col_at(j, i) = invalid_index<IndexType>();
         }
     }
     size_type col_idx = 0;
@@ -571,28 +571,23 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
          i++) {
         for (size_type j = 0; j < result->get_ell_stride(); j++) {
             result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = 0;
+            result->ell_col_at(j, i) = invalid_index<IndexType>();
         }
-    }
-    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
-        coo_val[i] = zero<ValueType>();
-        coo_col[i] = 0;
-        coo_row[i] = 0;
     }
 
     size_type coo_idx = 0;
     for (size_type row = 0; row < num_rows; row++) {
-        size_type col_idx = 0, col = 0;
-        while (col < num_cols && col_idx < ell_lim) {
+        size_type col = 0;
+        for (size_type col_idx = 0; col < num_cols && col_idx < ell_lim;
+             col++) {
             auto val = source->at(row, col);
             if (is_nonzero(val)) {
                 result->ell_val_at(row, col_idx) = val;
                 result->ell_col_at(row, col_idx) = col;
                 col_idx++;
             }
-            col++;
         }
-        while (col < num_cols) {
+        for (; col < num_cols; col++) {
             auto val = source->at(row, col);
             if (is_nonzero(val)) {
                 coo_val[coo_idx] = val;
@@ -600,7 +595,6 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                 coo_row[coo_idx] = row;
                 coo_idx++;
             }
-            col++;
         }
     }
 }
@@ -635,7 +629,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (; sellp_ind < sellp_end; sellp_ind += slice_size) {
-            col_idxs[sellp_ind] = 0;
+            col_idxs[sellp_ind] = invalid_index<IndexType>();
             vals[sellp_ind] = zero<ValueType>();
         }
     }

@@ -109,7 +109,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         for (; ell_nz < ell_max_nnz; ell_nz++) {
-            result->ell_col_at(row, ell_nz) = 0;
+            result->ell_col_at(row, ell_nz) = invalid_index<IndexType>();
             result->ell_val_at(row, ell_nz) = zero<ValueType>();
         }
     }
@@ -139,11 +139,12 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     size_type coo_idx = 0;
     for (IndexType row = 0; row < source->get_size()[0]; row++) {
         // Ell part
-        for (IndexType col = 0; col < max_nnz_per_row; col++) {
-            const auto val = ell->val_at(row, col);
-            if (is_nonzero(val)) {
+        for (IndexType i = 0; i < max_nnz_per_row; i++) {
+            const auto val = ell->val_at(row, i);
+            const auto col = ell->col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
                 csr_val[csr_idx] = val;
-                csr_col_idxs[csr_idx] = ell->col_at(row, col);
+                csr_col_idxs[csr_idx] = col;
                 csr_idx++;
             }
         }
