@@ -413,7 +413,14 @@ public:
     {
         this->template log<log::Logger::linop_factory_generate_started>(
             this, input.get());
-        auto generated = AbstractFactory::generate(input);
+        const auto exec = this->get_executor();
+        std::unique_ptr<LinOp> generated;
+        if (input->get_executor() == exec) {
+            generated = this->AbstractFactory::generate(input);
+        } else {
+            generated =
+                this->AbstractFactory::generate(gko::clone(exec, input));
+        }
         this->template log<log::Logger::linop_factory_generate_completed>(
             this, input.get(), generated.get());
         return generated;
