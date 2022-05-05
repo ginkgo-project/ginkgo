@@ -225,14 +225,14 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_apply_end = gko::mpi::get_walltime();
 
-    // Compute the true residual, this is the same as in the non-distributed
-    // case.
+    // Compute the residual, this is done in the same way as in the
+    // non-distributed case.
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
     A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
-    auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(result));
+    auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
+    b_host->compute_norm2(lend(res_norm));
 
     // Take timings.
     comm.synchronize();
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
         // clang-format off
     std::cout << "\nNum rows in matrix: " << num_rows
               << "\nNum ranks: " << comm.size()
-              << "\nFinal Res norm: " << *result->get_values()
+              << "\nFinal Res norm: " << *res_norm->get_values()
               << "\nInit time: " << t_init_end - t_init
               << "\nRead time: " << t_read_setup_end - t_init
               << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
