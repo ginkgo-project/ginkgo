@@ -736,15 +736,15 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute(
 
 template <typename ValueType, typename IndexType>
 __global__
-__launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
-    const size_type num_rows, const size_type num_cols,
-    const size_type row_offset, const size_type col_offset,
-    const IndexType* __restrict__ source_row_ptrs,
-    const IndexType* __restrict__ source_col_idxs,
-    const ValueType* __restrict__ source_values,
-    const IndexType* __restrict__ result_row_ptrs,
-    IndexType* __restrict__ result_col_idxs,
-    ValueType* __restrict__ result_values)
+    __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
+        const size_type num_rows, const size_type num_cols,
+        const size_type row_offset, const size_type col_offset,
+        const IndexType* __restrict__ source_row_ptrs,
+        const IndexType* __restrict__ source_col_idxs,
+        const ValueType* __restrict__ source_values,
+        const IndexType* __restrict__ result_row_ptrs,
+        IndexType* __restrict__ result_col_idxs,
+        ValueType* __restrict__ result_values)
 {
     const auto res_row = thread::get_thread_id_flat();
     if (res_row < num_rows) {
@@ -766,10 +766,11 @@ __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
 
 template <typename IndexType>
 __global__
-__launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
-    const span row_span, const span col_span,
-    const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs, IndexType* __restrict__ nnz_per_row)
+    __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
+        const span row_span, const span col_span,
+        const IndexType* __restrict__ row_ptrs,
+        const IndexType* __restrict__ col_idxs,
+        IndexType* __restrict__ nnz_per_row)
 {
     const auto src_row = thread::get_thread_id_flat() + row_span.begin;
     if (src_row < row_span.end) {
@@ -922,10 +923,11 @@ template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     const IndexType* __restrict__ row_ptrs,
     const IndexType* __restrict__ col_idxs, size_type num_rows,
-    gko::matrix::sparsity_type allowed, int64* __restrict__ row_desc,
-    int32* __restrict__ storage)
+    gko::matrix::sparsity_type allowed, const IndexType* storage_offsets,
+    int64* __restrict__ row_desc, int32* __restrict__ storage)
 {
-    constexpr int block_size = 32;
+    constexpr int bitmap_block_size =
+        gko::matrix::device_sparsity_lookup<IndexType>::block_size;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     if (row >= num_rows) {
         return;
@@ -934,8 +936,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto row_begin = row_ptrs[row];
     const auto row_len = row_ptrs[row + 1] - row_begin;
-    const auto storage_begin = 2 * row_begin;
-    const auto available_storage = 2 * row_len;
+    const auto storage_begin = storage_offsets[row];
+    const auto available_storage = storage_offsets[row + 1] - storage_begin;
     const auto local_storage = storage + storage_begin;
     const auto local_cols = col_idxs + row_begin;
     const auto lane = subwarp.thread_rank();
@@ -945,18 +947,17 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
 
     // full column range
     if (col_range == row_len &&
-        ((static_cast<int>(allowed) &
-          static_cast<int>(matrix::sparsity_type::full)) != 0)) {
+        csr_lookup_allowed(allowed, matrix::sparsity_type::full)) {
         if (lane == 0) {
             row_desc[row] = static_cast<int>(matrix::sparsity_type::full);
         }
         return;
     }
     // dense bitmap storage
-    const auto num_blocks = static_cast<int>(ceildiv(col_range, block_size));
+    const auto num_blocks =
+        static_cast<int32>(ceildiv(col_range, bitmap_block_size));
     if (num_blocks * 2 <= available_storage &&
-        ((static_cast<int>(allowed) &
-          static_cast<int>(matrix::sparsity_type::bitmap)) != 0)) {
+        csr_lookup_allowed(allowed, matrix::sparsity_type::bitmap)) {
         if (lane == 0) {
             row_desc[row] = (static_cast<int64>(num_blocks) << 32) |
                             static_cast<int>(matrix::sparsity_type::bitmap);
@@ -971,10 +972,12 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         // fill bitmaps with sparsity pattern
         for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
             const auto i = base_i + lane;
-            const auto col = i < row_len ? local_cols[i] : INT_MAX;
+            const auto col = i < row_len
+                                 ? local_cols[i]
+                                 : device_numeric_limits<IndexType>::max;
             const auto rel_col = static_cast<int32>(col - min_col);
-            const auto block = rel_col / block_size;
-            const auto col_in_block = rel_col % block_size;
+            const auto block = rel_col / bitmap_block_size;
+            const auto col_in_block = rel_col % bitmap_block_size;
             auto local_bitmap = uint32{i < row_len ? 1u : 0u} << col_in_block;
             bool is_first =
                 segment_scan(subwarp, block, local_bitmap,
@@ -1003,6 +1006,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         return;
     }
     // sparse hashmap storage
+    // we need at least one unfilled entry to avoid infinite loops on search
+    GKO_ASSERT(row_len < available_storage);
     constexpr double inv_golden_ratio = 0.61803398875;
     // use golden ratio as approximation for hash parameter that spreads
     // consecutive values as far apart as possible. Ensure lowest bit is set
@@ -1014,7 +1019,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
                         static_cast<int>(matrix::sparsity_type::hash);
     }
     // fill hashmap with sentinel
-    constexpr int32 empty = -1;
+    constexpr int32 empty = invalid_index<int32>();
     for (int32 i = lane; i < available_storage; i += subwarp_size) {
         local_storage[i] = empty;
     }
@@ -1047,8 +1052,11 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
                 if (hash >= available_storage) {
                     hash -= available_storage;
                 }
-                // this can only fail for row_length < 16
-                assert(hash < available_storage);
+                // this could only fail for available_storage < warp_size, as
+                // popcnt(colliding) is at most warp_size. At the same time, we
+                // only increase hash by row_length at most, so this is still
+                // safe.
+                GKO_ASSERT(hash < available_storage);
                 entry = local_storage[hash];
             }
             colliding = subwarp.match_any(hash);
@@ -1077,13 +1085,15 @@ template <typename IndexType>
 void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
                   size_type num_rows, matrix::sparsity_type allowed,
-                  int64* row_desc, int32* storage)
+                  const IndexType* storage_offsets, int64* row_desc,
+                  int32* storage)
 {
     const auto num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     kernel::build_csr_lookup<config::warp_size>
         <<<num_blocks, default_block_size>>>(row_ptrs, col_idxs, num_rows,
-                                             allowed, row_desc, storage);
+                                             allowed, storage_offsets, row_desc,
+                                             storage);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
