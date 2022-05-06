@@ -61,7 +61,20 @@ namespace gko {
 namespace reorder {
 
 
-enum class reordering_strategy { max_diagonal_product, max_diagonal_sum };
+/**
+ * Strategy defining the goal of the MC64 reordering.
+ * max_diagonal_product and max_diagonal_product_fast aim at
+ * maximizing the product of absolute diagonal entries using
+ * the standard library or faster, approximate implementations
+ * for logarithm and exponential function computations.
+ * max_diag_sum aims at maximizing the sum of absolute values
+ * for the diagonal entries.
+ */
+enum class reordering_strategy {
+    max_diagonal_product,
+    max_diagonal_product_fast,
+    max_diagonal_sum
+};
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
@@ -84,7 +97,7 @@ public:
      *
      * @return the permutation (permutation matrix)
      */
-    std::shared_ptr<const PermutationMatrix> get_permutation() const
+    std::shared_ptr<const LinOp> get_permutation() const override
     {
         return permutation_;
     }
@@ -95,7 +108,7 @@ public:
      *
      * @return the inverse permutation (permutation matrix)
      */
-    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
+    std::shared_ptr<const LinOp> get_inverse_permutation() const override
     {
         return inv_permutation_;
     }
@@ -116,7 +129,7 @@ public:
          * This parameter controls the goal of the permutation.
          */
         reordering_strategy GKO_FACTORY_PARAMETER_SCALAR(
-            strategy, reordering_strategy::max_diagonal_product);
+            strategy, reordering_strategy::max_diagonal_product_fast);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Mc64, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -127,7 +140,7 @@ protected:
      * matrix.
      */
     void generate(std::shared_ptr<const Executor>& exec,
-                  std::shared_ptr<LinOp> system_matrix) const;
+                  std::shared_ptr<LinOp> system_matrix);
 
     explicit Mc64(std::shared_ptr<const Executor> exec)
         : EnablePolymorphicObject<Mc64, ReorderingBase>(std::move(exec))
@@ -148,28 +161,30 @@ protected:
         GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
 
         auto const dim = args.system_matrix->get_size();
-        permutation_ = PermutationMatrix::create(cpu_exec, dim);
-        inv_permutation_ = PermutationMatrix::create(cpu_exec, dim);
-        row_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
-        col_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
+        // permutation_ = PermutationMatrix::create(cpu_exec, dim);
+        // inv_permutation_ = PermutationMatrix::create(cpu_exec, dim);
+        // row_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
+        // col_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
 
         this->generate(cpu_exec, args.system_matrix);
 
         // Copy back results to gpu if necessary.
         if (is_gpu_executor) {
             const auto gpu_exec = this->get_executor();
-            auto gpu_perm = PermutationMatrix::create(gpu_exec, dim);
+            auto gpu_perm = share(PermutationMatrix::create(gpu_exec, dim));
             gpu_perm->copy_from(permutation_.get());
-            permutation_ = gko::share(gpu_perm);
-            auto gpu_inv_perm = PermutationMatrix::create(gpu_exec, dim);
+            permutation_ = gpu_perm;
+            auto gpu_inv_perm = share(PermutationMatrix::create(gpu_exec, dim));
             gpu_inv_perm->copy_from(inv_permutation_.get());
-            inv_permutation_ = gko::share(gpu_inv_perm);
-            auto gpu_row_scaling = DiagonalMatrix::create(gpu_exec, dim[0]);
+            inv_permutation_ = gpu_inv_perm;
+            auto gpu_row_scaling =
+                share(DiagonalMatrix::create(gpu_exec, dim[0]));
             gpu_row_scaling->copy_from(row_scaling_.get());
-            row_scaling_ = gko::share(gpu_row_scaling);
-            auto gpu_col_scaling = DiagonalMatrix::create(gpu_exec, dim[0]);
+            row_scaling_ = gpu_row_scaling;
+            auto gpu_col_scaling =
+                share(DiagonalMatrix::create(gpu_exec, dim[0]));
             gpu_col_scaling->copy_from(col_scaling_.get());
-            col_scaling_ = gko::share(gpu_col_scaling);
+            col_scaling_ = gpu_col_scaling;
         }
     }
 
