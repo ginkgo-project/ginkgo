@@ -419,7 +419,7 @@ inline void init_block_indices(const IndexType* rows_data,
                                const IndexType* cols_data,
                                const size_type block_size, const size_type blk,
                                const size_type shf, const uint8 type_blk,
-                               bool mul_row, bool col_8bits, bool col_16bits,
+                               bool& mul_row, bool& col_8bits, bool& col_16bits,
                                size_type& row_frs, size_type& col_frs,
                                size_type& shf_row, size_type& shf_col,
                                size_type& shf_val)
@@ -433,10 +433,13 @@ inline void init_block_indices(const IndexType* rows_data,
     shf_row = shf_col = shf;
     if (mul_row) shf_col += block_size;
     if (col_8bits) {
+        //				std::cout << " 8BITS" << std::endl;
         shf_val = shf_col + block_size;
     } else if (col_16bits) {
+        //				std::cout << "16BITS" << std::endl;
         shf_val = shf_col + block_size * 2;
     } else {
+        //				std::cout << "32BITS" << std::endl;
         shf_val = shf_col + block_size * 4;
     }
 }
@@ -457,13 +460,25 @@ inline void get_block_position_value(const uint8* chunk_data, bool mul_row,
         shf_row++;
     }
     if (col_8bits) {
+        //				std::cout << "A-BEFORE -> " << col <<
+        // std::endl;
         col += get_value_chunk<uint8>(chunk_data, shf_col);
+        //				std::cout << "A-LATER  -> " << col <<
+        // std::endl;
         shf_col++;
     } else if (col_16bits) {
+        //				std::cout << "B-BEFORE -> " << col <<
+        // std::endl;
         col += get_value_chunk<uint16>(chunk_data, shf_col);
+        //				std::cout << "B-LATER  -> " << col <<
+        // std::endl;
         shf_col += 2;
     } else {
+        //				std::cout << "C-BEFORE -> " << col <<
+        // std::endl;
         col += get_value_chunk<uint32>(chunk_data, shf_col);
+        //				std::cout << "C-LATER  -> " << col <<
+        // std::endl;
         shf_col += 4;
     }
     val = get_value_chunk<ValueType>(chunk_data, shf_val);

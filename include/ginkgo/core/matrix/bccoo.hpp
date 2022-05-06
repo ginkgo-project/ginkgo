@@ -166,8 +166,8 @@ public:
      }
      */
 
-    /*
     void move_to(Bccoo<ValueType, IndexType>* result) override;
+    /*
     {
         // converts *this to *result
     }

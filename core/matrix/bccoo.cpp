@@ -185,20 +185,30 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
      */
 
-    //		std::cout << "CONVERT_TO" << std::endl;
+    std::cout << "CONVERT_TO" << std::endl;
 
     auto exec = this->get_executor();
 
     gko::matrix::bccoo::compression compress_src = this->get_compression();
+    size_type block_size_src = this->get_block_size();
+
     gko::matrix::bccoo::compression compress_res = result->get_compression();
-    if (compress_res == matrix::bccoo::compression::def_value) {
-        exec->run(bccoo::make_get_default_compression(&compress_res));
+    size_type block_size_res = result->get_block_size();
+
+    if ((compress_res == matrix::bccoo::compression::def_value) &&
+        (block_size_res == 0)) {
+        block_size_res = block_size_src;
+        compress_res = compress_src;
+    } else {
+        if (compress_res == matrix::bccoo::compression::def_value) {
+            exec->run(bccoo::make_get_default_compression(&compress_res));
+        }
+
+        if (block_size_res == 0) {
+            exec->run(bccoo::make_get_default_block_size(&block_size_res));
+        }
     }
 
-    size_type block_size_res = result->get_block_size();
-    if (block_size_res == 0) {
-        exec->run(bccoo::make_get_default_block_size(&block_size_res));
-    }
     auto num_stored_elements = this->get_num_stored_elements();
     const auto num_blocks_res = ceildiv(num_stored_elements, block_size_res);
 
@@ -224,9 +234,10 @@ void Bccoo<ValueType, IndexType>::convert_to(
         exec->get_master()->run(bccoo::make_mem_size_bccoo(
             host_bccoo.get(), compress_res, block_size_res, &mem_size_res));
     }
+    // std::cout << "MEM_SIZE =" << mem_size_res << std::endl;
     /*
-        size_type mem_size_res = 0;
-        //    exec->run(bccoo::make_mem_size_bccoo(this, result->get(),
+       size_type mem_size_res = 0;
+       // exec->run(bccoo::make_mem_size_bccoo(this, result->get(),
        compress_res, exec->run(bccoo::make_mem_size_bccoo(this, compress_res,
        block_size_res, &mem_size_res));
     */
@@ -234,7 +245,18 @@ void Bccoo<ValueType, IndexType>::convert_to(
         exec, this->get_size(), num_stored_elements, block_size_res,
         mem_size_res, compress_res);
     exec->run(bccoo::make_convert_to_bccoo(this, tmp.get()));
-    tmp->move_to(result);
+
+    result->set_size(tmp->get_size());
+    result->rows_ = tmp->rows_;
+    result->cols_ = tmp->cols_;
+    result->types_ = tmp->types_;
+    result->offsets_ = tmp->offsets_;
+    result->chunk_ = tmp->chunk_;
+    result->block_size_ = tmp->block_size_;
+    result->num_nonzeros_ = tmp->num_nonzeros_;
+    result->compression_ = tmp->compression_;
+
+    //    tmp->move_to(result);
 
     /*
      // Modify mem_size_bccoo to consider different values of compression
@@ -267,9 +289,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
      //
      resource->get_compression();
      // auto exec = this->get_executor();
-     // gko::matrix::bccoo::compression compression =
-     //
-     this->get_compression();
+     // gko::matrix::bccoo::compression compression = this->get_compression();
      // size_type block_size = this->get_block_size();
      // size_type num_nonzeros = this->get_num_stored_elements();
      // size_type num_bytes = this->get_num_bytes();
@@ -284,15 +304,15 @@ void Bccoo<ValueType, IndexType>::convert_to(
      */
 }
 
-/*
+/* */
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 {
-                std::cout << "MOVE_TO" << std::endl;
+    std::cout << "MOVE_TO" << std::endl;
 
     this->convert_to(result);
 }
-*/
+/* */
 
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
@@ -394,9 +414,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
     auto exec_master = exec->get_master();
 
     // Block partitioning
-    size_type block_size = 0;
+    size_type block_size = this->get_block_size();
     size_type num_blocks = 0;
-    exec->run(bccoo::make_get_default_block_size(&block_size));
+    if (block_size == 0) {
+        exec->run(bccoo::make_get_default_block_size(&block_size));
+    }
     num_blocks = ceildiv(nnz, block_size);
 
     // Compression
@@ -542,12 +564,13 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                     blk_idxs.col_frs = elem.column;
                 }
                 blk_idxs.mul_row =
-                    blk_idxs.mul_row || (idxs.row != blk_idxs.row_frs);
-                if (idxs.col < blk_idxs.col_frs) {
-                    blk_idxs.col_dif += (blk_idxs.col_frs - idxs.col);
-                    blk_idxs.col_frs = idxs.col;
-                } else if (idxs.col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                    blk_idxs.col_dif = idxs.col - blk_idxs.col_frs;
+                    blk_idxs.mul_row || (elem.row != blk_idxs.row_frs);
+                if (elem.column < blk_idxs.col_frs) {
+                    blk_idxs.col_dif += (blk_idxs.col_frs - elem.column);
+                    blk_idxs.col_frs = elem.column;
+                } else if (elem.column >
+                           (blk_idxs.col_frs + blk_idxs.col_dif)) {
+                    blk_idxs.col_dif = elem.column - blk_idxs.col_frs;
                 }
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
@@ -605,25 +628,26 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                 cols_blk.get_data()[idxs.nblk] = elem.column;
                 vals_blk.get_data()[idxs.nblk] = elem.value;
                 blk_idxs.mul_row =
-                    blk_idxs.mul_row || (idxs.row != blk_idxs.row_frs);
-                if (idxs.col < blk_idxs.col_frs) {
-                    blk_idxs.col_dif += (blk_idxs.col_frs - idxs.col);
-                    blk_idxs.col_frs = idxs.col;
-                } else if (idxs.col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                    blk_idxs.col_dif = idxs.col - blk_idxs.col_frs;
+                    blk_idxs.mul_row || (elem.row != blk_idxs.row_frs);
+                if (elem.column < blk_idxs.col_frs) {
+                    blk_idxs.col_dif += (blk_idxs.col_frs - elem.column);
+                    blk_idxs.col_frs = elem.column;
+                } else if (elem.column >
+                           (blk_idxs.col_frs + blk_idxs.col_dif)) {
+                    blk_idxs.col_dif = elem.column - blk_idxs.col_frs;
                 }
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
                     // Counting bytes to write block on result
                     if (blk_idxs.mul_row) {
                         for (size_type j = 0; j < block_size; j++) {
-                            uint8 col_dif =
-                                cols_blk.get_data()[j] - blk_idxs.col_frs;
+                            uint8 row_dif =
+                                rows_blk.get_data()[j] - blk_idxs.row_frs;
                             set_value_chunk<uint8>(chunk_data, idxs.shf,
-                                                   col_dif);
+                                                   row_dif);
                             idxs.shf++;
                         }
-                        type_blk |= GKO_BCCOO_COLS_8BITS;
+                        type_blk |= GKO_BCCOO_ROWS_MULTIPLE;
                     }
                     if (blk_idxs.col_dif <= 0xFF) {
                         for (size_type j = 0; j < block_size; j++) {
@@ -662,7 +686,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                     rows_data[idxs.blk] = blk_idxs.row_frs;
                     cols_data[idxs.blk] = blk_idxs.col_frs;
                     types_data[idxs.blk] = type_blk;
-                    offsets_data[idxs.blk] = idxs.shf;
+                    offsets_data[idxs.blk + 1] = idxs.shf;
 
                     idxs.blk++;
                     idxs.nblk = 0;
@@ -674,11 +698,11 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             // Counting bytes to write block on result
             if (blk_idxs.mul_row) {
                 for (size_type j = 0; j < idxs.nblk; j++) {
-                    uint8 col_dif = cols_blk.get_data()[j] - blk_idxs.col_frs;
-                    set_value_chunk<uint8>(chunk_data, idxs.shf, col_dif);
+                    uint8 row_dif = rows_blk.get_data()[j] - blk_idxs.row_frs;
+                    set_value_chunk<uint8>(chunk_data, idxs.shf, row_dif);
                     idxs.shf++;
                 }
-                type_blk |= GKO_BCCOO_COLS_8BITS;
+                type_blk |= GKO_BCCOO_ROWS_MULTIPLE;
             }
             if (blk_idxs.col_dif <= 0xFF) {
                 for (size_type j = 0; j < idxs.nblk; j++) {
@@ -710,7 +734,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             rows_data[idxs.blk] = blk_idxs.row_frs;
             cols_data[idxs.blk] = blk_idxs.col_frs;
             types_data[idxs.blk] = type_blk;
-            offsets_data[idxs.blk] = idxs.shf;
+            offsets_data[idxs.blk + 1] = idxs.shf;
 
             idxs.blk++;
             idxs.nblk = 0;
@@ -719,7 +743,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         // Creation of the Bccoo object
         auto tmp =
             Bccoo::create(exec_master, data.size, std::move(chunk),
-                          std::move(offsets), std::move(rows), nnz, block_size);
+                          std::move(offsets), std::move(types), std::move(cols),
+                          std::move(rows), nnz, block_size);
         this->copy_from(std::move(tmp));
     }
 }
@@ -729,8 +754,11 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::write(mat_data& data) const
 {
     const IndexType* rows_data = this->get_const_rows();
+    const IndexType* cols_data = this->get_const_cols();
+    const uint8* types_data = this->get_const_types();
     const IndexType* offsets_data = this->get_const_offsets();
     const uint8* chunk_data = this->get_const_chunk();
+
     const size_type num_stored_elements = this->get_num_stored_elements();
     const size_type block_size = this->get_block_size();
     auto exec = this->get_executor();
@@ -748,15 +776,60 @@ void Bccoo<ValueType, IndexType>::write(mat_data& data) const
     // Creation of the data vector
     data = {this->get_size(), {}};
 
-    // Computation of chunk
-    size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
-    ValueType val;
-    for (size_type i = 0; i < num_stored_elements; i++) {
-        get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row, col);
-        uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-        get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-        data.nonzeros.emplace_back(row, col, val);
-        get_detect_endblock(block_size, nblk, blk);
+    if (tmp->use_element_compression()) {
+#ifdef USE_BCCOO_STRUCT
+        // Computation of chunk
+        compr_idxs idxs = {};
+        ValueType val;
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, idxs.nblk, idxs.blk,
+                                idxs.shf, idxs.row, idxs.col);
+            uint8 ind =
+                get_position_newrow(chunk_data, idxs.shf, idxs.row, idxs.col);
+            get_next_position_value(chunk_data, idxs.nblk, ind, idxs.shf,
+                                    idxs.col, val);
+            data.nonzeros.emplace_back(idxs.row, idxs.col, val);
+            get_detect_endblock(block_size, idxs.nblk, idxs.blk);
+        }
+#else
+        // Computation of chunk
+        size_type nblk = 0, blk = 0, col = 0, row = 0, shf = 0;
+        ValueType val;
+        for (size_type i = 0; i < num_stored_elements; i++) {
+            get_detect_newblock(rows_data, offsets_data, nblk, blk, shf, row,
+                                col);
+            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+            data.nonzeros.emplace_back(row, col, val);
+            get_detect_endblock(block_size, nblk, blk);
+        }
+#endif
+    } else {
+        compr_idxs idxs = {};
+        compr_blk_idxs blk_idxs = {};
+        ValueType val;
+        for (size_type i = 0; i < num_stored_elements; i += block_size) {
+            size_type block_size_local =
+                std::min(block_size, num_stored_elements - i);
+
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            for (size_type j = 0; j < block_size_local; j++) {
+                // Reading (row,col,val) from source
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data, blk_idxs.mul_row, blk_idxs.col_8bits,
+                    blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                    idxs.row, idxs.col, val, blk_idxs.shf_row, blk_idxs.shf_col,
+                    blk_idxs.shf_val);
+                // Writing (row,col,val) to result
+                data.nonzeros.emplace_back(idxs.row, idxs.col, val);
+            }
+            idxs.blk++;
+            idxs.shf = blk_idxs.shf_val;
+        }
     }
 }
 
