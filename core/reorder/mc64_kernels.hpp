@@ -55,7 +55,7 @@ namespace kernels {
 #define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType)  \
     void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,  \
                             const matrix::Csr<ValueType, IndexType>* mtx, \
-                            Array<remove_complex<ValueType>>& workspace,  \
+                            array<remove_complex<ValueType>>& workspace,  \
                             gko::reorder::reordering_strategy strategy)
 
 
@@ -63,35 +63,30 @@ namespace kernels {
     void initial_matching(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,  \
         const IndexType* row_ptrs, const IndexType* col_idxs,             \
-        const Array<ValueType>& workspace, Array<IndexType>& permutation, \
-        Array<IndexType>& inv_permutation,                                \
-        std::list<IndexType>& unmatched_rows)
+        const array<ValueType>& workspace, array<IndexType>& permutation, \
+        array<IndexType>& inv_permutation, array<IndexType>& parents)
 
 
 #define GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType) \
     void shortest_augmenting_path(                                             \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,       \
         const IndexType* row_ptrs, const IndexType* col_idxs,                  \
-        Array<ValueType>& workspace, Array<IndexType>& permutation,            \
-        Array<IndexType>& inv_permutation, IndexType root,                     \
-        Array<IndexType>& parents,                                             \
-        addressable_priority_queue<ValueType, IndexType, 2>& Q)
+        array<ValueType>& workspace, array<IndexType>& permutation,            \
+        array<IndexType>& inv_permutation, IndexType root,                     \
+        array<IndexType>& parents,                                             \
+        addressable_priority_queue<ValueType, IndexType, 2>& Q,                \
+        std::vector<IndexType>& q_j)
 
 
-#define GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType)   \
-    void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,   \
-                         const matrix::Csr<ValueType, IndexType>* mtx,  \
-                         Array<remove_complex<ValueType>>& workspace,   \
-                         gko::reorder::reordering_strategy strategy,    \
-                         gko::matrix::Diagonal<ValueType>* row_scaling, \
+#define GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType)       \
+    void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,       \
+                         const matrix::Csr<ValueType, IndexType>* mtx,      \
+                         const array<remove_complex<ValueType>>& workspace, \
+                         const array<IndexType>& permutation,               \
+                         const array<IndexType>& parents,                   \
+                         gko::reorder::reordering_strategy strategy,        \
+                         gko::matrix::Diagonal<ValueType>* row_scaling,     \
                          gko::matrix::Diagonal<ValueType>* col_scaling)
-
-
-#define GKO_DECLARE_MC64_UPDATE_DUAL_VECTORS_KERNEL(ValueType, IndexType) \
-    void update_dual_vectors(                                             \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,  \
-        const IndexType* row_ptrs, const IndexType* col_idxs,             \
-        const Array<IndexType>& permutation, Array<ValueType>& workspace)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
@@ -102,9 +97,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_MC64_UPDATE_DUAL_VECTORS_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(mc64, GKO_DECLARE_ALL_AS_TEMPLATES);

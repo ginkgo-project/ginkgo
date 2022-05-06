@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_ADRESSABLE_PQ_HPP_
 
 
-#include <deque>
 #include <vector>
 
 
@@ -100,12 +99,9 @@ struct addressable_priority_queue {
     {
         swap(0, size() - 1);
         m_keys.pop_back();
-        auto val = m_values.back();
         m_values.pop_back();
         auto old_handle = m_handles.back();
         m_handles.pop_back();
-        m_free_handles.push_front(old_handle);
-        m_handle_pos[old_handle] = invalid_handle;
         sift_down(0);
     }
 
@@ -121,11 +117,10 @@ struct addressable_priority_queue {
         m_values.clear();
         m_handles.clear();
         m_handle_pos.clear();
-        m_free_handles.clear();
     }
 
 private:
-    constexpr static int degree = 1 << Degree_Log2;
+    constexpr static int degree = 1 << 4;       // Degree_Log2;
     constexpr static auto invalid_handle = -1;  //((std::size_t)-1);
 
     std::size_t parent(std::size_t i) const { return (i - 1) / degree; }
@@ -144,9 +139,10 @@ private:
     {
         auto cur = i;
         while (first_child(cur) < size()) {
-            auto begin = m_keys.begin() + first_child(cur);
-            auto end = m_keys.begin() + std::min(first_child(cur + 1), size());
-            auto it = std::min_element(begin, end);
+            const auto begin = m_keys.begin() + first_child(cur);
+            const auto end =
+                m_keys.begin() + std::min(first_child(cur + 1), size());
+            const auto it = std::min_element(begin, end);
             if (m_keys[cur] <= *it) {
                 break;
             }
@@ -168,22 +164,12 @@ private:
         }
     }
 
-    std::size_t next_handle()
-    {
-        if (m_free_handles.empty()) {
-            return m_handle_pos.size();
-        } else {
-            auto next = m_free_handles.back();
-            m_free_handles.pop_back();
-            return next;
-        }
-    }
+    std::size_t next_handle() const { return m_handle_pos.size(); }
 
     std::vector<KeyType> m_keys;
     std::vector<ValueType> m_values;
     std::vector<std::size_t> m_handles;
     std::vector<std::size_t> m_handle_pos;
-    std::deque<std::size_t> m_free_handles;
 };
 
 
