@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/mc64.hpp>
 
 
+#include <chrono>
 #include <memory>
 
 
@@ -62,7 +63,6 @@ GKO_REGISTER_OPERATION(initial_matching, mc64::initial_matching);
 GKO_REGISTER_OPERATION(shortest_augmenting_path,
                        mc64::shortest_augmenting_path);
 GKO_REGISTER_OPERATION(compute_scaling, mc64::compute_scaling);
-GKO_REGISTER_OPERATION(update_dual_vectors, mc64::update_dual_vectors);
 
 
 }  // anonymous namespace
@@ -70,57 +70,70 @@ GKO_REGISTER_OPERATION(update_dual_vectors, mc64::update_dual_vectors);
 
 
 template <typename ValueType, typename IndexType>
-void Mc64<ValueType, IndexType>::generate(
-    std::shared_ptr<const Executor>& exec,
-    std::shared_ptr<LinOp> system_matrix) const
+void Mc64<ValueType, IndexType>::generate(std::shared_ptr<const Executor>& exec,
+                                          std::shared_ptr<LinOp> system_matrix)
 {
     auto mtx = as<matrix_type>(system_matrix);
     size_type num_rows = mtx->get_size()[0];
     size_type nnz = mtx->get_num_stored_elements();
 
-    Array<remove_complex<ValueType>> workspace{exec};
-    Array<IndexType> permutation{exec, num_rows};
-    Array<IndexType> inv_permutation{exec, num_rows};
+    array<remove_complex<ValueType>> workspace{exec, nnz + 3 * num_rows};
+    array<IndexType> permutation{exec, num_rows};
+    array<IndexType> inv_permutation{exec, num_rows};
     permutation.fill(-one<IndexType>());
     inv_permutation.fill(-one<IndexType>());
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
 
+    // auto tic = std::chrono::high_resolution_clock::now();
     exec->run(mc64::make_initialize_weights(mtx.get(), workspace,
                                             parameters_.strategy));
+    // auto toc = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double> duration = toc - tic;
+    // std::cout << "INIT: " << duration.count() << std::endl;
 
-    std::list<IndexType> unmatched_rows{};
+    // tic = std::chrono::high_resolution_clock::now();
+    array<IndexType> parents{exec, 6 * num_rows};
+    parents.fill(0);
     exec->run(mc64::make_initial_matching(num_rows, row_ptrs, col_idxs,
                                           workspace, permutation,
-                                          inv_permutation, unmatched_rows));
+                                          inv_permutation, parents));
+    // toc = std::chrono::high_resolution_clock::now();
+    // duration = toc - tic;
+    // std::cout << "INITIAL MATCHING: " << duration.count() << std::endl;
 
-    // exec->run(mc64::make_update_dual_vectors(num_rows, row_ptrs, col_idxs,
-    // permutation, workspace));
-
-    Array<IndexType> parents{exec, 4 * num_rows};
+    // tic = std::chrono::high_resolution_clock::now();
     addressable_priority_queue<remove_complex<ValueType>, IndexType, 2> Q{};
-    parents.fill(-2);
-    for (auto root : unmatched_rows) {
-        exec->run(mc64::make_shortest_augmenting_path(
-            num_rows, row_ptrs, col_idxs, workspace, permutation,
-            inv_permutation, root, parents, Q));
+    std::vector<IndexType> q_j{};
+    const auto unmatched = parents.get_data() + 5 * num_rows;
+    auto um = 0;
+    auto root = unmatched[um];
+    while (root != 0 && um < num_rows) {
+        if (root != -1)
+            exec->run(mc64::make_shortest_augmenting_path(
+                num_rows, row_ptrs, col_idxs, workspace, permutation,
+                inv_permutation, root, parents, Q, q_j));
+        root = unmatched[++um];
     }
-    // std::cout << "\n";
-    permutation_->copy_from(
-        PermutationMatrix::create(
-            exec, system_matrix->get_size(), permutation,
-            gko::matrix::row_permute | matrix::inverse_permute)
-            .get());
-    inv_permutation_->copy_from(
-        share(PermutationMatrix::create(exec, system_matrix->get_size(),
-                                        inv_permutation,
-                                        matrix::column_permute))
-            .get());
-    row_scaling_->copy_from(DiagonalMatrix::create(exec, num_rows));
-    col_scaling_->copy_from(DiagonalMatrix::create(exec, num_rows));
-    exec->run(
-        mc64::make_compute_scaling(mtx.get(), workspace, parameters_.strategy,
-                                   row_scaling_.get(), col_scaling_.get()));
+    // toc = std::chrono::high_resolution_clock::now();
+    // duration = toc - tic;
+    // std::cout << "SAP: " << duration.count() << std::endl;
+
+    permutation_ = std::move(share(PermutationMatrix::create(
+        exec, system_matrix->get_size(), permutation,
+        gko::matrix::row_permute | matrix::inverse_permute)));
+    inv_permutation_ = std::move(share(
+        PermutationMatrix::create(exec, system_matrix->get_size(),
+                                  inv_permutation, matrix::column_permute)));
+    row_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
+    col_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
+    // tic = std::chrono::high_resolution_clock::now();
+    exec->run(mc64::make_compute_scaling(
+        mtx.get(), workspace, permutation, parents, parameters_.strategy,
+        row_scaling_.get(), col_scaling_.get()));
+    // toc = std::chrono::high_resolution_clock::now();
+    // duration = toc - tic;
+    // std::cout << "SCALING: " << duration.count() << std::endl;
 }
 
 
