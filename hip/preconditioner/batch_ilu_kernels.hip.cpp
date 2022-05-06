@@ -96,8 +96,8 @@ void apply_split(std::shared_ptr<const DefaultExecutor> exec,
     const auto l_ub = get_batch_struct(l);
     const auto u_ub = get_batch_struct(u);
     using hip_value_type = hip_type<ValueType>;
-    using trsv_type = BatchExactTrsvSeparate<hip_value_type>;
-    using prec_type = BatchIluSplit<hip_value_type, trsv_type>;
+    using trsv_type = batch_exact_trsv_split<hip_value_type>;
+    using prec_type = batch_ilu_split<hip_value_type, trsv_type>;
     prec_type prec(l_ub, u_ub, trsv_type());
     hipLaunchKernelGGL(apply, nbatch, default_block_size, 0, 0, prec, nbatch,
                        num_rows, as_hip_type(r->get_const_values()),
