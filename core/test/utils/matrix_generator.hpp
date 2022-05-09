@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <random>
 #include <type_traits>
-#include <unordered_set>
 #include <vector>
 
 
@@ -175,8 +174,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param lower_triangular  `true` generates a lower triangular matrix,
@@ -271,11 +269,20 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
  * @tparam MatrixType  type of matrix to generate (must implement
  *                     the interface `ReadableFromMatrixData<>` and provide
  *                     matching `value_type` and `index_type` type aliases)
+ * @tparam NonzeroDistribution  type of nonzero distribution
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
  *
+ * @param size  number of rows and columns
+ * @param ones_on_diagonal  `true` generates only ones on the diagonal,
+ *                          `false` generates random values on the diagonal
+ * @param lower_triangular  `true` generates a lower triangular matrix,
+ *                          `false` an upper triangular matrix
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
- *
- * The other (template) parameters match generate_random_triangular_matrix_data.
  *
  * @return the unique pointer of MatrixType
  */
@@ -309,8 +316,7 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
  * @tparam Engine  type of random engine
  * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param nonzero_dist  distribution of nonzeros per row
@@ -345,8 +351,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
  * @tparam Engine  type of random engine
  * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param nonzero_dist  distribution of nonzeros per row
