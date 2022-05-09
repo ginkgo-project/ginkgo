@@ -49,54 +49,29 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_KERNEL(_type)                          \
-    void initialize(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Dense<_type>* b, matrix::Dense<_type>* residual,      \
-        matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
-        array<stopping_status>& stop_status)
-
-
 #define GKO_DECLARE_GMRES_RESTART_KERNEL(_type)                       \
     void restart(std::shared_ptr<const DefaultExecutor> exec,         \
                  const matrix::Dense<_type>* residual,                \
                  matrix::Dense<remove_complex<_type>>* residual_norm, \
                  matrix::Dense<_type>* residual_norm_collection,      \
                  matrix::Dense<_type>* krylov_bases,                  \
-                 array<size_type>& final_iter_nums)
+                 size_type* final_iter_nums)
 
 
-#define GKO_DECLARE_GMRES_HESSENBERG_QR_KERNEL(_type)                         \
-    void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,           \
-                       matrix::Dense<_type>* givens_sin,                      \
-                       matrix::Dense<_type>* givens_cos,                      \
-                       matrix::Dense<remove_complex<_type>>* residual_norm,   \
-                       matrix::Dense<_type>* residual_norm_collection,        \
-                       matrix::Dense<_type>* hessenberg_iter, size_type iter, \
-                       array<size_type>& final_iter_nums,                     \
-                       const array<stopping_status>& stop_status)
+#define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)               \
+    void multi_axpy(std::shared_ptr<const DefaultExecutor> exec, \
+                    const matrix::Dense<_type>* krylov_bases,    \
+                    const matrix::Dense<_type>* y,               \
+                    matrix::Dense<_type>* before_preconditioner, \
+                    const size_type* final_iter_nums,            \
+                    stopping_status* stop_status)
 
 
-#define GKO_DECLARE_GMRES_SOLVE_KRYLOV_KERNEL(_type)                        \
-    void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,          \
-                      const matrix::Dense<_type>* residual_norm_collection, \
-                      const matrix::Dense<_type>* krylov_bases,             \
-                      const matrix::Dense<_type>* hessenberg,               \
-                      matrix::Dense<_type>* y,                              \
-                      matrix::Dense<_type>* before_preconditioner,          \
-                      const array<size_type>& final_iter_nums,              \
-                      array<stopping_status>& stop_status)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                   \
-    template <typename ValueType>                      \
-    GKO_DECLARE_GMRES_INITIALIZE_KERNEL(ValueType);    \
-    template <typename ValueType>                      \
-    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);       \
-    template <typename ValueType>                      \
-    GKO_DECLARE_GMRES_HESSENBERG_QR_KERNEL(ValueType); \
-    template <typename ValueType>                      \
-    GKO_DECLARE_GMRES_SOLVE_KRYLOV_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES             \
+    template <typename ValueType>                \
+    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType); \
+    template <typename ValueType>                \
+    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType)
 
 
 }  // namespace gmres

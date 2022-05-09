@@ -74,6 +74,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
+#include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
@@ -437,13 +438,22 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);
 }  // namespace cgs
 
 
+namespace common_gmres {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL);
+
+
+}  // namespace common_gmres
+
+
 namespace gmres {
 
 
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_GMRES_HESSENBERG_QR_KERNEL);
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_GMRES_SOLVE_KRYLOV_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
 
 
 }  // namespace gmres

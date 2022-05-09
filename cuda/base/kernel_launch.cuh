@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/tuple.h>
 
 
+#include "accessor/cuda_helper.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/thread_ids.cuh"
 
@@ -46,6 +47,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
+template <typename AccessorType>
+struct to_device_type_impl<gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(gko::acc::as_cuda_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_cuda_range(range);
+    }
+};
+
+template <typename AccessorType>
+struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(gko::acc::as_cuda_range(
+        std::declval<gko::acc::range<AccessorType>>()))>;
+    static type map_to_device(const gko::acc::range<AccessorType>& range)
+    {
+        return gko::acc::as_cuda_range(range);
+    }
+};
 
 
 namespace device_std = thrust;

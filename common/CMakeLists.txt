@@ -20,6 +20,7 @@ set(UNIFIED_SOURCES
     solver/bicgstab_kernels.cpp
     solver/cg_kernels.cpp
     solver/cgs_kernels.cpp
+    solver/common_gmres_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
     solver/ir_kernels.cpp
