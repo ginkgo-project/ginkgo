@@ -4,8 +4,8 @@ project(custom-matrix-format CXX CUDA)
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.5.0 REQUIRED)
-    find_package(OpenMP 3.0 REQUIRED)
 endif()
+find_package(OpenMP 3.0 REQUIRED)
 
 if(NOT (GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP))
     message(FATAL_ERROR
