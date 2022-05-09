@@ -112,48 +112,51 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_size()[1];
 
-    array<char> reduction_tmp{exec};
+    auto r = this->create_workspace_with_config_of(0, dense_b);
+    auto r_tld = this->create_workspace_with_config_of(1, dense_b);
+    auto p = this->create_workspace_with_config_of(2, dense_b);
+    auto q = this->create_workspace_with_config_of(3, dense_b);
+    auto u = this->create_workspace_with_config_of(4, dense_b);
+    auto u_hat = this->create_workspace_with_config_of(5, dense_b);
+    auto v_hat = this->create_workspace_with_config_of(6, dense_b);
+    auto t = this->create_workspace_with_config_of(7, dense_b);
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto alpha =
+        this->template create_workspace_scalar<ValueType>(8, num_vectors);
+    auto beta =
+        this->template create_workspace_scalar<ValueType>(9, num_vectors);
+    auto gamma =
+        this->template create_workspace_scalar<ValueType>(10, num_vectors);
+    auto rho_prev =
+        this->template create_workspace_scalar<ValueType>(11, num_vectors);
+    auto rho =
+        this->template create_workspace_scalar<ValueType>(12, num_vectors);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto r_tld = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
-    auto u = Vector::create_with_config_of(dense_b);
-    auto u_hat = Vector::create_with_config_of(dense_b);
-    auto v_hat = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto gamma = Vector::create_with_config_of(alpha.get());
-    auto rho_prev = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
+    auto one_op = this->template create_workspace_scalar<ValueType>(13, 1);
+    auto neg_one_op = this->template create_workspace_scalar<ValueType>(14, 1);
+    one_op->fill(one<ValueType>());
+    neg_one_op->fill(-one<ValueType>());
 
     bool one_changed{};
-    array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    auto& stop_status =
+        this->template create_workspace_array<stopping_status>(0, num_vectors);
+    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(cgs::make_initialize(
-        dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
-        v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
-        rho_prev.get(), rho.get(), &stop_status));
+    exec->run(cgs::make_initialize(dense_b, r, r_tld, p, q, u, u_hat, v_hat, t,
+                                   alpha, beta, gamma, rho_prev, rho,
+                                   &stop_status));
     // r = dense_b
     // r_tld = r
     // rho = 0.0
     // rho_prev = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
-    r_tld->copy_from(r.get());
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
+    r_tld->copy_from(r);
 
     int iter = -1;
     /* Memory movement summary:
@@ -167,15 +170,15 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        r->compute_conj_dot(r_tld.get(), rho.get(), reduction_tmp);
+        r->compute_conj_dot(r_tld, rho, reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
+            this, iter, r, dense_x, nullptr, rho);
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -184,25 +187,22 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // beta = rho / rho_prev
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
-        exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), rho_prev.get(),
-                                   &stop_status));
-        this->get_preconditioner()->apply(p.get(), t.get());
-        this->get_system_matrix()->apply(t.get(), v_hat.get());
-        r_tld->compute_conj_dot(v_hat.get(), gamma.get(), reduction_tmp);
+        exec->run(
+            cgs::make_step_1(r, u, p, q, beta, rho, rho_prev, &stop_status));
+        this->get_preconditioner()->apply(p, t);
+        this->get_system_matrix()->apply(t, v_hat);
+        r_tld->compute_conj_dot(v_hat, gamma, reduction_tmp);
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
-                                   alpha.get(), rho.get(), gamma.get(),
-                                   &stop_status));
+        exec->run(
+            cgs::make_step_2(u, v_hat, q, t, alpha, rho, gamma, &stop_status));
 
-        this->get_preconditioner()->apply(t.get(), u_hat.get());
-        this->get_system_matrix()->apply(u_hat.get(), t.get());
+        this->get_preconditioner()->apply(t, u_hat);
+        this->get_system_matrix()->apply(u_hat, t);
         // r = r - alpha * t
         // x = x + alpha * u_hat
-        exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
-                                   alpha.get(), &stop_status));
+        exec->run(cgs::make_step_3(t, u_hat, r, dense_x, alpha, &stop_status));
 
         swap(rho_prev, rho);
     }

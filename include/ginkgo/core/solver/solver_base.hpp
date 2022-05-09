@@ -179,6 +179,18 @@ protected:
     }
 
     template <typename VectorType>
+    VectorType* create_workspace(int vector_id, gko::dim<2> size) const
+    {
+        return workspace_.template create_or_get_vector<VectorType>(
+            vector_id,
+            [&] {
+                return VectorType::create(this->workspace_.get_executor(),
+                                          size);
+            },
+            typeid(VectorType), size, size[1]);
+    }
+
+    template <typename VectorType>
     VectorType* create_workspace_with_config_of(int vector_id,
                                                 const VectorType* vec) const
     {
@@ -193,7 +205,11 @@ protected:
                                               dim<2> size) const
     {
         return workspace_.template create_or_get_vector<VectorType>(
-            vector_id, [&] { return VectorType::create_with_type_of(vec); },
+            vector_id,
+            [&] {
+                return VectorType::create_with_type_of(
+                    vec, workspace_.get_executor(), size, size[1]);
+            },
             typeid(*vec), size, size[1]);
     }
 
@@ -212,7 +228,7 @@ protected:
     }
 
     template <typename ValueType>
-    Array<ValueType>& create_workspace_array(int array_id, size_type size) const
+    array<ValueType>& create_workspace_array(int array_id, size_type size) const
     {
         return workspace_.template create_or_get_array<ValueType>(array_id,
                                                                   size);

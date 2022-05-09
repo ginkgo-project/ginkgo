@@ -110,31 +110,36 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     auto exec = this->get_executor();
 
-    array<char> reduction_tmp{exec};
+    auto r = this->create_workspace_with_config_of(0, dense_b);
+    auto z = this->create_workspace_with_config_of(1, dense_b);
+    auto p = this->create_workspace_with_config_of(2, dense_b);
+    auto q = this->create_workspace_with_config_of(3, dense_b);
+    auto t = this->create_workspace_with_config_of(4, dense_b);
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    auto alpha = this->template create_workspace_scalar<ValueType>(
+        5, dense_b->get_size()[1]);
+    auto beta = this->template create_workspace_scalar<ValueType>(
+        6, dense_b->get_size()[1]);
+    auto prev_rho = this->template create_workspace_scalar<ValueType>(
+        7, dense_b->get_size()[1]);
+    auto rho = this->template create_workspace_scalar<ValueType>(
+        8, dense_b->get_size()[1]);
+    auto rho_t = this->template create_workspace_scalar<ValueType>(
+        9, dense_b->get_size()[1]);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
-    auto rho_t = Vector::create_with_config_of(alpha.get());
+    auto one_op = this->template create_workspace_scalar<ValueType>(10, 1);
+    auto neg_one_op = this->template create_workspace_scalar<ValueType>(11, 1);
+    one_op->fill(one<ValueType>());
+    neg_one_op->fill(-one<ValueType>());
 
     bool one_changed{};
-    array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    auto& stop_status = this->template create_workspace_array<stopping_status>(
+        0, dense_b->get_size()[1]);
+    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
 
     // TODO: replace this with automatic merged kernel generator
-    exec->run(fcg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
-                                   t.get(), prev_rho.get(), rho.get(),
-                                   rho_t.get(), &stop_status));
+    exec->run(fcg::make_initialize(dense_b, r, z, p, q, t, prev_rho, rho, rho_t,
+                                   &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
@@ -142,12 +147,10 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // rho_t = 1.0
     // z = p = q = 0
 
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
     int iter = -1;
     /* Memory movement summary:
@@ -160,17 +163,17 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        this->get_preconditioner()->apply(r.get(), z.get());
-        r->compute_conj_dot(z.get(), rho.get(), reduction_tmp);
-        t->compute_conj_dot(z.get(), rho_t.get(), reduction_tmp);
+        this->get_preconditioner()->apply(r, z);
+        r->compute_conj_dot(z, rho, reduction_tmp);
+        t->compute_conj_dot(z, rho_t, reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
+            this, iter, r, dense_x, nullptr, rho);
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -178,17 +181,16 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
-        exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
-                                   prev_rho.get(), &stop_status));
-        this->get_system_matrix()->apply(p.get(), q.get());
-        p->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
+        exec->run(fcg::make_step_1(p, z, rho_t, prev_rho, &stop_status));
+        this->get_system_matrix()->apply(p, q);
+        p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
-                                   beta.get(), rho.get(), &stop_status));
+        exec->run(
+            fcg::make_step_2(dense_x, r, t, p, q, beta, rho, &stop_status));
         swap(prev_rho, rho);
     }
 }

@@ -46,18 +46,18 @@ namespace detail {
 
 
 /**
- * Type-erased object storing any kind of gko::Array
+ * Type-erased object storing any kind of gko::array
  */
 class any_array {
 public:
     template <typename ValueType>
-    Array<ValueType> init(std::shared_ptr<const Executor> exec, size_type size)
+    array<ValueType>& init(std::shared_ptr<const Executor> exec, size_type size)
     {
         auto container = std::make_unique<concrete_container<ValueType>>(
             std::move(exec), size);
-        auto& array = container->array;
+        auto& arr = container->arr;
         data_ = std::move(container);
-        return array;
+        return arr;
     }
 
     bool empty() const { return data_.get() == nullptr; }
@@ -69,18 +69,18 @@ public:
     }
 
     template <typename ValueType>
-    Array<ValueType>& get()
+    array<ValueType>& get()
     {
         GKO_ASSERT(this->template contains<ValueType>());
-        return dynamic_cast<concrete_container<ValueType>*>(data_.get())->array;
+        return dynamic_cast<concrete_container<ValueType>*>(data_.get())->arr;
     }
 
     template <typename ValueType>
-    const Array<ValueType>& get() const
+    const array<ValueType>& get() const
     {
         GKO_ASSERT(this->template contains<ValueType>());
         return dynamic_cast<const concrete_container<ValueType>*>(data_.get())
-            ->array;
+            ->arr;
     }
 
 private:
@@ -91,10 +91,10 @@ private:
     template <typename ValueType>
     struct concrete_container : generic_container {
         template <typename... Args>
-        concrete_container(Args&&... args) : array{std::forward<Args>(args)...}
+        concrete_container(Args&&... args) : arr{std::forward<Args>(args)...}
         {}
 
-        Array<ValueType> array;
+        array<ValueType> arr;
     };
 
     std::unique_ptr<generic_container> data_;
@@ -156,7 +156,7 @@ public:
     }
 
     template <typename ValueType>
-    Array<ValueType>& create_or_get_array(int array_id, size_type size)
+    array<ValueType>& create_or_get_array(int array_id, size_type size)
     {
         if (array_id >= arrays_.size()) {
             arrays_.resize(array_id + 1);
