@@ -111,8 +111,6 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     auto exec = this->get_executor();
 
-    array<char> reduction_tmp{exec};
-
     auto r = this->create_workspace_with_config_of(vector_residual, dense_b);
     auto z = this->create_workspace_with_config_of(
         vector_preconditioned_residual, dense_b);
@@ -140,6 +138,7 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         0, dense_b->get_size()[1]);
+    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
 
     // TODO: replace this with automatic merged kernel generator
     exec->run(

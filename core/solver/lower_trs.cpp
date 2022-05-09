@@ -159,22 +159,19 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
             bool do_transpose = false;
-            std::shared_ptr<Vector> trans_b;
-            std::shared_ptr<Vector> trans_x;
+            Vector* trans_b{};
+            Vector* trans_x{};
             this->get_executor()->run(
                 lower_trs::make_should_perform_transpose(do_transpose));
             if (do_transpose) {
-                trans_b =
-                    Vector::create(exec, gko::transpose(dense_b->get_size()));
-                trans_x =
-                    Vector::create(exec, gko::transpose(dense_x->get_size()));
-            } else {
-                trans_b = Vector::create(exec);
-                trans_x = Vector::create(exec);
+                trans_b = this->template create_workspace<Vector>(
+                    0, gko::transpose(dense_b->get_size()));
+                trans_x = this->template create_workspace<Vector>(
+                    1, gko::transpose(dense_x->get_size()));
             }
-            exec->run(lower_trs::make_solve(
-                lend(this->get_system_matrix()), lend(this->solve_struct_),
-                lend(trans_b), lend(trans_x), dense_b, dense_x));
+            exec->run(lower_trs::make_solve(lend(this->get_system_matrix()),
+                                            lend(this->solve_struct_), trans_b,
+                                            trans_x, dense_b, dense_x));
         },
         b, x);
 }

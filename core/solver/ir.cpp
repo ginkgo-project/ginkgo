@@ -176,19 +176,22 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto inner_solution = Vector::create_with_config_of(dense_b);
+    auto residual = this->create_workspace_with_config_of(0, dense_b);
+    auto inner_solution = this->create_workspace_with_config_of(1, dense_b);
+
+    auto one_op = this->template create_workspace_scalar<ValueType>(2, 1);
+    auto neg_one_op = this->template create_workspace_scalar<ValueType>(3, 1);
+    one_op->fill(one<ValueType>());
+    neg_one_op->fill(-one<ValueType>());
 
     bool one_changed{};
-    array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    auto& stop_status = this->template create_workspace_array<stopping_status>(
+        0, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                     lend(residual));
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -198,12 +201,12 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, lend(residual), dense_x);
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            residual, dense_x);
 
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(lend(residual))
+                .residual(residual)
                 .solution(dense_x)
                 .check(relative_stopping_id, true, &stop_status,
                        &one_changed)) {
@@ -214,25 +217,24 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(lend(residual));
-            solver_->apply(lend(residual), lend(inner_solution));
+            inner_solution->copy_from(residual);
+            solver_->apply(residual, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+            dense_x->add_scaled(relaxation_factor_.get(), inner_solution);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), lend(residual),
-                           lend(one_op), dense_x);
+            solver_->apply(relaxation_factor_.get(), residual, one_op, dense_x);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
         }
     }
 }
