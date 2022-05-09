@@ -10,6 +10,7 @@ target_sources(ginkgo_reference
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
+    components/sparse_bitset_kernels.cpp
     distributed/partition_kernels.cpp
     factorization/cholesky_kernels.cpp
     factorization/factorization_kernels.cpp

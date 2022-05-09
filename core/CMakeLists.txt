@@ -12,6 +12,7 @@ target_sources(ginkgo
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
+    components/sparse_bitset.cpp
     distributed/partition.cpp
     factorization/elimination_forest.cpp
     factorization/ic.cpp

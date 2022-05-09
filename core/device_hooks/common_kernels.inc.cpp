@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/components/sparse_bitset_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -213,6 +214,18 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
 
 
 }  // namespace components
+
+
+namespace sparse_bitset {
+
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_SPARSE_BITSET_SORT_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_SPARSE_BITSET_BUILD_BITMAP_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_SPARSE_BITSET_BUILD_BITMAP_RANKS_KERNEL);
+GKO_STUB_LOCAL_GLOBAL_TYPE(GKO_DECLARE_SPARSE_BITSET_BUILD_MULTILEVEL_KERNEL);
+
+
+}  // namespace sparse_bitset
 
 
 namespace idx_set {

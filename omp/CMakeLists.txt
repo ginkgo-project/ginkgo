@@ -7,6 +7,7 @@ target_sources(ginkgo_omp
     base/index_set_kernels.cpp
     base/version.cpp
     components/prefix_sum_kernels.cpp
+    components/sparse_bitset_kernels.cpp
     distributed/partition_kernels.cpp
     factorization/cholesky_kernels.cpp
     factorization/factorization_kernels.cpp

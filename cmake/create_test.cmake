@@ -116,7 +116,7 @@ function(ginkgo_create_cuda_test test_name)
 endfunction(ginkgo_create_cuda_test)
 
 function(ginkgo_create_hip_test test_name)
-ginkgo_build_test_name(${test_name} test_target_name)
+    ginkgo_build_test_name(${test_name} test_target_name)
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
     set(GINKGO_TEST_HIP_DEFINES)
     if (GINKGO_FAST_TESTS)

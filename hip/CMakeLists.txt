@@ -164,6 +164,7 @@ set(GINKGO_HIP_SOURCES
     base/index_set_kernels.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
+    components/sparse_bitset_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     factorization/cholesky_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
