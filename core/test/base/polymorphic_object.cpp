@@ -77,12 +77,90 @@ struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
 };
 
 
+struct DummyLogger : gko::log::Logger {
+    DummyLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(std::move(exec),
+                           gko::log::Logger::polymorphic_object_events_mask)
+    {}
+
+    void on_polymorphic_object_create_started(
+        const gko::Executor*, const gko::PolymorphicObject*) const override
+    {
+        create_started++;
+    }
+
+    void on_polymorphic_object_create_completed(
+        const gko::Executor*, const gko::PolymorphicObject*,
+        const gko::PolymorphicObject*) const override
+    {
+        create_completed++;
+    }
+
+    void on_polymorphic_object_copy_started(
+        const gko::Executor*, const gko::PolymorphicObject*,
+        const gko::PolymorphicObject*) const override
+    {
+        copy_started++;
+    }
+
+    void on_polymorphic_object_copy_completed(
+        const gko::Executor*, const gko::PolymorphicObject*,
+        const gko::PolymorphicObject*) const override
+    {
+        copy_completed++;
+    }
+
+    void on_polymorphic_object_move_started(
+        const gko::Executor*, const gko::PolymorphicObject*,
+        const gko::PolymorphicObject*) const override
+    {
+        move_started++;
+    }
+
+    void on_polymorphic_object_move_completed(
+        const gko::Executor*, const gko::PolymorphicObject*,
+        const gko::PolymorphicObject*) const override
+    {
+        move_completed++;
+    }
+
+    void on_polymorphic_object_deleted(
+        const gko::Executor*, const gko::PolymorphicObject*) const override
+    {
+        deleted++;
+    }
+
+    mutable int create_started = 0;
+    mutable int create_completed = 0;
+    mutable int copy_started = 0;
+    mutable int copy_completed = 0;
+    mutable int move_started = 0;
+    mutable int move_completed = 0;
+    mutable int deleted = 0;
+};
+
+
 class EnablePolymorphicObject : public testing::Test {
 protected:
     std::shared_ptr<gko::ReferenceExecutor> ref{
         gko::ReferenceExecutor::create()};
     std::shared_ptr<gko::OmpExecutor> omp{gko::OmpExecutor::create()};
     std::unique_ptr<DummyObject> obj{new DummyObject(ref, 5)};
+    std::shared_ptr<DummyLogger> logger{std::make_shared<DummyLogger>(ref)};
+
+    void SetUp() override
+    {
+        if (obj) {
+            obj->add_logger(logger);
+        }
+    }
+
+    void TearDown() override
+    {
+        if (obj) {
+            obj->remove_logger(logger.get());
+        }
+    }
 };
 
 
@@ -109,6 +187,17 @@ TEST_F(EnablePolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
     ASSERT_NE(def, obj);
     ASSERT_EQ(def->get_executor(), omp);
     ASSERT_EQ(def->x, 0);
+}
+
+
+TEST_F(EnablePolymorphicObject, CreatesDefaultObjectIsLogged)
+{
+    auto before_logger = *this->logger;
+
+    auto def = obj->create_default();
+
+    ASSERT_EQ(logger->create_started, before_logger.create_started + 1);
+    ASSERT_EQ(logger->create_completed, before_logger.create_completed + 1);
 }
 
 
@@ -146,6 +235,19 @@ TEST_F(EnablePolymorphicObject, CopiesObject)
 }
 
 
+TEST_F(EnablePolymorphicObject, CopiesObjectIsLogged)
+{
+    auto before_logger = *logger;
+    auto copy = DummyObject::create(omp, 7);
+    copy->add_logger(logger);
+
+    copy->copy_from(gko::lend(obj));
+
+    ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
+    ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
+}
+
+
 TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtr)
 {
     auto copy = DummyObject::create(ref, 7);
@@ -155,6 +257,19 @@ TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtr)
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), ref);
     ASSERT_EQ(copy->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesObjectByCopyFromUniquePtrIsLogged)
+{
+    auto before_logger = *this->logger;
+    auto copy = DummyObject::create(ref, 7);
+    copy->add_logger(logger);
+
+    copy->copy_from(gko::give(obj));
+
+    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
+    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
 }
 
 
@@ -172,6 +287,19 @@ TEST_F(EnablePolymorphicObject, MovesObject)
 }
 
 
+TEST_F(EnablePolymorphicObject, MovesObjectIsLogged)
+{
+    auto before_logger = *this->logger;
+    auto copy = DummyObject::create(ref, 7);
+    copy->add_logger(logger);
+
+    copy->move_from(gko::lend(obj));
+
+    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
+    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
+}
+
+
 TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
 {
     auto copy = DummyObject::create(ref, 7);
@@ -181,6 +309,19 @@ TEST_F(EnablePolymorphicObject, MovesFromUniquePtr)
     ASSERT_NE(copy, obj);
     ASSERT_EQ(copy->get_executor(), ref);
     ASSERT_EQ(copy->x, 5);
+}
+
+
+TEST_F(EnablePolymorphicObject, MovesFromUniquePtrIsLogged)
+{
+    auto before_logger = *this->logger;
+    auto copy = DummyObject::create(ref, 7);
+    copy->add_logger(logger);
+
+    copy->copy_from(gko::give(obj));
+
+    ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
+    ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
 }
 
 

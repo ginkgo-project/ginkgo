@@ -28,7 +28,6 @@ set(EXAMPLES_LIST
     par-ilu-convergence
     performance-debugging
     preconditioner-export
-    schroedinger-splitting
     simple-solver-logging)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
@@ -41,9 +40,9 @@ endif()
 
 find_package(OpenCV QUIET)
 if(OpenCV_FOUND)
-    list(APPEND EXAMPLES_LIST heat-equation)
+    list(APPEND EXAMPLES_LIST heat-equation schroedinger-splitting)
 else()
-    message(STATUS "No OpenCV found, disabling heat-equation example")
+    message(STATUS "No OpenCV found, disabling examples with video output")
 endif()
 
 if(GINKGO_HAVE_PAPI_SDE)

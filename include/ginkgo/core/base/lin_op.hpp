@@ -413,7 +413,14 @@ public:
     {
         this->template log<log::Logger::linop_factory_generate_started>(
             this, input.get());
-        auto generated = AbstractFactory::generate(input);
+        const auto exec = this->get_executor();
+        std::unique_ptr<LinOp> generated;
+        if (input->get_executor() == exec) {
+            generated = this->AbstractFactory::generate(input);
+        } else {
+            generated =
+                this->AbstractFactory::generate(gko::clone(exec, input));
+        }
         this->template log<log::Logger::linop_factory_generate_completed>(
             this, input.get(), generated.get());
         return generated;
@@ -876,55 +883,27 @@ public:
 
     const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        PolymorphicBase::apply(b, x);
         return self();
     }
 
     ConcreteLinOp* apply(const LinOp* b, LinOp* x)
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        PolymorphicBase::apply(b, x);
         return self();
     }
 
     const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
     {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+        PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
     ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                          LinOp* x)
     {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+        PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
