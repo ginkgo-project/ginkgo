@@ -78,11 +78,20 @@ int main(int argc, char* argv[])
     // initialization and finalization.
     const gko::mpi::environment env(argc, argv);
 
-    // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
+    // Create a MPI communicator wrapper and get the rank.
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
+
+    if (rank == 0) {
+        // Print the ginkgo version information.
+        std::cout << gko::version_info::get() << std::endl;
+    }
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] [num_grid_points] "
-                  << std::endl;
+        if (rank == 0) {
+            std::cerr << "Usage: " << argv[0]
+                      << " [executor] [num_grid_points] " << std::endl;
+        }
         std::exit(-1);
     }
 
@@ -94,10 +103,6 @@ int main(int argc, char* argv[])
     const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
-
-    // Create a MPI communicator wrapper and get the rank.
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
 
     // Pick requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -172,6 +177,7 @@ int main(int argc, char* argv[])
             A_data.nonzeros.emplace_back(i, i + 1, -1);
         }
         b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
 
     // Take timings.
@@ -242,15 +248,15 @@ int main(int argc, char* argv[])
     // Print the achieved residual norm and timings on rank 0.
     if (comm.rank() == 0) {
         // clang-format off
-    std::cout << "\nNum rows in matrix: " << num_rows
-              << "\nNum ranks: " << comm.size()
-              << "\nFinal Res norm: " << *res_norm->get_values()
-              << "\nInit time: " << t_init_end - t_init
-              << "\nRead time: " << t_read_setup_end - t_init
-              << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-              << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
-              << "\nTotal time: " << t_end - t_init
-              << std::endl;
+        std::cout << "\nNum rows in matrix: " << num_rows
+                  << "\nNum ranks: " << comm.size()
+                  << "\nFinal Res norm: " << *res_norm->get_values()
+                  << "\nInit time: " << t_init_end - t_init
+                  << "\nRead time: " << t_read_setup_end - t_init
+                  << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
+                  << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+                  << "\nTotal time: " << t_end - t_init
+                  << std::endl;
         // clang-format on
     }
 }

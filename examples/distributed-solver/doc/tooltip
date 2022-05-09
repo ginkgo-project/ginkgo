@@ -1,1 +1,1 @@
-Computes a distributed sparse matrix-vector product (SpMV).
+Solves a distributed linear system.
