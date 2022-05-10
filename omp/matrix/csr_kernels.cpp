@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -567,8 +568,10 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
-                    IndexType* rows, IndexType* offsets,
-                    const size_type num_blocks, const size_type block_size,
+                    //                    IndexType* rows, IndexType* offsets,
+                    //                    const size_type num_blocks,
+                    const size_type block_size,
+                    const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

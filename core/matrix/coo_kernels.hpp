@@ -91,12 +91,14 @@ namespace kernels {
                           const matrix::Coo<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
+//                        IndexType* rows, IndexType* offsets,
+//                        const size_type num_blocks,
 #define GKO_DECLARE_COO_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
     void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
                         const matrix::Coo<ValueType, IndexType>* coo, \
-                        IndexType* rows, IndexType* offsets,          \
-                        const size_type num_blocks,                   \
-                        const size_type block_size, size_type* mem_size)
+                        const size_type block_size,                   \
+                        const matrix::bccoo::compression compress,    \
+                        size_type* mem_size)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename ValueType, typename IndexType>              \

@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"
-
 
 namespace gko {
 namespace kernels {
@@ -161,10 +161,11 @@ namespace kernels {
     void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
                       matrix::Dense<_type>* data)
 
-#define GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL(_type)               \
-    void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type>* source,          \
-                        const size_type block_size, size_type* result)
+#define GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL(_type)                  \
+    void mem_size_bccoo(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Dense<_type>* source, const size_type block_size, \
+        const matrix::bccoo::compression compress, size_type* result)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_BCCOO_KERNEL(_type, _prec)        \
     void convert_to_bccoo(std::shared_ptr<const DefaultExecutor> exec, \

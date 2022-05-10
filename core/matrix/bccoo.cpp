@@ -185,7 +185,15 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
      */
 
-    std::cout << "CONVERT_TO" << std::endl;
+    //    std::cout << "CONVERT_TO" << std::endl;
+
+    if (this->use_default_compression()) {
+        //    	std::cout << "DEFAULT" << std::endl;
+    } else if (this->use_element_compression()) {
+        //    	std::cout << "ELEMENT" << std::endl;
+    } else {
+        //    	std::cout << "BLOCK" << std::endl;
+    }
 
     auto exec = this->get_executor();
 
@@ -229,7 +237,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
         exec->run(bccoo::make_mem_size_bccoo(this, compress_res, block_size_res,
                                              &mem_size_res));
     } else {
-        //        auto host_bccoo = clone(exec->get_master(), this);
+        // auto host_bccoo = clone(exec->get_master(), this);
         auto host_bccoo = this->clone(exec->get_master());
         exec->get_master()->run(bccoo::make_mem_size_bccoo(
             host_bccoo.get(), compress_res, block_size_res, &mem_size_res));
@@ -308,7 +316,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 {
-    std::cout << "MOVE_TO" << std::endl;
+    //    std::cout << "MOVE_TO" << std::endl;
 
     this->convert_to(result);
 }
@@ -327,11 +335,17 @@ void Bccoo<ValueType, IndexType>::convert_to(
     size_type num_bytes = this->get_num_bytes();
     num_bytes += num_nonzeros * sizeof(new_precision);
     num_bytes -= num_nonzeros * sizeof(ValueType);
+    // std::cout << "BEFORE CREATE " << std::endl;
     auto tmp = Bccoo<new_precision, IndexType>::create(exec, this->get_size(),
                                                        num_nonzeros, block_size,
                                                        num_bytes, compression);
+    // std::cout << num_nonzeros << " - " << block_size << " - " <<
+    // num_bytes
+    //<< std::endl; 		std::cout << "BEFORE CONVERT " << std::endl;
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
+    //		std::cout << "BEFORE MOVE " << std::endl;
     tmp->move_to(result);
+    //		std::cout << "AFTER  MOVE " << std::endl;
 }
 
 
@@ -548,7 +562,7 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
         array<uint8> types(exec_master, num_blocks);
         array<IndexType> offsets(exec_master, num_blocks + 1);
 
-        // Computation of rows, sols, types, offsets and m (mem_size)
+        // Computation of rows, cols, types, offsets and m (mem_size)
         IndexType* rows_data = rows.get_data();
         IndexType* cols_data = cols.get_data();
         uint8* types_data = types.get_data();
@@ -687,7 +701,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
                     cols_data[idxs.blk] = blk_idxs.col_frs;
                     types_data[idxs.blk] = type_blk;
                     offsets_data[idxs.blk + 1] = idxs.shf;
-
+                    // std::cout << "RR: " << idxs.shf << " - "
+                    //		<< 1*type_blk << std::endl;
                     idxs.blk++;
                     idxs.nblk = 0;
                 }
@@ -735,6 +750,8 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             cols_data[idxs.blk] = blk_idxs.col_frs;
             types_data[idxs.blk] = type_blk;
             offsets_data[idxs.blk + 1] = idxs.shf;
+            // std::cout << "RR: " << idxs.shf << " - "
+            //	<< 1*type_blk << std::endl;
 
             idxs.blk++;
             idxs.nblk = 0;

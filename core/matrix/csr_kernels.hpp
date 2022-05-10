@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -255,10 +256,10 @@ namespace kernels {
 
 #define GKO_DECLARE_CSR_MEM_SIZE_BCCOO_KERNEL(ValueType, IndexType)   \
     void mem_size_bccoo(std::shared_ptr<const DefaultExecutor> exec,  \
-                        const matrix::Csr<ValueType, IndexType>* coo, \
-                        IndexType* rows, IndexType* offsets,          \
-                        const size_type num_blocks,                   \
-                        const size_type block_size, size_type* mem_size)
+                        const matrix::Csr<ValueType, IndexType>* csr, \
+                        const size_type block_size,                   \
+                        const matrix::bccoo::compression compress,    \
+                        size_type* mem_size)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \

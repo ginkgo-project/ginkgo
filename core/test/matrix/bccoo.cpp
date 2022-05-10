@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/unaligned_access.hpp"
 #include "core/test/utils.hpp"
 
-#define BLOCK_SIZE_TESTED 1
-#define BLOCK_SIZE_COPIED 4
+#define BCCOO_BLOCK_SIZE_TESTED 1
+#define BCCOO_BLOCK_SIZE_COPIED 3
 
 namespace {
 
@@ -57,10 +57,10 @@ protected:
     Bccoo()
         : exec(gko::ReferenceExecutor::create()),
           mtx_elm(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BLOCK_SIZE_TESTED},
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
               gko::matrix::bccoo::compression::element)),
           mtx_blk(gko::matrix::Bccoo<value_type, index_type>::create(
-              exec, index_type{BLOCK_SIZE_TESTED},
+              exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
               gko::matrix::bccoo::compression::block))
     {
         //        std::cout << "BEFORE READ -> "
@@ -426,7 +426,7 @@ TYPED_TEST(Bccoo, CanBeEmpty)
 TYPED_TEST(Bccoo, CanBeEmptyElm)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_elm = Mtx::create(this->exec, BLOCK_SIZE_TESTED,
+    auto mtx_elm = Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED,
                                gko::matrix::bccoo::compression::element);
 
     this->assert_empty_elm(mtx_elm.get());
@@ -436,7 +436,7 @@ TYPED_TEST(Bccoo, CanBeEmptyElm)
 TYPED_TEST(Bccoo, CanBeEmptyBlk)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto mtx_blk = Mtx::create(this->exec, BLOCK_SIZE_TESTED,
+    auto mtx_blk = Mtx::create(this->exec, BCCOO_BLOCK_SIZE_TESTED,
                                gko::matrix::bccoo::compression::block);
 
     this->assert_empty_blk(mtx_blk.get());
@@ -537,7 +537,7 @@ TYPED_TEST(Bccoo, CanBeCopiedElmElm)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::element);
 
     copy->copy_from(this->mtx_elm.get());
@@ -554,7 +554,7 @@ TYPED_TEST(Bccoo, CanBeCopiedElmBlk)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::block);
 
     copy->copy_from(this->mtx_elm.get());
@@ -571,7 +571,7 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkElm)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::element);
 
     copy->copy_from(this->mtx_blk.get());
@@ -589,7 +589,7 @@ TYPED_TEST(Bccoo, CanBeCopiedBlkBlk)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::block);
 
     copy->copy_from(this->mtx_blk.get());
@@ -606,7 +606,7 @@ TYPED_TEST(Bccoo, CanBeMovedElm)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::element);
 
     copy->copy_from(std::move(this->mtx_elm));
@@ -619,7 +619,7 @@ TYPED_TEST(Bccoo, CanBeMovedBlk)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    auto copy = Mtx::create(this->exec, index_type{BLOCK_SIZE_COPIED},
+    auto copy = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_COPIED},
                             gko::matrix::bccoo::compression::block);
 
     copy->copy_from(std::move(this->mtx_blk));
@@ -678,7 +678,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataElm)
     using Mtx = typename TestFixture::Mtx;
     //    auto m = Mtx::create(this->exec);
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec, index_type{BLOCK_SIZE_TESTED},
+    auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::element);
     m->read({{2, 3},
              {{0, 0, 1.0},
@@ -696,7 +696,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixDataBlk)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec, index_type{BLOCK_SIZE_TESTED},
+    auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::block);
     m->read({{2, 3},
              {{0, 0, 1.0},
@@ -716,7 +716,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataElm)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     //    auto m = Mtx::create(this->exec);
-    auto m = Mtx::create(this->exec, index_type{BLOCK_SIZE_TESTED},
+    auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::element);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
@@ -737,7 +737,7 @@ TYPED_TEST(Bccoo, CanBeReadFromMatrixAssemblyDataBlk)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec, index_type{BLOCK_SIZE_TESTED},
+    auto m = Mtx::create(this->exec, index_type{BCCOO_BLOCK_SIZE_TESTED},
                          gko::matrix::bccoo::compression::block);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);

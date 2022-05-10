@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -388,8 +389,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Coo<ValueType, IndexType>* coo,
-                    IndexType* rows, IndexType* offsets,
-                    const size_type num_blocks, const size_type block_size,
+                    //                    IndexType* rows, IndexType* offsets,
+                    //                    const size_type num_blocks,
+                    const size_type block_size,
+                    const matrix::bccoo::compression compress,
                     size_type* mem_size) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

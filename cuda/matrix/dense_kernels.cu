@@ -208,6 +208,7 @@ template <typename ValueType>
 void mem_size_bccoo(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Dense<ValueType>* source,
                     const size_type block_size,
+                    const matrix::bccoo::compression compress,
                     size_type* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MEM_SIZE_BCCOO_KERNEL);

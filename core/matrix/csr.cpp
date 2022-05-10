@@ -303,23 +303,36 @@ void Csr<ValueType, IndexType>::convert_to(
     array<IndexType> offsets(exec, num_blocks + 1);
     size_type mem_size{};
     if (exec == exec->get_master()) {
-        exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
-                                           offsets.get_data(), num_blocks,
-                                           block_size, &mem_size));
+        /*
+            exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
+                                                   offsets.get_data(),
+           num_blocks, block_size, &mem_size));
+        */
+        exec->run(
+            csr::make_mem_size_bccoo(this, block_size, compression, &mem_size));
     } else {
         //        auto host_csr = clone(exec->get_master(), this);
         auto host_csr = this->clone(exec->get_master());
+        /*
+           exec->get_master()->run(csr::make_mem_size_bccoo(
+                    host_csr.get(), rows.get_data(), offsets.get_data(),
+           num_blocks, block_size, &mem_size));
+        */
         exec->get_master()->run(csr::make_mem_size_bccoo(
-            host_csr.get(), rows.get_data(), offsets.get_data(), num_blocks,
-            block_size, &mem_size));
+            host_csr.get(), block_size, compression, &mem_size));
     }
 
-    array<uint8> data(exec, mem_size);
-
+    /*
+        array<uint8> data(exec, mem_size);
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, this->get_size(), std::move(data), std::move(offsets),
+            std::move(rows), num_stored_elements, block_size);
+    */
+    // std::cout << "CSR->BCCOO " << num_stored_elements << " - "
+    //			<< block_size << " - " << mem_size << std::endl;
     auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, this->get_size(), std::move(data), std::move(offsets),
-        std::move(rows), num_stored_elements, block_size);
-
+        exec, this->get_size(), num_stored_elements, block_size, mem_size,
+        compression);
     exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
     tmp->move_to(result);
 }

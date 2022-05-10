@@ -156,13 +156,13 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
 
     //		bccoo::compression compression = bccoo::compression::block;
     /*
-                    auto exec_master = exec->get_master();
+        auto exec_master = exec->get_master();
         bccoo::compression compression =
-                                    ((result->use_default_compression())?
-                                                    ((exec_master == exec)?
-                                                            bccoo::compression::element:
-                                                            bccoo::compression::block):
-                                                    result->get_compression());
+                       ((result->use_default_compression())?
+                           ((exec_master == exec)?
+                                bccoo::compression::element:
+                                bccoo::compression::block):
+                           result->get_compression());
     */
     bccoo::compression compression = result->get_compression();
     if (result->use_default_compression()) {
@@ -180,7 +180,18 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
     const auto num_stored_nonzeros =
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
     size_type mem_size = 0;
-    exec->run(dense::make_mem_size_bccoo(source, block_size, &mem_size));
+
+    // JIAE TODO
+    // To solve the problems with the commented code
+    if (exec == exec->get_master()) {
+        exec->run(dense::make_mem_size_bccoo(source, block_size, compression,
+                                             &mem_size));
+    } else {
+        auto host_dense = source->clone(exec->get_master());
+        exec->get_master()->run(dense::make_mem_size_bccoo(
+            host_dense.get(), block_size, compression, &mem_size));
+    }
+
     auto tmp = Bccoo<ValueType, IndexType>::create(
         exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
         compression);
