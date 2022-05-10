@@ -247,21 +247,35 @@ trigger_pipeline:
     - |
       if [[ "${PR_ID}" != "null" ]]; then
         echo "Finding the corresponding Pull Request - ${PR_ID}"
-        echo "Checking whether the PR contains 1:ST:ready-to-merge or 1:ST:run-full-test labels"
-        ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-          "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
+        echo "Checking whether the PR contains 1:ST:ready-to-merge, 1:ST:run-full-test, or 1:ST:skip-full-test labels"
+        PR_CONTENT=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+          "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}")
+        SKIP_FULL_PIPELINE=$(echo "${PR_CONTENT}" | jq -r 'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:skip-full-test")')
+        ENABLE_FULL_PIPELINE=$(echo "${PR_CONTENT}" | jq -r \
           'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:ready-to-merge" or . == "1:ST:run-full-test")')
-        if [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
-          echo "trigger full pipeline"
+        if [[ "${SKIP_FULL_PIPELINE}" == true ]]; then
+          echo "Skipping the full pipeline and making the full pipeline success"
+          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+            https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skip full pipeline\"}"
+          echo "If want to run full test, remove 1:ST:skip-full-test and add 1:ST:ready-to-merge or 1:ST:run-full-test. Rerun this job or have a new pipeline."
+        elif [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
+          echo "Running full pipeline."
           curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
             https://gitlab.com/api/v4/projects/6431537/trigger/pipeline
+          echo "If want to skip full pipeline, add 1:ST:skip-full-test. Rerun this job or have a new pipeline."
         else
-          echo "does not contain required labels"
+          echo "Not containing required labels and making the full pipeline fail."
+          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+            https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
+          echo "If the pr does not need to run full pipeline before merging, rerun this job or have a new pipeline for this pr after adding 1:ST:skip-full-test."
+          echo "If the pr need to run full pipeline before merging, need to rerun this job or have a new pipeline for this pr after adding 1:ST:run-full-test or 1:ST:ready-to-merge."
         fi
       else
         echo "Can not find the corresponding Pull Request"
       fi
-  # Override variables condition
+  # Override variables condition from .pr_condition
   only:
     variables:
       - $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
