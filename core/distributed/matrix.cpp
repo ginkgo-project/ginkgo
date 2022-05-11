@@ -258,7 +258,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
+std::vector<mpi::request>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     const local_vector_type* local_b) const
 {
     auto exec = this->get_executor();
@@ -270,27 +271,34 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     auto recv_dim = dim<2>{static_cast<size_type>(recv_size), num_cols};
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
+
+    local_b->row_gather(&gather_idxs_, send_buffer_.get());
+
     auto needs_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (needs_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
-    }
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
-    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    if (needs_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-
-        return comm.i_all_to_all_v(
-            host_send_buffer_->get_const_values(), send_sizes_.data(),
-            send_offsets_.data(), type.get(), host_recv_buffer_->get_values(),
-            recv_sizes_.data(), recv_offsets_.data(), type.get());
-    } else {
-        return comm.i_all_to_all_v(
-            send_buffer_->get_const_values(), send_sizes_.data(),
-            send_offsets_.data(), type.get(), recv_buffer_->get_values(),
-            recv_sizes_.data(), recv_offsets_.data(), type.get());
     }
+
+    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
+    std::vector<mpi::request> reqs;
+    auto send_data = needs_host_buffer ? host_send_buffer_->get_const_values()
+                                       : send_buffer_->get_const_values();
+    auto recv_data = needs_host_buffer ? host_recv_buffer_->get_values()
+                                       : recv_buffer_->get_values();
+    for (int other_rank = 0; other_rank < comm.size(); ++other_rank) {
+        auto send_tag = other_rank * comm.size() + comm.rank();
+        comm.i_send(send_data + send_offsets_[other_rank] * num_cols,
+                    send_sizes_[other_rank], type.get(), other_rank, send_tag);
+
+        auto recv_tag = comm.rank() * comm.size() + other_rank;
+        reqs.push_back(comm.i_recv(
+            recv_data + recv_offsets_[other_rank] * num_cols,
+            recv_sizes_[other_rank], type.get(), other_rank, recv_tag));
+    }
+    return reqs;
 }
 
 
@@ -309,9 +317,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
             if (this->get_const_local_offdiag()->get_size()) {
-                auto req = this->communicate(dense_b->get_local_vector());
+                auto reqs = this->communicate(dense_b->get_local_vector());
                 diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
-                req.wait();
+                mpi::wait_all(reqs);
                 auto exec = this->get_executor();
                 auto needs_host_buffer =
                     exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -344,10 +352,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
             if (this->get_const_local_offdiag()->get_size()) {
-                auto req = this->communicate(dense_b->get_local_vector());
+                auto reqs = this->communicate(dense_b->get_local_vector());
                 diag_mtx_->apply(local_alpha, dense_b->get_local_vector(),
                                  local_beta, local_x.get());
-                req.wait();
+                mpi::wait_all(reqs);
                 auto exec = this->get_executor();
                 auto needs_host_buffer =
                     exec->get_master() != exec && !gko::mpi::is_gpu_aware();
