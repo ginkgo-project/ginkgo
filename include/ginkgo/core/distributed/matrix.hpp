@@ -494,8 +494,7 @@ protected:
      *                 shared values is automatically extracted.
      * @return  MPI request for the non-blocking communication.
      */
-    std::vector<mpi::request> communicate(
-        const local_vector_type* local_b) const;
+    mpi::request communicate(const local_vector_type* local_b) const;
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
