@@ -528,10 +528,30 @@ public:
     request i_send(const SendType* send_buffer, const int send_count,
                    const int destination_rank, const int send_tag) const
     {
+        return i_send(send_buffer, send_count, type_impl<SendType>::get_type(),
+                      destination_rank, send_tag);
+    }
+
+    /**
+     * Send (Non-blocking, Immediate return) data from calling process to
+     * destination rank.
+     *
+     * @param send_buffer  the buffer to send
+     * @param send_count  the number of elements to send
+     * @param send_type  the MPI_Datatype of the elements to send
+     * @param destination_rank  the rank to send the data to
+     * @param send_tag  the tag for the send call
+     *
+     * @return  the request handle for the send call
+     */
+    request i_send(const void* send_buffer, const int send_count,
+                   MPI_Datatype send_type, const int destination_rank,
+                   const int send_tag) const
+    {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
-                      destination_rank, send_tag, this->get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Isend(send_buffer, send_count, send_type,
+                                           destination_rank, send_tag,
+                                           this->get(), req.get()));
         return req;
     }
 
@@ -578,10 +598,29 @@ public:
     request i_recv(RecvType* recv_buffer, const int recv_count,
                    const int source_rank, const int recv_tag) const
     {
+        return i_recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+                      source_rank, recv_tag);
+    }
+
+    /**
+     * Receive (Non-blocking, Immediate return) data from source rank.
+     *
+     * @param recv_buffer  the buffer to send
+     * @param recv_count  the number of elements to receive
+     * @param recv_type  the MPI_Datatype of the elements to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
+     *
+     * @return  the request handle for the recv call
+     */
+    request i_recv(void* recv_buffer, const int recv_count,
+                   MPI_Datatype recv_type, const int source_rank,
+                   const int recv_tag) const
+    {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                      source_rank, recv_tag, this->get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count, recv_type,
+                                           source_rank, recv_tag, this->get(),
+                                           req.get()));
         return req;
     }
 
