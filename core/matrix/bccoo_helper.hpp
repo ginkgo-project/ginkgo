@@ -50,9 +50,9 @@ namespace gko {
 
 // namespace bccoo {
 
-constexpr int cst_rows_multiple = 1;
-constexpr int cst_cols_8bits = 2;
-constexpr int cst_cols_16bits = 4;
+constexpr uint8 cst_rows_multiple = 1;
+constexpr uint8 cst_cols_8bits = 2;
+constexpr uint8 cst_cols_16bits = 4;
 
 typedef struct compr_idxs {
     size_type nblk;  // position in the block
@@ -427,6 +427,10 @@ inline void init_block_indices(const IndexType* rows_data,
     mul_row = type_blk & cst_rows_multiple;
     col_8bits = type_blk & cst_cols_8bits;
     col_16bits = type_blk & cst_cols_16bits;
+    // if (type_blk & cst_rows_multiple)
+    // 		std::cout << blk << "TYPEBLK" << std::endl;
+    // if (mul_row)
+    // 		std::cout << blk << "MULTIROW" << std::endl;
 
     row_frs = rows_data[blk];
     col_frs = cols_data[blk];

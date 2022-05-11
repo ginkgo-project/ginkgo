@@ -191,7 +191,8 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
         exec->get_master()->run(dense::make_mem_size_bccoo(
             host_dense.get(), block_size, compression, &mem_size));
     }
-
+    //    std::cout << "DENSE->BCCOO : " << num_stored_nonzeros << " - "
+    //              << block_size << " - " << mem_size << std::endl;
     auto tmp = Bccoo<ValueType, IndexType>::create(
         exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
         compression);

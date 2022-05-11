@@ -547,6 +547,21 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
         }
+        if (idxs.nblk > 0) {
+            // Counting bytes to write block on result
+            if (blk_idxs.mul_row) idxs.shf += idxs.nblk;
+            if (blk_idxs.col_dif <= 0xFF) {
+                idxs.shf += idxs.nblk;
+            } else if (blk_idxs.col_dif <= 0xFFFF) {
+                idxs.shf += 2 * idxs.nblk;
+            } else {
+                idxs.shf += 4 * idxs.nblk;
+            }
+            idxs.shf += sizeof(ValueType) * idxs.nblk;
+            idxs.blk++;
+            idxs.nblk = 0;
+            blk_idxs = {};
+        }
         *result = idxs.shf;
     }
 }
@@ -656,6 +671,10 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                         blk_idxs.col_frs = col;
                         blk_idxs.col_dif = 0;
                     }
+                    // std::cout << idxs.nblk << " - " << row << " - " << col <<
+                    // "  "
+                    //           << blk_idxs.row_frs << " - "
+                    //           << blk_idxs.col_frs << std::endl;
                     rows_blk.get_data()[idxs.nblk] = row;
                     cols_blk.get_data()[idxs.nblk] = col;
                     vals_blk.get_data()[idxs.nblk] = source->at(row, col);

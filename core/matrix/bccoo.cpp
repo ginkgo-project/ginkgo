@@ -185,7 +185,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
 
      */
 
-    //    std::cout << "CONVERT_TO" << std::endl;
+    // std::cout << "CONVERT_TO" << std::endl;
 
     if (this->use_default_compression()) {
         //    	std::cout << "DEFAULT" << std::endl;
@@ -316,7 +316,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 {
-    //    std::cout << "MOVE_TO" << std::endl;
+    // std::cout << "MOVE_TO" << std::endl;
 
     this->convert_to(result);
 }
@@ -335,17 +335,17 @@ void Bccoo<ValueType, IndexType>::convert_to(
     size_type num_bytes = this->get_num_bytes();
     num_bytes += num_nonzeros * sizeof(new_precision);
     num_bytes -= num_nonzeros * sizeof(ValueType);
-    // std::cout << "BEFORE CREATE " << std::endl;
+    // std::cout << "(NP) BEFORE CREATE " << std::endl;
     auto tmp = Bccoo<new_precision, IndexType>::create(exec, this->get_size(),
                                                        num_nonzeros, block_size,
                                                        num_bytes, compression);
-    // std::cout << num_nonzeros << " - " << block_size << " - " <<
-    // num_bytes
-    //<< std::endl; 		std::cout << "BEFORE CONVERT " << std::endl;
+    // std::cout << num_nonzeros << " - " << block_size << " - "
+    // 						<< num_bytes << std::endl;
+    // std::cout << "(NP) BEFORE CONVERT " << std::endl;
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
-    //		std::cout << "BEFORE MOVE " << std::endl;
+    // std::cout << "(NP) BEFORE MOVE " << std::endl;
     tmp->move_to(result);
-    //		std::cout << "AFTER  MOVE " << std::endl;
+    // std::cout << "(NP) AFTER  MOVE " << std::endl;
 }
 
 
@@ -882,6 +882,8 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
     size_type num_bytes = this->get_num_bytes();
     gko::matrix::bccoo::compression compression = this->get_compression();
     auto exec = this->get_executor();
+    num_bytes += (sizeof(remove_complex<ValueType>) * block_size) -
+                 (sizeof(ValueType) * block_size);
     auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
                                            block_size, num_bytes, compression);
     exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));

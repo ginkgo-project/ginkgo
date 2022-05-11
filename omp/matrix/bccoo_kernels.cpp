@@ -121,72 +121,178 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
     auto num_blks = a->get_num_blocks();
-
+    if (a->use_element_compression()) {
 // Computation of chunk
 // #pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
 #pragma omp parallel default(shared)
-    {
-        auto num_cols = b->get_size()[1];
-        array<ValueType> sumV_array(exec, num_cols);
+        {
+            auto num_cols = b->get_size()[1];
+            array<ValueType> sumV_array(exec, num_cols);
 #pragma omp for
-        for (size_type blk = 0; blk < num_blks; blk++) {
-            auto* rows_data = a->get_const_rows();
-            auto* offsets_data = a->get_const_offsets();
-            auto* chunk_data = a->get_const_chunk();
-            auto block_size = a->get_block_size();
-            size_type nblk = 0, col = 0;
-            size_type row = rows_data[blk], row_old = 0;
-            size_type shf = offsets_data[blk];
-            ValueType val;
-            ValueType* sumV = sumV_array.get_data();
-            for (size_type j = 0; j < num_cols; j++) {
-                sumV[j] = zero<ValueType>();
-            }
-            while (shf < offsets_data[blk + 1]) {
-                row_old = row;
-                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-                if (row_old != row) {
+            for (size_type blk = 0; blk < num_blks; blk++) {
+                auto* rows_data = a->get_const_rows();
+                auto* offsets_data = a->get_const_offsets();
+                auto* chunk_data = a->get_const_chunk();
+                auto block_size = a->get_block_size();
+                bool new_elm = false;
+                size_type nblk = 0, col = 0;
+                size_type row = rows_data[blk], row_old = 0;
+                size_type shf = offsets_data[blk];
+                ValueType val;
+                ValueType* sumV = sumV_array.get_data();
+                for (size_type j = 0; j < num_cols; j++) {
+                    sumV[j] = zero<ValueType>();
+                }
+                while (shf < offsets_data[blk + 1]) {
+                    row_old = row;
+                    uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                    get_next_position_value(chunk_data, nblk, ind, shf, col,
+                                            val);
+                    if (row_old != row) {
+#ifdef OPTION
+                        for (size_type j = 0; j < num_cols; j++) {
+                            atomic_add(c->at(row_old, j), sumV[j]);
+                            // c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
+#else
+#pragma omp critical(bccoo_apply)
+                        {
+                            for (size_type j = 0; j < num_cols; j++) {
+                                // TODO: replace with
+                                // 	 OMP atomic_add (ValueType &inout,
+                                //                   ValueType out);
+                                //   atomic_add(c->at(row_old, j), sumV[j]);
+                                c->at(row_old, j) += sumV[j];
+                                sumV[j] = zero<ValueType>();
+                            }
+                        }
+#endif
+                        new_elm = false;
+                    }
+                    for (size_type j = 0; j < num_cols; j++) {
+                        sumV[j] += val * b->at(col, j);
+                    }
+                    new_elm = true;
+                }
+                if (new_elm) {
 #ifdef OPTION
                     for (size_type j = 0; j < num_cols; j++) {
-                        atomic_add(c->at(row_old, j), sumV[j]);
+                        atomic_add(c->at(row, j), sumV[j]);
                         // c->at(row_old, j) += sumV[j];
-                        sumV[j] = zero<ValueType>();
                     }
 #else
 #pragma omp critical(bccoo_apply)
                     {
                         for (size_type j = 0; j < num_cols; j++) {
                             // TODO: replace with
-                            // 	 OMP atomic_add (ValueType &inout,
-                            //                   ValueType out);
+                            // 	 OMP atomic_add (ValueType &inout, ValueType
+                            // out);
                             //   atomic_add(c->at(row_old, j), sumV[j]);
-                            c->at(row_old, j) += sumV[j];
-                            sumV[j] = zero<ValueType>();
+                            c->at(row, j) += sumV[j];
                         }
                     }
 #endif
                 }
+            }
+        }
+    } else {
+// #pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
+#pragma omp parallel default(shared)
+        {
+            auto num_cols = b->get_size()[1];
+            array<ValueType> sumV_array(exec, num_cols);
+#pragma omp for
+            for (size_type blk = 0; blk < num_blks; blk++) {
+                auto* rows_data = a->get_const_rows();
+                auto* cols_data = a->get_const_cols();
+                auto* types_data = a->get_const_types();
+                auto* offsets_data = a->get_const_offsets();
+                auto* chunk_data = a->get_const_chunk();
+
+                auto block_size = a->get_block_size();
+                auto num_stored_elements = a->get_num_stored_elements();
+
+                // if (blk == 0) {
+                //   std::cout << "ZZ : " << num_stored_elements << " - "
+                //             << block_size << std::endl;
+                // }
+                ValueType* sumV = sumV_array.get_data();
                 for (size_type j = 0; j < num_cols; j++) {
-                    sumV[j] += val * b->at(col, j);
+                    sumV[j] = zero<ValueType>();
+                }
+
+                auto block_size_local = std::min(
+                    block_size, num_stored_elements - blk * block_size);
+                compr_idxs idxs = {};
+                compr_blk_idxs blk_idxs = {};
+                uint8 type_blk = types_data[blk];
+                idxs.shf = offsets_data[blk];
+                idxs.blk = blk;
+                init_block_indices(
+                    rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                    types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                    blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                    blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+
+                auto row_old = rows_data[blk];
+                // size_type row_old = blk_idxs.row_frs;
+                bool new_elm = false;
+                ValueType val;
+                // if (row_old < 2) {
+                //     std::cout << blk << " <- " << 1*type_blk << " - "
+                //               << block_size_local << std::endl;
+                //     if (blk_idxs.mul_row) std::cout << "MULTIROW" <<
+                //     std::endl;
+                // }
+                // std::cout << "BB: " << blk << " - " << row_old << std::endl;
+                for (size_type i = 0; i < block_size_local; i++) {
+                    get_block_position_value<IndexType, ValueType>(
+                        chunk_data, blk_idxs.mul_row, blk_idxs.col_8bits,
+                        blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                        idxs.row, idxs.col, val, blk_idxs.shf_row,
+                        blk_idxs.shf_col, blk_idxs.shf_val);
+                    // if (blk == 0) {
+                    //     std::cout << "XX: " << blk << " - " << row_old << " -
+                    //     "
+                    //               << idxs.row << std::endl;
+                    // }
+                    if (row_old != idxs.row) {
+                        // if (row_old < 2) {
+                        //   std::cout << "AA: " << blk << " - " << sumV[0] <<
+                        //   std::endl;
+                        // }
+                        for (size_type j = 0; j < num_cols; j++) {
+                            atomic_add(c->at(row_old, j), sumV[j]);
+                            // c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
+                        new_elm = false;
+                    }
+                    // if (row_old == 0) {
+                    //     std::cout << "(" << idxs.row << ", " << idxs.col <<
+                    //     ")="
+                    //               << val << "*" << b->at(idxs.col, 0) <<
+                    //               std::endl;
+                    // }
+                    for (size_type j = 0; j < num_cols; j++) {
+                        sumV[j] += val * b->at(idxs.col, j);
+                    }
+                    new_elm = true;
+                    row_old = idxs.row;
+                }
+                if (new_elm) {
+                    // if (row_old < 2) {
+                    //     std::cout << "EE: " << blk << " - " << row_old
+                    //               << " - " << sumV[0] << std::endl;
+                    // }
+                    for (size_type j = 0; j < num_cols; j++) {
+                        atomic_add(c->at(row_old, j), sumV[j]);
+                        // c->at(row_old, j) += sumV[j];
+                        sumV[j] = zero<ValueType>();
+                    }
                 }
             }
-#ifdef OPTION
-            for (size_type j = 0; j < num_cols; j++) {
-                atomic_add(c->at(row, j), sumV[j]);
-                // c->at(row_old, j) += sumV[j];
-            }
-#else
-#pragma omp critical(bccoo_apply)
-            {
-                for (size_type j = 0; j < num_cols; j++) {
-                    // TODO: replace with
-                    // 	 OMP atomic_add (ValueType &inout, ValueType out);
-                    //   atomic_add(c->at(row_old, j), sumV[j]);
-                    c->at(row, j) += sumV[j];
-                }
-            }
-#endif
         }
     }
 }
@@ -203,73 +309,176 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_blks = a->get_num_blocks();
 
+    if (a->use_element_compression()) {
 // Computation of chunk
 // #pragma omp parallel default(none), shared(exec, alpha, a, b, c, num_blks)
 #pragma omp parallel default(shared)
-    {
-        auto num_cols = b->get_size()[1];
-        array<ValueType> sumV_array(exec, num_cols);
-#pragma omp for
-        for (size_type blk = 0; blk < num_blks; blk++) {
-            auto* rows_data = a->get_const_rows();
-            auto* offsets_data = a->get_const_offsets();
-            auto* chunk_data = a->get_const_chunk();
+        {
             auto num_cols = b->get_size()[1];
-            auto block_size = a->get_block_size();
-            auto alpha_val = alpha->at(0, 0);
-            size_type nblk = 0, col = 0;
-            size_type row = rows_data[blk], row_old = 0;
-            size_type shf = offsets_data[blk];
-            ValueType val;
-            ValueType* sumV = sumV_array.get_data();
-            for (size_type j = 0; j < num_cols; j++) {
-                sumV[j] = zero<ValueType>();
-            }
-            while (shf < offsets_data[blk + 1]) {
-                row_old = row;
-                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-                if (row_old != row) {
+            array<ValueType> sumV_array(exec, num_cols);
+#pragma omp for
+            for (size_type blk = 0; blk < num_blks; blk++) {
+                auto* rows_data = a->get_const_rows();
+                auto* offsets_data = a->get_const_offsets();
+                auto* chunk_data = a->get_const_chunk();
+                auto num_cols = b->get_size()[1];
+                auto block_size = a->get_block_size();
+                auto alpha_val = alpha->at(0, 0);
+                size_type nblk = 0, col = 0;
+                size_type row = rows_data[blk], row_old = 0;
+                size_type shf = offsets_data[blk];
+                ValueType val;
+                ValueType* sumV = sumV_array.get_data();
+                for (size_type j = 0; j < num_cols; j++) {
+                    sumV[j] = zero<ValueType>();
+                }
+                while (shf < offsets_data[blk + 1]) {
+                    row_old = row;
+                    uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                    get_next_position_value(chunk_data, nblk, ind, shf, col,
+                                            val);
+                    if (row_old != row) {
 #ifdef OPTION
+                        for (size_type j = 0; j < num_cols; j++) {
+                            atomic_add(c->at(row_old, j), sumV[j]);
+                            // c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
+#else
+#pragma omp critical(bccoo_apply)
+                        {
+                            for (size_type j = 0; j < num_cols; j++) {
+                                // TODO: replace with
+                                // 	 OMP atomic_add (ValueType &inout,
+                                //                   ValueType out);
+                                //   atomic_add(c->at(row_old, j), sumV[j]);
+                                c->at(row_old, j) += sumV[j];
+                                sumV[j] = zero<ValueType>();
+                            }
+                        }
+#endif
+                    }
+                    for (size_type j = 0; j < num_cols; j++) {
+                        sumV[j] += alpha_val * val * b->at(col, j);
+                    }
+                }
+#ifdef OPTION
+                for (size_type j = 0; j < num_cols; j++) {
+                    atomic_add(c->at(row, j), sumV[j]);
+                    // c->at(row_old, j) += sumV[j];
+                }
+#else
+#pragma omp critical(bccoo_apply)
+                {
+                    for (size_type j = 0; j < num_cols; j++) {
+                        // TODO: replace with
+                        // 	 OMP atomic_add (ValueType &inout, ValueType
+                        // out);
+                        //   atomic_add(c->at(row_old, j), sumV[j]);
+                        c->at(row, j) += sumV[j];
+                    }
+                }
+#endif
+            }
+        }
+    } else {
+// #pragma omp parallel default(none), shared(exec, a, b, c, num_blks)
+#pragma omp parallel default(shared)
+        {
+            auto num_cols = b->get_size()[1];
+            array<ValueType> sumV_array(exec, num_cols);
+#pragma omp for
+            for (size_type blk = 0; blk < num_blks; blk++) {
+                auto* rows_data = a->get_const_rows();
+                auto* cols_data = a->get_const_cols();
+                auto* types_data = a->get_const_types();
+                auto* offsets_data = a->get_const_offsets();
+                auto* chunk_data = a->get_const_chunk();
+
+                auto block_size = a->get_block_size();
+                auto num_stored_elements = a->get_num_stored_elements();
+                auto alpha_val = alpha->at(0, 0);
+
+                // if (blk == 0) {
+                //   std::cout << "ZZ : " << num_stored_elements << " - "
+                //             << block_size << std::endl;
+                // }
+                ValueType* sumV = sumV_array.get_data();
+                for (size_type j = 0; j < num_cols; j++) {
+                    sumV[j] = zero<ValueType>();
+                }
+
+                auto block_size_local = std::min(
+                    block_size, num_stored_elements - blk * block_size);
+                compr_idxs idxs = {};
+                compr_blk_idxs blk_idxs = {};
+                uint8 type_blk = types_data[blk];
+                idxs.shf = offsets_data[blk];
+                idxs.blk = blk;
+                init_block_indices(
+                    rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                    types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                    blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                    blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+
+                auto row_old = rows_data[blk];
+                // size_type row_old = blk_idxs.row_frs;
+                bool new_elm = false;
+                ValueType val;
+                // if (row_old < 2) {
+                //     std::cout << blk << " <- " << 1*type_blk << " - "
+                //               << block_size_local << std::endl;
+                //     if (blk_idxs.mul_row) std::cout << "MULTIROW" <<
+                //     std::endl;
+                // }
+                // std::cout << "BB: " << blk << " - " << row_old << std::endl;
+                for (size_type i = 0; i < block_size_local; i++) {
+                    get_block_position_value<IndexType, ValueType>(
+                        chunk_data, blk_idxs.mul_row, blk_idxs.col_8bits,
+                        blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                        idxs.row, idxs.col, val, blk_idxs.shf_row,
+                        blk_idxs.shf_col, blk_idxs.shf_val);
+                    // if (blk == 0) {
+                    //     std::cout << "XX: " << blk << " - " << row_old << " -
+                    //     "
+                    //               << idxs.row << std::endl;
+                    // }
+                    if (row_old != idxs.row) {
+                        // if (row_old < 2) {
+                        //   std::cout << "AA: " << blk << " - " << sumV[0] <<
+                        //   std::endl;
+                        // }
+                        for (size_type j = 0; j < num_cols; j++) {
+                            atomic_add(c->at(row_old, j), sumV[j]);
+                            // c->at(row_old, j) += sumV[j];
+                            sumV[j] = zero<ValueType>();
+                        }
+                        new_elm = false;
+                    }
+                    // if (row_old == 0) {
+                    //     std::cout << "(" << idxs.row << ", " << idxs.col <<
+                    //     ")="
+                    //               << val << "*" << b->at(idxs.col, 0) <<
+                    //               std::endl;
+                    // }
+                    for (size_type j = 0; j < num_cols; j++) {
+                        sumV[j] += alpha_val * val * b->at(idxs.col, j);
+                    }
+                    new_elm = true;
+                    row_old = idxs.row;
+                }
+                if (new_elm) {
+                    // if (row_old < 2) {
+                    //     std::cout << "EE: " << blk << " - " << row_old
+                    //               << " - " << sumV[0] << std::endl;
+                    // }
                     for (size_type j = 0; j < num_cols; j++) {
                         atomic_add(c->at(row_old, j), sumV[j]);
                         // c->at(row_old, j) += sumV[j];
                         sumV[j] = zero<ValueType>();
                     }
-#else
-#pragma omp critical(bccoo_apply)
-                    {
-                        for (size_type j = 0; j < num_cols; j++) {
-                            // TODO: replace with
-                            // 	 OMP atomic_add (ValueType &inout,
-                            //                   ValueType out);
-                            //   atomic_add(c->at(row_old, j), sumV[j]);
-                            c->at(row_old, j) += sumV[j];
-                            sumV[j] = zero<ValueType>();
-                        }
-                    }
-#endif
-                }
-                for (size_type j = 0; j < num_cols; j++) {
-                    sumV[j] += alpha_val * val * b->at(col, j);
                 }
             }
-#ifdef OPTION
-            for (size_type j = 0; j < num_cols; j++) {
-                atomic_add(c->at(row, j), sumV[j]);
-                // c->at(row_old, j) += sumV[j];
-            }
-#else
-#pragma omp critical(bccoo_apply)
-            {
-                for (size_type j = 0; j < num_cols; j++) {
-                    // TODO: replace with
-                    // 	 OMP atomic_add (ValueType &inout, ValueType out);
-                    //   atomic_add(c->at(row_old, j), sumV[j]);
-                    c->at(row, j) += sumV[j];
-                }
-            }
-#endif
         }
     }
 }
@@ -304,56 +513,192 @@ void convert_to_next_precision(
     matrix::Bccoo<next_precision<ValueType>, IndexType>* result)
 {
     auto num_blk_src = source->get_num_blocks();
+    auto num_stored_elements_src = source->get_num_stored_elements();
+
+    // std::cout << "OMP_NEXT_PRECISION" << std::endl;
     if (source->get_block_size() == result->get_block_size()) {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
+        if (source->use_element_compression()) {
 // #pragma omp parallel for default(none), shared(source, result, num_blk_src)
 #pragma omp parallel for default(shared)
-        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
-            auto* rows_data_src = source->get_const_rows();
-            auto* offsets_data_src = source->get_const_offsets();
-            auto* rows_data_res = result->get_rows();
-            auto* offsets_data_res = result->get_offsets();
-            rows_data_res[blk_src] = rows_data_src[blk_src];
-            offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
-        }
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* rows_data_res = result->get_rows();
+                auto* offsets_data_res = result->get_offsets();
+                auto block_size_src = source->get_block_size();
+                auto block_size_local =
+                    std::min(block_size_src, num_stored_elements_src -
+                                                 blk_src * block_size_src);
+                rows_data_res[blk_src] = rows_data_src[blk_src];
+                offsets_data_res[blk_src + 1] =
+                    offsets_data_src[blk_src + 1] +
+                    (block_size_src * sizeof(next_precision<ValueType>)) -
+                    (block_size_src * sizeof(ValueType));
+            }
 // Computation of chunk
 // #pragma omp parallel for default(none), shared(source, result, num_blk_src)
 #pragma omp parallel for default(shared)
-        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
-            auto* rows_data_src = source->get_const_rows();
-            auto* offsets_data_src = source->get_const_offsets();
-            auto* chunk_data_src = source->get_const_chunk();
-            size_type block_sizeS = source->get_block_size();
-            size_type num_bytes_src = source->get_num_bytes();
-            size_type nblk_src = 0, col_src = 0;
-            size_type row_src = rows_data_src[blk_src];
-            size_type shf_src = offsets_data_src[blk_src];
-            ValueType val_src;
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* chunk_data_src = source->get_const_chunk();
+                size_type block_size_src = source->get_block_size();
+                size_type num_bytes_src = source->get_num_bytes();
+                size_type nblk_src = 0, col_src = 0;
+                size_type row_src = rows_data_src[blk_src];
+                size_type shf_src = offsets_data_src[blk_src];
+                ValueType val_src;
 
-            auto* rows_data_res = result->get_rows();
-            auto* offsets_data_res = result->get_offsets();
-            auto* chunk_data_res = result->get_chunk();
-            size_type block_sizeR = result->get_block_size();
-            size_type num_bytes_res = result->get_num_bytes();
-            size_type nblk_res = 0, col_res = 0;
-            size_type blk_res = blk_src;
-            size_type row_res = row_src;
-            size_type shf_res = shf_src;
-            next_precision<ValueType> val_res;
+                auto* rows_data_res = result->get_rows();
+                auto* offsets_data_res = result->get_offsets();
+                auto* chunk_data_res = result->get_chunk();
+                size_type block_size_res = result->get_block_size();
+                size_type num_bytes_res = result->get_num_bytes();
+                size_type nblk_res = 0, col_res = 0;
+                size_type blk_res = blk_src;
+                size_type row_res = row_src;
+                size_type shf_res = shf_src;
+                next_precision<ValueType> val_res;
 
-            while (shf_src < offsets_data_src[blk_src + 1]) {
-                uint8 ind_src = get_position_newrow_put(
-                    chunk_data_src, shf_src, row_src, col_src, chunk_data_res,
-                    nblk_res, blk_res, rows_data_res, shf_res, row_res,
-                    col_res);
-                get_next_position_value(chunk_data_src, nblk_src, ind_src,
-                                        shf_src, col_src, val_src);
-                val_res = (val_src);
-                put_next_position_value(chunk_data_res, nblk_res,
-                                        col_src - col_res, shf_res, col_res,
-                                        val_res);
+                while (shf_src < offsets_data_src[blk_src + 1]) {
+                    uint8 ind_src = get_position_newrow_put(
+                        chunk_data_src, shf_src, row_src, col_src,
+                        chunk_data_res, nblk_res, blk_res, rows_data_res,
+                        shf_res, row_res, col_res);
+                    get_next_position_value(chunk_data_src, nblk_src, ind_src,
+                                            shf_src, col_src, val_src);
+                    val_res = (val_src);
+                    put_next_position_value(chunk_data_res, nblk_res,
+                                            col_src - col_res, shf_res, col_res,
+                                            val_res);
+                }
+            }
+        } else {
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* cols_data_src = source->get_const_cols();
+                auto* types_data_src = source->get_const_types();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* rows_data_res = result->get_rows();
+                auto* cols_data_res = result->get_cols();
+                auto* types_data_res = result->get_types();
+                auto* offsets_data_res = result->get_offsets();
+                auto block_size_src = source->get_block_size();
+                auto block_size_local =
+                    std::min(block_size_src, num_stored_elements_src -
+                                                 blk_src * block_size_src);
+                rows_data_res[blk_src] = rows_data_src[blk_src];
+                cols_data_res[blk_src] = cols_data_src[blk_src];
+                types_data_res[blk_src] = types_data_src[blk_src];
+                offsets_data_res[blk_src + 1] =
+                    offsets_data_src[blk_src + 1] +
+                    (block_size_src * sizeof(next_precision<ValueType>)) -
+                    (block_size_src * sizeof(ValueType));
+            }
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* cols_data_src = source->get_const_cols();
+                auto* types_data_src = source->get_const_types();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* chunk_data_src = source->get_const_chunk();
+                size_type block_size_src = source->get_block_size();
+                size_type num_bytes_src = source->get_num_bytes();
+                auto block_size_local_src =
+                    std::min(block_size_src, num_stored_elements_src -
+                                                 blk_src * block_size_src);
+
+                compr_idxs idxs_src = {};
+                compr_blk_idxs blk_idxs_src = {};
+                idxs_src.shf = offsets_data_src[blk_src];
+                idxs_src.blk = blk_src;
+                ValueType val_src;
+                init_block_indices(
+                    rows_data_src, cols_data_src, block_size_local_src,
+                    idxs_src.blk, idxs_src.shf, types_data_src[idxs_src.blk],
+                    blk_idxs_src.mul_row, blk_idxs_src.col_8bits,
+                    blk_idxs_src.col_16bits, blk_idxs_src.row_frs,
+                    blk_idxs_src.col_frs, blk_idxs_src.shf_row,
+                    blk_idxs_src.shf_col, blk_idxs_src.shf_val);
+
+                auto* rows_data_res = result->get_rows();
+                auto* cols_data_res = result->get_cols();
+                auto* types_data_res = result->get_types();
+                auto* offsets_data_res = result->get_offsets();
+                auto* chunk_data_res = result->get_chunk();
+                size_type block_size_res = result->get_block_size();
+                size_type num_bytes_res = result->get_num_bytes();
+                auto block_size_local_res = block_size_local_src;
+
+                compr_idxs idxs_res = {};
+                compr_blk_idxs blk_idxs_res = {};
+                idxs_res.shf = offsets_data_res[blk_src];
+                idxs_res.blk = blk_src;
+                next_precision<ValueType> val_res;
+                init_block_indices(
+                    rows_data_res, cols_data_res, block_size_local_res,
+                    idxs_res.blk, idxs_res.shf, types_data_res[idxs_res.blk],
+                    blk_idxs_res.mul_row, blk_idxs_res.col_8bits,
+                    blk_idxs_res.col_16bits, blk_idxs_res.row_frs,
+                    blk_idxs_res.col_frs, blk_idxs_res.shf_row,
+                    blk_idxs_res.shf_col, blk_idxs_res.shf_val);
+                if (blk_idxs_res.mul_row) {
+                    const uint8* rows_blk_src =
+                        reinterpret_cast<const uint8*>(chunk_data_src) +
+                        idxs_src.shf;
+                    uint8* rows_blk_res =
+                        reinterpret_cast<uint8*>(chunk_data_res) + idxs_res.shf;
+                    for (size_type j = 0; j < block_size_local_src; j++) {
+                        rows_blk_res[j] = rows_blk_src[j];
+                    }
+                    idxs_src.shf += block_size_local_src;
+                    idxs_res.shf += block_size_local_res;
+                }
+                if (blk_idxs_res.col_8bits) {
+                    const uint8* cols_blk_src = reinterpret_cast<const uint8*>(
+                        chunk_data_src + idxs_src.shf);
+                    uint8* cols_blk_res =
+                        reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+                    for (size_type j = 0; j < block_size_local_src; j++) {
+                        cols_blk_res[j] = cols_blk_src[j];
+                    }
+                    idxs_src.shf += block_size_local_src;
+                    idxs_res.shf += block_size_local_res;
+                } else if (blk_idxs_res.col_16bits) {
+                    std::memcpy(reinterpret_cast<uint16*>(chunk_data_res +
+                                                          idxs_res.shf),
+                                reinterpret_cast<const uint16*>(chunk_data_src +
+                                                                idxs_src.shf),
+                                block_size_local_res * sizeof(uint16));
+                    idxs_src.shf += block_size_local_src * sizeof(uint16);
+                    idxs_res.shf += block_size_local_res * sizeof(uint16);
+                } else {
+                    std::memcpy(reinterpret_cast<uint32*>(chunk_data_res +
+                                                          idxs_res.shf),
+                                reinterpret_cast<const uint32*>(chunk_data_src +
+                                                                idxs_src.shf),
+                                block_size_local_res * sizeof(uint32));
+                    idxs_src.shf += block_size_local_src * sizeof(uint32);
+                    idxs_res.shf += block_size_local_res * sizeof(uint32);
+                }
+                if (true) {
+                    for (size_type i = 0; i < block_size_local_res; i++) {
+                        val_src = get_value_chunk<ValueType>(chunk_data_src,
+                                                             idxs_src.shf);
+                        val_res = val_src;
+                        set_value_chunk<next_precision<ValueType>>(
+                            chunk_data_res, idxs_res.shf, val_res);
+                        idxs_src.shf += sizeof(ValueType);
+                        idxs_res.shf += sizeof(next_precision<ValueType>);
+                    }
+                }
             }
         }
     }
@@ -370,28 +715,96 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_blks = source->get_num_blocks();
 
+    if (source->use_element_compression()) {
 // #pragma omp parallel for default(none), shared(source, result, num_blks)
 #pragma omp parallel for default(shared)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = source->get_const_rows();
-        auto* offsets_data = source->get_const_offsets();
-        auto* chunk_data = source->get_const_chunk();
-        auto row_idxs = result->get_row_idxs();
-        auto col_idxs = result->get_col_idxs();
-        auto values = result->get_values();
-        size_type block_size = source->get_block_size();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk];
-        size_type shf = offsets_data[blk];
-        size_type i = block_size * blk;
-        ValueType val;
-        while (shf < offsets_data[blk + 1]) {
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-            row_idxs[i] = row;
-            col_idxs[i] = col;
-            values[i] = val;
-            i++;
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+            auto row_idxs = result->get_row_idxs();
+            auto col_idxs = result->get_col_idxs();
+            auto values = result->get_values();
+            size_type block_size = source->get_block_size();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk];
+            size_type shf = offsets_data[blk];
+            size_type i = block_size * blk;
+            ValueType val;
+            while (shf < offsets_data[blk + 1]) {
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                row_idxs[i] = row;
+                col_idxs[i] = col;
+                values[i] = val;
+                i++;
+            }
+        }
+    } else {
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* cols_data = source->get_const_cols();
+            auto* types_data = source->get_const_types();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+
+            auto row_idxs = result->get_row_idxs();
+            auto col_idxs = result->get_col_idxs();
+            auto values = result->get_values();
+
+            auto block_size = source->get_block_size();
+            auto num_bytes = source->get_num_bytes();
+            auto num_stored_elements = source->get_num_stored_elements();
+            auto block_size_local =
+                std::min(block_size, num_stored_elements - blk * block_size);
+            size_type pos = block_size * blk;
+
+            compr_idxs idxs = {};
+            compr_blk_idxs blk_idxs = {};
+            idxs.shf = offsets_data[blk];
+            idxs.blk = blk;
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            size_type row;
+            size_type col;
+            ValueType val;
+            for (size_type i = 0; i < block_size_local; i++) {
+                row = blk_idxs.row_frs;
+                if (blk_idxs.mul_row) {
+                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_row);
+                    row += rows_blk[i];
+                }
+                col = blk_idxs.col_frs;
+                if (blk_idxs.col_8bits) {
+                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else if (blk_idxs.col_16bits) {
+                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else {
+                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                }
+                if (true) {
+                    const ValueType* vals_blk =
+                        reinterpret_cast<const ValueType*>(chunk_data +
+                                                           blk_idxs.shf_val);
+                    val = vals_blk[i];
+                }
+                row_idxs[pos + i] = row;
+                col_idxs[pos + i] = col;
+                values[pos + i] = val;
+            }
         }
     }
 }
@@ -413,28 +826,95 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     array<IndexType> rows_array(exec, nnz);
     IndexType* row_idxs = rows_array.get_data();
 
+    if (source->use_element_compression()) {
 // #pragma omp parallel for default(none), \
 //     shared(source, result, row_idxs, num_blks)
 #pragma omp parallel for default(shared)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = source->get_const_rows();
-        auto* offsets_data = source->get_const_offsets();
-        auto* chunk_data = source->get_const_chunk();
-        auto col_idxs = result->get_col_idxs();
-        auto values = result->get_values();
-        size_type block_size = source->get_block_size();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk];
-        size_type shf = offsets_data[blk];
-        size_type i = block_size * blk;
-        ValueType val;
-        while (shf < offsets_data[blk + 1]) {
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-            row_idxs[i] = row;
-            col_idxs[i] = col;
-            values[i] = val;
-            i++;
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+            auto col_idxs = result->get_col_idxs();
+            auto values = result->get_values();
+            size_type block_size = source->get_block_size();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk];
+            size_type shf = offsets_data[blk];
+            size_type i = block_size * blk;
+            ValueType val;
+            while (shf < offsets_data[blk + 1]) {
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                row_idxs[i] = row;
+                col_idxs[i] = col;
+                values[i] = val;
+                i++;
+            }
+        }
+    } else {
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* cols_data = source->get_const_cols();
+            auto* types_data = source->get_const_types();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+
+            auto col_idxs = result->get_col_idxs();
+            auto values = result->get_values();
+
+            auto block_size = source->get_block_size();
+            auto num_bytes = source->get_num_bytes();
+            auto num_stored_elements = source->get_num_stored_elements();
+            auto block_size_local =
+                std::min(block_size, num_stored_elements - blk * block_size);
+            size_type pos = block_size * blk;
+
+            compr_idxs idxs = {};
+            compr_blk_idxs blk_idxs = {};
+            idxs.shf = offsets_data[blk];
+            idxs.blk = blk;
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            size_type row;
+            size_type col;
+            ValueType val;
+            for (size_type i = 0; i < block_size_local; i++) {
+                row = blk_idxs.row_frs;
+                if (blk_idxs.mul_row) {
+                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_row);
+                    row += rows_blk[i];
+                }
+                col = blk_idxs.col_frs;
+                if (blk_idxs.col_8bits) {
+                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else if (blk_idxs.col_16bits) {
+                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else {
+                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                }
+                if (true) {
+                    const ValueType* vals_blk =
+                        reinterpret_cast<const ValueType*>(chunk_data +
+                                                           blk_idxs.shf_val);
+                    val = vals_blk[i];
+                }
+                row_idxs[pos + i] = row;
+                col_idxs[pos + i] = col;
+                values[pos + i] = val;
+            }
         }
     }
     auto row_ptrs = result->get_row_ptrs();
@@ -461,21 +941,83 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 
+    if (source->use_element_compression()) {
 // #pragma omp parallel for default(none), shared(source, result, num_blks)
 #pragma omp parallel for default(shared)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = source->get_const_rows();
-        auto* offsets_data = source->get_const_offsets();
-        auto* chunk_data = source->get_const_chunk();
-        size_type block_size = source->get_block_size();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk];
-        size_type shf = offsets_data[blk];
-        ValueType val;
-        while (shf < offsets_data[blk + 1]) {
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-            result->at(row, col) += val;
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+            size_type block_size = source->get_block_size();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk];
+            size_type shf = offsets_data[blk];
+            ValueType val;
+            while (shf < offsets_data[blk + 1]) {
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                result->at(row, col) += val;
+            }
+        }
+    } else {
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = source->get_const_rows();
+            auto* cols_data = source->get_const_cols();
+            auto* types_data = source->get_const_types();
+            auto* offsets_data = source->get_const_offsets();
+            auto* chunk_data = source->get_const_chunk();
+
+            auto block_size = source->get_block_size();
+            auto num_bytes = source->get_num_bytes();
+            auto num_stored_elements = source->get_num_stored_elements();
+            auto block_size_local =
+                std::min(block_size, num_stored_elements - blk * block_size);
+            size_type pos = block_size * blk;
+
+            compr_idxs idxs = {};
+            compr_blk_idxs blk_idxs = {};
+            idxs.shf = offsets_data[blk];
+            idxs.blk = blk;
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            size_type row;
+            size_type col;
+            ValueType val;
+            for (size_type i = 0; i < block_size_local; i++) {
+                row = blk_idxs.row_frs;
+                if (blk_idxs.mul_row) {
+                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_row);
+                    row += rows_blk[i];
+                }
+                col = blk_idxs.col_frs;
+                if (blk_idxs.col_8bits) {
+                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else if (blk_idxs.col_16bits) {
+                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else {
+                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                }
+                if (true) {
+                    const ValueType* vals_blk =
+                        reinterpret_cast<const ValueType*>(chunk_data +
+                                                           blk_idxs.shf_val);
+                    val = vals_blk[i];
+                }
+                result->at(row, col) += val;
+            }
         }
     }
 }
@@ -497,22 +1039,86 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         diag_values[row] = zero<ValueType>();
     }
 
+    if (orig->use_element_compression()) {
 // #pragma omp parallel for default(none), shared(diag_values, orig, num_blks)
 #pragma omp parallel for default(shared)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = orig->get_const_rows();
-        auto* offsets_data = orig->get_const_offsets();
-        auto* chunk_data = orig->get_const_chunk();
-        size_type block_size = orig->get_block_size();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk];
-        size_type shf = offsets_data[blk];
-        ValueType val;
-        while (shf < offsets_data[blk + 1]) {
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value(chunk_data, nblk, ind, shf, col, val);
-            if (row == col) {
-                diag_values[row] = val;
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = orig->get_const_rows();
+            auto* offsets_data = orig->get_const_offsets();
+            auto* chunk_data = orig->get_const_chunk();
+            size_type block_size = orig->get_block_size();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk];
+            size_type shf = offsets_data[blk];
+            ValueType val;
+            while (shf < offsets_data[blk + 1]) {
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value(chunk_data, nblk, ind, shf, col, val);
+                if (row == col) {
+                    diag_values[row] = val;
+                }
+            }
+        }
+    } else {
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(orig, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = orig->get_const_rows();
+            auto* cols_data = orig->get_const_cols();
+            auto* types_data = orig->get_const_types();
+            auto* offsets_data = orig->get_const_offsets();
+            auto* chunk_data = orig->get_const_chunk();
+
+            auto block_size = orig->get_block_size();
+            auto num_bytes = orig->get_num_bytes();
+            auto num_stored_elements = orig->get_num_stored_elements();
+            auto block_size_local =
+                std::min(block_size, num_stored_elements - blk * block_size);
+            size_type pos = block_size * blk;
+
+            compr_idxs idxs = {};
+            compr_blk_idxs blk_idxs = {};
+            idxs.shf = offsets_data[blk];
+            idxs.blk = blk;
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            size_type row;
+            size_type col;
+            ValueType val;
+            for (size_type i = 0; i < block_size_local; i++) {
+                row = blk_idxs.row_frs;
+                if (blk_idxs.mul_row) {
+                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_row);
+                    row += rows_blk[i];
+                }
+                col = blk_idxs.col_frs;
+                if (blk_idxs.col_8bits) {
+                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else if (blk_idxs.col_16bits) {
+                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else {
+                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                }
+                if (true) {
+                    const ValueType* vals_blk =
+                        reinterpret_cast<const ValueType*>(chunk_data +
+                                                           blk_idxs.shf_val);
+                    val = vals_blk[i];
+                }
+                if (row == col) {
+                    diag_values[row] = val;
+                }
             }
         }
     }
@@ -528,22 +1134,85 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_blks = matrix->get_num_blocks();
 
+    if (matrix->use_element_compression()) {
 // Computation of chunk
 // #pragma omp parallel for default(none), shared(matrix, num_blks)
 #pragma omp parallel for default(shared)
-    for (size_type blk = 0; blk < num_blks; blk++) {
-        auto* rows_data = matrix->get_const_rows();
-        auto* offsets_data = matrix->get_const_offsets();
-        auto* chunk_data = matrix->get_chunk();
-        size_type block_size = matrix->get_block_size();
-        size_type nblk = 0, col = 0;
-        size_type row = rows_data[blk];
-        size_type shf = offsets_data[blk];
-        ValueType val;
-        while (shf < offsets_data[blk + 1]) {
-            uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-            get_next_position_value_put(chunk_data, nblk, ind, shf, col, val,
-                                        [](ValueType val) { return abs(val); });
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = matrix->get_const_rows();
+            auto* offsets_data = matrix->get_const_offsets();
+            auto* chunk_data = matrix->get_chunk();
+            size_type block_size = matrix->get_block_size();
+            size_type nblk = 0, col = 0;
+            size_type row = rows_data[blk];
+            size_type shf = offsets_data[blk];
+            ValueType val;
+            while (shf < offsets_data[blk + 1]) {
+                uint8 ind = get_position_newrow(chunk_data, shf, row, col);
+                get_next_position_value_put(
+                    chunk_data, nblk, ind, shf, col, val,
+                    [](ValueType val) { return abs(val); });
+            }
+        }
+    } else {
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(matrix, result, num_blk_src)
+#pragma omp parallel for default(shared)
+        for (size_type blk = 0; blk < num_blks; blk++) {
+            auto* rows_data = matrix->get_const_rows();
+            auto* cols_data = matrix->get_const_cols();
+            auto* types_data = matrix->get_const_types();
+            auto* offsets_data = matrix->get_const_offsets();
+            auto* chunk_data = matrix->get_chunk();
+
+            auto block_size = matrix->get_block_size();
+            auto num_bytes = matrix->get_num_bytes();
+            auto num_stored_elements = matrix->get_num_stored_elements();
+            auto block_size_local =
+                std::min(block_size, num_stored_elements - blk * block_size);
+            size_type pos = block_size * blk;
+
+            compr_idxs idxs = {};
+            compr_blk_idxs blk_idxs = {};
+            idxs.shf = offsets_data[blk];
+            idxs.blk = blk;
+            init_block_indices(
+                rows_data, cols_data, block_size_local, idxs.blk, idxs.shf,
+                types_data[idxs.blk], blk_idxs.mul_row, blk_idxs.col_8bits,
+                blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs,
+                blk_idxs.shf_row, blk_idxs.shf_col, blk_idxs.shf_val);
+            size_type row;
+            size_type col;
+            ValueType val;
+            for (size_type i = 0; i < block_size_local; i++) {
+                row = blk_idxs.row_frs;
+                if (blk_idxs.mul_row) {
+                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_row);
+                    row += rows_blk[i];
+                }
+                col = blk_idxs.col_frs;
+                if (blk_idxs.col_8bits) {
+                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else if (blk_idxs.col_16bits) {
+                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                } else {
+                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
+                        chunk_data + blk_idxs.shf_col);
+                    col += cols_blk[i];
+                }
+                if (true) {
+                    ValueType* vals_blk = reinterpret_cast<ValueType*>(
+                        chunk_data + blk_idxs.shf_val);
+                    val = vals_blk[i];
+                    val = abs(val);
+                    vals_blk[i] = val;
+                }
+            }
         }
     }
 }
@@ -563,52 +1232,186 @@ void compute_absolute(
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
+        if (source->use_element_compression()) {
 // #pragma omp parallel for default(none), shared(source, result, num_blk_src)
 #pragma omp parallel for default(shared)
-        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
-            auto* rows_data_src = source->get_const_rows();
-            auto* offsets_data_src = source->get_const_offsets();
-            auto* rows_data_res = result->get_rows();
-            auto* offsets_data_res = result->get_offsets();
-            rows_data_res[blk_src] = rows_data_src[blk_src];
-            offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
-        }
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* rows_data_res = result->get_rows();
+                auto* offsets_data_res = result->get_offsets();
+                rows_data_res[blk_src] = rows_data_src[blk_src];
+                offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
+            }
 // Computation of chunk
 // #pragma omp parallel for default(none), shared(source, result, num_blk_src)
 #pragma omp parallel for default(shared)
-        for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
-            auto* rows_data_src = source->get_const_rows();
-            auto* offsets_data_src = source->get_const_offsets();
-            auto* chunk_data_src = source->get_const_chunk();
-            size_type block_sizeS = source->get_block_size();
-            size_type num_bytes_src = source->get_num_bytes();
-            size_type nblk_src = 0, col_src = 0;
-            size_type row_src = rows_data_src[blk_src];
-            size_type shf_src = offsets_data_src[blk_src];
-            ValueType val_src;
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* chunk_data_src = source->get_const_chunk();
+                size_type block_size_src = source->get_block_size();
+                size_type num_bytes_src = source->get_num_bytes();
+                size_type nblk_src = 0, col_src = 0;
+                size_type row_src = rows_data_src[blk_src];
+                size_type shf_src = offsets_data_src[blk_src];
+                ValueType val_src;
 
-            auto* rows_data_res = result->get_rows();
-            auto* offsets_data_res = result->get_offsets();
-            auto* chunk_data_res = result->get_chunk();
-            size_type block_sizeR = result->get_block_size();
-            size_type num_bytes_res = result->get_num_bytes();
-            size_type nblk_res = 0, col_res = 0;
-            size_type blk_res = blk_src;
-            size_type row_res = row_src;
-            size_type shf_res = shf_src;
-            remove_complex<ValueType> val_res;
+                auto* rows_data_res = result->get_rows();
+                auto* offsets_data_res = result->get_offsets();
+                auto* chunk_data_res = result->get_chunk();
+                size_type block_size_res = result->get_block_size();
+                size_type num_bytes_res = result->get_num_bytes();
+                size_type nblk_res = 0, col_res = 0;
+                size_type blk_res = blk_src;
+                size_type row_res = row_src;
+                size_type shf_res = shf_src;
+                remove_complex<ValueType> val_res;
 
-            while (shf_src < offsets_data_src[blk_src + 1]) {
-                uint8 ind_src = get_position_newrow_put(
-                    chunk_data_src, shf_src, row_src, col_src, chunk_data_res,
-                    nblk_res, blk_res, rows_data_res, shf_res, row_res,
-                    col_res);
-                get_next_position_value(chunk_data_src, nblk_src, ind_src,
-                                        shf_src, col_src, val_src);
-                val_res = abs(val_src);
-                put_next_position_value(chunk_data_res, nblk_res,
-                                        col_src - col_res, shf_res, col_res,
-                                        val_res);
+                while (shf_src < offsets_data_src[blk_src + 1]) {
+                    uint8 ind_src = get_position_newrow_put(
+                        chunk_data_src, shf_src, row_src, col_src,
+                        chunk_data_res, nblk_res, blk_res, rows_data_res,
+                        shf_res, row_res, col_res);
+                    get_next_position_value(chunk_data_src, nblk_src, ind_src,
+                                            shf_src, col_src, val_src);
+                    val_res = abs(val_src);
+                    put_next_position_value(chunk_data_res, nblk_res,
+                                            col_src - col_res, shf_res, col_res,
+                                            val_res);
+                }
+            }
+        } else {
+            // std::cout << "NEW_ABSOLUTE" << std::endl;
+            size_type num_stored_elements_src =
+                source->get_num_stored_elements();
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* cols_data_src = source->get_const_cols();
+                auto* types_data_src = source->get_const_types();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* rows_data_res = result->get_rows();
+                auto* cols_data_res = result->get_cols();
+                auto* types_data_res = result->get_types();
+                auto* offsets_data_res = result->get_offsets();
+                auto block_size_src = source->get_block_size();
+                auto block_size_local =
+                    std::min(block_size_src, num_stored_elements_src -
+                                                 blk_src * block_size_src);
+                rows_data_res[blk_src] = rows_data_src[blk_src];
+                cols_data_res[blk_src] = cols_data_src[blk_src];
+                types_data_res[blk_src] = types_data_src[blk_src];
+                offsets_data_res[blk_src + 1] =
+                    offsets_data_src[blk_src + 1] +
+                    (block_size_local * sizeof(remove_complex<ValueType>)) -
+                    (block_size_local * sizeof(ValueType));
+            }
+            // std::cout << source->get_num_bytes() << " - "
+            //           << result->get_num_bytes() << std::endl;
+// Computation of chunk
+// #pragma omp parallel for default(none), shared(source, result, num_blk_src)
+#pragma omp parallel for default(shared)
+            for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
+                auto* rows_data_src = source->get_const_rows();
+                auto* cols_data_src = source->get_const_cols();
+                auto* types_data_src = source->get_const_types();
+                auto* offsets_data_src = source->get_const_offsets();
+                auto* chunk_data_src = source->get_const_chunk();
+                size_type block_size_src = source->get_block_size();
+                size_type num_bytes_src = source->get_num_bytes();
+                auto block_size_local_src =
+                    std::min(block_size_src, num_stored_elements_src -
+                                                 blk_src * block_size_src);
+
+                compr_idxs idxs_src = {};
+                compr_blk_idxs blk_idxs_src = {};
+                idxs_src.shf = offsets_data_src[blk_src];
+                idxs_src.blk = blk_src;
+                ValueType val_src;
+                init_block_indices(
+                    rows_data_src, cols_data_src, block_size_local_src,
+                    idxs_src.blk, idxs_src.shf, types_data_src[idxs_src.blk],
+                    blk_idxs_src.mul_row, blk_idxs_src.col_8bits,
+                    blk_idxs_src.col_16bits, blk_idxs_src.row_frs,
+                    blk_idxs_src.col_frs, blk_idxs_src.shf_row,
+                    blk_idxs_src.shf_col, blk_idxs_src.shf_val);
+
+                auto* rows_data_res = result->get_rows();
+                auto* cols_data_res = result->get_cols();
+                auto* types_data_res = result->get_types();
+                auto* offsets_data_res = result->get_offsets();
+                auto* chunk_data_res = result->get_chunk();
+                size_type block_size_res = result->get_block_size();
+                size_type num_bytes_res = result->get_num_bytes();
+                auto block_size_local_res = block_size_local_src;
+
+                compr_idxs idxs_res = {};
+                compr_blk_idxs blk_idxs_res = {};
+                idxs_res.shf = offsets_data_res[blk_src];
+                idxs_res.blk = blk_src;
+                remove_complex<ValueType> val_res;
+                init_block_indices(
+                    rows_data_res, cols_data_res, block_size_local_res,
+                    idxs_res.blk, idxs_res.shf, types_data_res[idxs_res.blk],
+                    blk_idxs_res.mul_row, blk_idxs_res.col_8bits,
+                    blk_idxs_res.col_16bits, blk_idxs_res.row_frs,
+                    blk_idxs_res.col_frs, blk_idxs_res.shf_row,
+                    blk_idxs_res.shf_col, blk_idxs_res.shf_val);
+                // if (idxs_src.shf != idxs_res.shf) {
+                //     std::cout << blk_src << " -> " << idxs_src.shf << " - "
+                //               << idxs_res.shf << std::endl;
+                // }
+                if (blk_idxs_src.mul_row) {
+                    const uint8* rows_blk_src = reinterpret_cast<const uint8*>(
+                        chunk_data_src + idxs_src.shf);
+                    uint8* rows_blk_res =
+                        reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+                    for (size_type j = 0; j < block_size_local_src; j++) {
+                        rows_blk_res[j] = rows_blk_src[j];
+                    }
+                    idxs_src.shf += block_size_local_src;
+                    idxs_res.shf += block_size_local_res;
+                }
+                if (blk_idxs_src.col_8bits) {
+                    const uint8* cols_blk_src = reinterpret_cast<const uint8*>(
+                        chunk_data_src + idxs_src.shf);
+                    uint8* cols_blk_res =
+                        reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+                    for (size_type j = 0; j < block_size_local_src; j++) {
+                        cols_blk_res[j] = cols_blk_src[j];
+                    }
+                    idxs_src.shf += block_size_local_src;
+                    idxs_res.shf += block_size_local_res;
+                } else if (blk_idxs_src.col_16bits) {
+                    std::memcpy(reinterpret_cast<uint16*>(chunk_data_res +
+                                                          idxs_res.shf),
+                                reinterpret_cast<const uint16*>(chunk_data_src +
+                                                                idxs_src.shf),
+                                block_size_local_res * sizeof(uint16));
+                    idxs_src.shf += block_size_local_src * sizeof(uint16);
+                    idxs_res.shf += block_size_local_res * sizeof(uint16);
+                } else {
+                    std::memcpy(reinterpret_cast<uint32*>(chunk_data_res +
+                                                          idxs_res.shf),
+                                reinterpret_cast<const uint32*>(chunk_data_src +
+                                                                idxs_src.shf),
+                                block_size_local_res * sizeof(uint32));
+                    idxs_src.shf += block_size_local_src * sizeof(uint32);
+                    idxs_res.shf += block_size_local_res * sizeof(uint32);
+                }
+                if (true) {
+                    for (size_type i = 0; i < block_size_local_res; i++) {
+                        val_src = get_value_chunk<ValueType>(chunk_data_src,
+                                                             idxs_src.shf);
+                        val_res = abs(val_src);
+                        set_value_chunk<remove_complex<ValueType>>(
+                            chunk_data_res, idxs_res.shf, val_res);
+                        idxs_src.shf += sizeof(ValueType);
+                        idxs_res.shf += sizeof(remove_complex<ValueType>);
+                    }
+                }
             }
         }
     }

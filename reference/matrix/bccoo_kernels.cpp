@@ -194,6 +194,11 @@ void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
                     idxs.row, idxs.col, val, blk_idxs.shf_row, blk_idxs.shf_col,
                     blk_idxs.shf_val);
                 // Counting bytes to write (row,col,val) on result
+                // if (idxs.row  < 2) {
+                //     std::cout << "A(" << idxs.row << ", " << idxs.col << ")="
+                //               << val << "*" << b->at(idxs.col, 0) <<
+                //               std::endl;
+                // }
                 for (size_type j = 0; j < num_cols; j++) {
                     c->at(idxs.row, j) += val * b->at(idxs.col, j);
                 }
@@ -1135,13 +1140,13 @@ void convert_to_bccoo_copy(std::shared_ptr<const ReferenceExecutor> exec,
 {
     if (source->get_num_stored_elements() > 0) {
         if (source->use_element_compression()) {
+            // std::cout << "A-ELEMENT" << std::endl;
             /*
             // gko::array<IndexType>
-            // rows_data_res(exec, source->get_const_rows()); auto rows_data_src
-            =
-            //
+            // rows_data_res(exec, source->get_const_rows());
+                                                // auto rows_data_src =
             source->get_const_rows();
-                                                                                                            // auto rows_data_res = result->get_rows();
+                                                                                            // auto rows_data_res = result->get_rows();
             // rows_data_res = rows_data_src;
             std::memcpy(
             static_cast<unsigned char*>(rows_data_res),
@@ -2048,7 +2053,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
     auto compress_res = result->get_compression();
     if ((source->get_block_size() == result->get_block_size()) &&
         (source->get_compression() == result->get_compression())) {  // A
-        //	std::cout << "A" << std::endl;
+        // std::cout << "A" << std::endl;
         convert_to_bccoo_copy(exec, source, result);
         /*
                 if (source->use_element_compression()) {
@@ -2112,7 +2117,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
          */
     } else if ((source->use_element_compression()) &&
                (result->use_element_compression())) {  // B
-        //	std::cout << "B" << std::endl;
+        // std::cout << "B" << std::endl;
         convert_to_bccoo_elm_elm(exec, source, result);
         /*
                 auto* rows_data_src = source->get_const_rows();
@@ -2156,7 +2161,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
          */
     } else if (source->use_element_compression()) {  // C
-        // 	std::cout << "C" << std::endl;
+        // std::cout << "C" << std::endl;
         convert_to_bccoo_elm_blk(exec, source, result);
         /*
                 auto* rows_data_src = source->get_const_rows();
@@ -2276,7 +2281,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
          */
         //    } else if (source->use_block_compression()) {
     } else if (compress_res == matrix::bccoo::compression::element) {  // D
-        //	std::cout << "D" << std::endl;
+        // std::cout << "D" << std::endl;
         convert_to_bccoo_blk_elm(exec, source, result);
         /*
                 size_type block_size_src = source->get_block_size();
@@ -2341,7 +2346,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
          */
     } else {  // E
-              //	std::cout << "E" << std::endl;
+        // std::cout << "E" << std::endl;
         convert_to_bccoo_blk_blk(exec, source, result);
         /*
         size_type block_size_src = source->get_block_size();
@@ -2591,9 +2596,9 @@ void convert_to_next_precision(
             if (type_blk & GKO_BCCOO_ROWS_MULTIPLE) {
                 // std::cout << "MULTIROWS" << std::endl;
                 const uint8* rows_blk_src =
-                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                    reinterpret_cast<const uint8*>(chunk_data_src) + shf_src;
                 uint8* rows_blk_res =
-                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                    reinterpret_cast<uint8*>(chunk_data_res) + shf_res;
                 for (size_type j = 0; j < block_size_local; j++) {
                     rows_blk_res[j] = rows_blk_src[j];
                 }
@@ -2603,9 +2608,9 @@ void convert_to_next_precision(
             if (type_blk & GKO_BCCOO_COLS_8BITS) {
                 //	std::cout << "COL8BITS" << std::endl;
                 const uint8* cols_blk_src =
-                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                    reinterpret_cast<const uint8*>(chunk_data_src) + shf_src;
                 uint8* cols_blk_res =
-                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                    reinterpret_cast<uint8*>(chunk_data_res) + shf_res;
                 for (size_type j = 0; j < block_size_local; j++) {
                     cols_blk_res[j] = cols_blk_src[j];
                 }
@@ -2614,16 +2619,16 @@ void convert_to_next_precision(
             } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
                 //	std::cout << "COL16BITS" << std::endl;
                 std::memcpy(
-                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
-                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    reinterpret_cast<uint16*>(chunk_data_res + shf_res),
+                    reinterpret_cast<const uint16*>(chunk_data_src + shf_src),
                     block_size_local * sizeof(uint16));
                 shf_src += block_size_local * sizeof(uint16);
                 shf_res += block_size_local * sizeof(uint16);
             } else {
                 //	std::cout << "COL32BITS" << std::endl;
                 std::memcpy(
-                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
-                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    reinterpret_cast<uint32*>(chunk_data_res + shf_res),
+                    reinterpret_cast<const uint32*>(chunk_data_src + shf_src),
                     block_size_local * sizeof(uint32));
                 shf_src += block_size_local * sizeof(uint32);
                 shf_res += block_size_local * sizeof(uint32);
@@ -3087,9 +3092,9 @@ void compute_absolute(
             auto type_blk = types_data_res[blk_res];
             if (type_blk & GKO_BCCOO_ROWS_MULTIPLE) {
                 const uint8* rows_blk_src =
-                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                    reinterpret_cast<const uint8*>(chunk_data_src) + shf_src;
                 uint8* rows_blk_res =
-                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                    reinterpret_cast<uint8*>(chunk_data_res) + shf_res;
                 for (size_type j = 0; j < block_size_local; j++) {
                     rows_blk_res[j] = rows_blk_src[j];
                 }
@@ -3098,9 +3103,9 @@ void compute_absolute(
             }
             if (type_blk & GKO_BCCOO_COLS_8BITS) {
                 const uint8* cols_blk_src =
-                    static_cast<const uint8*>(chunk_data_src) + shf_src;
+                    reinterpret_cast<const uint8*>(chunk_data_src + shf_src);
                 uint8* cols_blk_res =
-                    static_cast<uint8*>(chunk_data_res) + shf_res;
+                    reinterpret_cast<uint8*>(chunk_data_res + shf_res);
                 for (size_type j = 0; j < block_size_local; j++) {
                     cols_blk_res[j] = cols_blk_src[j];
                 }
@@ -3108,15 +3113,15 @@ void compute_absolute(
                 shf_res += block_size_local;
             } else if (type_blk & GKO_BCCOO_COLS_16BITS) {
                 std::memcpy(
-                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
-                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    reinterpret_cast<uint16*>(chunk_data_res + shf_res),
+                    reinterpret_cast<const uint16*>(chunk_data_src + shf_src),
                     block_size_local * sizeof(uint16));
                 shf_src += block_size_local * sizeof(uint16);
                 shf_res += block_size_local * sizeof(uint16);
             } else {
                 std::memcpy(
-                    static_cast<unsigned char*>(chunk_data_res) + shf_res,
-                    static_cast<const unsigned char*>(chunk_data_src) + shf_src,
+                    reinterpret_cast<uint32*>(chunk_data_res + shf_res),
+                    reinterpret_cast<const uint32*>(chunk_data_src + shf_src),
                     block_size_local * sizeof(uint32));
                 shf_src += block_size_local * sizeof(uint32);
                 shf_res += block_size_local * sizeof(uint32);
