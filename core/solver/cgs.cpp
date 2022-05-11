@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/cgs_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -106,51 +107,41 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
+    using ws = solver_workspace_traits<Cgs>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_size()[1];
+    this->setup_workspace();
 
-    auto r = this->create_workspace_with_config_of(0, dense_b);
-    auto r_tld = this->create_workspace_with_config_of(1, dense_b);
-    auto p = this->create_workspace_with_config_of(2, dense_b);
-    auto q = this->create_workspace_with_config_of(3, dense_b);
-    auto u = this->create_workspace_with_config_of(4, dense_b);
-    auto u_hat = this->create_workspace_with_config_of(5, dense_b);
-    auto v_hat = this->create_workspace_with_config_of(6, dense_b);
-    auto t = this->create_workspace_with_config_of(7, dense_b);
+    GKO_SOLVER_VECTOR(r);
+    GKO_SOLVER_VECTOR(r_tld);
+    GKO_SOLVER_VECTOR(p);
+    GKO_SOLVER_VECTOR(q);
+    GKO_SOLVER_VECTOR(u);
+    GKO_SOLVER_VECTOR(u_hat);
+    GKO_SOLVER_VECTOR(v_hat);
+    GKO_SOLVER_VECTOR(t);
 
-    auto alpha =
-        this->template create_workspace_scalar<ValueType>(8, num_vectors);
-    auto beta =
-        this->template create_workspace_scalar<ValueType>(9, num_vectors);
-    auto gamma =
-        this->template create_workspace_scalar<ValueType>(10, num_vectors);
-    auto rho_prev =
-        this->template create_workspace_scalar<ValueType>(11, num_vectors);
-    auto rho =
-        this->template create_workspace_scalar<ValueType>(12, num_vectors);
+    GKO_SOLVER_SCALAR(alpha);
+    GKO_SOLVER_SCALAR(beta);
+    GKO_SOLVER_SCALAR(gamma);
+    GKO_SOLVER_SCALAR(prev_rho);
+    GKO_SOLVER_SCALAR(rho);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(13, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(14, 1);
-    one_op->fill(one<ValueType>());
-    neg_one_op->fill(-one<ValueType>());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    auto& stop_status =
-        this->template create_workspace_array<stopping_status>(0, num_vectors);
-    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(cgs::make_initialize(dense_b, r, r_tld, p, q, u, u_hat, v_hat, t,
-                                   alpha, beta, gamma, rho_prev, rho,
-                                   &stop_status));
     // r = dense_b
     // r_tld = r
     // rho = 0.0
-    // rho_prev = alpha = beta = gamma = 1.0
+    // prev_rho = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
+    exec->run(cgs::make_initialize(dense_b, r, r_tld, p, q, u, u_hat, v_hat, t,
+                                   alpha, beta, gamma, prev_rho, rho,
+                                   &stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -184,11 +175,11 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             break;
         }
 
-        // beta = rho / rho_prev
+        // beta = rho / prev_rho
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
         exec->run(
-            cgs::make_step_1(r, u, p, q, beta, rho, rho_prev, &stop_status));
+            cgs::make_step_1(r, u, p, q, beta, rho, prev_rho, &stop_status));
         this->get_preconditioner()->apply(p, t);
         this->get_system_matrix()->apply(t, v_hat);
         r_tld->compute_conj_dot(v_hat, gamma, reduction_tmp);
@@ -204,7 +195,7 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // x = x + alpha * u_hat
         exec->run(cgs::make_step_3(t, u_hat, r, dense_x, alpha, &stop_status));
 
-        swap(rho_prev, rho);
+        swap(prev_rho, rho);
     }
 }
 
@@ -224,6 +215,54 @@ void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Cgs<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Cgs<ValueType>>::num_vectors(
+    const Solver&)
+{
+    return 15;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::vector_names(
+    const Solver&)
+{
+    return {
+        "r",     "r_tld", "p",     "q",        "u",   "u_hat", "v_hat",     "t",
+        "alpha", "beta",  "gamma", "prev_rho", "rho", "one",   "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Cgs<ValueType>>::scalars(const Solver&)
+{
+    return {alpha, beta, gamma, prev_rho, rho};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Cgs<ValueType>>::vectors(const Solver&)
+{
+    return {r, r_tld, p, q, u, u_hat, v_hat, t};
 }
 
 

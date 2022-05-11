@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/bicg_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -128,46 +129,38 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
+    using ws = solver_workspace_traits<Bicg>;
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    auto r = this->create_workspace_with_config_of(0, dense_b);
-    auto r2 = this->create_workspace_with_config_of(1, dense_b);
-    auto z = this->create_workspace_with_config_of(2, dense_b);
-    auto z2 = this->create_workspace_with_config_of(3, dense_b);
-    auto p = this->create_workspace_with_config_of(4, dense_b);
-    auto p2 = this->create_workspace_with_config_of(5, dense_b);
-    auto q = this->create_workspace_with_config_of(6, dense_b);
-    auto q2 = this->create_workspace_with_config_of(7, dense_b);
+    GKO_SOLVER_VECTOR(r);
+    GKO_SOLVER_VECTOR(z);
+    GKO_SOLVER_VECTOR(p);
+    GKO_SOLVER_VECTOR(q);
+    GKO_SOLVER_VECTOR(r2);
+    GKO_SOLVER_VECTOR(z2);
+    GKO_SOLVER_VECTOR(p2);
+    GKO_SOLVER_VECTOR(q2);
 
-    auto alpha = this->template create_workspace_scalar<ValueType>(
-        8, dense_b->get_size()[1]);
-    auto beta = this->template create_workspace_scalar<ValueType>(
-        9, dense_b->get_size()[1]);
-    auto prev_rho = this->template create_workspace_scalar<ValueType>(
-        10, dense_b->get_size()[1]);
-    auto rho = this->template create_workspace_scalar<ValueType>(
-        11, dense_b->get_size()[1]);
+    GKO_SOLVER_SCALAR(alpha);
+    GKO_SOLVER_SCALAR(beta);
+    GKO_SOLVER_SCALAR(prev_rho);
+    GKO_SOLVER_SCALAR(rho);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(12, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(13, 1);
-    one_op->fill(one<ValueType>());
-    neg_one_op->fill(-one<ValueType>());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    auto& stop_status = this->template create_workspace_array<stopping_status>(
-        0, dense_b->get_size()[1]);
-    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(bicg::make_initialize(dense_b, r, z, p, q, prev_rho, rho, r2, z2,
-                                    p2, q2, &stop_status));
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
+    exec->run(bicg::make_initialize(dense_b, r, z, p, q, prev_rho, rho, r2, z2,
+                                    p2, q2, &stop_status));
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
@@ -194,10 +187,10 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto conj_trans_preconditioner =
         as<const Transposable>(this->get_preconditioner())->conj_transpose();
 
+    // r = r - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
-    // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
-    r2->copy_from(r);
     // r2 = r
+    r2->copy_from(r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -234,8 +227,11 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
         exec->run(bicg::make_step_1(p, z, p2, z2, rho, prev_rho, &stop_status));
+        // q = A * p
         this->get_system_matrix()->apply(p, q);
+        // q2 = A^T * p2
         conj_trans_A->apply(p2, q2);
+        // beta = dot(p2, q)
         p2->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
@@ -263,6 +259,57 @@ void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Bicg<ValueType>>::num_arrays(
+    const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Bicg<ValueType>>::num_vectors(
+    const Solver&)
+{
+    return 14;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Bicg<ValueType>>::vector_names(
+    const Solver&)
+{
+    return {
+        "r",  "z",     "p",    "q",        "r2",  "z2",  "p2",
+        "q2", "alpha", "beta", "prev_rho", "rho", "one", "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Bicg<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Bicg<ValueType>>::scalars(
+    const Solver&)
+{
+    return {alpha, beta, prev_rho, rho};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Bicg<ValueType>>::vectors(
+    const Solver&)
+{
+    return {r, z, p, q, r2, z2, p2, q2};
 }
 
 

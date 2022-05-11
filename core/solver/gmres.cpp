@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/gmres_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -112,48 +113,45 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using Vector = matrix::Dense<ValueType>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using ws = solver_workspace_traits<Gmres>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
     const auto num_rows = this->get_size()[0];
     const auto num_rhs = dense_b->get_size()[1];
     const auto krylov_dim = this->get_krylov_dim();
-    auto residual = this->create_workspace_with_config_of(0, dense_b);
-    auto preconditioned_vector =
-        this->create_workspace_with_config_of(1, dense_b);
+    GKO_SOLVER_VECTOR(residual);
+    GKO_SOLVER_VECTOR(preconditioned_vector);
     auto krylov_bases = this->create_workspace_with_type_of(
-        2, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs});
+        ws::krylov_bases, dense_b,
+        dim<2>{num_rows * (krylov_dim + 1), num_rhs});
     auto hessenberg = this->template create_workspace<Vector>(
-        3, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
-    auto givens_sin =
-        this->template create_workspace<Vector>(4, dim<2>{krylov_dim, num_rhs});
-    auto givens_cos =
-        this->template create_workspace<Vector>(5, dim<2>{krylov_dim, num_rhs});
+        ws::hessenberg, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
+    auto givens_sin = this->template create_workspace<Vector>(
+        ws::givens_sin, dim<2>{krylov_dim, num_rhs});
+    auto givens_cos = this->template create_workspace<Vector>(
+        ws::givens_cos, dim<2>{krylov_dim, num_rhs});
     auto residual_norm_collection = this->template create_workspace<Vector>(
-        6, dim<2>{krylov_dim + 1, num_rhs});
-    auto residual_norm =
-        this->template create_workspace<NormVector>(7, dim<2>{1, num_rhs});
-    auto y =
-        this->template create_workspace<Vector>(8, dim<2>{krylov_dim, num_rhs});
+        ws::residual_norm_collection, dim<2>{krylov_dim + 1, num_rhs});
+    auto residual_norm = this->template create_workspace<NormVector>(
+        ws::residual_norm, dim<2>{1, num_rhs});
+    auto y = this->template create_workspace<Vector>(
+        ws::y, dim<2>{krylov_dim, num_rhs});
 
-    auto before_preconditioner =
-        this->create_workspace_with_config_of(9, dense_x);
-    auto after_preconditioner =
-        this->create_workspace_with_config_of(10, dense_x);
+    auto before_preconditioner = this->create_workspace_with_config_of(
+        ws::before_preconditioner, dense_x);
+    auto after_preconditioner = this->create_workspace_with_config_of(
+        ws::after_preconditioner, dense_x);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(11, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(12, 1);
-    one_op->fill(one<ValueType>());
-    neg_one_op->fill(-one<ValueType>());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    auto& stop_status =
-        this->template create_workspace_array<stopping_status>(0, num_rhs);
-    auto& final_iter_nums =
-        this->template create_workspace_array<size_type>(4, num_rhs);
-    auto& reduction_tmp = this->template create_workspace_array<char>(2, 0);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
+    auto& final_iter_nums = this->template create_workspace_array<size_type>(
+        ws::final_iter_nums, num_rhs);
 
     // Initialization
     exec->run(gmres::make_initialize_1(dense_b, residual, givens_sin,
@@ -336,6 +334,70 @@ void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Gmres<ValueType>>::num_arrays(
+    const Solver&)
+{
+    return 3;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Gmres<ValueType>>::num_vectors(
+    const Solver&)
+{
+    return 13;
+}
+
+
+template <typename ValueType>
+std::vector<std::string>
+solver_workspace_traits<Gmres<ValueType>>::vector_names(const Solver&)
+{
+    return {
+        "residual",
+        "preconditioned_vector",
+        "krylov_bases",
+        "hessenberg",
+        "givens_sin",
+        "givens_cos",
+        "residual_norm_collection",
+        "residual_norm",
+        "y",
+        "before_preconditioner",
+        "after_preconditioner",
+        "one",
+        "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Gmres<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp", "final_iter_nums"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Gmres<ValueType>>::scalars(
+    const Solver&)
+{
+    return {hessenberg,    givens_sin, givens_cos, residual_norm_collection,
+            residual_norm, y};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Gmres<ValueType>>::vectors(
+    const Solver&)
+{
+    return {residual, preconditioned_vector, krylov_bases,
+            before_preconditioner, after_preconditioner};
 }
 
 

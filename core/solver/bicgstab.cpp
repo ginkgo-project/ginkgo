@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -109,56 +110,48 @@ void Bicgstab<ValueType>::apply_dense_impl(
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
     using AbsVector = matrix::Dense<remove_complex<ValueType>>;
+    using ws = solver_workspace_traits<Bicgstab>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    auto r = this->create_workspace_with_config_of(0, dense_b);
-    auto z = this->create_workspace_with_config_of(1, dense_b);
-    auto y = this->create_workspace_with_config_of(2, dense_b);
-    auto v = this->create_workspace_with_config_of(3, dense_b);
-    auto s = this->create_workspace_with_config_of(4, dense_b);
-    auto t = this->create_workspace_with_config_of(5, dense_b);
-    auto p = this->create_workspace_with_config_of(6, dense_b);
-    auto rr = this->create_workspace_with_config_of(7, dense_b);
+    GKO_SOLVER_VECTOR(r);
+    GKO_SOLVER_VECTOR(z);
+    GKO_SOLVER_VECTOR(y);
+    GKO_SOLVER_VECTOR(v);
+    GKO_SOLVER_VECTOR(s);
+    GKO_SOLVER_VECTOR(t);
+    GKO_SOLVER_VECTOR(p);
+    GKO_SOLVER_VECTOR(rr);
 
-    auto alpha = this->template create_workspace_scalar<ValueType>(
-        8, dense_b->get_size()[1]);
-    auto beta = this->template create_workspace_scalar<ValueType>(
-        9, dense_b->get_size()[1]);
-    auto gamma = this->template create_workspace_scalar<ValueType>(
-        10, dense_b->get_size()[1]);
-    auto prev_rho = this->template create_workspace_scalar<ValueType>(
-        11, dense_b->get_size()[1]);
-    auto rho = this->template create_workspace_scalar<ValueType>(
-        12, dense_b->get_size()[1]);
-    auto omega = this->template create_workspace_scalar<ValueType>(
-        13, dense_b->get_size()[1]);
+    GKO_SOLVER_SCALAR(alpha);
+    GKO_SOLVER_SCALAR(beta);
+    GKO_SOLVER_SCALAR(gamma);
+    GKO_SOLVER_SCALAR(prev_rho);
+    GKO_SOLVER_SCALAR(rho);
+    GKO_SOLVER_SCALAR(omega);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(14, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(15, 1);
-    one_op->fill(one<ValueType>());
-    neg_one_op->fill(-one<ValueType>());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    auto& stop_status = this->template create_workspace_array<stopping_status>(
-        0, dense_b->get_size()[1]);
-    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(bicgstab::make_initialize(dense_b, r, rr, y, s, t, z, v, p,
-                                        prev_rho, rho, alpha, beta, gamma,
-                                        omega, &stop_status));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
+    exec->run(bicgstab::make_initialize(dense_b, r, rr, y, s, t, z, v, p,
+                                        prev_rho, rho, alpha, beta, gamma,
+                                        omega, &stop_status));
 
+    // r = b - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
+    // rr = r
     rr->copy_from(r);
 
     int iter = -1;
@@ -194,8 +187,11 @@ void Bicgstab<ValueType>::apply_dense_impl(
         exec->run(bicgstab::make_step_1(r, p, v, rho, prev_rho, alpha, omega,
                                         &stop_status));
 
+        // y = preconditioner * p
         this->get_preconditioner()->apply(p, y);
+        // v = A * y
         this->get_system_matrix()->apply(y, v);
+        // beta = dot(rr, v)
         rr->compute_conj_dot(v, beta, reduction_tmp);
         // alpha = rho / beta
         // s = r - alpha * v
@@ -216,9 +212,13 @@ void Bicgstab<ValueType>::apply_dense_impl(
             break;
         }
 
+        // z = preconditioner * s
         this->get_preconditioner()->apply(s, z);
+        // t = A * z
         this->get_system_matrix()->apply(z, t);
+        // gamma = dot(s, t)
         s->compute_conj_dot(t, gamma, reduction_tmp);
+        // beta = dot(t, t)
         t->compute_conj_dot(t, beta, reduction_tmp);
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
@@ -245,6 +245,58 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Bicgstab<ValueType>>::num_arrays(
+    const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Bicgstab<ValueType>>::num_vectors(
+    const Solver&)
+{
+    return 16;
+}
+
+
+template <typename ValueType>
+std::vector<std::string>
+solver_workspace_traits<Bicgstab<ValueType>>::vector_names(const Solver&)
+{
+    return {
+        "r",   "z",     "y",     "v",         "s",     "t",
+        "p",   "rr",    "alpha", "beta",      "gamma", "prev_rho",
+        "rho", "omega", "one",   "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string>
+solver_workspace_traits<Bicgstab<ValueType>>::array_names(const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Bicgstab<ValueType>>::scalars(
+    const Solver&)
+{
+    return {alpha, beta, omega, prev_rho, rho, omega};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Bicgstab<ValueType>>::vectors(
+    const Solver&)
+{
+    return {r, z, y, v, s, t, p, rr};
 }
 
 

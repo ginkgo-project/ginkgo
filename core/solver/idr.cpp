@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
-#include "core/components/fill_array_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -56,7 +56,6 @@ GKO_REGISTER_OPERATION(step_1, idr::step_1);
 GKO_REGISTER_OPERATION(step_2, idr::step_2);
 GKO_REGISTER_OPERATION(step_3, idr::step_3);
 GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
-GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // anonymous namespace
@@ -97,8 +96,10 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
     using AbsType = remove_complex<ValueType>;
+    using ws = solver_workspace_traits<Idr>;
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -108,50 +109,54 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     const auto is_deterministic = this->get_deterministic();
     const auto kappa = this->get_kappa();
 
-    auto residual = this->create_workspace_with_config_of(0, dense_b);
-    auto v = this->create_workspace_with_config_of(1, dense_b);
-    auto t = this->create_workspace_with_config_of(2, dense_b);
-    auto helper = this->create_workspace_with_config_of(3, dense_b);
+    GKO_SOLVER_VECTOR(residual);
+    GKO_SOLVER_VECTOR(v);
+    GKO_SOLVER_VECTOR(t);
+    GKO_SOLVER_VECTOR(helper);
 
     auto m = this->template create_workspace<Vector>(
-        4, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
+        ws::m, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
 
     auto g = this->template create_workspace<Vector>(
-        5, gko::dim<2>{problem_size, subspace_dim * nrhs});
+        ws::g, gko::dim<2>{problem_size, subspace_dim * nrhs});
     auto u = this->template create_workspace<Vector>(
-        6, gko::dim<2>{problem_size, subspace_dim * nrhs});
+        ws::u, gko::dim<2>{problem_size, subspace_dim * nrhs});
 
     auto f = this->template create_workspace<Vector>(
-        7, gko::dim<2>{subspace_dim, nrhs});
+        ws::f, gko::dim<2>{subspace_dim, nrhs});
     auto c = this->template create_workspace<Vector>(
-        8, gko::dim<2>{subspace_dim, nrhs});
+        ws::c, gko::dim<2>{subspace_dim, nrhs});
 
-    auto omega = this->template create_workspace_scalar<SubspaceType>(9, nrhs);
-    auto residual_norm =
-        this->template create_workspace_scalar<AbsType>(10, nrhs);
-    auto tht = this->template create_workspace_scalar<SubspaceType>(11, nrhs);
-    auto t_norm = this->template create_workspace_scalar<AbsType>(12, nrhs);
-    auto alpha = this->template create_workspace_scalar<SubspaceType>(13, nrhs);
+    auto omega =
+        this->template create_workspace_scalar<SubspaceType>(ws::omega, nrhs);
+    auto residual_norm = this->template create_workspace_scalar<AbsType>(
+        ws::residual_norm, nrhs);
+    auto tht =
+        this->template create_workspace_scalar<SubspaceType>(ws::tht, nrhs);
+    auto t_norm =
+        this->template create_workspace_scalar<AbsType>(ws::t_norm, nrhs);
+    auto alpha =
+        this->template create_workspace_scalar<SubspaceType>(ws::alpha, nrhs);
 
     // The dense matrix containing the randomly generated subspace vectors.
     // Stored in column major order and complex conjugated. So, if the
     // matrix containing the subspace vectors in row major order is called P,
     // subspace_vectors actually contains P^H.
     auto subspace_vectors = this->template create_workspace<Vector>(
-        14, gko::dim<2>(subspace_dim, problem_size));
+        ws::subspace, gko::dim<2>(subspace_dim, problem_size));
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(15, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(16, 1);
+    auto one_op = this->template create_workspace_scalar<ValueType>(ws::one, 1);
+    auto neg_one_op =
+        this->template create_workspace_scalar<ValueType>(ws::minus_one, 1);
     auto subspace_neg_one_op =
-        this->template create_workspace_scalar<SubspaceType>(17, 1);
+        this->template create_workspace_scalar<SubspaceType>(
+            ws::subspace_minus_one, 1);
     one_op->fill(one<ValueType>());
     neg_one_op->fill(-one<ValueType>());
     subspace_neg_one_op->fill(-one<SubspaceType>());
 
     bool one_changed{};
-    auto& stop_status = this->template create_workspace_array<stopping_status>(
-        0, dense_b->get_size()[1]);
-    auto& reduction_tmp = this->template create_workspace_array<char>(1, 0);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // Initialization
     // m = identity
@@ -159,8 +164,7 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
                                    &stop_status));
 
     // omega = 1
-    exec->run(
-        idr::make_fill_array(omega->get_values(), nrhs, one<SubspaceType>()));
+    omega->fill(one<SubspaceType>());
 
     // residual = b - Ax
     residual->copy_from(dense_b);
@@ -168,11 +172,8 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     residual->compute_norm2(residual_norm, reduction_tmp);
 
     // g = u = 0
-    exec->run(idr::make_fill_array(
-        g->get_values(), problem_size * g->get_stride(), zero<SubspaceType>()));
-    exec->run(idr::make_fill_array(
-        u->get_values(), problem_size * u->get_stride(), zero<SubspaceType>()));
-
+    g->fill(zero<SubspaceType>());
+    u->fill(zero<SubspaceType>());
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -316,6 +317,58 @@ void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Idr<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Idr<ValueType>>::num_vectors(
+    const Solver&)
+{
+    return 18;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Idr<ValueType>>::vector_names(
+    const Solver&)
+{
+    return {
+        "residual", "v",         "t",
+        "helper",   "m",         "g",
+        "u",        "subspace",  "f",
+        "c",        "omega",     "residual_norm",
+        "tht",      "t_norm",    "alpha",
+        "one",      "minus_one", "subspace_minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Idr<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Idr<ValueType>>::scalars(const Solver&)
+{
+    return {omega, tht, t_norm, alpha};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Idr<ValueType>>::vectors(const Solver&)
+{
+    return {residual, v, t, helper, m, g, u, subspace, f, c};
 }
 
 
