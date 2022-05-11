@@ -116,21 +116,6 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    constexpr static int num_work_vectors = 10;
-    constexpr static int vector_residual = 0;
-    constexpr static int vector_preconditioned_residual = 1;
-    constexpr static int vector_search_direction = 2;
-    constexpr static int vector_search_direction2 = 3;
-    constexpr static int scalar_alpha = 4;
-    constexpr static int scalar_beta = 5;
-    constexpr static int scalar_prev_rho = 6;
-    constexpr static int scalar_rho = 7;
-    constexpr static int scalar_one = 8;
-    constexpr static int scalar_minus_one = 9;
-    constexpr static std::array<const char*, num_work_vectors> vector_names{
-        {"residual", "precond_residual", "search_direction",
-         "search_direction2", "alpha", "beta", "prev_rho", "rho", "one",
-         "minus_one"}};
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -153,6 +138,50 @@ protected:
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
+};
+
+
+template <typename ValueType>
+struct solver_workspace_traits<Cg<ValueType>> {
+    using Solver = Cg<ValueType>;
+    // number of vectors used by this workspace
+    static constexpr int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static constexpr int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> vector_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // preconditioned residual vector
+    constexpr static int z = 1;
+    // p vector
+    constexpr static int p = 2;
+    // q vector
+    constexpr static int q = 3;
+    // alpha scalar
+    constexpr static int alpha = 4;
+    // beta scalar
+    constexpr static int beta = 5;
+    // previous rho scalar
+    constexpr static int prev_rho = 6;
+    // current rho scalar
+    constexpr static int rho = 7;
+    // constant 1.0 scalar
+    constexpr static int one = 8;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 9;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
 };
 
 

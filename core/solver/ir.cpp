@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -173,21 +174,20 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                      matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
+    using ws = solver_workspace_traits<Ir>;
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    auto residual = this->create_workspace_with_config_of(0, dense_b);
-    auto inner_solution = this->create_workspace_with_config_of(1, dense_b);
+    GKO_SOLVER_VECTOR(residual);
+    GKO_SOLVER_VECTOR(inner_solution);
 
-    auto one_op = this->template create_workspace_scalar<ValueType>(2, 1);
-    auto neg_one_op = this->template create_workspace_scalar<ValueType>(3, 1);
-    one_op->fill(one<ValueType>());
-    neg_one_op->fill(-one<ValueType>());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
-        0, dense_b->get_size()[1]);
+        ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);
@@ -255,6 +255,55 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
+{
+    return 1;
+}
+
+
+template <typename ValueType>
+constexpr int solver_workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
+{
+    return 4;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::vector_names(
+    const Solver&)
+{
+    return {
+        "residual",
+        "inner_solution",
+        "one",
+        "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop"};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Ir<ValueType>>::scalars(const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType>
+std::vector<int> solver_workspace_traits<Ir<ValueType>>::vectors(const Solver&)
+{
+    return {residual, inner_solution};
 }
 
 

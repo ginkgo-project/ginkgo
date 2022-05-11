@@ -51,6 +51,28 @@ namespace solver {
 
 
 /**
+ * Traits class providing information on the type and location of workspace
+ * vectors inside a solver.
+ * The member functions are purposefully deleted to avoid people using them.
+ */
+template <typename Solver>
+struct solver_workspace_traits {
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> vector_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+};
+
+
+/**
  * Mixin providing default operation for Preconditionable with correct value
  * semantics. It ensures that the preconditioner stored in this class will
  * always have the same executor as the object this mixin is used in, creating a
@@ -176,6 +198,11 @@ protected:
     void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
+    }
+
+    void set_workspace_size(int num_vectors, int num_arrays) const
+    {
+        workspace_.set_size(num_vectors, num_arrays);
     }
 
     template <typename VectorType>
@@ -317,6 +344,13 @@ protected:
             }
         }
         this->set_system_matrix_base(new_system_matrix);
+    }
+
+    void setup_workspace() const
+    {
+        using traits = solver_workspace_traits<DerivedType>;
+        this->set_workspace_size(traits::num_vectors(*self()),
+                                 traits::num_arrays(*self()));
     }
 
 private:

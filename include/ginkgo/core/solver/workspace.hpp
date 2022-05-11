@@ -83,6 +83,8 @@ public:
             ->arr;
     }
 
+    void clear() { data_.reset(); }
+
 private:
     struct generic_container {
         virtual ~generic_container() = default;
@@ -125,9 +127,7 @@ public:
                                      const std::type_info& expected_type,
                                      dim<2> size, size_type stride)
     {
-        if (vector_id >= vectors_.size()) {
-            vectors_.resize(vector_id + 1);
-        }
+        GKO_ASSERT(vector_id >= 0 && vector_id < vectors_.size());
         // does the existing object have the wrong type?
         // vector types may vary e.g. if users derive from Dense
         auto stored_vec = vectors_[vector_id].get();
@@ -151,16 +151,14 @@ public:
 
     const LinOp* get_vector(int vector_id) const
     {
-        GKO_ASSERT(vector_id < vectors_.size());
+        GKO_ASSERT(vector_id >= 0 && vector_id < vectors_.size());
         return vectors_[vector_id].get();
     }
 
     template <typename ValueType>
     array<ValueType>& create_or_get_array(int array_id, size_type size)
     {
-        if (array_id >= arrays_.size()) {
-            arrays_.resize(array_id + 1);
-        }
+        GKO_ASSERT(array_id >= 0 && array_id < arrays_.size());
         auto& array = arrays_[array_id];
         if (array.empty()) {
             array.template init<ValueType>(this->get_executor(), size);
@@ -176,10 +174,20 @@ public:
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
 
+    void set_size(int num_vectors, int num_arrays)
+    {
+        vectors_.resize(num_vectors);
+        arrays_.resize(num_arrays);
+    }
+
     void clear()
     {
-        vectors_.clear();
-        arrays_.clear();
+        for (auto& vector : vectors_) {
+            vector.reset();
+        }
+        for (auto& array : arrays_) {
+            array.clear();
+        }
     }
 
 private:
