@@ -147,9 +147,12 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
+            using InputVector = matrix::Dense<
+                typename std::decay_t<decltype(*dense_b)>::value_type>;
+            using OutputVector = matrix::Dense<
+                typename std::decay_t<decltype(*dense_x)>::value_type>;
             const auto exec = this->get_executor();
 
             // This kernel checks if a transpose is needed for the multiple rhs
@@ -159,18 +162,18 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
             bool do_transpose = false;
-            std::shared_ptr<Vector> trans_b;
-            std::shared_ptr<Vector> trans_x;
+            std::shared_ptr<InputVector> trans_b;
+            std::shared_ptr<OutputVector> trans_x;
             this->get_executor()->run(
                 upper_trs::make_should_perform_transpose(do_transpose));
             if (do_transpose) {
-                trans_b =
-                    Vector::create(exec, gko::transpose(dense_b->get_size()));
-                trans_x =
-                    Vector::create(exec, gko::transpose(dense_x->get_size()));
+                trans_b = InputVector::create(
+                    exec, gko::transpose(dense_b->get_size()));
+                trans_x = OutputVector::create(
+                    exec, gko::transpose(dense_x->get_size()));
             } else {
-                trans_b = Vector::create(exec);
-                trans_x = Vector::create(exec);
+                trans_b = InputVector::create(exec);
+                trans_x = OutputVector::create(exec);
             }
             exec->run(upper_trs::make_solve(
                 lend(this->get_system_matrix()), lend(this->solve_struct_),

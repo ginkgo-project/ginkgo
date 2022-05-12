@@ -55,7 +55,8 @@ namespace {
 
 class UpperTrs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<double>;
+    using Mtx2 = gko::matrix::Dense<float>;
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
 
     UpperTrs() : rand_engine(30), solve_struct_ref{}, solve_struct_omp{} {}
@@ -93,17 +94,23 @@ protected:
     {
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
+        x2 = Mtx2::create(ref);
+        x2->copy_from(x.get());
         t_b = b->clone();
         t_x = x->clone();
         d_b = gko::clone(omp, b);
         d_x = gko::clone(omp, x);
+        d_x2 = gko::clone(omp, x2);
         dt_b = gko::clone(omp, b);
         dt_x = gko::clone(omp, x);
-        mat = gen_u_mtx(m, m);
-        csr_mat = CsrMtx::create(ref);
-        mat->convert_to(csr_mat.get());
-        d_mat = gko::clone(omp, mat);
-        d_csr_mat = gko::clone(omp, csr_mat);
+        mtx = gen_u_mtx(m, m);
+        csr_mtx = CsrMtx::create(ref);
+        mtx->convert_to(csr_mtx.get());
+        d_mtx = gko::clone(omp, mtx);
+        d_csr_mtx = gko::clone(omp, csr_mtx);
+        b2 = Mtx2::create(ref);
+        b2->copy_from(b.get());
+        d_b2 = gko::clone(omp, b2);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -112,17 +119,21 @@ protected:
     std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx2> b2;
     std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx2> x2;
     std::shared_ptr<Mtx> t_b;
     std::shared_ptr<Mtx> t_x;
-    std::shared_ptr<Mtx> mat;
-    std::shared_ptr<CsrMtx> csr_mat;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<CsrMtx> csr_mtx;
     std::shared_ptr<Mtx> d_b;
+    std::shared_ptr<Mtx2> d_b2;
     std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Mtx2> d_x2;
     std::shared_ptr<Mtx> dt_b;
     std::shared_ptr<Mtx> dt_x;
-    std::shared_ptr<Mtx> d_mat;
-    std::shared_ptr<CsrMtx> d_csr_mat;
+    std::shared_ptr<Mtx> d_mtx;
+    std::shared_ptr<CsrMtx> d_csr_mtx;
     std::shared_ptr<gko::solver::SolveStruct> solve_struct_ref;
     std::shared_ptr<gko::solver::SolveStruct> solve_struct_omp;
 };
@@ -141,9 +152,9 @@ TEST_F(UpperTrs, OmpUpperTrsFlagCheckIsCorrect)
 TEST_F(UpperTrs, OmpUpperTrsGenerateIsEquivalentToRef)
 {
     gko::size_type num_rhs = 1;
-    gko::kernels::reference::upper_trs::generate(ref, csr_mat.get(),
+    gko::kernels::reference::upper_trs::generate(ref, csr_mtx.get(),
                                                  solve_struct_ref, num_rhs);
-    gko::kernels::omp::upper_trs::generate(omp, d_csr_mat.get(),
+    gko::kernels::omp::upper_trs::generate(omp, d_csr_mtx.get(),
                                            solve_struct_omp, num_rhs);
 }
 
@@ -152,10 +163,10 @@ TEST_F(UpperTrs, OmpUpperTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::upper_trs::solve(ref, csr_mat.get(),
+    gko::kernels::reference::upper_trs::solve(ref, csr_mtx.get(),
                                               solve_struct_ref.get(), t_b.get(),
                                               t_x.get(), b.get(), x.get());
-    gko::kernels::omp::upper_trs::solve(omp, d_csr_mat.get(),
+    gko::kernels::omp::upper_trs::solve(omp, d_csr_mtx.get(),
                                         solve_struct_omp.get(), dt_b.get(),
                                         dt_x.get(), d_b.get(), d_x.get());
 
@@ -163,18 +174,180 @@ TEST_F(UpperTrs, OmpUpperTrsSolveIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyIsEquivalentToRef)
+TEST_F(UpperTrs, OmpSingleRhsApplyClassicalIsEquivalentToRef)
 {
-    initialize_data(59, 3);
+    initialize_data(50, 1);
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
     auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
-    auto solver = upper_trs_factory->generate(csr_mat);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mat);
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpSingleRhsApplyIsEquivalentToRef)
+{
+    initialize_data(50, 1);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpSingleRhsMixedApplyIsEquivalentToRef1)
+{
+    initialize_data(50, 1);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b2.get(), x2.get());
+    d_solver->apply(d_b2.get(), d_x2.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+}
+
+
+TEST_F(UpperTrs, OmpSingleRhsMixedApplyIsEquivalentToRef2)
+{
+    initialize_data(50, 1);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpSingleRhsMixedApplyIsEquivalentToRef3)
+{
+    initialize_data(50, 1);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
+    solver->apply(b.get(), x2.get());
+    d_solver->apply(d_b.get(), d_x2.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+}
+
+
+TEST_F(UpperTrs, OmpMultipleRhsApplyClassicalIsEquivalentToRef)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(omp);
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db_strided = Mtx::create(omp, b->get_size(), 4);
+    d_b->convert_to(db_strided.get());
+    auto dx_strided = Mtx::create(omp, x->get_size(), 5);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db_strided.get(), dx_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpMultipleRhsApplyIsEquivalentToRef)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db_strided = Mtx::create(omp, b->get_size(), 4);
+    d_b->convert_to(db_strided.get());
+    auto dx_strided = Mtx::create(omp, x->get_size(), 5);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db_strided.get(), dx_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpMultipleRhsMixedApplyIsEquivalentToRef1)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx2::create(omp, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    auto dx2_strided = Mtx2::create(omp, x2->get_size(), 5);
+
+    solver->apply(b2.get(), x2.get());
+    d_solver->apply(db2_strided.get(), dx2_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpMultipleRhsMixedApplyIsEquivalentToRef2)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db2_strided = Mtx2::create(omp, b->get_size(), 4);
+    d_b2->convert_to(db2_strided.get());
+    auto dx_strided = Mtx::create(omp, x->get_size(), 5);
+
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(db2_strided.get(), dx_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, OmpMultipleRhsMixedApplyIsEquivalentToRef3)
+{
+    initialize_data(50, 3);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(omp);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto db_strided = Mtx::create(omp, b->get_size(), 4);
+    d_b->convert_to(db_strided.get());
+    auto dx2_strided = Mtx2::create(omp, x2->get_size(), 5);
+
+    solver->apply(b.get(), x2.get());
+    d_solver->apply(db_strided.get(), dx2_strided.get());
+
+    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-14);
 }
 
 

@@ -48,6 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/lower_trs.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace dpcpp {
@@ -80,15 +83,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  * The parameters trans_x and trans_b are used only in the CUDA executor for
  * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
  */
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           const matrix::Csr<MatrixValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
+           matrix::Dense<InputValueType>* trans_b,
+           matrix::Dense<OutputValueType>* trans_x,
+           const matrix::Dense<InputValueType>* b,
+           matrix::Dense<OutputValueType>* x) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 
