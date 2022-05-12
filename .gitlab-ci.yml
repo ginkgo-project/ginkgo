@@ -29,7 +29,7 @@ status_pending:
   variables:
     STATUS_CONTEXT: "quick"
   script: |
-    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"pending\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
 
@@ -43,12 +43,9 @@ status_success:
     STATUS_CONTEXT: "quick"
   # we always exit with the code 3 such that it will process when retrying
   script: |
-    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"success\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
-    exit 3
-  allow_failure:
-    exit_codes: 3
 
 status_failure:
   stage: finalize-status
@@ -60,13 +57,11 @@ status_failure:
     STATUS_CONTEXT: "quick"
   # we always exit with the code 3 such that it will process when retrying
   script: |
-    curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+    curl -s -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
     https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
     -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/${STATUS_CONTEXT}\",\"target_url\":\"${CI_PIPELINE_URL}\"}"
     exit 3
   when: on_failure
-  allow_failure:
-    exit_codes: 3
 
 
 sync:
