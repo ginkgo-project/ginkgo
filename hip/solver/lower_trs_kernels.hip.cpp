@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/triangular.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
@@ -84,19 +85,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const HipExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           const matrix::Csr<MatrixValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
-{
+           matrix::Dense<InputValueType>* trans_b,
+           matrix::Dense<OutputValueType>* trans_x,
+           const matrix::Dense<InputValueType>* b,
+           matrix::Dense<OutputValueType>* x) GKO_NOT_IMPLEMENTED;
+/*{
     solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
                                        trans_x, b, x);
-}
+}*/
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 

@@ -177,6 +177,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_factorization_factory(fact)
                  .on(exec);
          }},
+        {"ic_mixed",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::factorization::Ic<gko::next_precision<etype>, itype>::build().on(exec));
+             return gko::preconditioner::Ic<gko::solver::LowerTrs<gko::next_precision<etype>, itype>,
+                                            itype>::build()
+                 .with_factorization_factory(fact)
+                 .on(exec);
+         }},
         {"ilu",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(

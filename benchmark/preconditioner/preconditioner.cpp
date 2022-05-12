@@ -60,6 +60,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 std::string encode_parameters(const char* precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
+        {"ic",
+            [] {
+                std::ostringstream oss;
+                oss << "ic";
+                return oss.str();
+            }},
+        {"ic_mixed",
+            [] {
+                std::ostringstream oss;
+                oss << "ic_mixed";
+                return oss.str();
+            }},
         {"jacobi",
          [] {
              std::ostringstream oss;

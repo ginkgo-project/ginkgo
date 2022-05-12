@@ -51,15 +51,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class LowerTrs : public CommonTestFixture {
 protected:
+    using mixed_value_type = gko::next_precision<value_type>;
     using mtx_type = gko::matrix::Csr<value_type, index_type>;
-    using vec_type = gko::matrix::Dense<>;
+    using vec_type = gko::matrix::Dense<value_type>;
+    using mixed_vec_type = gko::matrix::Dense<mixed_value_type>;
     using solver_type = gko::solver::LowerTrs<value_type, index_type>;
 
     LowerTrs() : rand_engine(30) {}
 
-    std::unique_ptr<vec_type> gen_vec(int num_rows, int num_cols)
+    template <typename vt>
+    std::unique_ptr<vt> gen_vec(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<vec_type>(
+        return gko::test::generate_random_matrix<vt>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -86,8 +89,10 @@ protected:
 
     void initialize_data(int m, int n, int row_nnz)
     {
-        b = gen_vec(m, n);
-        x = gen_vec(m, n);
+        b = gen_vec<vec_type>(m, n);
+        b2 = gen_vec<mixed_vec_type>(m, n);
+        x = gen_vec<vec_type>(m, n);
+        x2 = gen_vec<mixed_vec_type>(m, n);
         mtx = gen_mtx(m, row_nnz);
         mtx_l = gen_l_mtx(m, row_nnz);
         dx = gko::clone(exec, x);
@@ -97,7 +102,9 @@ protected:
     }
 
     std::shared_ptr<vec_type> b;
+    std::shared_ptr<mixed_vec_type> b2;
     std::shared_ptr<vec_type> x;
+    std::shared_ptr<mixed_vec_type> x2;
     std::shared_ptr<mtx_type> mtx;
     std::shared_ptr<mtx_type> mtx_l;
     std::shared_ptr<vec_type> db;

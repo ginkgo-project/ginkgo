@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -289,7 +290,7 @@ protected:
             auto exec = lin_op->get_executor();
             if (!parameters_.factorization_factory) {
                 parameters_.factorization_factory =
-                    factorization::ParIc<value_type, index_type>::build()
+                    factorization::Ic<value_type, index_type>::build()
                         .with_both_factors(false)
                         .on(exec);
             }

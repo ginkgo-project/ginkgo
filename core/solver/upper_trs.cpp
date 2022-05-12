@@ -155,9 +155,12 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
+            using InputVector = matrix::Dense<
+                typename std::decay_t<decltype(*dense_b)>::value_type>;
+            using OutputVector = matrix::Dense<
+                typename std::decay_t<decltype(*dense_x)>::value_type>;
             using ws = workspace_traits<UpperTrs>;
             const auto exec = this->get_executor();
             this->setup_workspace();
@@ -168,12 +171,12 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // The other executors (omp and reference, CUDA) do not use the
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
-            Vector* trans_b{};
-            Vector* trans_x{};
+            InputVector* trans_b{};
+            OutputVector* trans_x{};
             if (needs_transpose(exec)) {
-                trans_b = this->template create_workspace_op<Vector>(
+                trans_b = this->template create_workspace_op<InputVector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
-                trans_x = this->template create_workspace_op<Vector>(
+                trans_x = this->template create_workspace_op<OutputVector>(
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(upper_trs::make_solve(
