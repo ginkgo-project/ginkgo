@@ -300,8 +300,8 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     omp_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 2e-13);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 2e-13);
 }
 
 
