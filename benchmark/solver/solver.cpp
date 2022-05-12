@@ -407,20 +407,14 @@ void solve_system(const std::string& solver_name,
 
         // warm run
         std::shared_ptr<gko::LinOp> solver;
-        auto it_logger = std::make_shared<IterationLogger>(exec);
         for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
             solver = generate_solver(exec, give(precond), solver_name,
                                      FLAGS_warmup_max_iters)
                          ->generate(system_matrix);
-            solver->add_logger(it_logger);
             solver->apply(lend(b), lend(x_clone));
             exec->synchronize();
-            solver->remove_logger(gko::lend(it_logger));
-        }
-        if (FLAGS_warmup > 0) {
-            it_logger->write_data(solver_json["apply"], allocator);
         }
 
         // detail run
@@ -480,6 +474,7 @@ void solve_system(const std::string& solver_name,
         }
 
         // timed run
+        auto it_logger = std::make_shared<IterationLogger>(exec);
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
         auto x_clone = clone(x);
@@ -495,10 +490,18 @@ void solve_system(const std::string& solver_name,
             generate_timer->toc();
 
             exec->synchronize();
+            if (ic.get_num_repetitions() == 0) {
+                solver->add_logger(it_logger);
+            }
             apply_timer->tic();
             solver->apply(lend(b), lend(x_clone));
             apply_timer->toc();
+            if (ic.get_num_repetitions() == 0) {
+                solver->remove_logger(gko::lend(it_logger));
+            }
         }
+        it_logger->write_data(solver_json["apply"], allocator);
+
         if (b->get_size()[1] == 1 && !FLAGS_overhead) {
             // a solver is considered direct if it didn't log any iterations
             if (solver_json["apply"].HasMember("iterations") &&
