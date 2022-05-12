@@ -214,7 +214,7 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
             present_cols.assign(size, true);
             // remove max_row_nnz - nnz_in_row entries from present_cols
             size_type count = max_row_nnz;
-            while (nnz_in_row > count) {
+            while (count > nnz_in_row) {
                 const auto new_col = col_dist(engine);
                 if (present_cols[new_col]) {
                     present_cols[new_col] = false;
