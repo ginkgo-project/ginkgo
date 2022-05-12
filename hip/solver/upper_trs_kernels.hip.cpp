@@ -93,11 +93,23 @@ void solve(std::shared_ptr<const HipExecutor> exec,
            matrix::Dense<InputValueType>* trans_b,
            matrix::Dense<OutputValueType>* trans_x,
            const matrix::Dense<InputValueType>* b,
-           matrix::Dense<OutputValueType>* x) GKO_NOT_IMPLEMENTED;
-/*{
-    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                       trans_x, b, x);
-}*/
+           matrix::Dense<OutputValueType>* x)
+{
+    bool all_same_value_type =
+        std::is_same<MatrixValueType, InputValueType>::value &&
+        std::is_same<MatrixValueType, OutputValueType>::value;
+    if (matrix->get_strategy()->get_name() == "sparselib" &&
+        all_same_value_type) {
+        solve_kernel<MatrixValueType, IndexType>(
+            exec, matrix, solve_struct,
+            gko::as<matrix::Dense<MatrixValueType>>(trans_b),
+            gko::as<matrix::Dense<MatrixValueType>>(trans_x),
+            gko::as<matrix::Dense<MatrixValueType>>(b),
+            gko::as<matrix::Dense<MatrixValueType>>(x));
+    } else {
+        sptrsv_naive_caching<true>(exec, matrix, b, x);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);

@@ -141,12 +141,12 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(UpperTrs, CudaSingleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(UpperTrs, CudaSingleRhsApplySparselibIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
     auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::sparselib>());
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
@@ -217,14 +217,14 @@ TEST_F(UpperTrs, CudaSingleRhsMixedApplyIsEquivalentToRef3)
 }
 
 
-TEST_F(UpperTrs, CudaMultipleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(UpperTrs, CudaMultipleRhsApplySparselibIsEquivalentToRef)
 {
     initialize_data(50, 3);
     auto upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::sparselib>());
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
     auto db_strided = Mtx::create(cuda, b->get_size(), 4);

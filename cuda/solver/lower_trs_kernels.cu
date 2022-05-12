@@ -105,7 +105,7 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
             exec, matrix, solve_struct,
             gko::as<matrix::Dense<MatrixValueType>>(trans_b),
             gko::as<matrix::Dense<MatrixValueType>>(trans_x),
-            gko::as<const matrix::Dense<MatrixValueType>>(b),
+            gko::as<matrix::Dense<MatrixValueType>>(b),
             gko::as<matrix::Dense<MatrixValueType>>(x));
     } else {
         sptrsv_naive_caching<false>(exec, matrix, b, x);

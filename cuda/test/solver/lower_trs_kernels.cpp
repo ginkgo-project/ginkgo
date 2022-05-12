@@ -141,12 +141,12 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(LowerTrs, CudaSingleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(LowerTrs, CudaSingleRhsApplySparselibIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
     auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::sparselib>());
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
@@ -217,14 +217,14 @@ TEST_F(LowerTrs, CudaSingleRhsMixedApplyIsEquivalentToRef3)
 }
 
 
-TEST_F(LowerTrs, CudaMultipleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(LowerTrs, CudaMultipleRhsApplySparselibIsEquivalentToRef)
 {
     initialize_data(50, 3);
     auto lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::sparselib>());
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db_strided = Mtx::create(cuda, b->get_size(), 4);
