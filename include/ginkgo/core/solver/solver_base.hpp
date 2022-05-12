@@ -53,22 +53,21 @@ namespace solver {
 /**
  * Traits class providing information on the type and location of workspace
  * vectors inside a solver.
- * The member functions are purposefully deleted to avoid people using them.
  */
 template <typename Solver>
 struct solver_workspace_traits {
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    static int num_vectors(const Solver&) { return 0; }
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    static int num_arrays(const Solver&) { return 0; }
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> vector_names(const Solver&);
+    static std::vector<std::string> vector_names(const Solver&) { return {}; }
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    static std::vector<std::string> array_names(const Solver&) { return {}; }
     // array containing all scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    static std::vector<int> scalars(const Solver&) { return {}; }
     // array containing all vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    static std::vector<int> vectors(const Solver&) { return {}; }
 };
 
 
@@ -193,6 +192,30 @@ public:
     {
         return system_matrix_;
     }
+
+    const LinOp* get_workspace_op(int vector_id) const
+    {
+        return workspace_.get_vector(vector_id);
+    }
+
+    virtual int get_num_workspace_ops() const { return 0; }
+
+    virtual std::vector<std::string> get_workspace_op_names() const
+    {
+        return {};
+    }
+
+    /**
+     * Returns the IDs of all scalars (workspace vectors with
+     * system dimension-independent size, usually 1 x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_scalars() const { return {}; }
+
+    /**
+     * Returns the IDs of all vectors (workspace vectors with system
+     * dimension-dependent size, usually system_matrix_size x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_vectors() const { return {}; }
 
 protected:
     void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
@@ -330,6 +353,38 @@ public:
         : SolverBase<MatrixType>{other.self()->get_executor()}
     {
         *this = std::move(other);
+    }
+
+    int get_num_workspace_ops() const override
+    {
+        using traits = solver_workspace_traits<DerivedType>;
+        return traits::num_vectors(*self());
+    }
+
+    virtual std::vector<std::string> get_workspace_op_names() const
+    {
+        using traits = solver_workspace_traits<DerivedType>;
+        return traits::vector_names(*self());
+    }
+
+    /**
+     * Returns the IDs of all scalars (workspace vectors with
+     * system dimension-independent size, usually 1 x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_scalars() const
+    {
+        using traits = solver_workspace_traits<DerivedType>;
+        return traits::scalars(*self());
+    }
+
+    /**
+     * Returns the IDs of all vectors (workspace vectors with system
+     * dimension-dependent size, usually system_matrix_size x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_vectors() const
+    {
+        using traits = solver_workspace_traits<DerivedType>;
+        return traits::vectors(*self());
     }
 
 protected:
