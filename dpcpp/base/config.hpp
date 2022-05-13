@@ -82,7 +82,7 @@ struct config {
  * bits to store it and sub_group size up to 64 which requires 7 bits to store
  * it.
  */
-using KCFG_1D = ConfigSet<11, 7>;
+using KCFG_1D = ConfigSet<13, 7>;
 
 
 template <uint32 block, uint32 subgroup>

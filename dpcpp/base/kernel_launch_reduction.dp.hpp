@@ -630,7 +630,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
                        compiled_ssg_size == sg_size;
             },
             syn::value_list<int>(), syn::type_list<cfg>(), exec, max_blocks, fn,
-            op, finalize, identity, result, size, args...);
+            op, finalize, identity, result, size, tmp, args...);
     } else {
         const auto col_blocks = ceildiv(cols, sg_size);
         const auto row_blocks = ceildiv(
