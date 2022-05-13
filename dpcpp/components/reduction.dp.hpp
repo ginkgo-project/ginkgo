@@ -62,9 +62,9 @@ namespace kernels {
 namespace dpcpp {
 
 
-constexpr int default_block_size = 256;
-constexpr auto kcfg_1d_list = kcfg_1d_list_t();
-constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+static constexpr int default_block_size = 256;
+static constexpr auto kcfg_1d_list = kcfg_1d_list_t();
+static constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
 
 /**
  * @internal
@@ -198,12 +198,13 @@ void reduce_array(size_type size, const ValueType* __restrict__ source,
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.
  */
-template <typename cfg, typename ValueType>
-void reduce_add_array(size_type size, const ValueType* __restrict__ source,
-                      ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
-                      uninitialized_array<ValueType, cfg::block_size>& block_sum)
+template <typename DeviceConfig, typename ValueType>
+void reduce_add_array(
+    size_type size, const ValueType* __restrict__ source,
+    ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
+    uninitialized_array<ValueType, DeviceConfig::block_size>& block_sum)
 {
-    reduce_array<cfg::subgroup_size>(
+    reduce_array<DeviceConfig::subgroup_size>(
         size, source, static_cast<ValueType*>(block_sum), item_ct1,
         [](const ValueType& x, const ValueType& y) { return x + y; });
 
@@ -212,23 +213,24 @@ void reduce_add_array(size_type size, const ValueType* __restrict__ source,
     }
 }
 
-template <typename cfg = device_config<256, 16>, typename ValueType>
+template <typename DeviceConfig = device_config<256, 16>, typename ValueType>
 void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, size_type size,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<uninitialized_array<ValueType, cfg::block_size>, 0,
-                       sycl::access::mode::read_write,
+        sycl::accessor<uninitialized_array<ValueType, DeviceConfig::block_size>,
+                       0, sycl::access::mode::read_write,
                        sycl::access::target::local>
             block_sum_acc_ct1(cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=
         ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            cfg::subgroup_size)]] {
-                reduce_add_array<cfg>(size, source, result, item_ct1,
-                                      *block_sum_acc_ct1.get_pointer());
+                                            DeviceConfig::subgroup_size)]] {
+                reduce_add_array<DeviceConfig>(
+                    size, source, result, item_ct1,
+                    *block_sum_acc_ct1.get_pointer());
             });
     });
 }

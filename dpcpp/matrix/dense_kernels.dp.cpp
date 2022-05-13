@@ -106,26 +106,26 @@ void transpose(const size_type nrows, const size_type ncols,
     }
 }
 
-template <typename cfg, typename ValueType>
+template <typename DeviceConfig, typename ValueType>
 void transpose(
     const size_type nrows, const size_type ncols,
     const ValueType* __restrict__ in, const size_type in_stride,
     ValueType* __restrict__ out, const size_type out_stride,
     sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, cfg::subgroup_size*(cfg::subgroup_size + 1)>&
-        space)
+    uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
+                                      DeviceConfig::subgroup_size + 1)>& space)
 {
-    transpose<cfg::subgroup_size>(
+    transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
         [](ValueType val) { return val; }, item_ct1, space);
 }
 
-template <typename cfg, typename ValueType>
+template <typename DeviceConfig, typename ValueType>
 void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
                matrix::Dense<ValueType>* trans)
 {
     auto size = orig->get_size();
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     std::cout << sg_size << std::endl;
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
@@ -142,8 +142,9 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
         auto out_stride = trans->get_stride();
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                transpose<cfg>(size[0], size[1], in, in_stride, out, out_stride,
-                               item_ct1, *space_acc_ct1.get_pointer());
+                transpose<DeviceConfig>(size[0], size[1], in, in_stride, out,
+                                        out_stride, item_ct1,
+                                        *space_acc_ct1.get_pointer());
             });
     });
 }
@@ -152,28 +153,28 @@ GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TYPE(transpose, transpose)
 GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE(transpose_call, transpose);
 
 
-template <typename cfg, typename ValueType>
+template <typename DeviceConfig, typename ValueType>
 void conj_transpose(
     const size_type nrows, const size_type ncols,
     const ValueType* __restrict__ in, const size_type in_stride,
     ValueType* __restrict__ out, const size_type out_stride,
     sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, cfg::subgroup_size*(cfg::subgroup_size + 1)>&
-        space)
+    uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
+                                      DeviceConfig::subgroup_size + 1)>& space)
 {
-    transpose<cfg::subgroup_size>(
+    transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
         [](ValueType val) { return conj(val); }, item_ct1, space);
 }
 
-template <typename cfg, typename ValueType>
+template <typename DeviceConfig, typename ValueType>
 void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     sycl::queue* queue, const size_type nrows,
                     const size_type ncols, const ValueType* in,
                     const size_type in_stride, ValueType* out,
                     const size_type out_stride)
 {
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0,
                        sycl::access_mode::read_write,
@@ -183,9 +184,9 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
-                conj_transpose<cfg>(nrows, ncols, in, in_stride, out,
-                                    out_stride, item_ct1,
-                                    *space_acc_ct1.get_pointer());
+                conj_transpose<DeviceConfig>(nrows, ncols, in, in_stride, out,
+                                             out_stride, item_ct1,
+                                             *space_acc_ct1.get_pointer());
             });
     });
 }
