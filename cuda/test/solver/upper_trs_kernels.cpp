@@ -229,7 +229,13 @@ TEST_F(UpperTrs, CudaMultipleRhsApplySparselibIsEquivalentToRef)
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
     auto db_strided = Mtx::create(cuda, b->get_size(), 4);
     d_b->convert_to(db_strided.get());
+    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
+    // so the input and output stride need to match
+#if CUDA_VERSION >= 11031
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
+#else
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+#endif
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db_strided.get(), dx_strided.get());
@@ -249,13 +255,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
     auto db_strided = Mtx::create(cuda, b->get_size(), 4);
     d_b->convert_to(db_strided.get());
-    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
-    // so the input and output stride need to match
-#if CUDA_VERSION >= 11031
-    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
-#else
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
-#endif
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db_strided.get(), dx_strided.get());
