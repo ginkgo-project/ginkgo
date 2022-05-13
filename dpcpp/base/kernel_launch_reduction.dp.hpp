@@ -54,10 +54,10 @@ namespace kernels {
 namespace dpcpp {
 
 
-constexpr auto kcfg_1d_list_simple_reduction = kcfg_1d_list_t();
+static constexpr auto kcfg_1d_list_simple_reduction = kcfg_1d_list_t();
 
 
-template <typename cfg, typename ValueType, typename KernelFunction,
+template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
@@ -66,8 +66,8 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
                                  ValueType identity, ValueType* storage,
                                  MappedKernelArgs... args)
 {
-    constexpr auto wg_size = cfg::block_size;
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto wg_size = DeviceConfig::block_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
     sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
@@ -106,7 +106,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
 }
 
 
-template <typename cfg, typename ValueType, typename KernelFunction,
+template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
@@ -115,8 +115,8 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
                                  ValueType identity, ValueType* storage,
                                  MappedKernelArgs... args)
 {
-    constexpr auto wg_size = cfg::block_size;
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto wg_size = DeviceConfig::block_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     constexpr auto num_partials = wg_size / sg_size;
     sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
@@ -157,7 +157,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
 }
 
 
-template <typename cfg, typename ValueType, typename KernelFunction,
+template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
@@ -167,8 +167,8 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
                                array<char>& tmp, MappedKernelArgs... args)
 {
     constexpr int oversubscription = 4;
-    constexpr auto wg_size = cfg::block_size;
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto wg_size = DeviceConfig::block_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     const auto num_workgroups =
         std::min<int64>(ceildiv(size, wg_size),
                         exec->get_num_computing_units() * oversubscription);
@@ -179,13 +179,13 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
+            generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(size), num_workgroups, fn, op,
                 [](auto v) { return v; }, identity,
                 reinterpret_cast<ValueType*>(tmp.get_data()), args...);
         });
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
+            generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(num_workgroups), 1,
                 [](auto i, auto v) { return v[i]; }, op, finalize, identity,
                 result,
@@ -193,15 +193,15 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(cgh, static_cast<int64>(size),
-                                             num_workgroups, fn, op, finalize,
-                                             identity, result, args...);
+            generic_kernel_reduction_1d<DeviceConfig>(
+                cgh, static_cast<int64>(size), num_workgroups, fn, op, finalize,
+                identity, result, args...);
         });
     }
 }
 
 
-template <typename cfg, typename ValueType, typename KernelFunction,
+template <typename DeviceConfig, typename ValueType, typename KernelFunction,
           typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
@@ -214,8 +214,8 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto flat_size = rows * cols;
-    constexpr auto wg_size = cfg::block_size;
-    constexpr auto sg_size = cfg::subgroup_size;
+    constexpr auto wg_size = DeviceConfig::block_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     const auto num_workgroups =
         std::min<int64>(ceildiv(flat_size, wg_size),
                         exec->get_num_computing_units() * oversubscription);
@@ -226,13 +226,13 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
             tmp.resize_and_reset(required_storage);
         }
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_2d<cfg>(
+            generic_kernel_reduction_2d<DeviceConfig>(
                 cgh, rows, cols, num_workgroups, fn, op,
                 [](auto v) { return v; }, identity,
                 reinterpret_cast<ValueType*>(tmp.get_data()), args...);
         });
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_1d<cfg>(
+            generic_kernel_reduction_1d<DeviceConfig>(
                 cgh, static_cast<int64>(num_workgroups), 1,
                 [](auto i, auto v) { return v[i]; }, op, finalize, identity,
                 result,
@@ -240,9 +240,9 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
         });
     } else {
         queue->submit([&](sycl::handler& cgh) {
-            generic_kernel_reduction_2d<cfg>(cgh, rows, cols, num_workgroups,
-                                             fn, op, finalize, identity, result,
-                                             args...);
+            generic_kernel_reduction_2d<DeviceConfig>(
+                cgh, rows, cols, num_workgroups, fn, op, finalize, identity,
+                result, args...);
         });
     }
 }
