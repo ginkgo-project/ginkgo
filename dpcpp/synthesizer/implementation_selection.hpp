@@ -151,9 +151,9 @@ namespace syn {
 
 #define GKO_ENABLE_IMPLEMENTATION_TWO_SELECTION_KERNEL(_name, _callable)      \
     template <typename Predicate, bool... BoolArgs, int... IntArgs,           \
-              gko::size_type... SizeTArgs, typename... TArgs, typename CFG,   \
-              typename... InferredArgs>                                       \
-    inline void _name(::gko::syn::value_list<int>, Predicate, CFG,            \
+              gko::size_type... SizeTArgs, typename... TArgs,                 \
+              typename DeviceConfig, typename... InferredArgs>                \
+    inline void _name(::gko::syn::value_list<int>, Predicate, DeviceConfig,   \
                       ::gko::syn::value_list<bool, BoolArgs...>,              \
                       ::gko::syn::value_list<int, IntArgs...>,                \
                       ::gko::syn::value_list<gko::size_type, SizeTArgs...>,   \
@@ -162,18 +162,19 @@ namespace syn {
                                                                               \
     template <int K, int... Rest, typename Predicate, bool... BoolArgs,       \
               int... IntArgs, gko::size_type... SizeTArgs, typename... TArgs, \
-              typename CFG, typename... InferredArgs>                         \
+              typename DeviceConfig, typename... InferredArgs>                \
     inline void _name(                                                        \
         ::gko::syn::value_list<int, K, Rest...>, Predicate is_eligible,       \
-        CFG device_args, ::gko::syn::value_list<bool, BoolArgs...> bool_args, \
+        DeviceConfig device_args,                                             \
+        ::gko::syn::value_list<bool, BoolArgs...> bool_args,                  \
         ::gko::syn::value_list<int, IntArgs...> int_args,                     \
         ::gko::syn::value_list<gko::size_type, SizeTArgs...> size_args,       \
         ::gko::syn::type_list<TArgs...> type_args, InferredArgs... args)      \
     {                                                                         \
         if (is_eligible(K)) {                                                 \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs..., K,     \
-                      CFG>(::gko::syn::value_list<int, K>(),                  \
-                           std::forward<InferredArgs>(args)...);              \
+                      DeviceConfig>(::gko::syn::value_list<int, K>(),         \
+                                    std::forward<InferredArgs>(args)...);     \
         } else {                                                              \
             _name(::gko::syn::value_list<int, Rest...>(), is_eligible,        \
                   device_args, bool_args, int_args, size_args, type_args,     \

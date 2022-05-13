@@ -51,7 +51,8 @@ namespace dpcpp {
 namespace components {
 
 
-constexpr auto block_cfg_list = block_cfg_list_t();
+static constexpr auto block_cfg_list = block_cfg_list_t();
+
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(start_prefix_sum,
                                                   start_prefix_sum, KCFG_1D);

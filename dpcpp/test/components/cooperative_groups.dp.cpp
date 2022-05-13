@@ -113,10 +113,10 @@ protected:
 
 
 // kernel implementation
-template <typename config>
+template <typename DeviceConfig>
 void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = config::subgroup_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -129,7 +129,7 @@ void cg_shuffle(bool* s, sycl::nd_item<3> item_ct1)
 }
 
 // group all kernel things together
-template <typename config>
+template <typename DeviceConfig>
 void cg_shuffle_host(dim3 grid, dim3 block,
                      gko::size_type dynamic_shared_memory, sycl::queue* queue,
                      bool* s)
@@ -138,8 +138,9 @@ void cg_shuffle_host(dim3 grid, dim3 block,
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                config::subgroup_size)]] __WG_BOUND__(config::block_size) {
-                cg_shuffle<config>(s, item_ct1);
+                DeviceConfig::subgroup_size)]] __WG_BOUND__(DeviceConfig::
+                                                                block_size) {
+                cg_shuffle<DeviceConfig>(s, item_ct1);
             });
     });
 }
@@ -168,10 +169,10 @@ TEST_P(CooperativeGroups, Shuffle)
 }
 
 
-template <typename config>
+template <typename DeviceConfig>
 void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = config::subgroup_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
@@ -189,10 +190,10 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
 
 
-template <typename config>
+template <typename DeviceConfig>
 void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 {
-    constexpr auto sg_size = config::subgroup_size;
+    constexpr auto sg_size = DeviceConfig::subgroup_size;
     auto group =
         group::tiled_partition<sg_size>(group::this_thread_block(item_ct1));
     auto i = int(group.thread_rank());
