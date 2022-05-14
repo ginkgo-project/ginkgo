@@ -250,9 +250,8 @@ void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
                           size_type num_rows, matrix::sparsity_type allowed,
                           IndexType* storage_offsets)
 {
+    using matrix::sparsity_bitmap_block_size;
     using matrix::sparsity_type;
-    constexpr static int block_size =
-        gko::matrix::device_sparsity_lookup<IndexType>::block_size;
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto num_rows,
@@ -268,8 +267,8 @@ void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
                 storage_offsets[row] = 0;
             } else {
                 const auto hashmap_storage = row_len == 0 ? 1 : 2 * row_len;
-                const auto bitmap_num_blocks =
-                    static_cast<int32>(ceildiv(col_range, block_size));
+                const auto bitmap_num_blocks = static_cast<int32>(
+                    ceildiv(col_range, sparsity_bitmap_block_size));
                 const auto bitmap_storage = 2 * bitmap_num_blocks;
                 if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
                     bitmap_storage <= hashmap_storage) {

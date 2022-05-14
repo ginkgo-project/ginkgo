@@ -1124,9 +1124,8 @@ void build_lookup_offsets(std::shared_ptr<const ReferenceExecutor> exec,
                           size_type num_rows, matrix::sparsity_type allowed,
                           IndexType* storage_offsets)
 {
+    using matrix::sparsity_bitmap_block_size;
     using matrix::sparsity_type;
-    constexpr static int block_size =
-        gko::matrix::device_sparsity_lookup<IndexType>::block_size;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_len = row_ptrs[row + 1] - row_begin;
@@ -1139,8 +1138,8 @@ void build_lookup_offsets(std::shared_ptr<const ReferenceExecutor> exec,
             storage_offsets[row] = 0;
         } else {
             const auto hashmap_storage = std::max<IndexType>(2 * row_len, 1);
-            const auto bitmap_num_blocks =
-                static_cast<int32>(ceildiv(col_range, block_size));
+            const auto bitmap_num_blocks = static_cast<int32>(
+                ceildiv(col_range, sparsity_bitmap_block_size));
             const auto bitmap_storage = 2 * bitmap_num_blocks;
             if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
                 bitmap_storage <= hashmap_storage) {
@@ -1177,11 +1176,11 @@ bool csr_lookup_try_bitmap(IndexType row_len, IndexType col_range,
                            matrix::sparsity_type allowed, int64& row_desc,
                            int32* local_storage, const IndexType* cols)
 {
-    constexpr static int block_size =
-        gko::matrix::device_sparsity_lookup<IndexType>::block_size;
+    using matrix::sparsity_bitmap_block_size;
     using matrix::sparsity_type;
     bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::bitmap);
-    const auto num_blocks = static_cast<int32>(ceildiv(col_range, block_size));
+    const auto num_blocks =
+        static_cast<int32>(ceildiv(col_range, sparsity_bitmap_block_size));
     if (is_allowed && num_blocks * 2 <= available_storage) {
         row_desc = (static_cast<int64>(num_blocks) << 32) |
                    static_cast<int>(sparsity_type::bitmap);
@@ -1191,8 +1190,8 @@ bool csr_lookup_try_bitmap(IndexType row_len, IndexType col_range,
         std::fill_n(block_bitmaps, num_blocks, 0);
         for (auto col_it = cols; col_it < cols + row_len; col_it++) {
             const auto rel_col = *col_it - min_col;
-            const auto block = rel_col / block_size;
-            const auto col_in_block = rel_col % block_size;
+            const auto block = rel_col / sparsity_bitmap_block_size;
+            const auto col_in_block = rel_col % sparsity_bitmap_block_size;
             block_bitmaps[block] |= uint32{1} << col_in_block;
         }
         int32 partial_sum{};
