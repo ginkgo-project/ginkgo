@@ -926,8 +926,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     gko::matrix::sparsity_type allowed, const IndexType* storage_offsets,
     int64* __restrict__ row_desc, int32* __restrict__ storage)
 {
-    constexpr int bitmap_block_size =
-        gko::matrix::device_sparsity_lookup<IndexType>::block_size;
+    constexpr int bitmap_block_size = gko::matrix::sparsity_bitmap_block_size;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     if (row >= num_rows) {
         return;

@@ -64,8 +64,8 @@ enum class sparsity_type : int {
      * columns before the block as integer. This means that the relative output
      * index can be computed as
      * ```
-     * auto block = (col - min_col) / block_size;
-     * auto local_col = (col - min_col) % block_size;
+     * auto block = (col - min_col) / sparsity_bitmap_block_size;
+     * auto local_col = (col - min_col) % sparsity_bitmap_block_size;
      * auto prefix_mask = (block_type{1} << local_col) - 1;
      * auto output_idx = base[block] + popcount(bitmap[block] & prefix_mask);
      * ```
@@ -103,11 +103,12 @@ GKO_ATTRIBUTES GKO_INLINE bool csr_lookup_allowed(matrix::sparsity_type allowed,
 }
 
 
+/** Number of bits in a block_type entry. */
+static constexpr int sparsity_bitmap_block_size = 32;
+
+
 template <typename IndexType>
 struct device_sparsity_lookup {
-    /** Number of bits in a block_type entry. */
-    static constexpr int block_size = 32;
-
     /**
      * Set up a device_sparsity_lookup structure from local data
      *
@@ -240,8 +241,8 @@ private:
         const auto block_bitmaps =
             reinterpret_cast<const uint32*>(block_bases + num_blocks);
         const auto rel_col = col - min_col;
-        const auto block = rel_col / block_size;
-        const auto col_in_block = rel_col % block_size;
+        const auto block = rel_col / sparsity_bitmap_block_size;
+        const auto col_in_block = rel_col % sparsity_bitmap_block_size;
         const auto prefix_mask = (uint32{1} << col_in_block) - 1;
         GKO_ASSERT(rel_col >= 0);
         GKO_ASSERT(block < num_blocks);
@@ -261,8 +262,8 @@ private:
         const auto block_bitmaps =
             reinterpret_cast<const uint32*>(block_bases + num_blocks);
         const auto rel_col = col - min_col;
-        const auto block = rel_col / block_size;
-        const auto col_in_block = rel_col % block_size;
+        const auto block = rel_col / sparsity_bitmap_block_size;
+        const auto col_in_block = rel_col % sparsity_bitmap_block_size;
         if (rel_col < 0 || block >= num_blocks ||
             !(block_bitmaps[block] & (uint32{1} << col_in_block))) {
             return invalid_index<IndexType>();
