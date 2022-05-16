@@ -93,6 +93,8 @@ public:
             this->get_operators()[1]);
     }
 
+    const int get_status() const { return status_; }
+
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
@@ -291,6 +293,8 @@ protected:
         const std::vector<unsigned>& l_col_ptr,
         const std::vector<ValueType>& csr_val, unsigned sym_nnz,
         unsigned num_lev, bool skip_sorting);
+
+    int status_;
 };
 
 

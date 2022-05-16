@@ -140,6 +140,12 @@ int main(int argc, char* argv[])
 
         auto solver = reordered_solver_fact->generate(A);
 
+        auto inner = gko::as<gko::solver::Gmres<>>(solver->get_solver());
+        auto precond =
+            gko::as<gko::preconditioner::Ilu<>>(inner->get_preconditioner());
+        auto status = precond->get_status();
+        std::cout << "Factorization Status: " << status << std::endl;
+
         solver->apply(b.get(), x.get());
 
         // Print solution
