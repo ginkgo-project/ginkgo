@@ -77,7 +77,3 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
-
-# Propagate some useful information
-set(OpenMP_CXX_VERSION ${OpenMP_CXX_VERSION} PARENT_SCOPE)
-set(OpenMP_CXX_LIBRARIES ${OpenMP_CXX_LIBRARIES} PARENT_SCOPE)
