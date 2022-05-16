@@ -1,5 +1,3 @@
-find_package(OpenMP 3.0 REQUIRED)
-
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
@@ -52,7 +50,6 @@ target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
 # order for pthread_key_create, it may happen that ginkgo_omp assumes that a
 # piece of code is being executed sequentially, causing race conditions in the
 # reference counters.
-find_package(Threads REQUIRED)
 target_link_libraries(ginkgo_omp PUBLIC Threads::Threads)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")

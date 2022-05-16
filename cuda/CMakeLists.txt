@@ -1,5 +1,3 @@
-enable_language(CUDA)
-
 # Needed because of a known issue with CUDA while linking statically.
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
 if (NOT BUILD_SHARED_LIBS)
