@@ -26,7 +26,7 @@ function list_sources {
     do
         for i in "${GINKGO_ROOT_DIR}/core/${type}/"*.cpp;
         do
-            echo "$type $(basename "$i" | cut -d"." -f1)"
+            echo "$type $(basename \"$i\" | cut -d'.' -f1)"
         done
     done
 }
