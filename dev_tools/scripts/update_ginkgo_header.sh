@@ -33,7 +33,7 @@ if ! command -v sort &> /dev/null; then
     echo "${WARNING_PREFIX} "'The command `sort` is required for this script to work, but not supported by your system.' 1>&2
     exit 0
 fi
-if command -v cmp &> /dev/null; then
+if ! command -v cmp &> /dev/null; then
     echo "${WARNING_PREFIX} "'The command `cmp` is required for this script to work, but not supported by your system.' 1>&2
     exit 0
 fi
