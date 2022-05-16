@@ -178,6 +178,7 @@ struct device_sparsity_lookup {
             return lookup_hash(col);
         }
         GKO_ASSERT(false);
+        return invalid_index<IndexType>();
     }
 
     /**
