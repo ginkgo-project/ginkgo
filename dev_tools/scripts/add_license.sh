@@ -37,7 +37,7 @@ if ! command -v sed &> /dev/null; then
     echo 'The command `sed` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-if command -v cut &> /dev/null; then
+if ! command -v cut &> /dev/null; then
     echo 'The command `cut` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
