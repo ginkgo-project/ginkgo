@@ -365,7 +365,7 @@ if [ "${EXTRACT_KERNEL}" = "true" ]; then
         dpct_device_path=$(echo "${variable}" | sed 's/common/dpcpp_code/g')
         dpct_device_file=$(echo "${dpct_device_path}" | sed 's|/|@|g')
         dpct_device_file="output/${dpct_device_file}"
-        cat "${dpct_file}" | sed -n "/${device_regex} - start/,/${device_regex} - end/p" | sed "1d;\$d" > ${dpct_device_file}
+        cat "${dpct_file}" | sed -n "/${device_regex} - start/,/${device_regex} - end/p" | sed "1d;\$d" > "${dpct_device_file}"
         sed -i "/${device_regex} - start/,/${device_regex} - end/d;s~// *#include \"${device_regex}\"~#include \"${dpct_device_path}\"~g" ${dpct_file}
         dpct_dir=$(dirname "${dpct_device_path}")
         mkdir -p "${ROOT_DIR}/${dpct_dir}"
