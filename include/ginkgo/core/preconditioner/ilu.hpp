@@ -176,6 +176,8 @@ public:
         return u_solver_;
     }
 
+    const int get_status() const { return status_; }
+
     std::unique_ptr<LinOp> transpose() const override
     {
         std::unique_ptr<transposed_type> transposed{
@@ -279,6 +281,15 @@ protected:
                 GKO_NOT_SUPPORTED(comp);
             }
         }
+
+        auto glu =
+            gko::as<gko::factorization::Glu<value_type, index_type>>(comp);
+        if (glu) {
+            status_ = glu->get_status();
+        } else {
+            status_ = 0;
+        }
+
         if (comp->get_operators().size() == 2) {
             l_factor = comp->get_operators()[0];
             u_factor = comp->get_operators()[1];
@@ -363,6 +374,7 @@ protected:
 private:
     std::shared_ptr<const l_solver_type> l_solver_{};
     std::shared_ptr<const u_solver_type> u_solver_{};
+    int status_;
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.

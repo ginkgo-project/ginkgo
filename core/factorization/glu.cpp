@@ -202,7 +202,7 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
     A_sym.predictLU(u_row_idxs, u_col_ptrs, vals);
 
     // Numeric factorization on the GPU
-    LUonDevice(A_sym, cout, cerr, true);
+    status_ = LUonDevice(A_sym, cout, cerr, true);
     // Convert unsigned indices back to int
     const auto res_nnz = A_sym.nnz;
     Array<int> res_row_ptrs{exec->get_master(), num_rows + 1};

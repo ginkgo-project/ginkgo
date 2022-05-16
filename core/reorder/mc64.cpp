@@ -109,7 +109,7 @@ void Mc64<double, int>::generate(std::shared_ptr<const Executor>& exec,
     NicsLU_CreateMatrix(nicslu, num_rows, nnz, values, u_row_idxs, u_col_ptrs);
     nicslu->cfgi[0] = 1;
     nicslu->cfgf[1] = 0;
-    NicsLU_Analyze(nicslu);
+    auto stat = NicsLU_Analyze(nicslu);
     DumpA(nicslu, values, u_row_idxs, u_col_ptrs);
 
     // Store scalings and permutations to solve linear system later

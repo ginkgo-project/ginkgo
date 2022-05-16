@@ -3,6 +3,6 @@
 #include "symbolic.h"
 
 using namespace std;
-void LUonDevice(Symbolic_Matrix &, ostream &, ostream &, bool);
+int LUonDevice(Symbolic_Matrix &, ostream &, ostream &, bool);
 
 #endif

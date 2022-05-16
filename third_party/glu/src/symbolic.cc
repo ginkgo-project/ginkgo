@@ -49,7 +49,7 @@ void Symbolic_Matrix :: fill_in(unsigned *ai, unsigned *ap)
 
     nnz = sym_c_ptr.back();
 
-    m_out << "Symbolic nonzero: " << nnz << endl;
+    //m_out << "Symbolic nonzero: " << nnz << endl;
 }
 
 void Symbolic_Matrix :: csr()
@@ -148,7 +148,7 @@ void Symbolic_Matrix :: leveling()
     for (unsigned i = 0; i < n; ++i)
         level_idx[tlen[inlevel[i]]++] = i;
 
-    m_out << "Number of levels: " << num_lev << endl;
+    //m_out << "Number of levels: " << num_lev << endl;
 }
 
 void Symbolic_Matrix::PrintLevel()

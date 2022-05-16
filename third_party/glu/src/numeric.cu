@@ -244,12 +244,23 @@ __global__ void RL_onecol_factorizeCurrentCol_perturb(
         REAL* __restrict__ tmpMem,
         const int stream,
         const unsigned n,
-        const float pert)
+        const float pert,
+        int* stat)
 {
     const int tid = threadIdx.x;
 
     const unsigned currentLColSize = sym_c_ptr_dev[currentCol + 1] - l_col_ptr_dev[currentCol] - 1;
     const unsigned currentLPos = l_col_ptr_dev[currentCol] + tid + 1;
+
+    if (currentCol == n - 1 && tid == 0) {
+        if (currentCol == n - 1 && 
+            (abs(val_dev[l_col_ptr_dev[currentCol]]) < pert ||
+             isnan(val_dev[l_col_ptr_dev[currentCol]]) || isinf(val_dev[l_col_ptr_dev[currentCol]]))) {
+            stat[0] = -1;
+        } else {
+            stat[0] = 0;
+        }
+    }
 
     //update current col
 
@@ -260,8 +271,9 @@ __global__ void RL_onecol_factorizeCurrentCol_perturb(
         {
             unsigned ridx = sym_r_idx_dev[currentLPos + offset];
 
-            if (abs(val_dev[l_col_ptr_dev[currentCol]]) < pert)
+            if (abs(val_dev[l_col_ptr_dev[currentCol]]) < pert) {
                 val_dev[l_col_ptr_dev[currentCol]] = pert;
+            }
 
             val_dev[currentLPos + offset] /= val_dev[l_col_ptr_dev[currentCol]];
             tmpMem[stream * n + ridx]= val_dev[currentLPos + offset];
@@ -341,7 +353,7 @@ __global__ void RL_onecol_cleartmpMem(
     }
 }
 
-void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB)
+int LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB)
 {
     int deviceCount, dev;
     cudaGetDeviceCount(&deviceCount);
@@ -349,7 +361,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
     dev = 0;
     cudaGetDeviceProperties(&deviceProp, dev);
     cudaSetDevice(dev);
-    out << "Device " << dev << ": " << deviceProp.name << " has been selected." << endl;
+    //out << "Device " << dev << ": " << deviceProp.name << " has been selected." << endl;
 
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
@@ -362,6 +374,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
     REAL *val_dev;
     unsigned *csr_r_ptr_dev, *csr_c_idx_dev, *csr_diag_ptr_dev;
     int *level_idx_dev;
+    int *stat_dev;
 
     cudaEventRecord(start, 0);
 
@@ -373,6 +386,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
     cudaMalloc((void**)&csr_c_idx_dev, nnz * sizeof(unsigned));
     cudaMalloc((void**)&csr_diag_ptr_dev, n * sizeof(unsigned));
     cudaMalloc((void**)&level_idx_dev, n * sizeof(int));
+    cudaMalloc((void**)&stat_dev, sizeof(int));
 
     cudaMemcpy(sym_c_ptr_dev, &(A_sym.sym_c_ptr[0]), (n + 1) * sizeof(unsigned), cudaMemcpyHostToDevice);
     cudaMemcpy(sym_r_idx_dev, &(A_sym.sym_r_idx[0]), nnz * sizeof(unsigned), cudaMemcpyHostToDevice);
@@ -423,8 +437,8 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
                 norm_A = tmp;
         }
         pert = 1e-8 * norm_A;
-        out << "Gaussian elimination with static pivoting (GESP)..." << endl;
-        out << "1-Norm of A matrix is " << norm_A << ", Perturbation value is " << pert << endl;
+        //out << "Gaussian elimination with static pivoting (GESP)..." << endl;
+        //out << "1-Norm of A matrix is " << norm_A << ", Perturbation value is " << pert << endl;
     }
 
 
@@ -589,7 +603,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
                                                     tmpMem,
                                                     j,
                                                     n,
-                                                    pert);
+                                                    pert, stat_dev);
                         if (subMatSize > 0)
                             RL_onecol_updateSubmat<<<subMatSize, 1024, 0, streams[j]>>>(sym_c_ptr_dev,
                                                         sym_r_idx_dev,
@@ -619,8 +633,11 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&time, start, stop);
+    int stat;
+    cudaMemcpy(&stat, stat_dev, sizeof(int), cudaMemcpyDeviceToHost);
 
-    out << "Total GPU time: " << time << " ms" << endl;
+    //out << "Total GPU time: " << time << " ms" << endl;
+    //out << "Status: " << stat << std::endl;
 
     cudaError_t cudaRet = cudaGetLastError();
     if (cudaRet != cudaSuccess) {
@@ -650,4 +667,7 @@ void LUonDevice(Symbolic_Matrix &A_sym, ostream &out, ostream &err, bool PERTURB
     cudaFree(csr_diag_ptr_dev);
 
     cudaFree(level_idx_dev);
+    cudaFree(stat_dev);
+
+    return stat;
 }
