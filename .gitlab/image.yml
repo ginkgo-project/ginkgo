@@ -88,8 +88,7 @@
   image: ginkgohub/oneapi:latest
   tags:
     - private_ci
-    - intelci-igpu
-    - cpu
+    - horeka
 
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest
