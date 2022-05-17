@@ -254,7 +254,7 @@ __global__ void RL_onecol_factorizeCurrentCol_perturb(
 
     if (currentCol == n - 1 && tid == 0) {
         if (currentCol == n - 1 && 
-            (abs(val_dev[l_col_ptr_dev[currentCol]]) < pert ||
+            (abs(val_dev[l_col_ptr_dev[currentCol]]) == 0. ||
              isnan(val_dev[l_col_ptr_dev[currentCol]]) || isinf(val_dev[l_col_ptr_dev[currentCol]]))) {
             stat[0] = -1;
         } else {
