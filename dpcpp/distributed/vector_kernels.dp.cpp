@@ -30,11 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/distributed/vector_kernels.hpp"
 
-
+// force-top: on
+// oneDPL needs to be first to avoid issues with libstdc++ TBB impl
 #include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
 #include <oneapi/dpl/iterator>
+// force-top: off
+
+
+#include "core/distributed/vector_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -81,25 +86,31 @@ void build_local(
         return static_cast<LocalIndexType>(idx - range_bounds[rid]) +
                range_starting_indices[rid];
     };
-    auto local_row_it = oneapi::dpl::make_transform_iterator(
-        oneapi::dpl::make_zip_iterator(input.get_const_row_idxs(),
-                                       range_id.get_data()),
-        map_to_local_row);
-
-    auto flat_idx_it = oneapi::dpl::make_permutation_iterator(
-        local_mtx->get_values(),
-        [local_row_it, cols = input.get_const_col_idxs(),
-         stride = local_mtx->get_stride()](const auto i) {
-            return local_row_it[i] * stride + cols[i];
+    Array<size_type> flat_idx_map{exec, input.get_num_elems()};
+    auto zip_it = oneapi::dpl::make_zip_iterator(input.get_const_row_idxs(),
+                                                 input.get_const_col_idxs(),
+                                                 range_id.get_const_data());
+    oneapi::dpl::transform(
+        policy, zip_it, zip_it + input.get_num_elems(), flat_idx_map.get_data(),
+        [cols = input.get_const_col_idxs(), stride = local_mtx->get_stride(),
+         map_to_local_row](const auto t) {
+            auto [row, col, rid] = t;
+            auto local_row = map_to_local_row(std::make_tuple(row, rid));
+            return local_row * stride + col;
         });
+    auto flat_idx_it = oneapi::dpl::make_permutation_iterator(
+        local_mtx->get_values(), flat_idx_map.get_data());
 
-    auto is_local_row = [range_id = range_id.get_data(), part_ids,
-                         local_part](const auto i) {
-        return part_ids[range_id[i]] == local_part;
+    auto is_local_row = [part_ids, local_part](const auto t) {
+        return part_ids[std::get<1>(t)] == local_part;
     };
-    oneapi::dpl::copy_if(policy, input.get_const_values(),
-                         input.get_const_values() + input.get_num_elems(),
-                         flat_idx_it, is_local_row);
+    auto value_rid_it = oneapi::dpl::make_zip_iterator(
+        input.get_const_values(), range_id.get_const_data());
+    oneapi::dpl::copy_if(policy, value_rid_it,
+                         value_rid_it + input.get_num_elems(),
+                         oneapi::dpl::make_zip_iterator(
+                             flat_idx_it, oneapi::dpl::discard_iterator()),
+                         is_local_row);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
