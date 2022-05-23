@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "common/unified/base/kernel_launch.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
@@ -135,7 +136,7 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
 
 template <typename IndexType>
 class CsrLookup : public ::testing::Test {
-protected:
+public:
     using value_type = float;
     using index_type = IndexType;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
@@ -167,6 +168,14 @@ protected:
         mtx = Mtx::create(ref);
         mtx->read(data);
         dmtx = gko::clone(exec, mtx);
+        const auto num_rows = mtx->get_size()[0];
+
+        row_desc_array = gko::array<gko::int64>{ref, num_rows};
+        drow_desc_array = gko::array<gko::int64>{exec, num_rows};
+        storage_offset_array = gko::array<index_type>{ref, num_rows + 1};
+        dstorage_offset_array = gko::array<index_type>{exec, num_rows + 1};
+        storage_array.set_executor(ref);
+        dstorage_array.set_executor(exec);
     }
 
     void TearDown()
@@ -181,10 +190,71 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> dmtx;
+    gko::array<gko::int64> row_desc_array;
+    gko::array<gko::int64> drow_desc_array;
+    gko::array<index_type> storage_offset_array;
+    gko::array<index_type> dstorage_offset_array;
+    gko::array<gko::int32> storage_array;
+    gko::array<gko::int32> dstorage_array;
     index_type invalid_index = gko::invalid_index<index_type>();
 };
 
 TYPED_TEST_SUITE(CsrLookup, gko::test::IndexTypes, TypenameNameGenerator);
+
+
+template <typename IndexType>
+void assert_lookup_correct(std::shared_ptr<const gko::EXEC_TYPE> exec,
+                           const typename CsrLookup<IndexType>::Mtx* mtx,
+                           const gko::array<IndexType>& storage_offsets,
+                           const gko::array<gko::int32>& storage,
+                           const gko::array<gko::int64>& row_descs)
+{
+    const auto num_rows = mtx->get_size()[0];
+    const auto num_cols = mtx->get_size()[1];
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    gko::array<bool> correct{exec, {true}};
+    gko::kernels::EXEC_NAMESPACE::run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto num_cols, auto row_ptrs, auto col_idxs,
+                      auto storage_offsets, auto storage, auto row_descs,
+                      auto correct) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const auto row_nnz = row_end - row_begin;
+            gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
+                row_ptrs, col_idxs,  storage_offsets,
+                storage,  row_descs, static_cast<gko::size_type>(row)};
+            // check lookup for existing entries
+            for (auto nz = row_begin; nz < row_end; nz++) {
+                const auto col = col_idxs[nz];
+                if (lookup.lookup_unsafe(col) + row_begin != nz) {
+                    *correct = false;
+                    return;
+                }
+            }
+            // check generic lookup for all columns
+            auto nz = row_begin;
+            for (int col = 0; col < num_cols; col++) {
+                auto found_nz = lookup[col];
+                if (nz < row_end && col_idxs[nz] == col) {
+                    if (found_nz != nz - row_begin) {
+                        *correct = false;
+                        return;
+                    }
+                    nz++;
+                } else {
+                    if (found_nz != gko::invalid_index<IndexType>()) {
+                        *correct = false;
+                        return;
+                    }
+                }
+            }
+        },
+        num_rows, num_cols, row_ptrs, col_idxs, storage_offsets, storage,
+        row_descs, correct);
+    ASSERT_TRUE(exec->copy_val_to_host(correct.get_const_data()));
+}
 
 
 TYPED_TEST(CsrLookup, BuildLookupWorks)
@@ -193,18 +263,14 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
     using gko::matrix::csr::sparsity_type;
     const auto num_rows = this->mtx->get_size()[0];
     const auto num_cols = this->mtx->get_size()[1];
-    gko::array<gko::int64> row_desc_array(this->ref, num_rows);
-    gko::array<gko::int64> drow_desc_array(this->exec, num_rows);
-    gko::array<index_type> storage_offset_array(this->ref, num_rows + 1);
-    gko::array<index_type> dstorage_offset_array(this->exec, num_rows + 1);
-    const auto row_descs = row_desc_array.get_data();
-    const auto drow_descs = drow_desc_array.get_data();
+    const auto row_descs = this->row_desc_array.get_data();
+    const auto drow_descs = this->drow_desc_array.get_data();
     const auto row_ptrs = this->mtx->get_const_row_ptrs();
     const auto col_idxs = this->mtx->get_const_col_idxs();
     const auto drow_ptrs = this->dmtx->get_const_row_ptrs();
     const auto dcol_idxs = this->dmtx->get_const_col_idxs();
-    const auto storage_offsets = storage_offset_array.get_data();
-    const auto dstorage_offsets = dstorage_offset_array.get_data();
+    const auto storage_offsets = this->storage_offset_array.get_data();
+    const auto dstorage_offsets = this->dstorage_offset_array.get_data();
     for (auto allowed :
          {sparsity_type::full | sparsity_type::bitmap | sparsity_type::hash,
           sparsity_type::bitmap | sparsity_type::hash,
@@ -217,14 +283,13 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
             this->exec, drow_ptrs, dcol_idxs, num_rows, allowed,
             dstorage_offsets);
 
-        GKO_ASSERT_ARRAY_EQ(storage_offset_array, dstorage_offset_array);
+        GKO_ASSERT_ARRAY_EQ(this->storage_offset_array,
+                            this->dstorage_offset_array);
 
-        gko::array<gko::int32> storage_array(this->ref,
-                                             storage_offsets[num_rows]);
-        gko::array<gko::int32> dstorage_array(this->exec,
-                                              storage_offsets[num_rows]);
-        const auto storage = storage_array.get_data();
-        const auto dstorage = dstorage_array.get_data();
+        this->storage_array.resize_and_reset(storage_offsets[num_rows]);
+        this->dstorage_array.resize_and_reset(storage_offsets[num_rows]);
+        const auto storage = this->storage_array.get_data();
+        const auto dstorage = this->dstorage_array.get_data();
         const auto bitmap_equivalent =
             csr_lookup_allowed(allowed, sparsity_type::bitmap)
                 ? sparsity_type::bitmap
@@ -241,35 +306,15 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
             this->exec, drow_ptrs, dcol_idxs, num_rows, allowed,
             dstorage_offsets, drow_descs, dstorage);
 
-        gko::array<gko::int64> host_row_descs(this->ref, drow_desc_array);
-        gko::array<gko::int32> host_storage_array(this->ref, dstorage_array);
-        for (int row = 0; row < num_rows; row++) {
-            const auto row_begin = row_ptrs[row];
-            const auto row_end = row_ptrs[row + 1];
-            const auto row_nnz = row_end - row_begin;
-            gko::matrix::csr::device_sparsity_lookup<index_type> lookup{
-                row_ptrs,
-                col_idxs,
-                storage_offsets,
-                host_storage_array.get_const_data(),
-                host_row_descs.get_data(),
-                static_cast<gko::size_type>(row)};
-            ASSERT_EQ(host_row_descs.get_const_data()[row] & 0xF,
-                      row_descs[row] & 0xF);
-            for (auto nz = row_begin; nz < row_end; nz++) {
-                const auto col = col_idxs[nz];
-                ASSERT_EQ(lookup.lookup_unsafe(col) + row_begin, nz);
-            }
-            auto nz = row_begin;
-            for (int col = 0; col < num_cols; col++) {
-                auto found_nz = lookup[col];
-                if (nz < row_end && col_idxs[nz] == col) {
-                    ASSERT_EQ(found_nz, nz - row_begin);
-                    nz++;
-                } else {
-                    ASSERT_EQ(found_nz, this->invalid_index);
-                }
-            }
+        assert_lookup_correct(this->exec, this->dmtx.get(),
+                              this->dstorage_offset_array, this->dstorage_array,
+                              this->drow_desc_array);
+        // check that all rows use the same lookup type
+        gko::array<gko::int64> host_row_desc_array{this->ref,
+                                                   this->drow_desc_array};
+        const auto host_row_descs = host_row_desc_array.get_const_data();
+        for (gko::size_type row = 0; row < num_rows; row++) {
+            ASSERT_EQ(host_row_descs[row] & 0xF, row_descs[row] & 0xF);
         }
     }
 }
