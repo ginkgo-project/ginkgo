@@ -78,7 +78,7 @@ using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
 namespace kernel {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void sweep(const IndexType* __restrict__ a_row_ptrs,
            const IndexType* __restrict__ a_col_idxs,
            const ValueType* __restrict__ a_vals,
@@ -94,7 +94,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
            ValueType* __restrict__ ut_vals, IndexType u_nnz,
            sycl::nd_item<3> item_ct1)
 {
-    auto tidx = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto tidx = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (tidx >= l_nnz + u_nnz) {
         return;
     }
@@ -108,7 +108,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
         // don't update the diagonal twice
         return;
     }
-    auto subwarp = group::tiled_partition<subwarp_size>(
+    auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
     // find entry of A at (row, col)
     auto a_row_begin = a_row_ptrs[row];
@@ -126,7 +126,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
     ValueType sum{};
     IndexType ut_nz{};
     auto last_entry = min(row, col);
-    group_merge<subwarp_size>(
+    group_merge<subgroup_size>(
         l_col_idxs + l_row_begin, l_row_size, ut_row_idxs + ut_col_begin,
         ut_col_size, subwarp,
         [&](IndexType l_idx, IndexType l_col, IndexType ut_idx,
@@ -165,7 +165,7 @@ void sweep(const IndexType* __restrict__ a_row_ptrs,
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
            sycl::queue* queue, const IndexType* a_row_ptrs,
            const IndexType* a_col_idxs, const ValueType* a_vals,
@@ -177,11 +177,11 @@ void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            sweep<subwarp_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
-                                l_row_idxs, l_col_idxs, l_vals, l_nnz,
-                                u_row_idxs, u_col_idxs, u_vals, ut_col_ptrs,
-                                ut_row_idxs, ut_vals, u_nnz, item_ct1);
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            sweep<subgroup_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                 l_row_idxs, l_col_idxs, l_vals, l_nnz,
+                                 u_row_idxs, u_col_idxs, u_vals, ut_col_ptrs,
+                                 ut_row_idxs, ut_vals, u_nnz, item_ct1);
         });
 }
 
@@ -191,8 +191,8 @@ void sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 namespace {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_l_u_factors(syn::value_list<int, subwarp_size>,
+template <int subgroup_size, typename ValueType, typename IndexType>
+void compute_l_u_factors(syn::value_list<int, subgroup_size>,
                          std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* a,
                          matrix::Csr<ValueType, IndexType>* l,
@@ -203,9 +203,9 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements() +
                                             u->get_num_stored_elements());
-    auto block_size = default_block_size / subwarp_size;
+    auto block_size = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
-    kernel::sweep<subwarp_size>(
+    kernel::sweep<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(),
         a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
         l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
@@ -239,9 +239,9 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
     auto total_nnz_per_row = total_nnz / num_rows;
     select_compute_l_u_factors(
         compiled_kernels(),
-        [&](int compiled_subwarp_size) {
-            return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+        [&](int compiled_subgroup_size) {
+            return total_nnz_per_row <= compiled_subgroup_size ||
+                   compiled_subgroup_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo, u, u_coo,
         u_csc);

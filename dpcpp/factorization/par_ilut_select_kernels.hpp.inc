@@ -61,11 +61,11 @@ void build_searchtree(const ValueType* __restrict__ input, IndexType size,
     auto idx = item_ct1.get_local_id(2);
     AbsType samples[sampleselect_oversampling];
     // assuming rounding towards zero
-    // auto stride = remove_complex<ValueType>(size) / sample_size;
+    auto stride = remove_complex<ValueType>(size) / sample_size;
 #pragma unroll
     for (int i = 0; i < sampleselect_oversampling; ++i) {
         auto lidx = idx * sampleselect_oversampling + i;
-        auto val = input[static_cast<IndexType>(lidx * size / sample_size)];
+        auto val = input[static_cast<IndexType>(lidx * stride)];
         samples[i] = std::abs(val);
     }
 
@@ -123,7 +123,6 @@ void count_buckets(const ValueType* __restrict__ input, IndexType size,
                    remove_complex<ValueType>* sh_tree, IndexType* sh_counter)
 {
     // load tree into shared memory, initialize counters
-
 
     if (item_ct1.get_local_id(2) < searchtree_inner_size) {
         sh_tree[item_ct1.get_local_id(2)] = tree[item_ct1.get_local_id(2)];

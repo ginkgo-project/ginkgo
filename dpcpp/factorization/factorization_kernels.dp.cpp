@@ -70,6 +70,7 @@ namespace kernel {
 namespace detail {
 
 
+// TODO: remove the unsorted version because IsSorted is true almost everywhere?
 // Default implementation for the unsorted case
 template <bool IsSorted>
 struct find_helper {
@@ -91,7 +92,6 @@ struct find_helper {
         return found;
     }
 };
-
 
 // Improved version in case the CSR matrix is sorted
 template <>
@@ -142,6 +142,7 @@ void find_missing_diagonal_elements(
         const auto* start_cols = col_idxs + row_ptrs[row];
         const auto* end_cols = col_idxs + row_ptrs[row + 1];
         /*
+        TODO: do not face any issue from it currently.
         DPCT1084:0: The function call has multiple migration results in
         different template instantiations that could not be unified. You may
         need to adjust the code.

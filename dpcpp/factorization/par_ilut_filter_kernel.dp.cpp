@@ -79,8 +79,8 @@ using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
 namespace {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void threshold_filter(syn::value_list<int, subwarp_size>,
+template <int subgroup_size, typename ValueType, typename IndexType>
+void threshold_filter(syn::value_list<int, subgroup_size>,
                       std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
@@ -92,10 +92,10 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     auto old_vals = a->get_const_values();
     // compute nnz for each row
     auto num_rows = static_cast<IndexType>(a->get_size()[0]);
-    auto block_size = default_block_size / subwarp_size;
+    auto block_size = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, block_size);
     auto new_row_ptrs = m_out->get_row_ptrs();
-    kernel::threshold_filter_nnz<subwarp_size>(
+    kernel::threshold_filter_nnz<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
         old_vals, num_rows, threshold, new_row_ptrs, lower);
 
@@ -120,7 +120,7 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
             Array<ValueType>::view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
-    kernel::threshold_filter<subwarp_size>(
+    kernel::threshold_filter<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
         old_col_idxs, old_vals, num_rows, threshold, new_row_ptrs, new_row_idxs,
         new_col_idxs, new_vals, lower);
@@ -144,9 +144,9 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
     auto total_nnz_per_row = total_nnz / num_rows;
     select_threshold_filter(
         compiled_kernels(),
-        [&](int compiled_subwarp_size) {
-            return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+        [&](int compiled_subgroup_size) {
+            return total_nnz_per_row <= compiled_subgroup_size ||
+                   compiled_subgroup_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, a, threshold, m_out,
         m_out_coo, lower);
