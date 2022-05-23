@@ -11,7 +11,7 @@ function(ginkgo_benchmark_add_tuning_maybe name)
 endfunction()
 
 function(ginkgo_benchmark_cusparse_linops type def)
-    add_library(cusparse_linops_${type} utils/cuda_linops.cu)
+    add_library(cusparse_linops_${type} utils/cuda_linops.cpp)
     if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
         # remove false positive CUDA warnings when calling one<T>() and zero<T>()
         target_compile_options(cusparse_linops_${type}

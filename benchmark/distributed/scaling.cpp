@@ -89,7 +89,6 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
 
     std::array<int, 2> coords{};
     MPI_Cart_coords(cart_comm, comm.rank(), coords.size(), coords.data());
-    std::cout << coords[0] << "|" << coords[1] << std::endl;
 
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 2));
@@ -206,7 +205,7 @@ build_part_from_local_rows(
     comm.all_gather(local_mapping.data(), local_size, all_global_rows.data(),
                     local_size);
 
-    gko::Array<gko::distributed::comm_index_type> mapping{exec->get_master(),
+    gko::array<gko::distributed::comm_index_type> mapping{exec->get_master(),
                                                           global_size};
     for (std::size_t i = 0; i < global_size; ++i) {
         auto row = all_global_rows[i];
@@ -256,8 +255,6 @@ int main(int argc, char* argv[])
     }
 
     auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
-    std::cout << comm.rank() << ": " << comm.node_local_rank() << " "
-              << FLAGS_device_id << std::endl;
 
     const auto num_target_rows = FLAGS_target_rows;
     const auto dim = FLAGS_dim;

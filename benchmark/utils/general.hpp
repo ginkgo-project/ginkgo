@@ -328,7 +328,8 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(
              auto nd = gko::CudaExecutor::get_num_devices();
              FLAGS_device_id = lr % nd;
              return gko::CudaExecutor::create(
-                 FLAGS_device_id, gko::ReferenceExecutor::create(), true);
+                 FLAGS_device_id, gko::ReferenceExecutor::create(), false,
+                 gko::allocation_mode::device);
          }},
         {"hip",
          [](gko::mpi::communicator comm) {
