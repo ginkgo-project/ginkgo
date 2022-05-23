@@ -147,7 +147,7 @@ public:
 TYPED_TEST_SUITE(VectorCreation, gko::test::ValueLocalGlobalIndexTypes);
 
 
-//#ifdef GKO_COMPILING_REFERENCE
+#ifndef GKO_COMPILING_DPCPP
 
 
 TYPED_TEST(VectorCreation, CanReadGlobalMatrixData)
@@ -321,7 +321,7 @@ TYPED_TEST(VectorCreation, CanReadLocalMatrixDataSomeEmpty)
 }
 
 
-//#endif
+#endif
 
 
 TYPED_TEST(VectorCreation, CanCreateFromLocalVectorAndSize)
