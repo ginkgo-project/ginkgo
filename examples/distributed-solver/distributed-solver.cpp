@@ -113,7 +113,8 @@ int main(int argc, char* argv[])
                  return gko::CudaExecutor::create(
                      comm.node_local_rank() %
                          gko::CudaExecutor::get_num_devices(),
-                     gko::ReferenceExecutor::create(), true);
+                     gko::ReferenceExecutor::create(), false,
+                     gko::allocation_mode::device);
              }},
             {"hip",
              [&] {
