@@ -33,12 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/matrix_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
 #include <oneapi/dpl/algorithm>
 #include <oneapi/dpl/execution>
 #include <oneapi/dpl/iterator>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 #include "dpcpp/components/atomic.dp.hpp"

@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/matrix_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/distance.h>
@@ -47,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <thrust/sort.h>
 #include <thrust/transform_reduce.h>
 #include <thrust/unique.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 #include "cuda/components/atomic.cuh"
