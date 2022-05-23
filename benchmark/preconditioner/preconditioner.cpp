@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
             std::clog << "Running test case: " << test_case << std::endl;
 
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype, itype>(mtx_fd);
+            auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
 
             auto system_matrix =
                 share(formats::matrix_factory.at(FLAGS_formats)(exec, data));

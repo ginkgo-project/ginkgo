@@ -67,7 +67,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType)             \
     void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<IndexType>& row_ptrs,            \
+                             const array<IndexType>& row_ptrs,            \
                              size_type& max_nnz)
 
 #define GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
@@ -80,6 +80,11 @@ namespace kernels {
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                        const matrix::Ell<ValueType, IndexType>* source, \
                        matrix::Dense<ValueType>* result)
+
+#define GKO_DECLARE_ELL_COPY_KERNEL(ValueType, IndexType)      \
+    void copy(std::shared_ptr<const DefaultExecutor> exec,     \
+              const matrix::Ell<ValueType, IndexType>* source, \
+              matrix::Ell<ValueType, IndexType>* result)
 
 #define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -111,6 +116,8 @@ namespace kernels {
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_ELL_COPY_KERNEL(ValueType, IndexType);                    \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                     \

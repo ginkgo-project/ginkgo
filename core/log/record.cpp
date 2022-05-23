@@ -162,6 +162,24 @@ void Record::on_polymorphic_object_copy_completed(
 }
 
 
+void Record::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    append_deque(data_.polymorphic_object_move_started,
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+}
+
+
+void Record::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    append_deque(data_.polymorphic_object_move_completed,
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+}
+
+
 void Record::on_polymorphic_object_deleted(const Executor* exec,
                                            const PolymorphicObject* po) const
 {
@@ -247,7 +265,7 @@ void Record::on_criterion_check_completed(
     const LinOp* residual, const LinOp* residual_norm,
     const LinOp* implicit_residual_norm_sq, const LinOp* solution,
     const uint8& stopping_id, const bool& set_finalized,
-    const Array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
     append_deque(
@@ -262,7 +280,7 @@ void Record::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stopping_id, const bool& set_finalized,
-    const Array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
     this->on_criterion_check_completed(

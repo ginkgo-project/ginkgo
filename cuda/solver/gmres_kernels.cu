@@ -82,7 +82,7 @@ void initialize_1(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<ValueType>* residual,
                   matrix::Dense<ValueType>* givens_sin,
                   matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+                  array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -108,7 +108,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
                   matrix::Dense<ValueType>* residual_norm_collection,
                   matrix::Dense<ValueType>* krylov_bases,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
@@ -117,10 +117,13 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                 default_block_size);
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
+    array<char> tmp{exec};
 
-    kernels::cuda::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::cuda::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                 tmp);
 
-    const auto grid_dim_2 = ceildiv(num_rows * num_rhs, default_block_size);
+    const auto grid_dim_2 =
+        ceildiv(std::max<size_type>(num_rows, 1) * num_rhs, default_block_size);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1],
         as_cuda_type(residual->get_const_values()), residual->get_stride(),
@@ -139,6 +142,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
                     const stopping_status* stop_status)
 {
+    if (hessenberg_iter->get_size()[1] == 0) {
+        return;
+    }
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     auto cublas_handle = exec->get_cublas_handle();
@@ -211,7 +217,7 @@ void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType>* hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>>* residual_norm,
                      matrix::Dense<ValueType>* residual_norm_collection,
-                     size_type iter, const Array<stopping_status>* stop_status)
+                     size_type iter, const array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -240,8 +246,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType>* residual_norm_collection,
             matrix::Dense<ValueType>* krylov_bases,
             matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-            Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status)
+            array<size_type>* final_iter_nums,
+            const array<stopping_status>* stop_status)
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
@@ -262,7 +268,7 @@ template <typename ValueType>
 void solve_upper_triangular(
     const matrix::Dense<ValueType>* residual_norm_collection,
     const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
-    const Array<size_type>* final_iter_nums)
+    const array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -285,7 +291,7 @@ template <typename ValueType>
 void calculate_qy(const matrix::Dense<ValueType>* krylov_bases,
                   const matrix::Dense<ValueType>* y,
                   matrix::Dense<ValueType>* before_preconditioner,
-                  const Array<size_type>* final_iter_nums)
+                  const array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = krylov_bases->get_size()[1];
@@ -318,7 +324,7 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType>* hessenberg,
             matrix::Dense<ValueType>* y,
             matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+            const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums);

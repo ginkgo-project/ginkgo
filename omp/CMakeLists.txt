@@ -10,6 +10,7 @@ target_sources(ginkgo_omp
     distributed/matrix_kernels.cpp
     distributed/partition_kernels.cpp
     distributed/vector_kernels.cpp
+    factorization/cholesky_kernels.cpp
     factorization/factorization_kernels.cpp
     factorization/ic_kernels.cpp
     factorization/ilu_kernels.cpp
@@ -26,6 +27,7 @@ target_sources(ginkgo_omp
     matrix/fft_kernels.cpp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
+    multigrid/amgx_pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp

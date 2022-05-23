@@ -108,7 +108,7 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingData)
     value_type values[] = {1.0, 2.0, 3.0};
 
     auto diag = gko::matrix::Diagonal<value_type>::create(
-        this->exec, 3, gko::Array<value_type>::view(this->exec, 3, values));
+        this->exec, 3, gko::make_array_view(this->exec, 3, values));
 
     ASSERT_EQ(diag->get_const_values(), values);
 }
@@ -121,7 +121,7 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingConstData)
 
     auto diag = gko::matrix::Diagonal<value_type>::create_const(
         this->exec, 3,
-        gko::Array<value_type>::const_view(this->exec, 3, values));
+        gko::array<value_type>::const_view(this->exec, 3, values));
 
     ASSERT_EQ(diag->get_const_values(), values);
 }

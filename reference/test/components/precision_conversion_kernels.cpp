@@ -78,18 +78,18 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<float> vals;
-    gko::Array<double> vals2;
-    gko::Array<float> expected_float;
-    gko::Array<double> expected_double;
-    gko::Array<std::complex<float>> cvals;
+    gko::array<float> vals;
+    gko::array<double> vals2;
+    gko::array<float> expected_float;
+    gko::array<double> expected_double;
+    gko::array<std::complex<float>> cvals;
 };
 
 
 TEST_F(PrecisionConversion, ConvertsReal)
 {
-    gko::Array<double> tmp;
-    gko::Array<float> out;
+    gko::array<double> tmp;
+    gko::array<float> out;
 
     tmp = vals;
     out = tmp;
@@ -100,8 +100,8 @@ TEST_F(PrecisionConversion, ConvertsReal)
 
 TEST_F(PrecisionConversion, ConversionRounds)
 {
-    gko::Array<float> tmp;
-    gko::Array<double> out;
+    gko::array<float> tmp;
+    gko::array<double> out;
 
     tmp = vals2;
     out = tmp;
@@ -113,8 +113,8 @@ TEST_F(PrecisionConversion, ConversionRounds)
 
 TEST_F(PrecisionConversion, ConvertsRealWithSetExecutor)
 {
-    gko::Array<double> tmp{ref};
-    gko::Array<float> out{ref};
+    gko::array<double> tmp{ref};
+    gko::array<float> out{ref};
 
     tmp = vals;
     out = tmp;
@@ -125,10 +125,10 @@ TEST_F(PrecisionConversion, ConvertsRealWithSetExecutor)
 
 TEST_F(PrecisionConversion, ConvertsRealFromView)
 {
-    gko::Array<double> tmp{ref};
-    gko::Array<float> out{ref};
+    gko::array<double> tmp{ref};
+    gko::array<float> out{ref};
 
-    tmp = gko::Array<float>::view(ref, vals.get_num_elems(), vals.get_data());
+    tmp = gko::make_array_view(ref, vals.get_num_elems(), vals.get_data());
     out = tmp;
 
     GKO_ASSERT_ARRAY_EQ(vals, out);
@@ -137,8 +137,8 @@ TEST_F(PrecisionConversion, ConvertsRealFromView)
 
 TEST_F(PrecisionConversion, ConvertsComplex)
 {
-    gko::Array<std::complex<double>> tmp;
-    gko::Array<std::complex<float>> out;
+    gko::array<std::complex<double>> tmp;
+    gko::array<std::complex<float>> out;
 
     tmp = cvals;
     out = tmp;

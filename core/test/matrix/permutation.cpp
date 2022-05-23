@@ -60,7 +60,7 @@ protected:
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Permutation<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 3}}))
+              exec, gko::dim<2>{4, 3}, gko::array<i_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
@@ -136,7 +136,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -149,7 +149,7 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingConstData)
     const i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create_const(
-        this->exec, 3, gko::Array<i_type>::const_view(this->exec, 3, data));
+        this->exec, 3, gko::array<i_type>::const_view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
@@ -191,7 +191,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{4, 2},
-                     gko::Array<i_type>::view(this->exec, 3, data)),
+                     gko::make_array_view(this->exec, 3, data)),
                  gko::ValueMismatch);
 }
 
@@ -203,7 +203,7 @@ TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 
     auto m = gko::matrix::Permutation<i_type>::create(
         this->exec, gko::dim<2>{3, 5},
-        gko::Array<i_type>::view(this->exec, 3, data));
+        gko::make_array_view(this->exec, 3, data));
 
     auto mask = m->get_permute_mask();
     ASSERT_EQ(m->get_const_permutation(), data);
@@ -225,7 +225,7 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 
     ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
                      this->exec, gko::dim<2>{3, 4},
-                     gko::Array<i_type>::view(this->exec, 3, data),
+                     gko::make_array_view(this->exec, 3, data),
                      gko::matrix::column_permute),
                  gko::ValueMismatch);
 }

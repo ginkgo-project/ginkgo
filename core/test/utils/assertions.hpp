@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -259,7 +260,7 @@ template <typename MatrixData1, typename MatrixData2>
              << second_expression << " is " << err << "\n"
              << "\twhich is larger than " << tolerance_expression
              << " (which is " << tolerance << ")\n";
-        if (num_rows * num_cols <= 1000) {
+        if (num_rows <= 10 && num_cols <= 10) {
             fail << first_expression << " is:\n";
             detail::print_matrix(fail, first);
             fail << second_expression << " is:\n";
@@ -360,7 +361,7 @@ template <typename MatrixData1, typename MatrixData2>
 template <typename ValueType>
 ::testing::AssertionResult array_equal_impl(
     const std::string& first_expression, const std::string& second_expression,
-    const Array<ValueType>& first, const Array<ValueType>& second)
+    const array<ValueType>& first, const array<ValueType>& second)
 {
     const auto num_elems1 = first.get_num_elems();
     const auto num_elems2 = second.get_num_elems();
@@ -373,8 +374,8 @@ template <typename ValueType>
     }
 
     auto exec = first.get_executor()->get_master();
-    Array<ValueType> first_array(exec, first);
-    Array<ValueType> second_array(exec, second);
+    array<ValueType> first_array(exec, first);
+    array<ValueType> second_array(exec, second);
     for (size_type i = 0; i < num_elems1; ++i) {
         if (!(first_array.get_const_data()[i] ==
               second_array.get_const_data()[i])) {
@@ -618,16 +619,16 @@ template <typename LinOp1, typename T>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(const std::string& first_expression,
                                        const std::string& second_expression,
-                                       const Array<ValueType>& first,
-                                       const Array<ValueType>& second)
+                                       const array<ValueType>& first,
+                                       const array<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second);
 }
 
 /**
- * array_equal overload: where `first` is a ConstArrayView.
- * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * array_equal overload: where `first` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
  * `second`.
  *
  * @copydoc array_equal
@@ -635,16 +636,16 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const gko::detail::ConstArrayView<ValueType>& first,
-    const Array<ValueType>& second)
+    const gko::detail::const_array_view<ValueType>& first,
+    const array<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression,
                                     first.copy_to_array(), second);
 }
 
 /**
- * array_equal overload: where `second` is a ConstArrayView.
- * It creates a Array copy of the ConstArrayView and then compare `first` and
+ * array_equal overload: where `second` is a const_array_view.
+ * It creates a array copy of the const_array_view and then compare `first` and
  * `second`
  *
  * @copydoc array_equal
@@ -652,16 +653,16 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const Array<ValueType>& first,
-    const gko::detail::ConstArrayView<ValueType>& second)
+    const array<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression, first,
                                     second.copy_to_array());
 }
 
 /**
- * array_equal overload: where both `first` and `second` are ConstArrayViews.
- * It creates Array copies of the ConstArrayView and then compare `first` and
+ * array_equal overload: where both `first` and `second` are const_array_views.
+ * It creates array copies of the const_array_view and then compare `first` and
  * `second`
  *
  * @copydoc array_equal
@@ -669,12 +670,33 @@ template <typename ValueType>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(
     const std::string& first_expression, const std::string& second_expression,
-    const gko::detail::ConstArrayView<ValueType>& first,
-    const gko::detail::ConstArrayView<ValueType>& second)
+    const gko::detail::const_array_view<ValueType>& first,
+    const gko::detail::const_array_view<ValueType>& second)
 {
     return detail::array_equal_impl(first_expression, second_expression,
                                     first.copy_to_array(),
                                     second.copy_to_array());
+}
+
+/** array_equal overloads where one side is an initializer list .*/
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       std::initializer_list<ValueType> first,
+                                       const array<ValueType>& second)
+{
+    return array_equal(first_expression, second_expression,
+                       array<ValueType>{second.get_executor(), first}, second);
+}
+
+template <typename ValueType>
+::testing::AssertionResult array_equal(const std::string& first_expression,
+                                       const std::string& second_expression,
+                                       const array<ValueType>& first,
+                                       std::initializer_list<ValueType> second)
+{
+    return array_equal(first_expression, second_expression, first,
+                       array<ValueType>{first.get_executor(), second});
 }
 
 
@@ -746,6 +768,19 @@ template <typename LinOp1, typename LinOp2>
         detail::remove_pointer_wrapper(first_expression),
         detail::remove_pointer_wrapper(second_expression), first_data,
         second_data);
+}
+
+
+template <typename LinOp1, typename T>
+::testing::AssertionResult matrices_equal_sparsity(
+    const std::string& first_expression, const std::string& second_expression,
+    const LinOp1* first, std::initializer_list<T> second)
+{
+    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
+        second, first->get_executor()->get_master());
+    return matrices_equal_sparsity(
+        first_expression, detail::remove_list_wrapper(second_expression), first,
+        second_mtx.get());
 }
 
 
@@ -906,7 +941,7 @@ T* plain_ptr(T* ptr)
 
 
 /**
- * Checks if two `gko::Array`s are equal.
+ * Checks if two `gko::array`s are equal.
  *
  * Each value of _array1 is tested against the corresponding value in
  * _array2 with the operator `==` for equality.
@@ -918,6 +953,16 @@ T* plain_ptr(T* ptr)
  * @param _array2  second array
  **/
 #define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                              \
+    {                                                                      \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
+                            _array2);                                      \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_ARRAY_EQ
+ **/
+#define GKO_EXPECT_ARRAY_EQ(_array1, _array2)                              \
     {                                                                      \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \

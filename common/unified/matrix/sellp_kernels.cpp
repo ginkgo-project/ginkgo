@@ -54,7 +54,7 @@ namespace sellp {
 
 template <typename IndexType>
 void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<IndexType>& row_ptrs, size_type slice_size,
+                        const array<IndexType>& row_ptrs, size_type slice_size,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
@@ -104,7 +104,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             const auto slice_length = slice_end - slice_begin;
             auto out_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_begin + slice_length; i++) {
-                cols[out_idx] = i < row_end ? in_cols[i] : 0;
+                cols[out_idx] =
+                    i < row_end ? in_cols[i] : invalid_index<IndexType>();
                 values[out_idx] =
                     i < row_end ? in_vals[i] : zero(values[out_idx]);
                 out_idx += slice_size;
@@ -136,7 +137,10 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
             const auto slice_length = slice_end - slice_begin;
             auto in_idx = slice_begin * slice_size + local_row;
             for (int64 i = 0; i < slice_length; i++) {
-                result(row, cols[in_idx]) += values[in_idx];
+                const auto col = cols[in_idx];
+                if (col != invalid_index<IndexType>()) {
+                    result(row, cols[in_idx]) = values[in_idx];
+                }
                 in_idx += slice_size;
             }
         },
@@ -156,7 +160,7 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto values,
+        [] GKO_KERNEL(auto row, auto slice_size, auto slice_sets, auto cols,
                       auto result) {
             const auto slice = row / slice_size;
             const auto local_row = row % slice_size;
@@ -166,13 +170,13 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
             auto in_idx = slice_begin * slice_size + local_row;
             IndexType row_nnz{};
             for (int64 i = 0; i < slice_length; i++) {
-                row_nnz += is_nonzero(values[in_idx]);
+                row_nnz += cols[in_idx] != invalid_index<IndexType>() ? 1 : 0;
                 in_idx += slice_size;
             }
             result[row] = row_nnz;
         },
         source->get_size()[0], source->get_slice_size(),
-        source->get_const_slice_sets(), source->get_const_values(), result);
+        source->get_const_slice_sets(), source->get_const_col_idxs(), result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

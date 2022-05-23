@@ -65,7 +65,7 @@ public:
 
 protected:
     bool check_impl(gko::uint8 stoppingId, bool setFinalized,
-                    gko::Array<gko::stopping_status>* stop_status,
+                    gko::array<gko::stopping_status>* stop_status,
                     bool* one_changed, const Criterion::Updater&) override
     {
         bool result = *(parameters_.stop_iteration_process);

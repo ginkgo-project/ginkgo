@@ -173,7 +173,7 @@ void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
 {
     auto mtx_size = mtx->get_size();
     size_type row_ptrs_size = mtx_size[0] + 1;
-    Array<IndexType> row_ptrs_addition{exec, row_ptrs_size};
+    array<IndexType> row_ptrs_addition{exec, row_ptrs_size};
     bool needs_change{};
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true>(
@@ -191,8 +191,8 @@ void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
 
     size_type new_num_elems = mtx->get_num_stored_elements() +
                               row_ptrs_addition.get_data()[row_ptrs_size - 1];
-    Array<ValueType> new_values{exec, new_num_elems};
-    Array<IndexType> new_col_idxs{exec, new_num_elems};
+    array<ValueType> new_values{exec, new_num_elems};
+    array<IndexType> new_col_idxs{exec, new_num_elems};
     kernel::add_missing_diagonal_elements(mtx, new_values.get_data(),
                                           new_col_idxs.get_data(),
                                           row_ptrs_addition.get_const_data());

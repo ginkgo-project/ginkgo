@@ -106,7 +106,7 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
 
 
 /**
- * Generates matrix data for a random matrix.
+ * Generates device matrix data for a random matrix.
  *
  * @see generate_random_matrix_data
  */
@@ -124,7 +124,6 @@ generate_random_device_matrix_data(gko::size_type num_rows,
         num_rows, num_cols, std::forward<NonzeroDistribution>(nonzero_dist),
         std::forward<ValueDistribution>(value_dist),
         std::forward<Engine>(engine));
-    md.ensure_row_major_order();
     return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
                                                                            md);
 }

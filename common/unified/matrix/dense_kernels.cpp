@@ -246,15 +246,15 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result)
+                 matrix::Dense<ValueType>* result, array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        x, y);
+        tmp, x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
@@ -264,15 +264,15 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result)
+                      matrix::Dense<ValueType>* result, array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result->get_values(), x->get_size(),
-        x, y);
+        tmp, x, y);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
@@ -281,14 +281,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         [] GKO_KERNEL(auto a, auto b) { return a + b; },
         [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
-        result->get_values(), x->get_size(), x);
+        result->get_values(), x->get_size(), tmp, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
@@ -296,12 +297,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
-        x->get_size(), x);
+        x->get_size(), tmp, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
@@ -312,7 +314,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Dense<ValueType>* source,
                              size_type& result)
 {
-    Array<size_type> partial{exec, source->get_size()[0] + 1};
+    array<size_type> partial{exec, source->get_size()[0] + 1};
     count_nonzeros_per_row(exec, source, partial.get_data());
     run_kernel_reduction(
         exec, [] GKO_KERNEL(auto i, auto partial) { return partial[i]; },
@@ -334,7 +336,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
                         size_type* slice_sets, size_type* slice_lengths)
 {
     const auto num_rows = source->get_size()[0];
-    Array<size_type> row_nnz{exec, num_rows};
+    array<size_type> row_nnz{exec, num_rows};
     count_nonzeros_per_row(exec, source, row_nnz.get_data());
     const auto num_slices =
         static_cast<size_type>(ceildiv(num_rows, slice_size));
@@ -379,18 +381,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_sqr(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType>* x,
-                       matrix::Dense<remove_complex<ValueType>>* result)
+void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           matrix::Dense<remove_complex<ValueType>>* result,
+                           array<char>& tmp)
 {
-    run_kernel_col_reduction(
+    run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result->get_values(),
-        x->get_size(), x);
+        x->get_size(), tmp, x);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
 
 
 template <typename ValueType>
@@ -410,7 +414,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<IndexType>* permutation_indices,
+                  const array<IndexType>* permutation_indices,
                   const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
@@ -428,7 +432,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* permutation_indices,
+                      const array<IndexType>* permutation_indices,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
@@ -446,7 +450,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const DefaultExecutor> exec,
-                const Array<IndexType>* row_idxs,
+                const array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
@@ -466,7 +470,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_idxs,
+                         const array<IndexType>* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -492,7 +496,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                    const Array<IndexType>* permutation_indices,
+                    const array<IndexType>* permutation_indices,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* column_permuted)
 {
@@ -510,7 +514,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType>* permutation_indices,
+                         const array<IndexType>* permutation_indices,
                          const matrix::Dense<ValueType>* orig,
                          matrix::Dense<ValueType>* row_permuted)
 {
@@ -528,7 +532,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec,
-                            const Array<IndexType>* permutation_indices,
+                            const array<IndexType>* permutation_indices,
                             const matrix::Dense<ValueType>* orig,
                             matrix::Dense<ValueType>* column_permuted)
 {

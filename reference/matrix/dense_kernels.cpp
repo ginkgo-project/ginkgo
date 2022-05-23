@@ -282,7 +282,7 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  const matrix::Dense<ValueType>* x,
                  const matrix::Dense<ValueType>* y,
-                 matrix::Dense<ValueType>* result)
+                 matrix::Dense<ValueType>* result, array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -301,9 +301,9 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
-    compute_dot(exec, x, y, result);
+    compute_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -314,7 +314,7 @@ template <typename ValueType>
 void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::Dense<ValueType>* x,
                       const matrix::Dense<ValueType>* y,
-                      matrix::Dense<ValueType>* result)
+                      matrix::Dense<ValueType>* result, array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<ValueType>();
@@ -333,9 +333,10 @@ template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+                               matrix::Dense<ValueType>* result,
+                               array<char>& tmp)
 {
-    compute_conj_dot(exec, x, y, result);
+    compute_conj_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -345,7 +346,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -366,9 +368,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+                            matrix::Dense<remove_complex<ValueType>>* result,
+                            array<char>& tmp)
 {
-    compute_norm2(exec, x, result);
+    compute_norm2(exec, x, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -378,7 +381,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType>* x,
-                   matrix::Dense<remove_complex<ValueType>>* result)
+                   matrix::Dense<remove_complex<ValueType>>* result,
+                   array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -409,9 +413,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_sqr(std::shared_ptr<const ReferenceExecutor> exec,
-                       const matrix::Dense<ValueType>* x,
-                       matrix::Dense<remove_complex<ValueType>>* result)
+void compute_squared_norm2(std::shared_ptr<const ReferenceExecutor> exec,
+                           const matrix::Dense<ValueType>* x,
+                           matrix::Dense<remove_complex<ValueType>>* result,
+                           array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();
@@ -423,7 +428,8 @@ void compute_norm2_sqr(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
 
 
 template <typename ValueType>
@@ -515,7 +521,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type i = 0; i < max_nnz_per_row; i++) {
         for (size_type j = 0; j < result->get_stride(); j++) {
             result->val_at(j, i) = zero<ValueType>();
-            result->col_at(j, i) = 0;
+            result->col_at(j, i) = invalid_index<IndexType>();
         }
     }
     size_type col_idx = 0;
@@ -600,28 +606,23 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
          i++) {
         for (size_type j = 0; j < result->get_ell_stride(); j++) {
             result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = 0;
+            result->ell_col_at(j, i) = invalid_index<IndexType>();
         }
-    }
-    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
-        coo_val[i] = zero<ValueType>();
-        coo_col[i] = 0;
-        coo_row[i] = 0;
     }
 
     size_type coo_idx = 0;
     for (size_type row = 0; row < num_rows; row++) {
-        size_type col_idx = 0, col = 0;
-        while (col < num_cols && col_idx < ell_lim) {
+        size_type col = 0;
+        for (size_type col_idx = 0; col < num_cols && col_idx < ell_lim;
+             col++) {
             auto val = source->at(row, col);
             if (is_nonzero(val)) {
                 result->ell_val_at(row, col_idx) = val;
                 result->ell_col_at(row, col_idx) = col;
                 col_idx++;
             }
-            col++;
         }
-        while (col < num_cols) {
+        for (; col < num_cols; col++) {
             auto val = source->at(row, col);
             if (is_nonzero(val)) {
                 coo_val[coo_idx] = val;
@@ -629,7 +630,6 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                 coo_row[coo_idx] = row;
                 coo_idx++;
             }
-            col++;
         }
     }
 }
@@ -664,7 +664,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (; sellp_ind < sellp_end; sellp_ind += slice_size) {
-            col_idxs[sellp_ind] = 0;
+            col_idxs[sellp_ind] = invalid_index<IndexType>();
             vals[sellp_ind] = zero<ValueType>();
         }
     }
@@ -841,7 +841,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                  const Array<IndexType>* permutation_indices,
+                  const array<IndexType>* permutation_indices,
                   const matrix::Dense<ValueType>* orig,
                   matrix::Dense<ValueType>* permuted)
 {
@@ -860,7 +860,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                      const Array<IndexType>* permutation_indices,
+                      const array<IndexType>* permutation_indices,
                       const matrix::Dense<ValueType>* orig,
                       matrix::Dense<ValueType>* permuted)
 {
@@ -879,7 +879,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename OutputType, typename IndexType>
 void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
-                const Array<IndexType>* row_idxs,
+                const array<IndexType>* row_idxs,
                 const matrix::Dense<ValueType>* orig,
                 matrix::Dense<OutputType>* row_collection)
 {
@@ -898,7 +898,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 template <typename ValueType, typename OutputType, typename IndexType>
 void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Dense<ValueType>* alpha,
-                         const Array<IndexType>* row_idxs,
+                         const array<IndexType>* row_idxs,
                          const matrix::Dense<ValueType>* orig,
                          const matrix::Dense<ValueType>* beta,
                          matrix::Dense<OutputType>* row_collection)
@@ -923,7 +923,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                    const Array<IndexType>* permutation_indices,
+                    const array<IndexType>* permutation_indices,
                     const matrix::Dense<ValueType>* orig,
                     matrix::Dense<ValueType>* column_permuted)
 {
@@ -941,7 +941,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                         const Array<IndexType>* permutation_indices,
+                         const array<IndexType>* permutation_indices,
                          const matrix::Dense<ValueType>* orig,
                          matrix::Dense<ValueType>* row_permuted)
 {
@@ -959,7 +959,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
-                            const Array<IndexType>* permutation_indices,
+                            const array<IndexType>* permutation_indices,
                             const matrix::Dense<ValueType>* orig,
                             matrix::Dense<ValueType>* column_permuted)
 {

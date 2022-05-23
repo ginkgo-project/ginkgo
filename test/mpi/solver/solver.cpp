@@ -43,10 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
@@ -57,7 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/matrix_utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -95,7 +95,7 @@ struct SimpleSolverTest {
     static void preprocess(
         gko::matrix_data<value_type, global_index_type>& data)
     {
-        gko::test::make_diag_dominant(data, 1.5);
+        gko::utils::make_diag_dominant(data, 1.5);
     }
 
     static typename solver_type::parameters_type build(
@@ -126,7 +126,7 @@ struct Cg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
         gko::matrix_data<value_type, global_index_type>& data)
     {
         // make sure the matrix is well-conditioned
-        gko::test::make_hpd(data, 1.5);
+        gko::utils::make_hpd(data, 1.5);
     }
 };
 
@@ -138,7 +138,7 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
     static void preprocess(
         gko::matrix_data<value_type, global_index_type>& data)
     {
-        gko::test::make_hpd(data, 1.5);
+        gko::utils::make_hpd(data, 1.5);
     }
 };
 
@@ -152,7 +152,7 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
     static void preprocess(
         gko::matrix_data<value_type, global_index_type>& data)
     {
-        gko::test::make_hpd(data, 1.5);
+        gko::utils::make_hpd(data, 1.5);
     }
 
     static typename solver_type::parameters_type build(
@@ -200,7 +200,7 @@ protected:
     void SetUp()
     {
         ASSERT_EQ(comm.size(), 3);
-        init_executor(ref, exec);
+        init_executor(ref, exec, comm);
         part = nullptr;
     }
 
@@ -212,7 +212,7 @@ protected:
     }
 
     std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols, int min_cols,
-                                     int max_cols)
+                                 int max_cols)
     {
         auto mapping =
             gko::test::generate_random_array<gko::distributed::comm_index_type>(
@@ -342,13 +342,13 @@ protected:
         }
     }
 
-    template <typename DistVecType = Vec,
-              typename NonDistVecType = LocalVec, typename TestFunction>
+    template <typename DistVecType = Vec, typename NonDistVecType = LocalVec,
+              typename TestFunction>
     void forall_vector_scenarios(const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
-        ASSERT_TRUE(part);  // for some reason putting this in gen_vec results
-                            // in errors?
+        ASSERT_TRUE(part);  // for some reason putting this in gen_[in|out]_vec
+                            // results in errors?
         auto guarded_fn = [&](auto b, auto x) {
             try {
                 fn(std::move(b), std::move(x));

@@ -38,8 +38,8 @@ template <typename LocalIndexType, typename GlobalIndexType>
 void setup_sizes_ids_permutation(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_ranges,
     comm_index_type num_parts, const GlobalIndexType* range_offsets,
-    const comm_index_type* range_parts, Array<LocalIndexType>& range_sizes,
-    Array<comm_index_type>& part_ids, Array<GlobalIndexType>& permutation)
+    const comm_index_type* range_parts, array<LocalIndexType>& range_sizes,
+    array<comm_index_type>& part_ids, array<GlobalIndexType>& permutation)
 {
     run_kernel(
         exec,
@@ -62,9 +62,9 @@ void setup_sizes_ids_permutation(
 template <typename LocalIndexType, typename GlobalIndexType>
 void compute_part_sizes_and_starting_indices(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_ranges,
-    const Array<LocalIndexType>& range_sizes,
-    const Array<comm_index_type>& part_ids,
-    const Array<GlobalIndexType>& permutation, LocalIndexType* starting_indices,
+    const array<LocalIndexType>& range_sizes,
+    const array<comm_index_type>& part_ids,
+    const array<GlobalIndexType>& permutation, LocalIndexType* starting_indices,
     LocalIndexType* part_sizes)
 {
     run_kernel(
@@ -103,10 +103,10 @@ void build_starting_indices(std::shared_ptr<const DefaultExecutor> exec,
                             LocalIndexType* part_sizes)
 {
     if (num_ranges > 0) {
-        Array<LocalIndexType> range_sizes{exec, num_ranges};
+        array<LocalIndexType> range_sizes{exec, num_ranges};
         // num_parts sentinel at the end
-        Array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
-        Array<GlobalIndexType> permutation{exec, num_ranges};
+        array<comm_index_type> tmp_part_ids{exec, num_ranges + 1};
+        array<GlobalIndexType> permutation{exec, num_ranges};
         // set part_sizes to 0 in case of empty parts
         components::fill_array(exec, part_sizes, num_parts, LocalIndexType{});
 

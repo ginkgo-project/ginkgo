@@ -228,8 +228,8 @@ public:
      */
     static std::unique_ptr<const SparsityCsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs,
         ValueType value = one<ValueType>())
     {
         // cast const-ness away, but return a const object afterwards,
@@ -238,6 +238,32 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(col_idxs)),
             gko::detail::array_const_cast(std::move(row_ptrs)), value});
     }
+
+    /**
+     * Copy-assigns a SparsityCsr matrix. Preserves executor, copies everything
+     * else.
+     */
+    SparsityCsr& operator=(const SparsityCsr&);
+
+    /**
+     * Move-assigns a SparsityCsr matrix. Preserves executor, moves the data and
+     * leaves the moved-from object in an empty state (0x0 LinOp with unchanged
+     * executor, no nonzeros and valid row pointers).
+     */
+    SparsityCsr& operator=(SparsityCsr&&);
+
+    /**
+     * Copy-constructs a SparsityCsr matrix. Inherits executor, strategy and
+     * data.
+     */
+    SparsityCsr(const SparsityCsr&);
+
+    /**
+     * Move-constructs a SparsityCsr matrix. Inherits executor, moves the data
+     * and leaves the moved-from object in an empty state (0x0 LinOp with
+     * unchanged executor, no nonzeros and valid row pointers).
+     */
+    SparsityCsr(SparsityCsr&&);
 
 protected:
     /**
@@ -309,9 +335,9 @@ protected:
                     LinOp* x) const override;
 
 private:
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
-    Array<value_type> value_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
+    array<value_type> value_;
 };
 
 

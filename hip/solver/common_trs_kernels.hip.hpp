@@ -59,7 +59,7 @@ namespace solver {
 
 
 struct SolveStruct {
-    virtual void dummy(){};
+    virtual ~SolveStruct() = default;
 };
 
 
@@ -137,6 +137,9 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                      solver::SolveStruct* solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
 {
+    if (matrix->get_size()[0] == 0) {
+        return;
+    }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
                 dynamic_cast<solver::hip::SolveStruct*>(solve_struct)) {
@@ -189,6 +192,9 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* x)
 {
+    if (matrix->get_size()[0] == 0) {
+        return;
+    }
     using vec = matrix::Dense<ValueType>;
 
     if (hipsparse::is_supported<ValueType, IndexType>::value) {

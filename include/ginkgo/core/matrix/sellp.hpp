@@ -57,6 +57,9 @@ class Csr;
  * SELL-P format divides rows into smaller slices and store each slice with ELL
  * format.
  *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -255,8 +258,8 @@ public:
     /**
      * @copydoc Sellp::val_at(size_type, size_type, size_type)
      */
-    value_type val_at(size_type row, size_type slice_set, size_type idx) const
-        noexcept
+    value_type val_at(size_type row, size_type slice_set,
+                      size_type idx) const noexcept
     {
         return values_
             .get_const_data()[this->linearize_index(row, slice_set, idx)];
@@ -283,12 +286,38 @@ public:
     /**
      * @copydoc Sellp::col_at(size_type, size_type, size_type)
      */
-    index_type col_at(size_type row, size_type slice_set, size_type idx) const
-        noexcept
+    index_type col_at(size_type row, size_type slice_set,
+                      size_type idx) const noexcept
     {
         return this
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
+
+    /**
+     * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
+     * parameters.
+     */
+    Sellp& operator=(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Preserves the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp& operator=(Sellp&&);
+
+    /**
+     * Copy-assigns a Sellp matrix. Inherits the executor, copies the data and
+     * parameters.
+     */
+    Sellp(const Sellp&);
+
+    /**
+     * Move-assigns a Sellp matrix. Inherits the executor, moves the data and
+     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
+     * unchanged parameters).
+     */
+    Sellp(Sellp&&);
 
 protected:
     /**
@@ -354,10 +383,10 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<size_type> slice_lengths_;
-    Array<size_type> slice_sets_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<size_type> slice_lengths_;
+    array<size_type> slice_sets_;
     size_type slice_size_;
     size_type stride_factor_;
 };

@@ -111,9 +111,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     // RHS for local dense system
-    gko::Array<ValueType> rhs_array{exec, row_size_limit * num_threads};
+    gko::array<ValueType> rhs_array{exec, row_size_limit * num_threads};
     // memory for dense dense system
-    gko::Array<ValueType> dense_system_array{
+    gko::array<ValueType> dense_system_array{
         exec, row_size_limit * row_size_limit * num_threads};
 
 #pragma omp parallel

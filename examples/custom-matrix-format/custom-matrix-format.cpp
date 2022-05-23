@@ -73,7 +73,7 @@ public:
 
 protected:
     using vec = gko::matrix::Dense<ValueType>;
-    using coef_type = gko::Array<ValueType>;
+    using coef_type = gko::array<ValueType>;
 
     // Here we implement the application of the linear operator, x = A * b.
     // apply_impl will be called by the apply method, after the arguments have

@@ -49,7 +49,7 @@ namespace hybrid {
 
 
 void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                          const Array<size_type>& row_nnz, size_type ell_lim,
+                          const array<size_type>& row_nnz, size_type ell_lim,
                           int64* coo_row_ptrs)
 {
     run_kernel(
@@ -64,7 +64,7 @@ void compute_coo_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
 
 
 void compute_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                     const Array<int64>& row_ptrs, size_type* row_nnzs)
+                     const array<int64>& row_ptrs, size_type* row_nnzs)
 {
     run_kernel(
         exec,
@@ -94,7 +94,8 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                 const auto out_idx = row + ell_stride * i;
                 const auto in_idx = i + row_begin;
                 const bool use = i < row_size;
-                ell_cols[out_idx] = use ? cols[in_idx] : 0;
+                ell_cols[out_idx] =
+                    use ? cols[in_idx] : invalid_index<IndexType>();
                 ell_vals[out_idx] =
                     use ? vals[in_idx] : zero<device_value_type>();
             }

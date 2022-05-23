@@ -126,7 +126,7 @@ protected:
     template <typename T>
     bool test_real_is_finite_kernel()
     {
-        gko::Array<bool> result(hip, 1);
+        gko::array<bool> result(hip, 1);
         hipLaunchKernelGGL(HIP_KERNEL_NAME(test_real_is_finite<T>), 1, 1, 0, 0,
                            result.get_data());
         result.set_executor(ref);
@@ -136,7 +136,7 @@ protected:
     template <typename T>
     bool test_complex_is_finite_kernel()
     {
-        gko::Array<bool> result(hip, 1);
+        gko::array<bool> result(hip, 1);
         hipLaunchKernelGGL(HIP_KERNEL_NAME(test_complex_is_finite<T>), 1, 1, 0,
                            0, result.get_data());
         result.set_executor(ref);

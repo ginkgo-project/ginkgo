@@ -46,12 +46,16 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_diag_offdiag(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part,
-    device_matrix_data<ValueType, LocalIndexType>& diag_data,
-    device_matrix_data<ValueType, LocalIndexType>& offdiag_data,
-    Array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
-    Array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
+    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+        row_partition,
+    const distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& offdiag_row_idxs,
+    array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
+    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_DIAG_OFFDIAG);

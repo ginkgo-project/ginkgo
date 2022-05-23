@@ -62,7 +62,7 @@ namespace bicgstab {
                     matrix::Dense<_type>* rho, matrix::Dense<_type>* alpha,  \
                     matrix::Dense<_type>* beta, matrix::Dense<_type>* gamma, \
                     matrix::Dense<_type>* omega,                             \
-                    Array<stopping_status>* stop_status)
+                    array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)                             \
@@ -72,7 +72,7 @@ namespace bicgstab {
         const matrix::Dense<_type>* v, const matrix::Dense<_type>* rho,       \
         const matrix::Dense<_type>* prev_rho,                                 \
         const matrix::Dense<_type>* alpha, const matrix::Dense<_type>* omega, \
-        const Array<stopping_status>* stop_status)
+        const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(_type)                             \
@@ -81,7 +81,7 @@ namespace bicgstab {
                 const matrix::Dense<_type>* v,                                \
                 const matrix::Dense<_type>* rho, matrix::Dense<_type>* alpha, \
                 const matrix::Dense<_type>* beta,                             \
-                const Array<stopping_status>* stop_status)
+                const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)                             \
@@ -92,14 +92,14 @@ namespace bicgstab {
         const matrix::Dense<_type>* z, const matrix::Dense<_type>* alpha,     \
         const matrix::Dense<_type>* beta, const matrix::Dense<_type>* gamma,  \
         matrix::Dense<_type>* omega,                                          \
-        const Array<stopping_status>* stop_status)
+        const array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(_type)                       \
     void finalize(std::shared_ptr<const DefaultExecutor> exec,            \
                   matrix::Dense<_type>* x, const matrix::Dense<_type>* y, \
                   const matrix::Dense<_type>* alpha,                      \
-                  Array<stopping_status>* stop_status)
+                  array<stopping_status>* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                   \

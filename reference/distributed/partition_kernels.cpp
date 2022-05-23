@@ -40,7 +40,7 @@ namespace partition {
 
 
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type>& mapping, size_type& num_ranges)
+                  const array<comm_index_type>& mapping, size_type& num_ranges)
 {
     num_ranges = 0;
     comm_index_type prev_part{-1};
@@ -54,7 +54,7 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename GlobalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<GlobalIndexType>& ranges,
+                           const array<GlobalIndexType>& ranges,
                            GlobalIndexType* range_bounds,
                            comm_index_type* part_ids)
 {
@@ -71,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_CONTIGUOUS);
 
 template <typename GlobalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type>& mapping,
+                        const array<comm_index_type>& mapping,
                         GlobalIndexType* range_bounds,
                         comm_index_type* part_ids)
 {
@@ -97,7 +97,7 @@ template <typename GlobalIndexType>
 void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
                                    comm_index_type num_parts,
                                    GlobalIndexType global_size,
-                                   Array<GlobalIndexType>& ranges)
+                                   array<GlobalIndexType>& ranges)
 {
     const auto size_per_part = global_size / num_parts;
     const auto rest = global_size - (num_parts * size_per_part);

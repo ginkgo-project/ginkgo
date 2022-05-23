@@ -51,8 +51,8 @@ namespace kernels {
 
 #define GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL(ValueType)                 \
     void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec, \
-                          const Array<ValueType>& data,                \
-                          Array<ValueType>& result)
+                          const array<ValueType>& data,                \
+                          array<ValueType>& result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

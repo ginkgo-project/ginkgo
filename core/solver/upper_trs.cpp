@@ -65,6 +65,52 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
+    : EnableLinOp<UpperTrs>(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
+    : EnableLinOp<UpperTrs>(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
+    const UpperTrs& other)
+{
+    if (this != &other) {
+        EnableLinOp<UpperTrs>::operator=(other);
+        EnableSolverBase<UpperTrs, CsrMatrix>::operator=(other);
+        this->generate();
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
+    UpperTrs&& other)
+{
+    if (this != &other) {
+        EnableLinOp<UpperTrs>::operator=(std::move(other));
+        EnableSolverBase<UpperTrs, CsrMatrix>::operator=(std::move(other));
+        if (this->get_executor() == other.get_executor()) {
+            this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
+        } else {
+            this->generate();
+        }
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::transpose() const
 {
     return transposed_type::build()
@@ -87,14 +133,20 @@ std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::conj_transpose() const
 template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::generate()
 {
-    this->get_executor()->run(upper_trs::make_generate(
-        gko::lend(system_matrix_), this->solve_struct_, parameters_.num_rhs));
+    if (this->get_system_matrix()) {
+        this->get_executor()->run(
+            upper_trs::make_generate(this->get_system_matrix().get(),
+                                     this->solve_struct_, parameters_.num_rhs));
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
@@ -121,8 +173,8 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 trans_x = Vector::create(exec);
             }
             exec->run(upper_trs::make_solve(
-                gko::lend(system_matrix_), gko::lend(this->solve_struct_),
-                gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
+                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                lend(trans_b), lend(trans_x), dense_b, dense_x));
         },
         b, x);
 }
@@ -134,6 +186,9 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                                 const LinOp* beta,
                                                 LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();

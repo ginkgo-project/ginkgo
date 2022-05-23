@@ -246,6 +246,26 @@ void Stream<ValueType>::on_polymorphic_object_copy_completed(
 
 
 template <typename ValueType>
+void Stream<ValueType>::on_polymorphic_object_move_started(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    os_ << prefix_ << demangle_name(from) << " move started to "
+        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
+void Stream<ValueType>::on_polymorphic_object_move_completed(
+    const Executor* exec, const PolymorphicObject* from,
+    const PolymorphicObject* to) const
+{
+    os_ << prefix_ << demangle_name(from) << " move completed to "
+        << demangle_name(to) << " on " << demangle_name(exec) << std::endl;
+}
+
+
+template <typename ValueType>
 void Stream<ValueType>::on_polymorphic_object_deleted(
     const Executor* exec, const PolymorphicObject* po) const
 {
@@ -392,7 +412,7 @@ void Stream<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stoppingId, const bool& setFinalized,
-    const Array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
     os_ << prefix_ << "check completed for " << demangle_name(criterion)
@@ -402,7 +422,7 @@ void Stream<ValueType>::on_criterion_check_completed(
         << ", stopped the iteration process " << converged << std::endl;
 
     if (verbose_) {
-        Array<stopping_status> tmp(status->get_executor()->get_master(),
+        array<stopping_status> tmp(status->get_executor()->get_master(),
                                    *status);
         os_ << tmp.get_const_data();
         if (residual != nullptr) {

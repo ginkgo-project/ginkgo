@@ -64,6 +64,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 DEFINE_uint32(max_iters, 1000,
               "Maximal number of iterations the solver will be run for");
 
+DEFINE_uint32(warmup_max_iters, 100,
+              "Maximal number of warmup iterations the solver will be run for");
+
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_bool(
@@ -196,7 +199,7 @@ void validate_option_object(const rapidjson::Value& value)
 
 
 std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
-    std::shared_ptr<const gko::Executor> exec)
+    std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters)
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
@@ -212,7 +215,7 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
                            .on(exec));
     }
     auto iteration_stop = gko::share(
-        gko::stop::Iteration::build().with_max_iters(FLAGS_max_iters).on(exec));
+        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
         criterion_vector{residual_stop, iteration_stop};
     return gko::stop::combine(criterion_vector);
@@ -222,9 +225,9 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 template <typename SolverIntermediate>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     SolverIntermediate inter, const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond)
+    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
 {
-    return inter.with_criteria(create_criterion(exec))
+    return inter.with_criteria(create_criterion(exec, max_iters))
         .with_preconditioner(give(precond))
         .on(exec);
 }
@@ -233,16 +236,17 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
 template <typename Solver>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond)
+    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
 {
-    return add_criteria_precond_finalize(Solver::build(), exec, precond);
+    return add_criteria_precond_finalize(Solver::build(), exec, precond,
+                                         max_iters);
 }
 
 
 std::unique_ptr<gko::LinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor>& exec,
     std::shared_ptr<const gko::LinOpFactory> precond,
-    const std::string& description)
+    const std::string& description, std::uint32_t max_iters)
 {
     std::string cb_gmres_prefix("cb_gmres_");
     if (description.find(cb_gmres_prefix) == 0) {
@@ -270,33 +274,33 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             gko::solver::CbGmres<etype>::build()
                 .with_krylov_dim(FLAGS_gmres_restart)
                 .with_storage_precision(s_prec),
-            exec, precond);
+            exec, precond, max_iters);
     } else if (description == "bicgstab") {
         return add_criteria_precond_finalize<gko::solver::Bicgstab<etype>>(
-            exec, precond);
+            exec, precond, max_iters);
     } else if (description == "bicg") {
-        return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(exec,
-                                                                       precond);
+        return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(
+            exec, precond, max_iters);
     } else if (description == "cg") {
-        return add_criteria_precond_finalize<gko::solver::Cg<etype>>(exec,
-                                                                     precond);
+        return add_criteria_precond_finalize<gko::solver::Cg<etype>>(
+            exec, precond, max_iters);
     } else if (description == "cgs") {
-        return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(exec,
-                                                                      precond);
+        return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(
+            exec, precond, max_iters);
     } else if (description == "fcg") {
-        return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(exec,
-                                                                      precond);
+        return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(
+            exec, precond, max_iters);
     } else if (description == "idr") {
         return add_criteria_precond_finalize(
             gko::solver::Idr<etype>::build()
                 .with_subspace_dim(FLAGS_idr_subspace_dim)
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
-            exec, precond);
+            exec, precond, max_iters);
     } else if (description == "gmres") {
         return add_criteria_precond_finalize(
             gko::solver::Gmres<etype>::build().with_krylov_dim(
                 FLAGS_gmres_restart),
-            exec, precond);
+            exec, precond, max_iters);
     } else if (description == "lower_trs") {
         return gko::solver::LowerTrs<etype>::build()
             .with_num_rhs(FLAGS_nrhs)
@@ -306,8 +310,8 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             .with_num_rhs(FLAGS_nrhs)
             .on(exec);
     } else if (description == "overhead") {
-        return add_criteria_precond_finalize<gko::Overhead<etype>>(exec,
-                                                                   precond);
+        return add_criteria_precond_finalize<gko::Overhead<etype>>(
+            exec, precond, max_iters);
     }
     throw std::range_error(std::string("The provided string <") + description +
                            "> does not match any solver!");
@@ -402,19 +406,15 @@ void solve_system(const std::string& solver_name,
         IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // warm run
-        auto it_logger = std::make_shared<IterationLogger>(exec);
+        std::shared_ptr<gko::LinOp> solver;
         for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = generate_solver(exec, give(precond), solver_name)
-                              ->generate(system_matrix);
-            solver->add_logger(it_logger);
+            solver = generate_solver(exec, give(precond), solver_name,
+                                     FLAGS_warmup_max_iters)
+                         ->generate(system_matrix);
             solver->apply(lend(b), lend(x_clone));
             exec->synchronize();
-            solver->remove_logger(gko::lend(it_logger));
-        }
-        if (FLAGS_warmup > 0) {
-            it_logger->write_data(solver_json["apply"], allocator);
         }
 
         // detail run
@@ -427,8 +427,9 @@ void solve_system(const std::string& solver_name,
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = generate_solver(exec, give(precond), solver_name)
-                              ->generate(system_matrix);
+            solver = generate_solver(exec, give(precond), solver_name,
+                                     FLAGS_max_iters)
+                         ->generate(system_matrix);
 
             exec->remove_logger(gko::lend(gen_logger));
             gen_logger->write_data(solver_json["generate"]["components"],
@@ -473,6 +474,7 @@ void solve_system(const std::string& solver_name,
         }
 
         // timed run
+        auto it_logger = std::make_shared<IterationLogger>(exec);
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
         auto x_clone = clone(x);
@@ -482,16 +484,33 @@ void solve_system(const std::string& solver_name,
             exec->synchronize();
             generate_timer->tic();
             auto precond = precond_factory.at(precond_name)(exec);
-            auto solver = generate_solver(exec, give(precond), solver_name)
-                              ->generate(system_matrix);
+            solver = generate_solver(exec, give(precond), solver_name,
+                                     FLAGS_max_iters)
+                         ->generate(system_matrix);
             generate_timer->toc();
 
             exec->synchronize();
+            if (ic.get_num_repetitions() == 0) {
+                solver->add_logger(it_logger);
+            }
             apply_timer->tic();
             solver->apply(lend(b), lend(x_clone));
             apply_timer->toc();
+            if (ic.get_num_repetitions() == 0) {
+                solver->remove_logger(gko::lend(it_logger));
+            }
         }
+        it_logger->write_data(solver_json["apply"], allocator);
+
         if (b->get_size()[1] == 1 && !FLAGS_overhead) {
+            // a solver is considered direct if it didn't log any iterations
+            if (solver_json["apply"].HasMember("iterations") &&
+                solver_json["apply"]["iterations"].GetInt() == 0) {
+                auto error =
+                    compute_direct_error(lend(solver), lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "forward_error", error,
+                                  allocator);
+            }
             auto residual = compute_residual_norm(lend(system_matrix), lend(b),
                                                   lend(x_clone));
             add_or_set_member(solver_json, "residual_norm", residual,
@@ -609,7 +628,7 @@ int main(int argc, char* argv[])
                     {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
                 x = gko::initialize<Vec>({0.0}, exec);
             } else {
-                auto data = gko::read_raw<etype, itype>(mtx_fd);
+                auto data = gko::read_generic_raw<etype, itype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
                 if (test_case.HasMember("rhs")) {

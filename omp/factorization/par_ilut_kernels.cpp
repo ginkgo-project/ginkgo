@@ -69,8 +69,8 @@ namespace par_ilut_factorization {
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
-                      IndexType rank, Array<ValueType>& tmp,
-                      Array<remove_complex<ValueType>>&,
+                      IndexType rank, array<ValueType>& tmp,
+                      array<remove_complex<ValueType>>&,
                       remove_complex<ValueType>& threshold)
 {
     auto values = m->get_const_values();
@@ -136,9 +136,9 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
         coo_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, new_nnz, new_col_idxs);
+            make_array_view(exec, new_nnz, new_col_idxs);
         coo_builder.get_value_array() =
-            Array<ValueType>::view(exec, new_nnz, new_vals);
+            make_array_view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
 
@@ -187,7 +187,7 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>& tmp,
+                             IndexType rank, array<ValueType>& tmp,
                              remove_complex<ValueType>& threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)

@@ -107,11 +107,11 @@ int main(int argc, char* argv[])
     // copy b again
     b->copy_from(host_x.get());
     const RealValueType reduction_factor = 1e-7;
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(10000u).on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_reduction_factor(reduction_factor)
+                                   .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(exec);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
     // Create solver factory
     auto solver_gen =
         cg::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(iter_stop, tol_stop)
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
             .with_preconditioner(bj::build()

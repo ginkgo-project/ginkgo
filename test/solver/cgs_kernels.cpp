@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -63,6 +63,7 @@ protected:
 #else
     using value_type = double;
 #endif
+    using index_type = int;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
@@ -73,8 +74,12 @@ protected:
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
 
-        mtx = gen_mtx(123, 123, 125);
-        gko::test::make_diag_dominant(mtx.get());
+        auto data = gko::matrix_data<value_type, index_type>(
+            gko::dim<2>{123, 123},
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::utils::make_diag_dominant(data);
+        mtx = Mtx::create(ref, data.size, 125);
+        mtx->read(data);
         d_mtx = gko::clone(exec, mtx);
         exec_cgs_factory =
             Solver::build()
@@ -136,7 +141,7 @@ protected:
         gamma->at(2) = 0.0;
         rho_prev->at(2) = 0.0;
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -158,7 +163,7 @@ protected:
         d_gamma = gko::clone(exec, gamma);
         d_rho_prev = gko::clone(exec, rho_prev);
         d_rho = gko::clone(exec, rho);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
 
@@ -187,7 +192,7 @@ protected:
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> rho;
     std::unique_ptr<Mtx> rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -204,7 +209,7 @@ protected:
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<Mtx> d_rho_prev;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -303,8 +308,8 @@ TEST_F(Cgs, CgsApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1e3);
 }
 
 
@@ -322,8 +327,8 @@ TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 100);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 5e3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5e3);
 }
 
 }  // namespace

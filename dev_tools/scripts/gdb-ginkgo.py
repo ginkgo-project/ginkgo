@@ -1,8 +1,17 @@
 # Pretty-printers for Ginkgo
+#
+# Usage inside gdb:
+# > source path/to/ginkgo/dev_tools/scripts/gdb-ginkgo.py
+#   load the pretty-printer
+# > print object->array_
+#   print the contents of the given array
+# > set print elements 1000
+#   limit the output to 1000 elements
+#
 # Based on the pretty-printers for libstdc++.
 
 # Copyright (C) 2008-2020 Free Software Foundation, Inc.
-
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -22,15 +31,10 @@ import sys
 import re
 
 if sys.version_info[0] > 2:
-    ### Python 3 stuff
+    # Python 3 stuff
     Iterator = object
-    # Python 3 folds these into the normal functions.
-    imap = map
-    izip = zip
-    # Also, int subsumes long
-    long = int
 else:
-    ### Python 2 stuff
+    # Python 2 stuff
     class Iterator:
         """Compatibility mixin for iterators
 
@@ -45,10 +49,8 @@ else:
         def next(self):
             return self.__next__()
 
-    # In Python 2, we still need these from itertools
-    from itertools import imap, izip
-
 _versioned_namespace = '__8::'
+
 
 def is_specialization_of(x, template_name):
     "Test if a type is a given template instantiation."
@@ -56,76 +58,136 @@ def is_specialization_of(x, template_name):
     if type(x) is gdb.Type:
         x = x.tag
     if _versioned_namespace:
-        return re.match('^std::(%s)?%s<.*>$' % (_versioned_namespace, template_name), x) is not None
-    return re.match('^std::%s<.*>$' % template_name, x) is not None
+        expr = '^std::({})?{}<.*>$'.format(_versioned_namespace, template_name)
+    else:
+        expr = '^std::{}<.*>$'.format(template_name)
+    return re.match(expr, x) is not None
 
 
 def get_unique_ptr_data_ptr(val):
     impl_type = val.type.fields()[0].type.tag
     # Check for new implementations first:
     if is_specialization_of(impl_type, '__uniq_ptr_data') \
-        or is_specialization_of(impl_type, '__uniq_ptr_impl'):
+            or is_specialization_of(impl_type, '__uniq_ptr_impl'):
         tuple_member = val['_M_t']['_M_t']
     elif is_specialization_of(impl_type, 'tuple'):
         tuple_member = val['_M_t']
     else:
-        raise ValueError("Unsupported implementation for unique_ptr: %s" % impl_type)
-    tuple_impl_type = tuple_member.type.fields()[0].type # _Tuple_impl
-    tuple_head_type = tuple_impl_type.fields()[1].type   # _Head_base
+        raise ValueError(
+            "Unsupported unique_ptr impl: {}".format(impl_type))
+    tuple_impl_type = tuple_member.type.fields()[0].type  # _Tuple_impl
+    tuple_head_type = tuple_impl_type.fields()[1].type    # _Head_base
     head_field = tuple_head_type.fields()[0]
     if head_field.name == '_M_head_impl':
         return tuple_member['_M_head_impl']
     elif head_field.is_base_class:
         return tuple_member.cast(head_field.type)
     else:
-        raise ValueError("Unsupported implementation for tuple in unique_ptr: %s" % impl_type)
+        raise ValueError(
+            "Unsupported tuple impl in unique_ptr: {}".format(impl_type))
 
 
 class GkoArrayPrinter:
-    "Print a gko::Array"
+    "Print a gko::array"
 
     class _iterator(Iterator):
-        def __init__ (self, start, size):
+        def __init__(self, exec, start, size):
+            self.exec = exec
             self.item = start
             self.size = size
             self.count = 0
+            if exec in ["gko::CudaExecutor", "gko::HipExecutor"]:
+                self.sizeof = self.item.dereference().type.sizeof
+                self.buffer_start = 0
+                # At most 1 MB or size, at least 1
+                self.buffer_size = min(size, max(1, 2 ** 20 // self.sizeof))
+                self.buffer = gdb.parse_and_eval(
+                    "(void*)malloc({})".format(self.buffer_size * self.sizeof))
+                self.buffer.fetch_lazy()
+                self.buffer_count = self.buffer_size
+                self.update_buffer()
+            else:
+                self.buffer = None
+
+        def update_buffer(self):
+            if self.buffer and self.buffer_count >= self.buffer_size:
+                self.buffer_item = gdb.parse_and_eval(
+                    hex(self.buffer)).cast(self.item.type)
+                self.buffer_count = 0
+                self.buffer_start = self.count
+                cuda = "(cudaError)cudaMemcpy({},{},{},cudaMemcpyDeviceToHost)"
+                hip = "(hipError_t)hipMemcpy({},{},{},hipMemcpyDeviceToHost)"
+                if self.exec == "gko::CudaExecutor":
+                    memcpy_expr = cuda
+                elif self.exec == "gko::HipExecutor":
+                    memcpy_expr = hip
+                else:
+                    raise StopIteration
+                device_addr = hex(self.item.dereference().address)
+                buffer_addr = hex(self.buffer)
+                size = min(self.buffer_size, self.size -
+                           self.buffer_start) * self.sizeof
+                status = gdb.parse_and_eval(
+                    memcpy_expr.format(buffer_addr, device_addr, size))
+                if status != 0:
+                    raise gdb.MemoryError(
+                        "memcpy from device failed: {}".format(status))
+
+        def __del__(self):
+            if self.buffer:
+                gdb.parse_and_eval("(void)free({})".format(
+                    hex(self.buffer))).fetch_lazy()
 
         def __iter__(self):
             return self
 
         def __next__(self):
-            count = self.count
-            self.count = self.count + 1
-            if self.count > self.size:
+            if self.count >= self.size:
                 raise StopIteration
-            elt = self.item.dereference()
-            self.item = self.item + 1
-            return ('[%d]' % count, elt)
+            if self.buffer:
+                self.update_buffer()
+                elt = self.buffer_item.dereference()
+                self.buffer_item += 1
+                self.buffer_count += 1
+            else:
+                elt = self.item.dereference()
+            count = self.count
+            self.item += 1
+            self.count += 1
+            return ('[{}]'.format(count), elt)
 
     def __init__(self, val):
         self.val = val
-        self.execname = str(self.val['exec_']['_M_ptr'].dereference().dynamic_type)
-        self.pointer = get_unique_ptr_data_ptr(self.val['data_']);
-        # Cuda allows access via unified memory in Debug builds
-        self.is_cpu = re.match('gko::(Reference|Omp|Cuda)Executor', str(self.execname)) is not None
+        self.execname = str(
+            self.val['exec_']['_M_ptr']
+            .dereference()
+            .dynamic_type
+            .unqualified())
+        self.pointer = get_unique_ptr_data_ptr(self.val['data_'])
 
     def children(self):
-        if self.is_cpu:
-            return self._iterator(self.pointer, self.val['num_elems_'])
-        return []
+        return self._iterator(self.execname,
+                              self.pointer,
+                              self.val['num_elems_'])
 
     def to_string(self):
-        return ('%s of length %d on %s (%s)' % (str(self.val.type), int(self.val['num_elems_']), self.execname, self.pointer))
+        return ('{} of length {} on {} ({})'
+                .format(str(self.val.type),
+                        int(self.val['num_elems_']),
+                        self.execname,
+                        self.pointer))
 
     def display_hint(self):
         return 'array'
+
 
 def lookup_type(val):
     if not str(val.type.unqualified()).startswith('gko::'):
         return None
     suffix = str(val.type.unqualified())[5:]
-    if suffix.startswith('Array'):
+    if suffix.startswith('array'):
         return GkoArrayPrinter(val)
     return None
+
 
 gdb.pretty_printers.append(lookup_type)

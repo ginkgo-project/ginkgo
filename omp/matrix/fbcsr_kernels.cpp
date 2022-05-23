@@ -86,9 +86,10 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
-        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
-             ++i) {
-            c->get_values()[i] = zero<ValueType>();
+        for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
+            for (IndexType rhs = 0; rhs < nvecs; rhs++) {
+                c->at(row, rhs) = zero<ValueType>();
+            }
         }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
@@ -130,10 +131,11 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
-        for (IndexType i = ibrow * bs * nvecs; i < (ibrow + 1) * bs * nvecs;
-             ++i)
-            c->get_values()[i] *= vbeta;
-
+        for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
+            for (IndexType rhs = 0; rhs < nvecs; rhs++) {
+                c->at(row, rhs) *= vbeta;
+            }
+        }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
              ++inz) {
             for (int ib = 0; ib < bs; ib++) {
@@ -156,15 +158,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
-                         int block_size, Array<IndexType>& row_ptrs,
-                         Array<IndexType>& col_idxs, Array<ValueType>& values)
+                         int block_size, array<IndexType>& row_ptrs,
+                         array<IndexType>& col_idxs, array<ValueType>& values)
 {
-    Array<matrix_data_entry<ValueType, IndexType>> block_ordered{
+    array<matrix_data_entry<ValueType, IndexType>> block_ordered{
         exec, data.get_num_elems()};
     components::soa_to_aos(exec, data, block_ordered);
     const auto in_nnz = data.get_num_elems();
     auto block_ordered_ptr = block_ordered.get_data();
-    std::stable_sort(
+    std::sort(
         block_ordered_ptr, block_ordered_ptr + in_nnz,
         [block_size](auto a, auto b) {
             return std::make_tuple(a.row / block_size, a.column / block_size) <
@@ -248,7 +250,43 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* const source,
                     matrix::Csr<ValueType, IndexType>* const result)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nbrows = source->get_num_block_rows();
+    const auto bs = source->get_block_size();
+    const auto block_row_ptrs = source->get_const_row_ptrs();
+    const auto block_col_idxs = source->get_const_col_idxs();
+    const auto row_ptrs = result->get_row_ptrs();
+    const auto col_idxs = result->get_col_idxs();
+    const auto vals = result->get_values();
+    auto sizes =
+        gko::to_std_array<acc::size_type>(block_row_ptrs[nbrows], bs, bs);
+    const auto block_vals =
+        acc::range<acc::block_col_major<const ValueType, 3>>(
+            sizes, source->get_const_values());
+#pragma omp parallel for
+    for (IndexType block_row = 0; block_row < nbrows; block_row++) {
+        const auto block_row_begin = block_row_ptrs[block_row];
+        const auto block_row_end = block_row_ptrs[block_row + 1];
+        const auto block_row_size = block_row_end - block_row_begin;
+        const auto row_size = block_row_size * bs;
+        const auto row_base = block_row_begin * bs * bs;
+        for (int local_row = 0; local_row < bs; local_row++) {
+            const auto row = block_row * bs + local_row;
+            row_ptrs[row] = row_base + row_size * local_row;
+            for (auto block = block_row_begin; block < block_row_end; block++) {
+                const auto block_base =
+                    row_ptrs[row] + bs * (block - block_row_begin);
+                for (int local_col = 0; local_col < bs; local_col++) {
+                    const auto col = block_col_idxs[block] * bs + local_col;
+                    const auto out_idx = block_base + local_col;
+                    col_idxs[out_idx] = col;
+                    vals[out_idx] = block_vals(block, local_row, local_col);
+                }
+            }
+        }
+    }
+    row_ptrs[result->get_size()[0]] = source->get_num_stored_elements();
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL);

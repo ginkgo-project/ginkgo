@@ -38,8 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -107,7 +109,7 @@ public:
           size{53, 53},
           num_rhs(11),
           logger(gko::share(HostToDeviceLogger::create(exec))),
-          engine(42)
+          engine()
     {
         init_executor(ref, exec, comm);
         exec->add_logger(logger);
@@ -136,8 +138,6 @@ public:
 
     void SetUp() override
     {
-        ASSERT_EQ(comm.size(), 3);
-
         generate_matrix_pair(mat, dmat);
         generate_vector_pair(x, dx);
         generate_vector_pair(y, dy);
@@ -213,15 +213,18 @@ TEST_F(Matrix, ConvertsToPrecisionIsSameAsRef)
     using OtherMatrix =
         typename gko::distributed::Matrix<mixed_type, local_index_type,
                                           global_index_type>;
+    using Csr = gko::matrix::Csr<mixed_type, local_index_type>;
     auto tmp = OtherMatrix::create(ref, comm);
     auto dtmp = OtherMatrix::create(exec, comm);
 
     mat->convert_to(tmp.get());
     dmat->convert_to(dtmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_diag(), dtmp->get_local_diag(),
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_const_local_diag()),
+                        gko::as<Csr>(dtmp->get_const_local_diag()),
                         r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_offdiag(), dtmp->get_local_offdiag(),
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_const_local_offdiag()),
+                        gko::as<Csr>(dtmp->get_const_local_offdiag()),
                         r<value_type>::value);
 }
 
@@ -231,15 +234,18 @@ TEST_F(Matrix, MovesToPrecisionIsSameAsRef)
     using OtherMatrix =
         typename gko::distributed::Matrix<mixed_type, local_index_type,
                                           global_index_type>;
+    using Csr = gko::matrix::Csr<mixed_type, local_index_type>;
     auto tmp = OtherMatrix::create(ref, comm);
     auto dtmp = OtherMatrix::create(exec, comm);
 
     mat->move_to(tmp.get());
     dmat->move_to(dtmp.get());
 
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_diag(), dtmp->get_local_diag(),
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_const_local_diag()),
+                        gko::as<Csr>(dtmp->get_const_local_diag()),
                         r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(tmp->get_local_offdiag(), dtmp->get_local_offdiag(),
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_const_local_offdiag()),
+                        gko::as<Csr>(dtmp->get_const_local_offdiag()),
                         r<value_type>::value);
 }
 
@@ -249,7 +255,8 @@ TEST_F(Matrix, ApplyIsSameAsRef)
     mat->apply(x.get(), y.get());
     dmat->apply(dx.get(), dy.get());
 
-    GKO_ASSERT_MTX_NEAR(y->get_local(), dy->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), dy->get_local_vector(),
+                        r<value_type>::value);
 }
 
 
@@ -258,8 +265,10 @@ TEST_F(Matrix, AdvancedApplyIsSameAsRef)
     mat->apply(alpha.get(), x.get(), beta.get(), y.get());
     dmat->apply(dalpha.get(), dx.get(), dbeta.get(), dy.get());
 
-    GKO_ASSERT_MTX_NEAR(y->get_local(), dy->get_local(), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), dy->get_local_vector(),
+                        r<value_type>::value);
 }
+
 
 TEST_F(Matrix, ApplyCopiesToHostOnlyIfNecessary)
 {

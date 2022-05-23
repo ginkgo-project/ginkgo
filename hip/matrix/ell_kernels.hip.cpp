@@ -246,9 +246,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(),
-                               zero<OutputValueType>());
+        dense::fill(exec, c, zero<OutputValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),

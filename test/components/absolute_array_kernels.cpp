@@ -65,10 +65,10 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        vals = gko::Array<value_type>{ref, total_size};
-        dvals = gko::Array<value_type>{exec, total_size};
-        complex_vals = gko::Array<complex_type>{ref, total_size};
-        dcomplex_vals = gko::Array<complex_type>{exec, total_size};
+        vals = gko::array<value_type>{ref, total_size};
+        dvals = gko::array<value_type>{exec, total_size};
+        complex_vals = gko::array<complex_type>{ref, total_size};
+        dcomplex_vals = gko::array<complex_type>{exec, total_size};
 
         std::fill_n(vals.get_data(), total_size, -1234.0);
         dvals = vals;
@@ -86,10 +86,10 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
-    gko::Array<value_type> vals;
-    gko::Array<value_type> dvals;
-    gko::Array<complex_type> complex_vals;
-    gko::Array<complex_type> dcomplex_vals;
+    gko::array<value_type> vals;
+    gko::array<value_type> dvals;
+    gko::array<complex_type> complex_vals;
+    gko::array<complex_type> dcomplex_vals;
 };
 
 
@@ -117,8 +117,8 @@ TEST_F(AbsoluteArray, InplaceComplexEqualsReference)
 
 TEST_F(AbsoluteArray, OutplaceEqualsReference)
 {
-    gko::Array<value_type> abs_vals(ref, total_size);
-    gko::Array<value_type> dabs_vals(exec, total_size);
+    gko::array<value_type> abs_vals(ref, total_size);
+    gko::array<value_type> dabs_vals(exec, total_size);
 
     gko::kernels::EXEC_NAMESPACE::components::outplace_absolute_array(
         exec, dvals.get_const_data(), total_size, dabs_vals.get_data());
@@ -131,8 +131,8 @@ TEST_F(AbsoluteArray, OutplaceEqualsReference)
 
 TEST_F(AbsoluteArray, OutplaceComplexEqualsReference)
 {
-    gko::Array<value_type> abs_vals(ref, total_size);
-    gko::Array<value_type> dabs_vals(exec, total_size);
+    gko::array<value_type> abs_vals(ref, total_size);
+    gko::array<value_type> dabs_vals(exec, total_size);
 
     gko::kernels::EXEC_NAMESPACE::components::outplace_absolute_array(
         exec, dcomplex_vals.get_const_data(), total_size, dabs_vals.get_data());

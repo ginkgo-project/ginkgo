@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <cctype>
+#include <limits>
 #include <map>
 #include <regex>
 #include <string>
@@ -341,7 +342,8 @@ private:
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
-            return 2 * num_nonzeros - max(num_rows, num_cols);
+            return 2 * num_nonzeros -
+                   min(2 * num_nonzeros, max(num_rows, num_cols));
         }
 
         /**
@@ -431,7 +433,8 @@ private:
         size_type get_reservation_size(size_type num_rows, size_type num_cols,
                                        size_type num_nonzeros) const override
         {
-            return 2 * num_nonzeros - max(num_rows, num_cols);
+            return 2 * num_nonzeros -
+                   min(2 * num_nonzeros, max(num_rows, num_cols));
         }
 
         /**
@@ -761,6 +764,197 @@ matrix_data<ValueType, IndexType> read_raw(std::istream& is)
 
 
 /**
+ * Returns the magic number at the beginning of the binary format header for the
+ * given type parameters.
+ *
+ * @tparam ValueType  the value type to be used for the binary storage
+ * @tparam IndexType  the index type to be used for the binary storage
+ */
+template <typename ValueType, typename IndexType>
+static constexpr uint64 binary_format_magic()
+{
+    constexpr auto is_int = std::is_same<IndexType, int32>::value;
+    constexpr auto is_long = std::is_same<IndexType, int64>::value;
+    constexpr auto is_double = std::is_same<ValueType, double>::value;
+    constexpr auto is_float = std::is_same<ValueType, float>::value;
+    constexpr auto is_complex_double =
+        std::is_same<ValueType, std::complex<double>>::value;
+    constexpr auto is_complex_float =
+        std::is_same<ValueType, std::complex<float>>::value;
+    static_assert(is_int || is_long, "invalid storage index type");
+    static_assert(
+        is_double || is_float || is_complex_double || is_complex_float,
+        "invalid storage value type");
+    constexpr auto index_bit = is_int ? 'I' : 'L';
+    constexpr auto value_bit =
+        is_double ? 'D' : (is_float ? 'S' : (is_complex_double ? 'Z' : 'C'));
+    constexpr uint64 shift = 256;
+    constexpr uint64 type_bits = index_bit * shift + value_bit;
+    return 'G' +
+           shift *
+               ('I' +
+                shift *
+                    ('N' +
+                     shift *
+                         ('K' +
+                          shift * ('G' + shift * ('O' + shift * type_bits)))));
+}
+
+
+namespace {
+
+
+template <bool first>
+struct select_helper {};
+
+template <>
+struct select_helper<true> {
+    template <typename T1, typename T2>
+    static T1 get(T1 val, T2)
+    {
+        return val;
+    }
+};
+
+template <>
+struct select_helper<false> {
+    template <typename T1, typename T2>
+    static T2 get(T1, T2 val)
+    {
+        return val;
+    }
+};
+
+
+template <typename FileValueType, typename FileIndexType, typename ValueType,
+          typename IndexType>
+matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
+                                                      uint64 num_rows,
+                                                      uint64 num_cols,
+                                                      uint64 num_entries)
+{
+    if (num_rows > std::numeric_limits<IndexType>::max() ||
+        num_cols > std::numeric_limits<IndexType>::max()) {
+        throw GKO_STREAM_ERROR(
+            "cannot read into this format, its index type would overflow");
+    }
+    if (is_complex<FileValueType>() && !is_complex<ValueType>()) {
+        throw GKO_STREAM_ERROR(
+            "cannot read into this format, would assign complex to real");
+    }
+    matrix_data<ValueType, IndexType> result(gko::dim<2>{num_rows, num_cols});
+    result.nonzeros.resize(num_entries);
+    constexpr auto entry_binary_size =
+        sizeof(FileValueType) + 2 * sizeof(FileIndexType);
+    for (size_type i = 0; i < num_entries; i++) {
+        std::array<char, entry_binary_size> block;
+        GKO_CHECK_STREAM(is.read(block.data(), entry_binary_size),
+                         "failed reading entry " + std::to_string(i));
+        FileValueType value{};
+        FileIndexType row{};
+        FileIndexType column{};
+        std::memcpy(&row, &block[0], sizeof(FileIndexType));
+        std::memcpy(&column, &block[sizeof(FileIndexType)],
+                    sizeof(FileIndexType));
+        std::memcpy(&value, &block[2 * sizeof(FileIndexType)],
+                    sizeof(FileValueType));
+        result.nonzeros[i].value = static_cast<ValueType>(
+            select_helper<is_complex<ValueType>()>::get(value, real(value)));
+        result.nonzeros[i].row = row;
+        result.nonzeros[i].column = column;
+    }
+    // sort the entries
+    result.ensure_row_major_order();
+    return result;
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
+{
+    static_assert(sizeof(uint64) == 8, "c++ is broken");  // just to be sure
+    std::array<char, 32> header{};
+    GKO_CHECK_STREAM(is.read(header.data(), 32), "failed reading header");
+    uint64 magic{};
+    uint64 num_rows{};
+    uint64 num_cols{};
+    uint64 num_entries{};
+    std::memcpy(&magic, &header[0], 8);
+    std::memcpy(&num_rows, &header[8], 8);
+    std::memcpy(&num_cols, &header[16], 8);
+    std::memcpy(&num_entries, &header[24], 8);
+#define DECLARE_OVERLOAD(_vtype, _itype)                                  \
+    else if (magic == binary_format_magic<_vtype, _itype>())              \
+    {                                                                     \
+        return read_binary_convert<_vtype, _itype, ValueType, IndexType>( \
+            is, num_rows, num_cols, num_entries);                         \
+    }
+    if (false) {
+    }
+    DECLARE_OVERLOAD(double, int32)
+    DECLARE_OVERLOAD(float, int32)
+    DECLARE_OVERLOAD(std::complex<double>, int32)
+    DECLARE_OVERLOAD(std::complex<float>, int32)
+    DECLARE_OVERLOAD(double, int64)
+    DECLARE_OVERLOAD(float, int64)
+    DECLARE_OVERLOAD(std::complex<double>, int64)
+    DECLARE_OVERLOAD(std::complex<float>, int64)
+#undef DECLARE_OVERLOAD
+    else
+    {
+        throw GKO_STREAM_ERROR("invalid header magic number '" +
+                               std::string(header.data(), 8) + "'");
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is)
+{
+    auto first_char = is.peek();
+    GKO_CHECK_STREAM(is, "failed reading from stream");
+    if (first_char == '%') {
+        return read_raw<ValueType, IndexType>(is);
+    } else {
+        return read_binary_raw<ValueType, IndexType>(is);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void write_binary_raw(std::ostream& os,
+                      const matrix_data<ValueType, IndexType>& mtx)
+{
+    uint64 magic = binary_format_magic<ValueType, IndexType>();
+    uint64 num_rows = mtx.size[0];
+    uint64 num_cols = mtx.size[1];
+    uint64 num_entries = mtx.nonzeros.size();
+    std::array<char, 32> header{};
+    std::memcpy(&header[0], &magic, 8);
+    std::memcpy(&header[8], &num_rows, 8);
+    std::memcpy(&header[16], &num_cols, 8);
+    std::memcpy(&header[24], &num_entries, 8);
+    GKO_CHECK_STREAM(os.write(header.data(), 32), "failed writing header");
+    constexpr auto entry_binary_size =
+        sizeof(ValueType) + 2 * sizeof(IndexType);
+    for (size_type i = 0; i < num_entries; i++) {
+        std::array<char, entry_binary_size> block;
+        std::memcpy(&block[0], &mtx.nonzeros[i].row, sizeof(IndexType));
+        std::memcpy(&block[sizeof(IndexType)], &mtx.nonzeros[i].column,
+                    sizeof(IndexType));
+        std::memcpy(&block[2 * sizeof(IndexType)], &mtx.nonzeros[i].value,
+                    sizeof(ValueType));
+        GKO_CHECK_STREAM(os.write(block.data(), entry_binary_size),
+                         "failed writing entry " + std::to_string(i));
+    }
+    os.flush();
+}
+
+
+/**
  * Writes raw data to the stream.
  *
  * @param os  the output stream.
@@ -786,8 +980,18 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
     void write_raw(std::ostream& os,                              \
                    const matrix_data<ValueType, IndexType>& data, \
                    layout_type layout)
+#define GKO_DECLARE_READ_BINARY_RAW(ValueType, IndexType) \
+    matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
+#define GKO_DECLARE_WRITE_BINARY_RAW(ValueType, IndexType) \
+    void write_binary_raw(std::ostream& os,                \
+                          const matrix_data<ValueType, IndexType>& data)
+#define GKO_DECLARE_READ_GENERIC_RAW(ValueType, IndexType) \
+    matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_BINARY_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_BINARY_RAW);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_GENERIC_RAW);
 
 
 }  // namespace gko

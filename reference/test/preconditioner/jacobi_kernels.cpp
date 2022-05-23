@@ -114,8 +114,8 @@ protected:
     std::unique_ptr<typename Bj::Factory> bj_factory;
     std::unique_ptr<typename Bj::Factory> scalar_j_factory;
     std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
+    gko::array<index_type> block_pointers;
+    gko::array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
 
@@ -486,7 +486,7 @@ TYPED_TEST(Jacobi, PivotsWhenInvertingBlocks)
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    gko::Array<index_type> bp(this->exec, 2);
+    gko::array<index_type> bp(this->exec, 2);
     this->template init_array<index_type>(bp.get_data(), {0, 3});
     auto mtx = Mtx::create(this->exec, gko::dim<2>{3}, 9);
     /* test matrix:
@@ -528,7 +528,7 @@ TYPED_TEST(Jacobi, PivotsWhenInvertingBlocksWithiAdaptivePrecision)
     using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;
     auto half_tol = std::sqrt(r<T>::value);
-    gko::Array<index_type> bp(this->exec, 2);
+    gko::array<index_type> bp(this->exec, 2);
     this->template init_array<index_type>(bp.get_data(), {0, 3});
     auto mtx = Mtx::create(this->exec, gko::dim<2>{3}, 9);
     /* test matrix:
@@ -627,7 +627,7 @@ TYPED_TEST(Jacobi, AvoidsPrecisionsThatOverflow)
     auto bj =
         Bj::build()
             .with_max_block_size(13u)
-            .with_block_pointers(gko::Array<index_type>(this->exec, {0, 2, 4}))
+            .with_block_pointers(gko::array<index_type>(this->exec, {0, 2, 4}))
             .with_storage_optimization(gko::precision_reduction::autodetect())
             .with_accuracy(gko::remove_complex<T>{1e-1})
             .on(this->exec)
@@ -1132,11 +1132,10 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
 TYPED_TEST(Jacobi, ConvertsEmptyToDense)
 {
     using Vec = typename TestFixture::Vec;
-    auto empty = Vec::create(this->exec);
+    auto empty = gko::share(Vec::create(this->exec));
     auto res = Vec::create(this->exec);
 
-    res->copy_from(
-        TestFixture::Bj::build().on(this->exec)->generate(gko::share(empty)));
+    res->copy_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
 
     ASSERT_FALSE(res->get_size());
 }

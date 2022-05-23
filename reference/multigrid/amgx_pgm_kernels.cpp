@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <tuple>
 
@@ -47,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/allocator.hpp"
+#include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
@@ -64,8 +66,8 @@ namespace amgx_pgm {
 
 template <typename IndexType>
 void match_edge(std::shared_ptr<const ReferenceExecutor> exec,
-                const Array<IndexType>& strongest_neighbor,
-                Array<IndexType>& agg)
+                const array<IndexType>& strongest_neighbor,
+                array<IndexType>& agg)
 {
     auto agg_vals = agg.get_data();
     auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
@@ -88,7 +90,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL);
 
 template <typename IndexType>
 void count_unagg(std::shared_ptr<const ReferenceExecutor> exec,
-                 const Array<IndexType>& agg, IndexType* num_unagg)
+                 const array<IndexType>& agg, IndexType* num_unagg)
 {
     IndexType unagg = 0;
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
@@ -102,10 +104,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL);
 
 template <typename IndexType>
 void renumber(std::shared_ptr<const ReferenceExecutor> exec,
-              Array<IndexType>& agg, IndexType* num_agg)
+              array<IndexType>& agg, IndexType* num_agg)
 {
     const auto num = agg.get_num_elems();
-    Array<IndexType> agg_map(exec, num + 1);
+    array<IndexType> agg_map(exec, num + 1);
     auto agg_vals = agg.get_data();
     auto agg_map_vals = agg_map.get_data();
     for (size_type i = 0; i < num + 1; i++) {
@@ -124,12 +126,75 @@ void renumber(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
 
+template <typename IndexType>
+void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
+              IndexType* row_idxs, IndexType* col_idxs)
+{
+    auto it = detail::make_zip_iterator(row_idxs, col_idxs);
+    std::sort(it, it + num);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_SORT_AGG_KERNEL);
+
+
+template <typename IndexType>
+void map_row(std::shared_ptr<const DefaultExecutor> exec,
+             size_type num_fine_row, const IndexType* fine_row_ptrs,
+             const IndexType* agg, IndexType* row_idxs)
+{
+    for (size_type row = 0; row < num_fine_row; row++) {
+        const auto coarse_row = agg[row];
+        for (auto i = fine_row_ptrs[row]; i < fine_row_ptrs[row + 1]; i++) {
+            row_idxs[i] = coarse_row;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MAP_ROW_KERNEL);
+
+
+template <typename IndexType>
+void map_col(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
+             const IndexType* fine_col_idxs, const IndexType* agg,
+             IndexType* col_idxs)
+{
+    for (size_type i = 0; i < nnz; i++) {
+        col_idxs[i] = agg[fine_col_idxs[i]];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_MAP_COL_KERNEL);
+
+
+template <typename IndexType>
+void count_unrepeated_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                          size_type nnz, const IndexType* row_idxs,
+                          const IndexType* col_idxs, size_type* coarse_nnz)
+{
+    if (nnz > 1) {
+        size_type result = 0;
+        for (size_type i = 0; i < nnz - 1; i++) {
+            if (row_idxs[i] != row_idxs[i + 1] ||
+                col_idxs[i] != col_idxs[i + 1]) {
+                result++;
+            }
+        }
+        *coarse_nnz = result + 1;
+    } else {
+        *coarse_nnz = nnz;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_AMGX_PGM_COUNT_UNREPEATED_NNZ_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& strongest_neighbor)
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& strongest_neighbor)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
@@ -183,8 +248,8 @@ template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* weight_mtx,
                          const matrix::Diagonal<ValueType>* diag,
-                         Array<IndexType>& agg,
-                         Array<IndexType>& intermediate_agg)
+                         array<IndexType>& agg,
+                         array<IndexType>& intermediate_agg)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
@@ -229,6 +294,59 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
+
+
+template <typename ValueType, typename IndexType>
+void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
+                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
+{
+    auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals);
+    std::stable_sort(it, it + nnz, [](auto a, auto b) {
+        return std::tie(std::get<0>(a), std::get<1>(a)) <
+               std::tie(std::get<0>(b), std::get<1>(b));
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_AMGX_PGM_SORT_ROW_MAJOR);
+
+
+template <typename ValueType, typename IndexType>
+void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
+                        size_type fine_nnz, const IndexType* row_idxs,
+                        const IndexType* col_idxs, const ValueType* vals,
+                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+{
+    auto coarse_row = coarse_coo->get_row_idxs();
+    auto coarse_col = coarse_coo->get_col_idxs();
+    auto coarse_val = coarse_coo->get_values();
+    IndexType row = 0;
+    size_type idxs = 0;
+    size_type coarse_idxs = 0;
+    IndexType curr_row = row_idxs[0];
+    IndexType curr_col = col_idxs[0];
+    ValueType temp_val = vals[0];
+    for (size_type idxs = 1; idxs < fine_nnz; idxs++) {
+        if (curr_row != row_idxs[idxs] || curr_col != col_idxs[idxs]) {
+            coarse_row[coarse_idxs] = curr_row;
+            coarse_col[coarse_idxs] = curr_col;
+            coarse_val[coarse_idxs] = temp_val;
+            curr_row = row_idxs[idxs];
+            curr_col = col_idxs[idxs];
+            temp_val = vals[idxs];
+            coarse_idxs++;
+            continue;
+        }
+        temp_val += vals[idxs];
+    }
+    GKO_ASSERT(coarse_idxs + 1 == coarse_coo->get_num_stored_elements());
+    coarse_row[coarse_idxs] = curr_row;
+    coarse_col[coarse_idxs] = curr_col;
+    coarse_val[coarse_idxs] = temp_val;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_AMGX_PGM_COMPUTE_COARSE_COO);
 
 
 }  // namespace amgx_pgm

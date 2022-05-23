@@ -66,7 +66,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -79,7 +79,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -89,6 +89,9 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
@@ -109,6 +112,8 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
 
+    array<char> reduction_tmp{exec};
+
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
@@ -125,7 +130,7 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto rho_t = LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
+    array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
@@ -141,9 +146,10 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rho_t = 1.0
     // z = p = q = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
 
@@ -158,9 +164,9 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
-        r->compute_conj_dot(z.get(), rho.get());
-        t->compute_conj_dot(z.get(), rho_t.get());
+        this->get_preconditioner()->apply(r.get(), z.get());
+        r->compute_conj_dot(z.get(), rho.get(), reduction_tmp);
+        t->compute_conj_dot(z.get(), rho_t.get(), reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -179,8 +185,8 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         exec->run(fcg::make_step_1(
             detail::get_local(p.get()), detail::get_local(z.get()),
             detail::get_local(rho_t.get()), prev_rho.get(), &stop_status));
-        system_matrix_->apply(p.get(), q.get());
-        p->compute_conj_dot(q.get(), beta.get());
+        this->get_system_matrix()->apply(p.get(), q.get());
+        p->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
         // tmp = rho / beta
         // [prev_r = r] in registers
         // x = x + tmp * p
@@ -199,6 +205,9 @@ template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();

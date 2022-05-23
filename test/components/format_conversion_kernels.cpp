@@ -91,9 +91,9 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type size;
     std::default_random_engine rand;
-    gko::Array<gko::size_type> sizes;
-    gko::Array<IndexType> ptrs;
-    gko::Array<IndexType> idxs;
+    gko::array<gko::size_type> sizes;
+    gko::array<IndexType> ptrs;
+    gko::array<IndexType> idxs;
 };
 
 TYPED_TEST_SUITE(FormatConversion, gko::test::IndexTypes,
@@ -102,7 +102,7 @@ TYPED_TEST_SUITE(FormatConversion, gko::test::IndexTypes,
 
 TYPED_TEST(FormatConversion, ConvertsEmptyPtrsToIdxs)
 {
-    gko::Array<TypeParam> ptrs(this->exec, this->size + 1);
+    gko::array<TypeParam> ptrs(this->exec, this->size + 1);
     ptrs.fill(0);
     TypeParam* output = nullptr;
 

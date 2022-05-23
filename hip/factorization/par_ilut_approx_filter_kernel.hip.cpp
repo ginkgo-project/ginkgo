@@ -87,7 +87,7 @@ template <int subwarp_size, typename ValueType, typename IndexType>
 void threshold_filter_approx(syn::value_list<int, subwarp_size>,
                              std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>* tmp,
+                             IndexType rank, array<ValueType>* tmp,
                              remove_complex<ValueType>* threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)
@@ -165,9 +165,9 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
         coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
         coo_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, new_nnz, new_col_idxs);
+            make_array_view(exec, new_nnz, new_col_idxs);
         coo_builder.get_value_array() =
-            Array<ValueType>::view(exec, new_nnz, new_vals);
+            make_array_view(exec, new_nnz, new_vals);
         new_row_idxs = m_out_coo->get_row_idxs();
     }
     if (num_blocks > 0) {
@@ -187,7 +187,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter_approx,
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                              const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, Array<ValueType>& tmp,
+                             IndexType rank, array<ValueType>& tmp,
                              remove_complex<ValueType>& threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
                              matrix::Coo<ValueType, IndexType>* m_out_coo)

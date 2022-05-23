@@ -60,12 +60,16 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                KernelFunction fn, ReductionOp op,
                                FinalizeOp finalize, ValueType identity,
                                ValueType* result, size_type size,
-                               MappedKernelArgs... args)
+                               array<char>& tmp, MappedKernelArgs... args)
 {
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto ssize = static_cast<int64>(size);
     const auto work_per_thread = ceildiv(ssize, num_threads);
-    Array<ValueType> partial{exec, static_cast<size_type>(num_threads)};
+    const auto required_storage = sizeof(ValueType) * num_threads;
+    if (tmp.get_num_elems() < required_storage) {
+        tmp.resize_and_reset(required_storage);
+    }
+    const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
 #pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
@@ -76,11 +80,10 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
         for (auto i = begin; i < end; i++) {
             local_partial = op(local_partial, fn(i, map_to_device(args)...));
         }
-        partial.get_data()[thread_id] = local_partial;
+        partial[thread_id] = local_partial;
     }
-    *result = finalize(std::accumulate(partial.get_const_data(),
-                                       partial.get_const_data() + num_threads,
-                                       identity, op));
+    *result =
+        finalize(std::accumulate(partial, partial + num_threads, identity, op));
 }
 
 
@@ -92,13 +95,17 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                                      KernelFunction fn, ReductionOp op,
                                      FinalizeOp finalize, ValueType identity,
                                      ValueType* result, dim<2> size,
-                                     MappedKernelArgs... args)
+                                     array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto num_threads = static_cast<int64>(omp_get_max_threads());
     const auto work_per_thread = ceildiv(rows, num_threads);
-    Array<ValueType> partial{exec, static_cast<size_type>(num_threads)};
+    const auto required_storage = sizeof(ValueType) * num_threads;
+    if (tmp.get_num_elems() < required_storage) {
+        tmp.resize_and_reset(required_storage);
+    }
+    const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
     static_assert(remainder_cols < block_size, "remainder too large");
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
@@ -138,11 +145,10 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                 }
             }
         }
-        partial.get_data()[thread_id] = local_partial;
+        partial[thread_id] = local_partial;
     }
-    *result = finalize(std::accumulate(partial.get_const_data(),
-                                       partial.get_const_data() + num_threads,
-                                       identity, op));
+    *result =
+        finalize(std::accumulate(partial, partial + num_threads, identity, op));
 }
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_reduction_sized,
@@ -154,23 +160,24 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_reduction_sized,
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
-                          KernelFunction fn, ReductionOp op,
-                          FinalizeOp finalize, ValueType identity,
-                          ValueType* result, size_type size,
-                          KernelArgs&&... args)
+void run_kernel_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
+                                 KernelFunction fn, ReductionOp op,
+                                 FinalizeOp finalize, ValueType identity,
+                                 ValueType* result, size_type size,
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     run_kernel_reduction_impl(exec, fn, op, finalize, identity, result, size,
-                              map_to_device(args)...);
+                              tmp, map_to_device(args)...);
 }
 
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
-                          KernelFunction fn, ReductionOp op,
-                          FinalizeOp finalize, ValueType identity,
-                          ValueType* result, dim<2> size, KernelArgs&&... args)
+void run_kernel_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
+                                 KernelFunction fn, ReductionOp op,
+                                 FinalizeOp finalize, ValueType identity,
+                                 ValueType* result, dim<2> size,
+                                 array<char>& tmp, KernelArgs&&... args)
 {
     const auto cols = static_cast<int64>(size[1]);
     constexpr int block_size = 8;
@@ -184,7 +191,7 @@ void run_kernel_reduction(std::shared_ptr<const OmpExecutor> exec,
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
         syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, map_to_device(args)...);
+        finalize, identity, result, size, tmp, map_to_device(args)...);
 }
 
 
@@ -197,7 +204,8 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                    KernelFunction fn, ReductionOp op,
                                    FinalizeOp finalize, ValueType identity,
                                    ValueType* result, size_type result_stride,
-                                   dim<2> size, MappedKernelArgs... args)
+                                   dim<2> size, array<char>& tmp,
+                                   MappedKernelArgs... args)
 {
     constexpr int block_size = 8;
     const auto rows = static_cast<int64>(size[0]);
@@ -222,8 +230,11 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     } else {
         // small number of rows and large reduction sizes: do partial sum first
         const auto work_per_thread = ceildiv(cols, num_threads);
-        Array<ValueType> partial{exec,
-                                 static_cast<size_type>(rows * num_threads)};
+        const auto required_storage = sizeof(ValueType) * rows * num_threads;
+        if (tmp.get_num_elems() < required_storage) {
+            tmp.resize_and_reset(required_storage);
+        }
+        const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
 #pragma omp parallel num_threads(num_threads)
         {
             const auto thread_id = static_cast<int64>(omp_get_thread_num());
@@ -236,8 +247,7 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                         return fn(row, col, args...);
                     }());
                 }
-                partial.get_data()[row * num_threads + thread_id] =
-                    local_partial;
+                partial[row * num_threads + thread_id] = local_partial;
             }
         }
         // then accumulate the partial sums and write to result
@@ -247,10 +257,8 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                 auto local_partial = identity;
                 for (int64 thread_id = 0; thread_id < num_threads;
                      thread_id++) {
-                    local_partial = op(
-                        local_partial,
-                        partial
-                            .get_const_data()[row * num_threads + thread_id]);
+                    local_partial = op(local_partial,
+                                       partial[row * num_threads + thread_id]);
                 }
                 result[row * result_stride] = finalize(local_partial);
             }();
@@ -290,7 +298,7 @@ void run_kernel_col_reduction_sized_impl(
     syn::value_list<int, remainder_cols>,
     std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
     FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
-    MappedKernelArgs... args)
+    array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
@@ -319,8 +327,11 @@ void run_kernel_col_reduction_sized_impl(
         const auto reduction_size =
             ceildiv(reduction_kernel_oversubscription * num_threads, cols);
         const auto rows_per_thread = ceildiv(rows, reduction_size);
-        Array<ValueType> partial{exec,
-                                 static_cast<size_type>(reduction_size * cols)};
+        const auto required_storage = sizeof(ValueType) * rows * reduction_size;
+        if (tmp.get_num_elems() < required_storage) {
+            tmp.resize_and_reset(required_storage);
+        }
+        const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
 #pragma omp parallel for
         for (int64 i = 0; i < reduction_size * num_col_blocks; i++) {
             const auto col_block = i % num_col_blocks;
@@ -331,14 +342,12 @@ void run_kernel_col_reduction_sized_impl(
             const auto identity_fn = [](auto i) { return i; };
             if (base_col + block_size <= cols) {
                 run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, identity_fn, identity,
-                    partial.get_data() + cols * row_block, begin, end, base_col,
-                    args...);
+                    fn, op, identity_fn, identity, partial + cols * row_block,
+                    begin, end, base_col, args...);
             } else {
                 run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, identity_fn, identity,
-                    partial.get_data() + cols * row_block, begin, end, base_col,
-                    args...);
+                    fn, op, identity_fn, identity, partial + cols * row_block,
+                    begin, end, base_col, args...);
             }
         }
 #pragma omp parallel for
@@ -347,9 +356,7 @@ void run_kernel_col_reduction_sized_impl(
                 auto total = identity;
                 for (int64 row_block = 0; row_block < reduction_size;
                      row_block++) {
-                    total =
-                        op(total,
-                           partial.get_const_data()[col + cols * row_block]);
+                    total = op(total, partial[col + cols * row_block]);
                 }
                 result[col] = finalize(total);
             }();
@@ -365,25 +372,27 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_col_reduction_sized,
 
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... MappedKernelArgs>
-void run_kernel_row_reduction(std::shared_ptr<const OmpExecutor> exec,
-                              KernelFunction fn, ReductionOp op,
-                              FinalizeOp finalize, ValueType identity,
-                              ValueType* result, size_type result_stride,
-                              dim<2> size, MappedKernelArgs... args)
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_row_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
+                                     KernelFunction fn, ReductionOp op,
+                                     FinalizeOp finalize, ValueType identity,
+                                     ValueType* result, size_type result_stride,
+                                     dim<2> size, array<char>& tmp,
+                                     KernelArgs&&... args)
 {
     run_kernel_row_reduction_impl(exec, fn, op, finalize, identity, result,
-                                  result_stride, size, map_to_device(args)...);
+                                  result_stride, size, tmp,
+                                  map_to_device(args)...);
 }
 
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
           typename FinalizeOp, typename... KernelArgs>
-void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
-                              KernelFunction fn, ReductionOp op,
-                              FinalizeOp finalize, ValueType identity,
-                              ValueType* result, dim<2> size,
-                              KernelArgs&&... args)
+void run_kernel_col_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
+                                     KernelFunction fn, ReductionOp op,
+                                     FinalizeOp finalize, ValueType identity,
+                                     ValueType* result, dim<2> size,
+                                     array<char>& tmp, KernelArgs&&... args)
 {
     constexpr auto block_size = 8;
     using remainders = syn::as_list<syn::range<0, block_size, 1>>;
@@ -396,7 +405,7 @@ void run_kernel_col_reduction(std::shared_ptr<const OmpExecutor> exec,
         remainders(),
         [&](int remainder) { return remainder == cols % block_size; },
         syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, map_to_device(args)...);
+        finalize, identity, result, size, tmp, map_to_device(args)...);
 }
 
 

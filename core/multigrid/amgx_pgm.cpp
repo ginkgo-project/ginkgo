@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
@@ -64,12 +66,85 @@ GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        amgx_pgm::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
+GKO_REGISTER_OPERATION(sort_agg, amgx_pgm::sort_agg);
+GKO_REGISTER_OPERATION(map_row, amgx_pgm::map_row);
+GKO_REGISTER_OPERATION(map_col, amgx_pgm::map_col);
+GKO_REGISTER_OPERATION(sort_row_major, amgx_pgm::sort_row_major);
+GKO_REGISTER_OPERATION(count_unrepeated_nnz, amgx_pgm::count_unrepeated_nnz);
+GKO_REGISTER_OPERATION(compute_coarse_coo, amgx_pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
+GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 
 
 }  // anonymous namespace
 }  // namespace amgx_pgm
+
+namespace {
+
+
+template <typename IndexType>
+void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
+                     const gko::array<IndexType>& agg, IndexType* row_ptrs,
+                     IndexType* col_idxs)
+{
+    const IndexType num = agg.get_num_elems();
+    gko::array<IndexType> row_idxs(exec, agg);
+    exec->run(amgx_pgm::make_fill_seq_array(col_idxs, num));
+    // sort the pair (int, agg) to (row_idxs, col_idxs)
+    exec->run(amgx_pgm::make_sort_agg(num, row_idxs.get_data(), col_idxs));
+    // row_idxs->row_ptrs
+    exec->run(amgx_pgm::make_convert_idxs_to_ptrs(row_idxs.get_data(), num,
+                                                  num_agg, row_ptrs));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
+    std::shared_ptr<const Executor> exec,
+    const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
+    const gko::array<IndexType>& agg)
+{
+    const auto num = fine_csr->get_size()[0];
+    const auto nnz = fine_csr->get_num_stored_elements();
+    gko::array<IndexType> row_idxs(exec, nnz);
+    gko::array<IndexType> col_idxs(exec, nnz);
+    gko::array<ValueType> vals(exec, nnz);
+    exec->copy_from(exec.get(), nnz, fine_csr->get_const_values(),
+                    vals.get_data());
+    // map row_ptrs to coarse row index
+    exec->run(amgx_pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
+                                     agg.get_const_data(),
+                                     row_idxs.get_data()));
+    // map col_idxs to coarse col index
+    exec->run(amgx_pgm::make_map_col(nnz, fine_csr->get_const_col_idxs(),
+                                     agg.get_const_data(),
+                                     col_idxs.get_data()));
+    // sort by row, col
+    exec->run(amgx_pgm::make_sort_row_major(
+        nnz, row_idxs.get_data(), col_idxs.get_data(), vals.get_data()));
+    // compute the total nnz and create the fine csr
+    size_type coarse_nnz = 0;
+    exec->run(amgx_pgm::make_count_unrepeated_nnz(
+        nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
+        &coarse_nnz));
+    // reduce by key (row, col)
+    auto coarse_coo = matrix::Coo<ValueType, IndexType>::create(
+        exec,
+        gko::dim<2>{static_cast<size_type>(num_agg),
+                    static_cast<size_type>(num_agg)},
+        coarse_nnz);
+    exec->run(amgx_pgm::make_compute_coarse_coo(
+        nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
+        vals.get_const_data(), gko::lend(coarse_coo)));
+    // use move_to
+    auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
+    coarse_csr->copy_from(std::move(coarse_coo));
+    return std::move(coarse_csr);
+}
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>
@@ -80,8 +155,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
     using weight_csr_type = remove_complex<csr_type>;
     auto exec = this->get_executor();
     const auto num_rows = this->system_matrix_->get_size()[0];
-    Array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
-    Array<IndexType> intermediate_agg(this->get_executor(),
+    array<IndexType> strongest_neighbor(this->get_executor(), num_rows);
+    array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num_rows);
     // Only support csr matrix currently.
     const csr_type* amgxpgm_op =
@@ -145,41 +220,19 @@ void AmgxPgm<ValueType, IndexType>::generate()
     gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = system_matrix_->get_size()[0];
     // prolong_row_gather is the lightway implementation for prolongation
-    // TODO: However, we still create the csr to process coarse/restrict matrix
-    // generation. It may be changed when we have the direct triple product from
-    // agg index.
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}));
     exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
                     prolong_row_gather->get_row_idxs());
-    auto prolong_csr = share(
-        csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim}, fine_dim));
-    exec->copy_from(exec.get(), agg_.get_num_elems(), agg_.get_const_data(),
-                    prolong_csr->get_col_idxs());
-    exec->run(amgx_pgm::make_fill_seq_array(prolong_csr->get_row_ptrs(),
-                                            fine_dim + 1));
-    exec->run(amgx_pgm::make_fill_array(prolong_csr->get_values(), fine_dim,
-                                        one<ValueType>()));
-    // TODO: implement the restrict_op from aggregation.
-    auto restrict_op = gko::as<csr_type>(share(prolong_csr->transpose()));
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
-            exec, restrict_op->get_size(),
-            restrict_op->get_num_stored_elements()));
-    exec->copy_from(exec.get(), static_cast<size_type>(num_agg + 1),
-                    restrict_op->get_const_row_ptrs(),
-                    restrict_sparsity->get_row_ptrs());
-    exec->copy_from(exec.get(), restrict_op->get_num_stored_elements(),
-                    restrict_op->get_const_col_idxs(),
+            exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
+    agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
-    // TODO: use less memory footprint to improve it
-    auto coarse_matrix =
-        share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    amgxpgm_op->apply(prolong_csr.get(), tmp.get());
-    restrict_op->apply(tmp.get(), coarse_matrix.get());
+    // TODO: improve it
+    auto coarse_matrix = generate_coarse(exec, amgxpgm_op, num_agg, agg_);
 
     this->set_multigrid_level(prolong_row_gather, coarse_matrix,
                               restrict_sparsity);

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -77,7 +78,7 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
@@ -86,10 +87,10 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                         x->get_stride(), y->get_const_values(), y->get_stride(),
                         result->get_values());
         } else {
-            compute_dot(exec, x, y, result);
+            compute_dot(exec, x, y, result, tmp);
         }
     } else {
-        compute_dot(exec, x, y, result);
+        compute_dot(exec, x, y, result, tmp);
     }
 }
 
@@ -101,7 +102,8 @@ template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+                               matrix::Dense<ValueType>* result,
+                               array<char>& tmp)
 {
     if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
@@ -110,10 +112,10 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                              x->get_stride(), y->get_const_values(),
                              y->get_stride(), result->get_values());
         } else {
-            compute_conj_dot(exec, x, y, result);
+            compute_conj_dot(exec, x, y, result, tmp);
         }
     } else {
-        compute_conj_dot(exec, x, y, result);
+        compute_conj_dot(exec, x, y, result, tmp);
     }
 }
 
@@ -124,7 +126,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+                            matrix::Dense<remove_complex<ValueType>>* result,
+                            array<char>& tmp)
 {
     if (x->get_size()[1] == 1) {
         if (cublas::is_supported<ValueType>::value) {
@@ -132,10 +135,10 @@ void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
             cublas::norm2(handle, x->get_size()[0], x->get_const_values(),
                           x->get_stride(), result->get_values());
         } else {
-            compute_norm2(exec, x, result);
+            compute_norm2(exec, x, result, tmp);
         }
     } else {
-        compute_norm2(exec, x, result);
+        compute_norm2(exec, x, result, tmp);
     }
 }
 
@@ -289,7 +292,18 @@ template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Dense<ValueType>* source,
                       matrix::Fbcsr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_block_rows = result->get_num_block_rows();
+    if (num_block_rows > 0) {
+        const auto num_blocks =
+            ceildiv(num_block_rows, default_block_size / config::warp_size);
+        kernel::convert_to_fbcsr<<<num_blocks, default_block_size>>>(
+            num_block_rows, result->get_num_block_cols(), source->get_stride(),
+            result->get_block_size(), as_cuda_type(source->get_const_values()),
+            result->get_const_row_ptrs(), result->get_col_idxs(),
+            as_cuda_type(result->get_values()));
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
@@ -298,8 +312,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
                                   const matrix::Dense<ValueType>* source,
-                                  int bs,
-                                  IndexType* result) GKO_NOT_IMPLEMENTED;
+                                  int bs, IndexType* result)
+{
+    const auto num_block_rows = source->get_size()[0] / bs;
+    const auto num_block_cols = source->get_size()[1] / bs;
+    if (num_block_rows > 0) {
+        const auto num_blocks =
+            ceildiv(num_block_rows, default_block_size / config::warp_size);
+        kernel::
+            count_nonzero_blocks_per_row<<<num_blocks, default_block_size>>>(
+                num_block_rows, num_block_cols, source->get_stride(), bs,
+                as_cuda_type(source->get_const_values()), result);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
@@ -399,15 +424,15 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        {
+        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
             cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
                          orig->get_size()[1], &alpha, orig->get_const_values(),
-                         orig->get_stride(), &beta,
-                         static_cast<ValueType*>(nullptr), trans->get_size()[1],
-                         trans->get_values(), trans->get_stride());
+                         orig->get_stride(), &beta, trans->get_values(),
+                         trans->get_stride(), trans->get_values(),
+                         trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -424,15 +449,15 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        {
+        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
             cublas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
             cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
                          orig->get_size()[1], &alpha, orig->get_const_values(),
-                         orig->get_stride(), &beta,
-                         static_cast<ValueType*>(nullptr), trans->get_size()[1],
-                         trans->get_values(), trans->get_stride());
+                         orig->get_stride(), &beta, trans->get_values(),
+                         trans->get_stride(), trans->get_values(),
+                         trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;

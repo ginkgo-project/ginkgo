@@ -285,6 +285,45 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
 }
 
 
+TEST(Record, CatchesPolymorphicObjectMoveStarted)
+{
+    using Dense = gko::matrix::Dense<>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Record::create(
+        exec, gko::log::Logger::polymorphic_object_move_started_mask);
+    auto from = gko::matrix::Dense<>::create(exec);
+    auto to = gko::matrix::Dense<>::create(exec);
+
+    logger->on<gko::log::Logger::polymorphic_object_move_started>(
+        exec.get(), from.get(), to.get());
+
+    auto& data = logger->get().polymorphic_object_move_started.back();
+    ASSERT_EQ(data->exec, exec.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+}
+
+
+TEST(Record, CatchesPolymorphicObjectMoveCompleted)
+{
+    using Dense = gko::matrix::Dense<>;
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::Record::create(
+        exec, gko::log::Logger::polymorphic_object_move_completed_mask);
+    auto from = gko::matrix::Dense<>::create(exec);
+    auto to = gko::matrix::Dense<>::create(exec);
+
+    logger->on<gko::log::Logger::polymorphic_object_move_completed>(
+        exec.get(), from.get(), to.get());
+
+
+    auto& data = logger->get().polymorphic_object_move_completed.back();
+    ASSERT_EQ(data->exec, exec.get());
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), from.get(), 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), to.get(), 0);
+}
+
+
 TEST(Record, CatchesPolymorphicObjectDeleted)
 {
     using Dense = gko::matrix::Dense<>;
@@ -473,7 +512,7 @@ TEST(Record, CatchesCriterionCheckCompletedOld)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, RelativeStoppingId, true,
@@ -503,7 +542,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, nullptr, nullptr, nullptr, nullptr,

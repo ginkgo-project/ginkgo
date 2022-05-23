@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 
@@ -155,6 +156,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Csr<to_complex<ValueType>, IndexType>;
 
 public:
+    using EnableLinOp<Csr>::convert_to;
+    using EnableLinOp<Csr>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -196,8 +199,8 @@ public:
          * @param mtx_row_ptrs  the row pointers of the matrix
          * @param mtx_srow  the srow of the matrix
          */
-        virtual void process(const Array<index_type>& mtx_row_ptrs,
-                             Array<index_type>* mtx_srow) = 0;
+        virtual void process(const array<index_type>& mtx_row_ptrs,
+                             array<index_type>* mtx_srow) = 0;
 
         /**
          * Computes the srow size according to the number of nonzeros.
@@ -234,11 +237,11 @@ public:
          */
         classical() : strategy_type("classical"), max_length_per_row_(0) {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-            Array<index_type> row_ptrs_host(host_mtx_exec);
+            array<index_type> row_ptrs_host(host_mtx_exec);
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
             const index_type* row_ptrs{};
@@ -284,8 +287,8 @@ public:
          */
         merge_path() : strategy_type("merge_path") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -309,8 +312,8 @@ public:
          */
         cusparse() : strategy_type("cusparse") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -333,8 +336,8 @@ public:
          */
         sparselib() : strategy_type("sparselib") {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
@@ -413,8 +416,8 @@ public:
               strategy_name_(strategy_name)
         {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             auto nwarps = mtx_srow->get_num_elems();
 
@@ -425,8 +428,8 @@ public:
                                            mtx_srow->get_executor()};
                 const bool is_mtx_on_host{host_mtx_exec ==
                                           mtx_row_ptrs.get_executor()};
-                Array<index_type> row_ptrs_host(host_mtx_exec);
-                Array<index_type> srow_host(host_srow_exec);
+                array<index_type> row_ptrs_host(host_mtx_exec);
+                array<index_type> srow_host(host_srow_exec);
                 const index_type* row_ptrs{};
                 index_type* srow{};
                 if (is_srow_on_host) {
@@ -604,8 +607,8 @@ public:
               max_length_per_row_(0)
         {}
 
-        void process(const Array<index_type>& mtx_row_ptrs,
-                     Array<index_type>* mtx_srow) override
+        void process(const array<index_type>& mtx_row_ptrs,
+                     array<index_type>* mtx_srow) override
         {
             // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
@@ -625,7 +628,7 @@ public:
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
-            Array<index_type> row_ptrs_host(host_mtx_exec);
+            array<index_type> row_ptrs_host(host_mtx_exec);
             const index_type* row_ptrs{};
             if (is_mtx_on_host) {
                 row_ptrs = mtx_row_ptrs.get_const_data();
@@ -699,32 +702,6 @@ public:
         index_type max_length_per_row_;
     };
 
-    void convert_to(Csr<ValueType, IndexType>* result) const override
-    {
-        bool same_executor = this->get_executor() == result->get_executor();
-        // NOTE: as soon as strategies are improved, this can be reverted
-        result->values_ = this->values_;
-        result->col_idxs_ = this->col_idxs_;
-        result->row_ptrs_ = this->row_ptrs_;
-        result->srow_ = this->srow_;
-        result->set_size(this->get_size());
-        if (!same_executor) {
-            convert_strategy_helper(result);
-        } else {
-            result->set_strategy(std::move(this->get_strategy()->copy()));
-        }
-        // END NOTE
-    }
-
-    void move_to(Csr<ValueType, IndexType>* result) override
-    {
-        bool same_executor = this->get_executor() == result->get_executor();
-        EnableLinOp<Csr>::move_to(result);
-        if (!same_executor) {
-            detail::strategy_rebuild_helper(result);
-        }
-    }
-
     friend class Csr<next_precision<ValueType>, IndexType>;
 
     void convert_to(
@@ -773,27 +750,24 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     std::unique_ptr<LinOp> permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType>* permutation_indices) const override;
+        const array<IndexType>* permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType>* inverse_permutation_indices) const override;
+        const array<IndexType>* inverse_permutation_indices) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
-        const gko::span& row_span, const gko::span& column_span) const;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -954,7 +928,7 @@ public:
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
-    /*
+    /**
      * Creates a constant (immutable) Csr matrix from a set of constant arrays.
      *
      * @param exec  the executor to create the matrix on
@@ -969,9 +943,9 @@ public:
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs,
         std::shared_ptr<strategy_type> strategy)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -982,19 +956,73 @@ public:
             gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
     }
 
-    /*
+    /**
      * This is version of create_const with a default strategy.
      */
     static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs)
     {
         return Csr::create_const(exec, size, std::move(values),
                                  std::move(col_idxs), std::move(row_ptrs),
                                  Csr::make_default_strategy(exec));
     }
+
+    /**
+     * Creates a submatrix from this Csr matrix given row and column index_set
+     * objects.
+     *
+     * @param row_index_set  the row index set containing the set of rows to be
+     *                       in the submatrix.
+     * @param column_index_set  the col index set containing the set of columns
+     *                          to be in the submatrix.
+     * @return A new CSR matrix with the elements that belong to the row and
+     *          columns of this matrix as specified by the index sets.
+     * @note This is not a view but creates a new, separate CSR matrix.
+     */
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const index_set<IndexType>& row_index_set,
+        const index_set<IndexType>& column_index_set) const;
+
+    /**
+     * Creates a submatrix from this Csr matrix given row and column spans
+     *
+     * @param row_span  the row span containing the contiguous set of rows to be
+     *                  in the submatrix.
+     * @param column_span  the column span containing the contiguous set of
+     *                     columns to be in the submatrix.
+     * @return A new CSR matrix with the elements that belong to the row and
+     *          columns of this matrix as specified by the index sets.
+     * @note This is not a view but creates a new, separate CSR matrix.
+     */
+    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+        const span& row_span, const span& column_span) const;
+
+    /**
+     * Copy-assigns a Csr matrix. Preserves executor, copies everything else.
+     */
+    Csr& operator=(const Csr&);
+
+    /**
+     * Move-assigns a Csr matrix. Preserves executor, moves the data and leaves
+     * the moved-from object in an empty state (0x0 LinOp with unchanged
+     * executor and strategy, no nonzeros and valid row pointers).
+     */
+    Csr& operator=(Csr&&);
+
+    /**
+     * Copy-constructs a Csr matrix. Inherits executor, strategy and data.
+     */
+    Csr(const Csr&);
+
+    /**
+     * Move-constructs a Csr matrix. Inherits executor and strategy, moves the
+     * data and leaves the moved-from object in an empty state (0x0 LinOp with
+     * unchanged executor and strategy, no nonzeros and valid row pointers).
+     */
+    Csr(Csr&&);
 
 protected:
     /**
@@ -1253,10 +1281,10 @@ protected:
     virtual void inv_scale_impl(const LinOp* alpha);
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
-    Array<index_type> srow_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
+    array<index_type> srow_;
     std::shared_ptr<strategy_type> strategy_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;

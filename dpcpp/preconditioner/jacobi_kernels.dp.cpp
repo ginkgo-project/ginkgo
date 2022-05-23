@@ -67,8 +67,8 @@ namespace jacobi {
 
 
 void initialize_precisions(std::shared_ptr<const DpcppExecutor> exec,
-                           const Array<precision_reduction>& source,
-                           Array<precision_reduction>& precisions)
+                           const array<precision_reduction>& source,
+                           array<precision_reduction>& precisions)
     GKO_NOT_IMPLEMENTED;
 
 
@@ -100,7 +100,7 @@ template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const DpcppExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* system_matrix,
                  uint32 max_block_size, size_type& num_blocks,
-                 Array<IndexType>& block_pointers) GKO_NOT_IMPLEMENTED;
+                 array<IndexType>& block_pointers) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
@@ -185,10 +185,10 @@ void generate(std::shared_ptr<const DpcppExecutor> exec,
               remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
                   storage_scheme,
-              Array<remove_complex<ValueType>>& conditioning,
-              Array<precision_reduction>& block_precisions,
-              const Array<IndexType>& block_pointers,
-              Array<ValueType>& blocks) GKO_NOT_IMPLEMENTED;
+              array<remove_complex<ValueType>>& conditioning,
+              array<precision_reduction>& block_precisions,
+              const array<IndexType>& block_pointers,
+              array<ValueType>& blocks) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_GENERATE_KERNEL);
@@ -215,9 +215,9 @@ void apply(std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
-           const Array<precision_reduction>& block_precisions,
-           const Array<IndexType>& block_pointers,
-           const Array<ValueType>& blocks,
+           const array<precision_reduction>& block_precisions,
+           const array<IndexType>& block_pointers,
+           const array<ValueType>& blocks,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta,
@@ -232,8 +232,8 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const matrix::Dense<ValueType>* b,
     matrix::Dense<ValueType>* x) GKO_NOT_IMPLEMENTED;
 
@@ -244,11 +244,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
+    array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
@@ -257,11 +257,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void conj_transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
+    array<ValueType>& out_blocks) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
@@ -270,8 +270,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
     ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;

@@ -313,6 +313,52 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectCopyCompleted)
 }
 
 
+TYPED_TEST(Stream, CatchesPolymorphicObjectMoveStarted)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::stringstream out;
+    auto logger = gko::log::Stream<TypeParam>::create(
+        exec, gko::log::Logger::polymorphic_object_move_started_mask, out);
+    auto from = gko::matrix::Dense<TypeParam>::create(exec);
+    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    std::stringstream ptrstream_from;
+    ptrstream_from << from.get();
+    std::stringstream ptrstream_to;
+    ptrstream_to << to.get();
+
+    logger->template on<gko::log::Logger::polymorphic_object_move_started>(
+        exec.get(), from.get(), to.get());
+
+    auto os = out.str();
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_from.str());
+    GKO_ASSERT_STR_CONTAINS(os, "move started to");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_to.str());
+}
+
+
+TYPED_TEST(Stream, CatchesPolymorphicObjectMoveCompleted)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::stringstream out;
+    auto logger = gko::log::Stream<TypeParam>::create(
+        exec, gko::log::Logger::polymorphic_object_move_completed_mask, out);
+    auto from = gko::matrix::Dense<TypeParam>::create(exec);
+    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    std::stringstream ptrstream_from;
+    ptrstream_from << from.get();
+    std::stringstream ptrstream_to;
+    ptrstream_to << to.get();
+
+    logger->template on<gko::log::Logger::polymorphic_object_move_completed>(
+        exec.get(), from.get(), to.get());
+
+    auto os = out.str();
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_from.str());
+    GKO_ASSERT_STR_CONTAINS(os, "move completed to");
+    GKO_ASSERT_STR_CONTAINS(os, ptrstream_to.str());
+}
+
+
 TYPED_TEST(Stream, CatchesPolymorphicObjectDeleted)
 {
     auto exec = gko::ReferenceExecutor::create();
@@ -648,7 +694,7 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompleted)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream ptrstream;
     ptrstream << criterion.get();
     std::stringstream true_in_stream;
@@ -679,7 +725,7 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
-    gko::Array<gko::stopping_status> stop_status(exec, 1);
+    gko::array<gko::stopping_status> stop_status(exec, 1);
     std::stringstream true_in_stream;
     true_in_stream << true;
 

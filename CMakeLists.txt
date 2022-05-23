@@ -5,7 +5,7 @@ cmake_policy(SET CMP0074 NEW)
 
 # Let CAS handle the CUDA architecture flags (for now)
 # Windows still gives CMP0104 warning if putting it in cuda.
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
     cmake_policy(SET CMP0104 OLD)
 endif()
 
@@ -14,7 +14,9 @@ set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Determine which modules can be compiled
-include(cmake/hip_path.cmake)
+if(NOT DEFINED GINKGO_BUILD_HIP OR GINKGO_BUILD_HIP)
+    include(cmake/hip_path.cmake)
+endif()
 include(cmake/autodetect_executors.cmake)
 include(cmake/build_type_helpers.cmake)
 
@@ -341,7 +343,9 @@ if(GINKGO_BUILD_DOC)
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
-    ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
+    ${Ginkgo_BINARY_DIR}/ginkgo.pc.in @ONLY)
+file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
+     INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
 
 # WINDOWS NVCC has " inside the string, add escape character
 # to avoid config problem.
@@ -386,6 +390,7 @@ add_custom_target(test_install
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.
@@ -406,6 +411,7 @@ add_custom_target(test_exportbuild
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in
     # single-configuration generator.

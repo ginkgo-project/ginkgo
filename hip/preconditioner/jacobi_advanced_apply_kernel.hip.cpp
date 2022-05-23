@@ -71,9 +71,9 @@ void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
-           const Array<precision_reduction>& block_precisions,
-           const Array<IndexType>& block_pointers,
-           const Array<ValueType>& blocks,
+           const array<precision_reduction>& block_precisions,
+           const array<IndexType>& block_pointers,
+           const array<ValueType>& blocks,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)

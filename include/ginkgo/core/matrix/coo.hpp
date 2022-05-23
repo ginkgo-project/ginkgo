@@ -279,9 +279,9 @@ public:
      */
     static std::unique_ptr<const Coo> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_idxs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_idxs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -359,9 +359,9 @@ protected:
     void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_idxs_;
 };
 
 

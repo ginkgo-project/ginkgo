@@ -93,9 +93,9 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
     if (block_row == 0 && lane == 0) {
         row_ptrs[0] = 0;
     }
-    if (lane < block_size) {
-        row_ptrs[first_row + lane + 1] =
-            block_row_begin + num_blocks * block_size * (lane + 1);
+    for (auto i = lane; i < block_size; i += config::warp_size) {
+        row_ptrs[first_row + i + 1] =
+            block_row_begin + num_blocks * block_size * (i + 1);
     }
     for (IndexType i = lane; i < num_blocks * block_size * block_size;
          i += config::warp_size) {
@@ -116,25 +116,58 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    const IndexType* block_row_ptrs, const IndexType* block_col_idxs,
+    const ValueType* blocks, ValueType* values, size_type stride,
+    size_type num_block_rows, int block_size)
+{
+    const auto block_row = thread::get_subwarp_id_flat<config::warp_size>();
+    if (block_row >= num_block_rows) {
+        return;
+    }
+    const auto block_begin = block_row_ptrs[block_row];
+    const auto block_end = block_row_ptrs[block_row + 1];
+    const auto num_blocks = block_end - block_begin;
+    const auto block_row_begin = block_begin * block_size * block_size;
+    const auto num_entries = num_blocks * block_size * block_size;
+    const auto bs_sq = block_size * block_size;
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto lane = warp.thread_rank();
+    for (IndexType nz = lane; nz < num_entries; nz += config::warp_size) {
+        const auto local_id = nz % bs_sq;
+        const auto block = nz / bs_sq;
+        const auto local_row = local_id % block_size;
+        const auto local_col = local_id / block_size;
+        const auto col =
+            block_col_idxs[block + block_begin] * block_size + local_col;
+        const auto row = block_row * block_size + local_row;
+        values[row * stride + col] = blocks[nz + block_row_begin];
+    }
+}
+
+
 }  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
-                         int block_size, Array<IndexType>& row_ptr_array,
-                         Array<IndexType>& col_idx_array,
-                         Array<ValueType>& value_array)
+                         int block_size, array<IndexType>& block_row_ptr_array,
+                         array<IndexType>& block_col_idx_array,
+                         array<ValueType>& block_value_array)
 {
     using tuple_type = thrust::tuple<IndexType, IndexType>;
     const auto nnz = data.get_num_elems();
     const auto bs = block_size;
-    auto row_ptrs = row_ptr_array.get_data();
-    auto num_rows = row_ptr_array.get_num_elems() - 1;
+    auto block_row_ptrs = block_row_ptr_array.get_data();
+    auto num_block_rows = block_row_ptr_array.get_num_elems() - 1;
     if (nnz == 0) {
-        components::fill_array(exec, row_ptrs, num_rows + 1, IndexType{});
-        col_idx_array.resize_and_reset(0);
-        value_array.resize_and_reset(0);
+        components::fill_array(exec, block_row_ptrs, num_block_rows + 1,
+                               IndexType{});
+        block_col_idx_array.resize_and_reset(0);
+        block_value_array.resize_and_reset(0);
         return;
     }
     auto in_rows = data.get_row_idxs();
@@ -168,42 +201,43 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = static_cast<size_type>(
         thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
     // allocate storage
-    Array<IndexType> row_idx_array{exec, num_blocks};
-    Array<size_type> block_ptr_array{exec, num_blocks};
-    col_idx_array.resize_and_reset(num_blocks);
-    value_array.resize_and_reset(num_blocks * bs * bs);
-    auto row_idxs = row_idx_array.get_data();
-    auto col_idxs = col_idx_array.get_data();
-    auto values = as_device_type(value_array.get_data());
+    array<IndexType> block_row_idx_array{exec, num_blocks};
+    array<size_type> block_ptr_array{exec, num_blocks};
+    block_col_idx_array.resize_and_reset(num_blocks);
+    block_value_array.resize_and_reset(num_blocks * bs * bs);
+    auto block_row_idxs = block_row_idx_array.get_data();
+    auto block_col_idxs = block_col_idx_array.get_data();
+    auto block_values = as_device_type(block_value_array.get_data());
     auto block_ptrs = block_ptr_array.get_data();
     auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
     // write (block_row, block_col, block_start_idx) tuples for each block
     thrust::copy_if(thrust::device, iota, iota + nnz, block_ptr_it,
                     adj_predicate);
     auto block_output_it = thrust::make_zip_iterator(
-        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
-                           thrust::device_pointer_cast(col_idxs)));
+        thrust::make_tuple(thrust::device_pointer_cast(block_row_idxs),
+                           thrust::device_pointer_cast(block_col_idxs)));
     thrust::transform(
         thrust::device, block_ptr_it, block_ptr_it + num_blocks,
         block_output_it, [bs, in_rows, in_cols] __device__(size_type i) {
             return thrust::make_tuple(in_rows[i] / bs, in_cols[i] / bs);
         });
     // build row pointers from row indices
-    components::convert_idxs_to_ptrs(exec, row_idx_array.get_const_data(),
-                                     row_idx_array.get_num_elems(), num_rows,
-                                     row_ptrs);
+    components::convert_idxs_to_ptrs(exec, block_row_idx_array.get_const_data(),
+                                     block_row_idx_array.get_num_elems(),
+                                     num_block_rows, block_row_ptrs);
     // fill in values
-    components::fill_array(exec, value_array.get_data(), num_blocks * bs * bs,
-                           zero<ValueType>());
+    components::fill_array(exec, block_value_array.get_data(),
+                           num_blocks * bs * bs, zero<ValueType>());
     thrust::for_each_n(
         thrust::device, iota, num_blocks,
         [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
-         values] __device__(size_type i) {
+         block_values] __device__(size_type i) {
             const auto block_begin = block_ptrs[i];
             const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
             for (auto nz = block_begin; nz < block_end; nz++) {
-                values[i * bs * bs + (in_cols[nz] % bs) * bs +
-                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
+                block_values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                             (in_rows[nz] % bs)] =
+                    fake_complex_unpack(in_vals[nz]);
             }
         });
 }

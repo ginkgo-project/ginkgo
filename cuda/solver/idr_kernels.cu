@@ -77,7 +77,7 @@ namespace {
 
 template <typename ValueType>
 void initialize_m(const size_type nrhs, matrix::Dense<ValueType>* m,
-                  Array<stopping_status>* stop_status)
+                  array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
@@ -125,7 +125,7 @@ void solve_lower_triangular(const size_type nrhs,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
                             matrix::Dense<ValueType>* c,
-                            const Array<stopping_status>* stop_status)
+                            const array<stopping_status>* stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
 
@@ -146,8 +146,11 @@ void update_g_and_u(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType>* alpha,
                     matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
                     matrix::Dense<ValueType>* u,
-                    const Array<stopping_status>* stop_status)
+                    const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
 
@@ -192,8 +195,11 @@ template <typename ValueType>
 void update_m(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
-              const Array<stopping_status>* stop_status)
+              const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -228,7 +234,7 @@ void update_x_r_and_f(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Dense<ValueType>* u,
                       matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* r,
                       matrix::Dense<ValueType>* x,
-                      const Array<stopping_status>* stop_status)
+                      const array<stopping_status>* stop_status)
 {
     const auto size = x->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -254,7 +260,7 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* m,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
-                Array<stopping_status>* stop_status)
+                array<stopping_status>* stop_status)
 {
     initialize_m(nrhs, m, stop_status);
     initialize_subspace_vectors(subspace_vectors, deterministic);
@@ -271,7 +277,7 @@ void step_1(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             const matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
             matrix::Dense<ValueType>* v,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     solve_lower_triangular(nrhs, m, f, c, stop_status);
 
@@ -296,8 +302,11 @@ void step_2(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* omega,
             const matrix::Dense<ValueType>* preconditioned_vector,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
+    if (nrhs == 0) {
+        return;
+    }
     const auto num_rows = preconditioned_vector->get_size()[0];
     const auto subspace_dim = u->get_size()[1] / nrhs;
 
@@ -322,7 +331,7 @@ void step_3(std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
             matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* alpha,
             matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, nrhs, k, p, g_k, m, stop_status);
@@ -337,7 +346,7 @@ void compute_omega(
     std::shared_ptr<const CudaExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
-    matrix::Dense<ValueType>* omega, const Array<stopping_status>* stop_status)
+    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel<<<grid_dim, config::warp_size>>>(

@@ -5,8 +5,8 @@
     - cpu
     - amdci
 
-.use_gko-nocuda-mvapich2-gnu9-llvm8-intel:
-  image: ginkgohub/cpu:mvapich2-gnu9-llvm8-intel2020
+.use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018:
+  image: ginkgohub/cpu:mvapich2-gnu5-llvm39-intel2018
   tags:
     - private_ci
     - cpu
@@ -72,8 +72,22 @@
     - private_ci
     - nvidia-gpu
 
-.use_gko-amd-openmpi-gnu8-llvm7:
-  image: ginkgohub/rocm:gnu8-openmpi-llvm7
+.use_gko-rocm40-openmpi-gnu5-llvm50:
+  image: ginkgohub/rocm:40-openmpi-gnu5-llvm50
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+
+.use_gko-rocm45-mvapich2-gnu8-llvm8:
+  image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
+  tags:
+    - private_ci
+    - amdci
+    - gpu
+
+.use_gko-rocm502-openmpi-gnu11-llvm11:
+  image: ginkgohub/rocm:502-openmpi-gnu11-llvm11
   tags:
     - private_ci
     - amdci

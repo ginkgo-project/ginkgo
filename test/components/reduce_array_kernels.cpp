@@ -61,10 +61,10 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        out = gko::Array<value_type>{ref, I<T>{2}};
-        dout = gko::Array<value_type>{exec, out};
-        vals = gko::Array<value_type>{ref, total_size};
-        dvals = gko::Array<value_type>{exec};
+        out = gko::array<value_type>{ref, I<T>{2}};
+        dout = gko::array<value_type>{exec, out};
+        vals = gko::array<value_type>{ref, total_size};
+        dvals = gko::array<value_type>{exec};
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
     }
@@ -79,10 +79,10 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
-    gko::Array<value_type> out;
-    gko::Array<value_type> dout;
-    gko::Array<value_type> vals;
-    gko::Array<value_type> dvals;
+    gko::array<value_type> out;
+    gko::array<value_type> dout;
+    gko::array<value_type> vals;
+    gko::array<value_type> dvals;
 };
 
 TYPED_TEST_SUITE(ReduceArray, gko::test::ValueAndIndexTypes,

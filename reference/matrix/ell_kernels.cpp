@@ -89,7 +89,9 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 auto val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
-                result += val * b_vals(col, j);
+                if (col != invalid_index<IndexType>()) {
+                    result += val * b_vals(col, j);
+                }
             }
             c->at(row, j) = result;
         }
@@ -140,7 +142,9 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 auto val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
-                result += alpha_val * val * b_vals(col, j);
+                if (col != invalid_index<IndexType>()) {
+                    result += alpha_val * val * b_vals(col, j);
+                }
             }
             c->at(row, j) = result;
         }
@@ -153,7 +157,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                         const Array<IndexType>& row_ptrs, size_type& max_nnz)
+                         const array<IndexType>& row_ptrs, size_type& max_nnz)
 {
     max_nnz = 0;
     const auto ptrs = row_ptrs.get_const_data();
@@ -181,7 +185,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             col_idx++;
         }
         for (; col_idx < output->get_num_stored_elements_per_row(); col_idx++) {
-            output->col_at(row, col_idx) = 0;
+            output->col_at(row, col_idx) = invalid_index<IndexType>();
             output->val_at(row, col_idx) = zero<ValueType>();
         }
     }
@@ -203,13 +207,33 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
-            result->at(row, source->col_at(row, i)) += source->val_at(row, i);
+            const auto col = source->col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
+                result->at(row, col) = source->val_at(row, i);
+            }
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void copy(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Ell<ValueType, IndexType>* source,
+          matrix::Ell<ValueType, IndexType>* result)
+{
+    for (size_type row = 0; row < source->get_size()[0]; row++) {
+        for (size_type i = 0; i < source->get_num_stored_elements_per_row();
+             i++) {
+            result->col_at(row, i) = source->col_at(row, i);
+            result->val_at(row, i) = source->val_at(row, i);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -230,7 +254,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < max_nnz_per_row; i++) {
             const auto val = source->val_at(row, i);
             const auto col = source->col_at(row, i);
-            if (is_nonzero(val)) {
+            if (col != invalid_index<IndexType>()) {
                 values[cur_ptr] = val;
                 col_idxs[cur_ptr] = col;
                 cur_ptr++;
@@ -256,7 +280,9 @@ void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type row = 0; row < num_rows; row++) {
         size_type nonzeros_in_this_row = 0;
         for (size_type i = 0; i < max_nnz_per_row; i++) {
-            nonzeros_in_this_row += is_nonzero(source->val_at(row, i));
+            if (source->col_at(row, i) != invalid_index<IndexType>()) {
+                nonzeros_in_this_row++;
+            }
         }
         result[row] = nonzeros_in_this_row;
     }

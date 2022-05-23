@@ -83,8 +83,8 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
-    gko::Array<bool> result;
-    gko::Array<bool> dresult;
+    gko::array<bool> result;
+    gko::array<bool> dresult;
     std::vector<int> sizes;
 };
 

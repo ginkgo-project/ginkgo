@@ -59,6 +59,8 @@ constexpr Logger::mask_type Logger::polymorphic_object_create_started_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_create_completed_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_copy_started_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_copy_completed_mask;
+constexpr Logger::mask_type Logger::polymorphic_object_move_started_mask;
+constexpr Logger::mask_type Logger::polymorphic_object_move_completed_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_deleted_mask;
 
 constexpr Logger::mask_type Logger::linop_apply_started_mask;

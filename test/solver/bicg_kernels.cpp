@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/executor.hpp"
 
@@ -125,7 +125,7 @@ protected:
         beta->at(2) = 0.0;
         prev_rho->at(2) = 0.0;
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < stop_status->get_num_elems(); ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -145,7 +145,7 @@ protected:
         d_beta = gko::clone(exec, beta);
         d_prev_rho = gko::clone(exec, prev_rho);
         d_rho = gko::clone(exec, rho);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
 
@@ -168,7 +168,7 @@ protected:
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
     std::shared_ptr<Mtx> mtx_ani;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_r;
@@ -184,7 +184,7 @@ protected:
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
     std::shared_ptr<Mtx> d_mtx_ani;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -254,8 +254,12 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 
 TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53);
-    gko::test::make_hpd(mtx.get());
+    auto data = gko::matrix_data<value_type, index_type>(
+        gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
+        rand_engine);
+    gko::utils::make_hpd(data);
+    auto mtx = Mtx::create(ref, data.size, 53);
+    mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);
     auto d_mtx = gko::clone(exec, mtx);
@@ -283,7 +287,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
 
 

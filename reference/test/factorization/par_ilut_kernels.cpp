@@ -210,8 +210,8 @@ protected:
 
         gko::remove_complex<ValueType> res{};
         gko::remove_complex<ValueType> dres{};
-        gko::Array<ValueType> tmp(ref);
-        gko::Array<gko::remove_complex<ValueType>> tmp2(ref);
+        gko::array<ValueType> tmp(ref);
+        gko::array<gko::remove_complex<ValueType>> tmp2(ref);
         gko::kernels::reference::par_ilut_factorization::threshold_select(
             ref, mtx.get(), rank, tmp, tmp2, result);
 
@@ -253,7 +253,7 @@ protected:
         auto res_mtx2 = Mtx::create(exec, mtx->get_size());
         auto res_mtx_coo2 = Coo::create(exec, mtx->get_size());
 
-        auto tmp = gko::Array<typename Mtx::value_type>{exec};
+        auto tmp = gko::array<typename Mtx::value_type>{exec};
         gko::remove_complex<typename Mtx::value_type> threshold{};
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
@@ -427,7 +427,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    auto tmp = gko::Array<value_type>{this->ref};
+    auto tmp = gko::array<value_type>{this->ref};
     gko::remove_complex<value_type> threshold{};
     Coo* null_coo = nullptr;
     index_type rank{};
@@ -515,20 +515,18 @@ TYPED_TEST(ParIlut, KernelComputeLU)
 
 TYPED_TEST(ParIlut, ThrowNotSupportedForWrongLinOp)
 {
-    auto lin_op = DummyLinOp::create(this->ref);
+    auto lin_op = gko::share(DummyLinOp::create(this->ref));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(lin_op)),
-                 gko::NotSupported);
+    ASSERT_THROW(this->fact_fact->generate(lin_op), gko::NotSupported);
 }
 
 
 TYPED_TEST(ParIlut, ThrowDimensionMismatch)
 {
     using Csr = typename TestFixture::Csr;
-    auto matrix = Csr::create(this->ref, gko::dim<2>{2, 3}, 4);
+    auto matrix = gko::share(Csr::create(this->ref, gko::dim<2>{2, 3}, 4));
 
-    ASSERT_THROW(this->fact_fact->generate(gko::share(matrix)),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(this->fact_fact->generate(matrix), gko::DimensionMismatch);
 }
 
 
@@ -582,9 +580,10 @@ TYPED_TEST(ParIlut, GenerateIdentity)
 TYPED_TEST(ParIlut, GenerateDenseIdentity)
 {
     using Dense = typename TestFixture::Dense;
-    auto dense_id = Dense::create(this->exec, this->identity->get_size());
+    auto dense_id =
+        gko::share(Dense::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id.get());
-    auto fact = this->fact_fact->generate(gko::share(dense_id));
+    auto fact = this->fact_fact->generate(dense_id);
 
     GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), this->identity, this->tol);
     GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), this->identity, this->tol);

@@ -241,6 +241,36 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
+    LinOp& operator=(const LinOp&) = default;
+
+    /**
+     * Move-assigns a LinOp. Preserves the executor and moves the size.
+     * The moved-from object has size 0x0 afterwards, but its executor is
+     * unchanged.
+     */
+    LinOp& operator=(LinOp&& other)
+    {
+        if (this != &other) {
+            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            this->set_size(other.get_size());
+            other.set_size({});
+        }
+        return *this;
+    }
+
+    /** Copy-constructs a LinOp. Inherits executor and size from the input. */
+    LinOp(const LinOp&) = default;
+
+    /**
+     * Move-constructs a LinOp. Inherits executor and size from the input,
+     * which will have size 0x0 and unchanged executor afterwards.
+     */
+    LinOp(LinOp&& other)
+        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
+          size_{std::exchange(other.size_, dim<2>{})}
+    {}
+
 protected:
     /**
      * Creates a linear operator.
@@ -383,7 +413,14 @@ public:
     {
         this->template log<log::Logger::linop_factory_generate_started>(
             this, input.get());
-        auto generated = AbstractFactory::generate(input);
+        const auto exec = this->get_executor();
+        std::unique_ptr<LinOp> generated;
+        if (input->get_executor() == exec) {
+            generated = this->AbstractFactory::generate(input);
+        } else {
+            generated =
+                this->AbstractFactory::generate(gko::clone(exec, input));
+        }
         this->template log<log::Logger::linop_factory_generate_completed>(
             this, input.get(), generated.get());
         return generated;
@@ -483,7 +520,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> permute(
-        const Array<IndexType>* permutation_indices) const
+        const array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->row_permute(permutation_indices))
             ->column_permute(permutation_indices);
@@ -501,7 +538,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_permute(
-        const Array<IndexType>* permutation_indices) const
+        const array<IndexType>* permutation_indices) const
     {
         return as<Permutable>(this->inverse_row_permute(permutation_indices))
             ->inverse_column_permute(permutation_indices);
@@ -518,7 +555,7 @@ public:
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> row_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the column permutation of the Permutable
@@ -532,7 +569,7 @@ public:
      * @return a pointer to the new column permuted object
      */
     virtual std::unique_ptr<LinOp> column_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -545,7 +582,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
@@ -559,7 +596,7 @@ public:
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_column_permute(
-        const Array<IndexType>* permutation_indices) const = 0;
+        const array<IndexType>* permutation_indices) const = 0;
 };
 
 
@@ -846,55 +883,27 @@ public:
 
     const ConcreteLinOp* apply(const LinOp* b, LinOp* x) const
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        PolymorphicBase::apply(b, x);
         return self();
     }
 
     ConcreteLinOp* apply(const LinOp* b, LinOp* x)
     {
-        this->template log<log::Logger::linop_apply_started>(this, b, x);
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b, x);
+        PolymorphicBase::apply(b, x);
         return self();
     }
 
     const ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b,
                                const LinOp* beta, LinOp* x) const
     {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+        PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 
     ConcreteLinOp* apply(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                          LinOp* x)
     {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha, b, beta, x);
-        this->validate_application_parameters(alpha, b, beta, x);
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha, b, beta, x);
+        PolymorphicBase::apply(alpha, b, beta, x);
         return self();
     }
 

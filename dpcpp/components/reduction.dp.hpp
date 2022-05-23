@@ -114,8 +114,8 @@ __dpct_inline__ int choose_pivot(const Group& group, ValueType local_data,
 {
     using real = remove_complex<ValueType>;
     real lmag = is_pivoted ? -one<real>() : abs(local_data);
-    const auto pivot =
-        reduce(group, group.thread_rank(), [&](int lidx, int ridx) {
+    const auto pivot = ::gko::kernels::dpcpp::reduce(
+        group, group.thread_rank(), [&](int lidx, int ridx) {
             const auto rmag = group.shfl(lmag, ridx);
             if (rmag > lmag) {
                 lmag = rmag;
@@ -260,7 +260,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
 {
     auto block_results_val = source;
     size_type grid_dim = size;
-    auto block_results = Array<ValueType>(exec);
+    auto block_results = array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
     constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
@@ -284,7 +284,7 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
         block_results_val = block_results.get_const_data();
     }
 
-    auto d_result = Array<ValueType>(exec, 1);
+    auto d_result = array<ValueType>(exec, 1);
 
     reduce_add_array_call(cfg, 1, wg_size, 0, exec->get_queue(), grid_dim,
                           block_results_val, d_result.get_data());

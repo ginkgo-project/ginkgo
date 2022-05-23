@@ -60,8 +60,7 @@ protected:
     static void assert_equal_to_original_mtx(gko::matrix::Dense<value_type>* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_stride(), 4);
-        ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
+        ASSERT_EQ(m->get_num_stored_elements(), 2 * m->get_stride());
         EXPECT_EQ(m->at(0, 0), value_type{1.0});
         EXPECT_EQ(m->at(0, 1), value_type{2.0});
         EXPECT_EQ(m->at(0, 2), value_type{3.0});
@@ -131,7 +130,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 9, data), 3);
+        gko::make_array_view(this->exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), value_type{6.0});
@@ -150,7 +149,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
 
     auto m = gko::matrix::Dense<TypeParam>::create_const(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::const_view(this->exec, 9, data), 3);
+        gko::array<value_type>::const_view(this->exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(2, 1), value_type{6.0});
@@ -172,6 +171,7 @@ TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 TYPED_TEST(Dense, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx.get());
+    ASSERT_EQ(this->mtx->get_stride(), 4);
 }
 
 
@@ -241,6 +241,8 @@ TYPED_TEST(Dense, CanBeCopied)
     this->assert_equal_to_original_mtx(this->mtx.get());
     this->mtx->at(0) = 7;
     this->assert_equal_to_original_mtx(mtx_copy.get());
+    ASSERT_EQ(this->mtx->get_stride(), 4);
+    ASSERT_EQ(mtx_copy->get_stride(), 3);
 }
 
 
@@ -249,14 +251,15 @@ TYPED_TEST(Dense, CanBeMoved)
     auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
     mtx_copy->copy_from(std::move(this->mtx));
     this->assert_equal_to_original_mtx(mtx_copy.get());
+    ASSERT_EQ(mtx_copy->get_stride(), 4);
 }
 
 
 TYPED_TEST(Dense, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
-    this->assert_equal_to_original_mtx(
-        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+    this->assert_equal_to_original_mtx(mtx_clone.get());
+    ASSERT_EQ(mtx_clone->get_stride(), 3);
 }
 
 
@@ -343,6 +346,15 @@ TYPED_TEST(Dense, CanCreateSubmatrix)
     EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
     EXPECT_EQ(submtx->at(1, 0), value_type{2.5});
     EXPECT_EQ(submtx->at(1, 1), value_type{3.5});
+}
+
+
+TYPED_TEST(Dense, CanCreateEmptySubmatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
+
+    EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
 }
 
 

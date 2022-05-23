@@ -53,15 +53,15 @@ namespace components {
 
 template <typename ValueType>
 void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<ValueType>& array, Array<ValueType>& result)
+                      const array<ValueType>& arr, array<ValueType>& result)
 {
     run_kernel_reduction(
         exec,
-        [] GKO_KERNEL(auto i, auto array, auto result) {
-            return i == 0 ? (array[i] + result[0]) : array[i];
+        [] GKO_KERNEL(auto i, auto arr, auto result) {
+            return i == 0 ? (arr[i] + result[0]) : arr[i];
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result.get_data(),
-        array.get_num_elems(), array, result);
+        arr.get_num_elems(), arr, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);

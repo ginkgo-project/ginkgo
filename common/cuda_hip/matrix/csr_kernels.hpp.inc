@@ -601,36 +601,6 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
 }
 
 
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void check_unsorted(
-    const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs, IndexType num_rows, bool* flag)
-{
-    __shared__ bool sh_flag;
-    auto block = group::this_thread_block();
-    if (block.thread_rank() == 0) {
-        sh_flag = *flag;
-    }
-    block.sync();
-
-    auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-
-    // fail early
-    if (sh_flag) {
-        for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1] - 1; ++nz) {
-            if (col_idxs[nz] > col_idxs[nz + 1]) {
-                *flag = false;
-                sh_flag = false;
-                return;
-            }
-        }
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type diag_size, size_type nnz,
@@ -657,29 +627,8 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
 }
 
 
-}  // namespace kernel
-
-
-namespace {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void conjugate_kernel(
-    size_type num_nonzeros, ValueType* __restrict__ val)
-{
-    const auto tidx = thread::get_thread_id_flat();
-
-    if (tidx < num_nonzeros) {
-        val[tidx] = conj(val[tidx]);
-    }
-}
-
-
-}  //  namespace
-
-
 template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void row_ptr_permute_kernel(
+__global__ __launch_bounds__(default_block_size) void row_ptr_permute(
     size_type num_rows, const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs, IndexType* __restrict__ out_nnz)
 {
@@ -694,11 +643,9 @@ __global__ __launch_bounds__(default_block_size) void row_ptr_permute_kernel(
 
 
 template <typename IndexType>
-__global__
-    __launch_bounds__(default_block_size) void inv_row_ptr_permute_kernel(
-        size_type num_rows, const IndexType* __restrict__ permutation,
-        const IndexType* __restrict__ in_row_ptrs,
-        IndexType* __restrict__ out_nnz)
+__global__ __launch_bounds__(default_block_size) void inv_row_ptr_permute(
+    size_type num_rows, const IndexType* __restrict__ permutation,
+    const IndexType* __restrict__ in_row_ptrs, IndexType* __restrict__ out_nnz)
 {
     auto tid = thread::get_thread_id_flat();
     if (tid >= num_rows) {
@@ -711,7 +658,7 @@ __global__
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void row_permute_kernel(
+__global__ __launch_bounds__(default_block_size) void row_permute(
     size_type num_rows, const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
     const IndexType* __restrict__ in_cols,
@@ -737,7 +684,7 @@ __global__ __launch_bounds__(default_block_size) void row_permute_kernel(
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void inv_row_permute_kernel(
+__global__ __launch_bounds__(default_block_size) void inv_row_permute(
     size_type num_rows, const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
     const IndexType* __restrict__ in_cols,
@@ -763,7 +710,7 @@ __global__ __launch_bounds__(default_block_size) void inv_row_permute_kernel(
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
+__global__ __launch_bounds__(default_block_size) void inv_symm_permute(
     size_type num_rows, const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
     const IndexType* __restrict__ in_cols,
@@ -788,20 +735,17 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
 }
 
 
-namespace kernel {
-
-
 template <typename ValueType, typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
-        const size_type num_rows, const size_type num_cols,
-        const size_type row_offset, const size_type col_offset,
-        const IndexType* __restrict__ source_row_ptrs,
-        const IndexType* __restrict__ source_col_idxs,
-        const ValueType* __restrict__ source_values,
-        const IndexType* __restrict__ result_row_ptrs,
-        IndexType* __restrict__ result_col_idxs,
-        ValueType* __restrict__ result_values)
+__launch_bounds__(default_block_size) void compute_submatrix_idxs_and_vals(
+    const size_type num_rows, const size_type num_cols,
+    const size_type row_offset, const size_type col_offset,
+    const IndexType* __restrict__ source_row_ptrs,
+    const IndexType* __restrict__ source_col_idxs,
+    const ValueType* __restrict__ source_values,
+    const IndexType* __restrict__ result_row_ptrs,
+    IndexType* __restrict__ result_col_idxs,
+    ValueType* __restrict__ result_values)
 {
     const auto res_row = thread::get_thread_id_flat();
     if (res_row < num_rows) {
@@ -823,11 +767,10 @@ __global__
 
 template <typename IndexType>
 __global__
-    __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
-        const span row_span, const span col_span,
-        const IndexType* __restrict__ row_ptrs,
-        const IndexType* __restrict__ col_idxs,
-        IndexType* __restrict__ nnz_per_row)
+__launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
+    const span row_span, const span col_span,
+    const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs, IndexType* __restrict__ nnz_per_row)
 {
     const auto src_row = thread::get_thread_id_flat() + row_span.begin;
     if (src_row < row_span.end) {
@@ -869,37 +812,105 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
 }
 
 
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void check_diagonal_entries(
-    const IndexType num_min_rows_cols,
-    const IndexType* const __restrict__ row_ptrs,
-    const IndexType* const __restrict__ col_idxs,
-    bool* const __restrict__ has_all_diags)
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* source, int bs,
+                      array<IndexType>& block_row_ptr_array,
+                      array<IndexType>& block_col_idx_array,
+                      array<ValueType>& block_value_array)
 {
-    constexpr int warp_size = config::warp_size;
-    auto tile_grp =
-        group::tiled_partition<warp_size>(group::this_thread_block());
-    const auto row = thread::get_subwarp_id_flat<warp_size, IndexType>();
-    if (row < num_min_rows_cols) {
-        const auto tid_in_warp = tile_grp.thread_rank();
-        const IndexType row_start = row_ptrs[row];
-        const IndexType num_nz = row_ptrs[row + 1] - row_start;
-        bool row_has_diag_local{false};
-        for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
-            if (col_idxs[iz + row_start] == row) {
-                row_has_diag_local = true;
-                break;
-            }
-        }
-        auto row_has_diag = static_cast<bool>(tile_grp.any(row_has_diag_local));
-        if (!row_has_diag) {
-            if (tile_grp.thread_rank() == 0) {
-                *has_all_diags = false;
-            }
-            return;
-        }
+    using tuple_type = thrust::tuple<IndexType, IndexType>;
+    const auto nnz = source->get_num_stored_elements();
+    array<IndexType> in_row_idxs{exec, nnz};
+    array<IndexType> in_col_idxs{exec, nnz};
+    array<ValueType> in_values{exec, nnz};
+    exec->copy(nnz, source->get_const_col_idxs(), in_col_idxs.get_data());
+    exec->copy(nnz, source->get_const_values(), in_values.get_data());
+    components::convert_ptrs_to_idxs(exec, source->get_const_row_ptrs(),
+                                     source->get_size()[0],
+                                     in_row_idxs.get_data());
+    auto block_row_ptrs = block_row_ptr_array.get_data();
+    auto num_block_rows = block_row_ptr_array.get_num_elems() - 1;
+    if (nnz == 0) {
+        components::fill_array(exec, block_row_ptrs, num_block_rows + 1,
+                               IndexType{});
+        block_col_idx_array.resize_and_reset(0);
+        block_value_array.resize_and_reset(0);
+        return;
     }
+    auto in_rows = in_row_idxs.get_data();
+    auto in_cols = in_col_idxs.get_data();
+    // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken
+    // due to overly generic assignment operator and constructor leading to
+    // ambiguities. So we need to use our own fake_complex type
+    auto in_vals =
+        reinterpret_cast<device_member_type<ValueType>*>(in_values.get_data());
+    auto in_loc_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(in_rows),
+                           thrust::device_pointer_cast(in_cols)));
+    thrust::sort_by_key(thrust::device, in_loc_it, in_loc_it + nnz,
+                        thrust::device_pointer_cast(in_vals),
+                        [bs] __device__(tuple_type a, tuple_type b) {
+                            return thrust::make_pair(thrust::get<0>(a) / bs,
+                                                     thrust::get<1>(a) / bs) <
+                                   thrust::make_pair(thrust::get<0>(b) / bs,
+                                                     thrust::get<1>(b) / bs);
+                        });
+    // build block pattern
+    auto adj_predicate = [bs, in_rows, in_cols, nnz] __device__(size_type i) {
+        const auto a_block_row = i > 0 ? in_rows[i - 1] / bs : -1;
+        const auto a_block_col = i > 0 ? in_cols[i - 1] / bs : -1;
+        const auto b_block_row = in_rows[i] / bs;
+        const auto b_block_col = in_cols[i] / bs;
+        return (a_block_row != b_block_row) || (a_block_col != b_block_col);
+    };
+    auto iota = thrust::make_counting_iterator(size_type{});
+    // count how many blocks we have by counting how often the block changes
+    auto num_blocks = static_cast<size_type>(
+        thrust::count_if(thrust::device, iota, iota + nnz, adj_predicate));
+    // allocate storage
+    array<IndexType> block_row_idx_array{exec, num_blocks};
+    array<size_type> block_ptr_array{exec, num_blocks};
+    block_col_idx_array.resize_and_reset(num_blocks);
+    block_value_array.resize_and_reset(num_blocks * bs * bs);
+    auto row_idxs = block_row_idx_array.get_data();
+    auto col_idxs = block_col_idx_array.get_data();
+    auto values = as_device_type(block_value_array.get_data());
+    auto block_ptrs = block_ptr_array.get_data();
+    auto block_ptr_it = thrust::device_pointer_cast(block_ptrs);
+    // write (block_row, block_col, block_start_idx) tuples for each block
+    thrust::copy_if(thrust::device, iota, iota + nnz, block_ptr_it,
+                    adj_predicate);
+    auto block_output_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(row_idxs),
+                           thrust::device_pointer_cast(col_idxs)));
+    thrust::transform(
+        thrust::device, block_ptr_it, block_ptr_it + num_blocks,
+        block_output_it, [bs, in_rows, in_cols] __device__(size_type i) {
+            return thrust::make_tuple(in_rows[i] / bs, in_cols[i] / bs);
+        });
+    // build row pointers from row indices
+    components::convert_idxs_to_ptrs(exec, block_row_idx_array.get_const_data(),
+                                     block_row_idx_array.get_num_elems(),
+                                     num_block_rows, block_row_ptrs);
+    // fill in values
+    components::fill_array(exec, block_value_array.get_data(),
+                           num_blocks * bs * bs, zero<ValueType>());
+    thrust::for_each_n(
+        thrust::device, iota, num_blocks,
+        [block_ptrs, nnz, num_blocks, bs, in_rows, in_cols, in_vals,
+         values] __device__(size_type i) {
+            const auto block_begin = block_ptrs[i];
+            const auto block_end = i < num_blocks - 1 ? block_ptrs[i + 1] : nnz;
+            for (auto nz = block_begin; nz < block_end; nz++) {
+                values[i * bs * bs + (in_cols[nz] % bs) * bs +
+                       (in_rows[nz] % bs)] = fake_complex_unpack(in_vals[nz]);
+            }
+        });
 }
 
-
-}  // namespace kernel
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);

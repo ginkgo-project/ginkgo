@@ -74,15 +74,15 @@ std::unique_ptr<distributed::Vector<ValueType>> create_with_config_of(
 {
     return distributed::Vector<ValueType>::create(
         mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
-        mtx->get_const_local()->get_size(),
-        mtx->get_const_local()->get_stride());
+        mtx->get_local_vector()->get_size(),
+        mtx->get_local_vector()->get_stride());
 }
 
 
 template <typename ValueType>
 matrix::Dense<ValueType>* get_local(distributed::Vector<ValueType>* mtx)
 {
-    return mtx->get_local();
+    return const_cast<matrix::Dense<ValueType>*>(mtx->get_local_vector());
 }
 
 
@@ -90,7 +90,7 @@ template <typename ValueType>
 const matrix::Dense<ValueType>* get_local(
     const distributed::Vector<ValueType>* mtx)
 {
-    return mtx->get_const_local();
+    return mtx->get_local_vector();
 }
 
 
