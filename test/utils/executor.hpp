@@ -117,7 +117,7 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
     ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
     auto device_id =
         comm.node_local_rank() % gko::CudaExecutor::get_num_devices();
-    exec = gko::CudaExecutor::create(device_id, ref);
+    exec = gko::CudaExecutor::create(device_id, ref, false, gko::allocation_mode::device);
 }
 
 
