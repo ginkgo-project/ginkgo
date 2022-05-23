@@ -190,7 +190,7 @@ TYPED_TEST_SUITE(CsrLookup, gko::test::IndexTypes, TypenameNameGenerator);
 TYPED_TEST(CsrLookup, BuildLookupWorks)
 {
     using index_type = typename TestFixture::index_type;
-    using gko::matrix::sparsity_type;
+    using gko::matrix::csr::sparsity_type;
     const auto num_rows = this->mtx->get_size()[0];
     const auto num_cols = this->mtx->get_size()[1];
     gko::array<gko::int64> row_desc_array(this->ref, num_rows);
@@ -247,7 +247,7 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
             const auto row_nnz = row_end - row_begin;
-            gko::matrix::device_sparsity_lookup<index_type> lookup{
+            gko::matrix::csr::device_sparsity_lookup<index_type> lookup{
                 row_ptrs,
                 col_idxs,
                 storage_offsets,

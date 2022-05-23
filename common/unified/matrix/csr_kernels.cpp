@@ -247,11 +247,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename IndexType>
 void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* row_ptrs, const IndexType* col_idxs,
-                          size_type num_rows, matrix::sparsity_type allowed,
+                          size_type num_rows,
+                          matrix::csr::sparsity_type allowed,
                           IndexType* storage_offsets)
 {
-    using matrix::sparsity_bitmap_block_size;
-    using matrix::sparsity_type;
+    using matrix::csr::sparsity_bitmap_block_size;
+    using matrix::csr::sparsity_type;
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto num_rows,

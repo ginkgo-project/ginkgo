@@ -44,13 +44,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
+namespace csr {
 
 
 /**
  * Type describing which kind of lookup structure is used to find entries in a
- * single row of a Csr matrix.
+ * single row of a Csr matrix. It is also uses as a mask, so each value has only
+ * a single bit set.
  */
-enum class sparsity_type : int {
+enum class sparsity_type {
     /**
      * The row is dense, i.e. it contains all entries in
      * `[min_col, min_col + storage_size)`.
@@ -96,8 +98,8 @@ GKO_ATTRIBUTES GKO_INLINE sparsity_type operator|(sparsity_type a,
 }
 
 
-GKO_ATTRIBUTES GKO_INLINE bool csr_lookup_allowed(matrix::sparsity_type allowed,
-                                                  matrix::sparsity_type type)
+GKO_ATTRIBUTES GKO_INLINE bool csr_lookup_allowed(sparsity_type allowed,
+                                                  sparsity_type type)
 {
     return ((static_cast<int>(allowed) & static_cast<int>(type)) != 0);
 }
@@ -318,6 +320,7 @@ private:
 };
 
 
+}  // namespace csr
 }  // namespace matrix
 }  // namespace gko
 
