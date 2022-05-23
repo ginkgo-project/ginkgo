@@ -30,6 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/distributed/matrix_kernels.hpp"
+
 
 #include <algorithm>
 #include <memory>
@@ -45,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/distributed/matrix_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
@@ -70,9 +71,7 @@ protected:
                                            ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
-    Matrix()
-        : engine(42)
-    {}
+    Matrix() : engine(42) {}
 
     void SetUp()
     {
@@ -130,11 +129,13 @@ protected:
                 local_col_idxs, local_values, non_local_row_idxs,
                 non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
-            gko::kernels::EXEC_NAMESPACE::distributed_matrix::build_local_nonlocal(
-                exec, d_input, d_row_partition, d_col_partition, part,
-                d_local_row_idxs, d_local_col_idxs, d_local_values,
-                d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
-                d_gather_idxs, d_recv_sizes, d_local_to_global_col);
+            gko::kernels::EXEC_NAMESPACE::distributed_matrix::
+                build_local_nonlocal(
+                    exec, d_input, d_row_partition, d_col_partition, part,
+                    d_local_row_idxs, d_local_col_idxs, d_local_values,
+                    d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
+                    d_gather_idxs, d_recv_sizes,
+                    d_local_to_global_col);
 
             GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
             GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
