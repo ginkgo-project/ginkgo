@@ -16,29 +16,6 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 # Determine which modules can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
-if(GINKGO_BUILD_HIP)
-    include(cmake/hip.cmake)
-endif()
-if(GINKGO_BUILD_CUDA)
-    include(cmake/cuda.cmake)
-endif()
-if(GINKGO_BUILD_OMP)
-    find_package(OpenMP 3.0 REQUIRED)
-endif()
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-include(cmake/build_type_helpers.cmake)
-
-# Load other CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/install_helpers.cmake)
-
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
-endif()
-if (MINGW OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
-endif()
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -109,6 +86,31 @@ option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ bac
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+
+# load executor-specific configuration
+if(GINKGO_BUILD_CUDA)
+    include(cmake/cuda.cmake)
+endif()
+if(GINKGO_BUILD_HIP)
+    include(cmake/hip.cmake)
+endif()
+if(GINKGO_BUILD_OMP)
+    find_package(OpenMP 3.0 REQUIRED)
+endif()
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+include(cmake/build_type_helpers.cmake)
+
+# Load other CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+if (MINGW OR CYGWIN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 

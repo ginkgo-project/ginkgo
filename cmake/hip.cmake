@@ -1,8 +1,3 @@
-# We keep using NVCC/HCC for consistency with previous releases even if AMD
-# updated everything to use NVIDIA/AMD in ROCM 4.1
-set(GINKGO_HIP_PLATFORM_NVCC 0)
-set(GINKGO_HIP_PLATFORM_HCC 0)
-
 if(DEFINED ENV{HIP_PLATFORM})
     set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
 elseif(GINKGO_HIPCONFIG_PATH)
@@ -19,6 +14,7 @@ set(HIP_PLATFORM_NVIDIA_REGEX "nvcc|nvidia")
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
     set(GINKGO_HIP_PLATFORM_HCC 1)
 elseif (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+    enable_language(CUDA)
     set(GINKGO_HIP_PLATFORM_NVCC 1)
 endif()
 
@@ -176,3 +172,51 @@ find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
 if (NOT GINKGO_HIP_THRUST_PATH)
     message(FATAL_ERROR "Could not find the ROCm header thrust/complex.h which is required by Ginkgo HIP.")
 endif()
+
+set(GINKGO_HIP_NVCC_ARCH "")
+if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
+    if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
+        set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}" CACHE STRING "" FORCE)
+    elseif(GINKGO_CUDA_DEFAULT_HOST_COMPILER)
+        unset(CMAKE_CUDA_HOST_COMPILER CACHE)
+    endif()
+    if (CMAKE_CUDA_HOST_COMPILER)
+        list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
+    endif()
+
+    # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    list(APPEND GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr --expt-extended-lambda)
+
+    if (GINKGO_HIP_PLATFROM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
+            AND CMAKE_CUDA_COMPILER_VERSION MATCHES "9.2"
+            AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+        ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+        if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+            message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
+                "Consider using a different CUDA host compiler or CUDA version.")
+        endif()
+    endif()
+    # select GPU architecture    
+    include(cmake/Modules/CudaArchitectureSelector.cmake)
+    cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH
+        ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
+        UNSUPPORTED "20" "21")
+endif()
+
+# `target_compile_options` do not work with hip_add_library
+# Thus, we need to pass the flags to `hip_add_library` itself
+if(GINKGO_HIP_AMDGPU)
+    foreach(target ${GINKGO_HIP_AMDGPU})
+        list(APPEND GINKGO_AMD_ARCH_FLAGS --amdgpu-target=${target})
+    endforeach()
+endif()
+
+if(GINKGO_STATIC_OR_SHARED MATCHES "STATIC")
+    # Debug Static: Hip requires PIC flags
+    set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP $<$<CONFIG:Debug>:-fPIC>")
+else()
+    set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP")
+endif()
+set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
+set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
