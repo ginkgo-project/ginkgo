@@ -50,13 +50,7 @@ namespace cuda {
 namespace distributed_vector {
 
 
-#define GKO_THRUST_LAMBDA __device__
-
-
 #include "common/cuda_hip/distributed/vector_kernels.hpp.inc"
-
-
-#undef GKO_THRUST_LAMBDA
 
 
 }  // namespace distributed_vector
