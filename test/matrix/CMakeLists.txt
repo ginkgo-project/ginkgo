@@ -1,3 +1,3 @@
-ginkgo_create_common_test(csr_kernels)
+ginkgo_create_common_device_test(csr_kernels)
 ginkgo_create_common_test(dense_kernels)
 ginkgo_create_common_test(matrix)
