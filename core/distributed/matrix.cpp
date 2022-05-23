@@ -286,6 +286,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
                                       : send_buffer_->get_const_values();
     auto recv_ptr = needs_host_buffer ? host_recv_buffer_->get_values()
                                       : recv_buffer_->get_values();
+    exec->synchronize();
     return comm.i_all_to_all_v(
         send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
         recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
