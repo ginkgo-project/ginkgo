@@ -32,6 +32,8 @@
     - FixInclude: "common/unified/base/kernel_launch_solver.hpp"
 - "(cuda|hip|dpcpp|omp)/base/kernel_launch_solver\."
     - FixInclude: "common/unified/base/kernel_launch_solver.hpp"
+- "test/base/kernel_launch_generic.cpp"
+    - FixInclude: "common/unified/base/kernel_launch.hpp"
 - "elimination_forest\.cpp"
     - FixInclude: "core/factorization/elimination_forest.hpp"
 - "common/unified/.*.cpp"

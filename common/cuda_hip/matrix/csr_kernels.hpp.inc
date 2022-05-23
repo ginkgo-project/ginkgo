@@ -923,10 +923,11 @@ template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     const IndexType* __restrict__ row_ptrs,
     const IndexType* __restrict__ col_idxs, size_type num_rows,
-    gko::matrix::sparsity_type allowed, const IndexType* storage_offsets,
+    matrix::csr::sparsity_type allowed, const IndexType* storage_offsets,
     int64* __restrict__ row_desc, int32* __restrict__ storage)
 {
-    constexpr int bitmap_block_size = gko::matrix::sparsity_bitmap_block_size;
+    using matrix::csr::sparsity_type;
+    constexpr int bitmap_block_size = matrix::csr::sparsity_bitmap_block_size;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     if (row >= num_rows) {
         return;
@@ -946,9 +947,9 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
 
     // full column range
     if (col_range == row_len &&
-        csr_lookup_allowed(allowed, matrix::sparsity_type::full)) {
+        csr_lookup_allowed(allowed, sparsity_type::full)) {
         if (lane == 0) {
-            row_desc[row] = static_cast<int>(matrix::sparsity_type::full);
+            row_desc[row] = static_cast<int>(sparsity_type::full);
         }
         return;
     }
@@ -956,10 +957,10 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     const auto num_blocks =
         static_cast<int32>(ceildiv(col_range, bitmap_block_size));
     if (num_blocks * 2 <= available_storage &&
-        csr_lookup_allowed(allowed, matrix::sparsity_type::bitmap)) {
+        csr_lookup_allowed(allowed, sparsity_type::bitmap)) {
         if (lane == 0) {
             row_desc[row] = (static_cast<int64>(num_blocks) << 32) |
-                            static_cast<int>(matrix::sparsity_type::bitmap);
+                            static_cast<int>(sparsity_type::bitmap);
         }
         const auto block_ranks = local_storage;
         const auto block_bitmaps =
@@ -1015,7 +1016,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         1u | static_cast<uint32>(available_storage * inv_golden_ratio);
     if (lane == 0) {
         row_desc[row] = (static_cast<int64>(hash_parameter) << 32) |
-                        static_cast<int>(matrix::sparsity_type::hash);
+                        static_cast<int>(sparsity_type::hash);
     }
     // fill hashmap with sentinel
     constexpr int32 empty = invalid_index<int32>();
@@ -1083,7 +1084,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
 template <typename IndexType>
 void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
-                  size_type num_rows, matrix::sparsity_type allowed,
+                  size_type num_rows, matrix::csr::sparsity_type allowed,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {

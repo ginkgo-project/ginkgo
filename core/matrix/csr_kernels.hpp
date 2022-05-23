@@ -229,14 +229,14 @@ namespace kernels {
     void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,   \
                               const IndexType* row_ptrs,                     \
                               const IndexType* col_idxs, size_type num_rows, \
-                              matrix::sparsity_type allowed,                 \
+                              matrix::csr::sparsity_type allowed,            \
                               IndexType* storage_offsets)
 
-#define GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)                      \
-    void build_lookup(std::shared_ptr<const DefaultExecutor> exec,          \
-                      const IndexType* row_ptrs, const IndexType* col_idxs, \
-                      size_type num_rows, matrix::sparsity_type allowed,    \
-                      const IndexType* storage_offsets, int64* row_desc,    \
+#define GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)                        \
+    void build_lookup(std::shared_ptr<const DefaultExecutor> exec,            \
+                      const IndexType* row_ptrs, const IndexType* col_idxs,   \
+                      size_type num_rows, matrix::csr::sparsity_type allowed, \
+                      const IndexType* storage_offsets, int64* row_desc,      \
                       int32* storage)
 
 

@@ -1946,7 +1946,7 @@ TYPED_TEST_SUITE(CsrLookup, gko::test::ValueIndexTypes,
 TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)
 {
     using IndexType = typename TestFixture::index_type;
-    using gko::matrix::sparsity_type;
+    using gko::matrix::csr::sparsity_type;
     const auto num_rows = this->mtx->get_size()[0];
     gko::array<IndexType> storage_offset_array(this->exec, num_rows + 1);
     const auto storage_offsets = storage_offset_array.get_data();
@@ -1960,9 +1960,9 @@ TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)
         gko::kernels::reference::csr::build_lookup_offsets(
             this->exec, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
         bool allow_full =
-            gko::matrix::csr_lookup_allowed(allowed, sparsity_type::full);
-        bool allow_bitmap =
-            gko::matrix::csr_lookup_allowed(allowed, sparsity_type::bitmap);
+            gko::matrix::csr::csr_lookup_allowed(allowed, sparsity_type::full);
+        bool allow_bitmap = gko::matrix::csr::csr_lookup_allowed(
+            allowed, sparsity_type::bitmap);
 
         for (gko::size_type row = 0; row < num_rows; row++) {
             const auto expected_size =
@@ -1980,7 +1980,7 @@ TYPED_TEST(CsrLookup, GeneratesLookupDataOffsets)
 TYPED_TEST(CsrLookup, GeneratesLookupData)
 {
     using IndexType = typename TestFixture::index_type;
-    using gko::matrix::sparsity_type;
+    using gko::matrix::csr::sparsity_type;
     const auto num_rows = this->mtx->get_size()[0];
     const auto num_cols = this->mtx->get_size()[1];
     gko::array<gko::int64> row_desc_array(this->exec, num_rows);
@@ -2014,7 +2014,7 @@ TYPED_TEST(CsrLookup, GeneratesLookupData)
         for (int row = 0; row < num_rows; row++) {
             const auto row_begin = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
-            gko::matrix::device_sparsity_lookup<IndexType> lookup{
+            gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
                 row_ptrs, col_idxs,  storage_offsets,
                 storage,  row_descs, static_cast<gko::size_type>(row)};
             for (auto nz = row_begin; nz < row_end; nz++) {

@@ -1131,9 +1131,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 bool csr_lookup_try_full(IndexType row_len, IndexType col_range,
-                         matrix::sparsity_type allowed, int64& row_desc)
+                         matrix::csr::sparsity_type allowed, int64& row_desc)
 {
-    using matrix::sparsity_type;
+    using matrix::csr::sparsity_type;
     bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::full);
     if (is_allowed && row_len == col_range) {
         row_desc = static_cast<int>(sparsity_type::full);
@@ -1146,11 +1146,11 @@ bool csr_lookup_try_full(IndexType row_len, IndexType col_range,
 template <typename IndexType>
 bool csr_lookup_try_bitmap(IndexType row_len, IndexType col_range,
                            IndexType min_col, IndexType available_storage,
-                           matrix::sparsity_type allowed, int64& row_desc,
+                           matrix::csr::sparsity_type allowed, int64& row_desc,
                            int32* local_storage, const IndexType* cols)
 {
-    using matrix::sparsity_bitmap_block_size;
-    using matrix::sparsity_type;
+    using matrix::csr::sparsity_bitmap_block_size;
+    using matrix::csr::sparsity_type;
     bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::bitmap);
     const auto num_blocks = ceildiv(col_range, sparsity_bitmap_block_size);
     if (is_allowed && num_blocks * 2 <= available_storage) {
@@ -1191,7 +1191,7 @@ void csr_lookup_build_hash(IndexType row_len, IndexType available_storage,
     const auto hash_parameter =
         1u | static_cast<uint32>(available_storage * inv_golden_ratio);
     row_desc = (static_cast<int64>(hash_parameter) << 32) |
-               static_cast<int>(matrix::sparsity_type::hash);
+               static_cast<int>(matrix::csr::sparsity_type::hash);
     std::fill_n(local_storage, available_storage, invalid_index<int32>());
     for (int32 nz = 0; nz < row_len; nz++) {
         auto hash = (static_cast<typename std::make_unsigned<IndexType>::type>(
@@ -1213,7 +1213,7 @@ void csr_lookup_build_hash(IndexType row_len, IndexType available_storage,
 template <typename IndexType>
 void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
                   const IndexType* row_ptrs, const IndexType* col_idxs,
-                  size_type num_rows, matrix::sparsity_type allowed,
+                  size_type num_rows, matrix::csr::sparsity_type allowed,
                   const IndexType* storage_offsets, int64* row_desc,
                   int32* storage)
 {
