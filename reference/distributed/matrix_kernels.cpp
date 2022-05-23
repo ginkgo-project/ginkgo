@@ -44,6 +44,7 @@ namespace kernels {
 namespace reference {
 namespace distributed_matrix {
 
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_diag_offdiag(
     std::shared_ptr<const DefaultExecutor> exec,
