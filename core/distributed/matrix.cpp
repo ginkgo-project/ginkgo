@@ -269,27 +269,26 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     auto recv_dim = dim<2>{static_cast<size_type>(recv_size), num_cols};
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
+
+    local_b->row_gather(&gather_idxs_, send_buffer_.get());
+
     auto needs_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (needs_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
-    }
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
-    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    if (needs_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-
-        return comm.i_all_to_all_v(
-            host_send_buffer_->get_const_values(), send_sizes_.data(),
-            send_offsets_.data(), type.get(), host_recv_buffer_->get_values(),
-            recv_sizes_.data(), recv_offsets_.data(), type.get());
-    } else {
-        return comm.i_all_to_all_v(
-            send_buffer_->get_const_values(), send_sizes_.data(),
-            send_offsets_.data(), type.get(), recv_buffer_->get_values(),
-            recv_sizes_.data(), recv_offsets_.data(), type.get());
     }
+
+    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
+    auto send_ptr = needs_host_buffer ? host_send_buffer_->get_const_values()
+                                      : send_buffer_->get_const_values();
+    auto recv_ptr = needs_host_buffer ? host_recv_buffer_->get_values()
+                                      : recv_buffer_->get_values();
+    exec->synchronize();
+    return comm.i_all_to_all_v(
+        send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
+        recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
 }
 
 
