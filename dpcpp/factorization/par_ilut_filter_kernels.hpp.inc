@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-template <int subwarp_size, typename IndexType, typename Predicate,
+template <int subgroup_size, typename IndexType, typename Predicate,
           typename BeginCallback, typename StepCallback,
           typename FinishCallback>
 void abstract_filter_impl(const IndexType* row_ptrs, IndexType num_rows,
@@ -41,9 +41,9 @@ void abstract_filter_impl(const IndexType* row_ptrs, IndexType num_rows,
                           StepCallback step_cb, FinishCallback finish_cb,
                           sycl::nd_item<3> item_ct1)
 {
-    auto subwarp = group::tiled_partition<subwarp_size>(
+    auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto row = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     auto lane = subwarp.thread_rank();
     auto lane_prefix_mask = (config::lane_mask_type(1) << lane) - 1;
     if (row >= num_rows) {
@@ -53,9 +53,9 @@ void abstract_filter_impl(const IndexType* row_ptrs, IndexType num_rows,
     auto begin = row_ptrs[row];
     auto end = row_ptrs[row + 1];
     begin_cb(row);
-    auto num_steps = ceildiv(end - begin, subwarp_size);
+    auto num_steps = ceildiv(end - begin, subgroup_size);
     for (IndexType step = 0; step < num_steps; ++step) {
-        auto idx = begin + lane + step * subwarp_size;
+        auto idx = begin + lane + step * subgroup_size;
         auto keep = idx < end && pred(idx, begin, end);
         auto mask = subwarp.ballot(keep);
         step_cb(row, idx, keep, popcnt(mask), popcnt(mask & lane_prefix_mask));
@@ -64,13 +64,13 @@ void abstract_filter_impl(const IndexType* row_ptrs, IndexType num_rows,
 }
 
 
-template <int subwarp_size, typename Predicate, typename IndexType>
+template <int subgroup_size, typename Predicate, typename IndexType>
 void abstract_filter_nnz(const IndexType* __restrict__ row_ptrs,
                          IndexType num_rows, Predicate pred,
                          IndexType* __restrict__ nnz, sycl::nd_item<3> item_ct1)
 {
     IndexType count{};
-    abstract_filter_impl<subwarp_size>(
+    abstract_filter_impl<subgroup_size>(
         row_ptrs, num_rows, pred, [&](IndexType) { count = 0; },
         [&](IndexType, IndexType, bool, IndexType warp_count, IndexType) {
             count += warp_count;
@@ -84,7 +84,7 @@ void abstract_filter_nnz(const IndexType* __restrict__ row_ptrs,
 }
 
 
-template <int subwarp_size, typename Predicate, typename IndexType,
+template <int subgroup_size, typename Predicate, typename IndexType,
           typename ValueType>
 void abstract_filter(const IndexType* __restrict__ old_row_ptrs,
                      const IndexType* __restrict__ old_col_idxs,
@@ -97,7 +97,7 @@ void abstract_filter(const IndexType* __restrict__ old_row_ptrs,
 {
     IndexType count{};
     IndexType new_offset{};
-    abstract_filter_impl<subwarp_size>(
+    abstract_filter_impl<subgroup_size>(
         old_row_ptrs, num_rows, pred,
         [&](IndexType row) {
             new_offset = new_row_ptrs[row];
@@ -119,14 +119,14 @@ void abstract_filter(const IndexType* __restrict__ old_row_ptrs,
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void threshold_filter_nnz(const IndexType* __restrict__ row_ptrs,
                           const ValueType* vals, IndexType num_rows,
                           remove_complex<ValueType> threshold,
                           IndexType* __restrict__ nnz, bool lower,
                           sycl::nd_item<3> item_ct1)
 {
-    abstract_filter_nnz<subwarp_size>(
+    abstract_filter_nnz<subgroup_size>(
         row_ptrs, num_rows,
         [&](IndexType idx, IndexType row_begin, IndexType row_end) {
             auto diag_idx = lower ? row_end - 1 : row_begin;
@@ -135,7 +135,7 @@ void threshold_filter_nnz(const IndexType* __restrict__ row_ptrs,
         nnz, item_ct1);
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void threshold_filter_nnz(dim3 grid, dim3 block,
                           size_type dynamic_shared_memory, sycl::queue* queue,
                           const IndexType* row_ptrs, const ValueType* vals,
@@ -145,14 +145,14 @@ void threshold_filter_nnz(dim3 grid, dim3 block,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            threshold_filter_nnz<subwarp_size>(row_ptrs, vals, num_rows,
-                                               threshold, nnz, lower, item_ct1);
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            threshold_filter_nnz<subgroup_size>(
+                row_ptrs, vals, num_rows, threshold, nnz, lower, item_ct1);
         });
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void threshold_filter(const IndexType* __restrict__ old_row_ptrs,
                       const IndexType* __restrict__ old_col_idxs,
                       const ValueType* __restrict__ old_vals,
@@ -163,7 +163,7 @@ void threshold_filter(const IndexType* __restrict__ old_row_ptrs,
                       ValueType* __restrict__ new_vals, bool lower,
                       sycl::nd_item<3> item_ct1)
 {
-    abstract_filter<subwarp_size>(
+    abstract_filter<subgroup_size>(
         old_row_ptrs, old_col_idxs, old_vals, num_rows,
         [&](IndexType idx, IndexType row_begin, IndexType row_end) {
             auto diag_idx = lower ? row_end - 1 : row_begin;
@@ -172,7 +172,7 @@ void threshold_filter(const IndexType* __restrict__ old_row_ptrs,
         new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void threshold_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       sycl::queue* queue, const IndexType* old_row_ptrs,
                       const IndexType* old_col_idxs, const ValueType* old_vals,
@@ -182,22 +182,22 @@ void threshold_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            threshold_filter<subwarp_size>(old_row_ptrs, old_col_idxs, old_vals,
-                                           num_rows, threshold, new_row_ptrs,
-                                           new_row_idxs, new_col_idxs, new_vals,
-                                           lower, item_ct1);
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            threshold_filter<subgroup_size>(
+                old_row_ptrs, old_col_idxs, old_vals, num_rows, threshold,
+                new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, lower,
+                item_ct1);
         });
 }
 
 
-template <int subwarp_size, typename IndexType, typename BucketType>
+template <int subgroup_size, typename IndexType, typename BucketType>
 void bucket_filter_nnz(const IndexType* __restrict__ row_ptrs,
                        const BucketType* buckets, IndexType num_rows,
                        BucketType bucket, IndexType* __restrict__ nnz,
                        sycl::nd_item<3> item_ct1)
 {
-    abstract_filter_nnz<subwarp_size>(
+    abstract_filter_nnz<subgroup_size>(
         row_ptrs, num_rows,
         [&](IndexType idx, IndexType row_begin, IndexType row_end) {
             return buckets[idx] >= bucket || idx == row_end - 1;
@@ -205,7 +205,7 @@ void bucket_filter_nnz(const IndexType* __restrict__ row_ptrs,
         nnz, item_ct1);
 }
 
-template <int subwarp_size, typename IndexType, typename BucketType>
+template <int subgroup_size, typename IndexType, typename BucketType>
 void bucket_filter_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        sycl::queue* queue, const IndexType* row_ptrs,
                        const BucketType* buckets, IndexType num_rows,
@@ -213,14 +213,14 @@ void bucket_filter_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            bucket_filter_nnz<subwarp_size>(row_ptrs, buckets, num_rows, bucket,
-                                            nnz, item_ct1);
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            bucket_filter_nnz<subgroup_size>(row_ptrs, buckets, num_rows,
+                                             bucket, nnz, item_ct1);
         });
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType,
+template <int subgroup_size, typename ValueType, typename IndexType,
           typename BucketType>
 void bucket_filter(const IndexType* __restrict__ old_row_ptrs,
                    const IndexType* __restrict__ old_col_idxs,
@@ -232,7 +232,7 @@ void bucket_filter(const IndexType* __restrict__ old_row_ptrs,
                    IndexType* __restrict__ new_col_idxs,
                    ValueType* __restrict__ new_vals, sycl::nd_item<3> item_ct1)
 {
-    abstract_filter<subwarp_size>(
+    abstract_filter<subgroup_size>(
         old_row_ptrs, old_col_idxs, old_vals, num_rows,
         [&](IndexType idx, IndexType row_begin, IndexType row_end) {
             return buckets[idx] >= bucket || idx == row_end - 1;
@@ -240,7 +240,7 @@ void bucket_filter(const IndexType* __restrict__ old_row_ptrs,
         new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType,
+template <int subgroup_size, typename ValueType, typename IndexType,
           typename BucketType>
 void bucket_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    sycl::queue* queue, const IndexType* old_row_ptrs,
@@ -252,8 +252,8 @@ void bucket_filter(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            bucket_filter<subwarp_size>(
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            bucket_filter<subgroup_size>(
                 old_row_ptrs, old_col_idxs, old_vals, buckets, num_rows, bucket,
                 new_row_ptrs, new_row_idxs, new_col_idxs, new_vals, item_ct1);
         });

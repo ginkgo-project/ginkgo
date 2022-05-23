@@ -94,6 +94,8 @@ void compute_l_u_factors(size_type num_elements,
             u_idx += (u_col <= l_col);
         }
         sum += last_operation;  // undo the last operation
+        // TODO: It may be simplified since last_operation is the one that picks
+        // up a diagonal entry from L or U.
         if (row > col) {
             auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
             if (is_finite(to_write)) {

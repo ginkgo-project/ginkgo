@@ -82,7 +82,7 @@ using compiled_kernels = syn::value_list<int, 1, 8, 16, 32>;
 namespace kernel {
 
 
-template <int subwarp_size, typename IndexType>
+template <int subgroup_size, typename IndexType>
 void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
                         const IndexType* __restrict__ llh_col_idxs,
                         const IndexType* __restrict__ a_row_ptrs,
@@ -90,9 +90,9 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
                         IndexType* __restrict__ l_new_row_ptrs,
                         IndexType num_rows, sycl::nd_item<3> item_ct1)
 {
-    auto subwarp = group::tiled_partition<subwarp_size>(
+    auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto row = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (row >= num_rows) {
         return;
     }
@@ -102,7 +102,7 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
     auto a_begin = a_row_ptrs[row];
     auto a_size = a_row_ptrs[row + 1] - a_begin;
     IndexType count{};
-    group_merge<subwarp_size>(
+    group_merge<subgroup_size>(
         a_col_idxs + a_begin, a_size, llh_col_idxs + llh_begin, llh_size,
         subwarp,
         [&](IndexType a_nz, IndexType a_col, IndexType llh_nz,
@@ -118,7 +118,7 @@ void ict_tri_spgeam_nnz(const IndexType* __restrict__ llh_row_ptrs,
     }
 }
 
-template <int subwarp_size, typename IndexType>
+template <int subgroup_size, typename IndexType>
 void ict_tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         sycl::queue* queue, const IndexType* llh_row_ptrs,
                         const IndexType* llh_col_idxs,
@@ -128,15 +128,15 @@ void ict_tri_spgeam_nnz(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            ict_tri_spgeam_nnz<subwarp_size>(
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            ict_tri_spgeam_nnz<subgroup_size>(
                 llh_row_ptrs, llh_col_idxs, a_row_ptrs, a_col_idxs,
                 l_new_row_ptrs, num_rows, item_ct1);
         });
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
                          const IndexType* __restrict__ llh_col_idxs,
                          const ValueType* __restrict__ llh_vals,
@@ -151,9 +151,9 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
                          ValueType* __restrict__ l_new_vals, IndexType num_rows,
                          sycl::nd_item<3> item_ct1)
 {
-    auto subwarp = group::tiled_partition<subwarp_size>(
+    auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
-    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto row = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (row >= num_rows) {
         return;
     }
@@ -193,7 +193,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
     while (out_begin < out_size) {
         // merge subwarp.size() elements from A and L*L^H
         auto merge_result =
-            group_merge_step<subwarp_size>(a_col, llh_col, subwarp);
+            group_merge_step<subgroup_size>(a_col, llh_col, subwarp);
         auto a_cur_col = merge_result.a_val;
         auto llh_cur_col = merge_result.b_val;
         auto a_cur_val = subwarp.shfl(a_val, merge_result.a_idx);
@@ -202,13 +202,13 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
         // check if the previous thread has matching columns
         auto equal_mask = subwarp.ballot(a_cur_col == llh_cur_col && valid);
         auto prev_equal_mask = equal_mask << 1 | skip_first;
-        skip_first = bool(equal_mask >> (subwarp_size - 1));
+        skip_first = bool(equal_mask >> (subgroup_size - 1));
         auto prev_equal = bool(prev_equal_mask & lanemask_eq);
 
         auto r_col = min(a_cur_col, llh_cur_col);
         // find matching entry of L
         // S(L) is a subset of S(A - L * L^H) since L has a diagonal
-        auto l_source = synchronous_fixed_binary_search<subwarp_size>(
+        auto l_source = synchronous_fixed_binary_search<subgroup_size>(
             [&](int i) { return subwarp.shfl(l_col, i) >= r_col; });
         auto l_cur_col = subwarp.shfl(l_col, l_source);
         auto l_cur_val = subwarp.shfl(l_val, l_source);
@@ -249,7 +249,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
         llh_begin += llh_advance;
         l_begin += l_advance;
         l_new_begin += l_new_advance;
-        out_begin += subwarp_size;
+        out_begin += subgroup_size;
 
         // shuffle the unmerged elements to the front
         a_col = subwarp.shfl_down(a_col, a_advance);
@@ -291,7 +291,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
             llh_val = loaded_val;
         }
         // load the new values for l
-        if (lane >= subwarp_size - l_advance) {
+        if (lane >= subgroup_size - l_advance) {
             auto l_idx = l_begin + lane;
             l_col = checked_load(l_col_idxs, l_idx, l_end, sentinel);
             l_val = checked_load(l_vals, l_idx, l_end, zero<ValueType>());
@@ -299,7 +299,7 @@ void ict_tri_spgeam_init(const IndexType* __restrict__ llh_row_ptrs,
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                          sycl::queue* queue, const IndexType* llh_row_ptrs,
                          const IndexType* llh_col_idxs,
@@ -313,8 +313,8 @@ void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            ict_tri_spgeam_init<subwarp_size>(
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            ict_tri_spgeam_init<subgroup_size>(
                 llh_row_ptrs, llh_col_idxs, llh_vals, a_row_ptrs, a_col_idxs,
                 a_vals, l_row_ptrs, l_col_idxs, l_vals, l_new_row_ptrs,
                 l_new_col_idxs, l_new_vals, num_rows, item_ct1);
@@ -326,7 +326,7 @@ void ict_tri_spgeam_init(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 namespace kernel {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
                const IndexType* __restrict__ a_col_idxs,
                const ValueType* __restrict__ a_vals,
@@ -336,13 +336,13 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
                ValueType* __restrict__ l_vals, IndexType l_nnz,
                sycl::nd_item<3> item_ct1)
 {
-    auto l_nz = thread::get_subwarp_id_flat<subwarp_size, IndexType>(item_ct1);
+    auto l_nz = thread::get_subwarp_id_flat<subgroup_size, IndexType>(item_ct1);
     if (l_nz >= l_nnz) {
         return;
     }
     auto row = l_row_idxs[l_nz];
     auto col = l_col_idxs[l_nz];
-    auto subwarp = group::tiled_partition<subwarp_size>(
+    auto subwarp = group::tiled_partition<subgroup_size>(
         group::this_thread_block(item_ct1));
     // find entry of A at (row, col)
     auto a_row_begin = a_row_ptrs[row];
@@ -360,7 +360,7 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
     ValueType sum{};
     IndexType lh_nz{};
     auto last_entry = col;
-    group_merge<subwarp_size>(
+    group_merge<subgroup_size>(
         l_col_idxs + l_row_begin, l_row_size, l_col_idxs + lh_col_begin,
         lh_col_size, subwarp,
         [&](IndexType l_idx, IndexType l_col, IndexType lh_idx,
@@ -393,7 +393,7 @@ void ict_sweep(const IndexType* __restrict__ a_row_ptrs,
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subgroup_size, typename ValueType, typename IndexType>
 void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                sycl::queue* queue, const IndexType* a_row_ptrs,
                const IndexType* a_col_idxs, const ValueType* a_vals,
@@ -402,10 +402,10 @@ void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->parallel_for(
         sycl_nd_range(grid, block), [=
-    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
-            ict_sweep<subwarp_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
-                                    l_row_idxs, l_col_idxs, l_vals, l_nnz,
-                                    item_ct1);
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subgroup_size)]] {
+            ict_sweep<subgroup_size>(a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
+                                     l_row_idxs, l_col_idxs, l_vals, l_nnz,
+                                     item_ct1);
         });
 }
 
@@ -416,8 +416,8 @@ void ict_sweep(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 namespace {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void add_candidates(syn::value_list<int, subwarp_size>,
+template <int subgroup_size, typename ValueType, typename IndexType>
+void add_candidates(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* llh,
                     const matrix::Csr<ValueType, IndexType>* a,
@@ -425,7 +425,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
                     matrix::Csr<ValueType, IndexType>* l_new)
 {
     auto num_rows = static_cast<IndexType>(llh->get_size()[0]);
-    auto subwarps_per_block = default_block_size / subwarp_size;
+    auto subwarps_per_block = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
     matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
     auto llh_row_ptrs = llh->get_const_row_ptrs();
@@ -439,7 +439,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto l_vals = l->get_const_values();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     // count non-zeros per row
-    kernel::ict_tri_spgeam_nnz<subwarp_size>(
+    kernel::ict_tri_spgeam_nnz<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), llh_row_ptrs,
         llh_col_idxs, a_row_ptrs, a_col_idxs, l_new_row_ptrs, num_rows);
 
@@ -455,7 +455,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto l_new_vals = l_new->get_values();
 
     // fill columns and values
-    kernel::ict_tri_spgeam_init<subwarp_size>(
+    kernel::ict_tri_spgeam_init<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), llh_row_ptrs,
         llh_col_idxs, llh_vals, a_row_ptrs, a_col_idxs, a_vals, l_row_ptrs,
         l_col_idxs, l_vals, l_new_row_ptrs, l_new_col_idxs, l_new_vals,
@@ -466,17 +466,17 @@ void add_candidates(syn::value_list<int, subwarp_size>,
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_factor(syn::value_list<int, subwarp_size>,
+template <int subgroup_size, typename ValueType, typename IndexType>
+void compute_factor(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     matrix::Csr<ValueType, IndexType>* l,
                     const matrix::Coo<ValueType, IndexType>* l_coo)
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements());
-    auto block_size = default_block_size / subwarp_size;
+    auto block_size = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
-    kernel::ict_sweep<subwarp_size>(
+    kernel::ict_sweep<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(),
         a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
         l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
@@ -504,9 +504,9 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     auto total_nnz_per_row = total_nnz / num_rows;
     select_add_candidates(
         compiled_kernels(),
-        [&](int compiled_subwarp_size) {
-            return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+        [&](int compiled_subgroup_size) {
+            return total_nnz_per_row <= compiled_subgroup_size ||
+                   compiled_subgroup_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
 }
@@ -526,9 +526,9 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     auto total_nnz_per_row = total_nnz / num_rows;
     select_compute_factor(
         compiled_kernels(),
-        [&](int compiled_subwarp_size) {
-            return total_nnz_per_row <= compiled_subwarp_size ||
-                   compiled_subwarp_size == config::warp_size;
+        [&](int compiled_subgroup_size) {
+            return total_nnz_per_row <= compiled_subgroup_size ||
+                   compiled_subgroup_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo);
 }
