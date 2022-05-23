@@ -93,7 +93,7 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     vector<bool> visited_local(num_vertices, false, exec);
 
     // This stores a reordering in bfs order, starting with the root node.
-    Array<IndexType> rls(exec, num_vertices);
+    array<IndexType> rls(exec, num_vertices);
     auto rls_p = rls.get_data();
     rls_p[0] = root;
     IndexType rls_offset = 1;
@@ -232,7 +232,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                      const gko::reorder::starting_strategy strategy)
 {
     // Storing vertices left to proceess.
-    Array<IndexType> linear_queue(exec, num_vertices);
+    array<IndexType> linear_queue(exec, num_vertices);
     auto linear_queue_p = linear_queue.get_data();
     IndexType head_offset = 0;
     IndexType tail_offset = 0;

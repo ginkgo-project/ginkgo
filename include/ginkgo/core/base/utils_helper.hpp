@@ -202,7 +202,8 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
  * @tparam OwningPointer  type of pointer with ownership to the object
  *                        (has to be a smart pointer)
  *
- * @param p  a pointer to the object
+ * @param p  a pointer to the object. It must be a temporary or explicitly
+ *           marked movable (rvalue reference).
  *
  * @note The original pointer `p` becomes invalid after this call.
  */
@@ -211,6 +212,8 @@ inline detail::shared_type<OwningPointer> share(OwningPointer&& p)
 {
     static_assert(detail::have_ownership<OwningPointer>(),
                   "OwningPointer does not have ownership of the object");
+    static_assert(std::is_rvalue_reference<decltype(p)>::value,
+                  "p must be an rvalue for this function to work");
     return detail::shared_type<OwningPointer>(std::move(p));
 }
 

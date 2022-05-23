@@ -651,4 +651,131 @@ TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
 }
 
 
+struct DummyLogger : public gko::log::Logger {
+    DummyLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(std::move(exec),
+                           gko::log::Logger::executor_events_mask |
+                               gko::log::Logger::operation_events_mask)
+    {}
+
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        allocation_started++;
+    }
+    void on_allocation_completed(const gko::Executor* exec,
+                                 const gko::size_type& num_bytes,
+                                 const gko::uintptr& location) const override
+    {
+        allocation_completed++;
+    }
+
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr& location) const override
+    {
+        free_started++;
+    }
+
+
+    void on_free_completed(const gko::Executor* exec,
+                           const gko::uintptr& location) const override
+    {
+        free_completed++;
+    }
+
+    void on_copy_started(const gko::Executor* exec_from,
+                         const gko::Executor* exec_to,
+                         const gko::uintptr& loc_from,
+                         const gko::uintptr& loc_to,
+                         const gko::size_type& num_bytes) const override
+    {
+        copy_started++;
+    }
+
+    void on_copy_completed(const gko::Executor* exec_from,
+                           const gko::Executor* exec_to,
+                           const gko::uintptr& loc_from,
+                           const gko::uintptr& loc_to,
+                           const gko::size_type& num_bytes) const override
+    {
+        copy_completed++;
+    }
+
+    void on_operation_launched(const gko::Executor* exec,
+                               const gko::Operation* op) const override
+    {
+        operation_launched++;
+    }
+
+
+    void on_operation_completed(const gko::Executor* exec,
+                                const gko::Operation* op) const override
+    {
+        operation_completed++;
+    }
+
+    mutable int allocation_started = 0;
+    mutable int allocation_completed = 0;
+    mutable int free_started = 0;
+    mutable int free_completed = 0;
+    mutable int copy_started = 0;
+    mutable int copy_completed = 0;
+    mutable int operation_launched = 0;
+    mutable int operation_completed = 0;
+};
+
+
+class ExecutorLogging : public ::testing::Test {
+protected:
+    ExecutorLogging()
+        : exec(gko::ReferenceExecutor::create()),
+          logger(std::make_shared<DummyLogger>(exec))
+    {
+        exec->add_logger(logger);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> exec;
+    std::shared_ptr<DummyLogger> logger;
+};
+
+
+TEST_F(ExecutorLogging, LogsAllocationAndFree)
+{
+    auto before_logger = *logger;
+
+    auto p = exec->alloc<int>(1);
+    exec->free(p);
+
+    ASSERT_EQ(logger->allocation_started, before_logger.allocation_started + 1);
+    ASSERT_EQ(logger->allocation_completed,
+              before_logger.allocation_completed + 1);
+    ASSERT_EQ(logger->free_started, before_logger.free_started + 1);
+    ASSERT_EQ(logger->free_completed, before_logger.free_completed + 1);
+}
+
+
+TEST_F(ExecutorLogging, LogsCopy)
+{
+    auto before_logger = *logger;
+
+    exec->copy<std::nullptr_t>(0, nullptr, nullptr);
+
+    ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
+    ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
+}
+
+
+TEST_F(ExecutorLogging, LogsOperation)
+{
+    auto before_logger = *logger;
+    int value = 0;
+
+    exec->run(ExampleOperation(value));
+
+    ASSERT_EQ(logger->operation_launched, before_logger.operation_launched + 1);
+    ASSERT_EQ(logger->operation_completed,
+              before_logger.operation_completed + 1);
+}
+
+
 }  // namespace

@@ -125,7 +125,7 @@ protected:
         small_z2 = small_zero->clone();
         small_p2 = small_zero->clone();
         small_q2 = small_zero->clone();
-        small_stop = gko::Array<gko::stopping_status>(exec, small_size[1]);
+        small_stop = gko::array<gko::stopping_status>(exec, small_size[1]);
         stopped.stop(1);
         non_stopped.reset();
         std::fill_n(small_stop.get_data(), small_stop.get_num_elems(),
@@ -151,7 +151,7 @@ protected:
     std::unique_ptr<Mtx> small_z2;
     std::unique_ptr<Mtx> small_p2;
     std::unique_ptr<Mtx> small_q2;
-    gko::Array<gko::stopping_status> small_stop;
+    gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status non_stopped;
     std::unique_ptr<typename Solver::Factory> bicg_factory;

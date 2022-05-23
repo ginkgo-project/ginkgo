@@ -48,7 +48,7 @@ namespace ir {
 
 
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                Array<stopping_status>* stop_status)
+                array<stopping_status>* stop_status)
 {
     run_kernel(
         exec, [] GKO_KERNEL(auto i, auto stop) { stop[i].reset(); },

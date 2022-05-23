@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
-#define GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
+#ifndef GKO_CORE_UTILS_MATRIX_UTILS_HPP_
+#define GKO_CORE_UTILS_MATRIX_UTILS_HPP_
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -39,116 +39,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/value_generator.hpp"
-
-
 namespace gko {
-namespace test {
+namespace utils {
 
 
 /**
- * Make a symmetric matrix
+ * Removes all strictly upper triangular entries from the given matrix data.
  *
- * @tparam ValueType  valuetype of Dense matrix to process
+ * @param data  the matrix data
  *
- * @param mtx  the dense matrix
+ * @tparam ValueType  the value type
+ * @tparam IndexType  the index type
  */
-template <typename ValueType>
-void make_symmetric(matrix::Dense<ValueType>* mtx)
+template <typename ValueType, typename IndexType>
+void make_lower_triangular(matrix_data<ValueType, IndexType>& data)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
-    auto mtx_host =
-        make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-
-    for (size_type i = 0; i < mtx_host->get_size()[0]; ++i) {
-        for (size_type j = i + 1; j < mtx_host->get_size()[1]; ++j) {
-            mtx_host->at(i, j) = mtx_host->at(j, i);
-        }
-    }
+    data.nonzeros.erase(
+        std::remove_if(data.nonzeros.begin(), data.nonzeros.end(),
+                       [](auto entry) { return entry.row < entry.column; }),
+        data.nonzeros.end());
 }
 
 
 /**
- * Make a hermitian matrix
+ * Removes all strictly lower triangular entries from the given matrix data.
  *
- * @tparam ValueType  valuetype of Dense matrix to process
+ * @param data  the matrix data
  *
- * @param mtx  the dense matrix
+ * @tparam ValueType  the value type
+ * @tparam IndexType  the index type
  */
-template <typename ValueType>
-void make_hermitian(matrix::Dense<ValueType>* mtx)
+template <typename ValueType, typename IndexType>
+void make_upper_triangular(matrix_data<ValueType, IndexType>& data)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
-    auto mtx_host =
-        make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-
-    for (size_type i = 0; i < mtx_host->get_size()[0]; ++i) {
-        for (size_type j = i + 1; j < mtx_host->get_size()[1]; ++j) {
-            mtx_host->at(i, j) = conj(mtx_host->at(j, i));
-        }
-        mtx_host->at(i, i) = gko::real(mtx_host->at(i, i));
-    }
-}
-
-
-/**
- * Make a (strictly) diagonal dominant matrix. It will set the diag value from
- * the summation among the absoulue value of the row's elements. When ratio is
- * larger than 1, the result will be strictly diagonal dominant matrix except
- * for the empty row. When ratio is 1, the result will be diagonal dominant
- * matrix.
- *
- * @tparam ValueType  valuetype of Dense matrix to process
- *
- * @param mtx  the dense matrix
- * @param ratio  the scale to set the diagonal value. default is 1 and it must
- *               be larger than or equal to 1.
- */
-template <typename ValueType>
-void make_diag_dominant(matrix::Dense<ValueType>* mtx,
-                        remove_complex<ValueType> ratio = 1.0)
-{
-    // To keep the diag dominant, the ratio should be larger than or equal to 1
-    GKO_ASSERT_EQ(ratio >= 1.0, true);
-    auto mtx_host =
-        make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-
-    using std::abs;
-    for (size_type i = 0; i < mtx_host->get_size()[0]; ++i) {
-        auto sum = gko::zero<ValueType>();
-        for (size_type j = 0; j < mtx_host->get_size()[1]; ++j) {
-            sum += abs(mtx_host->at(i, j));
-        }
-        mtx_host->at(i, i) = sum * ratio;
-    }
-}
-
-
-/**
- * Make a Hermitian postive definite matrix.
- *
- * @tparam ValueType  valuetype of Dense matrix to process
- *
- * @param mtx  the dense matrix
- * @param ratio  the ratio for make_diag_dominant. default is 1.001 and it must
- *               be larger than 1.
- */
-template <typename ValueType>
-void make_hpd(matrix::Dense<ValueType>* mtx,
-              remove_complex<ValueType> ratio = 1.001)
-{
-    GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
-    // To get strictly diagonally dominant matrix, the ratio should be larger
-    // than 1.
-    GKO_ASSERT_EQ(ratio > 1.0, true);
-
-    auto mtx_host =
-        make_temporary_clone(mtx->get_executor()->get_master(), mtx);
-    make_hermitian(mtx_host.get());
-    // Construct strictly diagonally dominant matrix to ensure positive
-    // definite. In complex case, the diagonal is set as absolute value and is
-    // larger than 0, so it still gives positive definite.
-    make_diag_dominant(mtx_host.get(), ratio);
+    data.nonzeros.erase(
+        std::remove_if(data.nonzeros.begin(), data.nonzeros.end(),
+                       [](auto entry) { return entry.row > entry.column; }),
+        data.nonzeros.end());
 }
 
 
@@ -184,7 +111,7 @@ void make_unit_diagonal(matrix_data<ValueType, IndexType>& data)
     make_remove_diagonal(data);
     auto num_diags = std::min(data.size[0], data.size[1]);
     for (gko::int64 i = 0; i < num_diags; i++) {
-        data.nonzeros.emplace_back(i, i, 1.0);
+        data.nonzeros.emplace_back(i, i, one<ValueType>());
     }
     data.ensure_row_major_order();
 }
@@ -274,6 +201,10 @@ void make_diag_dominant(matrix_data<ValueType, IndexType>& data,
         i++;
     }
     for (i = 0; i < data.size[0]; i++) {
+        if (norms[i] == zero<ValueType>()) {
+            // make sure empty rows don't make the matrix singular
+            norms[i] = one<remove_complex<ValueType>>();
+        }
         if (diag_positions[i] < 0) {
             data.nonzeros.emplace_back(i, i, norms[i] * ratio);
         } else {
@@ -380,7 +311,7 @@ void ensure_all_diagonal_entries(MtxType* const mtx)
 }
 
 
-}  // namespace test
+}  // namespace utils
 }  // namespace gko
 
-#endif  // GKO_CORE_TEST_UTILS_MATRIX_UTILS_HPP_
+#endif  // GKO_CORE_UTILS_MATRIX_UTILS_HPP_

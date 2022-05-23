@@ -193,10 +193,10 @@ template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::Dense<ValueType>* x,
                           const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result)
+                          matrix::Dense<ValueType>* result, array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
-    compute_dot(exec, x, y, result);
+    compute_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -207,10 +207,11 @@ template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                                const matrix::Dense<ValueType>* x,
                                const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result)
+                               matrix::Dense<ValueType>* result,
+                               array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
-    compute_conj_dot(exec, x, y, result);
+    compute_conj_dot(exec, x, y, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -220,10 +221,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result)
+                            matrix::Dense<remove_complex<ValueType>>* result,
+                            array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
-    compute_norm2(exec, x, result);
+    compute_norm2(exec, x, result, tmp);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -369,7 +371,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; col_idx < max_nnz_per_row; col_idx++) {
-                cols[col_idx * stride + row] = 0;
+                cols[col_idx * stride + row] = invalid_index<IndexType>();
                 vals[col_idx * stride + row] = zero<ValueType>();
             }
         });
@@ -435,7 +437,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
             }
             for (; ell_count < ell_lim; ell_count++) {
                 ell_vals[ell_idx] = zero<ValueType>();
-                ell_cols[ell_idx] = 0;
+                ell_cols[ell_idx] = invalid_index<IndexType>();
                 ell_idx += ell_stride;
             }
             auto coo_idx = coo_row_ptrs[row];
@@ -488,7 +490,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             for (; out_idx < slice_end; out_idx += slice_size) {
-                col_idxs[out_idx] = 0;
+                col_idxs[out_idx] = invalid_index<IndexType>();
                 vals[out_idx] = zero<ValueType>();
             }
         });

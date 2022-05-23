@@ -66,6 +66,9 @@ class Hybrid;
  * fashion. The columns are padded to the length by user-defined stride
  * parameter whose default value is the number of rows of the matrix.
  *
+ * This implementation uses the column index value invalid_index<IndexType>()
+ * to mark padding entries that are not part of the sparsity pattern.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -257,8 +260,8 @@ public:
      */
     static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -268,6 +271,32 @@ public:
             gko::detail::array_const_cast(std::move(col_idxs)),
             num_stored_elements_per_row, stride});
     }
+
+    /**
+     * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
+     * matrix with minimal stride if the dimensions don't match, then copies the
+     * data over, ignoring padding.
+     */
+    Ell& operator=(const Ell&);
+
+    /**
+     * Move-assigns an Ell matrix. Preserves the executor, moves the data over
+     * preserving size and stride. Leaves the moved-from object in an empty
+     * state (0x0 with empty Array).
+     */
+    Ell& operator=(Ell&&);
+
+    /**
+     * Copy-constructs an Ell matrix. Inherits executor and dimensions, but
+     * copies data without padding.
+     */
+    Ell(const Ell&);
+
+    /**
+     * Move-constructs an Ell matrix. Inherits executor, dimensions and data
+     * with padding. The moved-from object is empty (0x0 with empty Array).
+     */
+    Ell(Ell&&);
 
 protected:
     /**
@@ -374,8 +403,8 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
     size_type num_stored_elements_per_row_;
     size_type stride_;
 };

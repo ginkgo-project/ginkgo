@@ -96,8 +96,8 @@ void residual_norm(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, Array<stopping_status>* stop_status,
-                   Array<bool>* device_storage, bool* all_converged,
+                   bool setFinalized, array<stopping_status>* stop_status,
+                   array<bool>* device_storage, bool* all_converged,
                    bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
@@ -143,13 +143,12 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
-        size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-        const ValueType* __restrict__ tau,
-        const remove_complex<ValueType>* __restrict__ orig_tau,
-        uint8 stoppingId, bool setFinalized,
-        stopping_status* __restrict__ stop_status,
-        bool* __restrict__ device_storage)
+__launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
+    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
+    const ValueType* __restrict__ tau,
+    const remove_complex<ValueType>* __restrict__ orig_tau, uint8 stoppingId,
+    bool setFinalized, stopping_status* __restrict__ stop_status,
+    bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
@@ -180,8 +179,8 @@ void implicit_residual_norm(
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, Array<stopping_status>* stop_status,
-    Array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    bool setFinalized, array<stopping_status>* stop_status,
+    array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     hipLaunchKernelGGL((init_kernel), 1, 1, 0, 0,
                        as_hip_type(device_storage->get_data()));

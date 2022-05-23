@@ -84,6 +84,52 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    const Hybrid& other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(other);
+        auto exec = this->get_executor();
+        *coo_ = *other.coo_;
+        *ell_ = *other.ell_;
+        strategy_ = other.strategy_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
+    Hybrid&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Hybrid>::operator=(std::move(other));
+        auto exec = this->get_executor();
+        *coo_ = std::move(*other.coo_);
+        *ell_ = std::move(*other.ell_);
+        strategy_ = other.strategy_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(const Hybrid& other)
+    : Hybrid(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
+    : Hybrid(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
@@ -163,8 +209,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
     const auto num_rows = this->get_size()[0];
     {
         auto tmp = make_temporary_clone(exec, result);
-        Array<IndexType> ell_row_ptrs{exec, num_rows + 1};
-        Array<IndexType> coo_row_ptrs{exec, num_rows + 1};
+        array<IndexType> ell_row_ptrs{exec, num_rows + 1};
+        array<IndexType> coo_row_ptrs{exec, num_rows + 1};
         exec->run(hybrid::make_ell_count_nonzeros_per_row(
             this->get_ell(), ell_row_ptrs.get_data()));
         exec->run(
@@ -212,11 +258,11 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
     const auto num_rows = data.get_size()[0];
     const auto num_cols = data.get_size()[1];
     auto local_data = make_temporary_clone(exec, &data);
-    Array<int64> row_ptrs{exec, num_rows + 1};
+    array<int64> row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_convert_idxs_to_ptrs(
         local_data->get_const_row_idxs(), local_data->get_num_elems(), num_rows,
         row_ptrs.get_data()));
-    Array<size_type> row_nnz{exec, data.get_size()[0]};
+    array<size_type> row_nnz{exec, data.get_size()[0]};
     exec->run(hybrid::make_compute_row_nnz(row_ptrs, row_nnz.get_data()));
     size_type ell_max_nnz{};
     size_type coo_nnz{};
@@ -226,7 +272,7 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
         // TODO remove temporary fix after ELL gains true structural zeros
         ell_max_nnz = num_cols;
     }
-    Array<int64> coo_row_ptrs{exec, num_rows + 1};
+    array<int64> coo_row_ptrs{exec, num_rows + 1};
     exec->run(hybrid::make_compute_coo_row_ptrs(row_nnz, ell_max_nnz,
                                                 coo_row_ptrs.get_data()));
     coo_nnz = exec->copy_val_to_host(coo_row_ptrs.get_const_data() + num_rows);
@@ -269,8 +315,8 @@ void Hybrid<ValueType, IndexType>::write(mat_data& data) const
         for (size_type i = 0; i < tmp->get_ell_num_stored_elements_per_row();
              ++i) {
             const auto val = tmp->ell_val_at(row, i);
-            if (is_nonzero(val)) {
-                const auto col = tmp->ell_col_at(row, i);
+            const auto col = tmp->ell_col_at(row, i);
+            if (col != invalid_index<IndexType>()) {
                 data.nonzeros.emplace_back(row, col, val);
             }
         }

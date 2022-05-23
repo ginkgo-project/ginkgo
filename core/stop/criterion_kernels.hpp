@@ -50,7 +50,7 @@ namespace set_all_statuses {
 #define GKO_DECLARE_SET_ALL_STATUSES_KERNEL                            \
     void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec, \
                           uint8 stoppingId, bool setFinalized,         \
-                          Array<stopping_status>* stop_status)
+                          array<stopping_status>* stop_status)
 
 
 }  // namespace set_all_statuses

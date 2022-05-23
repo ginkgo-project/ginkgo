@@ -55,6 +55,10 @@ namespace gko {
  * * zero if `op_k` is rectangular
  * as an initial guess.
  *
+ * Composition ensures that all LinOps passed to its constructor use the same
+ * executor, and if not, copies the operators to the executor of the first
+ * operator.
+ *
  * @tparam ValueType  precision of input and result vectors
  *
  * @ingroup LinOp
@@ -75,8 +79,8 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept
     {
         return operators_;
     }
@@ -85,7 +89,52 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Copy-assigns a Composition. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor.
+     */
+    Composition& operator=(const Composition&);
+
+    /**
+     * Move-assigns a Composition. The executor is not modified, and the
+     * wrapped LinOps are only being cloned if they are on a different executor,
+     * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
+     * without operators) afterwards.
+     */
+    Composition& operator=(Composition&&);
+
+    /**
+     * Copy-constructs a Composition. This inherits the executor of the input
+     * Composition and all of its operators with shared ownership.
+     */
+    Composition(const Composition&);
+
+    /**
+     * Move-constructs a Composition. This inherits the executor of the input
+     * Composition and all of its operators. The moved-from object is empty (0x0
+     * LinOp without operators) afterwards.
+     */
+    Composition(Composition&&);
+
 protected:
+    void add_operators() {}
+
+    template <typename... Rest>
+    void add_operators(std::shared_ptr<const LinOp> oper, Rest&&... rest)
+    {
+        if (!operators_.empty()) {
+            GKO_ASSERT_CONFORMANT(this, oper);
+        }
+        auto exec = this->get_executor();
+        operators_.push_back(std::move(oper));
+        if (operators_.back()->get_executor() != exec) {
+            operators_.back() = gko::clone(exec, operators_.back());
+        }
+        this->set_size(dim<2>{operators_.front()->get_size()[0],
+                              operators_.back()->get_size()[1]});
+        add_operators(std::forward<Rest>(rest)...);
+    }
+
     /**
      * Creates an empty operator composition (0x0 operator).
      *
@@ -99,7 +148,7 @@ protected:
      * Creates a composition of operators using the operators in a range.
      *
      * @tparam Iterator  a class representing iterators over the
-     *                  perators of the linear combination
+     *                   operators of the composition
      *
      * @param begin  iterator pointing to the first operator
      * @param end  iterator pointing behind the last operator
@@ -114,13 +163,10 @@ protected:
               }
               return (*begin)->get_executor();
           }()),
-          storage_{(*begin)->get_executor()},
-          operators_(begin, end)
+          storage_{this->get_executor()}
     {
-        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
-                                   operators_.back()->get_size()[1]});
-        for (size_type i = 1; i < operators_.size(); ++i) {
-            GKO_ASSERT_CONFORMANT(operators_[i - 1], operators_[i]);
+        for (auto it = begin; it != end; ++it) {
+            add_operators(*it);
         }
     }
 
@@ -134,27 +180,10 @@ protected:
      */
     template <typename... Rest>
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest&&... rest)
-        : Composition(std::forward<Rest>(rest)...)
+        : Composition(oper->get_executor())
     {
-        GKO_ASSERT_CONFORMANT(oper, operators_[0]);
-        operators_.insert(begin(operators_), oper);
-        this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
-                                   operators_.back()->get_size()[1]});
+        add_operators(std::move(oper), std::forward<Rest>(rest)...);
     }
-
-    /**
-     * Creates a composition of operators using the specified list of operators.
-     *
-     * @param oper  the first operator
-     *
-     * @note this is the base case of the template constructor
-     *       Composition(std::shared_ptr<const LinOp>, Rest &&...)
-     */
-    explicit Composition(std::shared_ptr<const LinOp> oper)
-        : EnableLinOp<Composition>(oper->get_executor(), oper->get_size()),
-          operators_{oper},
-          storage_{oper->get_executor()}
-    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -163,7 +192,7 @@ protected:
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
-    mutable Array<ValueType> storage_;
+    mutable array<ValueType> storage_;
 };
 
 

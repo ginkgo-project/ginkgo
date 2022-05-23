@@ -43,17 +43,17 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The IndexSet namespace.
+ * @brief The index_set namespace.
  *
  * @ingroup index_set
  */
-namespace index_set {
+namespace idx_set {
 
 
 template <typename IndexType>
 void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
-                      const Array<IndexType>* local_indices,
-                      Array<bool>* validity_array)
+                      const array<IndexType>* local_indices,
+                      array<bool>* validity_array)
 {
     run_kernel(
         exec,
@@ -68,7 +68,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL);
 
 
-}  // namespace index_set
+}  // namespace idx_set
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

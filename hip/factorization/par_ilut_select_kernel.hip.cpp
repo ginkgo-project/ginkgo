@@ -90,8 +90,8 @@ void sampleselect_filter(const ValueType* values, IndexType size,
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
-                      IndexType rank, Array<ValueType>& tmp1,
-                      Array<remove_complex<ValueType>>& tmp2,
+                      IndexType rank, array<ValueType>& tmp1,
+                      array<remove_complex<ValueType>>& tmp2,
                       remove_complex<ValueType>& threshold)
 {
     auto values = m->get_const_values();
@@ -161,9 +161,9 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         // 256^5 = 2^40. fall back to standard library algorithm in that case.
         ++step;
         if (step > 5) {
-            Array<AbsType> cpu_out_array{
+            array<AbsType> cpu_out_array{
                 exec->get_master(),
-                Array<AbsType>::view(exec, bucket.size, tmp_out)};
+                make_array_view(exec, bucket.size, tmp_out)};
             auto begin = cpu_out_array.get_data();
             auto end = begin + bucket.size;
             auto middle = begin + rank;

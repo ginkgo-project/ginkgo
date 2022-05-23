@@ -138,6 +138,14 @@ public:
         const Executor* exec, const PolymorphicObject* from,
         const PolymorphicObject* to) const override;
 
+    void on_polymorphic_object_move_started(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
+    void on_polymorphic_object_move_completed(
+        const Executor* exec, const PolymorphicObject* from,
+        const PolymorphicObject* to) const override;
+
     void on_polymorphic_object_deleted(
         const Executor* exec, const PolymorphicObject* po) const override;
 
@@ -168,7 +176,7 @@ public:
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* solutino, const uint8& stopping_id,
-        const bool& set_finalized, const Array<stopping_status>* status,
+        const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
@@ -291,6 +299,10 @@ private:
         &papi_handle, "polymorphic_object_copy_started"};
     mutable papi_queue<Executor> polymorphic_object_copy_completed{
         &papi_handle, "polymorphic_object_copy_completed"};
+    mutable papi_queue<Executor> polymorphic_object_move_started{
+        &papi_handle, "polymorphic_object_move_started"};
+    mutable papi_queue<Executor> polymorphic_object_move_completed{
+        &papi_handle, "polymorphic_object_move_completed"};
     mutable papi_queue<Executor> polymorphic_object_deleted{
         &papi_handle, "polymorphic_object_deleted"};
 

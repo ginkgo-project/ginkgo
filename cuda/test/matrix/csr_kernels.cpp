@@ -53,8 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -63,7 +63,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
-    using Arr = gko::Array<int>;
+    using Arr = gko::array<int>;
     using Vec = gko::matrix::Dense<>;
     using Mtx = gko::matrix::Csr<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
@@ -901,8 +901,8 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
-    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
+    auto drow_nnz = gko::array<int>(this->cuda, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
@@ -922,22 +922,22 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
     auto size = this->mtx2->get_size();
-    auto row_nnz = gko::Array<int>(this->ref, rspan.length() + 1);
+    auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
         this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
     gko::kernels::reference::components::prefix_sum(
         this->ref, row_nnz.get_data(), row_nnz.get_num_elems());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
-    auto drow_nnz = gko::Array<int>(this->cuda, row_nnz);
+    auto drow_nnz = gko::array<int>(this->cuda, row_nnz);
     auto smat1 =
         Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->ref, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->ref, num_nnz)),
+                    std::move(gko::array<ValueType>(this->ref, num_nnz)),
+                    std::move(gko::array<IndexType>(this->ref, num_nnz)),
                     std::move(row_nnz));
     auto sdmat1 =
         Mtx::create(this->cuda, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::Array<ValueType>(this->cuda, num_nnz)),
-                    std::move(gko::Array<IndexType>(this->cuda, num_nnz)),
+                    std::move(gko::array<ValueType>(this->cuda, num_nnz)),
+                    std::move(gko::array<IndexType>(this->cuda, num_nnz)),
                     std::move(drow_nnz));
 
 
@@ -972,7 +972,7 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
     const auto rowptrs = ref_mtx->get_row_ptrs();
     const auto colidxs = ref_mtx->get_col_idxs();
     const int testrow = 15;
-    gko::test::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
+    gko::utils::remove_diagonal_entry_from_row(ref_mtx.get(), testrow);
     auto mtx = gko::clone(cuda, ref_mtx);
     bool has_diags = true;
 
@@ -988,7 +988,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     using T = double;
     using Csr = Mtx;
     auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
-    gko::test::ensure_all_diagonal_entries(ref_mtx.get());
+    gko::utils::ensure_all_diagonal_entries(ref_mtx.get());
     auto mtx = gko::clone(cuda, ref_mtx);
     bool has_diags = true;
 
@@ -1002,7 +1002,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
 TEST_F(Csr, AddScaledIdentityToNonSquare)
 {
     set_up_apply_data(std::make_shared<Mtx::classical>());
-    gko::test::ensure_all_diagonal_entries(mtx.get());
+    gko::utils::ensure_all_diagonal_entries(mtx.get());
     dmtx->copy_from(mtx.get());
 
     mtx->add_scaled_identity(alpha.get(), beta.get());

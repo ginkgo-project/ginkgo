@@ -49,8 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -75,8 +75,12 @@ protected:
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
 
-        mtx = gen_mtx(123, 123, 125);
-        gko::test::make_diag_dominant(mtx.get());
+        auto data = gko::matrix_data<value_type, index_type>(
+            gko::dim<2>{123, 123},
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::utils::make_diag_dominant(data);
+        mtx = Mtx::create(ref, data.size, 125);
+        mtx->read(data);
         d_mtx = gko::clone(exec, mtx);
         exec_bicgstab_factory =
             Solver::build()
@@ -143,7 +147,7 @@ protected:
         omega->at(2) = 0.0;
         omega->at(3) = 0.0;
         stop_status =
-            std::make_unique<gko::Array<gko::stopping_status>>(ref, n);
+            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
         for (size_t i = 0; i < n; ++i) {
             stop_status->get_data()[i].reset();
         }
@@ -166,7 +170,7 @@ protected:
         d_beta = gko::clone(exec, beta);
         d_gamma = gko::clone(exec, gamma);
         d_omega = gko::clone(exec, omega);
-        d_stop_status = std::make_unique<gko::Array<gko::stopping_status>>(
+        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
 
@@ -196,7 +200,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> gamma;
     std::unique_ptr<Mtx> omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -214,7 +218,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_gamma;
     std::unique_ptr<Mtx> d_omega;
-    std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
 };
 
 
@@ -332,8 +336,8 @@ TEST_F(Bicgstab, BicgstabApplyMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 500);
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 2000);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 2000);
 }
 
 

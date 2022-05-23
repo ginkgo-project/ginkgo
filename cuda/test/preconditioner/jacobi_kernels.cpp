@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/matrix_utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "cuda/test/utils.hpp"
 
 
@@ -57,6 +57,8 @@ protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
     using mtx_data = gko::matrix_data<>;
+    using value_type = typename Mtx::value_type;
+    using index_type = typename Mtx::index_type;
 
     void SetUp()
     {
@@ -97,8 +99,8 @@ protected:
             mtx = Mtx::create(ref);
             mtx->read(mtx_data::diag(begin(blocks), end(blocks)));
         }
-        gko::Array<gko::int32> block_ptrs(ref, block_pointers);
-        gko::Array<gko::precision_reduction> block_prec(ref, block_precisions);
+        gko::array<gko::int32> block_ptrs(ref, block_pointers);
+        gko::array<gko::precision_reduction> block_prec(ref, block_precisions);
         if (block_prec.get_num_elems() == 0) {
             bj_factory = Bj::build()
                              .with_max_block_size(max_block_size)
@@ -415,10 +417,13 @@ TEST_F(Jacobi, CudaScalarApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::utils::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
@@ -464,10 +469,13 @@ TEST_F(Jacobi, CudaScalarLinearCombinationApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::utils::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
@@ -584,7 +592,7 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
     auto bj =
         Bj::build()
             .with_max_block_size(13u)
-            .with_block_pointers(gko::Array<gko::int32>(cuda, {0, 2, 4}))
+            .with_block_pointers(gko::array<gko::int32>(cuda, {0, 2, 4}))
             .with_storage_optimization(gko::precision_reduction::autodetect())
             .with_accuracy(0.1)
             .on(cuda)

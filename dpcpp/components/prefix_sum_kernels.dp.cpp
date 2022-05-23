@@ -80,7 +80,7 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
             });
         const auto wg_size = BlockCfg::decode<0>(cfg);
         auto num_blocks = ceildiv(num_entries, wg_size);
-        Array<IndexType> block_sum_array(exec, num_blocks - 1);
+        array<IndexType> block_sum_array(exec, num_blocks - 1);
         auto block_sums = block_sum_array.get_data();
         start_prefix_sum_call(cfg, num_blocks, wg_size, 0, exec->get_queue(),
                               num_entries, counts, block_sums);

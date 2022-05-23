@@ -75,8 +75,10 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
-                for (size_type j = 0; j < c->get_size()[1]; j++) {
-                    c->at(global_row, j) += val * b->at(col, j);
+                if (col != invalid_index<IndexType>()) {
+                    for (size_type j = 0; j < c->get_size()[1]; j++) {
+                        c->at(global_row, j) += val * b->at(col, j);
+                    }
                 }
             }
         }
@@ -114,8 +116,10 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
-                for (size_type j = 0; j < c->get_size()[1]; j++) {
-                    c->at(global_row, j) += valpha * val * b->at(col, j);
+                if (col != invalid_index<IndexType>()) {
+                    for (size_type j = 0; j < c->get_size()[1]; j++) {
+                        c->at(global_row, j) += valpha * val * b->at(col, j);
+                    }
                 }
             }
         }
@@ -128,7 +132,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename IndexType>
 void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<IndexType>& row_ptrs, size_type slice_size,
+                        const array<IndexType>& row_ptrs, size_type slice_size,
                         size_type stride_factor, size_type* slice_sets,
                         size_type* slice_lengths)
 {
@@ -182,7 +186,7 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
             out_idx += slice_size;
         }
         for (auto i = row_nnz; i < slice_length; i++) {
-            cols[out_idx] = 0;
+            cols[out_idx] = invalid_index<IndexType>();
             vals[out_idx] = zero<ValueType>();
             out_idx += slice_size;
         }
@@ -215,8 +219,10 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
             }
             for (size_type i = slice_sets[slice]; i < slice_sets[slice + 1];
                  i++) {
-                result->at(global_row, col_idxs[row + i * slice_size]) +=
-                    vals[row + i * slice_size];
+                const auto col = col_idxs[row + i * slice_size];
+                if (col != invalid_index<IndexType>()) {
+                    result->at(global_row, col) = vals[row + i * slice_size];
+                }
             }
         }
     }
@@ -235,10 +241,10 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
     auto slice_size = source->get_slice_size();
     auto slice_num = ceildiv(num_rows, slice_size);
 
-    const auto source_vals = source->get_const_values();
-    const auto source_slice_lengths = source->get_const_slice_lengths();
-    const auto source_slice_sets = source->get_const_slice_sets();
-    const auto source_col_idxs = source->get_const_col_idxs();
+    const auto vals = source->get_const_values();
+    const auto slice_lengths = source->get_const_slice_lengths();
+    const auto slice_sets = source->get_const_slice_sets();
+    const auto col_idxs = source->get_const_col_idxs();
 
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
@@ -247,11 +253,11 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
                 break;
             }
             IndexType row_nnz{};
-            for (size_type sellp_ind =
-                     source_slice_sets[slice] * slice_size + row;
-                 sellp_ind < source_slice_sets[slice + 1] * slice_size + row;
+            for (size_type sellp_ind = slice_sets[slice] * slice_size + row;
+                 sellp_ind < slice_sets[slice + 1] * slice_size + row;
                  sellp_ind += slice_size) {
-                row_nnz += is_nonzero(source_vals[sellp_ind]);
+                row_nnz +=
+                    col_idxs[sellp_ind] != invalid_index<IndexType>() ? 1 : 0;
             }
             result[global_row] = row_nnz;
         }
@@ -293,7 +299,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                      source_slice_sets[slice] * slice_size + row;
                  sellp_ind < source_slice_sets[slice + 1] * slice_size + row;
                  sellp_ind += slice_size) {
-                if (is_nonzero(source_vals[sellp_ind])) {
+                if (source_col_idxs[sellp_ind] != invalid_index<IndexType>()) {
                     result_vals[cur_ptr] = source_vals[sellp_ind];
                     result_col_idxs[cur_ptr] = source_col_idxs[sellp_ind];
                     cur_ptr++;

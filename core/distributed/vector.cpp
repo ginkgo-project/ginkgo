@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 
 
+#include <ginkgo/core/distributed/partition.hpp>
+
+
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
@@ -43,7 +46,7 @@ namespace vector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_norm2_sqr, dense::compute_norm2_sqr);
+GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
 GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
@@ -51,37 +54,6 @@ GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
 }  // namespace
 }  // namespace vector
-
-
-namespace detail {
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void read_distributed_impl(
-    const device_matrix_data<ValueType, GlobalIndexType>& data,
-    const Partition<LocalIndexType, GlobalIndexType>* partition,
-    Vector<ValueType>* result)
-{
-    auto exec = result->get_executor();
-
-    auto rank = result->get_communicator().rank();
-    result->get_local()->fill(zero<ValueType>());
-    exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank,
-        result->get_local()));
-}
-
-#define GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL(               \
-    ValueType, LocalIndexType, GlobalIndexType)                      \
-    void read_distributed_impl(                                      \
-        const device_matrix_data<ValueType, GlobalIndexType>& data,  \
-        const Partition<LocalIndexType, GlobalIndexType>* partition, \
-        Vector<ValueType>* storage)
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_READ_DISTRIBUTED_IMPL);
-
-
-}  // namespace detail
 
 
 dim<2> compute_global_size(mpi::communicator comm, dim<2> local_size)
@@ -164,42 +136,10 @@ void Vector<ValueType>::read_distributed(
                global_cols));
 
     auto rank = this->get_communicator().rank();
-    this->get_local()->fill(zero<ValueType>());
+    local_.fill(zero<ValueType>());
     exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank,
-        this->get_local()));
+        data, make_temporary_clone(exec, partition).get(), rank, &local_));
 }
-
-
-template <typename ValueType>
-template <typename LocalIndexType, typename GlobalIndexType>
-std::unique_ptr<Vector<ValueType>> Vector<ValueType>::from_local(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const gko::Array<ValueType>& data,
-    const Partition<LocalIndexType, GlobalIndexType>* partition)
-{
-    const auto local_size = partition->get_part_size(comm.rank());
-    const dim<2> local_dim{local_size, 1};
-    const dim<2> global_dim{partition->get_size(), 1};
-    auto result = Vector<ValueType>::create(exec, comm);
-    result->resize(global_dim, local_dim);
-
-    auto values_view = gko::Array<ValueType>::view(
-        exec, local_size, result->get_local()->get_values());
-
-    values_view = data;
-    return result;
-}
-
-#define GKO_DECLARE_DISTRIBUTED_FROM_LOCAL(ValueType, LocalIndexType, \
-                                           GlobalIndexType)           \
-    std::unique_ptr<Vector<ValueType>> Vector<ValueType>::from_local( \
-        std::shared_ptr<const Executor> exec, mpi::communicator comm, \
-        const gko::Array<ValueType>& data,                            \
-        const Partition<LocalIndexType, GlobalIndexType>* partition)
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_FROM_LOCAL);
 
 
 template <typename ValueType>
@@ -219,7 +159,7 @@ void Vector<ValueType>::read_distributed(
 template <typename ValueType>
 void Vector<ValueType>::fill(const ValueType value)
 {
-    this->get_local()->fill(value);
+    local_.fill(value);
 }
 
 
@@ -230,7 +170,7 @@ void Vector<ValueType>::convert_to(
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
     result->set_size(this->get_size());
-    this->get_const_local()->convert_to(result->get_local());
+    this->get_local_vector()->convert_to(&result->local_);
 }
 
 
@@ -249,10 +189,10 @@ Vector<ValueType>::compute_absolute() const
 
     auto result =
         absolute_type::create(exec, this->get_communicator(), this->get_size(),
-                              this->get_const_local()->get_size());
+                              this->get_local_vector()->get_size());
 
-    exec->run(vector::make_outplace_absolute_dense(this->get_const_local(),
-                                                   result->get_local()));
+    exec->run(vector::make_outplace_absolute_dense(this->get_local_vector(),
+                                                   &result->local_));
 
     return result;
 }
@@ -261,20 +201,13 @@ Vector<ValueType>::compute_absolute() const
 template <typename ValueType>
 void Vector<ValueType>::compute_absolute_inplace()
 {
-    this->get_local()->compute_absolute_inplace();
+    local_.compute_absolute_inplace();
 }
 
 
 template <typename ValueType>
 const typename Vector<ValueType>::local_vector_type*
-Vector<ValueType>::get_const_local() const
-{
-    return &local_;
-}
-
-
-template <typename ValueType>
-typename Vector<ValueType>::local_vector_type* Vector<ValueType>::get_local()
+Vector<ValueType>::get_local_vector() const
 {
     return &local_;
 }
@@ -286,8 +219,8 @@ Vector<ValueType>::make_complex() const
 {
     auto result = complex_type::create(
         this->get_executor(), this->get_communicator(), this->get_size(),
-        this->get_const_local()->get_size(),
-        this->get_const_local()->get_stride());
+        this->get_local_vector()->get_size(),
+        this->get_local_vector()->get_stride());
     this->make_complex(result.get());
     return result;
 }
@@ -296,7 +229,7 @@ Vector<ValueType>::make_complex() const
 template <typename ValueType>
 void Vector<ValueType>::make_complex(Vector::complex_type* result) const
 {
-    this->get_const_local()->make_complex(result->get_local());
+    this->get_local_vector()->make_complex(&result->local_);
 }
 
 
@@ -304,10 +237,10 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_real() const
 {
-    auto result =
-        real_type::create(this->get_executor(), this->get_communicator(),
-                          this->get_size(), this->get_const_local()->get_size(),
-                          this->get_const_local()->get_stride());
+    auto result = real_type::create(this->get_executor(),
+                                    this->get_communicator(), this->get_size(),
+                                    this->get_local_vector()->get_size(),
+                                    this->get_local_vector()->get_stride());
     this->get_real(result.get());
     return result;
 }
@@ -316,7 +249,7 @@ Vector<ValueType>::get_real() const
 template <typename ValueType>
 void Vector<ValueType>::get_real(Vector::real_type* result) const
 {
-    this->get_const_local()->get_real(result->get_local());
+    this->get_local_vector()->get_real(&result->local_);
 }
 
 
@@ -324,10 +257,10 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_imag() const
 {
-    auto result =
-        real_type::create(this->get_executor(), this->get_communicator(),
-                          this->get_size(), this->get_const_local()->get_size(),
-                          this->get_const_local()->get_stride());
+    auto result = real_type::create(this->get_executor(),
+                                    this->get_communicator(), this->get_size(),
+                                    this->get_local_vector()->get_size(),
+                                    this->get_local_vector()->get_stride());
     this->get_imag(result.get());
     return result;
 }
@@ -336,21 +269,21 @@ Vector<ValueType>::get_imag() const
 template <typename ValueType>
 void Vector<ValueType>::get_imag(Vector::real_type* result) const
 {
-    this->get_const_local()->get_imag(result->get_local());
+    this->get_local_vector()->get_imag(&result->local_);
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::scale(const LinOp* alpha)
 {
-    this->get_local()->scale(alpha);
+    local_.scale(alpha);
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::inv_scale(const LinOp* alpha)
 {
-    this->get_local()->inv_scale(alpha);
+    local_.inv_scale(alpha);
 }
 
 
@@ -358,7 +291,7 @@ template <typename ValueType>
 void Vector<ValueType>::add_scaled(const LinOp* alpha, const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
-    this->get_local()->add_scaled(alpha, dense_b->get_const_local());
+    local_.add_scaled(alpha, dense_b->get_local_vector());
 }
 
 
@@ -366,19 +299,29 @@ template <typename ValueType>
 void Vector<ValueType>::sub_scaled(const LinOp* alpha, const LinOp* b)
 {
     auto dense_b = as<Vector<ValueType>>(b);
-    this->get_local()->sub_scaled(alpha, dense_b->get_const_local());
+    local_.sub_scaled(alpha, dense_b->get_local_vector());
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_dot(b, result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
+                                    array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_const_local()->compute_dot(as<Vector>(b)->get_const_local(),
-                                         dense_res.get());
+    this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
+                                          dense_res.get(), tmp);
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -398,12 +341,22 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result) const
 template <typename ValueType>
 void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_conj_dot(b, result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
+                                         array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
         make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
-    this->get_const_local()->compute_conj_dot(as<Vector>(b)->get_const_local(),
-                                              dense_res.get());
+    this->get_local_vector()->compute_conj_dot(
+        as<Vector>(b)->get_local_vector(), dense_res.get(), tmp);
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -423,13 +376,21 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result) const
 template <typename ValueType>
 void Vector<ValueType>::compute_norm2(LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_norm2(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm2(LinOp* result, array<char>& tmp) const
+{
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_norm2_sqr(this->get_const_local(),
-                                             dense_res.get()));
+    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
+                                                 dense_res.get(), tmp));
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -450,12 +411,20 @@ void Vector<ValueType>::compute_norm2(LinOp* result) const
 template <typename ValueType>
 void Vector<ValueType>::compute_norm1(LinOp* result) const
 {
+    array<char> tmp{this->get_executor()};
+    this->compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_norm1(LinOp* result, array<char>& tmp) const
+{
     using NormVector = typename local_vector_type::absolute_type;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    this->get_const_local()->compute_norm1(dense_res.get());
+    this->get_local_vector()->compute_norm1(dense_res.get());
     exec->synchronize();
     auto use_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -473,47 +442,44 @@ void Vector<ValueType>::compute_norm1(LinOp* result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
+ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 {
-    using AvgVector = local_vector_type;
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    const auto comm = this->get_communicator();
-    auto dense_res = make_temporary_clone(exec, as<AvgVector>(result));
-    const auto num_local_rows = this->get_const_local()->get_size()[0];
-
-    // TODO FIXME for multi-vector
-    auto local_sum = Array<ValueType>::view(exec, this->get_size()[1],
-                                            dense_res->get_values());
-
-    local_sum.fill(ValueType{0});
-
-    auto local_view = array_const_cast(Array<ValueType>::const_view(
-        exec, num_local_rows, this->get_const_local()->get_const_values()));
-
-    reduce_add(local_view, local_sum);
-
-    exec->synchronize();
-
-    auto use_host_buffer =
-        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
-    if (use_host_buffer) {
-        host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
-        host_reduction_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_reduction_buffer_->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
-        dense_res->copy_from(host_reduction_buffer_.get());
-    } else {
-        comm.all_reduce(dense_res->get_values(),
-                        static_cast<int>(this->get_size()[1]), MPI_SUM);
-    }
-
-    const auto num_global_rows = this->get_size()[0];
-    auto size = gko::initialize<gko::matrix::Dense<ValueType>>(
-        1, {static_cast<ValueType>(num_global_rows)}, this->get_executor());
-
-    dense_res->inv_scale(size.get());
+    return local_.at(row, col);
 }
+
+template <typename ValueType>
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
+{
+    return local_.at(row, col);
+}
+
+template <typename ValueType>
+ValueType& Vector<ValueType>::at_local(size_type idx) noexcept
+{
+    return local_.at(idx);
+}
+
+template <typename ValueType>
+ValueType Vector<ValueType>::at_local(size_type idx) const noexcept
+{
+    return local_.at(idx);
+}
+
+
+template <typename ValueType>
+ValueType* Vector<ValueType>::get_local_values()
+{
+    return local_.get_values();
+}
+
+
+template <typename ValueType>
+const ValueType* Vector<ValueType>::get_const_local_values()
+{
+    return local_.get_const_values();
+}
+
 
 template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
@@ -521,21 +487,7 @@ void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
     if (this->get_size() != global_size) {
         this->set_size(global_size);
     }
-    this->get_local()->resize(local_size);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename Vector<ValueType>::real_type>
-Vector<ValueType>::create_real_view()
-{
-    const auto num_global_rows = this->get_size()[0];
-    const auto num_cols =
-        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
-
-    return real_type ::create(this->get_executor(), this->get_communicator(),
-                              dim<2>{num_global_rows, num_cols},
-                              local_.create_real_view().get());
+    local_.resize(local_size);
 }
 
 
@@ -547,11 +499,24 @@ Vector<ValueType>::create_real_view() const
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return real_type ::create(
-        this->get_executor(), this->get_communicator(),
-        dim<2>{num_global_rows, num_cols},
-        const_cast<typename real_type::local_vector_type*>(
-            local_.create_real_view().get()));
+    return real_type::create(this->get_executor(), this->get_communicator(),
+                             dim<2>{num_global_rows, num_cols},
+                             const_cast<typename real_type::local_vector_type*>(
+                                 local_.create_real_view().get()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Vector<ValueType>::real_type>
+Vector<ValueType>::create_real_view()
+{
+    const auto num_global_rows = this->get_size()[0];
+    const auto num_cols =
+        is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
+
+    return real_type::create(this->get_executor(), this->get_communicator(),
+                             dim<2>{num_global_rows, num_cols},
+                             local_.create_real_view().get());
 }
 
 

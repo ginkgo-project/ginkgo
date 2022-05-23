@@ -114,7 +114,7 @@ template <typename ValueType>
 void fft(std::shared_ptr<const DefaultExecutor> exec,
          const matrix::Dense<std::complex<ValueType>>* b,
          matrix::Dense<std::complex<ValueType>>* x, bool inverse,
-         Array<char>& buffer)
+         array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
@@ -153,7 +153,7 @@ template <typename ValueType>
 void fft2(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, bool inverse, Array<char>& buffer)
+          size_type size2, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
@@ -220,7 +220,7 @@ template <typename ValueType>
 void fft3(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Dense<std::complex<ValueType>>* b,
           matrix::Dense<std::complex<ValueType>>* x, size_type size1,
-          size_type size2, size_type size3, bool inverse, Array<char>& buffer)
+          size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;

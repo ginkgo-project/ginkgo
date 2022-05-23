@@ -136,7 +136,7 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Dense<ValueType>* new_norm,
                        const ValueType rel_tol, bool& is_stop)
 {
-    gko::Array<bool> dis_stop(exec, 1);
+    gko::array<bool> dis_stop(exec, 1);
     components::fill_array(exec, dis_stop.get_data(), dis_stop.get_num_elems(),
                            true);
     const auto nrhs = new_norm->get_size()[1];

@@ -79,6 +79,57 @@ GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
 
 template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
+    const Jacobi& other)
+{
+    if (&other != this) {
+        EnableLinOp<Jacobi>::operator=(other);
+        storage_scheme_ = other.storage_scheme_;
+        num_blocks_ = other.num_blocks_;
+        blocks_ = other.blocks_;
+        conditioning_ = other.conditioning_;
+        parameters_ = other.parameters_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
+    Jacobi&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Jacobi>::operator=(std::move(other));
+        // reset size values to 0 in other
+        storage_scheme_ =
+            std::exchange(other.storage_scheme_,
+                          block_interleaved_storage_scheme<index_type>{});
+        num_blocks_ = std::exchange(other.num_blocks_, 0);
+        blocks_ = std::move(other.blocks_);
+        conditioning_ = std::move(other.conditioning_);
+        parameters_ = std::exchange(other.parameters_, parameters_type{});
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(const Jacobi& other)
+    : Jacobi{other.get_executor()}
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Jacobi<ValueType, IndexType>::Jacobi(Jacobi&& other)
+    : Jacobi{other.get_executor()}
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
@@ -273,10 +324,10 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
         if (!diag_vt) {
             GKO_NOT_SUPPORTED(system_matrix);
         }
-        auto temp = Array<ValueType>::view(diag_vt->get_executor(),
-                                           diag_vt->get_size()[0],
-                                           diag_vt->get_values());
-        this->blocks_ = Array<ValueType>(exec, temp.get_num_elems());
+        auto temp =
+            make_array_view(diag_vt->get_executor(), diag_vt->get_size()[0],
+                            diag_vt->get_values());
+        this->blocks_ = array<ValueType>(exec, temp.get_num_elems());
         exec->run(jacobi::make_invert_diagonal(temp, this->blocks_));
         this->num_blocks_ = diag_vt->get_size()[0];
     } else {
@@ -296,9 +347,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             all_block_opt != precision_reduction(0, 0)) {
             if (!parameters_.storage_optimization.is_block_wise) {
                 precisions =
-                    gko::Array<precision_reduction>(exec, {all_block_opt});
+                    gko::array<precision_reduction>(exec, {all_block_opt});
             }
-            Array<precision_reduction> tmp(
+            array<precision_reduction> tmp(
                 exec, parameters_.block_pointers.get_num_elems() - 1);
             exec->run(jacobi::make_initialize_precisions(precisions, tmp));
             precisions = std::move(tmp);

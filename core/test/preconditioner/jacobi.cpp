@@ -70,8 +70,8 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<typename Bj::Factory> bj_factory;
-    gko::Array<index_type> block_pointers;
-    gko::Array<gko::precision_reduction> block_precisions;
+    gko::array<index_type> block_pointers;
+    gko::array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
 

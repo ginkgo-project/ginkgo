@@ -247,21 +247,35 @@ trigger_pipeline:
     - |
       if [[ "${PR_ID}" != "null" ]]; then
         echo "Finding the corresponding Pull Request - ${PR_ID}"
-        echo "Checking whether the PR contains 1:ST:ready-to-merge or 1:ST:run-full-test labels"
-        ENABLE_FULL_PIPELINE=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
-          "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}" | jq -r \
+        echo "Checking whether the PR contains 1:ST:ready-to-merge, 1:ST:run-full-test, or 1:ST:skip-full-test labels"
+        PR_CONTENT=$(curl -X GET -s -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+          "https://api.github.com/repos/ginkgo-project/ginkgo/issues/${PR_ID}")
+        SKIP_FULL_PIPELINE=$(echo "${PR_CONTENT}" | jq -r 'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:skip-full-test")')
+        ENABLE_FULL_PIPELINE=$(echo "${PR_CONTENT}" | jq -r \
           'any( [.labels | .[] | .name ] | .[] ; . == "1:ST:ready-to-merge" or . == "1:ST:run-full-test")')
-        if [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
-          echo "trigger full pipeline"
+        if [[ "${SKIP_FULL_PIPELINE}" == "true" ]]; then
+          echo "Skipping the full pipeline and making the full pipeline succeed"
+          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+            https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+            -d "{\"state\":\"success\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"skipped full pipeline\"}"
+          echo "If you want to run the full tests, remove 1:ST:skip-full-test and add 1:ST:ready-to-merge or 1:ST:run-full-test to the pull request. Then rerun this job or start a new pipeline."
+        elif [[ "${ENABLE_FULL_PIPELINE}" == "true" ]]; then
+          echo "Running full pipeline."
           curl -X POST -F token=${CI_JOB_TOKEN} -F "ref=${CI_COMMIT_REF_NAME}" -F "variables[STATUS_CONTEXT]=full" \
             https://gitlab.com/api/v4/projects/6431537/trigger/pipeline
+          echo "If want to skip full pipeline, add 1:ST:skip-full-test. Rerun this job or start a new pipeline."
         else
-          echo "does not contain required labels"
+          echo "Didn't find required labels, so we're making the full pipeline fail."
+          curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${BOT_STATUS_TOKEN}" \
+            https://api.github.com/repos/ginkgo-project/ginkgo/statuses/${CI_COMMIT_SHA} \
+            -d "{\"state\":\"failure\",\"context\":\"ci/gitlab/full\",\"target_url\":\"${CI_JOB_URL}\",\"description\":\"no run/skip full pipeline\"}"
+          echo "To skip the full pipeline for this pull request, rerun this job or start a new pipeline after adding the label 1:ST:skip-full-test."
+          echo "To run the full pipeline for this pull request, rerun this job or start a new pipeline after adding one of the 1:ST:run-full-test or 1:ST:ready-to-merge labels."
         fi
       else
         echo "Can not find the corresponding Pull Request"
       fi
-  # Override variables condition
+  # Override variables condition from .pr_condition
   only:
     variables:
       - $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
@@ -530,12 +544,12 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
-# HIP AMD
-build/amd/nompi/gcc/hip/debug/shared:
+# ROCm 4.0 and friends
+build/amd/nompi/gcc/rocm40/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+    - .use_gko-rocm40-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -544,11 +558,11 @@ build/amd/nompi/gcc/hip/debug/shared:
     BUILD_TYPE: "Debug"
     FAST_TESTS: "ON"
 
-build/amd/openmpi/clang/hip/release/static:
+build/amd/openmpi/clang/rocm40/release/static:
   <<: *default_build_with_test
   extends:
-    - .quick_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+    - .full_test_condition
+    - .use_gko-rocm40-openmpi-gnu5-llvm50
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -560,17 +574,73 @@ build/amd/openmpi/clang/hip/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
 
-# Build HIP AMD without omp
-build/amd/nompi/clang/hip_wo_omp/release/shared:
+# ROCm 4.5 and friends
+build/amd/mvapich2/gcc/rocm45/release/shared:
   <<: *default_build_with_test
   extends:
-    - .full_test_condition
-    - .use_gko-amd-openmpi-gnu8-llvm7
+    - .quick_test_condition
+    - .use_gko-rocm45-mvapich2-gnu8-llvm8
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Release"
+
+build/amd/mvapich2/clang/rocm45/debug/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko-rocm45-mvapich2-gnu8-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
     BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Debug"
+
+# ROCm 5.0.2 and friends
+build/amd/openmpi/gcc/rocm502/debug/static:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+    - .use_gko-rocm502-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+
+build/amd/openmpi/clang/rocm502/release/shared:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko-rocm502-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
+    BUILD_TYPE: "Release"
+
+# without omp
+build/amd/nompi/gcc/rocm502_wo_omp/release/shared:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+    - .use_gko-rocm502-openmpi-gnu11-llvm11
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "OFF"
+    BUILD_MPI: "OFF"
+    BUILD_HIP: "ON"
+    RUN_EXAMPLES: "ON"
     BUILD_TYPE: "Release"
 
 # no cuda but latest gcc and clang
@@ -596,18 +666,6 @@ build/nocuda/nompi/clang/core/release/shared:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
     BUILD_TYPE: "Release"
-
-build/nocuda/nompi/intel/core/debug/shared:
-  <<: *default_build_with_test
-  extends:
-    - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu9-llvm8-intel
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
 
 build/nocuda/nompi/gcc/omp/release/shared:
   <<: *default_build_with_test
@@ -635,18 +693,45 @@ build/nocuda/openmpi/clang/omp/debug/static:
     FAST_TESTS: "ON"
     BUILD_SHARED_LIBS: "OFF"
 
-build/nocuda/nompi/intel/omp/release/static:
+# nocuda with the oldest supported compiler
+build/nocuda/nompi/intel/core/debug/shared:
   <<: *default_build_with_test
   extends:
     - .quick_test_condition
-    - .use_gko-nocuda-mvapich2-gnu9-llvm8-intel
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
   variables:
     <<: *default_variables
+    # intel with old gcc without include path leads error: identifier "____m128d" is undefined
+    CXX_FLAGS: "-I /opt/intel/include/icc"
     C_COMPILER: "icc"
     CXX_COMPILER: "icpc"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+
+build/nocuda/nompi/gcc/omp/release/static:
+  <<: *default_build_with_test
+  extends:
+    - .quick_test_condition
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+  variables:
+    <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+
+build/nocuda-nomixed/nompi/clang/omp/release/static:
+  <<: *default_build_with_test
+  extends:
+    - .full_test_condition
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
 
 build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   <<: *default_build_with_test
@@ -672,20 +757,6 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
-    MIXED_PRECISION: "OFF"
-
-build/nocuda-nomixed/nompi/intel/omp/release/static:
-  <<: *default_build_with_test
-  extends:
-    - .full_test_condition
-    - .use_gko-nocuda-mvapich2-gnu9-llvm8-intel
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
@@ -1021,7 +1092,7 @@ cudamemcheck:
 fineci-benchmark-build:
   stage: benchmark-build
   extends:
-    - .use_gko-nocuda-mvapich2-gnu9-llvm8-intel
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI
@@ -1099,7 +1170,7 @@ fineci-benchmark-build:
 fineci-benchmark-cuda:
   stage: benchmark-cuda
   extends:
-    - .use_gko-nocuda-mvapich2-gnu9-llvm8-intel
+    - .use_gko-nocuda-mvapich2-gnu5-llvm39-intel2018
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI

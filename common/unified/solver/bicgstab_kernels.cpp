@@ -60,7 +60,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* alpha,
                 matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* gamma,
                 matrix::Dense<ValueType>* omega,
-                Array<stopping_status>* stop_status)
+                array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -96,7 +96,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType>* prev_rho,
             const matrix::Dense<ValueType>* alpha,
             const matrix::Dense<ValueType>* omega,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -124,7 +124,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Dense<ValueType>* rho,
             matrix::Dense<ValueType>* alpha,
             const matrix::Dense<ValueType>* beta,
-            const Array<stopping_status>* stop_status)
+            const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -153,7 +153,7 @@ void step_3(
     const matrix::Dense<ValueType>* t, const matrix::Dense<ValueType>* y,
     const matrix::Dense<ValueType>* z, const matrix::Dense<ValueType>* alpha,
     const matrix::Dense<ValueType>* beta, const matrix::Dense<ValueType>* gamma,
-    matrix::Dense<ValueType>* omega, const Array<stopping_status>* stop_status)
+    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,
@@ -182,7 +182,7 @@ template <typename ValueType>
 void finalize(std::shared_ptr<const DefaultExecutor> exec,
               matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
               const matrix::Dense<ValueType>* alpha,
-              Array<stopping_status>* stop_status)
+              array<stopping_status>* stop_status)
 {
     run_kernel_solver(
         exec,

@@ -338,6 +338,42 @@ TYPED_TEST(Papi, CatchesPolymorphicObjectCopyCompleted)
 }
 
 
+TYPED_TEST(Papi, CatchesPolymorphicObjectMoveStarted)
+{
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_move_started_mask,
+                   "polymorphic_object_move_started", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_move_started>(
+            this->exec.get(), nullptr, nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesPolymorphicObjectMoveCompleted)
+{
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_move_completed_mask,
+                   "polymorphic_object_move_completed", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_move_completed>(
+            this->exec.get(), nullptr, nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
 TYPED_TEST(Papi, CatchesPolymorphicObjectDeleted)
 {
     auto str = this->init(gko::log::Logger::polymorphic_object_deleted_mask,

@@ -49,21 +49,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+
 using comm_index_type = gko::distributed::comm_index_type;
 
 
 template <typename ValueLocalGlobalIndexType>
 class Vector : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using mtx = gko::matrix::Dense<value_type>;
 
@@ -120,7 +118,6 @@ gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
     return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
                                                                            md);
 }
-
 
 TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
 

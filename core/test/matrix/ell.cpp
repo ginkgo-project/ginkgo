@@ -39,9 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class Ell : public ::testing::Test {
 protected:
@@ -51,6 +48,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Ell<value_type, index_type>;
 
+    index_type invalid_index = gko::invalid_index<index_type>();
+
     Ell()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Ell<value_type, index_type>::create(
@@ -59,15 +58,15 @@ protected:
         value_type* v = mtx->get_values();
         index_type* c = mtx->get_col_idxs();
         c[0] = 0;
-        c[1] = 1;
+        c[1] = 0;
         c[2] = 1;
-        c[3] = 0;
+        c[3] = 1;
         c[4] = 2;
-        c[5] = 0;
+        c[5] = invalid_index;
         v[0] = 1.0;
-        v[1] = 5.0;
+        v[1] = 0.0;
         v[2] = 3.0;
-        v[3] = 0.0;
+        v[3] = 5.0;
         v[4] = 2.0;
         v[5] = 0.0;
     }
@@ -86,15 +85,15 @@ protected:
         EXPECT_EQ(n, 3);
         EXPECT_EQ(p, 2);
         EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[1], 0);
         EXPECT_EQ(c[2], 1);
-        EXPECT_EQ(c[3], 0);
+        EXPECT_EQ(c[3], 1);
         EXPECT_EQ(c[4], 2);
-        EXPECT_EQ(c[5], 0);
+        EXPECT_EQ(c[5], invalid_index);
         EXPECT_EQ(v[0], value_type{1.0});
-        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[1], value_type{0.0});
         EXPECT_EQ(v[2], value_type{3.0});
-        EXPECT_EQ(v[3], value_type{0.0});
+        EXPECT_EQ(v[3], value_type{5.0});
         EXPECT_EQ(v[4], value_type{2.0});
         EXPECT_EQ(v[5], value_type{0.0});
     }
@@ -146,8 +145,8 @@ TYPED_TEST(Ell, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::Ell<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 8, values),
-        gko::Array<index_type>::view(this->exec, 8, col_idxs), 2, 4);
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
@@ -163,8 +162,8 @@ TYPED_TEST(Ell, CanBeCreatedFromExistingConstData)
 
     auto mtx = gko::matrix::Ell<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::const_view(this->exec, 8, values),
-        gko::Array<index_type>::const_view(this->exec, 8, col_idxs), 2, 4);
+        gko::array<value_type>::const_view(this->exec, 8, values),
+        gko::array<index_type>::const_view(this->exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
@@ -218,7 +217,9 @@ TYPED_TEST(Ell, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
     auto m = Mtx::create(this->exec);
-    m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    m->read(
+        {{2, 3},
+         {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -234,11 +235,12 @@ TYPED_TEST(Ell, GeneratesCorrectMatrixData)
     this->mtx->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
-    ASSERT_EQ(data.nonzeros.size(), 4);
+    ASSERT_EQ(data.nonzeros.size(), 5);
     EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
-    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, value_type{0.0}));
+    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, value_type{5.0}));
 }
 
 
@@ -252,12 +254,10 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
     data.set_value(0, 2, 2.0);
+    data.set_value(1, 0, 0.0);
     data.set_value(1, 1, 5.0);
 
     m->read(data);
 
     this->assert_equal_to_original_mtx(m.get());
 }
-
-
-}  // namespace

@@ -67,8 +67,8 @@ namespace jacobi {
 
 
 void initialize_precisions(std::shared_ptr<const OmpExecutor> exec,
-                           const Array<precision_reduction>& source,
-                           Array<precision_reduction>& precisions)
+                           const array<precision_reduction>& source,
+                           array<precision_reduction>& precisions)
 {
     const auto source_size = source.get_num_elems();
     for (auto i = 0u; i < precisions.get_num_elems(); ++i) {
@@ -156,7 +156,7 @@ template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const OmpExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* system_matrix,
                  uint32 max_block_size, size_type& num_blocks,
-                 Array<IndexType>& block_pointers)
+                 array<IndexType>& block_pointers)
 {
     num_blocks = find_natural_blocks(system_matrix, max_block_size,
                                      block_pointers.get_data());
@@ -362,9 +362,9 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
               remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
                   storage_scheme,
-              Array<remove_complex<ValueType>>& conditioning,
-              Array<precision_reduction>& block_precisions,
-              const Array<IndexType>& block_pointers, Array<ValueType>& blocks)
+              array<remove_complex<ValueType>>& conditioning,
+              array<precision_reduction>& block_precisions,
+              const array<IndexType>& block_pointers, array<ValueType>& blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_data();
@@ -373,12 +373,12 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     const auto num_threads = omp_get_max_threads();
     // group_size blocks for the actual blocks, 1 for temporary storage
     const auto parallel_blocks = (group_size + 1) * num_threads;
-    Array<ValueType> blocks_storage{
+    array<ValueType> blocks_storage{
         exec, static_cast<size_type>(parallel_blocks * max_block_size *
                                      max_block_size)};
-    Array<IndexType> perm_storage{
+    array<IndexType> perm_storage{
         exec, static_cast<size_type>(parallel_blocks * max_block_size)};
-    Array<uint32> pr_descriptor_storage(exec, parallel_blocks);
+    array<uint32> pr_descriptor_storage(exec, parallel_blocks);
 #pragma omp parallel for
     for (size_type g = 0; g < num_blocks; g += group_size) {
         const auto thread_id = omp_get_thread_num();
@@ -516,9 +516,9 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
            uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
-           const Array<precision_reduction>& block_precisions,
-           const Array<IndexType>& block_pointers,
-           const Array<ValueType>& blocks,
+           const array<precision_reduction>& block_precisions,
+           const array<IndexType>& block_pointers,
+           const array<ValueType>& blocks,
            const matrix::Dense<ValueType>* alpha,
            const matrix::Dense<ValueType>* b,
            const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
@@ -553,8 +553,8 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     const auto ptrs = block_pointers.get_const_data();
@@ -585,11 +585,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks)
+    array<ValueType>& out_blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -622,11 +622,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void conj_transpose_jacobi(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    uint32 max_block_size, const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    uint32 max_block_size, const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks)
+    array<ValueType>& out_blocks)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -659,8 +659,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
     ValueType* result_values, size_type result_stride)

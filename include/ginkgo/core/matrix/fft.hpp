@@ -131,7 +131,7 @@ protected:
                     LinOp* x) const override;
 
 private:
-    mutable Array<char> buffer_;
+    mutable array<char> buffer_;
     bool inverse_;
 };
 
@@ -240,7 +240,7 @@ protected:
                     LinOp* x) const override;
 
 private:
-    mutable Array<char> buffer_;
+    mutable array<char> buffer_;
     dim<2> fft_size_;
     bool inverse_;
 };
@@ -353,7 +353,7 @@ protected:
                     LinOp* x) const override;
 
 private:
-    mutable Array<char> buffer_;
+    mutable array<char> buffer_;
     dim<3> fft_size_;
     bool inverse_;
 };

@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <initializer_list>
 #include <mutex>
 #include <vector>
 
@@ -42,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -79,12 +79,10 @@ namespace gko {
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
- * @ingroup IndexSet
+ * @ingroup index_set
  */
 template <typename IndexType = int32>
-class IndexSet : public EnablePolymorphicObject<IndexSet<IndexType>> {
-    friend class EnablePolymorphicObject<IndexSet>;
-
+class index_set {
 public:
     /**
      * The type of elements stored in the index set.
@@ -92,13 +90,43 @@ public:
     using index_type = IndexType;
 
     /**
-     * Creates an empty IndexSet tied to the specified Executor.
+     * Creates an empty index_set tied to the specified Executor.
      *
-     * @param exec  the Executor where the IndexSet data is allocated
+     * @param exec  the Executor where the index_set data is allocated
      */
-    IndexSet(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IndexSet>(std::move(exec))
+    explicit index_set(std::shared_ptr<const Executor> exec) noexcept
+        : exec_(std::move(exec)),
+          index_space_size_{0},
+          num_stored_indices_{0},
+          subsets_begin_{array<index_type>(exec_)},
+          subsets_end_{array<index_type>(exec_)},
+          superset_cumulative_indices_{array<index_type>(exec_)}
     {}
+
+    /**
+     * Creates an index set on the specified executor from the initializer list.
+     *
+     * @param exec  the Executor where the index set data will be allocated
+     * @param init_list  the indices that the index set should hold in an
+     *                   initializer_list.
+     * @param is_sorted  a parameter that specifies if the indices array is
+     *                   sorted or not. `true` if sorted.
+     */
+    explicit index_set(std::shared_ptr<const gko::Executor> exec,
+                       std::initializer_list<IndexType> init_list,
+                       const bool is_sorted = false)
+        : exec_(std::move(exec)),
+          index_space_size_(init_list.size() > 0
+                                ? *(std::max_element(std::begin(init_list),
+                                                     std::end(init_list))) +
+                                      1
+                                : 0),
+          num_stored_indices_{static_cast<IndexType>(init_list.size())}
+    {
+        GKO_ASSERT(index_space_size_ > 0);
+        this->populate_subsets(
+            array<IndexType>(this->get_executor(), init_list), is_sorted);
+    }
 
     /**
      * Creates an index set on the specified executor and the given size
@@ -110,27 +138,128 @@ public:
      * @param is_sorted  a parameter that specifies if the indices array is
      *                   sorted or not. `true` if sorted.
      */
-    IndexSet(std::shared_ptr<const gko::Executor> executor,
-             const index_type size, const gko::Array<index_type>& indices,
-             const bool is_sorted = false)
-        : EnablePolymorphicObject<IndexSet>(std::move(executor)),
-          index_space_size_(size)
+    explicit index_set(std::shared_ptr<const gko::Executor> exec,
+                       const index_type size,
+                       const gko::array<index_type>& indices,
+                       const bool is_sorted = false)
+        : exec_(std::move(exec)), index_space_size_(size)
     {
         GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
         this->populate_subsets(indices, is_sorted);
     }
 
     /**
-     * Creates a copy of another IndexSet on a different executor.
+     * Creates a copy of the input index_set on a different executor.
      *
-     * @param exec  the executor where the new IndexSet will be created
-     * @param other  the IndexSet to copy from
+     * @param exec  the executor where the new index_set will be created
+     * @param other  the index_set to copy from
      */
-    IndexSet(std::shared_ptr<const Executor> exec, const IndexSet& other)
-        : IndexSet(exec)
+    index_set(std::shared_ptr<const Executor> exec, const index_set& other)
+        : index_set(exec)
     {
         *this = other;
     }
+
+    /**
+     * Creates a copy of the input index_set.
+     *
+     * @param other the index_set to copy from
+     */
+    index_set(const index_set& other) : index_set(other.get_executor(), other)
+    {}
+
+    /**
+     * Moves the input index_set to a different executor.
+     *
+     * @param exec  the executor where the new index_set will be moved to
+     * @param other the index_set to move from
+     */
+    index_set(std::shared_ptr<const Executor> exec, index_set&& other)
+        : index_set(exec)
+    {
+        *this = std::move(other);
+    }
+
+    /**
+     * Moves the input index_set.
+     *
+     * @param other the index_set to move from
+     */
+    index_set(index_set&& other)
+        : index_set(other.get_executor(), std::move(other))
+    {}
+
+    /**
+     * Copies data from another index_set
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the index_set to copy from
+     *
+     * @return this
+     */
+    index_set& operator=(const index_set& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        this->index_space_size_ = other.index_space_size_;
+        this->num_stored_indices_ = other.num_stored_indices_;
+        this->subsets_begin_ = other.subsets_begin_;
+        this->subsets_end_ = other.subsets_end_;
+        this->superset_cumulative_indices_ = other.superset_cumulative_indices_;
+
+        return *this;
+    }
+
+    /**
+     * Moves data from another index_set
+     *
+     * The executor of this is preserved. In case this does not have an assigned
+     * executor, it will inherit the executor of other.
+     *
+     * @param other  the index_set to move from
+     *
+     * @return this
+     */
+    index_set& operator=(index_set&& other)
+    {
+        if (&other == this) {
+            return *this;
+        }
+        this->index_space_size_ = std::exchange(other.index_space_size_, 0);
+        this->num_stored_indices_ = std::exchange(other.num_stored_indices_, 0);
+        this->subsets_begin_ = std::move(other.subsets_begin_);
+        this->subsets_end_ = std::move(other.subsets_end_);
+        this->superset_cumulative_indices_ =
+            std::move(other.superset_cumulative_indices_);
+
+        return *this;
+    }
+
+    /**
+     * Deallocates all data used by the index_set.
+     *
+     * The index_set is left in a valid, but empty state, so the same index_set
+     * can be used to allocate new memory. Calls to
+     * index_set::get_subsets_begin() will return a `nullptr`.
+     */
+    void clear() noexcept
+    {
+        this->index_space_size_ = 0;
+        this->num_stored_indices_ = 0;
+        this->subsets_begin_.clear();
+        this->subsets_end_.clear();
+        this->superset_cumulative_indices_.clear();
+    }
+
+    /**
+     * Returns the executor of the index_set
+     *
+     * @return  the executor.
+     */
+    std::shared_ptr<const Executor> get_executor() const { return this->exec_; }
 
     /**
      * Returns the size of the index set space.
@@ -162,14 +291,14 @@ public:
      * == 4` and `idx_set.get_global_index(7) == 9`
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       For repeated queries, it is more efficient to use the Array
+     *       For repeated queries, it is more efficient to use the array
      *       functions that take and return arrays which allow for more
      *       throughput.
      *
      * @param local_index  the local index.
      * @return  the global index from the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     index_type get_global_index(index_type local_index) const;
@@ -183,7 +312,7 @@ public:
      * == 3` and `idx_set.get_local_index(6) == 4`.
      *
      * @note This function returns a scalar value and needs a scalar value.
-     *       For repeated queries, it is more efficient to use the Array
+     *       For repeated queries, it is more efficient to use the array
      *       functions that take and return arrays which allow for more
      *       throughput.
      *
@@ -191,7 +320,7 @@ public:
      *
      * @return  the local index of the element in the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     index_type get_local_index(index_type global_index) const;
@@ -210,8 +339,8 @@ public:
      * @note Passing local indices from [0, size) is equivalent to using the
      *       @to_global_indices function.
      */
-    Array<index_type> map_local_to_global(
-        const Array<index_type>& local_indices,
+    array<index_type> map_local_to_global(
+        const array<index_type>& local_indices,
         const bool is_sorted = false) const;
 
     /**
@@ -226,17 +355,17 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
      */
-    Array<index_type> map_global_to_local(
-        const Array<index_type>& global_indices,
+    array<index_type> map_global_to_local(
+        const array<index_type>& global_indices,
         const bool is_sorted = false) const;
 
     /**
-     * This function allows the user obtain a decompresed global_indices Array
+     * This function allows the user obtain a decompresed global_indices array
      * from the indices stored in the index set
      *
      * @return  the decompressed set of indices.
      */
-    Array<index_type> to_global_indices() const;
+    array<index_type> to_global_indices() const;
 
     /**
      * Checks if the individual global indeices exist in the index set.
@@ -245,10 +374,10 @@ public:
      * @param is_sorted  a parameter that specifies if the query array is sorted
      *                   or not. `true` if sorted.
      *
-     * @return  the Array that contains element wise whether the corresponding
+     * @return  the array that contains element wise whether the corresponding
      *          global index in the index set or not.
      */
-    Array<bool> contains(const Array<index_type>& global_indices,
+    array<bool> contains(const array<index_type>& global_indices,
                          const bool is_sorted = false) const;
 
     /**
@@ -258,7 +387,7 @@ public:
      *
      * @return  whether the element exists in the index set.
      *
-     * @warning This single entry query can have significant kernel lauch
+     * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
     bool contains(const index_type global_index) const;
@@ -306,14 +435,15 @@ public:
     }
 
 private:
-    void populate_subsets(const gko::Array<index_type>& indices,
+    void populate_subsets(const gko::array<index_type>& indices,
                           const bool is_sorted);
 
+    std::shared_ptr<const Executor> exec_;
     index_type index_space_size_;
     index_type num_stored_indices_;
-    gko::Array<index_type> subsets_begin_;
-    gko::Array<index_type> subsets_end_;
-    gko::Array<index_type> superset_cumulative_indices_;
+    gko::array<index_type> subsets_begin_;
+    gko::array<index_type> subsets_end_;
+    gko::array<index_type> superset_cumulative_indices_;
 };
 
 

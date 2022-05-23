@@ -40,15 +40,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GINKGO_BUILD_MPI
 
 
-#include <ginkgo/core/base/cache.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
 namespace distributed {
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+class Partition;
 
 
 /**
@@ -66,7 +69,7 @@ namespace distributed {
  * Using this approach the size of the global vectors, as well as the size of
  * the local vectors, will be automatically inferred. It is possible to create a
  * vector with specified global and local sizes and fill the local vectors using
- * the accessor get_local.
+ * the accessor get_local_vector.
  *
  * @note Operations between two vectors (axpy, dot product, etc.) are only valid
  * if both vectors where created using the same partition.
@@ -88,6 +91,7 @@ class Vector
     friend class EnableCreateMethod<Vector<ValueType>>;
     friend class EnablePolymorphicObject<Vector<ValueType>, LinOp>;
     friend class Vector<to_complex<ValueType>>;
+    friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;
 
 public:
@@ -99,20 +103,6 @@ public:
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;
     using local_vector_type = gko::matrix::Dense<value_type>;
-
-    /**
-     * Builds a Vector from an existing Array.
-     *
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector
-     * @param data  The Array of existing data
-     * @param partition  The global row partition
-     */
-    template <typename LocalIndexType, typename GlobalIndexType>
-    static std::unique_ptr<Vector<ValueType>> from_local(
-        std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        const gko::Array<ValueType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition);
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -147,7 +137,6 @@ public:
         const matrix_data<ValueType, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
 
-
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
     void move_to(Vector<next_precision<ValueType>>* result) override;
@@ -155,14 +144,6 @@ public:
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
     void compute_absolute_inplace() override;
-
-    /**
-     * Writes the diagonal of this matrix into an existing diagonal matrix.
-     *
-     * @note This might overflow.
-     * @param output The average value.
-     */
-    void compute_average_unsafe(LinOp* result) const;
 
     /**
      * Creates a complex copy of the original vectors. If the original vectors
@@ -262,6 +243,20 @@ public:
     void compute_dot(const LinOp* b, LinOp* result) const;
 
     /**
+     * Computes the column-wise dot product of this (multi-)vector and `b` using
+     * a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_dot(const LinOp* b, LinOp* result, array<char>& tmp) const;
+
+    /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
      * using a global reduction.
      *
@@ -271,6 +266,21 @@ public:
      *                of columns of this)
      */
     void compute_conj_dot(const LinOp* b, LinOp* result) const;
+
+    /**
+     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
+     * using a global reduction.
+     *
+     * @param b  a (multi-)vector of same dimension as this
+     * @param result  a Dense row matrix, used to store the dot product
+     *                (the number of column in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_conj_dot(const LinOp* b, LinOp* result,
+                          array<char>& tmp) const;
 
     /**
      * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
@@ -283,6 +293,19 @@ public:
     void compute_norm2(LinOp* result) const;
 
     /**
+     * Computes the Euclidian (L^2) norm of this (multi-)vector using a global
+     * reduction.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm2(LinOp* result, array<char>& tmp) const;
+
+    /**
      * Computes the column-wise (L^1) norm of this (multi-)vector.
      *
      * @param result  a Dense row matrix, used to store the norm
@@ -291,21 +314,79 @@ public:
      */
     void compute_norm1(LinOp* result) const;
 
+    /**
+     * Computes the column-wise (L^1) norm of this (multi-)vector using a global
+     * reduction.
+     *
+     * @param result  a Dense row matrix, used to store the norm
+     *                (the number of columns in result must match the number
+     *                of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
+     */
+    void compute_norm1(LinOp* result, array<char>& tmp) const;
+
+    /**
+     * Returns a single element of the multi-vector.
+     *
+     * @param row  the local row of the requested element
+     * @param col  the local column of the requested element
+     *
+     * @note  the method has to be called on the same Executor the multi-vector
+     * is stored at (e.g. trying to call this method on a GPU multi-vector from
+     *        the OMP results in a runtime error)
+     */
+    value_type& at_local(size_type row, size_type col) noexcept;
+
+    /**
+     * @copydoc Vector::at(size_type, size_type)
+     */
+    value_type at_local(size_type row, size_type col) const noexcept;
+
+    /**
+     * Returns a single element of the multi-vector.
+     *
+     * Useful for iterating across all elements of the multi-vector.
+     * However, it is less efficient than the two-parameter variant of this
+     * method.
+     *
+     * @param idx  a linear index of the requested element
+     *             (ignoring the stride)
+     *
+     * @note  the method has to be called on the same Executor the matrix is
+     *        stored at (e.g. trying to call this method on a GPU matrix from
+     *        the OMP results in a runtime error)
+     */
+    ValueType& at_local(size_type idx) noexcept;
+
+    /**
+     * @copydoc Vector::at(size_type)
+     */
+    ValueType at_local(size_type idx) const noexcept;
+
+    /**
+     * Returns a pointer to the array of local values of the multi-vector.
+     *
+     * @return the pointer to the array of local values
+     */
+    value_type* get_local_values();
+
+    /**
+     * @copydoc get_local_values()
+     *
+     * @note This is the constant version of the function, which can be
+     *       significantly more memory efficient than the non-constant version,
+     *       so always prefer this version.
+     */
+    const value_type* get_const_local_values();
 
     /**
      * Direct (read) access to the underlying local local_vector_type vectors.
      *
      * @return a constant pointer to the underlying local_vector_type vectors
      */
-    const local_vector_type* get_const_local() const;
-
-    /*
-     * Direct (read/write) access to the underlying local_vector_type Dense
-     * vectors.
-     *
-     * @return a constant pointer to the underlying local_vector_type vectors
-     */
-    local_vector_type* get_local();
+    const local_vector_type* get_local_vector() const;
 
     /**
      * Create a real view of the (potentially) complex original multi-vector.
@@ -314,12 +395,12 @@ public:
      * real with a reinterpret_cast with twice the number of columns and
      * double the stride.
      */
-    std::unique_ptr<real_type> create_real_view();
+    std::unique_ptr<const real_type> create_real_view() const;
 
     /**
-     * @copydoc create_real_view()
+     * @copydoc create_real_view
      */
-    std::unique_ptr<const real_type> create_real_view() const;
+    std::unique_ptr<real_type> create_real_view();
 
 protected:
     /**
@@ -354,6 +435,10 @@ protected:
     /**
      * Creates a distributed vector from local vectors with a specified size.
      *
+     * @note  The data form the local_vector will be moved into the new
+     *        distributed vector. This means, access to local_vector
+     *        will be invalid after this call.
+     *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
      * @param global_size  The global size of the vector
@@ -367,6 +452,10 @@ protected:
      * Creates a distributed vector from local vectors. The global size will
      * be deduced from the local sizes, which will incur a collective
      * communication.
+     *
+     * @note  The data form the local_vector will be moved into the new
+     *        distributed vector. This means, access to local_vector
+     *        will be invalid after this call.
      *
      * @param exec  Executor associated with this vector
      * @param comm  Communicator associated with this vector
@@ -394,7 +483,7 @@ private:
 }  // namespace gko
 
 
-#endif
+#endif  // GINKGO_BUILD_MPI
 
 
 #endif  // GKO_PUBLIC_CORE_DISTRIBUTED_VECTOR_HPP_

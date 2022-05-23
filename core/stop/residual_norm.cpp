@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
+
+
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
@@ -71,52 +74,39 @@ bool any_is_complex()
 }
 
 
-#if GINKGO_BUILD_MPI
-
-
 template <typename ValueType, typename LinOp, typename... Rest>
 bool any_is_complex(const LinOp* in, Rest&&... rest)
 {
-    return !(is_complex<ValueType>() ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in) ||
-             dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in)) ||
+#if GINKGO_BUILD_MPI
+    bool is_complex_distributed =
+        dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in);
+#else
+    bool is_complex_distributed = false;
+#endif
+
+    return !(is_complex<ValueType>() || is_complex_distributed ||
+             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
            any_is_complex<ValueType>(std::forward<Rest>(rest)...);
 }
 
 
+#if GINKGO_BUILD_MPI
+
+
 template <typename Arg>
-bool use_distributed(Arg* linop)
+bool is_distributed(Arg* linop)
 {
     return dynamic_cast<const distributed::DistributedBase*>(linop);
 }
 
 
 template <typename Arg, typename... Rest>
-bool use_distributed(Arg* linop, Rest*... rest)
+bool is_distributed(Arg* linop, Rest*... rest)
 {
-    bool is_distributed =
+    bool is_distributed_value =
         dynamic_cast<const distributed::DistributedBase*>(linop);
-    GKO_ASSERT(is_distributed == use_distributed(rest...));
-    return is_distributed;
-}
-
-
-#else
-
-
-template <typename ValueType, typename LinOp, typename... Rest>
-bool any_is_complex(const LinOp* in, Rest&&... rest)
-{
-    return !(is_complex<ValueType>() ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
-           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
-}
-
-
-template <typename... Args>
-bool use_distributed(Args*...)
-{
-    return false;
+    GKO_ASSERT(is_distributed_value == is_distributed(rest...));
+    return is_distributed_value;
 }
 
 
@@ -126,15 +116,7 @@ bool use_distributed(Args*...)
 template <typename ValueType, typename Function, typename... LinOps>
 void norm_dispatch(Function&& fn, LinOps*... linops)
 {
-    if (use_distributed(linops...)) {
-        if (any_is_complex<ValueType>(linops...)) {
-            precision_dispatch_distributed<to_complex<ValueType>>(
-                std::forward<Function>(fn), linops...);
-        } else {
-            precision_dispatch_distributed<ValueType>(
-                std::forward<Function>(fn), linops...);
-        }
-    } else {
+    auto dispatch_sequential = [](Function&& fn, LinOps*... linops) {
         if (any_is_complex<ValueType>(linops...)) {
             precision_dispatch<to_complex<ValueType>>(
                 std::forward<Function>(fn), linops...);
@@ -142,7 +124,22 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
             precision_dispatch<ValueType>(std::forward<Function>(fn),
                                           linops...);
         }
+    };
+#if GINKGO_BUILD_MPI
+    if (is_distributed(linops...)) {
+        if (any_is_complex<ValueType>(linops...)) {
+            distributed::precision_dispatch<to_complex<ValueType>>(
+                std::forward<Function>(fn), linops...);
+        } else {
+            distributed::precision_dispatch<ValueType>(
+                std::forward<Function>(fn), linops...);
+        }
+    } else {
+        dispatch_sequential(std::forward<Function>(fn), linops...);
     }
+#else
+    dispatch_sequential(std::forward<Function>(fn), linops...);
+#endif
 }
 
 
@@ -220,7 +217,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
 
 template <typename ValueType>
 bool ResidualNormBase<ValueType>::check_impl(
-    uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
+    uint8 stopping_id, bool set_finalized, array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
     const NormVector* dense_tau;
@@ -259,7 +256,7 @@ bool ResidualNormBase<ValueType>::check_impl(
 
 template <typename ValueType>
 bool ImplicitResidualNorm<ValueType>::check_impl(
-    uint8 stopping_id, bool set_finalized, Array<stopping_status>* stop_status,
+    uint8 stopping_id, bool set_finalized, array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
 {
     const Vector* dense_tau;

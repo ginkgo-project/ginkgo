@@ -71,8 +71,8 @@ void simple_apply(
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
     // TODO: write a special kernel for multiple RHS

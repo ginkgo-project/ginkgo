@@ -154,8 +154,8 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs), 2.0);
+        gko::make_array_view(this->exec, 4, col_idxs),
+        gko::make_array_view(this->exec, 4, row_ptrs), 2.0);
 
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
@@ -175,8 +175,8 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingConstData)
 
     auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create_const(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<index_type>::const_view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::const_view(this->exec, 4, row_ptrs), 2.0);
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::array<index_type>::const_view(this->exec, 4, row_ptrs), 2.0);
 
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);

@@ -55,17 +55,17 @@ public:
     /**
      * Returns the row index array of the COO matrix.
      */
-    Array<IndexType>& get_row_idx_array() { return matrix_->row_idxs_; }
+    array<IndexType>& get_row_idx_array() { return matrix_->row_idxs_; }
 
     /**
      * Returns the column index array of the COO matrix.
      */
-    Array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
+    array<IndexType>& get_col_idx_array() { return matrix_->col_idxs_; }
 
     /**
      * Returns the value array of the COO matrix.
      */
-    Array<ValueType>& get_value_array() { return matrix_->values_; }
+    array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
      * Initializes a CooBuilder from an existing COO matrix.

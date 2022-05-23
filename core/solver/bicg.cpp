@@ -67,7 +67,7 @@ std::unique_ptr<LinOp> Bicg<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -80,7 +80,7 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -112,6 +112,9 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
 template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
@@ -131,6 +134,8 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
 
+    array<char> reduction_tmp{exec};
+
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
@@ -149,7 +154,7 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto rho = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
+    array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
@@ -164,7 +169,7 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
-        dynamic_cast<const Transposable*>(system_matrix_.get());
+        dynamic_cast<const Transposable*>(this->get_system_matrix().get());
 
     if (conj_transposable_system_matrix) {
         conj_trans_A = conj_transposable_system_matrix->conj_transpose();
@@ -173,26 +178,27 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // Try to figure out the IndexType that can be used for the CSR matrix
         using Csr32 = matrix::Csr<ValueType, int32>;
         using Csr64 = matrix::Csr<ValueType, int64>;
-        auto supports_int64 =
-            dynamic_cast<const ConvertibleTo<Csr64>*>(system_matrix_.get());
+        auto supports_int64 = dynamic_cast<const ConvertibleTo<Csr64>*>(
+            this->get_system_matrix().get());
         if (supports_int64) {
-            conj_trans_A = conj_transpose_with_csr<Csr64>(system_matrix_.get());
+            conj_trans_A =
+                conj_transpose_with_csr<Csr64>(this->get_system_matrix().get());
         } else {
-            conj_trans_A = conj_transpose_with_csr<Csr32>(system_matrix_.get());
+            conj_trans_A =
+                conj_transpose_with_csr<Csr32>(this->get_system_matrix().get());
         }
     }
 
-    auto conj_trans_preconditioner_tmp =
-        as<const Transposable>(get_preconditioner().get());
     auto conj_trans_preconditioner =
-        conj_trans_preconditioner_tmp->conj_transpose();
+        as<const Transposable>(this->get_preconditioner())->conj_transpose();
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
     r2->copy_from(r.get());
     // r2 = r
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
 
@@ -208,9 +214,9 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        get_preconditioner()->apply(r.get(), z.get());
+        this->get_preconditioner()->apply(r.get(), z.get());
         conj_trans_preconditioner->apply(r2.get(), z2.get());
-        z->compute_conj_dot(r2.get(), rho.get());
+        z->compute_conj_dot(r2.get(), rho.get(), reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -229,9 +235,9 @@ void Bicg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // p2 = z2 + tmp * p2
         exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
                                     rho.get(), prev_rho.get(), &stop_status));
-        system_matrix_->apply(p.get(), q.get());
+        this->get_system_matrix()->apply(p.get(), q.get());
         conj_trans_A->apply(p2.get(), q2.get());
-        p2->compute_conj_dot(q.get(), beta.get());
+        p2->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
@@ -248,6 +254,9 @@ template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                  const LinOp* beta, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();

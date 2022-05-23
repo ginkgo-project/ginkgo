@@ -834,7 +834,7 @@ void AdvectionProblem<dim>::solve()
     using mtx = gko::matrix::Csr<>;
     using bicgstab = gko::solver::Bicgstab<>;
     using bj = gko::preconditioner::Jacobi<>;
-    using val_array = gko::Array<double>;
+    using val_array = gko::array<double>;
 
     // Where the code is to be executed. Can be changed to `omp` or `cuda` to
     // run on multiple threads or on gpu's

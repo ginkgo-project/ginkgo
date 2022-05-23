@@ -108,50 +108,54 @@ namespace kernels {
     void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Dense<_type>* x,               \
                               const matrix::Dense<_type>* y,               \
-                              matrix::Dense<_type>* result)
+                              matrix::Dense<_type>* result, array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
                      const matrix::Dense<_type>* x,               \
                      const matrix::Dense<_type>* y,               \
-                     matrix::Dense<_type>* result)
+                     matrix::Dense<_type>* result, array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL(_type)     \
     void compute_conj_dot_dispatch(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         const matrix::Dense<_type>* x, const matrix::Dense<_type>* y, \
-        matrix::Dense<_type>* result)
+        matrix::Dense<_type>* result, array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL(_type)               \
     void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec, \
                           const matrix::Dense<_type>* x,               \
                           const matrix::Dense<_type>* y,               \
-                          matrix::Dense<_type>* result)
+                          matrix::Dense<_type>* result, array<char>& tmp)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)               \
-    void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type>* x,               \
-                       matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)                \
+    void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,  \
+                       const matrix::Dense<_type>* x,                \
+                       matrix::Dense<remove_complex<_type>>* result, \
+                       array<char>& tmp)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(_type)               \
-    void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
-                                const matrix::Dense<_type>* x,               \
-                                matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL(_type)                \
+    void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,  \
+                                const matrix::Dense<_type>* x,                \
+                                matrix::Dense<remove_complex<_type>>* result, \
+                                array<char>& tmp)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)               \
-    void compute_norm1(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type>* x,               \
-                       matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL(_type)                \
+    void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,  \
+                       const matrix::Dense<_type>* x,                \
+                       matrix::Dense<remove_complex<_type>>* result, \
+                       array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(_type, _prec)         \
     void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,  \
                              const device_matrix_data<_type, _prec>& data, \
                              matrix::Dense<_type>* output)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL(_type)               \
-    void compute_norm2_sqr(std::shared_ptr<const DefaultExecutor> exec, \
-                           const matrix::Dense<_type>* x,               \
-                           matrix::Dense<remove_complex<_type>>* result)
+#define GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(_type)                \
+    void compute_squared_norm2(std::shared_ptr<const DefaultExecutor> exec,  \
+                               const matrix::Dense<_type>* x,                \
+                               matrix::Dense<remove_complex<_type>>* result, \
+                               array<char>& tmp)
 
 #define GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(_type)               \
     void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
@@ -230,19 +234,19 @@ namespace kernels {
 
 #define GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL(_vtype, _itype)      \
     void symm_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                      const Array<_itype>* permutation_indices,    \
+                      const array<_itype>* permutation_indices,    \
                       const matrix::Dense<_vtype>* orig,           \
                       matrix::Dense<_vtype>* permuted)
 
 #define GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL(_vtype, _itype)      \
     void inv_symm_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                          const Array<_itype>* permutation_indices,    \
+                          const array<_itype>* permutation_indices,    \
                           const matrix::Dense<_vtype>* orig,           \
                           matrix::Dense<_vtype>* permuted)
 
 #define GKO_DECLARE_DENSE_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
     void row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const Array<_itype>* gather_indices,            \
+                    const array<_itype>* gather_indices,            \
                     const matrix::Dense<_vtype>* orig,              \
                     matrix::Dense<_otype>* row_collection)
 
@@ -250,26 +254,26 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(_vtype, _otype, _itype) \
     void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,    \
                              const matrix::Dense<_vtype>* alpha,             \
-                             const Array<_itype>* gather_indices,            \
+                             const array<_itype>* gather_indices,            \
                              const matrix::Dense<_vtype>* orig,              \
                              const matrix::Dense<_vtype>* beta,              \
                              matrix::Dense<_otype>* row_collection)
 
 #define GKO_DECLARE_DENSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)      \
     void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                        const Array<_itype>* permutation_indices,    \
+                        const array<_itype>* permutation_indices,    \
                         const matrix::Dense<_vtype>* orig,           \
                         matrix::Dense<_vtype>* column_permuted)
 
 #define GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL(_vtype, _itype)          \
     void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<_itype>* permutation_indices,    \
+                             const array<_itype>* permutation_indices,    \
                              const matrix::Dense<_vtype>* orig,           \
                              matrix::Dense<_vtype>* row_permuted)
 
 #define GKO_DECLARE_DENSE_INV_COLUMN_PERMUTE_KERNEL(_vtype, _itype)          \
     void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                                const Array<_itype>* permutation_indices,    \
+                                const array<_itype>* permutation_indices,    \
                                 const matrix::Dense<_vtype>* orig,           \
                                 matrix::Dense<_vtype>* column_permuted)
 
@@ -348,7 +352,7 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
     template <typename ValueType>                                           \
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_SQR_KERNEL(ValueType);                  \
+    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);              \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL(ValueType);                       \
     template <typename ValueType, typename IndexType>                       \

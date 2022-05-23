@@ -47,9 +47,9 @@ namespace partition {
 using distributed::comm_index_type;
 
 void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
-                  const Array<comm_index_type>& mapping, size_type& num_ranges)
+                  const array<comm_index_type>& mapping, size_type& num_ranges)
 {
-    Array<size_type> result{exec, 1};
+    array<size_type> result{exec, 1};
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto mapping) {
@@ -65,7 +65,7 @@ void count_ranges(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename GlobalIndexType>
 void build_from_contiguous(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<GlobalIndexType>& ranges,
+                           const array<GlobalIndexType>& ranges,
                            GlobalIndexType* range_bounds,
                            comm_index_type* part_ids)
 {
@@ -86,11 +86,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_PARTITION_BUILD_FROM_CONTIGUOUS);
 
 template <typename GlobalIndexType>
 void build_from_mapping(std::shared_ptr<const DefaultExecutor> exec,
-                        const Array<comm_index_type>& mapping,
+                        const array<comm_index_type>& mapping,
                         GlobalIndexType* range_bounds,
                         comm_index_type* part_ids)
 {
-    Array<size_type> range_starting_index{exec, mapping.get_num_elems() + 1};
+    array<size_type> range_starting_index{exec, mapping.get_num_elems() + 1};
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto mapping, auto range_starting_index) {
@@ -130,7 +130,7 @@ template <typename GlobalIndexType>
 void build_ranges_from_global_size(std::shared_ptr<const DefaultExecutor> exec,
                                    comm_index_type num_parts,
                                    GlobalIndexType global_size,
-                                   Array<GlobalIndexType>& ranges)
+                                   array<GlobalIndexType>& ranges)
 {
     const auto size_per_part = global_size / num_parts;
     const auto rest = global_size - (num_parts * size_per_part);
@@ -156,7 +156,7 @@ void has_ordered_parts(
     const auto num_ranges = partition->get_num_ranges();
     // it is necessary to use uint32 as a temporary result, since
     // bool can't be used with suffles
-    Array<uint32> result_uint32{exec, 1};
+    array<uint32> result_uint32{exec, 1};
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, const auto part_ids) {

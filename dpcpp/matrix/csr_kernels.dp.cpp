@@ -676,16 +676,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, ValueType* c,
                              const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=
-        ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
-                                            subgroup_size)]] {
-                abstract_classical_spmv<subgroup_size>(num_rows, val, col_idxs,
-                                                       row_ptrs, b, b_stride, c,
-                                                       c_stride, item_ct1);
-            });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, val, col_idxs, row_ptrs, b, b_stride, c,
+                        c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, val, col_idxs, row_ptrs, b,
+                                     b_stride, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
@@ -718,14 +729,27 @@ void abstract_classical_spmv(dim3 grid, dim3 block,
                              const size_type b_stride, const ValueType* beta,
                              ValueType* c, const size_type c_stride)
 {
-    queue->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_classical_spmv<subgroup_size>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, b,
-                                 b_stride, beta, c, c_stride, item_ct1);
-                         });
-    });
+    if (subgroup_size > 1) {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(
+                sycl_nd_range(grid, block), [=
+            ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                                subgroup_size)]] {
+                    abstract_classical_spmv<subgroup_size>(
+                        num_rows, alpha, val, col_idxs, row_ptrs, b, b_stride,
+                        beta, c, c_stride, item_ct1);
+                });
+        });
+    } else {
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl_nd_range(grid, block),
+                             [=](sycl::nd_item<3> item_ct1) {
+                                 abstract_classical_spmv<subgroup_size>(
+                                     num_rows, alpha, val, col_idxs, row_ptrs,
+                                     b, b_stride, beta, c, c_stride, item_ct1);
+                             });
+        });
+    }
 }
 
 
@@ -1019,8 +1043,8 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
         ceildiv(total, spmv_block_size * items_per_thread);
     const dim3 grid(grid_num);
     const dim3 block(spmv_block_size);
-    Array<IndexType> row_out(exec, grid_num);
-    Array<ValueType> val_out(exec, grid_num);
+    array<IndexType> row_out(exec, grid_num);
+    array<ValueType> val_out(exec, grid_num);
 
     for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
         if (alpha == nullptr && beta == nullptr) {
@@ -1123,9 +1147,17 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: zero output
+        dense::fill(exec, c, zero<ValueType>());
+        return;
+    }
     if (a->get_strategy()->get_name() == "load_balance") {
-        components::fill_array(exec, c->get_values(),
-                               c->get_num_stored_elements(), zero<ValueType>());
+        dense::fill(exec, c, zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
@@ -1137,8 +1169,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -1162,6 +1192,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
             [&max_length_per_row](int compiled_info) {
@@ -1214,6 +1245,15 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType>* beta,
                    matrix::Dense<ValueType>* c)
 {
+    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
+    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+        // empty input: scale output
+        dense::scale(exec, beta, c);
+        return;
+    }
     if (a->get_strategy()->get_name() == "load_balance") {
         dense::scale(exec, beta, c);
 
@@ -1230,8 +1270,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
                 a->get_const_srow(), b->get_const_values(), b->get_stride(),
                 c->get_values(), c->get_stride());
-        } else {
-            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
@@ -1279,6 +1317,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(a->get_strategy());
         }
+        max_length_per_row = std::max<size_type>(max_length_per_row, 1);
         host_kernel::select_classical_spmv(
             classical_kernels(),
             [&max_length_per_row](int compiled_info) {
@@ -1368,7 +1407,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, Array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>* row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1383,6 +1422,18 @@ void calculate_nonzeros_per_row_in_span(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_SPAN_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row_in_index_set(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
+    IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1410,6 +1461,18 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_submatrix_from_index_set(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* source,
+    const gko::index_set<IndexType>& row_index_set,
+    const gko::index_set<IndexType>& col_index_set,
+    matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
 
 
 namespace {
@@ -1615,7 +1678,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
-    Array<val_heap_element<ValueType, IndexType>> heap_array(
+    array<val_heap_element<ValueType, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
@@ -1700,7 +1763,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // first sweep: count nnz for each row
 
-    Array<val_heap_element<ValueType, IndexType>> heap_array(
+    array<val_heap_element<ValueType, IndexType>> heap_array(
         exec, a->get_num_stored_elements());
 
     auto heap = heap_array.get_data();
@@ -1917,8 +1980,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      Array<IndexType>& row_ptrs, Array<IndexType>& col_idxs,
-                      Array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+                      array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
+                      array<ValueType>& values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
@@ -1936,7 +1999,7 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
     const auto cols = orig->get_const_col_idxs();
     const auto vals = orig->get_const_values();
 
-    Array<IndexType> counts{exec, num_cols + 1};
+    array<IndexType> counts{exec, num_cols + 1};
     auto tmp_counts = counts.get_data();
     auto out_row_ptrs = trans->get_row_ptrs();
     auto out_cols = trans->get_col_idxs();
@@ -2136,7 +2199,7 @@ void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
 {
-    Array<bool> is_sorted_device_array{exec, {true}};
+    array<bool> is_sorted_device_array{exec, {true}};
     const auto num_rows = to_check->get_size()[0];
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto cols = to_check->get_const_col_idxs();

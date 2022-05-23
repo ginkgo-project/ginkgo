@@ -1,3 +1,7 @@
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.21)
+    set(CMAKE_HIP_ARCHITECTURES OFF)
+endif()
+
 if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}"
     AND GINKGO_BUILD_CUDA AND CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 9.2)
     message(FATAL_ERROR "Ginkgo HIP backend requires CUDA >= 9.2.")
@@ -163,6 +167,7 @@ set(GINKGO_HIP_SOURCES
     distributed/matrix_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     distributed/vector_kernels.hip.cpp
+    factorization/cholesky_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
@@ -183,6 +188,7 @@ set(GINKGO_HIP_SOURCES
     matrix/fbcsr_kernels.hip.cpp
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
+    multigrid/amgx_pgm_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
@@ -277,7 +283,12 @@ if(GINKGO_HIP_AMDGPU)
     endforeach()
 endif()
 
-set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP")
+if(GINKGO_STATIC_OR_SHARED MATCHES "STATIC")
+    # Debug Static: Hip requires PIC flags
+    set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP $<$<CONFIG:Debug>:-fPIC>")
+else()
+    set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS} "-std=c++14 -DGKO_COMPILING_HIP")
+endif()
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
 set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARCH_FLAGS})
 

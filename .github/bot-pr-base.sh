@@ -3,8 +3,8 @@
 source .github/bot-base.sh
 
 EXTENSION_REGEX='\.(cuh?|hpp|hpp\.inc?|cpp)$'
-FORMAT_HEADER_REGEX='^(benchmark|core|cuda|hip|include/ginkgo/core|omp|reference|dpcpp|common/unified)/'
-FORMAT_REGEX='^(common|examples|test_install)/'
+FORMAT_HEADER_REGEX='^(benchmark|core|cuda|hip|include/ginkgo/core|omp|reference|dpcpp|common/unified|test)/'
+FORMAT_REGEX='^(common|examples)/'
 CLANG_FORMAT=clang-format-9
 
 echo -n "Collecting information on triggering PR"

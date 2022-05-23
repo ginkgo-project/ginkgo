@@ -84,7 +84,7 @@ TYPED_TEST(MpiBindings, CanSendAndRecvValues)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto recv_array = gko::Array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
 
     if (my_rank == 0) {
         auto send_array = std::vector<TypeParam>{1, 2, 3, 4};
@@ -94,12 +94,12 @@ TYPED_TEST(MpiBindings, CanSendAndRecvValues)
             }
         }
     } else {
-        recv_array = gko::Array<TypeParam>{this->ref, 4};
+        recv_array = gko::array<TypeParam>{this->ref, 4};
         comm.recv(recv_array.get_data(), 4, 0, 40 + my_rank);
     }
 
     if (my_rank != 0) {
-        auto ref_array = gko::Array<TypeParam>{this->ref, {1, 2, 3, 4}};
+        auto ref_array = gko::array<TypeParam>{this->ref, {1, 2, 3, 4}};
         GKO_ASSERT_ARRAY_EQ(ref_array, recv_array);
     }
 }
@@ -111,7 +111,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> send_array;
-    auto recv_array = gko::Array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
     TypeParam* data;
     auto req1 = std::vector<gko::mpi::request>(num_ranks);
     auto req2 = gko::mpi::request();
@@ -124,7 +124,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
             }
         }
     } else {
-        recv_array = gko::Array<TypeParam>{this->ref, 4};
+        recv_array = gko::array<TypeParam>{this->ref, 4};
         req2 = comm.i_recv(recv_array.get_data(), 4, 0, 40 + my_rank);
     }
 
@@ -134,7 +134,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
         auto stat2 = req2.wait();
         auto count = stat2.get_count(recv_array.get_data());
         ASSERT_EQ(count, 4);
-        auto ref_array = gko::Array<TypeParam>{this->ref, {1, 2, 3, 4}};
+        auto ref_array = gko::array<TypeParam>{this->ref, {1, 2, 3, 4}};
         GKO_ASSERT_ARRAY_EQ(ref_array, recv_array);
     }
 }
@@ -671,14 +671,14 @@ TYPED_TEST(MpiBindings, CanBroadcastValues)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto array = gko::Array<TypeParam>{this->ref, 8};
+    auto array = gko::array<TypeParam>{this->ref, 8};
     if (my_rank == 0) {
-        array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
+        array = gko::array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
     }
 
     comm.broadcast(array.get_data(), 8, 0);
 
-    auto ref = gko::Array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
+    auto ref = gko::array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
     GKO_ASSERT_ARRAY_EQ(ref, array);
 }
 
@@ -688,15 +688,15 @@ TYPED_TEST(MpiBindings, CanNonBlockingBroadcastValues)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto array = gko::Array<TypeParam>{this->ref, 8};
+    auto array = gko::array<TypeParam>{this->ref, 8};
     if (my_rank == 0) {
-        array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
+        array = gko::array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
     }
 
     auto req = comm.i_broadcast(array.get_data(), 8, 0);
 
     req.wait();
-    auto ref = gko::Array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
+    auto ref = gko::array<TypeParam>(this->ref, {2, 3, 1, 3, -1, 0, 3, 1});
     GKO_ASSERT_ARRAY_EQ(ref, array);
 }
 
@@ -865,13 +865,13 @@ TYPED_TEST(MpiBindings, CanGatherValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    auto gather_array = gko::Array<TypeParam>{
+    auto gather_array = gko::array<TypeParam>{
         this->ref, static_cast<gko::size_type>(num_ranks)};
 
     comm.gather(&data, 1, gather_array.get_data(), 1, 0);
 
     if (my_rank == 0) {
-        auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 2, 6});
+        auto ref = gko::array<TypeParam>(this->ref, {3, 5, 2, 6});
         GKO_ASSERT_ARRAY_EQ(ref, gather_array);
     }
 }
@@ -892,14 +892,14 @@ TYPED_TEST(MpiBindings, CanNonBlockingGatherValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    auto gather_array = gko::Array<TypeParam>{
+    auto gather_array = gko::array<TypeParam>{
         this->ref, static_cast<gko::size_type>(num_ranks)};
 
     auto req = comm.i_gather(&data, 1, gather_array.get_data(), 1, 0);
 
     req.wait();
     if (my_rank == 0) {
-        auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 2, 6});
+        auto ref = gko::array<TypeParam>(this->ref, {3, 5, 2, 6});
         GKO_ASSERT_ARRAY_EQ(ref, gather_array);
     }
 }
@@ -920,12 +920,12 @@ TYPED_TEST(MpiBindings, CanAllGatherValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    auto gather_array = gko::Array<TypeParam>{
+    auto gather_array = gko::array<TypeParam>{
         this->ref, static_cast<gko::size_type>(num_ranks)};
 
     comm.all_gather(&data, 1, gather_array.get_data(), 1);
 
-    auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 2, 6});
+    auto ref = gko::array<TypeParam>(this->ref, {3, 5, 2, 6});
     GKO_ASSERT_ARRAY_EQ(ref, gather_array);
 }
 
@@ -945,13 +945,13 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllGatherValues)
     } else if (my_rank == 3) {
         data = 6;
     }
-    auto gather_array = gko::Array<TypeParam>{
+    auto gather_array = gko::array<TypeParam>{
         this->ref, static_cast<gko::size_type>(num_ranks)};
 
     auto req = comm.i_all_gather(&data, 1, gather_array.get_data(), 1);
 
     req.wait();
-    auto ref = gko::Array<TypeParam>(this->ref, {3, 5, 2, 6});
+    auto ref = gko::array<TypeParam>(this->ref, {3, 5, 2, 6});
     GKO_ASSERT_ARRAY_EQ(ref, gather_array);
 }
 
@@ -961,26 +961,26 @@ TYPED_TEST(MpiBindings, CanGatherValuesWithDisplacements)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto gather_from_array = gko::Array<TypeParam>{this->ref};
-    auto gather_into_array = gko::Array<TypeParam>{this->ref};
+    auto gather_from_array = gko::array<TypeParam>{this->ref};
+    auto gather_into_array = gko::array<TypeParam>{this->ref};
     auto r_counts =
-        gko::Array<int>{this->ref, static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{this->ref};
+        gko::array<int>{this->ref, static_cast<gko::size_type>(num_ranks)};
+    auto displacements = gko::array<int>{this->ref};
     int nelems;
     if (my_rank == 0) {
-        gather_from_array = gko::Array<TypeParam>{this->ref, {2, 3}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {2, 3}};
         nelems = 2;
-        displacements = gko::Array<int>{this->ref, {0, 2, 6, 7}};
-        gather_into_array = gko::Array<TypeParam>{this->ref, 10};
+        displacements = gko::array<int>{this->ref, {0, 2, 6, 7}};
+        gather_into_array = gko::array<TypeParam>{this->ref, 10};
     } else if (my_rank == 1) {
         nelems = 4;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1, 2, 1, 0}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1, 2, 1, 0}};
     } else if (my_rank == 2) {
         nelems = 1;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1}};
     } else if (my_rank == 3) {
         nelems = 3;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1, -4, 5}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1, -4, 5}};
     }
 
     comm.gather(&nelems, 1, r_counts.get_data(), 1, 0);
@@ -991,7 +991,7 @@ TYPED_TEST(MpiBindings, CanGatherValuesWithDisplacements)
     auto comp_data = gather_into_array.get_data();
     if (my_rank == 0) {
         auto ref_array =
-            gko::Array<TypeParam>(this->ref, {2, 3, 1, 2, 1, 0, 1, 1, -4, 5});
+            gko::array<TypeParam>(this->ref, {2, 3, 1, 2, 1, 0, 1, 1, -4, 5});
         GKO_ASSERT_ARRAY_EQ(gather_into_array, ref_array);
     } else {
         ASSERT_EQ(comp_data, nullptr);
@@ -1004,26 +1004,26 @@ TYPED_TEST(MpiBindings, CanNonBlockingGatherValuesWithDisplacements)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto gather_from_array = gko::Array<TypeParam>{this->ref};
-    auto gather_into_array = gko::Array<TypeParam>{this->ref};
+    auto gather_from_array = gko::array<TypeParam>{this->ref};
+    auto gather_into_array = gko::array<TypeParam>{this->ref};
     auto r_counts =
-        gko::Array<int>{this->ref, static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{this->ref};
+        gko::array<int>{this->ref, static_cast<gko::size_type>(num_ranks)};
+    auto displacements = gko::array<int>{this->ref};
     int nelems;
     if (my_rank == 0) {
-        gather_from_array = gko::Array<TypeParam>{this->ref, {2, 3}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {2, 3}};
         nelems = 2;
-        displacements = gko::Array<int>{this->ref, {0, 2, 6, 7}};
-        gather_into_array = gko::Array<TypeParam>{this->ref, 10};
+        displacements = gko::array<int>{this->ref, {0, 2, 6, 7}};
+        gather_into_array = gko::array<TypeParam>{this->ref, 10};
     } else if (my_rank == 1) {
         nelems = 4;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1, 2, 1, 0}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1, 2, 1, 0}};
     } else if (my_rank == 2) {
         nelems = 1;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1}};
     } else if (my_rank == 3) {
         nelems = 3;
-        gather_from_array = gko::Array<TypeParam>{this->ref, {1, -4, 5}};
+        gather_from_array = gko::array<TypeParam>{this->ref, {1, -4, 5}};
     }
 
     comm.gather(&nelems, 1, r_counts.get_data(), 1, 0);
@@ -1035,7 +1035,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGatherValuesWithDisplacements)
     auto comp_data = gather_into_array.get_data();
     if (my_rank == 0) {
         auto ref_array =
-            gko::Array<TypeParam>(this->ref, {2, 3, 1, 2, 1, 0, 1, 1, -4, 5});
+            gko::array<TypeParam>(this->ref, {2, 3, 1, 2, 1, 0, 1, 1, -4, 5});
         GKO_ASSERT_ARRAY_EQ(gather_into_array, ref_array);
     } else {
         ASSERT_EQ(comp_data, nullptr);
@@ -1048,12 +1048,12 @@ TYPED_TEST(MpiBindings, CanScatterValues)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto scatter_from_array = gko::Array<TypeParam>{this->ref};
+    auto scatter_from_array = gko::array<TypeParam>{this->ref};
     if (my_rank == 0) {
         scatter_from_array =
-            gko::Array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 3, 1}};
+            gko::array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 3, 1}};
     }
-    auto scatter_into_array = gko::Array<TypeParam>{this->ref, 2};
+    auto scatter_into_array = gko::array<TypeParam>{this->ref, 2};
 
     comm.scatter(scatter_from_array.get_data(), 2,
                  scatter_into_array.get_data(), 2, 0);
@@ -1081,12 +1081,12 @@ TYPED_TEST(MpiBindings, CanNonBlockingScatterValues)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto scatter_from_array = gko::Array<TypeParam>{this->ref};
+    auto scatter_from_array = gko::array<TypeParam>{this->ref};
     if (my_rank == 0) {
         scatter_from_array =
-            gko::Array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 3, 1}};
+            gko::array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 3, 1}};
     }
-    auto scatter_into_array = gko::Array<TypeParam>{this->ref, 2};
+    auto scatter_into_array = gko::array<TypeParam>{this->ref, 2};
 
     auto req = comm.i_scatter(scatter_from_array.get_data(), 2,
                               scatter_into_array.get_data(), 2, 0);
@@ -1115,17 +1115,17 @@ TYPED_TEST(MpiBindings, CanScatterValuesWithDisplacements)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto scatter_from_array = gko::Array<TypeParam>{this->ref};
-    auto scatter_into_array = gko::Array<TypeParam>{this->ref};
-    auto s_counts = gko::Array<int>{this->ref->get_master(),
+    auto scatter_from_array = gko::array<TypeParam>{this->ref};
+    auto scatter_into_array = gko::array<TypeParam>{this->ref};
+    auto s_counts = gko::array<int>{this->ref->get_master(),
                                     static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{this->ref->get_master()};
+    auto displacements = gko::array<int>{this->ref->get_master()};
     int nelems;
     if (my_rank == 0) {
         scatter_from_array =
-            gko::Array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 2, -1, 0, 3}};
+            gko::array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 2, -1, 0, 3}};
         nelems = 2;
-        displacements = gko::Array<int>{this->ref, {0, 2, 6, 9}};
+        displacements = gko::array<int>{this->ref, {0, 2, 6, 9}};
     } else if (my_rank == 1) {
         nelems = 4;
     } else if (my_rank == 2) {
@@ -1134,7 +1134,7 @@ TYPED_TEST(MpiBindings, CanScatterValuesWithDisplacements)
         nelems = 1;
     }
     scatter_into_array =
-        gko::Array<TypeParam>{this->ref, static_cast<gko::size_type>(nelems)};
+        gko::array<TypeParam>{this->ref, static_cast<gko::size_type>(nelems)};
 
     comm.gather(&nelems, 1, s_counts.get_data(), 1, 0);
     comm.scatter_v(scatter_from_array.get_data(), s_counts.get_data(),
@@ -1166,17 +1166,17 @@ TYPED_TEST(MpiBindings, CanNonBlockingScatterValuesWithDisplacements)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto scatter_from_array = gko::Array<TypeParam>{this->ref};
-    auto scatter_into_array = gko::Array<TypeParam>{this->ref};
-    auto s_counts = gko::Array<int>{this->ref->get_master(),
+    auto scatter_from_array = gko::array<TypeParam>{this->ref};
+    auto scatter_into_array = gko::array<TypeParam>{this->ref};
+    auto s_counts = gko::array<int>{this->ref->get_master(),
                                     static_cast<gko::size_type>(num_ranks)};
-    auto displacements = gko::Array<int>{this->ref->get_master()};
+    auto displacements = gko::array<int>{this->ref->get_master()};
     int nelems;
     if (my_rank == 0) {
         scatter_from_array =
-            gko::Array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 2, -1, 0, 3}};
+            gko::array<TypeParam>{this->ref, {2, 3, 1, 3, -1, 0, 2, -1, 0, 3}};
         nelems = 2;
-        displacements = gko::Array<int>{this->ref, {0, 2, 6, 9}};
+        displacements = gko::array<int>{this->ref, {0, 2, 6, 9}};
     } else if (my_rank == 1) {
         nelems = 4;
     } else if (my_rank == 2) {
@@ -1185,7 +1185,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingScatterValuesWithDisplacements)
         nelems = 1;
     }
     scatter_into_array =
-        gko::Array<TypeParam>{this->ref, static_cast<gko::size_type>(nelems)};
+        gko::array<TypeParam>{this->ref, static_cast<gko::size_type>(nelems)};
 
     comm.gather(&nelems, 1, s_counts.get_data(), 1, 0);
     auto req = comm.i_scatter_v(scatter_from_array.get_data(),
@@ -1218,22 +1218,22 @@ TYPED_TEST(MpiBindings, AllToAllWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto send_array = gko::Array<TypeParam>{this->ref};
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    recv_array = gko::Array<TypeParam>{this->ref, 4};
+    auto send_array = gko::array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    recv_array = gko::array<TypeParam>{this->ref, 4};
     if (my_rank == 0) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 2, 5});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 2, 5});
     } else if (my_rank == 1) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {3, 3, 3, 3});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {3, 3, 3, 3});
     } else if (my_rank == 2) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 0});
-        ref_array = gko::Array<TypeParam>(this->ref, {1, 1, 1, 3});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 0});
+        ref_array = gko::array<TypeParam>(this->ref, {1, 1, 1, 3});
     } else if (my_rank == 3) {
-        send_array = gko::Array<TypeParam>(this->ref, {5, 3, 3, -2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 0, -2});
+        send_array = gko::array<TypeParam>(this->ref, {5, 3, 3, -2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 0, -2});
     }
 
     comm.all_to_all(send_array.get_data(), 1, recv_array.get_data(), 1);
@@ -1247,22 +1247,22 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto send_array = gko::Array<TypeParam>{this->ref};
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    recv_array = gko::Array<TypeParam>{this->ref, 4};
+    auto send_array = gko::array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    recv_array = gko::array<TypeParam>{this->ref, 4};
     if (my_rank == 0) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 2, 5});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 2, 5});
     } else if (my_rank == 1) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {3, 3, 3, 3});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {3, 3, 3, 3});
     } else if (my_rank == 2) {
-        send_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 0});
-        ref_array = gko::Array<TypeParam>(this->ref, {1, 1, 1, 3});
+        send_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 0});
+        ref_array = gko::array<TypeParam>(this->ref, {1, 1, 1, 3});
     } else if (my_rank == 3) {
-        send_array = gko::Array<TypeParam>(this->ref, {5, 3, 3, -2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 0, -2});
+        send_array = gko::array<TypeParam>(this->ref, {5, 3, 3, -2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 0, -2});
     }
 
     auto req =
@@ -1278,21 +1278,21 @@ TYPED_TEST(MpiBindings, AllToAllInPlaceWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    recv_array = gko::Array<TypeParam>{this->ref, 4};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    recv_array = gko::array<TypeParam>{this->ref, 4};
     if (my_rank == 0) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 2, 5});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 2, 5});
     } else if (my_rank == 1) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {3, 3, 3, 3});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {3, 3, 3, 3});
     } else if (my_rank == 2) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 0});
-        ref_array = gko::Array<TypeParam>(this->ref, {1, 1, 1, 3});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 0});
+        ref_array = gko::array<TypeParam>(this->ref, {1, 1, 1, 3});
     } else if (my_rank == 3) {
-        recv_array = gko::Array<TypeParam>(this->ref, {5, 3, 3, -2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 0, -2});
+        recv_array = gko::array<TypeParam>(this->ref, {5, 3, 3, -2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 0, -2});
     }
 
     comm.all_to_all(recv_array.get_data(), 1);
@@ -1305,21 +1305,21 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllInPlaceWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    recv_array = gko::Array<TypeParam>{this->ref, 4};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    recv_array = gko::array<TypeParam>{this->ref, 4};
     if (my_rank == 0) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 2, 5});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 2, 5});
     } else if (my_rank == 1) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 2});
-        ref_array = gko::Array<TypeParam>(this->ref, {3, 3, 3, 3});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 2});
+        ref_array = gko::array<TypeParam>(this->ref, {3, 3, 3, 3});
     } else if (my_rank == 2) {
-        recv_array = gko::Array<TypeParam>(this->ref, {2, 3, 1, 0});
-        ref_array = gko::Array<TypeParam>(this->ref, {1, 1, 1, 3});
+        recv_array = gko::array<TypeParam>(this->ref, {2, 3, 1, 0});
+        ref_array = gko::array<TypeParam>(this->ref, {1, 1, 1, 3});
     } else if (my_rank == 3) {
-        recv_array = gko::Array<TypeParam>(this->ref, {5, 3, 3, -2});
-        ref_array = gko::Array<TypeParam>(this->ref, {2, 2, 0, -2});
+        recv_array = gko::array<TypeParam>(this->ref, {5, 3, 3, -2});
+        ref_array = gko::array<TypeParam>(this->ref, {2, 2, 0, -2});
     }
 
     auto req = comm.i_all_to_all(recv_array.get_data(), 1);
@@ -1334,45 +1334,45 @@ TYPED_TEST(MpiBindings, AllToAllVWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto send_array = gko::Array<TypeParam>{this->ref};
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    auto scounts_array = gko::Array<int>{this->ref};
-    auto soffset_array = gko::Array<int>{this->ref};
-    auto rcounts_array = gko::Array<int>{this->ref};
-    auto roffset_array = gko::Array<int>{this->ref};
+    auto send_array = gko::array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    auto scounts_array = gko::array<int>{this->ref};
+    auto soffset_array = gko::array<int>{this->ref};
+    auto rcounts_array = gko::array<int>{this->ref};
+    auto roffset_array = gko::array<int>{this->ref};
     if (my_rank == 0) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {1, 2, 1, 0}};
-        rcounts_array = gko::Array<int>{this->ref, {1, 2, 2, 1}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 3, 5}};
-        ref_array = gko::Array<TypeParam>{this->ref, {2, 2, 3, 1, 2, 5}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {1, 2, 1, 0}};
+        rcounts_array = gko::array<int>{this->ref, {1, 2, 2, 1}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 3, 5}};
+        ref_array = gko::array<TypeParam>{this->ref, {2, 2, 3, 1, 2, 5}};
     } else if (my_rank == 1) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {2, 2, 1, 2}};
-        rcounts_array = gko::Array<int>{this->ref, {2, 2, 2, 0}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 2, 4, 5}};
-        ref_array = gko::Array<TypeParam>{this->ref, {3, 1, 3, 1, 3, 1}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {2, 2, 1, 2}};
+        rcounts_array = gko::array<int>{this->ref, {2, 2, 2, 0}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 2, 4, 5}};
+        ref_array = gko::array<TypeParam>{this->ref, {3, 1, 3, 1, 3, 1}};
     } else if (my_rank == 2) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {2, 2, 1, 1}};
-        rcounts_array = gko::Array<int>{this->ref, {1, 1, 1, 1}};
-        soffset_array = gko::Array<int>{this->ref, {2, 1, 1, 1}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 2, 3}};
-        ref_array = gko::Array<TypeParam>{this->ref, {3, 3, 3, 3}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {2, 2, 1, 1}};
+        rcounts_array = gko::array<int>{this->ref, {1, 1, 1, 1}};
+        soffset_array = gko::array<int>{this->ref, {2, 1, 1, 1}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 2, 3}};
+        ref_array = gko::array<TypeParam>{this->ref, {3, 3, 3, 3}};
     } else if (my_rank == 3) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {5, 3, 3, -2}};
-        scounts_array = gko::Array<int>{this->ref, {1, 0, 1, 0}};
-        rcounts_array = gko::Array<int>{this->ref, {0, 2, 1, 0}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 3, 3}};
-        ref_array = gko::Array<TypeParam>{this->ref, {0, 2, 3, 3}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {5, 3, 3, -2}};
+        scounts_array = gko::array<int>{this->ref, {1, 0, 1, 0}};
+        rcounts_array = gko::array<int>{this->ref, {0, 2, 1, 0}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 3, 3}};
+        ref_array = gko::array<TypeParam>{this->ref, {0, 2, 3, 3}};
     }
 
     comm.all_to_all_v(send_array.get_data(), scounts_array.get_data(),
@@ -1387,45 +1387,45 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllVWorksCorrectly)
     auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
-    auto send_array = gko::Array<TypeParam>{this->ref};
-    auto recv_array = gko::Array<TypeParam>{this->ref};
-    auto ref_array = gko::Array<TypeParam>{this->ref};
-    auto scounts_array = gko::Array<int>{this->ref};
-    auto soffset_array = gko::Array<int>{this->ref};
-    auto rcounts_array = gko::Array<int>{this->ref};
-    auto roffset_array = gko::Array<int>{this->ref};
+    auto send_array = gko::array<TypeParam>{this->ref};
+    auto recv_array = gko::array<TypeParam>{this->ref};
+    auto ref_array = gko::array<TypeParam>{this->ref};
+    auto scounts_array = gko::array<int>{this->ref};
+    auto soffset_array = gko::array<int>{this->ref};
+    auto rcounts_array = gko::array<int>{this->ref};
+    auto roffset_array = gko::array<int>{this->ref};
     if (my_rank == 0) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {1, 2, 1, 0}};
-        rcounts_array = gko::Array<int>{this->ref, {1, 2, 2, 1}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 3, 5}};
-        ref_array = gko::Array<TypeParam>{this->ref, {2, 2, 3, 1, 2, 5}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {1, 2, 1, 0}};
+        rcounts_array = gko::array<int>{this->ref, {1, 2, 2, 1}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 3, 5}};
+        ref_array = gko::array<TypeParam>{this->ref, {2, 2, 3, 1, 2, 5}};
     } else if (my_rank == 1) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {2, 2, 1, 2}};
-        rcounts_array = gko::Array<int>{this->ref, {2, 2, 2, 0}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 2, 4, 5}};
-        ref_array = gko::Array<TypeParam>{this->ref, {3, 1, 3, 1, 3, 1}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {2, 2, 1, 2}};
+        rcounts_array = gko::array<int>{this->ref, {2, 2, 2, 0}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 2, 4, 5}};
+        ref_array = gko::array<TypeParam>{this->ref, {3, 1, 3, 1, 3, 1}};
     } else if (my_rank == 2) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {2, 3, 1, 2}};
-        scounts_array = gko::Array<int>{this->ref, {2, 2, 1, 1}};
-        rcounts_array = gko::Array<int>{this->ref, {1, 1, 1, 1}};
-        soffset_array = gko::Array<int>{this->ref, {2, 1, 1, 1}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 2, 3}};
-        ref_array = gko::Array<TypeParam>{this->ref, {3, 3, 3, 3}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {2, 3, 1, 2}};
+        scounts_array = gko::array<int>{this->ref, {2, 2, 1, 1}};
+        rcounts_array = gko::array<int>{this->ref, {1, 1, 1, 1}};
+        soffset_array = gko::array<int>{this->ref, {2, 1, 1, 1}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 2, 3}};
+        ref_array = gko::array<TypeParam>{this->ref, {3, 3, 3, 3}};
     } else if (my_rank == 3) {
-        recv_array = gko::Array<TypeParam>{this->ref, {0, 0, 0, 0}};
-        send_array = gko::Array<TypeParam>{this->ref, {5, 3, 3, -2}};
-        scounts_array = gko::Array<int>{this->ref, {1, 0, 1, 0}};
-        rcounts_array = gko::Array<int>{this->ref, {0, 2, 1, 0}};
-        soffset_array = gko::Array<int>{this->ref, {0, 1, 1, 0}};
-        roffset_array = gko::Array<int>{this->ref, {0, 1, 3, 3}};
-        ref_array = gko::Array<TypeParam>{this->ref, {0, 2, 3, 3}};
+        recv_array = gko::array<TypeParam>{this->ref, {0, 0, 0, 0}};
+        send_array = gko::array<TypeParam>{this->ref, {5, 3, 3, -2}};
+        scounts_array = gko::array<int>{this->ref, {1, 0, 1, 0}};
+        rcounts_array = gko::array<int>{this->ref, {0, 2, 1, 0}};
+        soffset_array = gko::array<int>{this->ref, {0, 1, 1, 0}};
+        roffset_array = gko::array<int>{this->ref, {0, 1, 3, 3}};
+        ref_array = gko::array<TypeParam>{this->ref, {0, 2, 3, 3}};
     }
 
     auto req =

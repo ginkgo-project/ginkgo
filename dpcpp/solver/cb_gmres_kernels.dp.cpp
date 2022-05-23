@@ -964,7 +964,7 @@ void initialize_1(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<ValueType>* residual,
                   matrix::Dense<ValueType>* givens_sin,
                   matrix::Dense<ValueType>* givens_cos,
-                  Array<stopping_status>* stop_status, size_type krylov_dim)
+                  array<stopping_status>* stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -992,7 +992,7 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                   Accessor3d krylov_bases,
                   matrix::Dense<ValueType>* next_krylov_basis,
-                  Array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, size_type krylov_dim)
 {
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
@@ -1006,13 +1006,15 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
+    array<char> tmp{exec};
 
     initialize_2_1_kernel<block_size>(
         grid_dim_1, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], krylov_dim, krylov_bases,
         residual_norm_collection->get_values(),
         residual_norm_collection->get_stride());
-    kernels::dpcpp::dense::compute_norm2(exec, residual, residual_norm);
+    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
+                                                  tmp);
 
     if (use_scalar) {
         components::fill_array(exec,
@@ -1037,7 +1039,9 @@ void initialize_2(std::shared_ptr<const DpcppExecutor> exec,
     }
 
     const dim3 grid_dim_2(
-        ceildiv(num_rows * krylov_stride[1], default_block_size), 1, 1);
+        ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
+                default_block_size),
+        1, 1);
     initialize_2_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual->get_size()[0],
         residual->get_size()[1], residual->get_const_values(),
@@ -1060,8 +1064,12 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
                         matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                         size_type iter, const stopping_status* stop_status,
                         stopping_status* reorth_status,
-                        Array<size_type>* num_reorth)
+                        array<size_type>* num_reorth)
 {
+    const auto dim_size = next_krylov_basis->get_size();
+    if (dim_size[1] == 0) {
+        return;
+    }
     using non_complex = remove_complex<ValueType>;
     // optimization parameter
     constexpr int singledot_block_size = default_dot_dim;
@@ -1071,7 +1079,6 @@ void finish_arnoldi_CGS(std::shared_ptr<const DpcppExecutor> exec,
     const auto stride_hessenberg = hessenberg_iter->get_stride();
     const auto stride_buffer = buffer_iter->get_stride();
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    const auto dim_size = next_krylov_basis->get_size();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_computing_units() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
@@ -1216,7 +1223,7 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
                      matrix::Dense<ValueType>* hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>>* residual_norm,
                      matrix::Dense<ValueType>* residual_norm_collection,
-                     size_type iter, const Array<stopping_status>* stop_status)
+                     size_type iter, const array<stopping_status>* stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -1246,9 +1253,9 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec,
             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
             matrix::Dense<ValueType>* buffer_iter,
             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
-            size_type iter, Array<size_type>* final_iter_nums,
-            const Array<stopping_status>* stop_status,
-            Array<stopping_status>* reorth_status, Array<size_type>* num_reorth)
+            size_type iter, array<size_type>* final_iter_nums,
+            const array<stopping_status>* stop_status,
+            array<stopping_status>* reorth_status, array<size_type>* num_reorth)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -1271,7 +1278,7 @@ void solve_upper_triangular(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Dense<ValueType>* residual_norm_collection,
     const matrix::Dense<ValueType>* hessenberg, matrix::Dense<ValueType>* y,
-    const Array<size_type>* final_iter_nums)
+    const array<size_type>* final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -1294,7 +1301,7 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
                   ConstAccessor3d krylov_bases, size_type num_krylov_bases,
                   const matrix::Dense<ValueType>* y,
                   matrix::Dense<ValueType>* before_preconditioner,
-                  const Array<size_type>* final_iter_nums)
+                  const array<size_type>* final_iter_nums)
 {
     const auto num_rows = before_preconditioner->get_size()[0];
     const auto num_cols = before_preconditioner->get_size()[1];
@@ -1326,8 +1333,11 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType>* hessenberg,
             matrix::Dense<ValueType>* y,
             matrix::Dense<ValueType>* before_preconditioner,
-            const Array<size_type>* final_iter_nums)
+            const array<size_type>* final_iter_nums)
 {
+    if (before_preconditioner->get_size()[1] == 0) {
+        return;
+    }
     // since hessenberg has dims:  iters x iters * num_rhs
     // krylov_bases has dims:  (iters + 1) x sysmtx[0] x num_rhs
     const auto iters =

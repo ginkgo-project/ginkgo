@@ -134,9 +134,9 @@ struct ParIlutState {
     // upper factor U currently being updated
     std::unique_ptr<CooMatrix> u_coo;
     // temporary array for threshold selection
-    Array<ValueType> selection_tmp;
+    array<ValueType> selection_tmp;
     // temporary array for threshold selection
-    Array<remove_complex<ValueType>> selection_tmp2;
+    array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
     std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
     // strategy to be used by the upper factor
@@ -206,8 +206,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
 
     // initialize the L and U matrix data structures
     const auto num_rows = csr_system_matrix->get_size()[0];
-    Array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
-    Array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
+    array<IndexType> l_row_ptrs_array{exec, num_rows + 1};
+    array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     auto u_row_ptrs = u_row_ptrs_array.get_data();
     exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix.get(), l_row_ptrs,
@@ -219,11 +219,11 @@ ParIlut<ValueType, IndexType>::generate_l_u(
         static_cast<size_type>(exec->copy_val_to_host(u_row_ptrs + num_rows));
 
     auto mtx_size = csr_system_matrix->get_size();
-    auto l = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, l_nnz},
-                               Array<IndexType>{exec, l_nnz},
+    auto l = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, l_nnz},
+                               array<IndexType>{exec, l_nnz},
                                std::move(l_row_ptrs_array));
-    auto u = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, u_nnz},
-                               Array<IndexType>{exec, u_nnz},
+    auto u = CsrMatrix::create(exec, mtx_size, array<ValueType>{exec, u_nnz},
+                               array<IndexType>{exec, u_nnz},
                                std::move(u_row_ptrs_array));
 
     // initialize L and U
@@ -277,13 +277,13 @@ void ParIlutState<ValueType, IndexType>::iterate()
         u_csc_builder.get_value_array().resize_and_reset(u_nnz);
         // update arrays that will be aliased
         l_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, l_nnz, l_new->get_col_idxs());
+            make_array_view(exec, l_nnz, l_new->get_col_idxs());
         u_builder.get_col_idx_array() =
-            Array<IndexType>::view(exec, u_nnz, u_new->get_col_idxs());
+            make_array_view(exec, u_nnz, u_new->get_col_idxs());
         l_builder.get_value_array() =
-            Array<ValueType>::view(exec, l_nnz, l_new->get_values());
+            make_array_view(exec, l_nnz, l_new->get_values());
         u_builder.get_value_array() =
-            Array<ValueType>::view(exec, u_nnz, u_new->get_values());
+            make_array_view(exec, u_nnz, u_new->get_values());
     }
 
     // convert U' into CSC format

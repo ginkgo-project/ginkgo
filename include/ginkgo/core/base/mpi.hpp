@@ -102,19 +102,33 @@ GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
 
+/**
+ * A move-only wrapper for a contiguous MPI_Datatype.
+ *
+ * The underlying MPI_Datatype is automatically created and committed when an
+ * object of this type is constructed, and freed when it is destructed.
+ */
 class contiguous_type {
 public:
-    contiguous_type(int count, MPI_Datatype old_type)
+    /**
+     * Constructs a wrapper for a contiguous MPI_Datatype.
+     *
+     * @param count  the number of old_type elements the new datatype contains.
+     * @param old_type  the MPI_Datatype that is contained.
+     */
+    contiguous_type(int count, MPI_Datatype old_type) : type_(MPI_DATATYPE_NULL)
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_contiguous(count, old_type, &type_));
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&type_));
     }
 
+    contiguous_type() : type_(MPI_DATATYPE_NULL) {}
+
     contiguous_type(const contiguous_type&) = delete;
 
     contiguous_type& operator=(const contiguous_type&) = delete;
 
-    contiguous_type(contiguous_type&& other) noexcept
+    contiguous_type(contiguous_type&& other) noexcept : type_(MPI_DATATYPE_NULL)
     {
         *this = std::move(other);
     }
@@ -134,7 +148,12 @@ public:
         }
     }
 
-    MPI_Datatype get() { return type_; }
+    /**
+     * Access the underlying MPI_Datatype.
+     *
+     * @return  the underlying MPI_Datatype.
+     */
+    MPI_Datatype get() const { return type_; }
 
 private:
     MPI_Datatype type_;
@@ -477,10 +496,30 @@ public:
     request i_send(const SendType* send_buffer, const int send_count,
                    const int destination_rank, const int send_tag) const
     {
+        return i_send(send_buffer, send_count, type_impl<SendType>::get_type(),
+                      destination_rank, send_tag);
+    }
+
+    /**
+     * Send (Non-blocking, Immediate return) data from calling process to
+     * destination rank.
+     *
+     * @param send_buffer  the buffer to send
+     * @param send_count  the number of elements to send
+     * @param send_type  the MPI_Datatype of the elements to send
+     * @param destination_rank  the rank to send the data to
+     * @param send_tag  the tag for the send call
+     *
+     * @return  the request handle for the send call
+     */
+    request i_send(const void* send_buffer, const int send_count,
+                   MPI_Datatype send_type, const int destination_rank,
+                   const int send_tag) const
+    {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
-                      destination_rank, send_tag, this->get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Isend(send_buffer, send_count, send_type,
+                                           destination_rank, send_tag,
+                                           this->get(), req.get()));
         return req;
     }
 
@@ -519,10 +558,29 @@ public:
     request i_recv(RecvType* recv_buffer, const int recv_count,
                    const int source_rank, const int recv_tag) const
     {
+        return i_recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
+                      source_rank, recv_tag);
+    }
+
+    /**
+     * Receive (Non-blocking, Immediate return) data from source rank.
+     *
+     * @param recv_buffer  the buffer to send
+     * @param recv_count  the number of elements to receive
+     * @param recv_type  the MPI_Datatype of the elements to receive
+     * @param source_rank  the rank to receive the data from
+     * @param recv_tag  the tag for the recv call
+     *
+     * @return  the request handle for the recv call
+     */
+    request i_recv(void* recv_buffer, const int recv_count,
+                   MPI_Datatype recv_type, const int source_rank,
+                   const int recv_tag) const
+    {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-                      source_rank, recv_tag, this->get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Irecv(recv_buffer, recv_count, recv_type,
+                                           source_rank, recv_tag, this->get(),
+                                           req.get()));
         return req;
     }
 
@@ -928,7 +986,7 @@ public:
 
     /**
      * (In-place, Non-blocking) Communicate data from all ranks to all other
-     * ranks in place (MPI_Alltoall). See MPI documentation for more details.
+     * ranks in place (MPI_Ialltoall). See MPI documentation for more details.
      *
      * @param buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
@@ -971,7 +1029,7 @@ public:
 
     /**
      * (Non-blocking) Communicate data from all ranks to all other ranks
-     * (MPI_Alltoall). See MPI documentation for more details.
+     * (MPI_Ialltoall). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
@@ -1017,7 +1075,7 @@ public:
 
     /**
      * Communicate data from all ranks to all other ranks with
-     * offsets (MPI_Alltoallv). See MPI documentation for more details.
+     * offsets (MPI_Ialltoallv). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
@@ -1088,7 +1146,7 @@ public:
 
     /**
      * Does a scan operation with the given operator.
-     * (MPI_Scan). See MPI documentation for more details.
+     * (MPI_Iscan). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to scan from
      * @param recv_buffer  the result buffer

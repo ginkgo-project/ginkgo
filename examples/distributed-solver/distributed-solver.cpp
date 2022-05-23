@@ -62,8 +62,6 @@ int main(int argc, char* argv[])
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations.
     using vec = gko::matrix::Dense<ValueType>;
-    using schwarz = gko::preconditioner::Schwarz<ValueType, LocalIndexType>;
-    using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =
@@ -74,17 +72,26 @@ int main(int argc, char* argv[])
     using solver = gko::solver::Cg<ValueType>;
 
     // @sect3{Initialization and User Input Handling}
-    // Since this is an MPI program, we need to initialization and finalization
+    // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
-    // done wit the following helper construct that uses RAII to automize the
+    // done with the following helper construct that uses RAII to automize the
     // initialization and finalization.
     const gko::mpi::environment env(argc, argv);
 
-    // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
+    // Create a MPI communicator wrapper and get the rank.
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
+
+    if (rank == 0) {
+        // Print the ginkgo version information.
+        std::cout << gko::version_info::get() << std::endl;
+    }
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] [num_grid_points] "
-                  << std::endl;
+        if (rank == 0) {
+            std::cerr << "Usage: " << argv[0]
+                      << " [executor] [num_grid_points] " << std::endl;
+        }
         std::exit(-1);
     }
 
@@ -97,10 +104,6 @@ int main(int argc, char* argv[])
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
 
-    // Create a MPI communicator wrapper and get the rank.
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
-
     // Pick requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
@@ -110,7 +113,8 @@ int main(int argc, char* argv[])
                  return gko::CudaExecutor::create(
                      comm.node_local_rank() %
                          gko::CudaExecutor::get_num_devices(),
-                     gko::ReferenceExecutor::create(), true);
+                     gko::ReferenceExecutor::create(), false,
+                     gko::allocation_mode::device);
              }},
             {"hip",
              [&] {
@@ -142,7 +146,7 @@ int main(int argc, char* argv[])
     // @sect3{Creating the Distributed Matrix and Vectors}
     // As a first step, we create a partition of the rows. The partition
     // consists of ranges of consecutive rows which are assigned a part-id.
-    // These part-id will be used for the distributed data structures to
+    // These part-ids will be used for the distributed data structures to
     // determine which rows will be stored locally. In this example each rank
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
@@ -174,6 +178,7 @@ int main(int argc, char* argv[])
             A_data.nonzeros.emplace_back(i, i + 1, -1);
         }
         b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
 
     // Take timings.
@@ -189,7 +194,7 @@ int main(int argc, char* argv[])
     A_host->read_distributed(A_data, partition.get());
     b_host->read_distributed(b_data, partition.get());
     x_host->read_distributed(x_data, partition.get());
-    // After reading, the matrix and vector can be move to the chosen executor,
+    // After reading, the matrix and vector can be moved to the chosen executor,
     // since the distributed matrix supports SpMV also on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
@@ -204,15 +209,10 @@ int main(int argc, char* argv[])
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
-
-    auto inner_solver = gko::share(bj::build().on(exec));
-
     auto Ainv =
         solver::build()
-            .with_preconditioner(gko::share(
-                schwarz::build().with_inner_solver(inner_solver).on(exec)))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(num_rows).on(exec),
+                gko::stop::Iteration::build().with_max_iters(100u).on(exec),
                 gko::stop::ResidualNorm<ValueType>::build()
                     .with_baseline(gko::stop::mode::absolute)
                     .with_reduction_factor(1e-4)
@@ -232,14 +232,14 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_solver_apply_end = gko::mpi::get_walltime();
 
-    // Compute the true residual, this is the same as in the non-distributed
-    // case.
+    // Compute the residual, this is done in the same way as in the
+    // non-distributed case.
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
     A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
-    auto result = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(result));
+    auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
+    b_host->compute_norm2(lend(res_norm));
 
     // Take timings.
     comm.synchronize();
@@ -249,15 +249,15 @@ int main(int argc, char* argv[])
     // Print the achieved residual norm and timings on rank 0.
     if (comm.rank() == 0) {
         // clang-format off
-    std::cout << "\nNum rows in matrix: " << num_rows
-              << "\nNum ranks: " << comm.size()
-              << "\nFinal Res norm: " << *result->get_values()
-              << "\nInit time: " << t_init_end - t_init
-              << "\nRead time: " << t_read_setup_end - t_init
-              << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
-              << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
-              << "\nTotal time: " << t_end - t_init
-              << std::endl;
+        std::cout << "\nNum rows in matrix: " << num_rows
+                  << "\nNum ranks: " << comm.size()
+                  << "\nFinal Res norm: " << *res_norm->get_values()
+                  << "\nInit time: " << t_init_end - t_init
+                  << "\nRead time: " << t_read_setup_end - t_init
+                  << "\nSolver generate time: " << t_solver_generate_end - t_read_setup_end
+                  << "\nSolver apply time: " << t_solver_apply_end - t_solver_generate_end
+                  << "\nTotal time: " << t_end - t_init
+                  << std::endl;
         // clang-format on
     }
 }

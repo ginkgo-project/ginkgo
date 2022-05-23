@@ -79,6 +79,59 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
+    const Sellp& other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(other);
+        values_ = other.values_;
+        col_idxs_ = other.col_idxs_;
+        slice_lengths_ = other.slice_lengths_;
+        slice_sets_ = other.slice_sets_;
+        slice_size_ = other.slice_size_;
+        stride_factor_ = other.stride_factor_;
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
+    Sellp&& other)
+{
+    if (&other != this) {
+        EnableLinOp<Sellp>::operator=(std::move(other));
+        values_ = std::move(other.values_);
+        col_idxs_ = std::move(other.col_idxs_);
+        slice_lengths_ = std::move(other.slice_lengths_);
+        slice_sets_ = std::move(other.slice_sets_);
+        // slice_size and stride_factor are immutable
+        slice_size_ = other.slice_size_;
+        stride_factor_ = other.stride_factor_;
+        // restore other invariant
+        other.slice_sets_.resize_and_reset(1);
+        other.slice_sets_.fill(0);
+    }
+    return *this;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(const Sellp& other)
+    : Sellp(other.get_executor())
+{
+    *this = other;
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
+{
+    *this = std::move(other);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
@@ -181,7 +234,7 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
     slice_lengths_.resize_and_reset(ceildiv(size[0], slice_size_));
     slice_sets_.resize_and_reset(ceildiv(size[0], slice_size_) + 1);
     this->set_size(size);
-    Array<int64> row_ptrs{exec, size[0] + 1};
+    array<int64> row_ptrs{exec, size[0] + 1};
     auto local_data = make_temporary_clone(exec, &data);
     exec->run(sellp::make_convert_idxs_to_ptrs(local_data->get_const_row_idxs(),
                                                local_data->get_num_elems(),
@@ -228,14 +281,12 @@ void Sellp<ValueType, IndexType>::write(mat_data& data) const
              row_in_slice++) {
             auto row = slice * slice_size + row_in_slice;
             if (row < tmp->get_size()[0]) {
-                for (size_type i = 0; i < tmp->get_const_slice_lengths()[slice];
-                     i++) {
-                    const auto val = tmp->val_at(
-                        row_in_slice, tmp->get_const_slice_sets()[slice], i);
-                    if (is_nonzero(val)) {
-                        const auto col =
-                            tmp->col_at(row_in_slice,
-                                        tmp->get_const_slice_sets()[slice], i);
+                const auto slice_len = tmp->get_const_slice_lengths()[slice];
+                const auto slice_offset = tmp->get_const_slice_sets()[slice];
+                for (size_type i = 0; i < slice_len; i++) {
+                    const auto col = tmp->col_at(row_in_slice, slice_offset, i);
+                    const auto val = tmp->val_at(row_in_slice, slice_offset, i);
+                    if (col != invalid_index<IndexType>()) {
                         data.nonzeros.emplace_back(row, col, val);
                     }
                 }

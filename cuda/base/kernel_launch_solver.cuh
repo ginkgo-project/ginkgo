@@ -41,35 +41,7 @@ namespace kernels {
 namespace cuda {
 
 
-template <typename KernelFunction, typename... KernelArgs>
-__global__ __launch_bounds__(default_block_size) void generic_kernel_2d_solver(
-    int64 rows, int64 cols, int64 default_stride, KernelFunction fn,
-    KernelArgs... args)
-{
-    auto tidx = thread::get_thread_id_flat<int64>();
-    auto col = tidx % cols;
-    auto row = tidx / cols;
-    if (row >= rows) {
-        return;
-    }
-    fn(row, col,
-       device_unpack_solver_impl<KernelArgs>::unpack(args, default_stride)...);
-}
-
-
-template <typename KernelFunction, typename... KernelArgs>
-void run_kernel_solver(std::shared_ptr<const CudaExecutor> exec,
-                       KernelFunction fn, dim<2> size, size_type default_stride,
-                       KernelArgs&&... args)
-{
-    if (size[0] > 0 && size[1] > 0) {
-        constexpr auto block_size = default_block_size;
-        auto num_blocks = ceildiv(size[0] * size[1], block_size);
-        generic_kernel_2d_solver<<<num_blocks, block_size>>>(
-            static_cast<int64>(size[0]), static_cast<int64>(size[1]),
-            static_cast<int64>(default_stride), fn, map_to_device(args)...);
-    }
-}
+#include "common/cuda_hip/base/kernel_launch_solver.hpp.inc"
 
 
 }  // namespace cuda

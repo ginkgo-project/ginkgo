@@ -67,7 +67,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::transpose() const
     return build()
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -80,7 +80,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
     return build()
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
-        .with_criteria(this->stop_criterion_factory_)
+        .with_criteria(this->get_stop_criterion_factory())
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -90,6 +90,9 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
@@ -111,6 +114,8 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto exec = this->get_executor();
     size_type num_vectors = dense_b->get_size()[1];
 
+    array<char> reduction_tmp{exec};
+
     auto one_op = initialize<LocalVector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<LocalVector>({-one<ValueType>()}, exec);
 
@@ -130,7 +135,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto rho = LocalVector::create_with_config_of(alpha.get());
 
     bool one_changed{};
-    Array<stopping_status> stop_status(alpha->get_executor(),
+    array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
@@ -147,9 +152,10 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rho_prev = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-    auto stop_criterion = stop_criterion_factory_->generate(
-        system_matrix_,
+    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                     r.get());
+    auto stop_criterion = this->get_stop_criterion_factory()->generate(
+        this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         r.get());
     r_tld->copy_from(r.get());
@@ -166,7 +172,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        r->compute_conj_dot(r_tld.get(), rho.get());
+        r->compute_conj_dot(r_tld.get(), rho.get(), reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
@@ -187,9 +193,9 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
             detail::get_local(r.get()), detail::get_local(u.get()),
             detail::get_local(p.get()), detail::get_local(q.get()), beta.get(),
             rho.get(), rho_prev.get(), &stop_status));
-        get_preconditioner()->apply(p.get(), t.get());
-        system_matrix_->apply(t.get(), v_hat.get());
-        r_tld->compute_conj_dot(v_hat.get(), gamma.get());
+        this->get_preconditioner()->apply(p.get(), t.get());
+        this->get_system_matrix()->apply(t.get(), v_hat.get());
+        r_tld->compute_conj_dot(v_hat.get(), gamma.get(), reduction_tmp);
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
@@ -198,8 +204,8 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
             detail::get_local(q.get()), detail::get_local(t.get()), alpha.get(),
             rho.get(), gamma.get(), &stop_status));
 
-        get_preconditioner()->apply(t.get(), u_hat.get());
-        system_matrix_->apply(u_hat.get(), t.get());
+        this->get_preconditioner()->apply(t.get(), u_hat.get());
+        this->get_system_matrix()->apply(u_hat.get(), t.get());
         // r = r - alpha * t
         // x = x + alpha * u_hat
         exec->run(cgs::make_step_3(
@@ -216,6 +222,9 @@ template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x) const
 {
+    if (!this->get_system_matrix()) {
+        return;
+    }
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();

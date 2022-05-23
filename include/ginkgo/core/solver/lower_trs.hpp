@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 namespace gko {
@@ -81,6 +82,8 @@ class UpperTrs;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
+                 public EnableSolverBase<LowerTrs<ValueType, IndexType>,
+                                         matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<LowerTrs>;
     friend class EnablePolymorphicObject<LowerTrs, LinOp>;
@@ -90,17 +93,6 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type = UpperTrs<ValueType, IndexType>;
-
-    /**
-     * Gets the system operator (CSR matrix) of the linear system.
-     *
-     * @return the system operator (CSR matrix)
-     */
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> get_system_matrix()
-        const
-    {
-        return system_matrix_;
-    }
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -122,7 +114,38 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    /**
+     * Copy-assigns a triangular solver. Preserves the executor, shallow-copies
+     * the system matrix. If the executors mismatch, clones system matrix onto
+     * this executor. Solver analysis information will be regenerated.
+     */
+    LowerTrs(const LowerTrs&);
+
+    /**
+     * Move-assigns a triangular solver. Preserves the executor, moves
+     * the system matrix. If the executors mismatch, clones system matrix onto
+     * this executor and regenerates solver analysis information. Moved-from
+     * object is empty (0x0 and nullptr system matrix)
+     */
+    LowerTrs(LowerTrs&&);
+
+    /**
+     * Copy-constructs a triangular solver. Preserves the executor,
+     * shallow-copies the system matrix. Solver analysis information will be
+     * regenerated.
+     */
+    LowerTrs& operator=(const LowerTrs&);
+
+    /**
+     * Move-constructs a triangular solver. Preserves the executor, moves
+     * the system matrix and solver analysis information. Moved-from
+     * object is empty (0x0 and nullptr system matrix)
+     */
+    LowerTrs& operator=(LowerTrs&&);
+
 protected:
+    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -142,26 +165,15 @@ protected:
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<LowerTrs>(factory->get_executor(),
                                 gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{}
+          EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+              copy_and_convert_to<CsrMatrix>(factory->get_executor(),
+                                             system_matrix)},
+          parameters_{factory->get_parameters()}
     {
-        using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-        // This is needed because it does not make sense to call the copy and
-        // convert if the existing matrix is empty.
-        const auto exec = this->get_executor();
-        if (!system_matrix->get_size()) {
-            system_matrix_ = CsrMatrix::create(exec);
-        } else {
-            system_matrix_ =
-                copy_and_convert_to<CsrMatrix>(exec, system_matrix);
-        }
         this->generate();
     }
 
 private:
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
     std::shared_ptr<solver::SolveStruct> solve_struct_;
 };
 

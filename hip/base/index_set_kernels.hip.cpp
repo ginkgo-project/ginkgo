@@ -30,15 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/base/index_set_kernels.hpp"
+
+
 #include <memory>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-
-
-#include "core/base/index_set_kernels.hpp"
 
 
 namespace gko {
@@ -54,16 +54,16 @@ namespace hip {
  *
  * @ingroup index_set
  */
-namespace index_set {
+namespace idx_set {
 
 
 template <typename IndexType>
 void to_global_indices(std::shared_ptr<const DefaultExecutor> exec,
-                       const IndexType index_space_size,
-                       const Array<IndexType>* subset_begin,
-                       const Array<IndexType>* subset_end,
-                       const Array<IndexType>* superset_indices,
-                       Array<IndexType>* decomp_indices) GKO_NOT_IMPLEMENTED;
+                       const IndexType num_subsets,
+                       const IndexType* subset_begin,
+                       const IndexType* subset_end,
+                       const IndexType* superset_indices,
+                       IndexType* decomp_indices) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL);
@@ -72,10 +72,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
-                      const Array<IndexType>* indices,
-                      Array<IndexType>* subset_begin,
-                      Array<IndexType>* subset_end,
-                      Array<IndexType>* superset_indices,
+                      const array<IndexType>* indices,
+                      array<IndexType>* subset_begin,
+                      array<IndexType>* subset_end,
+                      array<IndexType>* superset_indices,
                       const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
@@ -84,11 +84,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);
 template <typename IndexType>
 void global_to_local(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* global_indices,
-                     Array<IndexType>* local_indices,
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* subset_end,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* global_indices, IndexType* local_indices,
                      const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
@@ -97,19 +97,17 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename IndexType>
 void local_to_global(std::shared_ptr<const DefaultExecutor> exec,
-                     const IndexType index_space_size,
-                     const Array<IndexType>* subset_begin,
-                     const Array<IndexType>* subset_end,
-                     const Array<IndexType>* superset_indices,
-                     const Array<IndexType>* local_indices,
-                     Array<IndexType>* global_indices,
+                     const IndexType num_subsets, const IndexType* subset_begin,
+                     const IndexType* superset_indices,
+                     const IndexType num_indices,
+                     const IndexType* local_indices, IndexType* global_indices,
                      const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
     GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
-}  // namespace index_set
+}  // namespace idx_set
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
