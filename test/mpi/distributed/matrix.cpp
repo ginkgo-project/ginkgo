@@ -109,7 +109,7 @@ public:
           size{53, 53},
           num_rhs(11),
           logger(gko::share(HostToDeviceLogger::create(exec))),
-          engine(42)
+          engine()
     {
         init_executor(ref, exec, comm);
         exec->add_logger(logger);
@@ -138,8 +138,6 @@ public:
 
     void SetUp() override
     {
-        ASSERT_EQ(comm.size(), 3);
-
         generate_matrix_pair(mat, dmat);
         generate_vector_pair(x, dx);
         generate_vector_pair(y, dy);
