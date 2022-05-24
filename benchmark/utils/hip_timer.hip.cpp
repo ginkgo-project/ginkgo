@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/timer_impl.hpp"
-#include "hip/base/device_guard.hip.hpp"
 
 
 /**
@@ -61,7 +60,7 @@ public:
         assert(exec != nullptr);
         exec_ = exec;
         id_ = exec_->get_device_id();
-        gko::hip::device_guard g{id_};
+        gko::detail::hip_scoped_device_id g{id_};
         GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&start_));
         GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&stop_));
     }
@@ -70,14 +69,14 @@ protected:
     void tic_impl() override
     {
         exec_->synchronize();
-        gko::hip::device_guard g{id_};
+        gko::detail::hip_scoped_device_id g{id_};
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
     }
 
     double toc_impl() override
     {
-        gko::hip::device_guard g{id_};
+        gko::detail::hip_scoped_device_id g{id_};
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(stop_));
         GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(stop_));
