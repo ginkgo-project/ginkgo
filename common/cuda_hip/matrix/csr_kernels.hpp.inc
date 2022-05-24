@@ -68,22 +68,21 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
 template <bool overflow, typename IndexType>
 __device__ __forceinline__ void find_next_row(
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType* __restrict__ row, IndexType* __restrict__ row_end,
-    const IndexType row_predict, const IndexType row_predict_end,
-    const IndexType* __restrict__ row_ptr)
+    IndexType& row, IndexType& row_end, const IndexType row_predict,
+    const IndexType row_predict_end, const IndexType* __restrict__ row_ptr)
 {
     if (!overflow || ind < data_size) {
-        if (ind >= *row_end) {
-            *row = row_predict;
-            *row_end = row_predict_end;
-            while (ind >= *row_end) {
-                *row_end = row_ptr[++*row + 1];
+        if (ind >= row_end) {
+            row = row_predict;
+            row_end = row_predict_end;
+            while (ind >= row_end) {
+                row_end = row_ptr[++row + 1];
             }
         }
 
     } else {
-        *row = num_rows - 1;
-        *row_end = data_size;
+        row = num_rows - 1;
+        row_end = data_size;
     }
 }
 
@@ -92,16 +91,17 @@ template <unsigned subwarp_size, typename ValueType, typename IndexType,
           typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<subwarp_size>& group, bool force_write,
-    ValueType* __restrict__ val, const IndexType row, ValueType* __restrict__ c,
+    ValueType& val, const IndexType row, ValueType* __restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
     // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(group, row, val);
+    const bool need_write = segment_scan(
+        group, row, val, [](ValueType a, ValueType b) { return a + b; });
     if (need_write && force_write) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
+        atomic_add(&(c[row * c_stride + column_id]), scale(val));
     }
     if (!need_write || force_write) {
-        *val = zero<ValueType>();
+        val = zero<ValueType>();
     }
 }
 
@@ -111,28 +111,27 @@ template <bool last, unsigned subwarp_size, typename ValueType,
 __device__ __forceinline__ void process_window(
     const group::thread_block_tile<subwarp_size>& group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType* __restrict__ row, IndexType* __restrict__ row_end,
-    IndexType* __restrict__ nrow, IndexType* __restrict__ nrow_end,
-    ValueType* __restrict__ temp_val, const ValueType* __restrict__ val,
+    IndexType& row, IndexType& row_end, IndexType& nrow, IndexType& nrow_end,
+    ValueType& temp_val, const ValueType* __restrict__ val,
     const IndexType* __restrict__ col_idxs,
     const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ b,
     const size_type b_stride, ValueType* __restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
-    const IndexType curr_row = *row;
-    find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
-                        *nrow_end, row_ptrs);
+    const auto curr_row = row;
+    find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     // segmented scan
-    if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
-                        c_stride, column_id, scale);
-        *nrow = group.shfl(*row, subwarp_size - 1);
-        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
+    if (group.any(curr_row != row)) {
+        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c, c_stride,
+                        column_id, scale);
+        nrow = group.shfl(row, subwarp_size - 1);
+        nrow_end = group.shfl(row_end, subwarp_size - 1);
     }
 
     if (!last || ind < data_size) {
         const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col * b_stride + column_id];
+        temp_val += val[ind] * b[col * b_stride + column_id];
     }
 }
 
@@ -171,21 +170,21 @@ __device__ __forceinline__ void spmv_kernel(
     auto nrow_end = row_end;
     ValueType temp_val = zero<ValueType>();
     IndexType ind = start + threadIdx.x;
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
-                        nrow_end, row_ptrs);
+    find_next_row<true>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
+                        row_ptrs);
     const IndexType ind_end = end - wsize;
     const auto tile_block =
         group::tiled_partition<wsize>(group::this_thread_block());
     for (; ind < ind_end; ind += wsize) {
-        process_window<false>(tile_block, num_rows, data_size, ind, &row,
-                              &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                              column_id, scale);
+        process_window<false>(tile_block, num_rows, data_size, ind, row,
+                              row_end, nrow, nrow_end, temp_val, val, col_idxs,
+                              row_ptrs, b, b_stride, c, c_stride, column_id,
+                              scale);
     }
-    process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
-                         &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, b_stride, c, c_stride, column_id, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
+    process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
+                         nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
+                         b_stride, c, c_stride, column_id, scale);
+    warp_atomic_add(tile_block, true, temp_val, row, c, c_stride, column_id,
                     scale);
 }
 
@@ -915,3 +914,187 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
+
+
+namespace kernel {
+
+
+template <int subwarp_size, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void build_csr_lookup(
+    const IndexType* __restrict__ row_ptrs,
+    const IndexType* __restrict__ col_idxs, size_type num_rows,
+    matrix::csr::sparsity_type allowed, const IndexType* storage_offsets,
+    int64* __restrict__ row_desc, int32* __restrict__ storage)
+{
+    using matrix::csr::sparsity_type;
+    constexpr int bitmap_block_size = matrix::csr::sparsity_bitmap_block_size;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto row_begin = row_ptrs[row];
+    const auto row_len = row_ptrs[row + 1] - row_begin;
+    const auto storage_begin = storage_offsets[row];
+    const auto available_storage = storage_offsets[row + 1] - storage_begin;
+    const auto local_storage = storage + storage_begin;
+    const auto local_cols = col_idxs + row_begin;
+    const auto lane = subwarp.thread_rank();
+    const auto min_col = row_len > 0 ? local_cols[0] : 0;
+    const auto col_range =
+        row_len > 0 ? local_cols[row_len - 1] - min_col + 1 : 0;
+
+    // full column range
+    if (col_range == row_len &&
+        csr_lookup_allowed(allowed, sparsity_type::full)) {
+        if (lane == 0) {
+            row_desc[row] = static_cast<int64>(sparsity_type::full);
+        }
+        return;
+    }
+    // dense bitmap storage
+    const auto num_blocks =
+        static_cast<int32>(ceildiv(col_range, bitmap_block_size));
+    if (num_blocks * 2 <= available_storage &&
+        csr_lookup_allowed(allowed, sparsity_type::bitmap)) {
+        if (lane == 0) {
+            row_desc[row] = (static_cast<int64>(num_blocks) << 32) |
+                            static_cast<int64>(sparsity_type::bitmap);
+        }
+        const auto block_ranks = local_storage;
+        const auto block_bitmaps =
+            reinterpret_cast<uint32*>(block_ranks + num_blocks);
+        // fill bitmaps with zeros
+        for (int32 i = lane; i < num_blocks; i += subwarp_size) {
+            block_bitmaps[i] = 0;
+        }
+        // fill bitmaps with sparsity pattern
+        for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
+            const auto i = base_i + lane;
+            const auto col = i < row_len
+                                 ? local_cols[i]
+                                 : device_numeric_limits<IndexType>::max;
+            const auto rel_col = static_cast<int32>(col - min_col);
+            const auto block = rel_col / bitmap_block_size;
+            const auto col_in_block = rel_col % bitmap_block_size;
+            auto local_bitmap = uint32{i < row_len ? 1u : 0u} << col_in_block;
+            bool is_first =
+                segment_scan(subwarp, block, local_bitmap,
+                             [](config::lane_mask_type a,
+                                config::lane_mask_type b) { return a | b; });
+            // memory barrier - just to be sure
+            subwarp.sync();
+            if (is_first && i < row_len) {
+                block_bitmaps[block] |= local_bitmap;
+            }
+        }
+        // compute bitmap ranks
+        int32 block_partial_sum{};
+        for (int32 base_i = 0; base_i < num_blocks; base_i += subwarp_size) {
+            const auto i = base_i + lane;
+            const auto bitmap = i < num_blocks ? block_bitmaps[i] : 0;
+            int32 local_partial_sum{};
+            int32 local_total_sum{};
+            subwarp_prefix_sum<false>(popcnt(bitmap), local_partial_sum,
+                                      local_total_sum, subwarp);
+            if (i < num_blocks) {
+                block_ranks[i] = local_partial_sum + block_partial_sum;
+            }
+            block_partial_sum += local_total_sum;
+        }
+        return;
+    }
+    // sparse hashmap storage
+    // we need at least one unfilled entry to avoid infinite loops on search
+    GKO_ASSERT(row_len < available_storage);
+    constexpr double inv_golden_ratio = 0.61803398875;
+    // use golden ratio as approximation for hash parameter that spreads
+    // consecutive values as far apart as possible. Ensure lowest bit is set
+    // otherwise we skip odd hashtable entries
+    const auto hash_parameter =
+        1u | static_cast<uint32>(available_storage * inv_golden_ratio);
+    if (lane == 0) {
+        row_desc[row] = (static_cast<int64>(hash_parameter) << 32) |
+                        static_cast<int64>(sparsity_type::hash);
+    }
+    // fill hashmap with sentinel
+    constexpr int32 empty = invalid_index<int32>();
+    for (int32 i = lane; i < available_storage; i += subwarp_size) {
+        local_storage[i] = empty;
+    }
+    // memory barrier
+    subwarp.sync();
+    // fill with actual entries
+    for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
+        const auto i = base_i + lane;
+        const auto col = i < row_len ? local_cols[i] : 0;
+        // make sure that each idle thread gets a unique out-of-bounds value
+        auto hash = i < row_len ? (static_cast<uint32>(col) * hash_parameter) %
+                                      static_cast<uint32>(available_storage)
+                                : static_cast<uint32>(available_storage + lane);
+        // collision resolution
+#if !defined(__HIP_DEVICE_COMPILE__) && defined(__CUDA_ARCH__) && \
+    (__CUDA_ARCH__ >= 700)
+        const auto this_lane_mask = config::lane_mask_type{1} << lane;
+        const auto lane_prefix_mask = this_lane_mask - 1;
+        // memory barrier to previous loop iteration
+        subwarp.sync();
+        int32 entry = i < row_len ? local_storage[hash] : empty;
+        // find all threads in the subwarp with the same hash key
+        auto colliding = subwarp.match_any(hash);
+        // if there are any collisions with previously filled buckets
+        while (subwarp.any(entry != empty || colliding != this_lane_mask)) {
+            if (entry != empty || colliding != this_lane_mask) {
+                // assign consecutive indices to matching threads
+                hash += (entry == empty ? 0 : 1) +
+                        popcnt(colliding & lane_prefix_mask);
+                // cheap modulo replacement
+                if (hash >= available_storage) {
+                    hash -= available_storage;
+                }
+                // this could only fail for available_storage < warp_size, as
+                // popcnt(colliding) is at most warp_size. At the same time, we
+                // only increase hash by row_length at most, so this is still
+                // safe.
+                GKO_ASSERT(hash < available_storage);
+                entry = local_storage[hash];
+            }
+            colliding = subwarp.match_any(hash);
+        }
+        if (i < row_len) {
+            local_storage[hash] = i;
+        }
+#else
+        if (i < row_len) {
+            while (atomicCAS(local_storage + hash, empty, i) != empty) {
+                hash++;
+                if (hash >= available_storage) {
+                    hash = 0;
+                }
+            }
+        }
+#endif
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename IndexType>
+void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
+                  const IndexType* row_ptrs, const IndexType* col_idxs,
+                  size_type num_rows, matrix::csr::sparsity_type allowed,
+                  const IndexType* storage_offsets, int64* row_desc,
+                  int32* storage)
+{
+    const auto num_blocks =
+        ceildiv(num_rows, default_block_size / config::warp_size);
+    kernel::build_csr_lookup<config::warp_size>
+        <<<num_blocks, default_block_size>>>(row_ptrs, col_idxs, num_rows,
+                                             allowed, storage_offsets, row_desc,
+                                             storage);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
