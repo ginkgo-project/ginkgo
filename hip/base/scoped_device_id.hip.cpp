@@ -30,69 +30,68 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#ifndef GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
+#define GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
 
 
-#include <cstdlib>
-#include <cstring>
+#include <exception>
 
 
-#include <ginkgo/core/base/exception.hpp>
+#include <hip/hip_runtime.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 
 
 namespace gko {
+namespace detail {
 
 
-void OmpExecutor::populate_exec_info(const machine_topology* mach_topo)
+hip_scoped_device_id::hip_scoped_device_id(int device_id)
+    : original_device_id_{}, need_reset_{}
 {
-    auto num_cores =
-        (mach_topo->get_num_cores() == 0 ? 1 : mach_topo->get_num_cores());
-    auto num_pus =
-        (mach_topo->get_num_pus() == 0 ? 1 : mach_topo->get_num_pus());
-    this->get_exec_info().num_computing_units = num_cores;
-    this->get_exec_info().num_pu_per_cu = num_pus / num_cores;
-}
-
-
-void OmpExecutor::raw_free(void* ptr) const noexcept { std::free(ptr); }
-
-
-std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
-{
-    return this->shared_from_this();
-}
-
-
-std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
-{
-    return this->shared_from_this();
-}
-
-
-void* OmpExecutor::raw_alloc(size_type num_bytes) const
-{
-    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "OMP", num_bytes);
-}
-
-
-void OmpExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
-{
-    if (num_bytes > 0) {
-        std::memcpy(dest_ptr, src_ptr, num_bytes);
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id_));
+    if (original_device_id_ != device_id) {
+        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
+        need_reset_ = true;
     }
 }
 
 
-void OmpExecutor::synchronize() const
+hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
 {
-    // This is a no-op for single-threaded OMP
-    // TODO: change when adding support for multi-threaded OMP execution
+    if (need_reset_) {
+        /* Ignore the error during stack unwinding for this call */
+        if (std::uncaught_exception()) {
+            hipSetDevice(original_device_id_);
+        } else {
+            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id_));
+        }
+    }
 }
 
 
-scoped_device_id OmpExecutor::get_scoped_device_id() const { return {this, 0}; }
+hip_scoped_device_id::hip_scoped_device_id(
+    hip_scoped_device_id&& other) noexcept
+{
+    *this = std::move(other);
+}
 
 
+hip_scoped_device_id& hip_scoped_device_id::operator=(
+    hip_scoped_device_id&& other) noexcept
+{
+    if (this != &other) {
+        original_device_id_ = std::exchange(other.original_device_id_, 0);
+        need_reset_ = std::exchange(other.need_reset_, false);
+    }
+    return *this;
+}
+
+
+}  // namespace detail
 }  // namespace gko
+
+
+#endif  // GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
