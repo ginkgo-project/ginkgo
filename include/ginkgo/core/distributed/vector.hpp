@@ -387,7 +387,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_local_values();
+    const value_type* get_const_local_values() const;
 
     /**
      * Direct (read) access to the underlying local local_vector_type vectors.
