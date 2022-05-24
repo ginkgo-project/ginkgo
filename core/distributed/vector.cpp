@@ -448,7 +448,7 @@ void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<AvgVector>(result));
-    const auto num_local_rows = this->get_local()->get_size()[0];
+    const auto num_local_rows = this->get_local_vector()->get_size()[0];
 
     // TODO FIXME for multi-vector
     auto local_sum = Array<ValueType>::view(exec, this->get_size()[1],
