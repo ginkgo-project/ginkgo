@@ -328,6 +328,14 @@ public:
     void compute_norm1(LinOp* result, array<char>& tmp) const;
 
     /**
+     * Writes the diagonal of this matrix into an existing diagonal matrix.
+     *
+     * @note This might overflow.
+     * @param output The average value.
+     */
+    void compute_average_unsafe(LinOp* result) const;
+
+    /**
      * Returns a single element of the multi-vector.
      *
      * @param row  the local row of the requested element
