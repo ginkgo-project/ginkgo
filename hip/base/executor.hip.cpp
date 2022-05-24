@@ -220,6 +220,12 @@ void HipExecutor::run(const Operation& op) const
 }
 
 
+scoped_device_id HipExecutor::get_scoped_device_id() const
+{
+    return {this, this->get_device_id()};
+}
+
+
 int HipExecutor::get_num_devices()
 {
     int deviceCount = 0;

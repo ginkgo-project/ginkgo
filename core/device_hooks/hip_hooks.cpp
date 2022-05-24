@@ -112,6 +112,13 @@ void HipExecutor::run(const Operation& op) const
 }
 
 
+scoped_device_id HipExecutor::get_scoped_device_id() const
+{
+    GKO_NOT_COMPILED(cuda);
+    return {static_cast<OmpExecutor*>(nullptr), 0};
+}
+
+
 std::string HipError::get_error(int64)
 {
     return "ginkgo HIP module is not compiled";
