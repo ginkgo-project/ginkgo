@@ -16,7 +16,7 @@
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on the solution of sparse linear systems. It is implemented using modern C++
 (you will need an at least C++14 compliant compiler to build it), with GPU kernels
-implemented in CUDA, HIP, and oneAPI.
+implemented in CUDA, HIP, and DPC++.
 
 
 Performance
