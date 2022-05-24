@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -770,6 +771,8 @@ public:
         return this->verify_memory_from(other.get());
     }
 
+    virtual scoped_device_id get_scoped_device_id() const = 0;
+
 protected:
     /**
      * A struct that abstracts the executor info for different executors
@@ -1246,6 +1249,8 @@ public:
         return this->get_exec_info().num_pu_per_cu;
     }
 
+    scoped_device_id get_scoped_device_id() const override;
+
 protected:
     OmpExecutor()
     {
@@ -1374,6 +1379,8 @@ public:
     void synchronize() const override;
 
     void run(const Operation& op) const override;
+
+    scoped_device_id get_scoped_device_id() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1580,6 +1587,8 @@ public:
 
     void run(const Operation& op) const override;
 
+    scoped_device_id get_scoped_device_id() const override;
+
     /**
      * Get the HIP device id of the device associated to this executor.
      */
@@ -1779,6 +1788,8 @@ public:
     void synchronize() const override;
 
     void run(const Operation& op) const override;
+
+    scoped_device_id get_scoped_device_id() const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
