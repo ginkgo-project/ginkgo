@@ -186,6 +186,11 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
 
 void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
 
+scoped_device_id DpcppExecutor::get_scoped_device_id() const
+{
+    return {this, this->get_device_id()};
+}
+
 
 void DpcppExecutor::run(const Operation& op) const
 {
