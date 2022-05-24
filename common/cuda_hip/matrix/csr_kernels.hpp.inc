@@ -949,7 +949,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
     if (col_range == row_len &&
         csr_lookup_allowed(allowed, sparsity_type::full)) {
         if (lane == 0) {
-            row_desc[row] = static_cast<int>(sparsity_type::full);
+            row_desc[row] = static_cast<int64>(sparsity_type::full);
         }
         return;
     }
@@ -960,7 +960,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         csr_lookup_allowed(allowed, sparsity_type::bitmap)) {
         if (lane == 0) {
             row_desc[row] = (static_cast<int64>(num_blocks) << 32) |
-                            static_cast<int>(sparsity_type::bitmap);
+                            static_cast<int64>(sparsity_type::bitmap);
         }
         const auto block_ranks = local_storage;
         const auto block_bitmaps =
@@ -1016,7 +1016,7 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         1u | static_cast<uint32>(available_storage * inv_golden_ratio);
     if (lane == 0) {
         row_desc[row] = (static_cast<int64>(hash_parameter) << 32) |
-                        static_cast<int>(sparsity_type::hash);
+                        static_cast<int64>(sparsity_type::hash);
     }
     // fill hashmap with sentinel
     constexpr int32 empty = invalid_index<int32>();
@@ -1034,7 +1034,8 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
                                       static_cast<uint32>(available_storage)
                                 : static_cast<uint32>(available_storage + lane);
         // collision resolution
-#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
+#if !defined(__HIP_DEVICE_COMPILE__) && defined(__CUDA_ARCH__) && \
+    (__CUDA_ARCH__ >= 700)
         const auto this_lane_mask = config::lane_mask_type{1} << lane;
         const auto lane_prefix_mask = this_lane_mask - 1;
         // memory barrier to previous loop iteration
