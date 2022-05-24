@@ -108,6 +108,13 @@ void CudaExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
+scoped_device_id CudaExecutor::get_scoped_device_id() const
+{
+    GKO_NOT_COMPILED(cuda);
+    return {static_cast<OmpExecutor*>(nullptr), 0};
+}
+
+
 void CudaExecutor::run(const Operation& op) const
 {
     op.run(
