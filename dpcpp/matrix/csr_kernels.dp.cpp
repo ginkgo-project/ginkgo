@@ -2277,7 +2277,7 @@ bool csr_lookup_try_full(IndexType row_len, IndexType col_range,
     using matrix::csr::sparsity_type;
     bool is_allowed = csr_lookup_allowed(allowed, sparsity_type::full);
     if (is_allowed && row_len == col_range) {
-        row_desc = static_cast<int>(sparsity_type::full);
+        row_desc = static_cast<int64>(sparsity_type::full);
         return true;
     }
     return false;
@@ -2297,7 +2297,7 @@ bool csr_lookup_try_bitmap(IndexType row_len, IndexType col_range,
         static_cast<int32>(ceildiv(col_range, sparsity_bitmap_block_size));
     if (is_allowed && num_blocks * 2 <= available_storage) {
         row_desc = (static_cast<int64>(num_blocks) << 32) |
-                   static_cast<int>(sparsity_type::bitmap);
+                   static_cast<int64>(sparsity_type::bitmap);
         const auto block_ranks = local_storage;
         const auto block_bitmaps =
             reinterpret_cast<uint32*>(block_ranks + num_blocks);
