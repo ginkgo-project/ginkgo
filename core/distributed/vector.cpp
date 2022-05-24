@@ -457,7 +457,7 @@ void Vector<ValueType>::compute_average_unsafe(LinOp* result) const
     local_sum.fill(ValueType{0});
 
     auto local_view = array_const_cast(Array<ValueType>::const_view(
-        exec, num_local_rows, this->get_const_values()));
+        exec, num_local_rows, this->get_const_local_values()));
 
     reduce_add(local_view, local_sum);
 
