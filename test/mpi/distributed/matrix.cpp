@@ -105,13 +105,14 @@ public:
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
           exec(),
-          comm(MPI_COMM_WORLD),
+          comm(MPI_COMM_WORLD, ref),
           size{53, 53},
           num_rhs(11),
           logger(gko::share(HostToDeviceLogger::create(exec))),
           engine()
     {
         init_executor(ref, exec, comm);
+        comm = gko::mpi::communicator(comm.get(), exec);
         exec->add_logger(logger);
 
         mat = dist_mtx_type::create(ref, comm);

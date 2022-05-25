@@ -57,6 +57,13 @@ GKO_REGISTER_OPERATION(build_local_nonlocal,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    std::shared_ptr<const Executor> exec)
+    : Matrix(exec, mpi::communicator(MPI_COMM_WORLD, exec))
+{}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
     : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
 {}

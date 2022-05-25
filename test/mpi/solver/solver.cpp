@@ -193,14 +193,16 @@ protected:
 
     Solver()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
+          exec(),
+          comm(MPI_COMM_WORLD, ref),
           rand_engine(15)
     {}
 
     void SetUp()
     {
         ASSERT_EQ(comm.size(), 3);
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec, gko::mpi::communicator(comm.get(), ref));
+        comm = gko::mpi::communicator(comm.get(), exec);
         part = nullptr;
     }
 
