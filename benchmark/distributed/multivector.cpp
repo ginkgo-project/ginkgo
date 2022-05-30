@@ -57,10 +57,19 @@ DEFINE_string(operations, "dot,norm",
               "   multiaxpy (like axpy, but a has one entry per column),\n"
               "   scal (y = a * y),\n"
               "   multiscal (like scal, but a has one entry per column),\n"
-              "   dot (a = x' * y),"
+              "   dot (a = x' * y),\n"
               "   norm (a = sqrt(x' * x)),\n"
               "x and y have dimensions n x r.\n"
-              "Note that only 'dot' and 'norm' require communication.");
+              "Note that only 'dot' and 'norm' require communication.\n");
+DEFINE_string(input, "input.json", "Input json file to read from.");
+
+
+auto local_rows(gko::size_type global_rows, int num_procs, int rank)
+{
+    auto uniform_local_size = global_rows / num_procs;
+    auto use_rest = rank < (global_rows % num_procs);
+    return uniform_local_size + (use_rest ? 1 : 0);
+}
 
 
 class BenchmarkOperation {
@@ -77,13 +86,18 @@ public:
 class CopyOperation : public BenchmarkOperation {
 public:
     CopyOperation(std::shared_ptr<const gko::Executor> exec,
-                  gko::size_type rows, gko::size_type cols,
-                  gko::size_type istride, gko::size_type ostride)
+                  gko::mpi::communicator comm, gko::size_type rows,
+                  gko::size_type cols, gko::size_type istride,
+                  gko::size_type ostride)
     {
-        in_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                                istride);
-        out_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                                 ostride);
+        in_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            istride);
+        out_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            ostride);
         in_->fill(1);
     }
 
@@ -100,24 +114,28 @@ public:
     void run() override { in_->convert_to(lend(out_)); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> in_;
-    std::unique_ptr<gko::matrix::Dense<etype>> out_;
+    std::unique_ptr<gko::distributed::Vector<etype>> in_;
+    std::unique_ptr<gko::distributed::Vector<etype>> out_;
 };
 
 
 class AxpyOperation : public BenchmarkOperation {
 public:
     AxpyOperation(std::shared_ptr<const gko::Executor> exec,
-                  gko::size_type rows, gko::size_type cols,
-                  gko::size_type stride_in, gko::size_type stride_out,
-                  bool multi)
+                  gko::mpi::communicator comm, gko::size_type rows,
+                  gko::size_type cols, gko::size_type stride_in,
+                  gko::size_type stride_out, bool multi)
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        x_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride_in);
-        y_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride_out);
+        x_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride_in);
+        y_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride_out);
         alpha_->fill(1);
         x_->fill(1);
     }
@@ -138,21 +156,23 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> x_;
-    std::unique_ptr<gko::matrix::Dense<etype>> y_;
+    std::unique_ptr<gko::distributed::Vector<etype>> x_;
+    std::unique_ptr<gko::distributed::Vector<etype>> y_;
 };
 
 
 class ScalOperation : public BenchmarkOperation {
 public:
     ScalOperation(std::shared_ptr<const gko::Executor> exec,
-                  gko::size_type rows, gko::size_type cols,
-                  gko::size_type stride, bool multi)
+                  gko::mpi::communicator comm, gko::size_type rows,
+                  gko::size_type cols, gko::size_type stride, bool multi)
     {
         alpha_ = gko::matrix::Dense<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
-        y_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride);
+        y_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride);
         alpha_->fill(1);
     }
 
@@ -172,21 +192,26 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> y_;
+    std::unique_ptr<gko::distributed::Vector<etype>> y_;
 };
 
 
 class DotOperation : public BenchmarkOperation {
 public:
-    DotOperation(std::shared_ptr<const gko::Executor> exec, gko::size_type rows,
+    DotOperation(std::shared_ptr<const gko::Executor> exec,
+                 gko::mpi::communicator comm, gko::size_type rows,
                  gko::size_type cols, gko::size_type stride_x,
                  gko::size_type stride_y)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        x_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride_x);
-        y_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride_y);
+        x_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride_x);
+        y_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride_y);
         x_->fill(1);
         y_->fill(1);
     }
@@ -205,20 +230,22 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> x_;
-    std::unique_ptr<gko::matrix::Dense<etype>> y_;
+    std::unique_ptr<gko::distributed::Vector<etype>> x_;
+    std::unique_ptr<gko::distributed::Vector<etype>> y_;
 };
 
 
 class NormOperation : public BenchmarkOperation {
 public:
     NormOperation(std::shared_ptr<const gko::Executor> exec,
-                  gko::size_type rows, gko::size_type cols,
-                  gko::size_type stride)
+                  gko::mpi::communicator comm, gko::size_type rows,
+                  gko::size_type cols, gko::size_type stride)
     {
         alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
-        y_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{rows, cols},
-                                               stride);
+        y_ = gko::distributed::Vector<etype>::create(
+            exec, comm, gko::dim<2>{rows, cols},
+            gko::dim<2>{local_rows(rows, comm.size(), comm.rank()), cols},
+            stride);
         y_->fill(1);
     }
 
@@ -236,94 +263,7 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> y_;
-};
-
-
-class ApplyOperation : public BenchmarkOperation {
-public:
-    ApplyOperation(std::shared_ptr<const gko::Executor> exec, gko::size_type n,
-                   gko::size_type k, gko::size_type m, gko::size_type stride_A,
-                   gko::size_type stride_B, gko::size_type stride_C)
-    {
-        A_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, k},
-                                               stride_A);
-        B_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{k, m},
-                                               stride_B);
-        C_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, m},
-                                               stride_C);
-        A_->fill(1);
-        B_->fill(1);
-    }
-
-    gko::size_type get_flops() const override
-    {
-        return A_->get_size()[0] * A_->get_size()[1] * B_->get_size()[1] * 2;
-    }
-
-    gko::size_type get_memory() const override
-    {
-        return (A_->get_size()[0] * A_->get_size()[1] +
-                B_->get_size()[0] * B_->get_size()[1] +
-                C_->get_size()[0] * C_->get_size()[1]) *
-               sizeof(etype);
-    }
-
-    void run() override { A_->apply(lend(B_), lend(C_)); }
-
-private:
-    std::unique_ptr<gko::matrix::Dense<etype>> A_;
-    std::unique_ptr<gko::matrix::Dense<etype>> B_;
-    std::unique_ptr<gko::matrix::Dense<etype>> C_;
-};
-
-
-class AdvancedApplyOperation : public BenchmarkOperation {
-public:
-    AdvancedApplyOperation(std::shared_ptr<const gko::Executor> exec,
-                           gko::size_type n, gko::size_type k, gko::size_type m,
-                           gko::size_type stride_A, gko::size_type stride_B,
-                           gko::size_type stride_C)
-    {
-        A_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, k},
-                                               stride_A);
-        B_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{k, m},
-                                               stride_B);
-        C_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, m},
-                                               stride_C);
-        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
-        beta_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
-        A_->fill(1);
-        B_->fill(1);
-        alpha_->fill(1);
-        beta_->fill(1);
-    }
-
-    gko::size_type get_flops() const override
-    {
-        return A_->get_size()[0] * A_->get_size()[1] * B_->get_size()[1] * 2 +
-               C_->get_size()[0] * C_->get_size()[1] * 3;
-    }
-
-    gko::size_type get_memory() const override
-    {
-        return (A_->get_size()[0] * A_->get_size()[1] +
-                B_->get_size()[0] * B_->get_size()[1] +
-                C_->get_size()[0] * C_->get_size()[1] * 2) *
-               sizeof(etype);
-    }
-
-    void run() override
-    {
-        A_->apply(lend(alpha_), lend(B_), lend(beta_), lend(C_));
-    }
-
-private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> beta_;
-    std::unique_ptr<gko::matrix::Dense<etype>> A_;
-    std::unique_ptr<gko::matrix::Dense<etype>> B_;
-    std::unique_ptr<gko::matrix::Dense<etype>> C_;
+    std::unique_ptr<gko::distributed::Vector<etype>> y_;
 };
 
 
@@ -334,9 +274,6 @@ struct dimensions {
     gko::size_type r;
     gko::size_type stride_x;
     gko::size_type stride_y;
-    gko::size_type stride_A;
-    gko::size_type stride_B;
-    gko::size_type stride_C;
 };
 
 
@@ -365,67 +302,61 @@ dimensions parse_dims(rapidjson::Value& test_case)
         result.stride_x = get_optional(test_case, "stride_x", result.r);
         result.stride_y = get_optional(test_case, "stride_y", result.r);
     }
-    result.stride_A = get_optional(test_case, "stride_A", result.k);
-    result.stride_B = get_optional(test_case, "stride_B", result.m);
-    result.stride_C = get_optional(test_case, "stride_C", result.m);
     return result;
 }
 
 
 std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
-                          std::shared_ptr<const gko::Executor>, dimensions)>>
+                          std::shared_ptr<const gko::Executor>,
+                          gko::mpi::communicator, dimensions)>>
     operation_map{
         {"copy",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
              return std::make_unique<CopyOperation>(
-                 exec, dims.n, dims.r, dims.stride_x, dims.stride_y);
+                 exec, comm, dims.n, dims.r, dims.stride_x, dims.stride_y);
          }},
         {"axpy",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<AxpyOperation>(
-                 exec, dims.n, dims.r, dims.stride_x, dims.stride_y, false);
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
+             return std::make_unique<AxpyOperation>(exec, comm, dims.n, dims.r,
+                                                    dims.stride_x,
+                                                    dims.stride_y, false);
          }},
         {"multiaxpy",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<AxpyOperation>(
-                 exec, dims.n, dims.r, dims.stride_x, dims.stride_y, true);
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
+             return std::make_unique<AxpyOperation>(exec, comm, dims.n, dims.r,
+                                                    dims.stride_x,
+                                                    dims.stride_y, true);
          }},
         {"scal",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<ScalOperation>(exec, dims.n, dims.r,
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
+             return std::make_unique<ScalOperation>(exec, comm, dims.n, dims.r,
                                                     dims.stride_y, false);
          }},
         {"multiscal",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<ScalOperation>(exec, dims.n, dims.r,
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
+             return std::make_unique<ScalOperation>(exec, comm, dims.n, dims.r,
                                                     dims.stride_y, true);
          }},
         {"dot",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+         [](std::shared_ptr<const gko::Executor> exec,
+            gko::mpi::communicator comm, dimensions dims) {
              return std::make_unique<DotOperation>(
-                 exec, dims.n, dims.r, dims.stride_x, dims.stride_y);
+                 exec, comm, dims.n, dims.r, dims.stride_x, dims.stride_y);
          }},
-        {"norm",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<NormOperation>(exec, dims.n, dims.r,
+        {"norm", [](std::shared_ptr<const gko::Executor> exec,
+                    gko::mpi::communicator comm, dimensions dims) {
+             return std::make_unique<NormOperation>(exec, comm, dims.n, dims.r,
                                                     dims.stride_y);
-         }},
-        {"mm",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<ApplyOperation>(
-                 exec, dims.n, dims.k, dims.m, dims.stride_A, dims.stride_B,
-                 dims.stride_C);
-         }},
-        {"gemm",
-         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
-             return std::make_unique<AdvancedApplyOperation>(
-                 exec, dims.n, dims.k, dims.m, dims.stride_A, dims.stride_B,
-                 dims.stride_C);
          }}};
 
 
 void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
-                rapidjson::Value& test_case,
+                gko::mpi::communicator comm, rapidjson::Value& test_case,
                 rapidjson::MemoryPoolAllocator<>& allocator)
 {
     try {
@@ -433,7 +364,8 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(blas_case, operation_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        auto op = operation_map[operation_name](exec, parse_dims(test_case));
+        auto op =
+            operation_map[operation_name](exec, comm, parse_dims(test_case));
 
         auto timer = get_timer(exec, FLAGS_gpu_timer);
         IterationControl ic(timer);
@@ -476,40 +408,45 @@ void apply_blas(const char* operation_name, std::shared_ptr<gko::Executor> exec,
             add_or_set_member(test_case["blas"][operation_name], "error",
                               msg_value, allocator);
         }
-        std::cerr << "Error when processing test case " << test_case << "\n"
-                  << "what(): " << e.what() << std::endl;
+        if (comm.rank() == 0) {
+            std::cerr << "Error when processing test case " << test_case << "\n"
+                      << "what(): " << e.what() << std::endl;
+        }
     }
 }
 
 
 int main(int argc, char* argv[])
 {
+    gko::mpi::environment mpi_env{argc, argv};
+
+    gko::mpi::communicator comm(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
     std::string header =
         "A benchmark for measuring performance of Ginkgo's BLAS-like "
         "operations.\nParameters for a benchmark case are:\n"
-        "    n: number of rows for vectors and gemm output (required)\n"
+        "    n: number of rows for vectors output (required)\n"
         "    r: number of columns for vectors (optional, default 1)\n"
-        "    m: number of columns for gemm output (optional, default n)\n"
-        "    k: inner dimension of the gemm (optional, default n)\n"
         "    stride: storage stride for both vectors (optional, default r)\n"
         "    stride_x: stride for input vector x (optional, default r)\n"
-        "    stride_y: stride for in/out vector y (optional, default r)\n"
-        "    stride_A: stride for A matrix in gemm (optional, default k)\n"
-        "    stride_B: stride for B matrix in gemm (optional, default m)\n"
-        "    stride_C: stride for C matrix in gemm (optional, default m)\n";
+        "    stride_y: stride for in/out vector y (optional, default r)\n";
     std::string format = std::string() + "  [\n    { \"n\": 100 },\n" +
-                         "    { \"n\": 200, \"m\": 200, \"k\": 200 }\n" +
+                         "    { \"n\": 200, \"r\": 20, \"stride_x\": 22 }\n" +
                          "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "The operations are " + FLAGS_operations;
-    print_general_information(extra_information);
+    if (rank == 0) {
+        std::string extra_information =
+            "The operations are " + FLAGS_operations + "\n";
+        print_general_information(extra_information);
+    }
 
-    auto exec = executor_factory.at(FLAGS_executor)();
-    auto engine = get_engine();
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
     auto operations = split(FLAGS_operations, ',');
 
-    rapidjson::IStreamWrapper jcin(std::cin);
+    std::ifstream ifs(FLAGS_input);
+    rapidjson::IStreamWrapper jcin(ifs);
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
     if (!test_cases.IsArray()) {
@@ -537,19 +474,28 @@ int main(int argc, char* argv[])
                        })) {
                 continue;
             }
-            std::clog << "Running test case: " << test_case << std::endl;
+            if (rank == 0) {
+                std::clog << "Running test case: " << test_case << std::endl;
+            }
 
             for (const auto& operation_name : operations) {
-                apply_blas(operation_name.c_str(), exec, test_case, allocator);
-                std::clog << "Current state:" << std::endl
-                          << test_cases << std::endl;
+                apply_blas(operation_name.c_str(), exec, comm, test_case,
+                           allocator);
+                if (rank == 0) {
+                    std::clog << "Current state:" << std::endl
+                              << test_cases << std::endl;
+                }
                 backup_results(test_cases);
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error setting up benchmark, what(): " << e.what()
-                      << std::endl;
+            if (rank == 0) {
+                std::cerr << "Error setting up benchmark, what(): " << e.what()
+                          << std::endl;
+            }
         }
     }
 
-    std::cout << test_cases << std::endl;
+    if (rank == 0) {
+        std::cout << test_cases << std::endl;
+    }
 }
