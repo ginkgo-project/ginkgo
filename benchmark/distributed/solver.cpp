@@ -46,7 +46,7 @@ DEFINE_int64(
     target_rows, 100,
     "Target number of rows, either in total (strong_scaling == true) or per "
     "process (strong_scaling == false).");
-DEFINE_int64(num_iters, 1000, "Number of iterations of the solver to run.");
+DEFINE_uint64(num_iters, 1000, "Number of iterations of the solver to run.");
 DEFINE_int32(dim, 2, "Dimension of stencil, either 2D or 3D");
 DEFINE_bool(restrict, false,
             "If true creates 5/7pt stencil, if false creates 9/27pt stencil.");
@@ -148,7 +148,8 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
 
     const auto dp =
         static_cast<IndexType>(closest_nth_root(target_local_size, 3));
-    const auto global_size = dp * dp * dp * comm.size();
+    const auto global_size =
+        static_cast<gko::size_type>(dp * dp * dp * comm.size());
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{global_size, global_size});
 
@@ -328,6 +329,7 @@ int main(int argc, char* argv[])
         std::cout << "SIZE: " << part->get_size() << std::endl;
         std::cout << "DURATION: " << ic.compute_average_time() << "s"
                   << std::endl;
-        std::cout << "ITERATIONS: " << ic.get_num_repetitions() << std::endl;
+        std::cout << "ITERATIONS: "
+                  << ic.get_num_repetitions() * FLAGS_num_iters << std::endl;
     }
 }
