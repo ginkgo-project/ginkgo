@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -85,22 +86,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           const matrix::Csr<MatrixValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+           matrix::Dense<InputValueType>* trans_b,
+           matrix::Dense<OutputValueType>* trans_x,
+           const matrix::Dense<InputValueType>* b,
+           matrix::Dense<OutputValueType>* x)
 {
-    if (matrix->get_strategy()->get_name() == "sparselib") {
-        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                           trans_x, b, x);
+    bool all_same_value_type =
+        std::is_same<MatrixValueType, InputValueType>::value &&
+        std::is_same<MatrixValueType, OutputValueType>::value;
+    if (matrix->get_strategy()->get_name() == "sparselib" &&
+        all_same_value_type) {
+        solve_kernel<MatrixValueType, IndexType>(
+            exec, matrix, solve_struct,
+            gko::as<matrix::Dense<MatrixValueType>>(trans_b),
+            gko::as<matrix::Dense<MatrixValueType>>(trans_x),
+            gko::as<matrix::Dense<MatrixValueType>>(b),
+            gko::as<matrix::Dense<MatrixValueType>>(x));
     } else {
         sptrsv_naive_caching<true>(exec, matrix, b, x);
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
 
 

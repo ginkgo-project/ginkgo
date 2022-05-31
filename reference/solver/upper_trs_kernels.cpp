@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
+#include "core/base/mixed_precision_types.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -82,34 +85,46 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  * versions <=9.1 due to a limitation in the cssrsm_solve algorithm and hence
  * here essentially unused.
  */
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           const matrix::Csr<MatrixValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+           matrix::Dense<InputValueType>* trans_b,
+           matrix::Dense<OutputValueType>* trans_x,
+           const matrix::Dense<InputValueType>* b,
+           matrix::Dense<OutputValueType>* x)
 {
-    auto row_ptrs = matrix->get_const_row_ptrs();
-    auto col_idxs = matrix->get_const_col_idxs();
-    auto vals = matrix->get_const_values();
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+
+    const auto row_ptrs = matrix->get_const_row_ptrs();
+    const auto col_idxs = matrix->get_const_col_idxs();
 
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         for (size_type inv_row = 0; inv_row < matrix->get_size()[0];
              ++inv_row) {
             auto row = matrix->get_size()[0] - 1 - inv_row;
-            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row]];
+            arithmetic_type result =
+                static_cast<arithmetic_type>(b->at(row, j)) /
+                static_cast<arithmetic_type>(
+                    matrix->get_const_values()[row_ptrs[row]]);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col > row) {
-                    x->at(row, j) +=
-                        -vals[k] * x->at(col, j) / vals[row_ptrs[row]];
+                    result += -static_cast<arithmetic_type>(
+                                  matrix->get_const_values()[k]) *
+                              static_cast<arithmetic_type>(x->at(col, j)) /
+                              static_cast<arithmetic_type>(
+                                  matrix->get_const_values()[row_ptrs[row]]);
                 }
             }
+            x->at(row, j) = result;
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
 
 

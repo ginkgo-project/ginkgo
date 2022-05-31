@@ -65,19 +65,24 @@ namespace lower_trs {
                   const gko::size_type num_rhs)
 
 
-#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
-    void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const matrix::Csr<_vtype, _itype>* matrix,                      \
-               const solver::SolveStruct* solve_struct,                        \
-               matrix::Dense<_vtype>* trans_b, matrix::Dense<_vtype>* trans_x, \
-               const matrix::Dense<_vtype>* b, matrix::Dense<_vtype>* x)
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(InputValueType, MatrixValueType, \
+                                           OutputValueType, IndexType)      \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,                 \
+               const matrix::Csr<MatrixValueType, IndexType>* matrix,       \
+               const solver::SolveStruct* solve_struct,                     \
+               matrix::Dense<InputValueType>* trans_b,                      \
+               matrix::Dense<OutputValueType>* trans_x,                     \
+               const matrix::Dense<InputValueType>* b,                      \
+               matrix::Dense<OutputValueType>* x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;    \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;              \
+    template <typename InputValueType, typename MatrixValueType,        \
+              typename OutputValueType, typename IndexType>             \
+    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(InputValueType, MatrixValueType, \
+                                       OutputValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
 
 

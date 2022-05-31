@@ -52,6 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/math.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/atomic.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
 
 
 namespace gko {
@@ -244,6 +247,161 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
+}
+
+
+constexpr int default_block_size = 32;
+
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+    load(const ValueType* values, IndexType index)
+{
+    const volatile ValueType* val = values + index;
+    return *val;
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ std::enable_if_t<
+    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
+load(const thrust::complex<ValueType>* values, IndexType index)
+{
+    auto real = reinterpret_cast<const ValueType*>(values);
+    auto imag = real + 1;
+    return {load(real, 2 * index), load(imag, 2 * index)};
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(
+    ValueType* values, IndexType index,
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
+{
+    volatile ValueType* val = values + index;
+    *val = value;
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
+                                      IndexType index,
+                                      thrust::complex<ValueType> value)
+{
+    auto real = reinterpret_cast<ValueType*>(values);
+    auto imag = real + 1;
+    store(real, 2 * index, value.real());
+    store(imag, 2 * index, value.imag());
+}
+
+
+template <bool is_upper, typename arithmetic_type, typename InputValueType,
+          typename MatrixValueType, typename OutputValueType,
+          typename IndexType>
+__global__ void sptrsv_naive_legacy_kernel(
+    const IndexType* const rowptrs, const IndexType* const colidxs,
+    const MatrixValueType* const vals, const InputValueType* const b,
+    size_type b_stride, OutputValueType* const x, size_type x_stride,
+    const size_type n, const size_type nrhs, bool* nan_produced,
+    IndexType* atomic_counter)
+{
+    __shared__ IndexType block_base_idx;
+    if (threadIdx.x == 0) {
+        block_base_idx =
+            atomic_add(atomic_counter, IndexType{1}) * default_block_size;
+    }
+    __syncthreads();
+    const auto full_gid = static_cast<IndexType>(threadIdx.x) + block_base_idx;
+    const auto rhs = full_gid % nrhs;
+    const auto gid = full_gid / nrhs;
+    const auto row = is_upper ? n - 1 - gid : gid;
+
+    if (gid >= n) {
+        return;
+    }
+
+    // lower tri matrix: start at beginning, run forward until last entry,
+    // (row_end - 1) which is the diagonal entry
+    // upper tri matrix: start at last entry (row_end - 1), run backward
+    // until first entry, which is the diagonal entry
+    const auto row_begin = is_upper ? rowptrs[row + 1] - 1 : rowptrs[row];
+    const auto row_diag = is_upper ? rowptrs[row] : rowptrs[row + 1] - 1;
+    const int row_step = is_upper ? -1 : 1;
+
+    arithmetic_type sum = 0.0;
+    auto j = row_begin;
+    while (j != row_diag + row_step) {
+        auto col = colidxs[j];
+        auto x_val = load(x, col * x_stride + rhs);
+        while (!is_nan(x_val)) {
+            sum += static_cast<arithmetic_type>(vals[j]) *
+                   static_cast<arithmetic_type>(x_val);
+            j += row_step;
+            col = colidxs[j];
+            x_val = load(x, col * x_stride + rhs);
+        }
+        if (row == col) {
+            const auto r =
+                (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) /
+                static_cast<arithmetic_type>(vals[row_diag]);
+            store(x, row * x_stride + rhs, static_cast<OutputValueType>(r));
+            j += row_step;
+            if (is_nan(r)) {
+                store(x, row * x_stride + rhs, zero<OutputValueType>());
+                *nan_produced = true;
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__ void sptrsv_init_kernel(bool* const nan_produced,
+                                   IndexType* const atomic_counter)
+{
+    *nan_produced = false;
+    *atomic_counter = IndexType{};
+}
+
+
+template <bool is_upper, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void sptrsv_naive_caching(std::shared_ptr<const HipExecutor> exec,
+                          const matrix::Csr<MatrixValueType, IndexType>* matrix,
+                          const matrix::Dense<InputValueType>* b,
+                          matrix::Dense<OutputValueType>* x)
+{
+    using arithmetic_type =
+        highest_precision<InputValueType, MatrixValueType, OutputValueType>;
+
+    const auto n = matrix->get_size()[0];
+    const auto nrhs = b->get_size()[1];
+
+    // Initialize x to all NaNs.
+    dense::fill(exec, x, nan<OutputValueType>());
+
+    array<bool> nan_produced(exec, 1);
+    array<IndexType> atomic_counter(exec, 1);
+    sptrsv_init_kernel<<<1, 1>>>(nan_produced.get_data(),
+                                 atomic_counter.get_data());
+
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
+
+    sptrsv_naive_legacy_kernel<is_upper, hip_type<arithmetic_type>>
+        <<<grid_size, block_size>>>(
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+            as_hip_type(matrix->get_const_values()),
+            as_hip_type(b->get_const_values()), b->get_stride(),
+            as_hip_type(x->get_values()), x->get_stride(), n, nrhs,
+            nan_produced.get_data(), atomic_counter.get_data());
+
+#if GKO_VERBOSE_LEVEL >= 1
+    if (exec->copy_val_to_host(nan_produced.get_const_data())) {
+        std::cerr
+            << "Error: triangular solve produced NaN, either not all diagonal "
+               "elements are nonzero, or the system is very ill-conditioned. "
+               "The NaN will be replaced with a zero.\n";
+    }
+#endif  // GKO_VERBOSE_LEVEL >= 1
 }
 
 
