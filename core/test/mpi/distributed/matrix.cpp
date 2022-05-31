@@ -149,13 +149,13 @@ protected:
               });
         }
         {
-            SCOPED_TRACE("With Hybrid with strategy");
+            SCOPED_TRACE("With Hybrid");
             f(gko::with_matrix_type<Hybrid>(),
               Hybrid<value_type, local_index_type>::create(this->ref),
               empty_test);
         }
         {
-            SCOPED_TRACE("With Hybrid");
+            SCOPED_TRACE("With Hybrid with strategy");
             using Concrete = Hybrid<value_type, local_index_type>;
             f(gko::with_matrix_type<Hybrid>(
                   std::make_shared<typename Concrete::column_limit>(11)),
