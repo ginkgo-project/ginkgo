@@ -377,7 +377,7 @@ protected:
      * Creates an empty distributed matrix.
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
-     *              The default is the invalid MPI_COMM_NULL.
+     *              The default is the MPI_COMM_WORLD.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
@@ -429,7 +429,7 @@ protected:
      * @param inner_matrix_type  the local inner matrix will be constructed with
      *                           the same type as `create` returns. It should be
      *                           the return value of make_matrix_type.
-     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     * @param ghost_matrix_type  the local ghost matrix will be constructed with
      *                           the same type as `create` returns. It should be
      *                           the return value of make_matrix_type.
      */
@@ -470,17 +470,11 @@ protected:
      * @note It internally clones the passed in inner_matrix_type and
      *       ghost_matrix_type. Therefore, these LinOps should be empty.
      *
-     * @tparam InnerMatrixType  A type that has a `create<ValueType,
-     *                          IndexType>(exec)` function to create an smart
-     *                          pointer of a type derived from LinOp and
-     *                          ReadableFromMatrixData
-     * @tparam GhostMatrixType  A (possible different) type with the same
-     *                          constraints as InnerMatrixType
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param inner_matrix_type  the local inner matrix will be constructed with
      *                           the same runtime type.
-     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     * @param ghost_matrix_type  the local ghost matrix will be constructed with
      *                           the same runtime type.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
