@@ -374,7 +374,8 @@ public:
      *
      * @param comm The input MPI_Comm object.
      */
-    communicator(const MPI_Comm& comm)
+    communicator(const MPI_Comm& comm, bool force_host_buffer = false)
+        : comm_(), force_host_buffer_(force_host_buffer)
     {
         this->comm_.reset(new MPI_Comm(comm));
     }
@@ -416,6 +417,8 @@ public:
      * @return  the MPI_Comm object
      */
     const MPI_Comm& get() const { return *(this->comm_.get()); }
+
+    bool force_host_buffer() const { return force_host_buffer_; }
 
     /**
      * Return the size of the communicator (number of ranks).
@@ -1171,6 +1174,7 @@ private:
     int size_{};
     int rank_{};
     int node_local_rank_{};
+    bool force_host_buffer_;
 
     int get_my_rank() const
     {
