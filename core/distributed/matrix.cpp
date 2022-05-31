@@ -121,7 +121,18 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     Matrix<next_precision<value_type>, local_index_type, global_index_type>*
         result)
 {
-    convert_to(result);
+    GKO_ASSERT(this->get_communicator().size() ==
+               result->get_communicator().size());
+    result->diag_mtx_->move_from(this->diag_mtx_.get());
+    result->offdiag_mtx_->move_from(this->offdiag_mtx_.get());
+    result->gather_idxs_ = std::move(this->gather_idxs_);
+    result->send_offsets_ = std::move(this->send_offsets_);
+    result->recv_offsets_ = std::move(this->recv_offsets_);
+    result->recv_sizes_ = std::move(this->recv_sizes_);
+    result->send_sizes_ = std::move(this->send_sizes_);
+    result->local_to_global_ghost_ = std::move(this->local_to_global_ghost_);
+    result->set_size(this->get_size());
+    this->set_size({});
 }
 
 
