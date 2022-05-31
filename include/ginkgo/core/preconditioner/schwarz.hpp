@@ -88,6 +88,11 @@ public:
 
     bool is_distributed() const { return this->is_distributed_; }
 
+    std::vector<std::shared_ptr<const LinOp>> get_inner_solvers() const
+    {
+        return this->inner_solvers_;
+    }
+
 protected:
     /**
      * Creates an empty Schwarz preconditioner.
