@@ -412,8 +412,9 @@ public:
      *
      * @param comm The input MPI_Comm object.
      */
-    communicator(const MPI_Comm& comm, std::shared_ptr<const Executor> exec)
-        : comm_(), exec_(std::move(exec))
+    communicator(const MPI_Comm& comm, std::shared_ptr<const Executor> exec,
+                 bool force_host_buffer = false)
+        : comm_(), exec_(std::move(exec)), force_host_buffer_(force_host_buffer)
     {
         this->comm_.reset(new MPI_Comm(comm));
     }
@@ -480,6 +481,8 @@ public:
      * @return  the MPI_Comm object
      */
     const MPI_Comm& get() const { return *(this->comm_.get()); }
+
+    bool force_host_buffer() const { return force_host_buffer_; }
 
     /**
      * Return the size of the communicator (number of ranks).
@@ -1421,6 +1424,7 @@ public:
 private:
     std::shared_ptr<MPI_Comm> comm_;
     std::shared_ptr<const Executor> exec_;
+    bool force_host_buffer_;
 
     int get_my_rank() const
     {
