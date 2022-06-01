@@ -66,13 +66,6 @@ __device__ __forceinline__ void matvec_kernel(
             temp += val * b.values[col * b.stride + rhs];
         }
 
-        // round off row length to the closest power of 2
-        // const int gap_rounded_off =
-        //    1 << static_cast<int>(
-        //        ceil(log2(static_cast<float>(row_end - row_start))));
-        //// subwarp_grp level reduction
-        // for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
-        //     i > 0; i /= 2) {
 #pragma unroll
         for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
@@ -84,41 +77,26 @@ __device__ __forceinline__ void matvec_kernel(
     }
 }
 
+
 template <typename ValueType>
 __device__ __forceinline__ void single_matvec_kernel(
     const gko::batch_csr::BatchEntry<const ValueType>& a,
     const ValueType* const __restrict__ b, ValueType* const __restrict__ c)
 {
-    constexpr auto tile_size = config::warp_size;
-
-    auto thread_block = group::this_thread_block();
-    auto subwarp_grp = group::tiled_partition<tile_size>(thread_block);
-    const auto subwarp_grp_id = static_cast<int>(threadIdx.x / tile_size);
-    const int num_subwarp_grps_per_block = ceildiv(blockDim.x, tile_size);
-
-    for (int row = subwarp_grp_id; row < a.num_rows;
-         row += num_subwarp_grps_per_block) {
-        const int row_start = a.row_ptrs[row];
-        const int row_end = a.row_ptrs[row + 1];
-
+    const auto num_rows = a.num_rows;
+    const auto val = a.values;
+    const auto col = a.col_idxs;
+    for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
         ValueType temp = zero<ValueType>();
-        for (int i = subwarp_grp.thread_rank() + row_start; i < row_end;
-             i += subwarp_grp.size()) {
-            const int col = a.col_idxs[i];
-            const ValueType val = a.values[i];
-            temp += val * b[col];
+        for (size_type nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1];
+             nnz++) {
+            const auto col_idx = col[nnz];
+            temp += val[nnz] * b[col_idx];
         }
-
-#pragma unroll
-        for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
-            temp += subwarp_grp.shfl_down(temp, i);
-        }
-
-        if (subwarp_grp.thread_rank() == 0) {
-            c[row] = temp;
-        }
+        c[tidx] = temp;
     }
 }
+
 
 template <typename ValueType>
 __device__ __forceinline__ void csr_matvec_kernel(
@@ -151,13 +129,6 @@ __device__ __forceinline__ void csr_matvec_kernel(
             temp += val * b[col * stride + rhs];
         }
 
-        // round off row length to the closest power of 2
-        // const int gap_rounded_off =
-        //    1 << static_cast<int>(
-        //        ceil(log2(static_cast<float>(row_end - row_start))));
-        // subwarp_grp level reduction
-        // for (int i = min(gap_rounded_off, static_cast<int>(tile_size)) / 2;
-        //     i > 0; i /= 2) {
 #pragma unroll
         for (int i = static_cast<int>(tile_size) / 2; i > 0; i /= 2) {
             temp += subwarp_grp.shfl_down(temp, i);
