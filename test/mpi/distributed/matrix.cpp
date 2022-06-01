@@ -84,7 +84,7 @@ protected:
     MatrixCreation()
         : ref(gko::ReferenceExecutor::create()),
           size{5, 5},
-          comm(gko::mpi::communicator(MPI_COMM_WORLD)),
+          comm(gko::mpi::communicator(MPI_COMM_WORLD, exec)),
           mat_input{size,
                     {{0, 1, 1},
                      {0, 3, 2},
@@ -101,7 +101,8 @@ protected:
                       {size, {{4, 0, 9}, {4, 4, 10}}}}},
           engine(42)
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
 
 
         row_part = Partition::build_from_contiguous(
@@ -214,11 +215,12 @@ public:
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
+          comm(MPI_COMM_WORLD, ref),
           size{5, 5},
           engine()
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
 
         row_part = part_type::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -556,23 +558,88 @@ public:
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
-    using dense_vec_type = gko::matrix::Dense<value_type>;
+    using dense_type = gko::matrix::Dense<value_type>;
 
     MatrixGpuAwareCheck()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
+          size{53, 53},
+          num_rhs(11),
           logger(gko::share(HostToDeviceLogger::create())),
           engine()
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
         exec->add_logger(logger);
 
-        mat = dist_mtx_type::create(exec, comm);
-        x = dist_vec_type::create(exec, comm);
-        y = dist_vec_type::create(exec, comm);
+        mat = dist_mtx_type::create(ref, comm);
+        dmat = dist_mtx_type::create(exec, comm);
+        x = dist_vec_type::create(ref, comm);
+        dx = dist_vec_type::create(exec, comm);
+        y = dist_vec_type::create(ref, comm);
+        dy = dist_vec_type::create(exec, comm);
+        alpha = dense_type::create(ref);
+        dalpha = dense_type::create(exec);
+        beta = dense_type::create(ref);
+        dbeta = dense_type::create(exec);
 
-        alpha = dense_vec_type::create(exec, gko::dim<2>{1, 1});
-        beta = dense_vec_type::create(exec, gko::dim<2>{1, 1});
+        auto num_parts =
+            static_cast<gko::distributed::comm_index_type>(comm.size());
+        auto mapping =
+            gko::test::generate_random_array<gko::distributed::comm_index_type>(
+                size[0],
+                std::uniform_int_distribution<
+                    gko::distributed::comm_index_type>(0, num_parts - 1),
+                engine, ref);
+        part = part_type::build_from_mapping(ref, mapping, num_parts);
+    }
+
+    void SetUp() override
+    {
+        generate_matrix_pair(mat, dmat);
+        generate_vector_pair(x, dx);
+        generate_vector_pair(y, dy);
+        generate_scalar_pair(alpha, dalpha);
+        generate_scalar_pair(beta, dbeta);
+    }
+
+    void TearDown() override
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
+    void generate_matrix_pair(std::unique_ptr<dist_mtx_type>& host,
+                              std::unique_ptr<dist_mtx_type>& device)
+    {
+        auto md = gko::test::generate_random_matrix_data<value_type,
+                                                         global_index_type>(
+            size[0], size[1],
+            std::uniform_int_distribution<gko::size_type>(0, size[1]),
+            std::normal_distribution<value_type>(), engine);
+        host->read_distributed(md, part.get());
+        device = gko::clone(exec, host);
+    }
+
+    void generate_vector_pair(std::unique_ptr<dist_vec_type>& host,
+                              std::unique_ptr<dist_vec_type>& device)
+    {
+        auto md = gko::test::generate_random_matrix_data<value_type,
+                                                         global_index_type>(
+            size[0], num_rhs,
+            std::uniform_int_distribution<gko::size_type>(num_rhs, num_rhs),
+            std::normal_distribution<value_type>(), engine);
+        host->read_distributed(md, part.get());
+        device = gko::clone(exec, host);
+    }
+
+    void generate_scalar_pair(std::unique_ptr<dense_type>& host,
+                              std::unique_ptr<dense_type>& device)
+    {
+        host = gko::test::generate_random_matrix<dense_type>(
+            1, 1, std::uniform_int_distribution<gko::size_type>(1, 1),
+            std::normal_distribution<value_type>(), engine, ref);
+        device = gko::clone(exec, host);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -580,13 +647,22 @@ public:
 
     gko::mpi::communicator comm;
 
+    gko::dim<2> size;
+    gko::size_type num_rhs;
+
+    std::unique_ptr<part_type> part;
+
     std::unique_ptr<dist_mtx_type> mat;
+    std::unique_ptr<dist_mtx_type> dmat;
 
     std::unique_ptr<dist_vec_type> x;
+    std::unique_ptr<dist_vec_type> dx;
     std::unique_ptr<dist_vec_type> y;
-
-    std::unique_ptr<dense_vec_type> alpha;
-    std::unique_ptr<dense_vec_type> beta;
+    std::unique_ptr<dist_vec_type> dy;
+    std::unique_ptr<dense_type> alpha;
+    std::unique_ptr<dense_type> dalpha;
+    std::unique_ptr<dense_type> beta;
+    std::unique_ptr<dense_type> dbeta;
 
     std::shared_ptr<HostToDeviceLogger> logger;
 

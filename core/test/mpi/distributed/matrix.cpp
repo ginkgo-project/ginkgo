@@ -79,22 +79,18 @@ protected:
 template <typename ValueLocalGlobalIndexType>
 class MatrixBuilder : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
 
     MatrixBuilder()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(gko::mpi::communicator(MPI_COMM_WORLD))
+        : ref(gko::ReferenceExecutor::create()), comm(MPI_COMM_WORLD, ref)
     {}
 
     void SetUp() override {}
@@ -212,8 +208,8 @@ TYPED_TEST(MatrixBuilder, BuildWithLocal)
     this->template forall_matrix_types([this](auto with_matrix_type,
                                               auto expected_type_ptr,
                                               auto additional_test) {
-        using expected_type = typename std::remove_pointer<decltype(
-            expected_type_ptr.get())>::type;
+        using expected_type = typename std::remove_pointer<
+            decltype(expected_type_ptr.get())>::type;
 
         auto mat =
             dist_mat_type ::create(this->ref, this->comm, with_matrix_type);

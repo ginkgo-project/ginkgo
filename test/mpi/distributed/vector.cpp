@@ -111,15 +111,20 @@ public:
 
     VectorCreation()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
           part(gko::share(part_type::build_from_contiguous(
               this->ref, {ref, {0, 2, 4, 6}}))),
           local_size{4, 11},
-          size{local_size[1] * comm.size(), 11},
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+         init_executor(gko::ReferenceExecutor::create(), exec);
+         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+         size = gko::dim<2>{local_size[1] * comm.size(), 11};
+    }
+
+    void SetUp() override
+    {
+        ASSERT_EQ(this->comm.size(), 3);
     }
 
     void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
@@ -370,12 +375,11 @@ public:
 
     VectorReductions()
         : ref(gko::ReferenceExecutor::create()),
-          exec(),
-          comm(MPI_COMM_WORLD),
           size{53, 11},
           engine(42)
     {
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+        init_executor(gko::ReferenceExecutor::create(), exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
 
         logger = gko::share(HostToDeviceLogger::create());
         exec->add_logger(logger);
@@ -637,13 +641,13 @@ public:
 
     VectorLocalOps()
         : ref(gko::ReferenceExecutor::create()),
-          exec(),
-          comm(MPI_COMM_WORLD),
           local_size{4, 11},
-          size{local_size[0] * comm.size(), 11},
           engine(42)
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+
+        size = gko::dim<2>{local_size[0] * comm.size(), 11},
 
         x = dist_vec_type::create(exec, comm);
         y = dist_vec_type::create(exec, comm);
@@ -652,7 +656,10 @@ public:
         complex = complex_dist_vec_type::create(exec, comm);
     }
 
-    void SetUp() override { ASSERT_GT(comm.size(), 0); }
+    void SetUp() override
+    {
+        ASSERT_GT(comm.size(), 0);
+    }
 
     void TearDown() override
     {
