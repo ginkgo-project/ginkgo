@@ -305,11 +305,21 @@ protected:
 
     std::shared_ptr<AsyncHandle> apply_impl(
         const LinOp* b, LinOp* x,
-        std::shared_ptr<AsyncHandle> handle) const override GKO_NOT_IMPLEMENTED;
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        handle->wait();
+        this->apply_impl(b, x);
+        return handle;
+    }
 
     std::shared_ptr<AsyncHandle> apply_impl(
         const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
-        std::shared_ptr<AsyncHandle> handle) const override GKO_NOT_IMPLEMENTED;
+        std::shared_ptr<AsyncHandle> handle) const override
+    {
+        handle->wait();
+        this->apply_impl(alpha, b, beta, x);
+        return handle;
+    }
 
 private:
     bool usable_block_apply_;
