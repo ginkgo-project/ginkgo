@@ -88,9 +88,9 @@ public:
 
     bool is_distributed() const { return this->is_distributed_; }
 
-    std::vector<std::shared_ptr<const LinOp>> get_generated_inner_solver() const
+    std::vector<std::shared_ptr<const LinOp>> get_inner_solvers() const
     {
-        return parameters_.generated_inner_solvers;
+        return this->inner_solvers_;
     }
 
 protected:
