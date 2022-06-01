@@ -119,12 +119,12 @@ __device__ __forceinline__ void update_x_and_r(
 
 template <typename StopType, typename PrecType, typename LogType,
           typename BatchMatrixType, typename ValueType>
-__global__ void apply_kernel(const int max_iter,
-                             const gko::remove_complex<ValueType> tol,
-                             LogType logger, PrecType prec_shared,
-                             const BatchMatrixType a,
-                             const ValueType* const __restrict__ b,
-                             ValueType* const __restrict__ x)
+__global__ void apply_kernel(
+    const int padded_vec_len, const gko::kernels::batch_cg::StorageConfig sconf,
+    const int max_iter, const gko::remove_complex<ValueType> tol,
+    LogType logger, PrecType prec_shared, const BatchMatrixType a,
+    const ValueType* const __restrict__ b, ValueType* const __restrict__ x,
+    ValueType* const __restrict__ workspace = nullptr)
 {
     using real_type = typename gko::remove_complex<ValueType>;
     const auto nbatch = a.num_batch;
@@ -135,13 +135,45 @@ __global__ void apply_kernel(const int max_iter,
     auto warp_grp = group::tiled_partition<tile_size>(thread_block);
 
     for (size_type ibatch = blockIdx.x; ibatch < nbatch; ibatch += gridDim.x) {
+        const int gmem_offset =
+            ibatch * sconf.gmem_stride_bytes / sizeof(ValueType);
         extern __shared__ char local_mem_sh[];
-        ValueType* const r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
-        ValueType* const z_sh = r_sh + nrows;
-        ValueType* const p_sh = z_sh + nrows;
-        ValueType* const Ap_sh = p_sh + nrows;
-        ValueType* const x_sh = Ap_sh + nrows;
-        ValueType* const prec_work_sh = x_sh + nrows;
+        ValueType* r_sh;
+        ValueType* z_sh;
+        ValueType* p_sh;
+        ValueType* Ap_sh;
+        ValueType* x_sh;
+        ValueType* prec_work_sh;
+        if (sconf.n_shared >= 1) {
+            r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
+        } else {
+            r_sh = workspace + gmem_offset;
+        }
+        if (sconf.n_shared == 1) {
+            z_sh = workspace + gmem_offset;
+        } else {
+            z_sh = r_sh + padded_vec_len;
+        }
+        if (sconf.n_shared == 2) {
+            p_sh = workspace + gmem_offset;
+        } else {
+            p_sh = z_sh + padded_vec_len;
+        }
+        if (sconf.n_shared == 3) {
+            Ap_sh = workspace + gmem_offset;
+        } else {
+            Ap_sh = p_sh + padded_vec_len;
+        }
+        if (!sconf.prec_shared && sconf.n_shared == 4) {
+            prec_work_sh = workspace + gmem_offset;
+        } else {
+            prec_work_sh = Ap_sh + padded_vec_len;
+        }
+        if (sconf.n_shared == 5) {
+            x_sh = workspace + gmem_offset;
+        } else {
+            x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
+        }
         __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
         __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
         __shared__ uninitialized_array<ValueType, 1> alpha_sh;
