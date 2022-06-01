@@ -171,10 +171,8 @@ __global__ void apply_kernel(const int max_iter,
         // stopping criterion object
         StopType stop(tol, norms_rhs_sh);
 
-        int iter = -1;
-
-        while (1) {
-            ++iter;
+        int iter = 0;
+        for (; iter < max_iter; iter++) {
             norms_res_sh[0] = sqrt(abs(rho_old_sh[0]));
             __syncthreads();
             if (stop.check_converged(norms_res_sh)) {
