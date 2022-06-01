@@ -70,6 +70,62 @@ namespace batch_cg {
 #include "common/cuda_hip/solver/batch_cg_kernels.hpp.inc"
 
 
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+int get_num_threads_per_block(std::shared_ptr<const CudaExecutor> exec,
+                              const int num_rows)
+{
+    int nwarps = num_rows / 4;
+    if (nwarps < 2) {
+        nwarps = 2;
+    }
+    constexpr int device_max_threads = 1024;
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(
+        &funcattr,
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    const int num_regs_used = funcattr.numRegs;
+    int max_regs_blk = 0;
+    cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
+                           exec->get_device_id());
+    const int max_threads_regs =
+        ((max_regs_blk / num_regs_used) / config::warp_size) *
+        config::warp_size;
+    const int max_threads = std::min(max_threads_regs, device_max_threads);
+    return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
+}
+
+
+template <typename StopType, typename PrecType, typename LogType,
+          typename BatchMatrixType, typename ValueType>
+int get_max_dynamic_shared_memory(std::shared_ptr<const CudaExecutor> exec,
+                                  const size_type required_cache_storage)
+{
+    int shmem_per_sm = 0;
+    cudaDeviceGetAttribute(&shmem_per_sm,
+                           cudaDevAttrMaxSharedMemoryPerMultiprocessor,
+                           exec->get_device_id());
+    // std::cerr << " Max shared mem per SM = " << shmem_per_sm << std::endl;
+    int max_shared_pc =
+        100 - static_cast<int>(static_cast<double>(required_cache_storage) /
+                               shmem_per_sm * 100);
+    if (max_shared_pc <= 0) {
+        max_shared_pc = 1;
+    }
+    // std::cerr << " Max shared pc required = " << max_shared_pc << std::endl;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>,
+        cudaFuncAttributePreferredSharedMemoryCarveout, max_shared_pc - 1));
+    cudaFuncAttributes funcattr;
+    cudaFuncGetAttributes(
+        &funcattr,
+        apply_kernel<StopType, PrecType, LogType, BatchMatrixType, ValueType>);
+    // std::cerr << " Max dyn. shared memory for batch bcgs = ",
+    //        << funcattr.maxDynamicSharedSizeBytes << std::endl;
+    return funcattr.maxDynamicSharedSizeBytes;
+}
+
+
 template <typename T>
 using BatchCgOptions = gko::kernels::batch_cg::BatchCgOptions<T>;
 
@@ -92,16 +148,47 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
+        const int shared_gap = ((a.num_rows - 1) / 5 + 1) * 5;
 
-        const int shared_size =
-            gko::kernels::batch_cg::local_memory_requirement<value_type>(
-                a.num_rows, b.num_rhs) +
-            PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
-                sizeof(value_type);
+        const auto matrix_storage = a.get_entry_storage();
+        const int shmem_per_blk =
+            get_max_dynamic_shared_memory<StopType, PrecType, LogType,
+                                          BatchMatrixType, value_type>(
+                exec_, matrix_storage);
+        const int block_size =
+            get_num_threads_per_block<StopType, PrecType, LogType,
+                                      BatchMatrixType, value_type>(exec_,
+                                                                   a.num_rows);
+        assert(block_size >= 2 * config::warp_size);
 
-        apply_kernel<StopType><<<nbatch, default_block_size, shared_size>>>(
-            opts_.max_its, opts_.residual_tol, logger, prec, a, b.values,
-            x.values);
+        const size_t prec_size =
+            PrecType::dynamic_work_size(shared_gap, a.num_nnz) *
+            sizeof(value_type);
+        const auto sconf =
+            gko::kernels::batch_cg::compute_shared_storage<PrecType,
+                                                           value_type>(
+                shmem_per_blk, shared_gap, a.num_nnz, b.num_rhs);
+        const size_t shared_size =
+            sconf.n_shared * shared_gap * sizeof(value_type) +
+            (sconf.prec_shared ? prec_size : 0);
+        auto workspace = gko::Array<value_type>(
+            exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
+        assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
+
+        // std::cerr << " CG: vectors in shared memory = " << sconf.n_shared
+        //           << "\n";
+        // if (sconf.prec_shared) {
+        //     std::cerr << " CG: precondiioner is in shared memory.\n";
+        // }
+        // std::cerr << " CG: vectors in global memory = " << sconf.n_global
+        //           << "\n CUDA: number of threads per warp = "
+        //           << config::warp_size
+        //           << "\n CG: number of threads per block = " << block_size
+        //           << "\n";
+
+        apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
+            shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger, prec,
+            a, b.values, x.values, workspace.get_data());
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
