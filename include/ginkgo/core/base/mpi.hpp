@@ -1969,6 +1969,35 @@ private:
 }  // namespace gko
 
 
+#else
+
+
+struct MPI_Comm {};
+
+
+constexpr MPI_Comm MPI_COMM_WORLD{};
+
+
+namespace gko {
+namespace mpi {
+
+/**
+ * Maps each MPI rank to a single device id in a round robin manner.
+ * @param comm  used to determine the node-local rank, if no suitable
+ *              environment variable is available.
+ * @param num_devices  the number of devices per node.
+ * @return  device id that this rank should use.
+ */
+int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
+{
+    return num_devices;
+}
+
+
+}  // namespace mpi
+}  // namespace gko
+
+
 #endif  // GKO_HAVE_MPI
 
 
