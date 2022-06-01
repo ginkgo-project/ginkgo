@@ -447,6 +447,12 @@ inline std::vector<status> wait_all(std::vector<request>& reqs)
 class communicator {
 public:
     /**
+     * Default empty constructor using the invalid MPI_COMM_NULL and
+     * a ReferenceExecutor.
+     */
+    communicator() : communicator(MPI_COMM_NULL, ReferenceExecutor::create()) {}
+
+    /**
      * Non-owning constructor for an existing communicator of type MPI_Comm. The
      * MPI_Comm object will not be deleted after the communicator object has
      * been freed and an explicit MPI_Comm_free needs to be called on the
@@ -484,12 +490,35 @@ public:
      * @param key  The key to split the comm object
      */
     communicator(const communicator& comm, int color, int key)
+        : comm_(), exec_(comm.get_executor())
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
         this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
     }
+
+    /**
+     * Default copy constructor.
+     */
+    communicator(const communicator&) = default;
+
+    /**
+     * Default move constructor.
+     */
+    communicator(communicator&&) = default;
+
+    /**
+     * Default copy assignment.
+     * @return  *this.
+     */
+    communicator& operator=(const communicator&) = default;
+
+    /**
+     * Default move assignment.
+     * @return  *this.
+     */
+    communicator& operator=(communicator&&) = default;
 
     /**
      * Return the underlying MPI_Comm object.
