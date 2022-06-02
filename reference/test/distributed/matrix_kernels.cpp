@@ -79,7 +79,7 @@ protected:
           non_local_col_idxs{ref},
           non_local_values{ref},
           gather_idxs{ref},
-          recv_offsets{ref},
+          recv_sizes{ref},
           non_local_to_global{ref}
     {}
 
@@ -105,22 +105,19 @@ protected:
         std::initializer_list<std::initializer_list<local_index_type>>
             gather_idx_entries,
         std::initializer_list<std::initializer_list<comm_index_type>>
-            recv_offset_entries)
+            recv_sizes_entries)
     {
-        using local_d_md_type =
-            gko::device_matrix_data<value_type, local_index_type>;
-        using md_type = typename local_d_md_type::host_type;
         std::vector<gko::device_matrix_data<value_type, local_index_type>>
             ref_locals;
         std::vector<gko::device_matrix_data<value_type, local_index_type>>
             ref_non_locals;
         std::vector<gko::array<local_index_type>> ref_gather_idxs;
-        std::vector<gko::array<comm_index_type>> ref_recv_offsets;
+        std::vector<gko::array<comm_index_type>> ref_recv_sizes;
 
         auto input = gko::device_matrix_data<value_type, global_index_type>{
             ref, size, input_rows, input_cols, input_vals};
-        this->recv_offsets.resize_and_reset(
-            static_cast<gko::size_type>(row_partition->get_num_parts() + 1));
+        this->recv_sizes.resize_and_reset(
+            static_cast<gko::size_type>(row_partition->get_num_parts()));
         for (auto entry : local_entries) {
             ref_locals.emplace_back(ref, std::get<0>(entry), std::get<1>(entry),
                                     std::get<2>(entry), std::get<3>(entry));
@@ -133,8 +130,8 @@ protected:
         for (auto entry : gather_idx_entries) {
             ref_gather_idxs.emplace_back(ref, entry);
         }
-        for (auto entry : recv_offset_entries) {
-            ref_recv_offsets.emplace_back(ref, entry);
+        for (auto entry : recv_sizes_entries) {
+            ref_recv_sizes.emplace_back(ref, entry);
         }
 
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
@@ -142,7 +139,7 @@ protected:
             gko::kernels::reference::distributed_matrix::build_local_nonlocal(
                 ref, input, row_partition, col_partition, part, local_row_idxs,
                 local_col_idxs, local_values, non_local_row_idxs,
-                non_local_col_idxs, non_local_values, gather_idxs, recv_offsets,
+                non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 non_local_to_global);
 
             assert_device_matrix_data_equal(local_row_idxs, local_col_idxs,
@@ -151,7 +148,7 @@ protected:
                 non_local_row_idxs, non_local_col_idxs, non_local_values,
                 ref_non_locals[part]);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, ref_gather_idxs[part]);
-            GKO_ASSERT_ARRAY_EQ(recv_offsets, ref_recv_offsets[part]);
+            GKO_ASSERT_ARRAY_EQ(recv_sizes, ref_recv_sizes[part]);
         }
     }
 
@@ -195,7 +192,7 @@ protected:
     gko::array<local_index_type> non_local_col_idxs;
     gko::array<value_type> non_local_values;
     gko::array<local_index_type> gather_idxs;
-    gko::array<comm_index_type> recv_offsets;
+    gko::array<comm_index_type> recv_sizes;
     gko::array<global_index_type> non_local_to_global;
 };
 
@@ -220,7 +217,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalEmpty)
         {std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 0}, I<git>{}, I<git>{}, I<vt>{})},
-        {{}, {}, {}}, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}});
+        {{}, {}, {}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
 }
 
 
@@ -241,7 +238,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalSmall)
          std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{1})},
         {std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{3}),
          std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{2})},
-        {{0}, {0}}, {{0, 0, 1}, {0, 1, 1}});
+        {{0}, {0}}, {{0, 1}, {1, 0}});
 }
 
 
@@ -268,7 +265,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoNonLocal)
         {std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{})},
-        {{}, {}, {}}, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}});
+        {{}, {}, {}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
 }
 
 
@@ -293,7 +290,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoLocal)
                          I<vt>{1, 2, 8}),
          std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1}, I<git>{1, 0},
                          I<vt>{5, 7})},
-        {{0}, {0, 1, 0}, {1, 1}}, {{0, 0, 0, 1}, {0, 2, 2, 3}, {0, 1, 2, 2}});
+        {{0}, {0, 1, 0}, {1, 1}}, {{0, 0, 1}, {2, 0, 1}, {1, 1, 0}});
 }
 
 
@@ -324,7 +321,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalMixed)
                          I<vt>{1, 2, 8}),
          std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 1}, I<git>{1, 0},
                          I<vt>{5, 7})},
-        {{0}, {0, 1, 0}, {1, 1}}, {{0, 0, 0, 1}, {0, 2, 2, 3}, {0, 1, 2, 2}});
+        {{0}, {0, 1, 0}, {1, 1}}, {{0, 0, 1}, {2, 0, 1}, {1, 1, 0}});
 }
 
 
@@ -351,7 +348,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalEmptyWithColPartition)
         {std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{3, 0}, I<git>{}, I<git>{}, I<vt>{})},
-        {{}, {}, {}}, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}});
+        {{}, {}, {}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
 }
 
 
@@ -376,7 +373,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalSmallWithColPartition)
          std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{2})},
         {std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{4}),
          std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{1})},
-        {{0}, {0}}, {{0, 0, 1}, {0, 1, 1}});
+        {{0}, {0}}, {{0, 1}, {1, 0}});
 }
 
 TYPED_TEST(Matrix, BuildsLocalNonLocalNoNonLocalWithColPartition)
@@ -404,7 +401,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoNonLocalWithColPartition)
         {std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{}),
          std::make_tuple(gko::dim<2>{2, 0}, I<git>{}, I<git>{}, I<vt>{})},
-        {{}, {}, {}}, {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}});
+        {{}, {}, {}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
 }
 
 
@@ -434,8 +431,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNoLocalWithColPartition)
                          I<vt>{4, 5}),
          std::make_tuple(gko::dim<2>{2, 2}, I<git>{0, 0}, I<git>{0, 1},
                          I<vt>{6, 7})},
-        {{1, 0, 1}, {0, 1}, {1, 0}},
-        {{0, 0, 1, 3}, {0, 2, 2, 2}, {0, 1, 2, 2}});
+        {{1, 0, 1}, {0, 1}, {1, 0}}, {{0, 1, 2}, {2, 0, 0}, {1, 1, 0}});
 }
 
 
@@ -470,7 +466,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalMixedWithColPartition)
                     std::make_tuple(gko::dim<2>{2, 3}, I<git>{0, 0, 1, 1},
                                     I<git>{1, 2, 0, 2}, I<vt>{6, 7, 8, 9})},
                    {{0, 0, 1}, {1, 0}, {0, 0, 1}},
-                   {{0, 0, 1, 3}, {0, 1, 1, 2}, {0, 1, 3, 3}});
+                   {{0, 1, 2}, {1, 0, 1}, {1, 2, 0}});
 }
 
 
@@ -502,7 +498,7 @@ TYPED_TEST(Matrix, BuildsLocalNonLocalNonSquare)
          std::make_tuple(gko::dim<2>{2, 1}, I<git>{0}, I<git>{0}, I<vt>{8}),
          std::make_tuple(gko::dim<2>{2, 1}, I<git>{0, 1}, I<git>{0, 0},
                          I<vt>{9, 10})},
-        {{0, 1}, {0}, {0}}, {{0, 0, 1, 2}, {0, 1, 1, 1}, {0, 0, 1, 1}});
+        {{0, 1}, {0}, {0}}, {{0, 1, 1}, {1, 0, 0}, {0, 1, 0}});
 }
 
 
@@ -517,7 +513,7 @@ TYPED_TEST(Matrix, BuildGhostMapContinuous)
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  this->mapping,
                                                                  num_parts);
-    this->recv_offsets.resize_and_reset(num_parts + 1);
+    this->recv_sizes.resize_and_reset(num_parts + 1);
     gko::array<global_index_type> result[num_parts] = {
         {this->ref, {3}}, {this->ref, {0, 6}}, {this->ref, {4}}};
 
@@ -527,7 +523,7 @@ TYPED_TEST(Matrix, BuildGhostMapContinuous)
             partition.get(), local_id, this->local_row_idxs,
             this->local_col_idxs, this->local_values, this->non_local_row_idxs,
             this->non_local_col_idxs, this->non_local_values, this->gather_idxs,
-            this->recv_offsets, this->non_local_to_global);
+            this->recv_sizes, this->non_local_to_global);
 
         GKO_ASSERT_ARRAY_EQ(result[local_id], this->non_local_to_global);
     }
@@ -544,7 +540,7 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
         local_index_type, global_index_type>::build_from_mapping(this->ref,
                                                                  this->mapping,
                                                                  num_parts);
-    this->recv_offsets.resize_and_reset(num_parts + 1);
+    this->recv_sizes.resize_and_reset(num_parts + 1);
     gko::array<global_index_type> result[num_parts] = {
         {this->ref, {5}},
         {this->ref, {6, 2}},
@@ -556,7 +552,7 @@ TYPED_TEST(Matrix, BuildGhostMapScattered)
             partition.get(), local_id, this->local_row_idxs,
             this->local_col_idxs, this->local_values, this->non_local_row_idxs,
             this->non_local_col_idxs, this->non_local_values, this->gather_idxs,
-            this->recv_offsets, this->non_local_to_global);
+            this->recv_sizes, this->non_local_to_global);
 
         GKO_ASSERT_ARRAY_EQ(result[local_id], this->non_local_to_global);
     }
