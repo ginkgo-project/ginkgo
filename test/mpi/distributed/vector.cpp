@@ -118,10 +118,7 @@ public:
         init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
-    void SetUp() override
-    {
-        ASSERT_EQ(this->comm.size(), 3);
-    }
+    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
     void TearDown() override
     {
@@ -421,10 +418,7 @@ public:
         y = gko::clone(exec, tmp_y);
     }
 
-    void SetUp() override
-    {
-        ASSERT_GT(comm.size(), 0);
-    }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     void TearDown() override
     {
@@ -597,10 +591,7 @@ public:
         complex = complex_dist_vec_type::create(exec, comm);
     }
 
-    void SetUp() override
-    {
-        ASSERT_GT(comm.size(), 0);
-    }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     void TearDown() override
     {
