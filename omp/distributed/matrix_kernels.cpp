@@ -64,7 +64,7 @@ void build_local_nonlocal(
     array<LocalIndexType>& non_local_col_idxs,
     array<ValueType>& non_local_values,
     array<LocalIndexType>& local_gather_idxs,
-    array<comm_index_type>& recv_offsets,
+    array<comm_index_type>& recv_sizes,
     array<GlobalIndexType>& non_local_to_global)
 {
     using partition_type =
@@ -78,12 +78,11 @@ void build_local_nonlocal(
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
-    auto recv_offsets_ptr = recv_offsets.get_data();
+    auto recv_sizes_ptr = recv_sizes.get_data();
     size_type row_range_id_hint = 0;
     size_type col_range_id_hint = 0;
-    // zero recv_offsets values
-    recv_offsets.resize_and_reset(num_parts + 1);
-    std::fill_n(recv_offsets_ptr, num_parts + 1, comm_index_type{});
+    // zero recv_sizes values
+    std::fill_n(recv_sizes_ptr, num_parts, comm_index_type{});
 
     auto find_range = [](GlobalIndexType idx, const partition_type* partition,
                          size_type hint) {
@@ -210,23 +209,24 @@ void build_local_nonlocal(
     // count non-local columns per part
     for (const auto& entry : non_local_cols) {
         auto col_range_id = entry.second;
-        recv_offsets_ptr[col_part_ids[col_range_id]]++;
+        recv_sizes_ptr[col_part_ids[col_range_id]]++;
     }
-    components::prefix_sum(exec, recv_offsets_ptr, num_parts + 1);
+    const auto num_non_local_cols = std::accumulate(
+        recv_sizes_ptr, recv_sizes_ptr + num_parts, size_type{});
+    components::prefix_sum(exec, recv_sizes_ptr, num_parts);
 
-    // collect and renumber non-local columns
-    const auto num_non_local_cols =
-        static_cast<size_type>(recv_offsets_ptr[num_parts]);
+    // collect and renumber offdiagonal columns
     local_gather_idxs.resize_and_reset(num_non_local_cols);
-    std::unordered_map<GlobalIndexType, LocalIndexType> global_to_non_local;
+    std::unordered_map<GlobalIndexType, LocalIndexType>
+        non_local_global_to_local;
     for (const auto& entry : non_local_cols) {
         auto range = entry.second;
         auto part = col_part_ids[range];
-        auto idx = recv_offsets_ptr[part];
+        auto idx = recv_sizes_ptr[part];
         local_gather_idxs.get_data()[idx] =
             map_to_local(entry.first, col_partition, entry.second);
-        global_to_non_local[entry.first] = idx;
-        ++recv_offsets_ptr[part];
+        non_local_global_to_local[entry.first] = idx;
+        ++recv_sizes_ptr[part];
     }
 
     // build local-to-global map for non-local columns
@@ -234,16 +234,15 @@ void build_local_nonlocal(
     std::fill_n(non_local_to_global.get_data(),
                 non_local_to_global.get_num_elems(),
                 invalid_index<GlobalIndexType>());
-    for (const auto& key_value : global_to_non_local) {
+    for (const auto& key_value : non_local_global_to_local) {
         const auto global_idx = key_value.first;
         const auto local_idx = key_value.second;
         non_local_to_global.get_data()[local_idx] = global_idx;
     }
 
-    // shift recv_offsets to the back, insert 0 in front again
-    LocalIndexType local_prev{};
-    for (size_type i = 0; i <= num_parts; i++) {
-        recv_offsets_ptr[i] = std::exchange(local_prev, recv_offsets_ptr[i]);
+    // shift recv_sizes to the back, insert 0 in front again
+    for (size_type i = num_parts - 1; i > 0; --i) {
+        recv_sizes_ptr[i] -= recv_sizes_ptr[i - 1];
     }
 
     // map non-local values to local column indices
@@ -255,7 +254,8 @@ void build_local_nonlocal(
         auto global = non_local_entries[i];
         non_local_row_idxs.get_data()[i] =
             static_cast<LocalIndexType>(global.row);
-        non_local_col_idxs.get_data()[i] = global_to_non_local[global.column];
+        non_local_col_idxs.get_data()[i] =
+            non_local_global_to_local[global.column];
         non_local_values.get_data()[i] = global.value;
     }
 }

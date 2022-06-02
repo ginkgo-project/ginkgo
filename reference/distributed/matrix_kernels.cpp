@@ -59,26 +59,18 @@ void build_local_nonlocal(
     array<LocalIndexType>& non_local_col_idxs,
     array<ValueType>& non_local_values,
     array<LocalIndexType>& local_gather_idxs,
-    array<comm_index_type>& recv_offsets,
+    array<comm_index_type>& recv_sizes,
     array<GlobalIndexType>& non_local_to_global)
 {
     using partition_type =
         distributed::Partition<LocalIndexType, GlobalIndexType>;
-    using range_index_type = GlobalIndexType;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
-    using local_nonzero = matrix_data_entry<ValueType, LocalIndexType>;
     auto input_row_idxs = input.get_const_row_idxs();
     auto input_col_idxs = input.get_const_col_idxs();
     auto input_vals = input.get_const_values();
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
-    auto recv_offsets_ptr = recv_offsets.get_data();
-    size_type row_range_id_hint = 0;
-    size_type col_range_id_hint = 0;
-    // zero recv_offsets values
-    recv_offsets.resize_and_reset(num_parts + 1);
-    std::fill_n(recv_offsets_ptr, num_parts + 1, comm_index_type{});
 
     auto find_range = [](GlobalIndexType idx, const partition_type* partition,
                          size_type hint) {
@@ -100,108 +92,95 @@ void build_local_nonlocal(
                range_starting_indices[range_id];
     };
 
-    // store non-local columns and their range indices
-    map<GlobalIndexType, range_index_type> non_local_cols(exec);
-    // store non-local entries with global column idxs
-    vector<global_nonzero> global_non_local_entries(exec);
-    vector<local_nonzero> local_entries(exec);
+    vector<global_nonzero> inner_entries(exec);
+    vector<global_nonzero> ghost_entries(exec);
+    size_type row_range_id = 0;
+    size_type col_range_id = 0;
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
-        const auto global_row = input_row_idxs[i];
-        const auto global_col = input_col_idxs[i];
-        const auto value = input_vals[i];
-        auto row_range_id =
-            find_range(global_row, row_partition, row_range_id_hint);
-        row_range_id_hint = row_range_id;
-        // skip non-local rows
+        auto global_row = input_row_idxs[i];
+        row_range_id = find_range(global_row, row_partition, row_range_id);
         if (row_part_ids[row_range_id] == local_part) {
-            // map to part-local indices
-            auto local_row =
-                map_to_local(global_row, row_partition, row_range_id);
-
-            auto col_range_id =
-                find_range(global_col, col_partition, col_range_id_hint);
-            col_range_id_hint = col_range_id;
+            auto global_col = input_col_idxs[i];
+            col_range_id = find_range(global_col, col_partition, col_range_id);
             if (col_part_ids[col_range_id] == local_part) {
-                // store local entry
-                auto local_col =
-                    map_to_local(global_col, col_partition, col_range_id);
-                local_entries.emplace_back(local_row, local_col, value);
+                inner_entries.push_back(
+                    {map_to_local(global_row, row_partition, row_range_id),
+                     map_to_local(global_col, col_partition, col_range_id),
+                     input_vals[i]});
             } else {
-                // store non-local entry
-                auto is_new_col =
-                    non_local_cols.emplace(global_col, col_range_id).second;
-                // count the number of non-local entries in each part
-                if (is_new_col) {
-                    recv_offsets_ptr[col_part_ids[col_range_id]]++;
-                }
-                global_non_local_entries.emplace_back(local_row, global_col,
-                                                      value);
+                ghost_entries.push_back(
+                    {map_to_local(global_row, row_partition, row_range_id),
+                     global_col, input_vals[i]});
             }
         }
     }
 
-    // store local data to output
-    local_row_idxs.resize_and_reset(local_entries.size());
-    local_col_idxs.resize_and_reset(local_entries.size());
-    local_values.resize_and_reset(local_entries.size());
-    std::transform(local_entries.begin(), local_entries.end(),
-                   detail::make_zip_iterator(local_row_idxs.get_data(),
-                                             local_col_idxs.get_data(),
-                                             local_values.get_data()),
-                   [](const auto& entry) {
-                       return std::make_tuple(entry.row, entry.column,
-                                              entry.value);
-                   });
-
-    // build recv_offsets
-    components::prefix_sum(exec, recv_offsets_ptr, num_parts + 1);
-
-    // collect and renumber non-local columns
-    const auto num_non_local_cols =
-        static_cast<size_type>(recv_offsets_ptr[num_parts]);
-    local_gather_idxs.resize_and_reset(num_non_local_cols);
-    std::unordered_map<GlobalIndexType, LocalIndexType> global_to_non_local;
-    for (const auto& entry : non_local_cols) {
-        auto range = entry.second;
-        auto part = col_part_ids[range];
-        auto idx = recv_offsets_ptr[part];
-        local_gather_idxs.get_data()[idx] =
-            map_to_local(entry.first, col_partition, range);
-        global_to_non_local[entry.first] = idx;
-        ++recv_offsets_ptr[part];
+    // create local matrix
+    local_row_idxs.resize_and_reset(inner_entries.size());
+    local_col_idxs.resize_and_reset(inner_entries.size());
+    local_values.resize_and_reset(inner_entries.size());
+    for (size_type i = 0; i < inner_entries.size(); ++i) {
+        const auto& entry = inner_entries[i];
+        local_row_idxs.get_data()[i] = entry.row;
+        local_col_idxs.get_data()[i] = entry.column;
+        local_values.get_data()[i] = entry.value;
     }
 
-    // build local-to-global map for non-local columns
-    non_local_to_global.resize_and_reset(num_non_local_cols);
-    std::fill_n(non_local_to_global.get_data(),
-                non_local_to_global.get_num_elems(),
-                invalid_index<GlobalIndexType>());
-    for (const auto& key_value : global_to_non_local) {
-        const auto global_idx = key_value.first;
-        const auto local_idx = key_value.second;
-        non_local_to_global.get_data()[local_idx] = global_idx;
+    // create non-local matrix
+    // 1. stable sort global columns according to their part-id and global
+    // columns
+    auto find_col_part = [&](GlobalIndexType idx) {
+        auto range_id = find_range(idx, col_partition, 0);
+        return col_part_ids[range_id];
+    };
+    vector<GlobalIndexType> unique_columns(exec);
+    std::transform(ghost_entries.begin(), ghost_entries.end(),
+                   std::back_inserter(unique_columns),
+                   [](const auto& entry) { return entry.column; });
+    std::sort(unique_columns.begin(), unique_columns.end(),
+              [&](const auto& a, const auto& b) {
+                  auto part_a = find_col_part(a);
+                  auto part_b = find_col_part(b);
+                  return std::tie(part_a, a) < std::tie(part_b, b);
+              });
+
+    // 2. remove duplicate columns, now the new column i has global index
+    // unique_columns[i]
+    unique_columns.erase(
+        std::unique(unique_columns.begin(), unique_columns.end()),
+        unique_columns.end());
+
+    // 3. create mapping from unique_columns
+    unordered_map<GlobalIndexType, LocalIndexType> ghost_column_map(exec);
+    for (std::size_t i = 0; i < unique_columns.size(); ++i) {
+        ghost_column_map[unique_columns[i]] = static_cast<LocalIndexType>(i);
     }
 
-    // shift recv_offsets to the back, insert 0 in front again
-    LocalIndexType local_prev{};
-    for (size_type i = 0; i <= num_parts; i++) {
-        recv_offsets_ptr[i] = std::exchange(local_prev, recv_offsets_ptr[i]);
+    // 3.5 copy unique_columns to array
+    non_local_to_global = array<GlobalIndexType>{exec, unique_columns.begin(),
+                                                 unique_columns.end()};
+
+    // 4. fill non_local_data
+    non_local_row_idxs.resize_and_reset(ghost_entries.size());
+    non_local_col_idxs.resize_and_reset(ghost_entries.size());
+    non_local_values.resize_and_reset(ghost_entries.size());
+    for (size_type i = 0; i < ghost_entries.size(); ++i) {
+        const auto& entry = ghost_entries[i];
+        non_local_row_idxs.get_data()[i] = entry.row;
+        non_local_col_idxs.get_data()[i] = ghost_column_map[entry.column];
+        non_local_values.get_data()[i] = entry.value;
     }
 
-    // map non-local values to local column indices
-    non_local_row_idxs.resize_and_reset(global_non_local_entries.size());
-    non_local_col_idxs.resize_and_reset(global_non_local_entries.size());
-    non_local_values.resize_and_reset(global_non_local_entries.size());
-    std::transform(global_non_local_entries.begin(),
-                   global_non_local_entries.end(),
-                   detail::make_zip_iterator(non_local_row_idxs.get_data(),
-                                             non_local_col_idxs.get_data(),
-                                             non_local_values.get_data()),
-                   [&](const auto& entry) {
-                       return std::make_tuple(
-                           static_cast<LocalIndexType>(entry.row),
-                           global_to_non_local[entry.column], entry.value);
-                   });
+    // compute gather idxs and recv_sizes
+    local_gather_idxs.resize_and_reset(unique_columns.size());
+    std::fill_n(recv_sizes.get_data(), num_parts, 0);
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
+        col_range_id =
+            find_range(unique_columns[i], col_partition, col_range_id);
+        local_gather_idxs.get_data()[i] =
+            map_to_local(unique_columns[i], col_partition, col_range_id);
+        recv_sizes.get_data()[find_col_part(unique_columns[i])]++;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
