@@ -101,25 +101,25 @@ protected:
             gko::array<value_type> d_non_local_values{exec};
             gko::array<local_index_type> gather_idxs{ref};
             gko::array<local_index_type> d_gather_idxs{exec};
-            gko::array<comm_index_type> recv_offsets{
-                ref, static_cast<gko::size_type>(
-                         row_partition->get_num_parts() + 1)};
-            gko::array<comm_index_type> d_recv_offsets{
-                exec, static_cast<gko::size_type>(
-                          row_partition->get_num_parts() + 1)};
+            gko::array<comm_index_type> recv_sizes{
+                ref,
+                static_cast<gko::size_type>(row_partition->get_num_parts())};
+            gko::array<comm_index_type> d_recv_sizes{
+                exec,
+                static_cast<gko::size_type>(row_partition->get_num_parts())};
             gko::array<global_index_type> local_to_global_col{ref};
             gko::array<global_index_type> d_local_to_global_col{exec};
 
             gko::kernels::reference::distributed_matrix::build_local_nonlocal(
                 ref, input, row_partition, col_partition, part, local_row_idxs,
                 local_col_idxs, local_values, non_local_row_idxs,
-                non_local_col_idxs, non_local_values, gather_idxs, recv_offsets,
+                non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
             gko::kernels::omp::distributed_matrix::build_local_nonlocal(
                 exec, d_input, d_row_partition, d_col_partition, part,
                 d_local_row_idxs, d_local_col_idxs, d_local_values,
                 d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
-                d_gather_idxs, d_recv_offsets, d_local_to_global_col);
+                d_gather_idxs, d_recv_sizes, d_local_to_global_col);
 
             assert_device_matrix_data_equal(local_row_idxs, local_col_idxs,
                                             local_values, d_local_row_idxs,
@@ -128,7 +128,7 @@ protected:
                 non_local_row_idxs, non_local_col_idxs, non_local_values,
                 d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, d_gather_idxs);
-            GKO_ASSERT_ARRAY_EQ(recv_offsets, d_recv_offsets);
+            GKO_ASSERT_ARRAY_EQ(recv_sizes, d_recv_sizes);
             GKO_ASSERT_ARRAY_EQ(local_to_global_col, d_local_to_global_col);
         }
     }
@@ -204,7 +204,7 @@ TYPED_TEST(Matrix, BuildsLocalSmallIsEquivalentToRef)
                                                                  mapping,
                                                                  num_parts);
 
-    this->validate(partition.get(), d_partition.get(), input);
+    this->validate(partition.get(), partition.get(), d_partition.get(), d_partition.get(), input);
 }
 
 
