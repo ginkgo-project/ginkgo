@@ -224,4 +224,92 @@ TEST(DummyLogged, DoesNotPropagateEventsWhenDisabled)
 }
 
 
+struct DummyMpiLogger : gko::log::Logger {
+    using Logger = gko::log::Logger;
+
+    mutable int blocking_count = 0;
+    mutable int non_blocking_count = 0;
+
+    explicit DummyMpiLogger(
+        std::shared_ptr<const gko::Executor> exec,
+        const mask_type& enabled_events = Logger::mpi_events_mask)
+        : Logger(std::move(exec), enabled_events)
+    {}
+
+
+    void on_mpi_point_to_point_communication_started(
+        bool is_blocking, const char* name, const MPI_Comm* comm,
+        const gko::uintptr& loc, int size, MPI_Datatype type, int source_rank,
+        int destination_rank, int tag, const MPI_Request* req) const override
+    {
+        if (is_blocking) {
+            blocking_count++;
+        } else {
+            non_blocking_count++;
+        }
+    }
+};
+
+
+TEST(DummyMpiLogger, CanLogBlockingMpiEvents)
+{
+    using Logger = gko::log::Logger;
+    auto l = std::make_shared<DummyMpiLogger>(gko::ReferenceExecutor::create());
+
+    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+
+    ASSERT_EQ(l->blocking_count, 1);
+}
+
+
+TEST(DummyMpiLogger, CanLogNonBlockingMpiEvents)
+{
+    using Logger = gko::log::Logger;
+    auto l = std::make_shared<DummyMpiLogger>(gko::ReferenceExecutor::create());
+
+    l->template on<
+        Logger::non_blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+
+    ASSERT_EQ(l->non_blocking_count, 1);
+}
+
+
+TEST(DummyMpiLogger, CanExclusivlyLogBlockingMpiEvents)
+{
+    using Logger = gko::log::Logger;
+    auto l = std::make_shared<DummyMpiLogger>(
+        gko::ReferenceExecutor::create(),
+        Logger::mpi_events_mask & ~Logger::mpi_non_blocking_communication_mask);
+
+    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+    l->template on<
+        Logger::non_blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+
+    ASSERT_EQ(l->blocking_count, 1);
+    ASSERT_EQ(l->non_blocking_count, 0);
+}
+
+
+TEST(DummyMpiLogger, CanExclusivlyLogNonBlockingMpiEvents)
+{
+    using Logger = gko::log::Logger;
+    auto l = std::make_shared<DummyMpiLogger>(
+        gko::ReferenceExecutor::create(),
+        Logger::mpi_events_mask & ~Logger::mpi_blocking_communication_mask);
+
+    l->template on<Logger::blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+    l->template on<
+        Logger::non_blocking_mpi_point_to_point_communication_started>(
+        "", nullptr, 0, 0, MPI_DATATYPE_NULL, 0, 0, 0, nullptr);
+
+    ASSERT_EQ(l->blocking_count, 0);
+    ASSERT_EQ(l->non_blocking_count, 1);
+}
+
+
 }  // namespace

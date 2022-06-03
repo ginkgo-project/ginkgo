@@ -41,8 +41,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+
+
+#if GINKGO_BUILD_MPI
+
+
+#include <mpi.h>
+
+
+#else
+
+
+using MPI_Op = int;
+
+
+#endif
 
 
 namespace gko {
@@ -66,6 +82,11 @@ class stopping_status;
 namespace stop {
 class Criterion;
 }  // namespace stop
+
+
+namespace mpi {
+class communicator;
+}
 
 
 namespace log {
@@ -483,6 +504,77 @@ public:
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
 
+
+    static constexpr mask_type mpi_blocking_communication_mask{mask_type{1}
+                                                               << 24};
+    static constexpr mask_type mpi_non_blocking_communication_mask{mask_type{1}
+                                                                   << 25};
+
+
+#define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)              \
+protected:                                                                \
+    virtual void on_##_event_name(bool is_blocking, __VA_ARGS__) const {} \
+                                                                          \
+public:                                                                   \
+    template <size_type Event, typename... Params>                        \
+    std::enable_if_t<(Event == _id - 1 || Event == _id) &&                \
+                     (_id < event_count_max)>                             \
+    on(Params&&... params) const                                          \
+    {                                                                     \
+        if (enabled_events_ & mask_type{1} << _id &&                      \
+            ((Event & size_type{1} &&                                     \
+              enabled_events_ & mpi_blocking_communication_mask) ||       \
+             (!(Event & size_type{1}) &&                                  \
+              enabled_events_ & mpi_non_blocking_communication_mask))) {  \
+            this->on_##_event_name(Event& size_type{1},                   \
+                                   std::forward<Params>(params)...);      \
+        }                                                                 \
+    }                                                                     \
+    static constexpr size_type non_blocking_##_event_name{_id - 1};       \
+    static constexpr size_type blocking_##_event_name{_id};               \
+    static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
+
+
+    GKO_LOGGER_REGISTER_MPI_EVENT(27, mpi_point_to_point_communication_started,
+                                  const char* name, const MPI_Comm* comm,
+                                  const uintptr& loc, int size,
+                                  MPI_Datatype type, int source_rank,
+                                  int destination_rank, int tag,
+                                  const MPI_Request* req)
+    GKO_LOGGER_REGISTER_MPI_EVENT(
+        29, mpi_point_to_point_communication_completed, const char* name,
+        const MPI_Comm* comm, const uintptr& loc, int size, MPI_Datatype type,
+        int source_rank, int destination_rank, int tag, const MPI_Request* req)
+
+    GKO_LOGGER_REGISTER_MPI_EVENT(
+        31, mpi_collective_communication_started, const char* name,
+        const MPI_Comm* comm, const uintptr& send_loc, int send_size,
+        const int* send_sizes, const int* send_displacements,
+        MPI_Datatype send_type, const uintptr& recv_loc, int recv_size,
+        const int* recv_sizes, const int* recv_displacements,
+        MPI_Datatype recv_type, int root_rank, const MPI_Request* req)
+    GKO_LOGGER_REGISTER_MPI_EVENT(
+        33, mpi_collective_communication_completed, const char* name,
+        const MPI_Comm* comm, const uintptr& send_loc, int send_size,
+        const int* send_sizes, const int* send_displacements,
+        MPI_Datatype send_type, const uintptr& recv_loc, int recv_size,
+        const int* recv_sizes, const int* recv_displacements,
+        MPI_Datatype recv_type, int root_rank, const MPI_Request* req)
+
+    GKO_LOGGER_REGISTER_MPI_EVENT(35, mpi_reduction_started, const char* name,
+                                  const MPI_Comm* comm,
+                                  const uintptr& send_buffer,
+                                  const uintptr& recv_buffer, int size,
+                                  MPI_Op operation, int root_rank,
+                                  const MPI_Request* req)
+    GKO_LOGGER_REGISTER_MPI_EVENT(37, mpi_reduction_completed, const char* name,
+                                  const MPI_Comm* comm,
+                                  const uintptr& send_buffer,
+                                  const uintptr& recv_buffer, int size,
+                                  MPI_Op operation, int root_rank,
+                                  const MPI_Request* req)
+
+
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -530,6 +622,20 @@ public:
      */
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
+
+    static constexpr mask_type mpi_point_to_point_events_mask =
+        mpi_blocking_communication_mask | mpi_non_blocking_communication_mask |
+        mpi_point_to_point_communication_started_mask |
+        mpi_point_to_point_communication_completed_mask;
+
+    static constexpr mask_type mpi_collective_events_mask =
+        mpi_blocking_communication_mask | mpi_non_blocking_communication_mask |
+        mpi_collective_communication_started_mask |
+        mpi_collective_communication_completed_mask |
+        mpi_reduction_started_mask | mpi_reduction_completed_mask;
+
+    static constexpr mask_type mpi_events_mask =
+        mpi_point_to_point_events_mask | mpi_collective_events_mask;
 
     /**
      * Returns true if this logger, when attached to an Executor, needs to be

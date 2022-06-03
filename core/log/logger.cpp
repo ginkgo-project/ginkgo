@@ -76,6 +76,22 @@ constexpr Logger::mask_type Logger::criterion_check_completed_mask;
 
 constexpr Logger::mask_type Logger::iteration_complete_mask;
 
+constexpr Logger::mask_type Logger::mpi_blocking_communication_mask;
+constexpr Logger::mask_type Logger::mpi_non_blocking_communication_mask;
+
+constexpr Logger::mask_type
+    Logger::mpi_point_to_point_communication_started_mask;
+constexpr Logger::mask_type
+    Logger::mpi_point_to_point_communication_completed_mask;
+constexpr Logger::mask_type Logger::mpi_collective_communication_started_mask;
+constexpr Logger::mask_type Logger::mpi_collective_communication_completed_mask;
+constexpr Logger::mask_type Logger::mpi_reduction_started_mask;
+constexpr Logger::mask_type Logger::mpi_reduction_completed_mask;
+
+constexpr Logger::mask_type Logger::mpi_point_to_point_events_mask;
+constexpr Logger::mask_type Logger::mpi_collective_events_mask;
+constexpr Logger::mask_type Logger::mpi_events_mask;
+
 
 }  // namespace log
 }  // namespace gko
