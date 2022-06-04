@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
@@ -241,6 +242,49 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
+
+
+template <typename IndexType>
+void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
+                          const IndexType* row_ptrs, const IndexType* col_idxs,
+                          size_type num_rows,
+                          matrix::csr::sparsity_type allowed,
+                          IndexType* storage_offsets)
+{
+    using matrix::csr::sparsity_bitmap_block_size;
+    using matrix::csr::sparsity_type;
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto num_rows,
+                      auto allowed, auto storage_offsets) {
+            const auto row_begin = row_ptrs[row];
+            const auto row_len = row_ptrs[row + 1] - row_begin;
+            const auto local_cols = col_idxs + row_begin;
+            const auto min_col = row_len > 0 ? local_cols[0] : 0;
+            const auto col_range =
+                row_len > 0 ? local_cols[row_len - 1] - min_col + 1 : 0;
+            if (csr_lookup_allowed(allowed, sparsity_type::full) &&
+                row_len == col_range) {
+                storage_offsets[row] = 0;
+            } else {
+                const auto hashmap_storage = row_len == 0 ? 1 : 2 * row_len;
+                const auto bitmap_num_blocks = static_cast<int32>(
+                    ceildiv(col_range, sparsity_bitmap_block_size));
+                const auto bitmap_storage = 2 * bitmap_num_blocks;
+                if (csr_lookup_allowed(allowed, sparsity_type::bitmap) &&
+                    bitmap_storage <= hashmap_storage) {
+                    storage_offsets[row] = bitmap_storage;
+                } else {
+                    storage_offsets[row] = hashmap_storage;
+                }
+            }
+        },
+        num_rows, row_ptrs, col_idxs, num_rows, allowed, storage_offsets);
+    components::prefix_sum(exec, storage_offsets, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL);
 
 
 }  // namespace csr

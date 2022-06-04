@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 #include "core/utils/matrix_utils.hpp"

@@ -38,25 +38,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * performs suffix sum. Works on the source array and returns whether the thread
  * is the first element of its segment with same `ind`.
  */
-template <unsigned subwarp_size, typename ValueType, typename IndexType>
+template <unsigned subwarp_size, typename ValueType, typename IndexType,
+          typename Operator>
 __device__ __forceinline__ bool segment_scan(
     const group::thread_block_tile<subwarp_size>& group, const IndexType ind,
-    ValueType* __restrict__ val)
+    ValueType& val, Operator op)
 {
     bool head = true;
 #pragma unroll
     for (int i = 1; i < subwarp_size; i <<= 1) {
         const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
+        ValueType add_val{};
+        if (add_ind == ind && group.thread_rank() >= i) {
+            add_val = val;
             if (i == 1) {
                 head = false;
             }
         }
         add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
+        if (group.thread_rank() < subwarp_size - i) {
+            val = op(val, add_val);
         }
     }
     return head;

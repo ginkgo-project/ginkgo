@@ -33,7 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/matrix_kernels.hpp"
 
 
+#include <oneapi/dpl/algorithm>
+#include <oneapi/dpl/execution>
+#include <oneapi/dpl/iterator>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "dpcpp/components/atomic.dp.hpp"
 
 
 namespace gko {
@@ -54,7 +62,7 @@ void build_diag_offdiag(
     array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
     array<LocalIndexType>& offdiag_row_idxs,
     array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
-    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_sizes,
     array<GlobalIndexType>& local_to_global_ghost) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
