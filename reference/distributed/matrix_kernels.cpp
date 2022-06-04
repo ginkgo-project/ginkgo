@@ -57,26 +57,25 @@ void build_diag_offdiag(
     array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
     array<LocalIndexType>& offdiag_row_idxs,
     array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
-    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
+    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_sizes,
     array<GlobalIndexType>& local_to_global_ghost)
 {
-    auto input_row_idxs = input.get_const_row_idxs();
-    auto input_col_idxs = input.get_const_col_idxs();
-    auto input_vals = input.get_const_values();
+    using partition_type =
+        distributed::Partition<LocalIndexType, GlobalIndexType>;
     using range_index_type = GlobalIndexType;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
     using local_nonzero = matrix_data_entry<ValueType, LocalIndexType>;
+    auto input_row_idxs = input.get_const_row_idxs();
+    auto input_col_idxs = input.get_const_col_idxs();
+    auto input_vals = input.get_const_values();
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
-    size_type row_range_id_hint = 0;
-    size_type col_range_id_hint = 0;
-    // zero recv_offsets values
-    std::fill_n(recv_offsets, num_parts + 1, comm_index_type{});
 
-    auto find_row_range = [&](GlobalIndexType idx, size_type hint) {
-        auto range_bounds = row_partition->get_range_bounds();
-        auto num_ranges = row_partition->get_num_ranges();
+    auto find_range = [](GlobalIndexType idx, const partition_type* partition,
+                         size_type hint) {
+        auto range_bounds = partition->get_range_bounds();
+        auto num_ranges = partition->get_num_ranges();
         if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
             return hint;
         } else {
@@ -85,129 +84,109 @@ void build_diag_offdiag(
             return static_cast<size_type>(std::distance(range_bounds + 1, it));
         }
     };
-    auto map_to_local_row = [&](GlobalIndexType idx, size_type range_id) {
-        auto range_bounds = row_partition->get_range_bounds();
-        auto range_starting_indices =
-            row_partition->get_range_starting_indices();
-        return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
-               range_starting_indices[range_id];
-    };
-    auto find_col_range = [&](GlobalIndexType idx, size_type hint) {
-        auto range_bounds = col_partition->get_range_bounds();
-        auto num_ranges = col_partition->get_num_ranges();
-        if (range_bounds[hint] <= idx && idx < range_bounds[hint + 1]) {
-            return hint;
-        } else {
-            auto it = std::upper_bound(range_bounds + 1,
-                                       range_bounds + num_ranges + 1, idx);
-            return static_cast<size_type>(std::distance(range_bounds + 1, it));
-        }
-    };
-    auto map_to_local_col = [&](GlobalIndexType idx, size_type range_id) {
-        auto range_bounds = col_partition->get_range_bounds();
-        auto range_starting_indices =
-            col_partition->get_range_starting_indices();
+    auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
+                           size_type range_id) {
+        auto range_bounds = partition->get_range_bounds();
+        auto range_starting_indices = partition->get_range_starting_indices();
         return static_cast<LocalIndexType>(idx - range_bounds[range_id]) +
                range_starting_indices[range_id];
     };
 
-    // store offdiagonal columns and their range indices
-    map<GlobalIndexType, range_index_type> offdiag_cols(exec);
-    // store offdiagonal entries with global column idxs
-    vector<global_nonzero> global_offdiag_entries(exec);
-    vector<local_nonzero> diag_entries(exec);
+    vector<global_nonzero> inner_entries(exec);
+    vector<global_nonzero> ghost_entries(exec);
+    size_type row_range_id = 0;
+    size_type col_range_id = 0;
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
-        const auto global_row = input_row_idxs[i];
-        const auto global_col = input_col_idxs[i];
-        const auto value = input_vals[i];
-        auto row_range_id = find_row_range(global_row, row_range_id_hint);
-        row_range_id_hint = row_range_id;
-        // skip non-local rows
+        auto global_row = input_row_idxs[i];
+        row_range_id = find_range(global_row, row_partition, row_range_id);
         if (row_part_ids[row_range_id] == local_part) {
-            // map to part-local indices
-            auto local_row = map_to_local_row(global_row, row_range_id);
-
-            auto col_range_id = find_col_range(global_col, col_range_id_hint);
-            col_range_id_hint = col_range_id;
+            auto global_col = input_col_idxs[i];
+            col_range_id = find_range(global_col, col_partition, col_range_id);
             if (col_part_ids[col_range_id] == local_part) {
-                // store diagonal entry
-                auto local_col = map_to_local_col(global_col, col_range_id);
-                diag_entries.emplace_back(local_row, local_col, value);
+                inner_entries.push_back(
+                    {map_to_local(global_row, row_partition, row_range_id),
+                     map_to_local(global_col, col_partition, col_range_id),
+                     input_vals[i]});
             } else {
-                // store off-diagonal entry
-                auto is_new_col =
-                    offdiag_cols.emplace(global_col, col_range_id).second;
-                // count the number of off-diagonal entries in each part
-                if (is_new_col) {
-                    recv_offsets[col_part_ids[col_range_id]]++;
-                }
-                global_offdiag_entries.emplace_back(local_row, global_col,
-                                                    value);
+                ghost_entries.push_back(
+                    {map_to_local(global_row, row_partition, row_range_id),
+                     global_col, input_vals[i]});
             }
         }
     }
 
+    // create local inner matrix
+    const auto num_diag_rows =
+        static_cast<size_type>(row_partition->get_part_size(local_part));
+    const auto num_diag_cols =
+        static_cast<size_type>(col_partition->get_part_size(local_part));
+    diag_row_idxs.resize_and_reset(inner_entries.size());
+    diag_col_idxs.resize_and_reset(inner_entries.size());
+    diag_values.resize_and_reset(inner_entries.size());
+    for (size_type i = 0; i < inner_entries.size(); ++i) {
+        const auto& entry = inner_entries[i];
+        diag_row_idxs.get_data()[i] = entry.row;
+        diag_col_idxs.get_data()[i] = entry.column;
+        diag_values.get_data()[i] = entry.value;
+    }
+
+    // create local ghost matrix
+    // 1. stable sort global columns according to their part-id and global
+    // columns
+    auto find_col_part = [&](GlobalIndexType idx) {
+        auto range_id = find_range(idx, col_partition, 0);
+        return col_part_ids[range_id];
+    };
+    vector<GlobalIndexType> unique_columns(exec);
+    std::transform(ghost_entries.begin(), ghost_entries.end(),
+                   std::back_inserter(unique_columns),
+                   [](const auto& entry) { return entry.column; });
+    std::sort(unique_columns.begin(), unique_columns.end(),
+              [&](const auto& a, const auto& b) {
+                  auto part_a = find_col_part(a);
+                  auto part_b = find_col_part(b);
+                  return std::tie(part_a, a) < std::tie(part_b, b);
+              });
     // store diagonal data to output
-    diag_row_idxs.resize_and_reset(diag_entries.size());
-    diag_col_idxs.resize_and_reset(diag_entries.size());
-    diag_values.resize_and_reset(diag_entries.size());
-    std::transform(diag_entries.begin(), diag_entries.end(),
-                   detail::make_zip_iterator(diag_row_idxs.get_data(),
-                                             diag_col_idxs.get_data(),
-                                             diag_values.get_data()),
-                   [](const auto& entry) {
-                       return std::make_tuple(entry.row, entry.column,
-                                              entry.value);
-                   });
 
-    // build recv_offsets
-    components::prefix_sum(exec, recv_offsets, num_parts + 1);
+    // 2. remove duplicate columns, now the new column i has global index
+    // unique_columns[i]
+    unique_columns.erase(
+        std::unique(unique_columns.begin(), unique_columns.end()),
+        unique_columns.end());
 
-    // collect and renumber offdiagonal columns
-    const auto num_ghost_columns =
-        static_cast<size_type>(recv_offsets[num_parts]);
-    local_gather_idxs.resize_and_reset(num_ghost_columns);
-    std::unordered_map<GlobalIndexType, LocalIndexType> offdiag_global_to_local;
-    for (const auto& entry : offdiag_cols) {
-        auto range = entry.second;
-        auto part = col_part_ids[range];
-        auto idx = recv_offsets[part];
-        local_gather_idxs.get_data()[idx] =
-            map_to_local_col(entry.first, range);
-        offdiag_global_to_local[entry.first] = idx;
-        ++recv_offsets[part];
+    // 3. create mapping from unique_columns
+    unordered_map<GlobalIndexType, LocalIndexType> ghost_column_map(exec);
+    for (std::size_t i = 0; i < unique_columns.size(); ++i) {
+        ghost_column_map[unique_columns[i]] = static_cast<LocalIndexType>(i);
     }
 
-    // build local-to-global map for offdiag columns
-    local_to_global_ghost.resize_and_reset(num_ghost_columns);
-    std::fill_n(local_to_global_ghost.get_data(),
-                local_to_global_ghost.get_num_elems(),
-                invalid_index<GlobalIndexType>());
-    for (const auto& key_value : offdiag_global_to_local) {
-        const auto global_idx = key_value.first;
-        const auto local_idx = key_value.second;
-        local_to_global_ghost.get_data()[local_idx] = global_idx;
+    // 3.5 copy unique_columns to array
+    local_to_global_ghost = Array<GlobalIndexType>{exec, unique_columns.begin(),
+                                                   unique_columns.end()};
+
+    // 4. fill offdiag_data
+    const auto num_offdiag_cols = unique_columns.size();
+    offdiag_row_idxs.resize_and_reset(ghost_entries.size());
+    offdiag_col_idxs.resize_and_reset(ghost_entries.size());
+    offdiag_values.resize_and_reset(ghost_entries.size());
+    for (size_type i = 0; i < ghost_entries.size(); ++i) {
+        const auto& entry = ghost_entries[i];
+        offdiag_row_idxs.get_data()[i] = entry.row;
+        offdiag_col_idxs.get_data()[i] = ghost_column_map[entry.column];
+        offdiag_values.get_data()[i] = entry.value;
     }
 
-    // shift recv_offsets to the back, insert 0 in front again
-    LocalIndexType local_prev{};
-    for (size_type i = 0; i <= num_parts; i++) {
-        recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
+    // compute gather idxs and recv_sizes
+    local_gather_idxs.resize_and_reset(unique_columns.size());
+    std::fill_n(recv_sizes, num_parts, 0);
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
+        col_range_id =
+            find_range(unique_columns[i], col_partition, col_range_id);
+        local_gather_idxs.get_data()[i] =
+            map_to_local(unique_columns[i], col_partition, col_range_id);
+        recv_sizes[find_col_part(unique_columns[i])]++;
     }
-
-    // map off-diag values to local column indices
-    offdiag_row_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_col_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_values.resize_and_reset(global_offdiag_entries.size());
-    std::transform(global_offdiag_entries.begin(), global_offdiag_entries.end(),
-                   detail::make_zip_iterator(offdiag_row_idxs.get_data(),
-                                             offdiag_col_idxs.get_data(),
-                                             offdiag_values.get_data()),
-                   [&](const auto& entry) {
-                       return std::make_tuple(
-                           static_cast<LocalIndexType>(entry.row),
-                           offdiag_global_to_local[entry.column], entry.value);
-                   });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(

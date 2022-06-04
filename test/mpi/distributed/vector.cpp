@@ -427,6 +427,7 @@ public:
     void SetUp() override
     {
         ASSERT_GT(comm.size(), 0);
+        init_executor(gko::ReferenceExecutor::create(), exec);
     }
 
     void TearDown() override

@@ -30,38 +30,49 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/distributed/matrix_kernels.hpp"
+#ifndef GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_
+#define GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_
 
 
-#include <thrust/binary_search.h>
-#include <thrust/copy.h>
-#include <thrust/distance.h>
-#include <thrust/execution_policy.h>
-#include <thrust/for_each.h>
-#include <thrust/iterator/transform_iterator.h>
-#include <thrust/iterator/zip_iterator.h>
-#include <thrust/sequence.h>
-#include <thrust/sort.h>
-#include <thrust/transform_reduce.h>
-#include <thrust/unique.h>
+#include <bitset>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
-#include "hip/components/atomic.hip.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
-namespace kernels {
-namespace hip {
-namespace distributed_matrix {
+namespace detail {
 
 
-#include "common/cuda_hip/distributed/matrix_kernels.hpp.inc"
+/**
+ * Returns the number of set bits in the given bitmask.
+ */
+GKO_ATTRIBUTES GKO_INLINE int popcount(uint32 bitmask)
+{
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return __popc(bitmask);
+#else
+    std::bitset<32> bits{bitmask};
+    return bits.count();
+#endif
+}
 
 
-}  // namespace distributed_matrix
-}  // namespace hip
-}  // namespace kernels
+/**
+ * Returns the number of set bits in the given bitmask.
+ */
+GKO_ATTRIBUTES GKO_INLINE int popcount(uint64 bitmask)
+{
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+    return __popcll(bitmask);
+#else
+    std::bitset<64> bits{bitmask};
+    return bits.count();
+#endif
+}
+
+
+}  // namespace detail
 }  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_BASE_INTRINSICS_HPP_

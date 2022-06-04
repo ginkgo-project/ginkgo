@@ -377,7 +377,11 @@ protected:
      * Creates an empty distributed matrix.
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
+<<<<<<< HEAD
      *              The default is the invalid MPI_COMM_NULL.
+=======
+     *              The default is the MPI_COMM_WORLD.
+>>>>>>> origin/distributed-matrix-kernels
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
@@ -429,7 +433,7 @@ protected:
      * @param inner_matrix_type  the local inner matrix will be constructed with
      *                           the same type as `create` returns. It should be
      *                           the return value of make_matrix_type.
-     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     * @param ghost_matrix_type  the local ghost matrix will be constructed with
      *                           the same type as `create` returns. It should be
      *                           the return value of make_matrix_type.
      */
@@ -480,7 +484,7 @@ protected:
      * @param comm  Communicator associated with this matrix.
      * @param inner_matrix_type  the local inner matrix will be constructed with
      *                           the same runtime type.
-     * @param inner_matrix_type  the local ghost matrix will be constructed with
+     * @param ghost_matrix_type  the local ghost matrix will be constructed with
      *                           the same runtime type.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
