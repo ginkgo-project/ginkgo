@@ -504,6 +504,7 @@ public:
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
 
+    static constexpr int unspecified_mpi_rank = -1;
 
     static constexpr mask_type mpi_blocking_communication_mask{mask_type{1}
                                                                << 24};
@@ -565,14 +566,14 @@ public:                                                                   \
                                   const MPI_Comm* comm,
                                   const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
-                                  MPI_Op operation, int root_rank,
-                                  const MPI_Request* req)
+                                  MPI_Datatype type, MPI_Op operation,
+                                  int root_rank, const MPI_Request* req)
     GKO_LOGGER_REGISTER_MPI_EVENT(37, mpi_reduction_completed, const char* name,
                                   const MPI_Comm* comm,
                                   const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
-                                  MPI_Op operation, int root_rank,
-                                  const MPI_Request* req)
+                                  MPI_Datatype type, MPI_Op operation,
+                                  int root_rank, const MPI_Request* req)
 
 
 #undef GKO_LOGGER_REGISTER_EVENT

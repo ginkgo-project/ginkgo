@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
@@ -310,6 +311,157 @@ void Record::on_iteration_complete(const LinOp* solver,
         (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
             solver, num_iterations, residual, solution, residual_norm,
             implicit_sq_residual_norm})));
+}
+
+
+void Record::on_mpi_point_to_point_communication_started(
+    bool is_blocking, const char* name, const MPI_Comm* comm,
+    const uintptr& loc, const int size, MPI_Datatype type, int source_rank,
+    int destination_rank, int tag, const MPI_Request* req) const
+{
+    mpi::communicator comm_wrapper(*comm);
+    source_rank = source_rank == Logger::unspecified_mpi_rank
+                      ? comm_wrapper.rank()
+                      : source_rank;
+    destination_rank = destination_rank == Logger::unspecified_mpi_rank
+                           ? comm_wrapper.rank()
+                           : destination_rank;
+
+    append_deque(
+        data_.mpi_point_to_point_communication_started,
+        std::unique_ptr<mpi_point_to_point_data>(new mpi_point_to_point_data{
+            is_blocking, std::string(name), *comm, loc, size, type, source_rank,
+            destination_rank, tag, *req}));
+}
+
+
+void Record::on_mpi_point_to_point_communication_completed(
+    bool is_blocking, const char* name, const MPI_Comm* comm,
+    const uintptr& loc, const int size, MPI_Datatype type, int source_rank,
+    int destination_rank, const int tag, const MPI_Request* req) const
+{
+    mpi::communicator comm_wrapper(*comm);
+    source_rank = source_rank == Logger::unspecified_mpi_rank
+                      ? comm_wrapper.rank()
+                      : source_rank;
+    destination_rank = destination_rank == Logger::unspecified_mpi_rank
+                           ? comm_wrapper.rank()
+                           : destination_rank;
+
+    append_deque(
+        data_.mpi_point_to_point_communication_completed,
+        std::unique_ptr<mpi_point_to_point_data>(new mpi_point_to_point_data{
+            is_blocking, std::string(name), *comm, loc, size, type, source_rank,
+            destination_rank, tag, *req}));
+}
+
+std::vector<int> copy_mpi_data(int size, const int* data)
+{
+    if (data) {
+        return std::vector<int>(data, data + size);
+    } else {
+        return {};
+    }
+}
+
+
+void Record::on_mpi_collective_communication_started(
+    bool is_blocking, const char* name, const MPI_Comm* comm,
+    const uintptr& send_loc, int send_size, const int* send_sizes,
+    const int* send_displacements, MPI_Datatype send_type,
+    const uintptr& recv_loc, int recv_size, const int* recv_sizes,
+    const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
+    const MPI_Request* req) const
+{
+    auto comm_size = mpi::communicator(*comm).size();
+
+    append_deque(
+        data_.mpi_collective_communication_started,
+        std::make_unique<mpi_collective_data>(mpi_collective_data{
+            is_blocking, std::string(name), *comm, send_loc, send_size,
+            copy_mpi_data(comm_size, send_sizes),
+            copy_mpi_data(comm_size + 1, send_displacements), send_type,
+            recv_loc, recv_size, copy_mpi_data(comm_size, recv_sizes),
+            copy_mpi_data(comm_size + 1, recv_displacements), recv_type,
+            MPI_OP_NULL, root_rank, *req}));
+}
+
+
+void Record::on_mpi_collective_communication_completed(
+    bool is_blocking, const char* name, const MPI_Comm* comm,
+    const uintptr& send_loc, int send_size, const int* send_sizes,
+    const int* send_displacements, MPI_Datatype send_type,
+    const uintptr& recv_loc, int recv_size, const int* recv_sizes,
+    const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
+    const MPI_Request* req)
+{
+    auto comm_size = mpi::communicator(*comm).size();
+
+    append_deque(
+        data_.mpi_collective_communication_started,
+        std::make_unique<mpi_collective_data>(mpi_collective_data{
+            is_blocking, std::string(name), *comm, send_loc, send_size,
+            copy_mpi_data(comm_size, send_sizes),
+            copy_mpi_data(comm_size + 1, send_displacements), send_type,
+            recv_loc, recv_size, copy_mpi_data(comm_size, recv_sizes),
+            copy_mpi_data(comm_size + 1, recv_displacements), recv_type,
+            MPI_OP_NULL, root_rank, *req}));
+}
+
+
+void Record::on_mpi_reduction_started(bool is_blocking, const char* name,
+                                      const MPI_Comm* comm,
+                                      const uintptr& send_buffer,
+                                      const uintptr& recv_buffer, int size,
+                                      MPI_Datatype type, MPI_Op operation,
+                                      int root_rank, const MPI_Request* req)
+{
+    append_deque(data_.mpi_collective_communication_started,
+                 std::make_unique<mpi_collective_data>(
+                     mpi_collective_data{is_blocking,
+                                         std::string(name),
+                                         *comm,
+                                         send_buffer,
+                                         size,
+                                         {},
+                                         {},
+                                         type,
+                                         recv_buffer,
+                                         size,
+                                         {},
+                                         {},
+                                         type,
+                                         operation,
+                                         root_rank,
+                                         *req}));
+}
+
+
+void Record::on_mpi_reduction_completed(bool is_blocking, const char* name,
+                                        const MPI_Comm* comm,
+                                        const uintptr& send_buffer,
+                                        const uintptr& recv_buffer, int size,
+                                        MPI_Datatype type, MPI_Op operation,
+                                        int root_rank, const MPI_Request* req)
+{
+    append_deque(data_.mpi_collective_communication_started,
+                 std::make_unique<mpi_collective_data>(
+                     mpi_collective_data{is_blocking,
+                                         std::string(name),
+                                         *comm,
+                                         send_buffer,
+                                         size,
+                                         {},
+                                         {},
+                                         type,
+                                         recv_buffer,
+                                         size,
+                                         {},
+                                         {},
+                                         type,
+                                         operation,
+                                         root_rank,
+                                         *req}));
 }
 
 

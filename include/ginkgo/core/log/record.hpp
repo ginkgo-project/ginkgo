@@ -226,6 +226,40 @@ struct criterion_data {
 };
 
 
+struct mpi_point_to_point_data {
+    bool is_blocking;
+    std::string operation_name;
+    MPI_Comm comm;
+    uintptr loc;
+    int size;
+    MPI_Datatype type;
+    int source_rank;
+    int destination_rank;
+    int tag;
+    MPI_Request req;
+};
+
+
+struct mpi_collective_data {
+    bool is_blocking;
+    std::string operation_name;
+    MPI_Comm comm;
+    uintptr send_loc;
+    int send_size;
+    std::vector<int> send_sizes;
+    std::vector<int> send_displacements;
+    MPI_Datatype send_type;
+    uintptr recv_loc;
+    int recv_size;
+    std::vector<int> recv_sizes;
+    std::vector<int> recv_displacements;
+    MPI_Datatype recv_type;
+    MPI_Op reduction_operation;
+    int root_rank;
+    MPI_Request request;
+};
+
+
 /**
  * Record is a Logger which logs every event to an object. The object can
  * then be accessed at any time by asking the logger to return it.
@@ -283,6 +317,15 @@ public:
 
         std::deque<std::unique_ptr<iteration_complete_data>>
             iteration_completed;
+
+        std::deque<std::unique_ptr<mpi_point_to_point_data>>
+            mpi_point_to_point_communication_started;
+        std::deque<std::unique_ptr<mpi_point_to_point_data>>
+            mpi_point_to_point_communication_completed;
+        std::deque<std::unique_ptr<mpi_collective_data>>
+            mpi_collective_communication_started;
+        std::deque<std::unique_ptr<mpi_collective_data>>
+            mpi_collective_communication_completed;
     };
 
     /* Executor events */
@@ -401,6 +444,47 @@ public:
         const LinOp* residual, const LinOp* solution,
         const LinOp* residual_norm,
         const LinOp* implicit_sq_residual_norm) const override;
+
+    void on_mpi_point_to_point_communication_started(
+        bool is_blocking, const char* name, const MPI_Comm* comm,
+        const uintptr& loc, int size, MPI_Datatype type, int source_rank,
+        int destination_rank, int tag, const MPI_Request* req) const override;
+
+    void on_mpi_point_to_point_communication_completed(
+        bool is_blocking, const char* name, const MPI_Comm* comm,
+        const uintptr& loc, int size, MPI_Datatype type, int source_rank,
+        int destination_rank, int tag, const MPI_Request* req) const override;
+
+    void on_mpi_collective_communication_started(
+        bool is_blocking, const char* name, const MPI_Comm* comm,
+        const uintptr& send_loc, int send_size, const int* send_sizes,
+        const int* send_displacements, MPI_Datatype send_type,
+        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
+        const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
+        const MPI_Request* req) const override;
+
+    void on_mpi_collective_communication_completed(
+        bool is_blocking, const char* name, const MPI_Comm* comm,
+        const uintptr& send_loc, int send_size, const int* send_sizes,
+        const int* send_displacements, MPI_Datatype send_type,
+        const uintptr& recv_loc, int recv_size, const int* recv_sizes,
+        const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
+        const MPI_Request* req);
+
+    void on_mpi_reduction_started(bool is_blocking, const char* name,
+                                  const MPI_Comm* comm,
+                                  const uintptr& send_buffer,
+                                  const uintptr& recv_buffer, int size,
+                                  MPI_Datatype type, MPI_Op operation,
+                                  int root_rank, const MPI_Request* req);
+
+    void on_mpi_reduction_completed(bool is_blocking, const char* name,
+                                    const MPI_Comm* comm,
+                                    const uintptr& send_buffer,
+                                    const uintptr& recv_buffer, int size,
+                                    MPI_Datatype type, MPI_Op operation,
+                                    int root_rank, const MPI_Request* req);
+
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,
