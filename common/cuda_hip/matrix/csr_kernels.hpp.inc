@@ -267,8 +267,8 @@ __device__ void merge_path_reduce(const IndexType nwarps,
             }
         }
     }
-    __shared__ UninitializedArray<IndexType, spmv_block_size> tmp_ind;
-    __shared__ UninitializedArray<ValueType, spmv_block_size> tmp_val;
+    __shared__ uninitialized_array<IndexType, spmv_block_size> tmp_ind;
+    __shared__ uninitialized_array<ValueType, spmv_block_size> tmp_val;
     tmp_val[threadIdx.x] = value;
     tmp_ind[threadIdx.x] = row;
     group::this_thread_block().sync();

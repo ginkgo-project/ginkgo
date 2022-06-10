@@ -92,8 +92,8 @@ __dpct_inline__ void generic_generate(
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, Callable direct_solve,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                      subwarps_per_block>* storage)
+    uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                       subwarps_per_block>* storage)
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row =
@@ -212,8 +212,8 @@ void generate_l_inverse(
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                      subwarps_per_block>* storage)
+    uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                       subwarps_per_block>* storage)
 {
     auto trs_solve =
         [](IndexType num_elems, const ValueType* __restrict__ local_row,
@@ -254,8 +254,8 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                              subwarps_per_block>,
+            uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                               subwarps_per_block>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 
@@ -282,8 +282,8 @@ void generate_u_inverse(
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                      subwarps_per_block>* storage)
+    uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                       subwarps_per_block>* storage)
 {
     auto trs_solve = [](IndexType num_elems,
                         const ValueType* __restrict__ local_row,
@@ -324,8 +324,8 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                              subwarps_per_block>,
+            uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                               subwarps_per_block>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 
@@ -352,8 +352,8 @@ void generate_general_inverse(
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, bool spd, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                      subwarps_per_block>* storage)
+    uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                       subwarps_per_block>* storage)
 {
     auto general_solve = [spd](IndexType num_elems,
                                ValueType* __restrict__ local_row,
@@ -406,8 +406,8 @@ void generate_general_inverse(
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                              subwarps_per_block>,
+            uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                               subwarps_per_block>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 

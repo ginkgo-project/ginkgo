@@ -215,7 +215,7 @@ __global__ __launch_bounds__(default_reduce_block_size) void reduce_add_array(
     size_type size, const ValueType* __restrict__ source,
     ValueType* __restrict__ result)
 {
-    __shared__ UninitializedArray<ValueType, default_reduce_block_size>
+    __shared__ uninitialized_array<ValueType, default_reduce_block_size>
         block_sum;
     reduce_array(size, source, static_cast<ValueType*>(block_sum),
                  [](const ValueType& x, const ValueType& y) { return x + y; });
@@ -241,7 +241,7 @@ __global__
         size_type size, const ValueType* __restrict__ source,
         ValueType* __restrict__ result)
 {
-    __shared__ UninitializedArray<ValueType, default_reduce_block_size>
+    __shared__ uninitialized_array<ValueType, default_reduce_block_size>
         block_sum;
     reduce_array(size, source, static_cast<ValueType*>(block_sum),
                  [](const ValueType& x, const ValueType& y) { return x + y; });

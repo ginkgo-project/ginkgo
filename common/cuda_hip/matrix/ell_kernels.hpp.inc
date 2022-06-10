@@ -68,7 +68,7 @@ __device__ void spmv_kernel(
             const auto x = tidx % num_rows;
             const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
-            __shared__ UninitializedArray<
+            __shared__ uninitialized_array<
                 OutputValueType, default_block_size / num_thread_per_worker>
                 storage;
             if (idx_in_worker == 0) {

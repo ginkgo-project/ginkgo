@@ -133,7 +133,7 @@ template <std::uint32_t block_size, typename ValueType>
 void start_prefix_sum(size_type num_elements, ValueType* __restrict__ elements,
                       ValueType* __restrict__ block_sum,
                       sycl::nd_item<3> item_ct1,
-                      UninitializedArray<ValueType, block_size>& prefix_helper)
+                      uninitialized_array<ValueType, block_size>& prefix_helper)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto element_id = item_ct1.get_local_id(2);
@@ -188,7 +188,7 @@ void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       ValueType* elements, ValueType* block_sum)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
+        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
                        sycl::access::mode::read_write,
                        sycl::access::target::local>
             prefix_helper_acc_ct1(cgh);

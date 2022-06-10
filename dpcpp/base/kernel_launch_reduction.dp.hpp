@@ -73,7 +73,7 @@ void generic_kernel_reduction_1d(sycl::handler& cgh, int64 size,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
+    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
@@ -122,7 +122,7 @@ void generic_kernel_reduction_2d(sycl::handler& cgh, int64 rows, int64 cols,
     constexpr auto wg_size = KCFG_1D::decode<0>(cfg);
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     constexpr auto num_partials = wg_size / sg_size;
-    sycl::accessor<UninitializedArray<ValueType, num_partials>, 0,
+    sycl::accessor<uninitialized_array<ValueType, num_partials>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
         subgroup_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(num_workgroups), dim3(wg_size));
@@ -372,7 +372,7 @@ void generic_kernel_col_reduction_2d_small(
     constexpr auto subgroups_per_workgroup = wg_size / sg_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = subgroups_per_workgroup * ssg_size;
-    sycl::accessor<UninitializedArray<ValueType, shared_storage>, 0,
+    sycl::accessor<uninitialized_array<ValueType, shared_storage>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
         block_partial_acc(cgh);
     const auto range = sycl_nd_range(dim3(row_blocks), dim3(wg_size));
@@ -445,7 +445,7 @@ void generic_kernel_col_reduction_2d_blocked(
     constexpr auto sg_size = KCFG_1D::decode<1>(cfg);
     const auto range =
         sycl_nd_range(dim3(row_blocks, col_blocks), dim3(wg_size));
-    sycl::accessor<UninitializedArray<ValueType, wg_size>, 0,
+    sycl::accessor<uninitialized_array<ValueType, wg_size>, 0,
                    sycl::access_mode::read_write, sycl::access::target::local>
         block_partial_acc(cgh);
     cgh.parallel_for(
