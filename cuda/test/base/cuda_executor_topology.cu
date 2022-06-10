@@ -90,13 +90,13 @@ protected:
 
 inline int get_cpu_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_pu(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_pu(log_id)->os_id;
 }
 
 
 inline int get_core_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_core(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
 }
 
 
@@ -105,7 +105,7 @@ TEST_F(CudaExecutor, CanBindToSinglePu)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     const int bind_pu = 1;
-    gko::MachineTopology::get_instance()->bind_to_pu(bind_pu);
+    gko::machine_topology::get_instance()->bind_to_pu(bind_pu);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(1));
@@ -117,7 +117,7 @@ TEST_F(CudaExecutor, CanBindToPus)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_pus = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_pus(bind_pus);
+    gko::machine_topology::get_instance()->bind_to_pus(bind_pus);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_cpu_os_id(3) || cpu_sys == get_cpu_os_id(1));
@@ -129,7 +129,7 @@ TEST_F(CudaExecutor, CanBindToCores)
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
 
     std::vector<int> bind_cores = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_cores(bind_cores);
+    gko::machine_topology::get_instance()->bind_to_cores(bind_cores);
 
     auto cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_core_os_id(3) || cpu_sys == get_core_os_id(1));

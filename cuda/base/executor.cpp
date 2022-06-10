@@ -78,7 +78,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {

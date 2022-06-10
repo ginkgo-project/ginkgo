@@ -379,7 +379,7 @@ __global__ void sptrsv_naive_caching_kernel(
     ValueType* const x, size_type x_stride, const size_type n,
     const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
 {
-    __shared__ UninitializedArray<ValueType, default_block_size> x_s_array;
+    __shared__ uninitialized_array<ValueType, default_block_size> x_s_array;
     __shared__ IndexType block_base_idx;
 
     if (threadIdx.x == 0) {

@@ -84,7 +84,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {

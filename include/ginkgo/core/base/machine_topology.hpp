@@ -82,12 +82,12 @@ namespace gko {
  * (https://www.open-mpi.org/projects/hwloc/doc/) for more detailed
  * information on topology detection and binding interfaces.
  *
- * @note A global object of MachineTopology type is created in a thread safe
+ * @note A global object of machine_topology type is created in a thread safe
  *       manner and only destroyed at the end of the program. This means that
  *       any subsequent queries will be from the same global object and hence
  *       use an extra atomic read.
  */
-class MachineTopology {
+class machine_topology {
     template <typename T>
     using hwloc_manager = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -204,13 +204,13 @@ class MachineTopology {
 
 public:
     /**
-     * Returns an instance of the MachineTopology object.
+     * Returns an instance of the machine_topology object.
      *
-     * @return  the MachineTopology instance
+     * @return  the machine_topology instance
      */
-    static MachineTopology* get_instance()
+    static machine_topology* get_instance()
     {
-        static MachineTopology instance;
+        static machine_topology instance;
         return &instance;
     }
 
@@ -239,7 +239,7 @@ public:
      */
     void bind_to_core(const int& id) const
     {
-        MachineTopology::get_instance()->bind_to_cores(std::vector<int>{id});
+        machine_topology::get_instance()->bind_to_cores(std::vector<int>{id});
     }
 
     /**
@@ -267,7 +267,7 @@ public:
      */
     void bind_to_pu(const int& id) const
     {
-        MachineTopology::get_instance()->bind_to_pus(std::vector<int>{id});
+        machine_topology::get_instance()->bind_to_pus(std::vector<int>{id});
     }
 
     /**
@@ -349,7 +349,7 @@ public:
      * object .
      */
     void hwloc_binding_helper(
-        const std::vector<MachineTopology::normal_obj_info>& obj,
+        const std::vector<machine_topology::normal_obj_info>& obj,
         const std::vector<int>& ids, const bool singlify = true) const;
 
     /**
@@ -394,15 +394,15 @@ public:
 
 private:
     /**
-     * Do not allow the MachineTopology object to be copied/moved. There should
+     * Do not allow the machine_topology object to be copied/moved. There should
      * be only one global object per execution.
      */
-    MachineTopology();
-    MachineTopology(MachineTopology&) = delete;
-    MachineTopology(MachineTopology&&) = delete;
-    MachineTopology& operator=(MachineTopology&) = delete;
-    MachineTopology& operator=(MachineTopology&&) = delete;
-    ~MachineTopology() = default;
+    machine_topology();
+    machine_topology(machine_topology&) = delete;
+    machine_topology(machine_topology&&) = delete;
+    machine_topology& operator=(machine_topology&) = delete;
+    machine_topology& operator=(machine_topology&&) = delete;
+    ~machine_topology() = default;
 
     std::vector<normal_obj_info> pus_;
     std::vector<normal_obj_info> cores_;
@@ -413,6 +413,10 @@ private:
 
     hwloc_manager<hwloc_topology> topo_;
 };
+
+
+using MachineTopology [[deprecated("please use machine_topology")]] =
+    machine_topology;
 
 
 }  // namespace gko

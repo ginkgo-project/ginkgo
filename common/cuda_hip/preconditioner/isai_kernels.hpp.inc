@@ -95,8 +95,8 @@ __forceinline__ __device__ void generic_generate(
         }
 
         // subwarp_size^2 storage per subwarp
-        __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                                     subwarps_per_block>
+        __shared__ uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                                      subwarps_per_block>
             storage;
 
         auto dense_system_ptr = storage + (threadIdx.x / subwarp_size) *

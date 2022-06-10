@@ -324,8 +324,8 @@ void merge_path_reduce(const IndexType nwarps,
                        const IndexType* __restrict__ last_row,
                        ValueType* __restrict__ c, const size_type c_stride,
                        Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-                       UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                       UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                       uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+                       uninitialized_array<ValueType, spmv_block_size>& tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -539,8 +539,8 @@ void abstract_reduce(const IndexType nwarps,
                      const IndexType* __restrict__ last_row,
                      ValueType* __restrict__ c, const size_type c_stride,
                      sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+                     uninitialized_array<ValueType, spmv_block_size>& tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c, c_stride, [](ValueType& x) { return x; },
@@ -554,11 +554,11 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      ValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
+        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
+        sycl::accessor<uninitialized_array<ValueType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_val_acc_ct1(cgh);
@@ -580,8 +580,8 @@ void abstract_reduce(const IndexType nwarps,
                      const ValueType* __restrict__ alpha,
                      ValueType* __restrict__ c, const size_type c_stride,
                      sycl::nd_item<3> item_ct1,
-                     UninitializedArray<IndexType, spmv_block_size>& tmp_ind,
-                     UninitializedArray<ValueType, spmv_block_size>& tmp_val)
+                     uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
+                     uninitialized_array<ValueType, spmv_block_size>& tmp_val)
 {
     const auto alpha_val = alpha[0];
     merge_path_reduce(
@@ -598,11 +598,11 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<IndexType, spmv_block_size>, 0,
+        sycl::accessor<uninitialized_array<IndexType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_ind_acc_ct1(cgh);
-        sycl::accessor<UninitializedArray<ValueType, spmv_block_size>, 0,
+        sycl::accessor<uninitialized_array<ValueType, spmv_block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             tmp_val_acc_ct1(cgh);

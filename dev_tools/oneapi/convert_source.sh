@@ -295,7 +295,7 @@ replace_regex="${replace_regex};s/reduce_array_t/reduce_array/g"
 replace_regex="${replace_regex};s/auto dpct_local_range = block;//g"
 replace_regex="${replace_regex};s/sycl::nd_range<3>.*, *$/sycl_nd_range(grid, block), /g"
 # do not use c-style casting. use .get() to get the pointer.
-replace_regex="${replace_regex};s/\(UninitializedArray<.*> \*\)(.*\.get_pointer\(\))/\1.get()/g"
+replace_regex="${replace_regex};s/\(uninitialized_array<.*> \*\)(.*\.get_pointer\(\))/\1.get()/g"
 replace_regex="${replace_regex};s/tiled_partition_t/tiled_partition/g"
 replace_regex="${replace_regex};s|trick/thread_ids.hpp|dpcpp/components/thread_ids.dp.hpp|g"
 replace_regex="${replace_regex};s|trick/cooperative_groups\.hpp|dpcpp/components/cooperative_groups.dp.hpp|g"

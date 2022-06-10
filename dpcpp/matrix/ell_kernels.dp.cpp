@@ -120,8 +120,8 @@ void spmv_kernel(
     const size_type stride, const size_type num_stored_elements_per_row,
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+    uninitialized_array<OutputValueType,
+                        default_block_size / num_thread_per_worker>& storage)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const decltype(tidx) column_id = item_ct1.get_group(1);
@@ -193,8 +193,8 @@ void spmv(
     const size_type stride, const size_type num_stored_elements_per_row,
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+    uninitialized_array<OutputValueType,
+                        default_block_size / num_thread_per_worker>& storage)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
@@ -214,8 +214,8 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<OutputValueType,
-                               default_block_size / num_thread_per_worker>,
+            uninitialized_array<OutputValueType,
+                                default_block_size / num_thread_per_worker>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 
@@ -239,8 +239,8 @@ void spmv(
     const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
     const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
     const size_type c_stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<OutputValueType,
-                       default_block_size / num_thread_per_worker>& storage)
+    uninitialized_array<OutputValueType,
+                        default_block_size / num_thread_per_worker>& storage)
 {
     const OutputValueType alpha_val = alpha(0);
     const OutputValueType beta_val = beta[0];
@@ -281,8 +281,8 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<OutputValueType,
-                               default_block_size / num_thread_per_worker>,
+            uninitialized_array<OutputValueType,
+                                default_block_size / num_thread_per_worker>,
             0, sycl::access_mode::read_write, sycl::access::target::local>
             storage_acc_ct1(cgh);
 

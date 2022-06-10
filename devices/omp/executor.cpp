@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void OmpExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void OmpExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     auto num_cores =
         (mach_topo->get_num_cores() == 0 ? 1 : mach_topo->get_num_cores());

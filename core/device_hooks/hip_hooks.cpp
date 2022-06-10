@@ -60,7 +60,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void HipExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }

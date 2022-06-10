@@ -90,7 +90,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>
+        uninitialized_array<ValueType, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
     ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
@@ -161,7 +161,8 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
+    __shared__ uninitialized_array<ValueType, block_size>
+        reduction_helper_array;
     ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {

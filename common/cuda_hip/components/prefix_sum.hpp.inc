@@ -112,7 +112,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
-    __shared__ UninitializedArray<ValueType, block_size> prefix_helper;
+    __shared__ uninitialized_array<ValueType, block_size> prefix_helper;
     // do not need to access the last element when exclusive prefix sum
     prefix_helper[element_id] =
         (tidx + 1 < num_elements) ? elements[tidx] : zero<ValueType>();

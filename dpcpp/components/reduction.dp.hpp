@@ -206,7 +206,7 @@ template <std::uint32_t cfg, typename ValueType>
 void reduce_add_array(
     size_type size, const ValueType* __restrict__ source,
     ValueType* __restrict__ result, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
+    uninitialized_array<ValueType, KCFG_1D::decode<0>(cfg)>& block_sum)
 {
     reduce_array<KCFG_1D::decode<1>(cfg)>(
         size, source, static_cast<ValueType*>(block_sum), item_ct1,
@@ -223,7 +223,7 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const ValueType* source, ValueType* result)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, KCFG_1D::decode<0>(cfg)>,
+        sycl::accessor<uninitialized_array<ValueType, KCFG_1D::decode<0>(cfg)>,
                        0, sycl::access::mode::read_write,
                        sycl::access::target::local>
             block_sum_acc_ct1(cgh);

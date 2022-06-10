@@ -81,7 +81,7 @@ hwloc_topology* init_topology()
 }  // namespace detail
 
 
-const MachineTopology::io_obj_info* MachineTopology::get_pci_device(
+const machine_topology::io_obj_info* machine_topology::get_pci_device(
     const std::string& pci_bus_id) const
 {
     for (size_type id = 0; id < this->pci_devices_.size(); ++id) {
@@ -94,7 +94,7 @@ const MachineTopology::io_obj_info* MachineTopology::get_pci_device(
 }
 
 
-MachineTopology::MachineTopology()
+machine_topology::machine_topology()
 {
 #if GKO_HAVE_HWLOC
 
@@ -123,8 +123,8 @@ MachineTopology::MachineTopology()
 }
 
 
-void MachineTopology::hwloc_binding_helper(
-    const std::vector<MachineTopology::normal_obj_info>& obj,
+void machine_topology::hwloc_binding_helper(
+    const std::vector<machine_topology::normal_obj_info>& obj,
     const std::vector<int>& bind_ids, const bool singlify) const
 {
 #if GKO_HAVE_HWLOC
@@ -147,9 +147,9 @@ void MachineTopology::hwloc_binding_helper(
 }
 
 
-void MachineTopology::load_objects(
+void machine_topology::load_objects(
     hwloc_obj_type_t type,
-    std::vector<MachineTopology::normal_obj_info>& objects) const
+    std::vector<machine_topology::normal_obj_info>& objects) const
 {
 #if GKO_HAVE_HWLOC
     // Get the number of normal objects of a certain type (Core, PU, Machine
@@ -167,8 +167,8 @@ void MachineTopology::load_objects(
 }
 
 
-inline int MachineTopology::get_obj_id_by_os_index(
-    const std::vector<MachineTopology::normal_obj_info>& objects,
+inline int machine_topology::get_obj_id_by_os_index(
+    const std::vector<machine_topology::normal_obj_info>& objects,
     size_type os_index) const
 {
 #if GKO_HAVE_HWLOC
@@ -182,8 +182,8 @@ inline int MachineTopology::get_obj_id_by_os_index(
 }
 
 
-inline int MachineTopology::get_obj_id_by_gp_index(
-    const std::vector<MachineTopology::normal_obj_info>& objects,
+inline int machine_topology::get_obj_id_by_gp_index(
+    const std::vector<machine_topology::normal_obj_info>& objects,
     size_type gp_index) const
 {
 #if GKO_HAVE_HWLOC
@@ -197,9 +197,9 @@ inline int MachineTopology::get_obj_id_by_gp_index(
 }
 
 
-void MachineTopology::load_objects(
+void machine_topology::load_objects(
     hwloc_obj_type_t type,
-    std::vector<MachineTopology::io_obj_info>& vector) const
+    std::vector<machine_topology::io_obj_info>& vector) const
 {
 #if GKO_HAVE_HWLOC
     GKO_ASSERT(this->cores_.size() != 0);

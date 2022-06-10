@@ -93,7 +93,7 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
-void DpcppExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // Closest CPUs, NUMA node can be updated when there is a way to identify
     // the device itself, which is currently not available with DPC++.
