@@ -54,7 +54,7 @@ namespace gko {
 template <size_type Dimensionality, typename DimensionType = size_type>
 struct dim {
     static constexpr size_type dimensionality = Dimensionality;
-    friend class dim<dimensionality + 1>;
+    friend struct dim<dimensionality + 1>;
 
     using dimension_type = DimensionType;
 
@@ -194,7 +194,7 @@ private:
 template <typename DimensionType>
 struct dim<1u, DimensionType> {
     static constexpr size_type dimensionality = 1u;
-    friend class dim<2>;
+    friend struct dim<2>;
 
     using dimension_type = DimensionType;
 
