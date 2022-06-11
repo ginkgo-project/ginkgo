@@ -72,13 +72,8 @@ EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
     using real_type = remove_complex<value_type>;
 
     const bool to_scale = left_scaling_ && right_scaling_;
-    const auto acsr = dynamic_cast<const Csr*>(system_matrix_.get());
-    if (to_scale && !acsr) {
-        GKO_NOT_SUPPORTED(system_matrix_);
-    }
     if (to_scale) {
-        auto a_scaled_smart = gko::share(Csr::create(exec));
-        a_scaled_smart->copy_from(acsr);
+        auto a_scaled_smart = gko::share(gko::clone(system_matrix_.get()));
         matrix::two_sided_batch_transform(exec,
             as<const Diag>(this->left_scaling_.get()),
             as<const Diag>(this->right_scaling_.get()), a_scaled_smart.get());
