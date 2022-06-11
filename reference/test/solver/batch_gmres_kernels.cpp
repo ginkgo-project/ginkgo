@@ -230,6 +230,48 @@ TEST(BatchGmres, GoodScalingImprovesConvergence)
 }
 
 
+TEST(BatchGmres, CanSolveDenseWithScaling)
+{
+    using value_type = double;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::BatchCsr<value_type>;
+    using BDiag = gko::matrix::BatchDiagonal<value_type>;
+    using BDense = gko::matrix::BatchDense<value_type>;
+    using Solver = gko::solver::BatchGmres<value_type>;
+    const auto eps = r<value_type>::value;
+    auto exec = gko::ReferenceExecutor::create();
+    const size_t nbatch = 3;
+    const int nrhs = 1;
+    auto left_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {0.8, 0.9, 0.95}, exec));
+    auto right_scale = gko::share(
+        gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, exec));
+    auto factory_s =
+        Solver::build()
+            .with_max_iterations(10)
+            .with_residual_tol(10 * eps)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_left_scaling_op(left_scale)
+            .with_right_scaling_op(right_scale)
+            .on(exec);
+    auto sys = gko::test::get_poisson_problem<value_type>(exec, 1, nbatch);
+    const auto nrows = sys.mtx->get_size().at(0)[0];
+    auto A_dense = gko::share(BDense::create(exec));
+    dynamic_cast<const Mtx*>(sys.mtx.get())->convert_to(A_dense.get());
+    auto solver = factory_s->generate(A_dense);
+    auto x = gko::clone(sys.xex);
+    for (size_t ib = 0; ib < nbatch; ib++) {
+        for (size_t i = 0; i < nrows; i++) {
+            x->at(ib, i) = 0.0;
+        }
+    }
+
+    solver->apply(sys.b.get(), x.get());
+
+    GKO_ASSERT_BATCH_MTX_NEAR(x, sys.xex, 1e2 * eps);
+}
+
+
 TEST(BatchGmres, CanSolveWithoutScaling)
 {
     using T = std::complex<double>;
