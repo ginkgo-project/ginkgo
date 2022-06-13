@@ -53,8 +53,9 @@ namespace preconditioner {
 
 template <typename ValueType = default_precision, typename IndexType = int32,
           typename GlobalIndexType = int64>
-class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>>,
-                public Transposable {
+class Schwarz
+    : public EnableLinOp<Schwarz<ValueType, IndexType, GlobalIndexType>>,
+      public Transposable {
     friend class EnableLinOp<Schwarz>;
     friend class EnablePolymorphicObject<Schwarz, LinOp>;
 

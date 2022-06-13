@@ -55,8 +55,9 @@ namespace gko {
 namespace preconditioner {
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void Schwarz<ValueType, IndexType, GlobalIndexType>::apply_impl(const LinOp* b,
+                                                                LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -66,10 +67,10 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
 template <typename VectorType>
-void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
-                                                     VectorType* dense_x) const
+void Schwarz<ValueType, IndexType, GlobalIndexType>::apply_dense_impl(
+    const VectorType* dense_b, VectorType* dense_x) const
 {
     using LocalVector = matrix::Dense<ValueType>;
     if (is_distributed()) {
@@ -80,11 +81,9 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(const VectorType* dense_b,
 }
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                               const LinOp* b,
-                                               const LinOp* beta,
-                                               LinOp* x) const
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void Schwarz<ValueType, IndexType, GlobalIndexType>::apply_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
@@ -97,22 +96,25 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Schwarz<ValueType, IndexType>::transpose() const
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+std::unique_ptr<LinOp>
+Schwarz<ValueType, IndexType, GlobalIndexType>::transpose() const
     GKO_NOT_IMPLEMENTED;
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Schwarz<ValueType, IndexType>::conj_transpose() const
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+std::unique_ptr<LinOp>
+Schwarz<ValueType, IndexType, GlobalIndexType>::conj_transpose() const
     GKO_NOT_IMPLEMENTED;
 
 
-template <typename ValueType, typename IndexType>
-void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix)
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void Schwarz<ValueType, IndexType, GlobalIndexType>::generate(
+    const LinOp* system_matrix)
 {
     using base_mat = matrix::Csr<ValueType, IndexType>;
 #if GINKGO_BUILD_MPI
-    using dist_mat = distributed::Matrix<ValueType, IndexType, int64>;
+    using dist_mat = distributed::Matrix<ValueType, IndexType, GlobalIndexType>;
 #endif
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     if (dynamic_cast<const base_mat*>(system_matrix) != nullptr) {
@@ -139,9 +141,10 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix)
 }
 
 
-#define GKO_DECLARE_SCHWARZ(ValueType, IndexType) \
-    class Schwarz<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
+#define GKO_DECLARE_SCHWARZ(ValueType, IndexType, GlobalIndexType) \
+    class Schwarz<ValueType, IndexType, GlobalIndexType>
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_SCHWARZ);
 
 
 }  // namespace preconditioner
