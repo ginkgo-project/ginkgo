@@ -51,7 +51,8 @@ namespace gko {
 namespace preconditioner {
 
 
-template <typename ValueType = default_precision, typename IndexType = int32>
+template <typename ValueType = default_precision, typename IndexType = int32,
+          typename GlobalIndexType = int64>
 class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>>,
                 public Transposable {
     friend class EnableLinOp<Schwarz>;
@@ -118,7 +119,8 @@ protected:
           parameters_{factory->get_parameters()}
     {
 #if GINKGO_BUILD_MPI
-        using dist_mat = distributed::Matrix<ValueType, IndexType>;
+        using dist_mat =
+            distributed::Matrix<ValueType, IndexType, GlobalIndexType>;
 #endif
         using base_mat = matrix::Csr<ValueType, IndexType>;
         if (parameters_.generated_inner_solvers[0]) {
