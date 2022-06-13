@@ -1075,6 +1075,59 @@ __global__ __launch_bounds__(default_block_size) void build_csr_lookup(
         }
 #endif
     }
+    // memory barrier
+    subwarp.sync();
+    // fill with actual entries
+    for (IndexType base_i = 0; base_i < row_len; base_i += subwarp_size) {
+        const auto i = base_i + lane;
+        const auto col = i < row_len ? local_cols[i] : 0;
+        // make sure that each idle thread gets a unique out-of-bounds value
+        auto hash = i < row_len ? (static_cast<uint32>(col) * hash_parameter) %
+                                      static_cast<uint32>(available_storage)
+                                : static_cast<uint32>(available_storage + lane);
+        // collision resolution
+#if !defined(__HIP_DEVICE_COMPILE__) && defined(__CUDA_ARCH__) && \
+    (__CUDA_ARCH__ >= 700)
+        const auto this_lane_mask = config::lane_mask_type{1} << lane;
+        const auto lane_prefix_mask = this_lane_mask - 1;
+        // memory barrier to previous loop iteration
+        subwarp.sync();
+        int32 entry = i < row_len ? local_storage[hash] : empty;
+        // find all threads in the subwarp with the same hash key
+        auto colliding = subwarp.match_any(hash);
+        // if there are any collisions with previously filled buckets
+        while (subwarp.any(entry != empty || colliding != this_lane_mask)) {
+            if (entry != empty || colliding != this_lane_mask) {
+                // assign consecutive indices to matching threads
+                hash += (entry == empty ? 0 : 1) +
+                        popcnt(colliding & lane_prefix_mask);
+                // cheap modulo replacement
+                if (hash >= available_storage) {
+                    hash -= available_storage;
+                }
+                // this could only fail for available_storage < warp_size, as
+                // popcnt(colliding) is at most warp_size. At the same time, we
+                // only increase hash by row_length at most, so this is still
+                // safe.
+                GKO_ASSERT(hash < available_storage);
+                entry = local_storage[hash];
+            }
+            colliding = subwarp.match_any(hash);
+        }
+        if (i < row_len) {
+            local_storage[hash] = i;
+        }
+#else
+        if (i < row_len) {
+            while (atomicCAS(local_storage + hash, empty, i) != empty) {
+                hash++;
+                if (hash >= available_storage) {
+                    hash = 0;
+                }
+            }
+        }
+#endif
+    }
     auto in_rows = in_row_idxs.get_data();
     auto in_cols = in_col_idxs.get_data();
     // workaround for CUDA 9.2 Thrust: Their complex<> implementation is broken

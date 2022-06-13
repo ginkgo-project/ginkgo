@@ -166,7 +166,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<local_index_type> offdiag_col_idxs{exec};
     array<value_type> offdiag_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
-    array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
+    array<comm_index_type> recv_sizes_array{exec, num_parts};
 
     // build diagonal, off-diagonal matrix and communication structures
     exec->run(matrix::make_build_diag_offdiag(
@@ -174,7 +174,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         make_temporary_clone(exec, col_partition).get(), local_part,
         diag_row_idxs, diag_col_idxs, diag_values, offdiag_row_idxs,
         offdiag_col_idxs, offdiag_values, recv_gather_idxs,
-        recv_offsets_array.get_data(), local_to_global_ghost_));
+        recv_sizes_array.get_data(), local_to_global_ghost_));
 
     // read the local matrix data
     const auto num_diag_rows =
@@ -195,15 +195,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(offdiag_data);
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    exec->get_master()->copy_from(exec.get(), num_parts + 1,
-                                  recv_offsets_array.get_data(),
-                                  recv_offsets_.data());
-    std::adjacent_difference(recv_offsets_.begin() + 1, recv_offsets_.end(),
-                             recv_sizes_.begin());
+    exec->get_master()->copy_from(exec.get(), num_parts,
+                                  recv_sizes_array.get_data(),
+                                  recv_sizes_.data());
+    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
+                             recv_offsets_.begin() + 1);
     comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
+    recv_offsets_[0] = 0;
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto needs_host_buffer =
@@ -271,13 +272,18 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     recv_buffer_.init(exec, recv_dim);
     send_buffer_.init(exec, send_dim);
 
-    local_b->row_gather(&gather_idxs_, send_buffer_.get());
 
     auto needs_host_buffer =
         exec->get_master() != exec && !gko::mpi::is_gpu_aware();
     if (needs_host_buffer || comm.force_host_buffer()) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
+    }
+
+    local_b->row_gather(&gather_idxs_, send_buffer_.get());
+
+    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
+    if (needs_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
     }
 
