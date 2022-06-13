@@ -195,11 +195,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(offdiag_data);
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    exec->get_master()->copy_from(exec.get(), num_parts,
-                                  recv_sizes_array.get_data(),
-                                  recv_sizes_.data());
+    exec->get_master()->copy_from(
+        exec.get(), num_parts, recv_sizes_array.get_data(), recv_sizes_.data());
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
-                             recv_offsets_.begin() + 1);
+                     recv_offsets_.begin() + 1);
     comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
@@ -285,17 +284,17 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
     if (needs_host_buffer) {
         host_send_buffer_->copy_from(send_buffer_.get());
-    }
 
-    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    auto send_ptr = needs_host_buffer ? host_send_buffer_->get_const_values()
-                                      : send_buffer_->get_const_values();
-    auto recv_ptr = needs_host_buffer ? host_recv_buffer_->get_values()
-                                      : recv_buffer_->get_values();
-    exec->synchronize();
-    return comm.i_all_to_all_v(
-        send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
-        recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
+        return comm.i_all_to_all_v(
+            host_send_buffer_->get_const_values(), send_sizes_.data(),
+            send_offsets_.data(), type.get(), host_recv_buffer_->get_values(),
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
+    } else {
+        return comm.i_all_to_all_v(
+            send_buffer_->get_const_values(), send_sizes_.data(),
+            send_offsets_.data(), type.get(), recv_buffer_->get_values(),
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
+    }
 }
 
 
