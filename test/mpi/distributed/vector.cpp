@@ -114,15 +114,12 @@ public:
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {
-         init_executor(gko::ReferenceExecutor::create(), exec);
-         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
-         size = gko::dim<2>{local_size[1] * comm.size(), 11};
+        init_executor(gko::ReferenceExecutor::create(), exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+        size = gko::dim<2>{local_size[1] * comm.size(), 11};
     }
 
-    void SetUp() override
-    {
-        ASSERT_EQ(this->comm.size(), 3);
-    }
+    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
     void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
@@ -371,9 +368,7 @@ public:
     using real_dense_type = typename dense_type::real_type;
 
     VectorReductions()
-        : ref(gko::ReferenceExecutor::create()),
-          size{53, 11},
-          engine(42)
+        : ref(gko::ReferenceExecutor::create()), size{53, 11}, engine(42)
     {
         init_executor(gko::ReferenceExecutor::create(), exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
@@ -637,9 +632,7 @@ public:
     using real_dense_type = typename dense_type ::real_type;
 
     VectorLocalOps()
-        : ref(gko::ReferenceExecutor::create()),
-          local_size{4, 11},
-          engine(42)
+        : ref(gko::ReferenceExecutor::create()), local_size{4, 11}, engine(42)
     {
         init_executor(ref, exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
@@ -653,10 +646,7 @@ public:
         complex = complex_dist_vec_type::create(exec, comm);
     }
 
-    void SetUp() override
-    {
-        ASSERT_GT(comm.size(), 0);
-    }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     void TearDown() override
     {
