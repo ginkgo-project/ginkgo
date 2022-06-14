@@ -88,7 +88,7 @@
   image: ginkgohub/oneapi:latest
   tags:
     - private_ci
-    - horeka
+    - fairrs
 
 .use_gko-oneapi-igpu:
   image: ginkgohub/oneapi:latest

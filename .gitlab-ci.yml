@@ -676,6 +676,9 @@ build/dpcpp/cpu/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "ON"
     SYCL_DEVICE_TYPE: "CPU"
+    SLURM_PARTITION: "cpu"
+    SLURM_TIME: "2:00:00"
+    # This job is not in exclusive mode
 
 # It gives two available backends of GPU on tests
 build/dpcpp/igpu/release/shared:
