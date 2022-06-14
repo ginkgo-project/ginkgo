@@ -113,7 +113,7 @@ void build_diag_offdiag(
     std::vector<size_type> diag_entry_offsets(num_threads, 0);
     std::vector<size_type> offdiag_entry_offsets(num_threads, 0);
 
-#pragma omp parallel
+#pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
         std::unordered_map<GlobalIndexType, range_index_type>
             thread_offdiag_cols;
