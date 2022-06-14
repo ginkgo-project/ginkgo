@@ -420,7 +420,9 @@ int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
 
-    gko::mpi::communicator comm(MPI_COMM_WORLD);
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
+
+    gko::mpi::communicator comm(MPI_COMM_WORLD, exec);
     const auto rank = comm.rank();
 
     std::string header =
@@ -435,14 +437,12 @@ int main(int argc, char* argv[])
                          "    { \"n\": 200, \"r\": 20, \"stride_x\": 22 }\n" +
                          "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
-
     if (rank == 0) {
         std::string extra_information =
             "The operations are " + FLAGS_operations + "\n";
         print_general_information(extra_information);
     }
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
     auto operations = split(FLAGS_operations, ',');
 
     std::ifstream ifs(FLAGS_input);
