@@ -152,6 +152,15 @@ public:
         this->rapply_impl(b, x);
     }
 
+    void inverse_apply(const LinOp* b, LinOp* x) const
+    {
+        GKO_ASSERT_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(b, x);
+        GKO_ASSERT_EQUAL_ROWS(this, x);
+
+        this->inverse_apply_impl(b, x);
+    }
+
     void read(const mat_data& data) override;
 
     void read(const mat_data32& data) override;
@@ -237,6 +246,8 @@ protected:
                     LinOp* x) const override;
 
     void rapply_impl(const LinOp* b, LinOp* x) const;
+
+    void inverse_apply_impl(const LinOp* b, LinOp* x) const;
 
 
 private:

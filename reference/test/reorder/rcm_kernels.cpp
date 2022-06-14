@@ -112,7 +112,7 @@ protected:
 
 TEST_F(Rcm, CreatesAPermutation)
 {
-    auto p = reorder_op_0->get_permutation();
+    auto p = gko::as<perm_type>(reorder_op_0->get_permutation());
 
     ASSERT_PRED1(is_permutation, p.get());
 }
@@ -122,7 +122,8 @@ TEST_F(Rcm, CreatesCorrectPermutation)
 {
     std::vector<i_type> correct = {2, 3, 1, 0, 4};
 
-    auto p = reorder_op_0->get_permutation()->get_const_permutation();
+    auto p = gko::as<perm_type>(reorder_op_0->get_permutation())
+                 ->get_const_permutation();
 
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }
@@ -132,7 +133,8 @@ TEST_F(Rcm, PermutesPerfectFullBand)
 {
     std::vector<i_type> correct = {7, 8, 0, 4, 3, 5, 6, 1, 2};
 
-    auto p = reorder_op_1->get_permutation()->get_const_permutation();
+    auto p = gko::as<perm_type>(reorder_op_1->get_permutation())
+                 ->get_const_permutation();
 
     ASSERT_TRUE(std::equal(p, p + correct.size(), correct.begin()));
 }

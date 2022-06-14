@@ -64,7 +64,7 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
                   const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c)
+                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
 {
     const auto num_rows = b->get_size()[0];
     const auto diag_values = a->get_const_values();
@@ -77,7 +77,7 @@ void apply_to_csr(std::shared_ptr<const CudaExecutor> exec,
     if (grid_dim > 0) {
         kernel::apply_to_csr<<<grid_dim, default_block_size>>>(
             num_rows, as_cuda_type(diag_values), as_cuda_type(csr_row_ptrs),
-            as_cuda_type(csr_values));
+            as_cuda_type(csr_values), inverse);
     }
 }
 
