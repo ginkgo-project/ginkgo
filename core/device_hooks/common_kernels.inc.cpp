@@ -162,6 +162,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)
 
+#define GKO_STUB_VALUE_AND_INDEX_CONVERSION(_macro)                   \
+    template <typename SourceType, typename TargetType>               \
+    _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                \
+    GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro)
+
 #define GKO_STUB_VALUE_CONVERSION_OR_COPY(_macro)                     \
     template <typename SourceType, typename TargetType>               \
     _macro(SourceType, TargetType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
@@ -183,7 +189,7 @@ namespace GKO_HOOK_MODULE {
 namespace components {
 
 
-GKO_STUB_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 // explicitly instantiate for size_type, as this is
 // used in the SellP format
