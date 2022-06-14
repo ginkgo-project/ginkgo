@@ -81,6 +81,7 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
                                 const From*, To*)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
+GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
 
 }  // namespace detail
