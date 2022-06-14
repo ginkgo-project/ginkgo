@@ -87,6 +87,7 @@ static constexpr bool is_gpu_aware()
  */
 static int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
 {
+    GKO_ASSERT(num_devices > 0);
     if (num_devices == 1) {
         return 0;
     } else {
@@ -106,8 +107,14 @@ static int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
         // we determine the node-local rank with MPI calls.
         int local_rank;
         int compare_result;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_result));
+        int is_initialized;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Initialized(&is_initialized));
+        if (is_initialized) {
+            GKO_ASSERT_NO_MPI_ERRORS(
+                MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_result));
+        } else {
+            compare_result = MPI_IDENT;
+        }
         if (compare_result != MPI_IDENT && compare_result != MPI_CONGRUENT) {
             local_rank = mpi_node_local_rank(comm);
         } else {
@@ -409,7 +416,7 @@ public:
      */
     status wait()
     {
-        exec_->get_scoped_device_id();
+        auto guard = exec_->get_scoped_device_id();
         status status;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Wait(&req_, status.get()));
         return status;
