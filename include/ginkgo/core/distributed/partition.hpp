@@ -39,6 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#ifdef GINKGO_BUILD_MPI
+#include <ginkgo/core/base/mpi.hpp>
+#endif
+
+
 namespace gko {
 /**
  * @brief The distributed namespace.
@@ -322,6 +327,72 @@ private:
     array<comm_index_type> part_ids_;
 };
 
+
+#if GINKGO_BUILD_MPI
+
+
+template <typename ValueType>
+class Vector;
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+class Matrix;
+
+
+template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
+class repartitioner : public EnableCreateMethod<repartitioner<LocalIndexType>> {
+    friend class EnableCreateMethod<repartitioner>;
+
+public:
+    template <typename ValueType>
+    void gather(const Matrix<ValueType, LocalIndexType, GlobalIndexType>* from,
+                Matrix<ValueType, LocalIndexType, GlobalIndexType>* to) const;
+
+    template <typename ValueType>
+    void gather(const Vector<ValueType>* from, Vector<ValueType>* to) const;
+
+    template <typename ValueType>
+    void scatter(const Vector<ValueType>* to, Vector<ValueType>* from) const;
+
+    mpi::communicator get_to_communicator() const { return to_comm_; }
+
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+    get_from_partition() const
+    {
+        return from_partition_;
+    }
+
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+    get_to_partition() const
+    {
+        return to_partition_;
+    }
+
+    // check if the current rank in receives data
+    bool to_has_data() const { return to_has_data_; }
+
+protected:
+    repartitioner(mpi::communicator from_comm,
+                  std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>>
+                      from_partition,
+                  std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>>
+                      to_partition);
+
+private:
+    std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> from_partition_;
+    std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> to_partition_;
+
+    mpi::communicator from_comm_;
+    mpi::communicator to_comm_;
+
+    std::shared_ptr<std::vector<comm_index_type>> default_send_sizes_;
+    std::shared_ptr<std::vector<comm_index_type>> default_send_offsets_;
+
+    std::shared_ptr<std::vector<comm_index_type>> default_recv_sizes_;
+    std::shared_ptr<std::vector<comm_index_type>> default_recv_offsets_;
+
+    bool to_has_data_;
+};
+
+#endif
 
 }  // namespace distributed
 }  // namespace gko

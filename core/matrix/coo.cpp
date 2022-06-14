@@ -246,6 +246,15 @@ void Coo<ValueType, IndexType>::write(mat_data& data) const
     }
 }
 
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::write(device_mat_data& data)
+{
+    data = device_mat_data{
+        this->get_executor(), this->get_size(), std::move(this->row_idxs_),
+        std::move(this->col_idxs_), std::move(this->values_)};
+    this->set_size({});
+}
+
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Diagonal<ValueType>>
