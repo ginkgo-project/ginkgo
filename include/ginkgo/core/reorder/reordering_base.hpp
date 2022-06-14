@@ -60,6 +60,12 @@ namespace reorder {
  * specific reordering to decide what to do with the data that is passed to it.
  */
 class ReorderingBase : public EnableAbstractPolymorphicObject<ReorderingBase> {
+public:
+    virtual std::shared_ptr<const gko::LinOp> get_permutation() const = 0;
+
+    virtual std::shared_ptr<const gko::LinOp> get_inverse_permutation()
+        const = 0;
+
 protected:
     explicit ReorderingBase(std::shared_ptr<const gko::Executor> exec)
         : EnableAbstractPolymorphicObject<ReorderingBase>(exec)
@@ -78,6 +84,36 @@ struct ReorderingBaseArgs {
     ReorderingBaseArgs(std::shared_ptr<LinOp> system_matrix)
         : system_matrix{system_matrix}
     {}
+};
+
+
+class Scaling {
+public:
+    virtual ~Scaling() = default;
+
+    virtual void set_row_scaling(std::shared_ptr<const LinOp> new_row_scaling)
+    {
+        row_scaling_ = new_row_scaling;
+    }
+
+    virtual void set_col_scaling(std::shared_ptr<const LinOp> new_col_scaling)
+    {
+        col_scaling_ = new_col_scaling;
+    }
+
+    virtual std::shared_ptr<const LinOp> get_row_scaling() const
+    {
+        return row_scaling_;
+    }
+
+    virtual std::shared_ptr<const LinOp> get_col_scaling() const
+    {
+        return col_scaling_;
+    }
+
+private:
+    std::shared_ptr<const LinOp> row_scaling_{};
+    std::shared_ptr<const LinOp> col_scaling_{};
 };
 
 

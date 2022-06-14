@@ -63,6 +63,7 @@ protected:
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using strategy = gko::reorder::starting_strategy;
+    using perm_type = gko::matrix::Permutation<i_type>;
     Rcm()
         : ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),
@@ -116,7 +117,8 @@ protected:
             return false;
         }
 
-        const auto n = reorder->get_permutation()->get_permutation_size();
+        const auto n = gko::as<perm_type>(reorder->get_permutation())
+                           ->get_permutation_size();
         auto degrees = std::vector<i_type>(n);
         for (gko::size_type i = 0; i < n; ++i) {
             degrees[i] =
@@ -195,7 +197,8 @@ protected:
     static bool is_rcm_ordered(std::shared_ptr<CsrMtx> mtx,
                                std::shared_ptr<reorder_type> reorder)
     {
-        const auto n = reorder->get_permutation()->get_permutation_size();
+        const auto n = gko::as<perm_type>(reorder->get_permutation())
+                           ->get_permutation_size();
         const auto row_ptrs = mtx->get_const_row_ptrs();
         const auto col_idxs = mtx->get_const_col_idxs();
         auto degrees = std::vector<i_type>(n);
@@ -206,8 +209,9 @@ protected:
 
         // Following checks for cm ordering, therefore create a reversed perm.
         auto perm = std::vector<i_type>(n);
-        std::copy_n(reorder->get_permutation()->get_const_permutation(), n,
-                    perm.begin());
+        std::copy_n(gko::as<perm_type>(reorder->get_permutation())
+                        ->get_const_permutation(),
+                    n, perm.begin());
         for (gko::size_type i = 0; i < n / 2; ++i) {
             const auto tmp = perm[i];
             perm[i] = perm[n - i - 1];

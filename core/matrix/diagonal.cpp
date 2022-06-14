@@ -73,17 +73,19 @@ void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(diagonal::make_apply_to_csr(
-            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
+                                        as<Csr<ValueType, int32>>(x), false));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(diagonal::make_apply_to_csr(
-            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
+                                        as<Csr<ValueType, int64>>(x), false));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(
-                    diagonal::make_apply_to_dense(this, dense_b, dense_x));
+                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
+                                                        false));
             },
             b, x);
     }
@@ -110,6 +112,32 @@ void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
             [this, &exec](auto dense_b, auto dense_x) {
                 exec->run(diagonal::make_right_apply_to_dense(this, dense_b,
                                                               dense_x));
+            },
+            b, x);
+    }
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
+{
+    auto exec = this->get_executor();
+
+    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
+        dynamic_cast<Csr<ValueType, int32>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
+                                        as<Csr<ValueType, int32>>(x), true));
+    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
+               dynamic_cast<Csr<ValueType, int64>*>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
+                                        as<Csr<ValueType, int64>>(x), true));
+    } else {
+        precision_dispatch_real_complex<ValueType>(
+            [this, &exec](auto dense_b, auto dense_x) {
+                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
+                                                        true));
             },
             b, x);
     }

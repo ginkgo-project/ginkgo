@@ -52,11 +52,12 @@ template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Diagonal<ValueType>* a,
                     const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::Dense<ValueType>* c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
     for (size_type row = 0; row < a->get_size()[0]; row++) {
-        const auto scal = diag_values[row];
+        const auto scal =
+            inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type col = 0; col < b->get_size()[1]; col++) {
             c->at(row, col) = b->at(row, col) * scal;
         }
@@ -88,7 +89,7 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
                   const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c)
+                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
     c->copy_from(b);
@@ -96,7 +97,8 @@ void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto csr_row_ptrs = c->get_const_row_ptrs();
 
     for (size_type row = 0; row < c->get_size()[0]; row++) {
-        const auto scal = diag_values[row];
+        const auto scal =
+            inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
              idx++) {
             csr_values[idx] *= scal;
