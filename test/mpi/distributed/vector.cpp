@@ -424,10 +424,7 @@ public:
         y = gko::clone(exec, tmp_y);
     }
 
-    void SetUp() override
-    {
-        ASSERT_GT(comm.size(), 0);
-    }
+    void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
     void TearDown() override
     {
