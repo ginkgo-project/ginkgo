@@ -369,7 +369,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(Matrix&& other)
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
+    Matrix&& other) noexcept
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()}
