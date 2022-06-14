@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/mpi.hpp>
+
+
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::ReferenceExecutor>& exec)
 {
