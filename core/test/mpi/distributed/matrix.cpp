@@ -221,9 +221,9 @@ TYPED_TEST(MatrixBuilder, BuildWithInner)
         auto mat =
             dist_mat_type ::create(this->ref, this->comm, with_matrix_type);
 
-        ASSERT_NO_THROW(gko::as<expected_type>(mat->get_const_local_diag()));
-        additional_test(mat->get_const_local_diag().get());
-        additional_test(mat->get_const_local_offdiag().get());
+        ASSERT_NO_THROW(gko::as<expected_type>(mat->get_local_matrix()));
+        additional_test(mat->get_local_matrix().get());
+        additional_test(mat->get_non_local_matrix().get());
         this->expected_interface_no_throw(mat.get(), with_matrix_type,
                                           with_matrix_type);
     });
@@ -251,11 +251,11 @@ TYPED_TEST(MatrixBuilder, BuildWithInnerAndGhost)
                                               with_ghost_matrix_type);
 
             ASSERT_NO_THROW(
-                gko::as<expected_inner_type>(mat->get_const_local_diag()));
+                gko::as<expected_inner_type>(mat->get_local_matrix()));
             ASSERT_NO_THROW(
-                gko::as<expected_ghost_type>(mat->get_const_local_offdiag()));
-            additional_inner_test(mat->get_const_local_diag().get());
-            additional_ghost_test(mat->get_const_local_offdiag().get());
+                gko::as<expected_ghost_type>(mat->get_non_local_matrix()));
+            additional_inner_test(mat->get_local_matrix().get());
+            additional_ghost_test(mat->get_non_local_matrix().get());
             this->expected_interface_no_throw(mat.get(), with_inner_matrix_type,
                                               with_ghost_matrix_type);
         });
@@ -273,7 +273,7 @@ TYPED_TEST(MatrixBuilder, BuildWithCustomLinOp)
     auto mat = dist_mat_type::create(this->ref, this->comm,
                                      gko::with_matrix_type<CustomLinOp>());
 
-    ASSERT_NO_THROW(gko::as<custom_type>(mat->get_const_local_diag()));
+    ASSERT_NO_THROW(gko::as<custom_type>(mat->get_local_matrix()));
     this->expected_interface_no_throw(mat.get(),
                                       gko::with_matrix_type<CustomLinOp>(),
                                       gko::with_matrix_type<CustomLinOp>());
@@ -451,9 +451,9 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
 
     dist_mat->read_distributed(this->mat_input, this->row_part.get());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_diag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
                         res_diag[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_offdiag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
                         res_offdiag[rank], 0);
 }
 
@@ -470,9 +470,9 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
 
     dist_mat->read_distributed(this->dist_input[rank], this->row_part.get());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_diag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
                         res_diag[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_offdiag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
                         res_offdiag[rank], 0);
 }
 
@@ -490,9 +490,9 @@ TYPED_TEST(Matrix, ReadsDistributedWithColPartition)
     dist_mat->read_distributed(this->mat_input, this->row_part.get(),
                                this->col_part.get());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_diag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
                         res_diag[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_const_local_offdiag()),
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
                         res_offdiag[rank], 0);
 }
 
@@ -591,10 +591,10 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     this->dist_mat->convert_to(tmp.get());
     tmp->convert_to(res.get());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_const_local_diag()),
-                        gko::as<csr>(res->get_const_local_diag()), residual);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_const_local_offdiag()),
-                        gko::as<csr>(res->get_const_local_offdiag()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
+                        gko::as<csr>(res->get_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
+                        gko::as<csr>(res->get_non_local_matrix()), residual);
 }
 
 
@@ -620,10 +620,10 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     this->dist_mat->move_to(tmp.get());
     tmp->convert_to(res.get());
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_const_local_diag()),
-                        gko::as<csr>(res->get_const_local_diag()), residual);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_const_local_offdiag()),
-                        gko::as<csr>(res->get_const_local_offdiag()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_local_matrix()),
+                        gko::as<csr>(res->get_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_non_local_matrix()),
+                        gko::as<csr>(res->get_non_local_matrix()), residual);
 }
 
 
