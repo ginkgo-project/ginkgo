@@ -72,7 +72,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* inner_matrix_type, const LinOp* ghost_matrix_type)
+    const LinOp* local_matrix_template, const LinOp* non_local_matrix_template)
     : EnableLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
       DistributedBase{comm},
@@ -81,10 +81,10 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
       gather_idxs_{exec},
-      local_to_global_ghost_{exec},
+      non_local_to_global_{exec},
       one_scalar_{},
-      diag_mtx_{inner_matrix_type->clone(exec)},
-      offdiag_mtx_{ghost_matrix_type->clone(exec)}
+      diag_mtx_{local_matrix_template->clone(exec)},
+      offdiag_mtx_{non_local_matrix_template->clone(exec)}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -111,7 +111,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
-    result->local_to_global_ghost_ = this->local_to_global_ghost_;
+    result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
 
@@ -130,7 +130,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
-    result->local_to_global_ghost_ = std::move(this->local_to_global_ghost_);
+    result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -173,14 +173,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         make_temporary_clone(exec, col_partition).get(), local_part,
         diag_row_idxs, diag_col_idxs, diag_values, offdiag_row_idxs,
         offdiag_col_idxs, offdiag_values, recv_gather_idxs,
-        recv_offsets_array.get_data(), local_to_global_ghost_));
+        recv_offsets_array.get_data(), non_local_to_global_));
 
     // read the local matrix data
     const auto num_diag_rows =
         static_cast<size_type>(row_partition->get_part_size(local_part));
     const auto num_diag_cols =
         static_cast<size_type>(col_partition->get_part_size(local_part));
-    const auto num_ghost_cols = local_to_global_ghost_.get_num_elems();
+    const auto num_ghost_cols = non_local_to_global_.get_num_elems();
     device_matrix_data<value_type, local_index_type> diag_data{
         exec, dim<2>{num_diag_rows, num_diag_cols}, std::move(diag_row_idxs),
         std::move(diag_col_idxs), std::move(diag_values)};
@@ -305,7 +305,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             x_exec, dense_x->get_local_vector()->get_num_stored_elements(),
             dense_x->get_local_values()),
         dense_x->get_local_vector()->get_stride());
-    if (this->get_const_local_offdiag()->get_size()) {
+    if (this->get_non_local_matrix()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
         diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
         req.wait();
@@ -338,7 +338,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         dense_x->get_local_vector()->get_stride());
     auto local_alpha = as<local_vector_type>(alpha);
     auto local_beta = as<local_vector_type>(beta);
-    if (this->get_const_local_offdiag()->get_size()) {
+    if (this->get_non_local_matrix()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
         diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
                          local_x.get());
@@ -396,7 +396,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_sizes_ = other.recv_sizes_;
         send_sizes_ = other.send_sizes_;
         recv_sizes_ = other.recv_sizes_;
-        local_to_global_ghost_ = other.local_to_global_ghost_;
+        non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
@@ -421,7 +421,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         recv_sizes_ = std::move(other.recv_sizes_);
         send_sizes_ = std::move(other.send_sizes_);
         recv_sizes_ = std::move(other.recv_sizes_);
-        local_to_global_ghost_ = std::move(other.local_to_global_ghost_);
+        non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
     }
