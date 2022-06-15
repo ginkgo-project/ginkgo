@@ -154,12 +154,12 @@ class Vector;
  * 0        | 13 .. .. .. 14 .. |                  | .. .. .. 8  ..  9 |
  * ```
  * The local rows are further split into two matrices on each process.
- * One matrix, called `local_inner`, contains only entries from columns that are
- * also owned by the process, while the other one, called `local_ghost`,
- * contains entries from columns that are not owned by the process. The ghost
- * matrix is stored in a compressed format, where empty columns are discarded
- * and the remaining columns are renumbered. This splitting is depicted in the
- * following:
+ * One matrix, called `local`, contains only entries from columns that are
+ * also owned by the process, while the other one, called `non_local`,
+ * contains entries from columns that are not owned by the process. The
+ * non-local matrix is stored in a compressed format, where empty columns are
+ * discarded and the remaining columns are renumbered. This splitting is
+ * depicted in the following:
  * ```
  * Part-Id  Global                            Inner      Ghost
  * 0        | .. 1  ⁞ 2  .. ⁞ .. .. |         | .. 1  |  | 2  |
@@ -188,6 +188,7 @@ class Vector;
  * 2        | .. .. .. 10 |         | .. .. |  | 10 |
  * 2        | 13 .. .. .. |         | 13 .. |  | .. |
  * ```
+ * Here `P_R` denotes the row partition and`P_C` the column partition.
  *
  * The Matrix should be filled using the read_distributed method, e.g.
  * ```
@@ -205,10 +206,10 @@ class Vector;
  * This will set the dimensions of the global and local matrices automatically
  * by deducing the sizes from the partitions.
  *
- * By default the Matrix type uses Csr for both local matrices. It is possible
- * to explicitly change the datatype for the local matrices, with the constraint
- * that the new type should implement the LinOp and ReadableFromMatrixData
- * interface. The type can be set by:
+ * By default the Matrix type uses Csr for both stored matrices. It is possible
+ * to explicitly change the datatype for the stored matrices, with the
+ * constraint that the new type should implement the LinOp and
+ * ReadableFromMatrixData interface. The type can be set by:
  * ```
  * auto mat = Matrix<ValueType, LocalIndexType[, ...]>::create(
  *   exec, comm,
@@ -340,16 +341,13 @@ public:
      * Get read access to the local diagonal matrix
      * @return  Shared pointer to the local diagonal matrix
      */
-    std::shared_ptr<const LinOp> get_const_local_diag() const
-    {
-        return diag_mtx_;
-    }
+    std::shared_ptr<const LinOp> get_local_matrix() const { return diag_mtx_; }
 
     /**
      * Get read access to the local off-diagonal matrix
      * @return  Shared pointer to the local off-diagonal matrix
      */
-    std::shared_ptr<const LinOp> get_const_local_offdiag() const
+    std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
         return offdiag_mtx_;
     }
@@ -422,7 +420,7 @@ protected:
 
     /**
      * Creates an empty distributed matrix with specified types for the local
-     * inner matrix and the local ghost matrix.
+     * matrix and the non-local matrix.
      *
      * @note This is mainly a convenience wrapper for
      *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
@@ -436,27 +434,27 @@ protected:
      *                          constraints as InnerMatrixType.
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
-     * @param inner_matrix_template  the local inner matrix will be constructed
+     * @param local_matrix_template  the local matrix will be constructed
      *                               with the same type as `create` returns. It
      *                               should be the return value of
      *                               make_matrix_template.
-     * @param ghost_matrix_template  the local ghost matrix will be constructed
-     *                               with the same type as `create` returns. It
-     *                               should be the return value of
-     *                               make_matrix_template.
+     * @param non_local_matrix_template  the non-local matrix will be
+     *                                   constructed with the same type as
+     *                                   `create` returns. It should be the
+     *                                   return value of make_matrix_template.
      */
     template <typename InnerMatrixType, typename GhostMatrixType>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
-                    InnerMatrixType inner_matrix_template,
-                    GhostMatrixType ghost_matrix_template)
+                    InnerMatrixType local_matrix_template,
+                    GhostMatrixType non_local_matrix_template)
         : Matrix(exec, comm,
                  static_cast<const LinOp*>(
-                     inner_matrix_template
+                     local_matrix_template
                          .template create<ValueType, LocalIndexType>(exec)
                          .get()),
                  static_cast<const LinOp*>(
-                     ghost_matrix_template
+                     non_local_matrix_template
                          .template create<ValueType, LocalIndexType>(exec)
                          .get()))
     {}
@@ -478,21 +476,21 @@ protected:
 
     /**
      * Creates an empty distributed matrix with specified types for the local
-     * inner matrix and the local ghost matrix.
+     * matrix and the non-local matrix.
      *
-     * @note It internally clones the passed in inner_matrix_template and
-     *       ghost_matrix_template. Therefore, those LinOps should be empty.
+     * @note It internally clones the passed in local_matrix_template and
+     *       non_local_matrix_template. Therefore, those LinOps should be empty.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
-     * @param inner_matrix_template  the local inner matrix will be constructed
+     * @param local_matrix_template  the local matrix will be constructed
      *                               with the same runtime type.
-     * @param ghost_matrix_template  the local ghost matrix will be constructed
-     *                               with the same runtime type.
+     * @param non_local_matrix_template  the non-local matrix will be
+     *                                   constructed with the same runtime type.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, const LinOp* inner_matrix_template,
-                    const LinOp* ghost_matrix_template);
+                    mpi::communicator comm, const LinOp* local_matrix_template,
+                    const LinOp* non_local_matrix_template);
 
     /**
      * Starts a non-blocking communication of the values of b that are shared
@@ -514,7 +512,7 @@ private:
     std::vector<comm_index_type> recv_offsets_;
     std::vector<comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
-    array<global_index_type> local_to_global_ghost_;
+    array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
     gko::detail::DenseCache<value_type> host_send_buffer_;
     gko::detail::DenseCache<value_type> host_recv_buffer_;
