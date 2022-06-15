@@ -282,7 +282,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
 
     mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
-    if (needs_host_buffer) {
+    if (needs_host_buffer || comm.force_host_buffer()) {
         host_send_buffer_->copy_from(send_buffer_.get());
 
         return comm.i_all_to_all_v(
