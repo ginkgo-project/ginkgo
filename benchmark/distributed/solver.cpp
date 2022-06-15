@@ -46,9 +46,7 @@ DEFINE_int64(
     target_rows, 100,
     "Target number of rows, either in total (strong_scaling == true) or per "
     "process (strong_scaling == false).");
-DEFINE_uint64(max_iters, 1000, "Number of iterations of the solver to run.");
-DEFINE_uint64(warmup_max_iters, 100,
-              "Number of iterations of the solver to run.");
+DEFINE_uint64(num_iters, 1000, "Number of iterations of the solver to run.");
 DEFINE_int32(dim, 2, "Dimension of stencil, either 2D or 3D");
 DEFINE_bool(restrict, false,
             "If true creates 5/7pt stencil, if false creates 9/27pt stencil.");
@@ -232,6 +230,9 @@ int main(int argc, char* argv[])
 
     gko::mpi::environment mpi_env{argc, argv};
 
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
     using ValueType = etype;
     using GlobalIndexType = gko::int64;
     using LocalIndexType = GlobalIndexType;
@@ -240,14 +241,9 @@ int main(int argc, char* argv[])
     using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
-    const auto rank = comm.rank();
-
     std::string header =
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
-        "distributed solver\n";
+        "distributed SpMV\n";
     std::string format = "";
     initialize_argument_parsing(&argc, &argv, header, format);
     if (rank == 0) {
@@ -263,6 +259,8 @@ int main(int argc, char* argv[])
         }
         FLAGS_repetitions = "1";
     }
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
 
     const auto num_target_rows = FLAGS_target_rows;
     const auto dim = FLAGS_dim;
@@ -299,42 +297,32 @@ int main(int argc, char* argv[])
                               gko::dim<2>{local_size, 1});
     b->fill(gko::one<ValueType>());
 
+    auto solver = gko::solver::Cg<ValueType>::build()
+                      .with_criteria(gko::stop::Iteration::build()
+                                         .with_max_iters(FLAGS_num_iters)
+                                         .on(exec))
+                      .on(exec)
+                      ->generate(A);
+
     auto timer = get_timer(exec, FLAGS_gpu_timer);
     IterationControl ic{timer};
 
     // Do a warmup run
-    {
-        auto solver =
-            gko::solver::Cg<ValueType>::build()
-                .with_criteria(gko::stop::Iteration::build()
-                                   .with_max_iters(FLAGS_warmup_max_iters)
-                                   .on(exec))
-                .on(exec)
-                ->generate(A);
-        if (rank == 0) {
-            std::cout << "Warming up..." << std::endl;
-        }
-        comm.synchronize();
-        for (auto _ : ic.warmup_run()) {
-            solver->apply(lend(x), lend(b));
-        }
+    if (rank == 0) {
+        std::cout << "Warming up..." << std::endl;
+    }
+    comm.synchronize();
+    for (auto _ : ic.warmup_run()) {
+        solver->apply(lend(x), lend(b));
     }
 
     // Do and time the actual benchmark runs
-    {
-        auto solver = gko::solver::Cg<ValueType>::build()
-                          .with_criteria(gko::stop::Iteration::build()
-                                             .with_max_iters(FLAGS_max_iters)
-                                             .on(exec))
-                          .on(exec)
-                          ->generate(A);
-        if (rank == 0) {
-            std::cout << "Running benchmark..." << std::endl;
-        }
-        comm.synchronize();
-        for (auto _ : ic.run()) {
-            solver->apply(lend(x), lend(b));
-        }
+    if (rank == 0) {
+        std::cout << "Running benchmark..." << std::endl;
+    }
+    comm.synchronize();
+    for (auto _ : ic.run()) {
+        solver->apply(lend(x), lend(b));
     }
 
     if (rank == 0) {
@@ -342,6 +330,6 @@ int main(int argc, char* argv[])
         std::cout << "DURATION: " << ic.compute_average_time() << "s"
                   << std::endl;
         std::cout << "ITERATIONS: "
-                  << ic.get_num_repetitions() * FLAGS_max_iters << std::endl;
+                  << ic.get_num_repetitions() * FLAGS_num_iters << std::endl;
     }
 }

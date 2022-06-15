@@ -330,6 +330,9 @@ int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
 
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
     using ValueType = etype;
     using GlobalIndexType = gko::int64;
     using LocalIndexType = GlobalIndexType;
@@ -337,11 +340,6 @@ int main(int argc, char* argv[])
         gko::distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
     using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
-
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
-    const auto rank = comm.rank();
 
     std::string header =
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
@@ -361,6 +359,8 @@ int main(int argc, char* argv[])
         }
         FLAGS_repetitions = "10";
     }
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm);
 
     const auto num_target_rows = FLAGS_target_rows;
     const auto dim = FLAGS_dim;
