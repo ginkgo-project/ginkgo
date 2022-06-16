@@ -481,6 +481,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
         }
+        //				printf("DENSE -> BLOCK ELEMENT =>
+        // memsize = %d\n", (int) idxs.shf);
         *result = idxs.shf;
 #else
         // Computation of rows, offsets and m (mem_size)
@@ -505,6 +507,8 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
         }
+        //				printf("DENSE -> BLOCK ELEMENT =>
+        // memsize = %d\n", (int) shf);
         *result = shf;
 #endif
     } else {
@@ -562,6 +566,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             idxs.nblk = 0;
             blk_idxs = {};
         }
+        // printf("DENSE -> BLOCK BCCOO => memsize = %d\n", (int) idxs.shf);
         *result = idxs.shf;
     }
 }
@@ -671,13 +676,15 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                         blk_idxs.col_frs = col;
                         blk_idxs.col_dif = 0;
                     }
-                    // std::cout << idxs.nblk << " - " << row << " - " << col <<
-                    // "  "
+                    // std::cout << idxs.nblk << " - " << row << " - "
+                    //           << col <<  " - "
                     //           << blk_idxs.row_frs << " - "
                     //           << blk_idxs.col_frs << std::endl;
                     rows_blk.get_data()[idxs.nblk] = row;
                     cols_blk.get_data()[idxs.nblk] = col;
                     vals_blk.get_data()[idxs.nblk] = source->at(row, col);
+                    // if (row == 0) std::cout << row << " - " << col << " => "
+                    // << source->at(row, col) << std::endl;
                     blk_idxs.mul_row =
                         blk_idxs.mul_row || (row != blk_idxs.row_frs);
                     if (col < blk_idxs.col_frs) {
@@ -690,49 +697,84 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     if (idxs.nblk == block_size) {
                         type_blk = {};
                         if (blk_idxs.mul_row) {
+                            // if (blk_idxs.row_frs == 0) std::cout << "ROW" <<
+                            // std::endl;
                             for (size_type j = 0; j < block_size; j++) {
                                 size_type row_src = rows_blk.get_data()[j];
                                 // set_value_chunk<uint8>(chunk_data, shf+j,
                                 set_value_chunk<uint8>(
                                     chunk_data, idxs.shf,
                                     row_src - blk_idxs.row_frs);
+                                // if (blk_idxs.row_frs == 0) std::cout <<
+                                // row_src - blk_idxs.row_frs << " - ";
                                 idxs.shf++;
                             }
+                            // if (blk_idxs.row_frs == 0) std::cout <<
+                            // std::endl;
                             type_blk |= GKO_BCCOO_ROWS_MULTIPLE;
                         }
                         if (blk_idxs.col_dif <= 0xFF) {
+                            // if (blk_idxs.row_frs == 0) std::cout << "COL8" <<
+                            // std::endl;
                             for (size_type j = 0; j < block_size; j++) {
                                 uint8 col_dif =
                                     cols_blk.get_data()[j] - blk_idxs.col_frs;
                                 set_value_chunk<uint8>(chunk_data, idxs.shf,
                                                        col_dif);
+                                // if (blk_idxs.row_frs == 0) std::cout << (int)
+                                // col_dif << " - ";
                                 idxs.shf++;
                             }
+                            // if (blk_idxs.row_frs == 0) std::cout <<
+                            // std::endl;
                             type_blk |= GKO_BCCOO_COLS_8BITS;
                         } else if (blk_idxs.col_dif <= 0xFFFF) {
+                            // if (blk_idxs.row_frs == 0) std::cout << "COL16"
+                            // << std::endl;
                             for (size_type j = 0; j < block_size; j++) {
                                 uint16 col_dif =
                                     cols_blk.get_data()[j] - blk_idxs.col_frs;
                                 set_value_chunk<uint16>(chunk_data, idxs.shf,
                                                         col_dif);
+                                // if (blk_idxs.row_frs == 0) std::cout <<
+                                // col_dif << " - ";
                                 idxs.shf += 2;
                             }
+                            // if (blk_idxs.row_frs == 0) std::cout <<
+                            // std::endl;
                             type_blk |= GKO_BCCOO_COLS_16BITS;
                         } else {
+                            // if (blk_idxs.row_frs == 0) std::cout << "COL16"
+                            // << std::endl;
                             for (size_type j = 0; j < block_size; j++) {
                                 uint32 col_dif =
                                     cols_blk.get_data()[j] - blk_idxs.col_frs;
                                 set_value_chunk<uint32>(chunk_data, idxs.shf,
                                                         col_dif);
+                                // if (blk_idxs.row_frs == 0) std::cout <<
+                                // col_dif << " - ";
                                 idxs.shf += 4;
                             }
+                            // if (blk_idxs.row_frs == 0) std::cout <<
+                            // std::endl;
                         }
+                        // if (blk_idxs.row_frs == 0) std::cout << "VAL" <<
+                        // std::endl;
                         for (size_type j = 0; j < block_size; j++) {
                             val = vals_blk.get_data()[j];
                             set_value_chunk<ValueType>(chunk_data, idxs.shf,
                                                        val);
+                            // if (blk_idxs.row_frs == 0) std::cout << val << "
+                            // - ";
                             idxs.shf += sizeof(ValueType);
                         }
+                        // if (blk_idxs.row_frs == 0) std::cout << std::endl;
+                        // if (blk_idxs.row_frs == 0)
+                        // 		std::cout << blk_idxs.row_frs << " - "
+                        // << blk_idxs.col_frs << " - "
+                        // 							<<
+                        // (int) type_blk
+                        // << " - " << idxs.shf << std::endl;;
                         rows_data[idxs.blk] = blk_idxs.row_frs;
                         cols_data[idxs.blk] = blk_idxs.col_frs;
                         types_data[idxs.blk] = type_blk;

@@ -635,16 +635,7 @@ TEST_F(Bccoo, OutplaceAbsoluteMatrixIsEquivalentToRefBlk)
 
     auto abs_mtx_blk = mtx_blk->compute_absolute();
     auto dabs_mtx_blk = dmtx_blk->compute_absolute();
-    /*
-        GKO_ASSERT_MTX_NEAR(abs_mtx_blk->get_const_rows,
-       dabs_mtx_blk->get_const_rows, 1e-14);
-        GKO_ASSERT_MTX_NEAR(abs_mtx_blk->get_const_cols,
-       dabs_mtx_blk->get_const_cols, 1e-14);
-        GKO_ASSERT_MTX_NEAR(abs_mtx_blk->get_const_types,
-       dabs_mtx_blk->get_const_types, 1e-14);
-        GKO_ASSERT_MTX_NEAR(abs_mtx_blk->get_const_offsets,
-       dabs_mtx_blk->get_const_offsets, 1e-14);
-    */
+
     GKO_ASSERT_MTX_NEAR(abs_mtx_blk, dabs_mtx_blk, 1e-14);
 }
 

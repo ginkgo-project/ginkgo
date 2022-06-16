@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/bccoo.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -46,12 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/base/unaligned_access.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
-
 
 namespace gko {
 namespace kernels {
@@ -69,15 +71,19 @@ namespace cuda {
 namespace bccoo {
 
 
-// constexpr int default_block_size = 512;
+constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
+// constexpr int warps_in_block = 1;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
+
+
+#include "common/cuda_hip/matrix/bccoo_kernels.hpp.inc"
 
 
 void get_default_block_size(std::shared_ptr<const CudaExecutor> exec,
                             size_type* block_size)
 {
-    *block_size = 10;
+    *block_size = 32;
 }
 
 
@@ -92,7 +98,11 @@ template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Bccoo<ValueType, IndexType>* a,
           const matrix::Dense<ValueType>* b,
-          matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+          matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    dense::fill(exec, c, zero<ValueType>());
+    spmv2(exec, a, b, c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV_KERNEL);
 
@@ -103,7 +113,11 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Bccoo<ValueType, IndexType>* a,
                    const matrix::Dense<ValueType>* b,
                    const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    dense::scale(exec, beta, c);
+    advanced_spmv2(exec, alpha, a, b, c);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV_KERNEL);
@@ -113,7 +127,56 @@ template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Bccoo<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b,
-           matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+           matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = a->get_num_stored_elements();
+    const auto block_size = a->get_block_size();
+    const auto num_blocks_matrix = a->get_num_blocks();
+    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (a->use_block_compression()) {
+        if (nwarps > 0) {
+            //        if (b_ncols < 4) {
+            //        if (b_ncols < 34) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            //            const dim3 bccoo_grid(ceildiv(nwarps, warps_in_block),
+            //            b_ncols);
+            const dim3 bccoo_grid(num_blocks_grid, b_ncols);
+            //            int num_lines = ceildiv(nnz, nwarps *
+            //            config::warp_size);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            /**/
+            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(a->get_const_chunk()),
+                as_cuda_type(a->get_const_offsets()),
+                as_cuda_type(a->get_const_types()),
+                as_cuda_type(a->get_const_cols()),
+                as_cuda_type(a->get_const_rows()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
+            /*
+                    } else {
+                        int num_elems =
+                            ceildiv(nnz, nwarps * config::warp_size) *
+               config::warp_size; const dim3 bccoo_grid(ceildiv(nwarps,
+               warps_in_block), ceildiv(b_ncols, config::warp_size));
+
+                        abstract_spmm<<<bccoo_grid, bccoo_block>>>(
+                            nnz, num_elems, as_cuda_type(a->get_const_chunk()),
+                            a->get_const_offsets(),
+               as_cuda_type(a->get_const_types()), a->get_const_cols(),
+               as_cuda_type(a->get_const_rows()), b_ncols,
+               as_cuda_type(b->get_const_values()), b->get_stride(),
+                            as_cuda_type(c->get_values()), c->get_stride());
+                    }
+            */
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BCCOO_SPMV2_KERNEL);
 
@@ -123,7 +186,57 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Dense<ValueType>* alpha,
                     const matrix::Bccoo<ValueType, IndexType>* a,
                     const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c) GKO_NOT_IMPLEMENTED;
+                    matrix::Dense<ValueType>* c)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = a->get_num_stored_elements();
+    const auto block_size = a->get_block_size();
+    const auto num_blocks_matrix = a->get_num_blocks();
+    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (a->use_block_compression()) {
+        if (nwarps > 0) {
+            //        if (b_ncols < 4) {
+            //        if (b_ncols < 34) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            //            const dim3 bccoo_grid(ceildiv(nwarps, warps_in_block),
+            //            b_ncols);
+            const dim3 bccoo_grid(num_blocks_grid, b_ncols);
+            //            int num_lines = ceildiv(nnz, nwarps *
+            //            config::warp_size);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+            /**/
+            abstract_spmv<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_chunk()),
+                as_cuda_type(a->get_const_offsets()),
+                as_cuda_type(a->get_const_types()),
+                as_cuda_type(a->get_const_cols()),
+                as_cuda_type(a->get_const_rows()),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
+            /*
+                    } else {
+                        int num_elems =
+                            ceildiv(nnz, nwarps * config::warp_size) *
+               config::warp_size; const dim3 bccoo_grid(ceildiv(nwarps,
+               warps_in_block), ceildiv(b_ncols, config::warp_size));
+
+                        abstract_spmm<<<bccoo_grid, bccoo_block>>>(
+                            nnz, num_elems, as_cuda_type(a->get_const_chunk()),
+                            a->get_const_offsets(),
+               as_cuda_type(a->get_const_types()), a->get_const_cols(),
+               as_cuda_type(a->get_const_rows()), b_ncols,
+               as_cuda_type(b->get_const_values()), b->get_stride(),
+                            as_cuda_type(c->get_values()), c->get_stride());
+                    }
+            */
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_ADVANCED_SPMV2_KERNEL);
@@ -163,7 +276,39 @@ template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Coo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = source->get_num_stored_elements();
+
+    auto row_idxs = result->get_row_idxs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    const auto block_size = source->get_block_size();
+    const auto num_blocks_matrix = source->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0) {
+        if (source->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_offsets()),
+                as_cuda_type(source->get_const_types()),
+                as_cuda_type(source->get_const_cols()),
+                as_cuda_type(source->get_const_rows()),
+                as_cuda_type(result->get_row_idxs()),
+                as_cuda_type(result->get_col_idxs()),
+                as_cuda_type(result->get_values()));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_COO_KERNEL);
@@ -173,13 +318,60 @@ template <typename IndexType>
 void convert_row_idxs_to_ptrs(std::shared_ptr<const CudaExecutor> exec,
                               const IndexType* idxs, size_type num_nonzeros,
                               IndexType* ptrs,
-                              size_type length) GKO_NOT_IMPLEMENTED;
+                              size_type length)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
+
+    kernel::convert_row_idxs_to_ptrs<<<grid_dim, default_block_size>>>(
+        as_cuda_type(idxs), num_nonzeros, as_cuda_type(ptrs), length);
+}
+
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
                     matrix::Csr<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
+//    GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = source->get_num_stored_elements();
+    const auto num_rows = source->get_size()[0];
+
+    Array<IndexType> row_idxs(exec, nnz);
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto values = result->get_values();
+
+    const auto block_size = source->get_block_size();
+    const auto num_blocks_matrix = source->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0) {
+        if (source->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            kernel::fill_in_coo<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_offsets()),
+                as_cuda_type(source->get_const_types()),
+                as_cuda_type(source->get_const_cols()),
+                as_cuda_type(source->get_const_rows()),
+                as_cuda_type(row_idxs.get_data()),
+                //								(row_idxs),
+                as_cuda_type(result->get_col_idxs()),
+                as_cuda_type(result->get_values()));
+
+            convert_row_idxs_to_ptrs(exec, row_idxs.get_data(), nnz, row_ptrs,
+                                     num_rows + 1);
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_CSR_KERNEL);
@@ -188,16 +380,80 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
-                      matrix::Dense<ValueType>* result) GKO_NOT_IMPLEMENTED;
+                      matrix::Dense<ValueType>* result)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto num_rows = result->get_size()[0];
+    const auto num_cols = result->get_size()[1];
+    const auto stride = result->get_stride();
+
+    const auto nnz = source->get_num_stored_elements();
+    const auto block_size = source->get_block_size();
+    const auto num_blocks_matrix = source->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    const dim3 block_size_mat(config::warp_size,
+                              config::max_block_size / config::warp_size, 1);
+    const dim3 init_grid_dim(ceildiv(num_cols, block_size_mat.x),
+                             ceildiv(num_rows, block_size_mat.y), 1);
+    kernel::initialize_zero_dense<<<init_grid_dim, block_size_mat>>>(
+        num_rows, num_cols, stride, as_cuda_type(result->get_values()));
+
+    if (nwarps > 0) {
+        if (source->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            kernel::fill_in_dense<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(source->get_const_chunk()),
+                as_cuda_type(source->get_const_offsets()),
+                as_cuda_type(source->get_const_types()),
+                as_cuda_type(source->get_const_cols()),
+                as_cuda_type(source->get_const_rows()), stride,
+                as_cuda_type(result->get_values()));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_CONVERT_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
-                      const matrix::Bccoo<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag) GKO_NOT_IMPLEMENTED;
+void extract_diagonal(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Bccoo<ValueType, IndexType>* orig,
+    matrix::Diagonal<ValueType>* diag)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = orig->get_num_stored_elements();
+    const auto block_size = orig->get_block_size();
+    const auto num_blocks_matrix = orig->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0) {
+        if (orig->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            int num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            abstract_extract<<<bccoo_grid, bccoo_block>>>(
+                nnz, num_blocks_matrix, block_size, num_lines,
+                as_cuda_type(orig->get_const_chunk()),
+                as_cuda_type(orig->get_const_offsets()),
+                as_cuda_type(orig->get_const_types()),
+                as_cuda_type(orig->get_const_cols()),
+                as_cuda_type(orig->get_const_rows()),
+                as_cuda_type(diag->get_values()));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_EXTRACT_DIAGONAL_KERNEL);
@@ -206,7 +462,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
                               matrix::Bccoo<ValueType, IndexType>* matrix)
-    GKO_NOT_IMPLEMENTED;
+//    GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = matrix->get_num_stored_elements();
+    const auto block_size = matrix->get_block_size();
+    const auto num_blocks_matrix = matrix->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0) {
+        if (matrix->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            abstract_absolute_inplace<cuda_type<ValueType>,
+                                      cuda_type<IndexType>>
+                <<<bccoo_grid, bccoo_block>>>(
+                    nnz, num_blocks_matrix, block_size, num_lines,
+                    as_cuda_type(matrix->get_chunk()),
+                    as_cuda_type(matrix->get_const_offsets()),
+                    as_cuda_type(matrix->get_const_types()),
+                    as_cuda_type(matrix->get_const_cols()),
+                    as_cuda_type(matrix->get_const_rows()));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_INPLACE_KERNEL);
@@ -216,7 +499,38 @@ template <typename ValueType, typename IndexType>
 void compute_absolute(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Bccoo<ValueType, IndexType>* source,
                       remove_complex<matrix::Bccoo<ValueType, IndexType>>*
-                          result) GKO_NOT_IMPLEMENTED;
+                          result)  // GKO_NOT_IMPLEMENTED;
+{
+    const auto nnz = source->get_num_stored_elements();
+    const auto block_size = source->get_block_size();
+    const auto num_blocks_matrix = source->get_num_blocks();
+    //    const auto b_ncols = b->get_size()[1];
+    const dim3 bccoo_block(config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
+    if (nwarps > 0) {
+        if (source->use_block_compression()) {
+            int num_blocks_grid = std::min(
+                num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
+            const dim3 bccoo_grid(num_blocks_grid, 1);
+            auto num_lines = ceildiv(num_blocks_matrix, num_blocks_grid);
+
+            abstract_absolute<cuda_type<ValueType>, cuda_type<IndexType>>
+                <<<bccoo_grid, bccoo_block>>>(
+                    nnz, num_blocks_matrix, block_size, num_lines,
+                    as_cuda_type(source->get_const_chunk()),
+                    as_cuda_type(source->get_const_offsets()),
+                    as_cuda_type(source->get_const_types()),
+                    as_cuda_type(source->get_const_cols()),
+                    as_cuda_type(source->get_const_rows()),
+                    as_cuda_type(result->get_chunk()),
+                    as_cuda_type(result->get_offsets()),
+                    as_cuda_type(result->get_types()),
+                    as_cuda_type(result->get_cols()),
+                    as_cuda_type(result->get_rows()));
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_COMPUTE_ABSOLUTE_KERNEL);

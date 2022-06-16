@@ -90,6 +90,8 @@ enum class compression { def_value, element, block };
  * are stored in a 1D array of bytes. For each tuple, lev_compress
  * determinates how the colums indexes will be stored, directly or
  * as the difference from the previous element in the same row.
+ * In the case that a new row is started in the block, lev_compress
+ * has an specific value, whereas column and value are void.
  * Two additional 1-D vectors complete the block structure. One of them
  * contains the starting point of each block in the array of bytes,
  * whereas the second one indicates the row index of the first tuple
@@ -225,9 +227,9 @@ public:
 
 
     /**
-     * Returns the minimum row index of the first element of each block.
+     * Returns the minimum row indices of the first element of each block.
      *
-     * @return the minimum row index of the first element of each block.
+     * @return the minimum row indices of the first element of each block.
      */
     index_type* get_rows() noexcept { return rows_.get_data(); }
 
@@ -244,11 +246,11 @@ public:
     }
 
     /**
-     * Returns the minimum col index of the first element of each block. Only
-     * for block compression.
+     * Returns the minimum col indices of the first element of each block.
+     * Only for block compression.
      *
-     * @return the minimum col index of the first element of each block. Only
-     * for block compression.
+     * @return the minimum col indices of the first element of each block.
+     * Only for block compression.
      */
     index_type* get_cols() noexcept { return cols_.get_data(); }
 
@@ -265,11 +267,11 @@ public:
     }
 
     /**
-     * Returns the type index of the first element of each block.  Only for
-     * block compression.
+     * Returns the type indices of the first element of each block.
+     * Only for block compression.
      *
-     * @return the type index of the first element of each block. Only for block
-     * compression.
+     * @return the type indices of the first element of each block.
+     * Only for block compression.
      */
     uint8* get_types() noexcept { return types_.get_data(); }
 
@@ -286,9 +288,9 @@ public:
     }
 
     /**
-     * Returns the offset related to the first entry of each block.
+     * Returns the offsets related to the first entry of each block.
      *
-     * @return the offset related to the first entry of each block.
+     * @return the offsets related to the first entry of each block.
      */
     index_type* get_offsets() noexcept { return offsets_.get_data(); }
 
@@ -305,9 +307,9 @@ public:
     }
 
     /**
-     * Returns the vector where the data of each block is stored.
+     * Returns the vector where the data of each block are stored.
      *
-     * @return the vector where column indexes and values are stored.
+     * @return the vector where the data of each block are stored.
      */
     uint8* get_chunk() noexcept { return chunk_.get_data(); }
 
@@ -345,9 +347,11 @@ public:
     size_type get_num_blocks() const noexcept { return rows_.get_num_elems(); }
 
     /**
-     * Returns the number of blocks used in the definition of the matrix.
+     * Returns the number of bytes of chunk vector used in the definition of the
+     * matrix.
      *
-     * @return the number of blocks used in the definition of the matrix.
+     * @return the number of bytes of chunk vector used in the definition of the
+     * matrix.
      */
     size_type get_num_bytes() const noexcept { return chunk_.get_num_elems(); }
 
@@ -388,8 +392,9 @@ public:
         return compression_ == bccoo::compression::block;
     }
 
-    // JIAE it would be easier to understand to use
-    //        b = Bccoo * x + b
+    // JIAE It could be better to use
+    // JIAE        b = Bccoo * x + b
+    // JIAE It would be easier to understand
 
     /**
      * Applies Bccoo matrix axpy to a vector (or a sequence of vectors).
@@ -411,7 +416,7 @@ public:
     }
 
     /**
-     * @copydoc apply2(cost LinOp *, LinOp *)
+     * @copydoc apply2(const LinOp *, LinOp *)
      */
     const LinOp* apply2(const LinOp* b, LinOp* x) const
     {
@@ -569,15 +574,15 @@ protected:
      *                chunk array
      * @param types   array of compression type for each block in
      *                chunk array
-     * @param cols    array of minimum column index for each block in
+     * @param cols    array of minimum column indices for each block in
      *                chunk array
-     * @param rows    array of minimum row index for each block in
+     * @param rows    array of minimum row indices for each block in
      *                chunk array
      * @param num_nonzeros  number of nonzeros
      * @param block_size    number of nonzeros in each block
      *
      * @note If one of `chunk`, `offsets`, `types`, `cols` or `rows` is not
-     * 			 an rvalue, not an array of uint8, IndexType, IndexType,
+     * 			 an rvalue, not an array of uint8, IndexType, uint8,
      *       IndexType or IndexType, respectively, or is on the wrong executor,
      *       an internal copy of that array will be created, and the original
      *       array will not be used in the matrix.

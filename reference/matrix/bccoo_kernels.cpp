@@ -1144,9 +1144,8 @@ void convert_to_bccoo_copy(std::shared_ptr<const ReferenceExecutor> exec,
             /*
             // gko::array<IndexType>
             // rows_data_res(exec, source->get_const_rows());
-                                                // auto rows_data_src =
-            source->get_const_rows();
-                                                                                            // auto rows_data_res = result->get_rows();
+            // auto rows_data_src = source->get_const_rows();
+            // auto rows_data_res = result->get_rows();
             // rows_data_res = rows_data_src;
             std::memcpy(
             static_cast<unsigned char*>(rows_data_res),
@@ -1176,7 +1175,7 @@ void convert_to_bccoo_copy(std::shared_ptr<const ReferenceExecutor> exec,
             // size_type num_nonzeros = source->get_num_stored_elements();
 
         } else {
-            // std::cout << "A-BLOCK" << std::endl;
+            //º            std::cout << "A-BLOCK" << std::endl;
             // result->get_rows() = source->get_const_rows();
             std::memcpy(static_cast<IndexType*>(result->get_rows()),
                         static_cast<const IndexType*>(source->get_const_rows()),
