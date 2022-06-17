@@ -268,6 +268,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             Vector::create(exec, dim<2>{krylov_dim, dense_b->get_size()[1]});
 
         bool one_changed{};
+        array<char> reduction_tmp{this->get_executor()};
         array<stopping_status> stop_status(this->get_executor(),
                                            dense_b->get_size()[1]);
         // reorth_status and num_reorth are both helper variables for GPU
@@ -292,7 +293,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         exec->run(cb_gmres::make_initialize_2(
             residual.get(), residual_norm.get(), residual_norm_collection.get(),
             arnoldi_norm.get(), krylov_bases_range, next_krylov_basis.get(),
-            &final_iter_nums, krylov_dim));
+            &final_iter_nums, reduction_tmp, krylov_dim));
         // residual_norm = norm(residual)
         // residual_norm_collection = {residual_norm, 0, ..., 0}
         // krylov_bases(:, 1) = residual / residual_norm
@@ -422,7 +423,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     residual.get(), residual_norm.get(),
                     residual_norm_collection.get(), arnoldi_norm.get(),
                     krylov_bases_range, next_krylov_basis.get(),
-                    &final_iter_nums, krylov_dim));
+                    &final_iter_nums, reduction_tmp, krylov_dim));
                 // residual_norm = norm(residual)
                 // residual_norm_collection = {residual_norm, 0, ..., 0}
                 // krylov_bases(:, 1) = residual / residual_norm
@@ -522,7 +523,10 @@ void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 #define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>
+#define GKO_DECLARE_CB_GMRES_TRAITS(_type1) \
+    struct workspace_traits<CbGmres<_type1>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CB_GMRES_TRAITS);
 
 
 }  // namespace solver

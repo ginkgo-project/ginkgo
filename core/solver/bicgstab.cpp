@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 #include "core/solver/bicgstab_kernels.hpp"
@@ -109,29 +110,27 @@ void Bicgstab<ValueType>::apply_dense_impl(
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    using AbsVector = matrix::Dense<remove_complex<ValueType>>;
-    using ws = solver_workspace_traits<Bicgstab>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    GKO_SOLVER_VECTOR(r);
-    GKO_SOLVER_VECTOR(z);
-    GKO_SOLVER_VECTOR(y);
-    GKO_SOLVER_VECTOR(v);
-    GKO_SOLVER_VECTOR(s);
-    GKO_SOLVER_VECTOR(t);
-    GKO_SOLVER_VECTOR(p);
-    GKO_SOLVER_VECTOR(rr);
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(y, dense_b);
+    GKO_SOLVER_VECTOR(v, dense_b);
+    GKO_SOLVER_VECTOR(s, dense_b);
+    GKO_SOLVER_VECTOR(t, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(rr, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha);
-    GKO_SOLVER_SCALAR(beta);
-    GKO_SOLVER_SCALAR(gamma);
-    GKO_SOLVER_SCALAR(prev_rho);
-    GKO_SOLVER_SCALAR(rho);
-    GKO_SOLVER_SCALAR(omega);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(gamma, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
+    GKO_SOLVER_SCALAR(omega, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -249,24 +248,22 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Bicgstab<ValueType>>::num_arrays(
-    const Solver&)
+int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
 {
     return 2;
 }
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Bicgstab<ValueType>>::num_vectors(
-    const Solver&)
+int workspace_traits<Bicgstab<ValueType>>::num_vectors(const Solver&)
 {
     return 16;
 }
 
 
 template <typename ValueType>
-std::vector<std::string>
-solver_workspace_traits<Bicgstab<ValueType>>::vector_names(const Solver&)
+std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::op_names(
+    const Solver&)
 {
     return {
         "r",   "z",     "y",     "v",         "s",     "t",
@@ -277,31 +274,32 @@ solver_workspace_traits<Bicgstab<ValueType>>::vector_names(const Solver&)
 
 
 template <typename ValueType>
-std::vector<std::string>
-solver_workspace_traits<Bicgstab<ValueType>>::array_names(const Solver&)
+std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::array_names(
+    const Solver&)
 {
     return {"stop", "tmp"};
 }
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Bicgstab<ValueType>>::scalars(
-    const Solver&)
+std::vector<int> workspace_traits<Bicgstab<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, beta, omega, prev_rho, rho, omega};
+    return {alpha, beta, gamma, prev_rho, rho, omega};
 }
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Bicgstab<ValueType>>::vectors(
-    const Solver&)
+std::vector<int> workspace_traits<Bicgstab<ValueType>>::vectors(const Solver&)
 {
     return {r, z, y, v, s, t, p, rr};
 }
 
 
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
+#define GKO_DECLARE_BICGSTAB_TRAITS(_type) \
+    struct workspace_traits<Bicgstab<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_TRAITS);
 
 
 }  // namespace solver

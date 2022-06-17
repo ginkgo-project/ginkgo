@@ -82,6 +82,8 @@ struct SimpleSolverTest {
 
     static bool is_preconditionable() { return true; }
 
+    static bool will_not_allocate() { return true; }
+
     static double tolerance() { return 1e4 * r<value_type>::value; }
 
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
@@ -148,7 +150,9 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 };
 
 
-struct Bicg : SimpleSolverTest<gko::solver::Bicg<solver_value_type>> {};
+struct Bicg : SimpleSolverTest<gko::solver::Bicg<solver_value_type>> {
+    static bool will_not_allocate() { return false; }
+};
 
 
 struct Bicgstab : SimpleSolverTest<gko::solver::Bicgstab<solver_value_type>> {
@@ -211,6 +215,8 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 
 template <unsigned dimension>
 struct CbGmres : SimpleSolverTest<gko::solver::CbGmres<solver_value_type>> {
+    static bool will_not_allocate() { return false; }
+
     static double tolerance() { return 1e9 * r<value_type>::value; }
 
     static typename solver_type::parameters_type build(
@@ -268,6 +274,8 @@ struct Gmres : SimpleSolverTest<gko::solver::Gmres<solver_value_type>> {
 
 
 struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
+    static bool will_not_allocate() { return false; }
+
     static bool is_iterative() { return false; }
 
     static bool is_preconditionable() { return false; }
@@ -311,6 +319,8 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
 
 
 struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
+    static bool will_not_allocate() { return false; }
+
     static bool is_iterative() { return false; }
 
     static bool is_preconditionable() { return false; }
@@ -389,6 +399,27 @@ struct DummyLogger : gko::log::Logger {
     }
 
     mutable int iteration_complete = 0;
+};
+
+
+class FailOnAllocationFreeLogger : public gko::log::Logger {
+public:
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        FAIL() << "allocation of size " << num_bytes;
+    }
+
+    void on_free_started(const gko::Executor* exec,
+                         const gko::uintptr& location) const override
+    {
+        FAIL() << "free";
+    }
+
+    FailOnAllocationFreeLogger()
+        : Logger(gko::log::Logger::allocation_started_mask |
+                 gko::log::Logger::free_started_mask)
+    {}
 };
 
 
@@ -703,6 +734,27 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 
                     GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
                 });
+        });
+    });
+}
+
+
+TYPED_TEST(Solver, ApplyDoesntAllocateRepeatedly)
+{
+    if (!TypeParam::will_not_allocate()) {
+        GTEST_SKIP();
+    }
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_solver_scenarios(mtx, [this](auto solver) {
+            this->forall_vector_scenarios(solver, [this, &solver](auto b,
+                                                                  auto x) {
+                solver.dev->apply(b.dev.get(), x.dev.get());
+                auto logger = std::make_shared<FailOnAllocationFreeLogger>();
+
+                this->exec->add_logger(logger);
+                solver.dev->apply(b.dev.get(), x.dev.get());
+                this->exec->remove_logger(logger.get());
+            });
         });
     });
 }

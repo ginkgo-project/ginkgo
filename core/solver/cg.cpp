@@ -107,22 +107,21 @@ void Cg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    using ws = solver_workspace_traits<Cg>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    GKO_SOLVER_VECTOR(r);
-    GKO_SOLVER_VECTOR(z);
-    GKO_SOLVER_VECTOR(p);
-    GKO_SOLVER_VECTOR(q);
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(q, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha);
-    GKO_SOLVER_SCALAR(beta);
-    GKO_SOLVER_SCALAR(prev_rho);
-    GKO_SOLVER_SCALAR(rho);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -204,21 +203,21 @@ void Cg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
+int workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
 {
     return 2;
 }
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
+int workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
 {
     return 10;
 }
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Cg<ValueType>>::vector_names(
+std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
     const Solver&)
 {
     return {
@@ -229,7 +228,7 @@ std::vector<std::string> solver_workspace_traits<Cg<ValueType>>::vector_names(
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Cg<ValueType>>::array_names(
+std::vector<std::string> workspace_traits<Cg<ValueType>>::array_names(
     const Solver&)
 {
     return {"stop", "tmp"};
@@ -237,21 +236,23 @@ std::vector<std::string> solver_workspace_traits<Cg<ValueType>>::array_names(
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Cg<ValueType>>::scalars(const Solver&)
+std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
 {
     return {alpha, beta, prev_rho, rho};
 }
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Cg<ValueType>>::vectors(const Solver&)
+std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
 {
     return {r, z, p, q};
 }
 
 
 #define GKO_DECLARE_CG(_type) class Cg<_type>
+#define GKO_DECLARE_CG_TRAITS(_type) struct workspace_traits<Cg<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TRAITS);
 
 
 }  // namespace solver

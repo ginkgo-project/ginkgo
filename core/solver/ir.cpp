@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 #include "core/solver/ir_kernels.hpp"
@@ -174,14 +175,14 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                      matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
-    using ws = solver_workspace_traits<Ir>;
+    using ws = workspace_traits<Ir>;
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    GKO_SOLVER_VECTOR(residual);
-    GKO_SOLVER_VECTOR(inner_solution);
+    GKO_SOLVER_VECTOR(residual, dense_b);
+    GKO_SOLVER_VECTOR(inner_solution, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -259,21 +260,21 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
+int workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
 {
     return 1;
 }
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
+int workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
 {
     return 4;
 }
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::vector_names(
+std::vector<std::string> workspace_traits<Ir<ValueType>>::op_names(
     const Solver&)
 {
     return {
@@ -286,7 +287,7 @@ std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::vector_names(
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::array_names(
+std::vector<std::string> workspace_traits<Ir<ValueType>>::array_names(
     const Solver&)
 {
     return {"stop"};
@@ -294,21 +295,23 @@ std::vector<std::string> solver_workspace_traits<Ir<ValueType>>::array_names(
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Ir<ValueType>>::scalars(const Solver&)
+std::vector<int> workspace_traits<Ir<ValueType>>::scalars(const Solver&)
 {
     return {};
 }
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Ir<ValueType>>::vectors(const Solver&)
+std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 {
     return {residual, inner_solution};
 }
 
 
 #define GKO_DECLARE_IR(_type) class Ir<_type>
+#define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
 
 
 }  // namespace solver
