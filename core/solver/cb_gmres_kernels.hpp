@@ -141,7 +141,8 @@ namespace kernels {
                       matrix::Dense<remove_complex<_type1>>* arnoldi_norm,  \
                       _range krylov_bases,                                  \
                       matrix::Dense<_type1>* next_krylov_basis,             \
-                      array<size_type>* final_iter_nums, size_type krylov_dim)
+                      array<size_type>* final_iter_nums, array<char>& tmp,  \
+                      size_type krylov_dim)
 
 
 #define GKO_DECLARE_CB_GMRES_STEP_1_KERNEL(_type1, _range)                    \

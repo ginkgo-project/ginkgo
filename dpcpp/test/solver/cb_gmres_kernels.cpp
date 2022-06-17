@@ -280,17 +280,19 @@ TEST_F(CbGmres, DpcppCbGmresInitialize1IsEquivalentToRef)
 TEST_F(CbGmres, DpcppCbGmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
+    gko::array<char> tmp{ref};
+    gko::array<char> dtmp{dpcpp};
 
     gko::kernels::reference::cb_gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), arnoldi_norm.get(),
         range_helper.get_range(), next_krylov_basis.get(),
-        final_iter_nums.get(), default_krylov_dim_mixed);
+        final_iter_nums.get(), tmp, default_krylov_dim_mixed);
     gko::kernels::dpcpp::cb_gmres::initialize_2(
         dpcpp, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_arnoldi_norm.get(),
         d_range_helper.get_range(), d_next_krylov_basis.get(),
-        d_final_iter_nums.get(), default_krylov_dim_mixed);
+        d_final_iter_nums.get(), dtmp, default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);

@@ -276,7 +276,8 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
                   matrix::Dense<ValueType>* residual_norm_collection,
                   matrix::Dense<ValueType>* krylov_bases,
-                  array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, array<char>&,
+                  size_type krylov_dim)
 {
     using norm_type = remove_complex<ValueType>;
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {

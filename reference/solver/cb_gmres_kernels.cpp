@@ -336,7 +336,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                   Accessor3d krylov_bases,
                   matrix::Dense<ValueType>* next_krylov_basis,
-                  array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, array<char>&,
+                  size_type krylov_dim)
 {
     static_assert(
         std::is_same<ValueType,

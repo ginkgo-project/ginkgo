@@ -200,15 +200,17 @@ TEST_F(Gmres, HipGmresInitialize1IsEquivalentToRef)
 TEST_F(Gmres, HipGmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
+    gko::array<char> tmp{ref};
+    gko::array<char> dtmp{hip};
 
     gko::kernels::reference::gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
-        final_iter_nums.get(), gko::solver::default_krylov_dim);
+        final_iter_nums.get(), tmp, gko::solver::default_krylov_dim);
     gko::kernels::hip::gmres::initialize_2(
         hip, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
-        d_final_iter_nums.get(), gko::solver::default_krylov_dim);
+        d_final_iter_nums.get(), dtmp, gko::solver::default_krylov_dim);
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,

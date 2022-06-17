@@ -139,14 +139,14 @@ protected:
 
 
 template <typename ValueType>
-struct solver_workspace_traits<Cgs<ValueType>> {
+struct workspace_traits<Cgs<ValueType>> {
     using Solver = Cgs<ValueType>;
     // number of vectors used by this workspace
-    static constexpr int num_vectors(const Solver&);
+    static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static constexpr int num_arrays(const Solver&);
+    static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> vector_names(const Solver&);
+    static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
     static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)

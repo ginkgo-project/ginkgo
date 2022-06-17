@@ -122,50 +122,58 @@ public:
         return *this;
     }
 
-    template <typename VectorType, typename CreateOperation>
-    VectorType* create_or_get_vector(int vector_id, CreateOperation op,
-                                     const std::type_info& expected_type,
-                                     dim<2> size, size_type stride)
+    template <typename LinOpType, typename CreateOperation>
+    LinOpType* create_or_get_op(int op_id, CreateOperation create,
+                                const std::type_info& expected_type,
+                                dim<2> size, size_type stride)
     {
-        GKO_ASSERT(vector_id >= 0 && vector_id < vectors_.size());
+        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
         // does the existing object have the wrong type?
         // vector types may vary e.g. if users derive from Dense
-        auto stored_vec = vectors_[vector_id].get();
-        VectorType* vec{};
-        if (!stored_vec || typeid(*stored_vec) != expected_type) {
-            auto new_vec = op();
-            vec = new_vec.get();
-            vectors_[vector_id] = std::move(new_vec);
-            return vec;
+        auto stored_op = operators_[op_id].get();
+        LinOpType* op{};
+        if (!stored_op || typeid(*stored_op) != expected_type) {
+            auto new_op = create();
+            op = new_op.get();
+            operators_[op_id] = std::move(new_op);
+            return op;
         }
         // does the existing object have the wrong dimensions?
-        vec = dynamic_cast<VectorType*>(vectors_[vector_id].get());
-        GKO_ASSERT(vec);
-        if (vec->get_size() != size || vec->get_stride() != stride) {
-            auto new_vec = op();
-            vec = new_vec.get();
-            vectors_[vector_id] = std::move(new_vec);
+        op = dynamic_cast<LinOpType*>(operators_[op_id].get());
+        GKO_ASSERT(op);
+        if (op->get_size() != size || op->get_stride() != stride) {
+            auto new_op = create();
+            op = new_op.get();
+            operators_[op_id] = std::move(new_op);
         }
-        return vec;
+        return op;
     }
 
-    const LinOp* get_vector(int vector_id) const
+    const LinOp* get_op(int op_id) const
     {
-        GKO_ASSERT(vector_id >= 0 && vector_id < vectors_.size());
-        return vectors_[vector_id].get();
+        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
+        return operators_[op_id].get();
+    }
+
+    template <typename ValueType>
+    array<ValueType>& init_or_get_array(int array_id)
+    {
+        GKO_ASSERT(array_id >= 0 && array_id < arrays_.size());
+        auto& array = arrays_[array_id];
+        if (array.empty()) {
+            auto& result =
+                array.template init<ValueType>(this->get_executor(), 0);
+            return result;
+        }
+        // array types should not change!
+        GKO_ASSERT(array.template contains<ValueType>());
+        return array.template get<ValueType>();
     }
 
     template <typename ValueType>
     array<ValueType>& create_or_get_array(int array_id, size_type size)
     {
-        GKO_ASSERT(array_id >= 0 && array_id < arrays_.size());
-        auto& array = arrays_[array_id];
-        if (array.empty()) {
-            array.template init<ValueType>(this->get_executor(), size);
-        }
-        // array types should not change!
-        GKO_ASSERT(array.template contains<ValueType>());
-        auto& result = array.template get<ValueType>();
+        auto& result = init_or_get_array<ValueType>(array_id);
         if (result.get_num_elems() != size) {
             result.resize_and_reset(size);
         }
@@ -174,16 +182,16 @@ public:
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
 
-    void set_size(int num_vectors, int num_arrays)
+    void set_size(int num_operators, int num_arrays)
     {
-        vectors_.resize(num_vectors);
+        operators_.resize(num_operators);
         arrays_.resize(num_arrays);
     }
 
     void clear()
     {
-        for (auto& vector : vectors_) {
-            vector.reset();
+        for (auto& op : operators_) {
+            op.reset();
         }
         for (auto& array : arrays_) {
             array.clear();
@@ -192,7 +200,7 @@ public:
 
 private:
     std::shared_ptr<const Executor> exec_;
-    std::vector<std::unique_ptr<LinOp>> vectors_;
+    std::vector<std::unique_ptr<LinOp>> operators_;
     std::vector<any_array> arrays_;
 };
 

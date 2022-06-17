@@ -158,7 +158,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
-            using ws = solver_workspace_traits<LowerTrs>;
+            using ws = workspace_traits<LowerTrs>;
             const auto exec = this->get_executor();
             this->setup_workspace();
 
@@ -171,9 +171,9 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             Vector* trans_b{};
             Vector* trans_x{};
             if (needs_transpose(exec)) {
-                trans_b = this->template create_workspace<Vector>(
+                trans_b = this->template create_workspace_op<Vector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
-                trans_x = this->template create_workspace<Vector>(
+                trans_x = this->template create_workspace_op<Vector>(
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(lower_trs::make_solve(lend(this->get_system_matrix()),
@@ -205,16 +205,14 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 template <typename ValueType, typename IndexType>
-constexpr int
-solver_workspace_traits<LowerTrs<ValueType, IndexType>>::num_arrays(
-    const Solver&)
+int workspace_traits<LowerTrs<ValueType, IndexType>>::num_arrays(const Solver&)
 {
     return 0;
 }
 
 
 template <typename ValueType, typename IndexType>
-int solver_workspace_traits<LowerTrs<ValueType, IndexType>>::num_vectors(
+int workspace_traits<LowerTrs<ValueType, IndexType>>::num_vectors(
     const Solver& solver)
 {
     return needs_transpose(solver.get_executor()) ? 2 : 0;
@@ -223,8 +221,7 @@ int solver_workspace_traits<LowerTrs<ValueType, IndexType>>::num_vectors(
 
 template <typename ValueType, typename IndexType>
 std::vector<std::string>
-solver_workspace_traits<LowerTrs<ValueType, IndexType>>::vector_names(
-    const Solver& solver)
+workspace_traits<LowerTrs<ValueType, IndexType>>::op_names(const Solver& solver)
 {
     return needs_transpose(solver.get_executor()) ? std::vector<std::string>{
         "transposed_b",
@@ -235,7 +232,14 @@ solver_workspace_traits<LowerTrs<ValueType, IndexType>>::vector_names(
 
 template <typename ValueType, typename IndexType>
 std::vector<std::string>
-solver_workspace_traits<LowerTrs<ValueType, IndexType>>::array_names(
+workspace_traits<LowerTrs<ValueType, IndexType>>::array_names(const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::scalars(
     const Solver&)
 {
     return {};
@@ -243,16 +247,7 @@ solver_workspace_traits<LowerTrs<ValueType, IndexType>>::array_names(
 
 
 template <typename ValueType, typename IndexType>
-std::vector<int>
-solver_workspace_traits<LowerTrs<ValueType, IndexType>>::scalars(const Solver&)
-{
-    return {};
-}
-
-
-template <typename ValueType, typename IndexType>
-std::vector<int>
-solver_workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
+std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
     const Solver& solver)
 {
     return needs_transpose(solver.get_executor()) ? std::vector<int>{
@@ -263,7 +258,10 @@ solver_workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
 
 
 #define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
+#define GKO_DECLARE_LOWER_TRS_TRAITS(_vtype, _itype) \
+    struct workspace_traits<LowerTrs<_vtype, _itype>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS_TRAITS);
 
 
 }  // namespace solver

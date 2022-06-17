@@ -63,7 +63,8 @@ namespace gmres {
                       matrix::Dense<remove_complex<_type>>* residual_norm, \
                       matrix::Dense<_type>* residual_norm_collection,      \
                       matrix::Dense<_type>* krylov_bases,                  \
-                      array<size_type>* final_iter_nums, size_type krylov_dim)
+                      array<size_type>* final_iter_nums, array<char>& tmp, \
+                      size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                         \

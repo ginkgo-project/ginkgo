@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 #include "core/solver/cgs_kernels.hpp"
@@ -107,27 +108,26 @@ void Cgs<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    using ws = solver_workspace_traits<Cgs>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
     this->setup_workspace();
 
-    GKO_SOLVER_VECTOR(r);
-    GKO_SOLVER_VECTOR(r_tld);
-    GKO_SOLVER_VECTOR(p);
-    GKO_SOLVER_VECTOR(q);
-    GKO_SOLVER_VECTOR(u);
-    GKO_SOLVER_VECTOR(u_hat);
-    GKO_SOLVER_VECTOR(v_hat);
-    GKO_SOLVER_VECTOR(t);
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(r_tld, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(q, dense_b);
+    GKO_SOLVER_VECTOR(u, dense_b);
+    GKO_SOLVER_VECTOR(u_hat, dense_b);
+    GKO_SOLVER_VECTOR(v_hat, dense_b);
+    GKO_SOLVER_VECTOR(t, dense_b);
 
-    GKO_SOLVER_SCALAR(alpha);
-    GKO_SOLVER_SCALAR(beta);
-    GKO_SOLVER_SCALAR(gamma);
-    GKO_SOLVER_SCALAR(prev_rho);
-    GKO_SOLVER_SCALAR(rho);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(gamma, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
@@ -219,22 +219,21 @@ void Cgs<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Cgs<ValueType>>::num_arrays(const Solver&)
+int workspace_traits<Cgs<ValueType>>::num_arrays(const Solver&)
 {
     return 2;
 }
 
 
 template <typename ValueType>
-constexpr int solver_workspace_traits<Cgs<ValueType>>::num_vectors(
-    const Solver&)
+int workspace_traits<Cgs<ValueType>>::num_vectors(const Solver&)
 {
     return 15;
 }
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::vector_names(
+std::vector<std::string> workspace_traits<Cgs<ValueType>>::op_names(
     const Solver&)
 {
     return {
@@ -245,7 +244,7 @@ std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::vector_names(
 
 
 template <typename ValueType>
-std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::array_names(
+std::vector<std::string> workspace_traits<Cgs<ValueType>>::array_names(
     const Solver&)
 {
     return {"stop", "tmp"};
@@ -253,21 +252,23 @@ std::vector<std::string> solver_workspace_traits<Cgs<ValueType>>::array_names(
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Cgs<ValueType>>::scalars(const Solver&)
+std::vector<int> workspace_traits<Cgs<ValueType>>::scalars(const Solver&)
 {
     return {alpha, beta, gamma, prev_rho, rho};
 }
 
 
 template <typename ValueType>
-std::vector<int> solver_workspace_traits<Cgs<ValueType>>::vectors(const Solver&)
+std::vector<int> workspace_traits<Cgs<ValueType>>::vectors(const Solver&)
 {
     return {r, r_tld, p, q, u, u_hat, v_hat, t};
 }
 
 
 #define GKO_DECLARE_CGS(_type) class Cgs<_type>
+#define GKO_DECLARE_CGS_TRAITS(_type) struct workspace_traits<Cgs<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TRAITS);
 
 
 }  // namespace solver

@@ -252,14 +252,14 @@ protected:
 
 
 template <typename ValueType>
-struct solver_workspace_traits<Idr<ValueType>> {
+struct workspace_traits<Idr<ValueType>> {
     using Solver = Idr<ValueType>;
     // number of vectors used by this workspace
-    static constexpr int num_vectors(const Solver&);
+    static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static constexpr int num_arrays(const Solver&);
+    static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> vector_names(const Solver&);
+    static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
     static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
@@ -293,16 +293,14 @@ struct solver_workspace_traits<Idr<ValueType>> {
     constexpr static int residual_norm = 11;
     // T^H*T scalar
     constexpr static int tht = 12;
-    // t norm scalar
-    constexpr static int t_norm = 13;
     // alpha "multiscalar"
-    constexpr static int alpha = 14;
+    constexpr static int alpha = 13;
     // constant 1.0 scalar
-    constexpr static int one = 15;
+    constexpr static int one = 14;
     // constant -1.0 scalar
-    constexpr static int minus_one = 16;
+    constexpr static int minus_one = 15;
     // constant -1.0 scalar
-    constexpr static int subspace_minus_one = 17;
+    constexpr static int subspace_minus_one = 16;
 
     // stopping status array
     constexpr static int stop = 0;

@@ -125,7 +125,8 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                   matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
                   Accessor3d krylov_bases,
                   matrix::Dense<ValueType>* next_krylov_basis,
-                  array<size_type>* final_iter_nums, size_type krylov_dim)
+                  array<size_type>* final_iter_nums, array<char>& tmp,
+                  size_type krylov_dim)
 {
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
@@ -139,7 +140,6 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
-    array<char> tmp{exec};
 
     hipLaunchKernelGGL(initialize_2_1_kernel<block_size>, grid_dim_1, block_dim,
                        0, 0, residual->get_size()[0], residual->get_size()[1],
