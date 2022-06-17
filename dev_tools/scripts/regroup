@@ -2,7 +2,7 @@ IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<(rapidjson|gflags|gtest|papi).*'
     Priority: 3
-  - Regex: '^<(omp|cu|hip|thrust|CL/|cooperative|oneapi|mpi).*'
+  - Regex: '^<(omp|cu|hip|thrust|CL/|cooperative|oneapi|mpi|nvToolsExt).*'
     Priority: 2
   - Regex: '^<ginkgo.*'
     Priority: 5

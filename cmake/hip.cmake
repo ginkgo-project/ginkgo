@@ -85,6 +85,14 @@ if(NOT DEFINED HIP_CLANG_PATH)
     endif()
 endif()
 
+if(NOT DEFINED ROCTRACER_PATH)
+    if(DEFINED ENV{ROCTRACER_PATH})
+        set(ROCTRACER_PATH $ENV{ROCTRACER_PATH} CACHE PATH "Path to which ROCTRACER has been installed")
+    else()
+        set(ROCTRACER_PATH "${ROCM_PATH}/roctracer" CACHE PATH "Path to which ROCTRACER has been installed")
+    endif()
+endif()
+
 # Find HIPCC_CMAKE_LINKER_HELPER executable
 find_program(
     HIP_HIPCC_CMAKE_LINKER_HELPER
@@ -166,6 +174,7 @@ find_package(hiprand REQUIRED)
 find_package(hipsparse REQUIRED)
 # At the moment, for hiprand to work also rocrand is required.
 find_package(rocrand REQUIRED)
+find_package(ROCTX REQUIRED)
 find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
     PATHS "${HIP_PATH}/../include"
     ENV HIP_THRUST_PATH)
