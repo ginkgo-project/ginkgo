@@ -54,6 +54,8 @@ else()
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
     find_library(CUFFT cufft
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    find_library(NVTX nvToolsExt
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 endif()
 
 # MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.

@@ -30,58 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <atomic>
-#include <memory>
-#include <mutex>
+#if GKO_HAVE_TAU
+#define PERFSTUBS_USE_TIMERS
+#include <perfstubs_api/timer.h>
+#endif
 
 
-#include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 
 
 namespace gko {
-
-
-std::mutex& nvidia_device::get_mutex(int i)
-{
-    static std::mutex mutex[max_devices];
-    return mutex[i];
-}
-
-
-int& nvidia_device::get_num_execs(int i)
-{
-    static int num_execs[max_devices];
-    return num_execs[i];
-}
-
-
-std::mutex& amd_device::get_mutex(int i)
-{
-    static std::mutex mutex[max_devices];
-    return mutex[i];
-}
-
-
-int& amd_device::get_num_execs(int i)
-{
-    static int num_execs[max_devices];
-    return num_execs[i];
-}
-
-
 namespace log {
 
 
-static std::atomic<int> global_logger_refcount{};
+#if GKO_HAVE_TAU
 
 
-void inc_global_logger_refcount() { global_logger_refcount.fetch_add(1); }
+void init_tau() { PERFSTUBS_INITIALIZE(); }
 
 
-void dec_global_logger_refcount() { global_logger_refcount.fetch_add(-1); }
+void begin_tau(const char* name, profile_event_category)
+{
+    PERFSTUBS_START_STRING(name);
+}
 
 
-bool propagate_to_exec() { return global_logger_refcount.load() > 0; }
+void end_tau(const char*, profile_event_category)
+{
+    PERFSTUBS_STOP_STRING(name);
+}
+
+
+void finalize_tau() { PERFSTUBS_FINALIZE(); }
+
+
+#else
+
+
+void init_tau() GKO_NOT_COMPILED(tau);
+
+
+void begin_tau(const char*, profile_event_category) GKO_NOT_COMPILED(tau);
+
+
+void end_tau(const char*, profile_event_category) GKO_NOT_COMPILED(tau);
+
+
+void finalize_tau() GKO_NOT_COMPILED(tau);
+
+
+#endif
 
 
 }  // namespace log
