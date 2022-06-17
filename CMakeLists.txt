@@ -17,6 +17,8 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -186,8 +188,6 @@ if(GINKGO_WITH_IWYU)
     find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules/")
-
 # Find important header files, store the definitions in
 # include/ginkgo/config.h.in For details, see
 # https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -199,6 +199,13 @@ set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
+endif()
+
+# Automatically find TAU
+set(GINKGO_HAVE_TAU 0)
+find_package(PerfStubs QUIET)
+if(PerfStubs_FOUND)
+    set(GINKGO_HAVE_TAU 1)
 endif()
 
 # Switch off HWLOC for Windows and MacOS

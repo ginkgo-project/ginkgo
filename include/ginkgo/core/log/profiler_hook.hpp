@@ -30,59 +30,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <atomic>
-#include <memory>
-#include <mutex>
+#ifndef GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
+#define GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
 
 
-#include <ginkgo/core/base/device.hpp>
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/log/logger.hpp>
 
 
 namespace gko {
-
-
-std::mutex& nvidia_device::get_mutex(int i)
-{
-    static std::mutex mutex[max_devices];
-    return mutex[i];
-}
-
-
-int& nvidia_device::get_num_execs(int i)
-{
-    static int num_execs[max_devices];
-    return num_execs[i];
-}
-
-
-std::mutex& amd_device::get_mutex(int i)
-{
-    static std::mutex mutex[max_devices];
-    return mutex[i];
-}
-
-
-int& amd_device::get_num_execs(int i)
-{
-    static int num_execs[max_devices];
-    return num_execs[i];
-}
-
-
 namespace log {
 
 
-static std::atomic<int> global_logger_refcount{};
+enum class profile_event_category {
+    memory,
+    operation,
+    object,
+    linop,
+    factory,
+    criterion,
+};
 
 
-void inc_global_logger_refcount() { global_logger_refcount.fetch_add(1); }
+std::shared_ptr<Logger> get_tau_hook(bool initialize = true);
 
 
-void dec_global_logger_refcount() { global_logger_refcount.fetch_add(-1); }
+std::shared_ptr<Logger> create_nvtx_hook(uint32 color_rgb = 0xFFCB05U);
 
 
-bool propagate_to_exec() { return global_logger_refcount.load() > 0; }
+std::shared_ptr<Logger> create_roctx_hook();
 
 
 }  // namespace log
 }  // namespace gko
+
+
+#endif  // GKO_PUBLIC_CORE_LOG_PROFILER_HOOK_HPP_
