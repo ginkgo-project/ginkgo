@@ -546,13 +546,31 @@ protected:
      *                           logs every event except linop's apply started
      *                           event.
      */
-    explicit Logger(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type& enabled_events = all_events_mask)
-        : exec_{exec}, enabled_events_{enabled_events}
+    [[deprecated("use single-parameter constructor")]] explicit Logger(
+        std::shared_ptr<const gko::Executor> exec,
+        const mask_type& enabled_events = all_events_mask)
+        : Logger{enabled_events}
+    {}
+
+    /**
+     * Constructor for a Logger object.
+     *
+     * @param enabled_events  the events enabled for this Logger. These can be
+     *                        of the following form:
+     *                        1. `all_event_mask` which logs every event;
+     *                        2. an OR combination of masks, e.g.
+     *                           `iteration_complete_mask|linop_apply_started_mask`
+     *                           which activates both of these events;
+     *                        3. all events with exclusion through XOR, e.g.
+     *                           `all_event_mask^linop_apply_started_mask` which
+     *                           logs every event except linop's apply started
+     *                           event.
+     */
+    explicit Logger(const mask_type& enabled_events = all_events_mask)
+        : enabled_events_{enabled_events}
     {}
 
 private:
-    std::shared_ptr<const Executor> exec_;
     mask_type enabled_events_;
 };
 

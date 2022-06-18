@@ -377,9 +377,7 @@ struct test_pair {
 
 
 struct DummyLogger : gko::log::Logger {
-    DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec),
-                           gko::log::Logger::iteration_complete_mask)
+    DummyLogger() : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
     void on_iteration_complete(const gko::LinOp* solver,
@@ -413,7 +411,7 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        logger = std::make_shared<DummyLogger>(exec);
+        logger = std::make_shared<DummyLogger>();
     }
 
     void TearDown()

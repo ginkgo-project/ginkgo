@@ -54,7 +54,7 @@ TYPED_TEST(Convergence, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::iteration_complete_mask);
+        gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->has_converged(), false);
     ASSERT_EQ(logger->get_num_iterations(), 0);

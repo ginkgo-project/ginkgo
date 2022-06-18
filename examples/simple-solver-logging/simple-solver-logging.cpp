@@ -114,7 +114,6 @@ int main(int argc, char* argv[])
     // for convenience.
     std::shared_ptr<gko::log::Stream<ValueType>> stream_logger =
         gko::log::Stream<ValueType>::create(
-            exec,
             gko::log::Logger::all_events_mask ^
                 gko::log::Logger::linop_factory_events_mask ^
                 gko::log::Logger::polymorphic_object_events_mask,
@@ -151,15 +150,15 @@ int main(int argc, char* argv[])
     // Logger class for more information.
     std::ofstream filestream("my_file.txt");
     solver->add_logger(gko::log::Stream<ValueType>::create(
-        exec, gko::log::Logger::all_events_mask, filestream));
+        gko::log::Logger::all_events_mask, filestream));
     solver->add_logger(stream_logger);
 
     // Add another logger which puts all the data in an object, we can later
     // retrieve this object in our code. Here we only have want Executor
     // and criterion check completed events.
     std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
-        exec, gko::log::Logger::executor_events_mask |
-                  gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::executor_events_mask |
+        gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
 

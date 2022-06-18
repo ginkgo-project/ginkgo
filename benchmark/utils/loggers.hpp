@@ -116,9 +116,7 @@ struct OperationLogger : gko::log::Logger {
         }
     }
 
-    OperationLogger(std::shared_ptr<const gko::Executor> exec, bool nested_name)
-        : gko::log::Logger(exec), use_nested_name{nested_name}
-    {}
+    OperationLogger(bool nested_name) : use_nested_name{nested_name} {}
 
 private:
     void start_operation(const gko::Executor* exec,
@@ -188,10 +186,6 @@ struct StorageLogger : gko::log::Logger {
         add_or_set_member(output, "storage", total, allocator);
     }
 
-    StorageLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
-    {}
-
 private:
     mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
@@ -249,14 +243,13 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp* matrix, const vec<ValueType>* b,
+    ResidualLogger(const gko::LinOp* matrix, const vec<ValueType>* b,
                    rapidjson::Value& rec_res_norms,
                    rapidjson::Value& true_res_norms,
                    rapidjson::Value& implicit_res_norms,
                    rapidjson::Value& timestamps,
                    rapidjson::MemoryPoolAllocator<>& alloc)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b},
           start{std::chrono::steady_clock::now()},
@@ -293,8 +286,8 @@ struct IterationLogger : gko::log::Logger {
         this->num_iters = num_iterations;
     }
 
-    IterationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask)
+    IterationLogger()
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
     void write_data(rapidjson::Value& output,
