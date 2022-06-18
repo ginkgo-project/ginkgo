@@ -117,7 +117,7 @@ void run_solver(volatile bool* stop_iteration_process,
                       .on(exec)
                       ->generate(A);
     solver->add_logger(gko::log::Stream<ValueType>::create(
-        exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
+        gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(lend(b), lend(x));
 
     std::cout << "Solver stopped" << std::endl;

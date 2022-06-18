@@ -180,10 +180,6 @@ struct OperationLogger : gko::log::Logger {
         }
     }
 
-    OperationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
-    {}
-
 private:
     // Helper which synchronizes and starts the time before every operation.
     void start_operation(const gko::Executor* exec,
@@ -244,10 +240,6 @@ struct StorageLogger : gko::log::Logger {
         ostream << "Storage: " << total << std::endl;
     }
 
-    StorageLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
-    {}
-
 private:
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
 };
@@ -279,9 +271,8 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp* matrix, const vec<ValueType>* b)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+    ResidualLogger(const gko::LinOp* matrix, const vec<ValueType>* b)
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b}
     {}
@@ -407,7 +398,7 @@ int main(int argc, char* argv[])
 
     // Read data: A is read from disk
     // Create a StorageLogger to track the size of A
-    auto storage_logger = std::make_shared<loggers::StorageLogger>(exec);
+    auto storage_logger = std::make_shared<loggers::StorageLogger>();
     // Add the logger to the executor
     exec->add_logger(storage_logger);
     // Read the matrix A from file
@@ -487,7 +478,7 @@ int main(int argc, char* argv[])
     // Log the internal operations using the OperationLogger without timing
     {
         // Create an OperationLogger to analyze the generate step
-        auto gen_logger = std::make_shared<loggers::OperationLogger>(exec);
+        auto gen_logger = std::make_shared<loggers::OperationLogger>();
         // Add the generate logger to the executor
         exec->add_logger(gen_logger);
         // Generate a solver
@@ -499,11 +490,11 @@ int main(int argc, char* argv[])
         gen_logger->write_data(output_file);
 
         // Create an OperationLogger to analyze the apply step
-        auto apply_logger = std::make_shared<loggers::OperationLogger>(exec);
+        auto apply_logger = std::make_shared<loggers::OperationLogger>();
         exec->add_logger(apply_logger);
         // Create a ResidualLogger to log the recurent residual
         auto res_logger = std::make_shared<loggers::ResidualLogger<ValueType>>(
-            exec, gko::lend(A), gko::lend(b));
+            gko::lend(A), gko::lend(b));
         generated_solver->add_logger(res_logger);
         // Solve the system
         generated_solver->apply(gko::lend(b), gko::lend(x));

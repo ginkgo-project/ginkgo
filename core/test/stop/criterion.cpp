@@ -40,10 +40,7 @@ namespace {
 
 
 struct DummyLogger : public gko::log::Logger {
-    DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec),
-                           gko::log::Logger::criterion_events_mask)
-    {}
+    DummyLogger() : gko::log::Logger(gko::log::Logger::criterion_events_mask) {}
 
     void on_criterion_check_started(const gko::stop::Criterion* criterion,
                                     const gko::size_type& num_iterations,
@@ -101,7 +98,7 @@ protected:
         : exec{gko::ReferenceExecutor::create()},
           criterion{std::make_unique<DummyCriterion>(exec)},
           stopping_status{exec},
-          logger{std::make_shared<DummyLogger>(exec)}
+          logger{std::make_shared<DummyLogger>()}
     {
         criterion->add_logger(logger);
     }

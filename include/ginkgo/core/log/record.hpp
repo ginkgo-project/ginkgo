@@ -420,13 +420,37 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
+    [[deprecated("use two-parameter create")]] static std::unique_ptr<Record>
+    create(std::shared_ptr<const Executor> exec,
+           const mask_type& enabled_events = Logger::all_events_mask,
+           size_type max_storage = 1)
+    {
+        return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
+    }
+
+    /**
+     * Creates a Record logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param max_storage  the size of storage (i.e. history) wanted by the
+     *                     user. By default 0 is used, which means unlimited
+     *                     storage. It is advised to control this to reduce
+     *                     memory overhead of this logger.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
     static std::unique_ptr<Record> create(
-        std::shared_ptr<const Executor> exec,
         const mask_type& enabled_events = Logger::all_events_mask,
         size_type max_storage = 1)
     {
-        return std::unique_ptr<Record>(
-            new Record(exec, enabled_events, max_storage));
+        return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
     }
 
     /**
@@ -453,10 +477,26 @@ protected:
      *                     storage. It is advised to control this to reduce
      *                     memory overhead of this logger.
      */
-    explicit Record(std::shared_ptr<const gko::Executor> exec,
-                    const mask_type& enabled_events = Logger::all_events_mask,
+    [[deprecated("use two-parameter constructor")]] explicit Record(
+        std::shared_ptr<const gko::Executor> exec,
+        const mask_type& enabled_events = Logger::all_events_mask,
+        size_type max_storage = 0)
+        : Record(enabled_events, max_storage)
+    {}
+
+    /**
+     * Creates a Record logger.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param max_storage  the size of storage (i.e. history) wanted by the
+     *                     user. By default 0 is used, which means unlimited
+     *                     storage. It is advised to control this to reduce
+     *                     memory overhead of this logger.
+     */
+    explicit Record(const mask_type& enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)
-        : Logger(exec, enabled_events), max_storage_{max_storage}
+        : Logger(enabled_events), max_storage_{max_storage}
     {}
 
     /**

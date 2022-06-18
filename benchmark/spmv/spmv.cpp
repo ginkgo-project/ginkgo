@@ -73,7 +73,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
-        auto storage_logger = std::make_shared<StorageLogger>(exec);
+        auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
         auto system_matrix =
             share(formats::matrix_factory.at(format_name)(exec, data));

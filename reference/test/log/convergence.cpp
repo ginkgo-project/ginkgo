@@ -58,7 +58,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -86,7 +86,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithConvCheck)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -115,7 +115,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithStopCheck)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -144,7 +144,7 @@ TYPED_TEST(Convergence, CanResetConvergenceStatus)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -172,7 +172,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);

@@ -94,12 +94,31 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
+    [[deprecated(
+        "use single-parameter create")]] static std::unique_ptr<Convergence>
+    create(std::shared_ptr<const Executor>,
+           const mask_type& enabled_events = Logger::all_events_mask)
+    {
+        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+    }
+
+    /**
+     * Creates a convergence logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
     static std::unique_ptr<Convergence> create(
-        std::shared_ptr<const Executor> exec,
         const mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::unique_ptr<Convergence>(
-            new Convergence(exec, enabled_events));
+        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
     }
 
     /**
@@ -159,10 +178,21 @@ protected:
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      */
-    explicit Convergence(
-        std::shared_ptr<const gko::Executor> exec,
+    [[deprecated("use single-parameter constructor")]] explicit Convergence(
+        std::shared_ptr<const gko::Executor>,
         const mask_type& enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        : Logger(enabled_events)
+    {}
+
+    /**
+     * Creates a Convergence logger.
+     *
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     */
+    explicit Convergence(
+        const mask_type& enabled_events = Logger::all_events_mask)
+        : Logger(enabled_events)
     {}
 
 private:

@@ -195,13 +195,23 @@ public:
      * Creates a Papi Logger.
      *
      * @param enabled_events  the events enabled for this Logger
-     * @param handle  the papi handle
+     */
+    [[deprecated("use single-parameter create")]] static std::shared_ptr<Papi>
+    create(std::shared_ptr<const gko::Executor>,
+           const Logger::mask_type& enabled_events = Logger::all_events_mask)
+    {
+        return std::shared_ptr<Papi>(new Papi(enabled_events));
+    }
+
+    /**
+     * Creates a Papi Logger.
+     *
+     * @param enabled_events  the events enabled for this Logger
      */
     static std::shared_ptr<Papi> create(
-        std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
     {
-        return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
+        return std::shared_ptr<Papi>(new Papi(enabled_events));
     }
 
     /**
@@ -213,10 +223,15 @@ public:
     const std::string get_handle_name() const { return name; }
 
 protected:
-    explicit Papi(
+    [[deprecated("use single-parameter constructor")]] explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        : Papi(enabled_events)
+    {}
+
+    explicit Papi(
+        const Logger::mask_type& enabled_events = Logger::all_events_mask)
+        : Logger(enabled_events)
     {
         std::ostringstream os;
 

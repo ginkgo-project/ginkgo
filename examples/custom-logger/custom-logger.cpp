@@ -195,9 +195,8 @@ struct ResidualLogger : gko::log::Logger {
     }
 
     // Construct the logger and store the system matrix and b vectors
-    ResidualLogger(std::shared_ptr<const gko::Executor> exec,
-                   const gko::LinOp* matrix, const gko_dense* b)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+    ResidualLogger(const gko::LinOp* matrix, const gko_dense* b)
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b}
     {}
@@ -312,8 +311,8 @@ int main(int argc, char* argv[])
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger = std::make_shared<ResidualLogger<ValueType>>(
-        exec, gko::lend(A), gko::lend(b));
+    auto logger =
+        std::make_shared<ResidualLogger<ValueType>>(gko::lend(A), gko::lend(b));
 
     // Add the previously created logger to the solver factory. The logger
     // will be automatically propagated to all solvers created from this

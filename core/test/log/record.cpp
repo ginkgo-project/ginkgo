@@ -55,8 +55,8 @@ const std::string apply_str = "Dummy::apply";
 TEST(Record, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::iteration_complete_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->get().allocation_started.size(), 0);
 }
@@ -65,8 +65,8 @@ TEST(Record, CanGetData)
 TEST(Record, CatchesAllocationStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::allocation_started_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::allocation_started_mask);
 
     logger->on<gko::log::Logger::allocation_started>(exec.get(), 42);
 
@@ -80,8 +80,8 @@ TEST(Record, CatchesAllocationStarted)
 TEST(Record, CatchesAllocationCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::allocation_completed_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::allocation_completed_mask);
     int dummy = 1;
     auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
 
@@ -97,8 +97,7 @@ TEST(Record, CatchesAllocationCompleted)
 TEST(Record, CatchesFreeStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::free_started_mask);
+    auto logger = gko::log::Record::create(gko::log::Logger::free_started_mask);
     int dummy = 1;
     auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
 
@@ -115,7 +114,7 @@ TEST(Record, CatchesFreeCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::free_completed_mask);
+        gko::log::Record::create(gko::log::Logger::free_completed_mask);
     int dummy = 1;
     auto ptr = reinterpret_cast<gko::uintptr>(&dummy);
 
@@ -131,8 +130,7 @@ TEST(Record, CatchesFreeCompleted)
 TEST(Record, CatchesCopyStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::copy_started_mask);
+    auto logger = gko::log::Record::create(gko::log::Logger::copy_started_mask);
     int dummy_from = 1;
     int dummy_to = 1;
     auto ptr_from = reinterpret_cast<gko::uintptr>(&dummy_from);
@@ -157,7 +155,7 @@ TEST(Record, CatchesCopyCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger =
-        gko::log::Record::create(exec, gko::log::Logger::copy_completed_mask);
+        gko::log::Record::create(gko::log::Logger::copy_completed_mask);
     int dummy_from = 1;
     int dummy_to = 1;
     auto ptr_from = reinterpret_cast<gko::uintptr>(&dummy_from);
@@ -181,8 +179,8 @@ TEST(Record, CatchesCopyCompleted)
 TEST(Record, CatchesOperationLaunched)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::operation_launched_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::operation_launched_mask);
     gko::Operation op;
 
     logger->on<gko::log::Logger::operation_launched>(exec.get(), &op);
@@ -196,8 +194,8 @@ TEST(Record, CatchesOperationLaunched)
 TEST(Record, CatchesOperationCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::operation_completed_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::operation_completed_mask);
     gko::Operation op;
 
     logger->on<gko::log::Logger::operation_completed>(exec.get(), &op);
@@ -213,7 +211,7 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_create_started_mask);
+        gko::log::Logger::polymorphic_object_create_started_mask);
     auto po = gko::matrix::Dense<>::create(exec);
 
     logger->on<gko::log::Logger::polymorphic_object_create_started>(exec.get(),
@@ -232,7 +230,7 @@ TEST(Record, CatchesPolymorphicObjectCreateCompleted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_create_completed_mask);
+        gko::log::Logger::polymorphic_object_create_completed_mask);
     auto po = gko::matrix::Dense<>::create(exec);
     auto output = gko::matrix::Dense<>::create(exec);
 
@@ -251,7 +249,7 @@ TEST(Record, CatchesPolymorphicObjectCopyStarted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_copy_started_mask);
+        gko::log::Logger::polymorphic_object_copy_started_mask);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
 
@@ -270,7 +268,7 @@ TEST(Record, CatchesPolymorphicObjectCopyCompleted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_copy_completed_mask);
+        gko::log::Logger::polymorphic_object_copy_completed_mask);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
 
@@ -290,7 +288,7 @@ TEST(Record, CatchesPolymorphicObjectMoveStarted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_move_started_mask);
+        gko::log::Logger::polymorphic_object_move_started_mask);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
 
@@ -309,7 +307,7 @@ TEST(Record, CatchesPolymorphicObjectMoveCompleted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_move_completed_mask);
+        gko::log::Logger::polymorphic_object_move_completed_mask);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
 
@@ -329,7 +327,7 @@ TEST(Record, CatchesPolymorphicObjectDeleted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::polymorphic_object_deleted_mask);
+        gko::log::Logger::polymorphic_object_deleted_mask);
     auto po = gko::matrix::Dense<>::create(exec);
 
     logger->on<gko::log::Logger::polymorphic_object_deleted>(exec.get(),
@@ -347,8 +345,8 @@ TEST(Record, CatchesLinOpApplyStarted)
 {
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_apply_started_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::linop_apply_started_mask);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
     auto x = gko::initialize<Dense>({3.3}, exec);
@@ -369,8 +367,8 @@ TEST(Record, CatchesLinOpApplyCompleted)
 {
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_apply_completed_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::linop_apply_completed_mask);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
     auto x = gko::initialize<Dense>({3.3}, exec);
@@ -392,7 +390,7 @@ TEST(Record, CatchesLinOpAdvancedApplyStarted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_advanced_apply_started_mask);
+        gko::log::Logger::linop_advanced_apply_started_mask);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto alpha = gko::initialize<Dense>({-4.4}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
@@ -416,7 +414,7 @@ TEST(Record, CatchesLinOpAdvancedApplyCompleted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_advanced_apply_completed_mask);
+        gko::log::Logger::linop_advanced_apply_completed_mask);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto alpha = gko::initialize<Dense>({-4.4}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
@@ -439,7 +437,7 @@ TEST(Record, CatchesLinopFactoryGenerateStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_factory_generate_started_mask);
+        gko::log::Logger::linop_factory_generate_started_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
             .with_criteria(
@@ -461,7 +459,7 @@ TEST(Record, CatchesLinopFactoryGenerateCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::linop_factory_generate_completed_mask);
+        gko::log::Logger::linop_factory_generate_completed_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
             .with_criteria(
@@ -484,7 +482,7 @@ TEST(Record, CatchesCriterionCheckStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::criterion_check_started_mask);
+        gko::log::Logger::criterion_check_started_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -507,7 +505,7 @@ TEST(Record, CatchesCriterionCheckCompletedOld)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -537,7 +535,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -567,8 +565,8 @@ TEST(Record, CatchesIterations)
 {
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        exec, gko::log::Logger::iteration_complete_mask);
+    auto logger =
+        gko::log::Record::create(gko::log::Logger::iteration_complete_mask);
     auto factory =
         gko::solver::Bicgstab<>::build()
             .with_criteria(

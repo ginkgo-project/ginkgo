@@ -199,7 +199,7 @@ void run_preconditioner(const char* precond_name,
             auto precond = precond_factory.at(precond_name)(exec);
 
             auto gen_logger =
-                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
+                std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < ic_gen.get_num_repetitions(); ++i) {
@@ -211,7 +211,7 @@ void run_preconditioner(const char* precond_name,
                                    allocator, ic_gen.get_num_repetitions());
 
             auto apply_logger =
-                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
+                std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(apply_logger);
             for (auto i = 0u; i < ic_apply.get_num_repetitions(); ++i) {
                 precond_op->apply(lend(b), lend(x_clone));

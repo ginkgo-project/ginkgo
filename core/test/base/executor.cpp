@@ -652,10 +652,9 @@ TEST(ExecutorDeleter, AvoidsDeletionForNullExecutor)
 
 
 struct DummyLogger : public gko::log::Logger {
-    DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec),
-                           gko::log::Logger::executor_events_mask |
-                               gko::log::Logger::operation_events_mask)
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::executor_events_mask |
+                           gko::log::Logger::operation_events_mask)
     {}
 
     void on_allocation_started(const gko::Executor* exec,
@@ -729,7 +728,7 @@ class ExecutorLogging : public ::testing::Test {
 protected:
     ExecutorLogging()
         : exec(gko::ReferenceExecutor::create()),
-          logger(std::make_shared<DummyLogger>(exec))
+          logger(std::make_shared<DummyLogger>())
     {
         exec->add_logger(logger);
     }
