@@ -80,6 +80,10 @@ class hipsparse_coo;
 class hipsparse_ell;
 
 
+class onemkl_csr;
+class onemkl_optimized_csr;
+
+
 template <typename OpTagType>
 std::unique_ptr<gko::LinOp> create_sparselib_linop(
     std::shared_ptr<const gko::Executor> exec);
