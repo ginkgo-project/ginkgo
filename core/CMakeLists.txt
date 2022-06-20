@@ -16,12 +16,15 @@ target_sources(ginkgo
     base/version.cpp
     distributed/partition.cpp
     factorization/elimination_forest.cpp
+    factorization/factorization.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
+    factorization/lu.cpp
     factorization/par_ic.cpp
     factorization/par_ict.cpp
     factorization/par_ilu.cpp
     factorization/par_ilut.cpp
+    factorization/symbolic.cpp
     log/convergence.cpp
     log/logger.cpp
     log/performance_hint.cpp
@@ -51,6 +54,7 @@ target_sources(ginkgo
     solver/cb_gmres.cpp
     solver/cg.cpp
     solver/cgs.cpp
+    solver/direct.cpp
     solver/fcg.cpp
     solver/gmres.cpp
     solver/idr.cpp
