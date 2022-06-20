@@ -59,13 +59,12 @@ void build_local(
     // the flat_idx_it is used by the scatter_if as an index map for the values
     auto map_to_local_row =
         [range_bounds, range_starting_indices] __host__ __device__(
-            const thrust::tuple<GlobalIndexType, size_type>& idx_range_id)
-        -> LocalIndexType {
-        const auto idx = thrust::get<0>(idx_range_id);
-        const auto rid = thrust::get<1>(idx_range_id);
-        return static_cast<LocalIndexType>(idx - range_bounds[rid]) +
-               range_starting_indices[rid];
-    };
+            const thrust::tuple<GlobalIndexType, size_type>& idx_range_id) {
+            const auto idx = thrust::get<0>(idx_range_id);
+            const auto rid = thrust::get<1>(idx_range_id);
+            return static_cast<LocalIndexType>(idx - range_bounds[rid]) +
+                   range_starting_indices[rid];
+        };
     auto local_row_it = thrust::make_transform_iterator(
         thrust::make_zip_iterator(thrust::make_tuple(input.get_const_row_idxs(),
                                                      range_id.get_data())),
@@ -74,10 +73,9 @@ void build_local(
     auto stride = local_mtx->get_stride();
     auto map_to_flat_idx =
         [stride] __host__ __device__(
-            const thrust::tuple<LocalIndexType, GlobalIndexType>& row_col)
-        -> size_type {
-        return thrust::get<0>(row_col) * stride + thrust::get<1>(row_col);
-    };
+            const thrust::tuple<LocalIndexType, GlobalIndexType>& row_col) {
+            return thrust::get<0>(row_col) * stride + thrust::get<1>(row_col);
+        };
     auto flat_idx_it = thrust::make_transform_iterator(
         thrust::make_zip_iterator(
             thrust::make_tuple(local_row_it, input.get_const_col_idxs())),
