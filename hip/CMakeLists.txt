@@ -10,6 +10,7 @@ set(GINKGO_HIP_SOURCES
     factorization/factorization_kernels.hip.cpp
     factorization/ic_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
+    factorization/lu_kernels.hip.cpp
     factorization/par_ic_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
