@@ -71,7 +71,8 @@ protected:
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using mtx = gko::matrix::Dense<value_type>;
 
-    Vector() : ref(gko::ReferenceExecutor::create()), engine(42) {
+    Vector() : ref(gko::ReferenceExecutor::create()), engine(42)
+    {
         init_executor(ref, exec);
     }
 
