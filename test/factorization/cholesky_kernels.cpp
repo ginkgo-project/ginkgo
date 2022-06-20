@@ -68,7 +68,7 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         init_executor(ref, exec);
-        dtmp.set_executor(ref);
+        tmp.set_executor(ref);
         dtmp.set_executor(exec);
         matrices.emplace_back("example", gko::initialize<matrix_type>(
                                              {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},

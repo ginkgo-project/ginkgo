@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -67,7 +68,10 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using matrix_type = typename gko::matrix::Csr<value_type, index_type>;
+    using factory_type =
+        gko::experimental::factorization::Lu<value_type, index_type>;
+    using matrix_type = typename factory_type::matrix_type;
+    using sparsity_pattern_type = typename factory_type::sparsity_pattern_type;
 
     void SetUp()
     {
@@ -119,6 +123,10 @@ protected:
         dstorage = storage;
         drow_descs = row_descs;
         dmtx_lu = gko::clone(exec, mtx_lu);
+        mtx_lu_sparsity = sparsity_pattern_type::create(ref);
+        mtx_lu_sparsity->copy_from(mtx_lu.get());
+        dmtx_lu_sparsity = sparsity_pattern_type::create(exec);
+        dmtx_lu_sparsity->copy_from(mtx_lu_sparsity.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -126,8 +134,10 @@ protected:
     gko::size_type num_rows;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> mtx_lu;
+    std::shared_ptr<sparsity_pattern_type> mtx_lu_sparsity;
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<matrix_type> dmtx_lu;
+    std::shared_ptr<sparsity_pattern_type> dmtx_lu_sparsity;
     gko::array<index_type> storage_offsets;
     gko::array<index_type> dstorage_offsets;
     gko::array<gko::int32> storage;
@@ -258,4 +268,112 @@ TYPED_TEST(Lu, KernelFactorizeAmdIsEquivalentToRef)
         ddiag_idxs.get_const_data(), this->dmtx_lu.get(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateSymmWithUnknownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateWithKnownSparsityIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_mtx,
+                          gko::matrices::location_ani4_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->mtx_lu_sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->dmtx_lu_sparsity)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateWithKnownSparsityAmdIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx,
+                          gko::matrices::location_ani4_amd_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->mtx_lu_sparsity)
+            .on(this->ref);
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(this->dmtx_lu_sparsity)
+            .on(this->exec);
+
+    auto lu = factory->generate(this->mtx);
+    auto dlu = dfactory->generate(this->dmtx);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->dmtx_lu_sparsity, dlu->get_combined());
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), dlu->get_combined(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, GenerateUnsymmWithUnknownSparsityFails)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx);
+
+    auto dfactory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .on(this->exec);
+
+    ASSERT_THROW(dfactory->generate(this->dmtx), gko::NotSupported);
 }

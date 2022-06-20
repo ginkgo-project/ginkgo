@@ -41,6 +41,8 @@
     - RemoveTest: "true"
 - "elimination_forest\.cpp"
     - FixInclude: "core/factorization/elimination_forest.hpp"
+- "symbolic\.cpp"
+    - FixInclude: "core/factorization/symbolic.hpp"
 - "common/unified/.*.cpp"
     - PathIgnore: "2"
     - PathPrefix: "core"
