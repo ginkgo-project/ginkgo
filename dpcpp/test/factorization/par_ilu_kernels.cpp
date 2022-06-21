@@ -154,10 +154,10 @@ protected:
                        std::unique_ptr<Csr>* u_dpcpp)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-        gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
-        gko::Array<index_type> l_row_ptrs_dpcpp{dpcpp, num_row_ptrs};
-        gko::Array<index_type> u_row_ptrs_dpcpp{dpcpp, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_ref{ref, num_row_ptrs};
+        gko::array<index_type> l_row_ptrs_dpcpp{dpcpp, num_row_ptrs};
+        gko::array<index_type> u_row_ptrs_dpcpp{dpcpp, num_row_ptrs};
 
         initialize_row_ptrs(
             l_row_ptrs_ref.get_data(), u_row_ptrs_ref.get_data(),
@@ -283,10 +283,10 @@ TEST_F(ParIlu, DpcppKernelAddDiagonalElementsNonSquareEquivalentToRef)
 TEST_F(ParIlu, KernelInitializeRowPtrsLUEquivalentToRef)
 {
     auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-    gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_dpcpp(dpcpp, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_dpcpp(dpcpp, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
+    gko::array<index_type> l_row_ptrs_array_dpcpp(dpcpp, num_row_ptrs);
+    gko::array<index_type> u_row_ptrs_array_dpcpp(dpcpp, num_row_ptrs);
 
     initialize_row_ptrs(
         l_row_ptrs_array_ref.get_data(), u_row_ptrs_array_ref.get_data(),
