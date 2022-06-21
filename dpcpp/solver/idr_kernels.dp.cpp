@@ -114,7 +114,7 @@ template <size_type block_size, typename ValueType>
 void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
     size_type stride, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, block_size>& reduction_helper_array)
+    uninitialized_array<ValueType, block_size>& reduction_helper_array)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
 
@@ -171,7 +171,7 @@ void orthonormalize_subspace_vectors_kernel(
     size_type num_rows, size_type num_cols, ValueType* values, size_type stride)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, block_size>, 0,
+        sycl::accessor<uninitialized_array<ValueType, block_size>, 0,
                        sycl::access_mode::read_write,
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);
@@ -343,7 +343,7 @@ void multidot_kernel(
     const ValueType* __restrict__ g_k, size_type g_k_stride,
     ValueType* __restrict__ alpha,
     const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, default_dot_dim*(default_dot_dim + 1)>&
+    uninitialized_array<ValueType, default_dot_dim*(default_dot_dim + 1)>&
         reduction_helper_array)
 {
     const auto tidx = item_ct1.get_local_id(2);
@@ -388,8 +388,8 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     stream->submit([&](sycl::handler& cgh) {
-        sycl::accessor<UninitializedArray<ValueType, default_dot_dim*(
-                                                         default_dot_dim + 1)>,
+        sycl::accessor<uninitialized_array<ValueType, default_dot_dim*(
+                                                          default_dot_dim + 1)>,
                        0, sycl::access_mode::read_write,
                        sycl::access::target::local>
             reduction_helper_array_acc_ct1(cgh);

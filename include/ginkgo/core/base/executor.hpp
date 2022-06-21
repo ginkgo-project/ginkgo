@@ -967,7 +967,7 @@ protected:
      *
      * @param mach_topo the machine topology object.
      */
-    virtual void populate_exec_info(const MachineTopology* mach_topo) = 0;
+    virtual void populate_exec_info(const machine_topology* mach_topo) = 0;
 
     /**
      * Gets the modifiable exec info object
@@ -1241,10 +1241,10 @@ public:
 protected:
     OmpExecutor()
     {
-        this->OmpExecutor::populate_exec_info(MachineTopology::get_instance());
+        this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
     }
 
-    void populate_exec_info(const MachineTopology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override;
 
     void* raw_alloc(size_type size) const override;
 
@@ -1297,10 +1297,10 @@ protected:
     ReferenceExecutor()
     {
         this->ReferenceExecutor::populate_exec_info(
-            MachineTopology::get_instance());
+            machine_topology::get_instance());
     }
 
-    void populate_exec_info(const MachineTopology*) override
+    void populate_exec_info(const machine_topology*) override
     {
         this->get_exec_info().device_id = -1;
         this->get_exec_info().num_computing_units = 1;
@@ -1478,9 +1478,10 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->CudaExecutor::populate_exec_info(MachineTopology::get_instance());
+        this->CudaExecutor::populate_exec_info(
+            machine_topology::get_instance());
         if (this->get_exec_info().closest_pu_ids.size()) {
-            MachineTopology::get_instance()->bind_to_pus(
+            machine_topology::get_instance()->bind_to_pus(
                 this->get_closest_pus());
         }
         // it only gets attribute from device, so it should not be affected by
@@ -1514,7 +1515,7 @@ protected:
 
     static unsigned get_num_execs(unsigned device_id);
 
-    void populate_exec_info(const MachineTopology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1682,9 +1683,9 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->HipExecutor::populate_exec_info(MachineTopology::get_instance());
+        this->HipExecutor::populate_exec_info(machine_topology::get_instance());
         if (this->get_exec_info().closest_pu_ids.size()) {
-            MachineTopology::get_instance()->bind_to_pus(
+            machine_topology::get_instance()->bind_to_pus(
                 this->get_closest_pus());
         }
         // it only gets attribute from device, so it should not be affected by
@@ -1718,7 +1719,7 @@ protected:
 
     static int get_num_execs(int device_id);
 
-    void populate_exec_info(const MachineTopology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1866,7 +1867,7 @@ protected:
         this->set_device_property();
     }
 
-    void populate_exec_info(const MachineTopology* mach_topo) override;
+    void populate_exec_info(const machine_topology* mach_topo) override;
 
     void* raw_alloc(size_type size) const override;
 

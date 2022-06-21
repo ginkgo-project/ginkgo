@@ -177,7 +177,7 @@ TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
 
 inline int get_os_id(int log_id)
 {
-    return gko::MachineTopology::get_instance()->get_core(log_id)->os_id;
+    return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
 }
 
 
@@ -186,7 +186,7 @@ TEST(MachineTopology, CanBindToASpecificCore)
     auto cpu_sys = sched_getcpu();
 
     const int bind_core = 3;
-    gko::MachineTopology::get_instance()->bind_to_cores(
+    gko::machine_topology::get_instance()->bind_to_cores(
         std::vector<int>{bind_core});
 
     cpu_sys = sched_getcpu();
@@ -199,7 +199,7 @@ TEST(MachineTopology, CanBindToARangeofCores)
     auto cpu_sys = sched_getcpu();
 
     const std::vector<int> bind_core = {1, 3};
-    gko::MachineTopology::get_instance()->bind_to_cores(bind_core);
+    gko::machine_topology::get_instance()->bind_to_cores(bind_core);
 
     cpu_sys = sched_getcpu();
     ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(1));

@@ -141,7 +141,7 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
+        uninitialized_array<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
     rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_res = zero<rc_vtype>();
@@ -188,7 +188,7 @@ __global__
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__
-        UninitializedArray<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
+        uninitialized_array<rc_vtype, default_dot_dim*(default_dot_dim + 1)>
             reduction_helper_array;
     rc_vtype* __restrict__ reduction_helper = reduction_helper_array;
     rc_vtype local_max = zero<rc_vtype>();
@@ -238,7 +238,7 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<
+    __shared__ uninitialized_array<
         rc_vtype, (1 + compute_inf) * default_dot_dim*(default_dot_dim + 1)>
         reduction_helper_array;
     rc_vtype* __restrict__ reduction_helper_add = reduction_helper_array;
@@ -318,7 +318,7 @@ __global__ __launch_bounds__(dot_dim* dot_dim) void multidot_kernel(
     const size_type k = blockIdx.z;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<ValueType, dot_dim * dot_dim>
+    __shared__ uninitialized_array<ValueType, dot_dim * dot_dim>
         reduction_helper_array;
     ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
@@ -373,7 +373,8 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     const auto end_row = min((blockIdx.x + 1) * num_rows_per_thread, num_rows);
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
+    __shared__ uninitialized_array<ValueType, block_size>
+        reduction_helper_array;
     ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();

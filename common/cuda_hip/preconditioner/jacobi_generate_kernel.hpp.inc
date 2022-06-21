@@ -90,7 +90,7 @@ __global__ void __launch_bounds__(warps_per_block* config::warp_size) generate(
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
     ValueType row[max_block_size];
-    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
@@ -129,7 +129,7 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
     ValueType row[max_block_size];
-    __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
+    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,

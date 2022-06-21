@@ -59,7 +59,7 @@ std::shared_ptr<DpcppExecutor> DpcppExecutor::create(
 }
 
 
-void DpcppExecutor::populate_exec_info(const MachineTopology* mach_topo)
+void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     // This method is always called, so cannot throw when not compiled.
 }

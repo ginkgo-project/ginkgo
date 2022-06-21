@@ -42,7 +42,7 @@ __global__ __launch_bounds__(
                                                          KernelArgs... args)
 {
     __shared__
-        UninitializedArray<ValueType, default_block_size / config::warp_size>
+        uninitialized_array<ValueType, default_block_size / config::warp_size>
             warp_partial;
     static_assert(default_block_size / config::warp_size <= config::warp_size,
                   "needs third reduction level");
@@ -84,7 +84,7 @@ __global__ __launch_bounds__(
                                                          KernelArgs... args)
 {
     __shared__
-        UninitializedArray<ValueType, default_block_size / config::warp_size>
+        uninitialized_array<ValueType, default_block_size / config::warp_size>
             warp_partial;
     static_assert(default_block_size / config::warp_size <= config::warp_size,
                   "needs third reduction level");
@@ -236,7 +236,7 @@ __global__
     constexpr auto warps_per_block = default_block_size / warp_size;
     // stores the subwarp_size partial sums from each warp, grouped by warp
     constexpr auto shared_storage = warps_per_block * subwarp_size;
-    __shared__ UninitializedArray<ValueType, shared_storage> block_partial;
+    __shared__ uninitialized_array<ValueType, shared_storage> block_partial;
     const auto subwarp_id = thread::get_subwarp_id_flat<subwarp_size, int64>();
     const auto local_warp_id = threadIdx.x / warp_size;
     const auto local_subwarp_id = threadIdx.x % warp_size / subwarp_size;
@@ -296,7 +296,7 @@ __global__
         KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
-    __shared__ UninitializedArray<ValueType, default_block_size> block_partial;
+    __shared__ uninitialized_array<ValueType, default_block_size> block_partial;
     const auto warp_id = thread::get_subwarp_id_flat<warp_size, int64>();
     const auto warp_num = thread::get_subwarp_num_flat<warp_size, int64>();
     const auto block = group::this_thread_block();
