@@ -227,7 +227,7 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
     auto data = gko::matrix_data<value_type, index_type>(
         gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
         rand_engine);
-    gko::utils::make_hpd(data);
+    gko::utils::make_hpd(data, 1.5);
     auto mtx = Mtx::create(ref, data.size, 53);
     mtx->read(data);
     auto x = gen_mtx(50, 3, 4);
