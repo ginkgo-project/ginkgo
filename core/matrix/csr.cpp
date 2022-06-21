@@ -267,74 +267,44 @@ void Csr<ValueType, IndexType>::move_to(
 }
 
 
-/* template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::convert_to(
-    Bccoo<ValueType, IndexType>* result) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
-    GKO_NOT_IMPLEMENTED;
-
-*/
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
     Bccoo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
 
     bccoo::compression compression = result->get_compression();
     if (result->use_default_compression()) {
         exec->run(bccoo::make_get_default_compression(&compression));
     }
 
-    //    size_type block_size = 1024;
-    //    exec->run(bccoo::make_get_default_block_size(&block_size));
     size_type block_size = result->get_block_size();
     if (block_size == 0) {
         exec->run(bccoo::make_get_default_block_size(&block_size));
     }
-    auto num_stored_elements = this->get_num_stored_elements();
-    const auto num_blocks = ceildiv(num_stored_elements, block_size);
 
-    // JIAE TODO
-    // Modify mem_size_bccoo to consider different values of compression
-    array<IndexType> rows(exec, num_blocks);
-    array<IndexType> offsets(exec, num_blocks + 1);
+    auto num_stored_elements = this->get_num_stored_elements();
+
     size_type mem_size{};
-    if (exec == exec->get_master()) {
-        /*
-            exec->run(csr::make_mem_size_bccoo(this, rows.get_data(),
-                                                   offsets.get_data(),
-           num_blocks, block_size, &mem_size));
-        */
+    if (exec == exec_master) {
         exec->run(
             csr::make_mem_size_bccoo(this, block_size, compression, &mem_size));
-    } else {
-        //        auto host_csr = clone(exec->get_master(), this);
-        auto host_csr = this->clone(exec->get_master());
-        /*
-           exec->get_master()->run(csr::make_mem_size_bccoo(
-                    host_csr.get(), rows.get_data(), offsets.get_data(),
-           num_blocks, block_size, &mem_size));
-        */
-        exec->get_master()->run(csr::make_mem_size_bccoo(
-            host_csr.get(), block_size, compression, &mem_size));
-    }
-
-    /*
-        array<uint8> data(exec, mem_size);
         auto tmp = Bccoo<ValueType, IndexType>::create(
-            exec, this->get_size(), std::move(data), std::move(offsets),
-            std::move(rows), num_stored_elements, block_size);
-    */
-    // std::cout << "CSR->BCCOO " << num_stored_elements << " - "
-    //			<< block_size << " - " << mem_size << std::endl;
-    auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, this->get_size(), num_stored_elements, block_size, mem_size,
-        compression);
-    exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
-    tmp->move_to(result);
+            exec, this->get_size(), num_stored_elements, block_size, mem_size,
+            compression);
+        exec->run(csr::make_convert_to_bccoo(this, tmp.get()));
+        *result = *tmp;
+    } else {
+        auto host_csr = this->clone(exec_master);
+        exec_master->run(csr::make_mem_size_bccoo(host_csr.get(), block_size,
+                                                  compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec_master, host_csr->get_size(), num_stored_elements, block_size,
+            mem_size, compression);
+        exec_master->run(csr::make_convert_to_bccoo(host_csr.get(), tmp.get()));
+        *result = *tmp;
+    }
 }
 
 

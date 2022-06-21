@@ -161,47 +161,13 @@ public:
     friend class Bccoo<next_precision<ValueType>, IndexType>;
 
     void convert_to(Bccoo<ValueType, IndexType>* result) const override;
-    /*
-     {
-     // converts *this to *result
-     // if they have different compressions, adjust one of them
-     }
-     */
 
     void move_to(Bccoo<ValueType, IndexType>* result) override;
-    /*
-    {
-        // converts *this to *result
-    }
-    */
 
     void convert_to(
         Bccoo<next_precision<ValueType>, IndexType>* result) const override;
-    /*
-     {
-     if (this->get_compression() == result->get_compression()) {
-     // convert *this -> result
-     } else {
-     auto copy =
-     this->change_compression_to(result->get_compression());
-     // convert copy -> result
-     }
-     }
-     */
 
     void move_to(Bccoo<next_precision<ValueType>, IndexType>* result) override;
-    /*
-         {
-         if (this->get_compression() == result->get_compression()) {
-         // convert *this -> result
-         } else {
-         auto copy =
-         this->change_compression_to(result->get_compression());
-         // convert copy -> result
-         // *this = 0;
-         }
-         }
-    */
 
     void convert_to(Coo<ValueType, IndexType>* other) const override;
 

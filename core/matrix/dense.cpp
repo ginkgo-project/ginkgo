@@ -153,22 +153,13 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
                               MatrixType* source, const OperationType& op)
 {
     auto exec = source->get_executor();
+    auto exec_master = exec->get_master();
 
-    //		bccoo::compression compression = bccoo::compression::block;
-    /*
-        auto exec_master = exec->get_master();
-        bccoo::compression compression =
-                       ((result->use_default_compression())?
-                           ((exec_master == exec)?
-                                bccoo::compression::element:
-                                bccoo::compression::block):
-                           result->get_compression());
-    */
     bccoo::compression compression = result->get_compression();
     if (result->use_default_compression()) {
         exec->run(bccoo::make_get_default_compression(&compression));
     }
-    //    size_type block_size = 10;
+
     size_type block_size = result->get_block_size();
     if (block_size == 0) {
         exec->run(bccoo::make_get_default_block_size(&block_size));
@@ -181,23 +172,24 @@ inline void conversion_helper(Bccoo<ValueType, IndexType>* result,
         exec->copy_val_to_host(row_ptrs.get_const_data() + num_rows);
     size_type mem_size = 0;
 
-    // JIAE TODO
-    // To solve the problems with the commented code
-    if (exec == exec->get_master()) {
+    if (exec == exec_master) {
         exec->run(dense::make_mem_size_bccoo(source, block_size, compression,
                                              &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
+            compression);
+        exec->run(op(source, tmp.get()));
+        *result = *tmp;
     } else {
-        auto host_dense = source->clone(exec->get_master());
-        exec->get_master()->run(dense::make_mem_size_bccoo(
+        auto host_dense = source->clone(exec_master);
+        exec_master->run(dense::make_mem_size_bccoo(
             host_dense.get(), block_size, compression, &mem_size));
+        auto tmp = Bccoo<ValueType, IndexType>::create(
+            exec_master, host_dense->get_size(), num_stored_nonzeros,
+            block_size, mem_size, compression);
+        exec_master->run(op(host_dense.get(), tmp.get()));
+        *result = *tmp;
     }
-    //    std::cout << "DENSE->BCCOO : " << num_stored_nonzeros << " - "
-    //              << block_size << " - " << mem_size << std::endl;
-    auto tmp = Bccoo<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, block_size, mem_size,
-        compression);
-    exec->run(op(source, tmp.get()));
-    tmp->move_to(result);
 }
 
 
