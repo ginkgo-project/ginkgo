@@ -153,8 +153,8 @@ int main(int argc, char* argv[])
 
     // Prepare the stopping criteria
     const gko::remove_complex<ValueType> tolerance = 1e-8;
-    auto iter_stop =
-        gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec));
     auto tol_stop =
         gko::share(gko::stop::AbsoluteResidualNorm<ValueType>::build()
                        .with_tolerance(tolerance)
@@ -196,33 +196,31 @@ int main(int argc, char* argv[])
                                         .with_min_coarse_rows(10u)
                                         .with_pre_smoother(smoother_gen)
                                         .with_post_uses_pre(true)
-                                        .with_mg_level(gko::share(mg_level_gen))
+                                        .with_mg_level(mg_level_gen)
                                         .with_coarsest_solver(coarsest_gen)
                                         .with_zero_guess(true)
                                         .with_criteria(iter_stop, tol_stop)
                                         .on(exec));
     if (use_uniform_coarsening) {
         std::cout << "Using Uniform Coarsening" << std::endl;
-        multigrid_gen =
-            gko::share(mg::build()
-                           .with_max_levels(10u)
-                           .with_min_coarse_rows(10u)
-                           .with_pre_smoother(smoother_gen)
-                           .with_post_uses_pre(true)
-                           .with_mg_level(gko::share(coarse_unif_gen))
-                           .with_coarsest_solver(coarsest_gen)
-                           .with_zero_guess(true)
-                           .with_criteria(iter_stop, tol_stop)
-                           .on(exec));
+        multigrid_gen = gko::share(mg::build()
+                                       .with_max_levels(10u)
+                                       .with_min_coarse_rows(10u)
+                                       .with_pre_smoother(smoother_gen)
+                                       .with_post_uses_pre(true)
+                                       .with_mg_level(coarse_unif_gen)
+                                       .with_coarsest_solver(coarsest_gen)
+                                       .with_zero_guess(true)
+                                       .with_criteria(iter_stop, tol_stop)
+                                       .on(exec));
     } else {
         std::cout << "Using AMGX " << std::endl;
     }
     // Create solver factory
-    auto solver_gen =
-        cg::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
-            .with_preconditioner(multigrid_gen)
-            .on(exec);
+    auto solver_gen = cg::build()
+                          .with_criteria(iter_stop, tol_stop)
+                          .with_preconditioner(multigrid_gen)
+                          .on(exec);
     // Create solver
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();

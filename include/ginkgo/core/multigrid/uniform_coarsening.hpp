@@ -159,7 +159,7 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    Array<IndexType> coarse_rows_;
+    array<IndexType> coarse_rows_;
 };
 
 

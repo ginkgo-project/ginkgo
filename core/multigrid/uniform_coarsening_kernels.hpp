@@ -54,13 +54,13 @@ namespace uniform_coarsening {
 
 #define GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP(ValueType, IndexType) \
     void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,        \
-                          const Array<IndexType>* coarse_rows,                \
+                          const array<IndexType>* coarse_rows,                \
                           matrix::Csr<ValueType, IndexType>* restrict_op)
 
 #define GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES(IndexType)     \
     void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec, \
                                   size_type num_jumps,                         \
-                                  Array<IndexType>* coarse_rows)
+                                  array<IndexType>* coarse_rows)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \

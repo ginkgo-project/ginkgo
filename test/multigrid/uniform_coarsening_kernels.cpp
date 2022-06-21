@@ -91,10 +91,10 @@ protected:
         }
     }
 
-    gko::Array<index_type> gen_coarse_array(gko::size_type num,
+    gko::array<index_type> gen_coarse_array(gko::size_type num,
                                             gko::size_type num_jumps)
     {
-        gko::Array<index_type> coarse_array(ref, num);
+        gko::array<index_type> coarse_array(ref, num);
         coarse_array.fill(-1);
         // the aggregated group must contain the identifier-th element
         // agg_val[i] == i holds in the aggregated group whose identifier is i
@@ -117,7 +117,7 @@ protected:
         coarse_rows = gen_coarse_array(m, num_jumps);
         c_dim = (coarse_rows.get_num_elems() + 1) / num_jumps;
 
-        d_coarse_rows = gko::Array<index_type>(exec);
+        d_coarse_rows = gko::array<index_type>(exec);
         d_coarse_rows = coarse_rows;
         restrict_op = Csr::create(ref, gko::dim<2>(c_dim, m), c_dim);
 
@@ -135,8 +135,8 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    gko::Array<index_type> coarse_rows;
-    gko::Array<index_type> d_coarse_rows;
+    gko::array<index_type> coarse_rows;
+    gko::array<index_type> d_coarse_rows;
 
     std::shared_ptr<Csr> restrict_op;
     std::shared_ptr<Csr> d_restrict_op;
@@ -152,9 +152,9 @@ protected:
 
 TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
 {
-    auto c_rows = gko::Array<index_type>(ref, m);
+    auto c_rows = gko::array<index_type>(ref, m);
     c_rows.fill(-gko::one<index_type>());
-    auto d_c_rows = gko::Array<index_type>(exec, c_rows);
+    auto d_c_rows = gko::array<index_type>(exec, c_rows);
 
     {
         gko::size_type num_jumps = 2;
