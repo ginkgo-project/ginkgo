@@ -78,9 +78,8 @@ struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
 
 
 struct DummyLogger : gko::log::Logger {
-    DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec),
-                           gko::log::Logger::polymorphic_object_events_mask)
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::polymorphic_object_events_mask)
     {}
 
     void on_polymorphic_object_create_started(
@@ -146,7 +145,7 @@ protected:
         gko::ReferenceExecutor::create()};
     std::shared_ptr<gko::OmpExecutor> omp{gko::OmpExecutor::create()};
     std::unique_ptr<DummyObject> obj{new DummyObject(ref, 5)};
-    std::shared_ptr<DummyLogger> logger{std::make_shared<DummyLogger>(ref)};
+    std::shared_ptr<DummyLogger> logger{std::make_shared<DummyLogger>()};
 
     void SetUp() override
     {

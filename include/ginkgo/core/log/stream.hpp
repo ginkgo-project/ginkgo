@@ -185,13 +185,37 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
+    [[deprecated("use three-parameter create")]] static std::unique_ptr<Stream>
+    create(std::shared_ptr<const Executor> exec,
+           const Logger::mask_type& enabled_events = Logger::all_events_mask,
+           std::ostream& os = std::cout, bool verbose = false)
+    {
+        return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
+    }
+
+    /**
+     * Creates a Stream logger. This dynamically allocates the memory,
+     * constructs the object and returns an std::unique_ptr to this object.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param os  the stream used for this logger
+     * @param verbose  whether we want detailed information or not. This
+     *                 includes always printing residuals and other information
+     *                 which can give a large output.
+     *
+     * @return an std::unique_ptr to the the constructed object
+     *
+     * @internal here I cannot use EnableCreateMethod due to complex circular
+     * dependencies. At the same time, this method is short enough that it
+     * shouldn't be a problem.
+     */
     static std::unique_ptr<Stream> create(
-        std::shared_ptr<const Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
         std::ostream& os = std::cout, bool verbose = false)
     {
-        return std::unique_ptr<Stream>(
-            new Stream(exec, enabled_events, os, verbose));
+        return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
     }
 
 protected:
@@ -206,11 +230,28 @@ protected:
      *                 includes always printing residuals and other information
      *                 which can give a large output.
      */
-    explicit Stream(
+    [[deprecated("use three-parameter constructor")]] explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
         std::ostream& os = std::cout, bool verbose = false)
-        : Logger(exec, enabled_events), os_(os), verbose_(verbose)
+        : Stream(enabled_events, os, verbose)
+    {}
+
+    /**
+     * Creates a Stream logger.
+     *
+     * @param exec  the executor
+     * @param enabled_events  the events enabled for this logger. By default all
+     *                        events.
+     * @param os  the stream used for this logger
+     * @param verbose  whether we want detailed information or not. This
+     *                 includes always printing residuals and other information
+     *                 which can give a large output.
+     */
+    explicit Stream(
+        const Logger::mask_type& enabled_events = Logger::all_events_mask,
+        std::ostream& os = std::cout, bool verbose = false)
+        : Logger(enabled_events), os_(os), verbose_(verbose)
     {}
 
 

@@ -49,10 +49,9 @@ namespace {
 
 
 struct DummyLogger : gko::log::Logger {
-    DummyLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(std::move(exec),
-                           gko::log::Logger::linop_events_mask |
-                               gko::log::Logger::linop_factory_events_mask)
+    DummyLogger()
+        : gko::log::Logger(gko::log::Logger::linop_events_mask |
+                           gko::log::Logger::linop_factory_events_mask)
     {}
 
     void on_linop_apply_started(const gko::LinOp*, const gko::LinOp*,
@@ -155,7 +154,7 @@ protected:
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
           b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
           x{DummyLinOp::create(ref, gko::dim<2>{3, 4})},
-          logger{std::make_shared<DummyLogger>(ref)}
+          logger{std::make_shared<DummyLogger>()}
     {
         op->add_logger(logger);
     }
@@ -374,7 +373,7 @@ class EnableLinOpFactory : public ::testing::Test {
 protected:
     EnableLinOpFactory()
         : ref{gko::ReferenceExecutor::create()},
-          logger{std::make_shared<DummyLogger>(ref)}
+          logger{std::make_shared<DummyLogger>()}
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
