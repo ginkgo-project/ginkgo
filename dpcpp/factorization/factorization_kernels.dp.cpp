@@ -518,10 +518,10 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
     auto num_cols = static_cast<IndexType>(mtx_size[1]);
     size_type row_ptrs_size = num_rows + 1;
 
-    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
-    Array<bool> needs_change_host{exec->get_master(), 1};
+    array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
+    array<bool> needs_change_host{exec->get_master(), 1};
     needs_change_host.get_data()[0] = false;
-    Array<bool> needs_change_device{exec, 1};
+    array<bool> needs_change_device{exec, 1};
     needs_change_device = needs_change_host;
 
     auto dpcpp_old_values = mtx->get_const_values();
@@ -558,8 +558,8 @@ void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
                               mtx->get_num_stored_elements();
 
 
-    Array<ValueType> new_values{exec, new_num_elems};
-    Array<IndexType> new_col_idxs{exec, new_num_elems};
+    array<ValueType> new_values{exec, new_num_elems};
+    array<IndexType> new_col_idxs{exec, new_num_elems};
     auto dpcpp_new_values = new_values.get_data();
     auto dpcpp_new_col_idxs = new_col_idxs.get_data();
 
