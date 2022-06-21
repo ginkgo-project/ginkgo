@@ -134,7 +134,7 @@ include:
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V
+    - ctest -V --timeout 3000
     - ninja test_install
     - pushd test/test_install
     - ninja install
