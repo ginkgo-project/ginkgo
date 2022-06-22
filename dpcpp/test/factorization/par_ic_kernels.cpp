@@ -78,7 +78,7 @@ protected:
           dpcpp(gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create()))
     {
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
             std::normal_distribution<gko::remove_complex<value_type>>(0, 10.0),
             rand_engine, ref);
