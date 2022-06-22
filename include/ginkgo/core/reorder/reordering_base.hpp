@@ -87,36 +87,6 @@ struct ReorderingBaseArgs {
 };
 
 
-class Scaling {
-public:
-    virtual ~Scaling() = default;
-
-    virtual void set_row_scaling(std::shared_ptr<const LinOp> new_row_scaling)
-    {
-        row_scaling_ = new_row_scaling;
-    }
-
-    virtual void set_col_scaling(std::shared_ptr<const LinOp> new_col_scaling)
-    {
-        col_scaling_ = new_col_scaling;
-    }
-
-    virtual std::shared_ptr<const LinOp> get_row_scaling() const
-    {
-        return row_scaling_;
-    }
-
-    virtual std::shared_ptr<const LinOp> get_col_scaling() const
-    {
-        return col_scaling_;
-    }
-
-private:
-    std::shared_ptr<const LinOp> row_scaling_{};
-    std::shared_ptr<const LinOp> col_scaling_{};
-};
-
-
 /**
  * Declares an Abstract Factory specialized for ReorderingBases
  */
