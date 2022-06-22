@@ -83,15 +83,15 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
-      diag_mtx_{local_matrix_template->clone(exec)},
-      offdiag_mtx_{non_local_matrix_template->clone(exec)}
+      local_mtx_{local_matrix_template->clone(exec)},
+      non_local_mtx_{non_local_matrix_template->clone(exec)}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            diag_mtx_.get())));
+            local_mtx_.get())));
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            offdiag_mtx_.get())));
+            non_local_mtx_.get())));
     one_scalar_.init(exec, dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
 }
@@ -104,8 +104,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->copy_from(this->diag_mtx_.get());
-    result->offdiag_mtx_->copy_from(this->offdiag_mtx_.get());
+    result->local_mtx_->copy_from(this->local_mtx_.get());
+    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
     result->gather_idxs_ = this->gather_idxs_;
     result->send_offsets_ = this->send_offsets_;
     result->recv_offsets_ = this->recv_offsets_;
@@ -123,8 +123,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_.get());
-    result->offdiag_mtx_->move_from(this->offdiag_mtx_.get());
+    result->local_mtx_->move_from(this->local_mtx_.get());
+    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
     result->gather_idxs_ = std::move(this->gather_idxs_);
     result->send_offsets_ = std::move(this->send_offsets_);
     result->recv_offsets_ = std::move(this->recv_offsets_);
@@ -188,9 +188,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         exec, dim<2>{num_diag_rows, num_ghost_cols},
         std::move(offdiag_row_idxs), std::move(offdiag_col_idxs),
         std::move(offdiag_values)};
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
         ->read(diag_data);
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->offdiag_mtx_)
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
         ->read(offdiag_data);
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
@@ -307,7 +307,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         dense_x->get_local_vector()->get_stride());
     if (this->get_non_local_matrix()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
-        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+        local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
         req.wait();
         auto exec = this->get_executor();
         auto needs_host_buffer =
@@ -315,10 +315,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         if (needs_host_buffer) {
             recv_buffer_->copy_from(host_recv_buffer_.get());
         }
-        offdiag_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                            one_scalar_.get(), local_x.get());
+        non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+                              one_scalar_.get(), local_x.get());
     } else {
-        diag_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+        local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
     }
 }
 
@@ -340,8 +340,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     auto local_beta = as<local_vector_type>(beta);
     if (this->get_non_local_matrix()->get_size()) {
         auto req = this->communicate(dense_b->get_local_vector());
-        diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         local_x.get());
+        local_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
+                          local_x.get());
         req.wait();
         auto exec = this->get_executor();
         auto needs_host_buffer =
@@ -349,11 +349,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
         if (needs_host_buffer) {
             recv_buffer_->copy_from(host_recv_buffer_.get());
         }
-        offdiag_mtx_->apply(local_alpha, recv_buffer_.get(), one_scalar_.get(),
-                            local_x.get());
+        non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
+                              one_scalar_.get(), local_x.get());
     } else {
-        diag_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
-                         local_x.get());
+        local_mtx_->apply(local_alpha, dense_b->get_local_vector(), local_beta,
+                          local_x.get());
     }
 }
 
@@ -388,8 +388,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        diag_mtx_->copy_from(other.diag_mtx_.get());
-        offdiag_mtx_->copy_from(other.offdiag_mtx_.get());
+        local_mtx_->copy_from(other.local_mtx_.get());
+        non_local_mtx_->copy_from(other.non_local_mtx_.get());
         gather_idxs_ = other.gather_idxs_;
         send_offsets_ = other.send_offsets_;
         recv_offsets_ = other.recv_offsets_;
@@ -413,8 +413,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        diag_mtx_->move_from(other.diag_mtx_.get());
-        offdiag_mtx_->move_from(other.offdiag_mtx_.get());
+        local_mtx_->move_from(other.local_mtx_.get());
+        non_local_mtx_->move_from(other.non_local_mtx_.get());
         gather_idxs_ = std::move(other.gather_idxs_);
         send_offsets_ = std::move(other.send_offsets_);
         recv_offsets_ = std::move(other.recv_offsets_);

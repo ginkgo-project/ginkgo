@@ -230,7 +230,7 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols - 1)),
+                                           static_cast<int>(num_cols)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
@@ -356,7 +356,7 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols - 1)),
+                                           static_cast<int>(num_cols)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
@@ -380,5 +380,6 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
     this->validate(row_partition.get(), col_partition.get(),
                    d_row_partition.get(), d_col_partition.get(), input);
 }
+
 
 }  // namespace

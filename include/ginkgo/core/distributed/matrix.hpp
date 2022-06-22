@@ -114,7 +114,9 @@ struct MatrixTypeBuilderFromValueAndIndex {
  *                     will be set to the value type, the second one to the
  *                     index type.
  * @tparam Args  Types of the arguments passed to MatrixType::create.
+ *
  * @param create_args  arguments that will be forwarded to MatrixType::create
+ *
  * @return  A type with a function `create<value_type, index_type>(executor)`.
  */
 template <template <typename, typename> class MatrixType, typename... Args>
@@ -161,7 +163,7 @@ class Vector;
  * discarded and the remaining columns are renumbered. This splitting is
  * depicted in the following:
  * ```
- * Part-Id  Global                            Inner      Ghost
+ * Part-Id  Global                            Local      Non-Local
  * 0        | .. 1  ⁞ 2  .. ⁞ .. .. |         | .. 1  |  | 2  |
  * 0        | 3  4  ⁞ .. .. ⁞ .. .. |         | 3  4  |  | .. |
  *          |-----------------------|
@@ -177,7 +179,7 @@ class Vector;
  * be used for the columns. Using a column partition also allows to create
  * non-square matrices, like the one below:
  * ```
- * Part-Id  Global                   Inner      Ghost
+ * Part-Id  Global                  Local      Non-Local
  * P_R/P_C    2  2  0  1
  * 0        | .. 1  2  .. |         | 2  |     | 1  .. |
  * 0        | 3  4  .. .. |         | .. |     | 3  4  |
@@ -188,7 +190,7 @@ class Vector;
  * 2        | .. .. .. 10 |         | .. .. |  | 10 |
  * 2        | 13 .. .. .. |         | 13 .. |  | .. |
  * ```
- * Here `P_R` denotes the row partition and`P_C` the column partition.
+ * Here `P_R` denotes the row partition and `P_C` denotes the column partition.
  *
  * The Matrix should be filled using the read_distributed method, e.g.
  * ```
@@ -338,44 +340,52 @@ public:
         const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
-     * Get read access to the local diagonal matrix
-     * @return  Shared pointer to the local diagonal matrix
+     * Get read access to the stored local matrix
+     *
+     * @return  Shared pointer to the stored local matrix
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const { return diag_mtx_; }
+    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
 
     /**
-     * Get read access to the local off-diagonal matrix
-     * @return  Shared pointer to the local off-diagonal matrix
+     * Get read access to the stored non-local matrix
+     *
+     * @return  Shared pointer to the stored non-local matrix
      */
     std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
-        return offdiag_mtx_;
+        return non_local_mtx_;
     }
 
     /**
      * Copy constructs a Matrix.
+     *
      * @param other  Matrix to copy from.
      */
     Matrix(const Matrix& other);
 
     /**
      * Move constructs a Matrix.
+     *
      * @param other  Matrix to move from.
      */
     Matrix(Matrix&& other) noexcept;
 
     /**
      * Copy assigns a Matrix.
+     *
      * @param other  Matrix to copy from, has to have a communicator of the same
      *               size as this.
+     *
      * @return  this.
      */
     Matrix& operator=(const Matrix& other);
 
     /**
      * Move assigns a Matrix.
+     *
      * @param other  Matrix to move from, has to have a communicator of the same
      *               size as this.
+     *
      * @return  this.
      */
     Matrix& operator=(Matrix&& other);
@@ -383,6 +393,7 @@ public:
 protected:
     /**
      * Creates an empty distributed matrix.
+     *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
@@ -401,7 +412,7 @@ protected:
      * @tparam MatrixType  A type that has a `create<ValueType,
      *                     IndexType>(exec)` function to create an smart pointer
      *                     of a type derived from LinOp and
-     *                     ReadableFromMatrixData.
+     *                     ReadableFromMatrixData. @see with_matrix_type
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param matrix_template  the local matrices will be constructed with the
@@ -426,12 +437,12 @@ protected:
      *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
      *       const LinOp*, const LinOp*)
      *
-     * @tparam InnerMatrixType  A type that has a `create<ValueType,
+     * @tparam LocalMatrixType  A type that has a `create<ValueType,
      *                          IndexType>(exec)` function to create an smart
      *                          pointer of a type derived from LinOp and
-     *                          ReadableFromMatrixData.
-     * @tparam GhostMatrixType  A (possible different) type with the same
-     *                          constraints as InnerMatrixType.
+     *                          ReadableFromMatrixData. @see with_matrix_type
+     * @tparam NonLocalMatrixType  A (possible different) type with the same
+     *                             constraints as LocalMatrixType.
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param local_matrix_template  the local matrix will be constructed
@@ -443,11 +454,11 @@ protected:
      *                                   `create` returns. It should be the
      *                                   return value of make_matrix_template.
      */
-    template <typename InnerMatrixType, typename GhostMatrixType>
+    template <typename LocalMatrixType, typename NonLocalMatrixType>
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
-                    InnerMatrixType local_matrix_template,
-                    GhostMatrixType non_local_matrix_template)
+                    LocalMatrixType local_matrix_template,
+                    NonLocalMatrixType non_local_matrix_template)
         : Matrix(exec, comm,
                  static_cast<const LinOp*>(
                      local_matrix_template
@@ -518,8 +529,8 @@ private:
     gko::detail::DenseCache<value_type> host_recv_buffer_;
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
-    std::shared_ptr<LinOp> diag_mtx_;
-    std::shared_ptr<LinOp> offdiag_mtx_;
+    std::shared_ptr<LinOp> local_mtx_;
+    std::shared_ptr<LinOp> non_local_mtx_;
 };
 
 
