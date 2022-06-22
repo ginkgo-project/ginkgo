@@ -145,7 +145,6 @@ public:
         generate_scalar_pair(beta, dbeta);
     }
 
-
     void generate_matrix_pair(std::unique_ptr<dist_mtx_type>& host,
                               std::unique_ptr<dist_mtx_type>& device)
     {
@@ -157,7 +156,6 @@ public:
         host->read_distributed(md, part.get());
         device = gko::clone(exec, host);
     }
-
 
     void generate_vector_pair(std::unique_ptr<dist_vec_type>& host,
                               std::unique_ptr<dist_vec_type>& device)
@@ -221,11 +219,9 @@ TEST_F(Matrix, ConvertsToPrecisionIsSameAsRef)
     dmat->convert_to(dtmp.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_local_matrix()),
-                        gko::as<Csr>(dtmp->get_local_matrix()),
-                        r<value_type>::value);
+                        gko::as<Csr>(dtmp->get_local_matrix()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_non_local_matrix()),
-                        gko::as<Csr>(dtmp->get_non_local_matrix()),
-                        r<value_type>::value);
+                        gko::as<Csr>(dtmp->get_non_local_matrix()), 0.0);
 }
 
 
@@ -242,11 +238,9 @@ TEST_F(Matrix, MovesToPrecisionIsSameAsRef)
     dmat->move_to(dtmp.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_local_matrix()),
-                        gko::as<Csr>(dtmp->get_local_matrix()),
-                        r<value_type>::value);
+                        gko::as<Csr>(dtmp->get_local_matrix()), 0.0);
     GKO_ASSERT_MTX_NEAR(gko::as<Csr>(tmp->get_non_local_matrix()),
-                        gko::as<Csr>(dtmp->get_non_local_matrix()),
-                        r<value_type>::value);
+                        gko::as<Csr>(dtmp->get_non_local_matrix()), 0.0);
 }
 
 
