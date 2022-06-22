@@ -45,7 +45,7 @@ namespace gko {
 namespace kernels {
 namespace omp {
 /**
- * @brief The parallel ILU factorization namespace.
+ * @brief The parallel ilu factorization namespace.
  *
  * @ingroup factor
  */

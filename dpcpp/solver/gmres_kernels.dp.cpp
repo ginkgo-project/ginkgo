@@ -301,8 +301,9 @@ void update_hessenberg_2_kernel(
         reduction_helper[tidx] = local_res;
 
         // Perform thread block reduction. Result is in reduction_helper[0]
-        reduce(group::this_thread_block(item_ct1), reduction_helper,
-               [](const ValueType& a, const ValueType& b) { return a + b; });
+        ::gko::kernels::dpcpp::reduce(
+            group::this_thread_block(item_ct1), reduction_helper,
+            [](const ValueType& a, const ValueType& b) { return a + b; });
 
         if (tidx == 0) {
             hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =

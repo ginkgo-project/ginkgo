@@ -47,7 +47,7 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The parallel IC factorization namespace.
+ * @brief The parallel ic factorization namespace.
  *
  * @ingroup factor
  */
@@ -55,11 +55,6 @@ namespace par_ic_factorization {
 
 
 constexpr int default_block_size = 512;
-
-
-// subwarp sizes for all warp-parallel kernels (sweep)
-using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/factorization/par_ic_kernels.hpp.inc"

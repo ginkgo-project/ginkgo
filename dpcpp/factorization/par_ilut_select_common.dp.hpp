@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_DPCPP_BASE_CONFIG_HPP_
-#define GKO_DPCPP_BASE_CONFIG_HPP_
+#ifndef GKO_DPCPP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_DP_HPP_
+#define GKO_DPCPP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_DP_HPP_
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -41,40 +42,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
+namespace par_ilut_factorization {
 
 
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-    using lane_mask_type = uint64;
+constexpr int default_block_size = 256;
+constexpr int items_per_thread = 16;
 
-    /**
-     * The number of threads within a Dpcpp subgroup.
-     */
-    static constexpr uint32 warp_size = 32;
 
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
+template <typename ValueType, typename IndexType>
+void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
+                        const ValueType* values, IndexType size,
+                        remove_complex<ValueType>* tree, unsigned char* oracles,
+                        IndexType* partial_counts, IndexType* total_counts);
 
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
 
-    /**
-     * The default maximal number of threads allowed in DPCPP group
-     */
-    static constexpr uint32 max_block_size = 256;
+template <typename IndexType>
+struct sampleselect_bucket {
+    IndexType idx;
+    IndexType begin;
+    IndexType size;
 };
 
 
+template <typename IndexType>
+sampleselect_bucket<IndexType> sampleselect_find_bucket(
+    std::shared_ptr<const DefaultExecutor> exec, IndexType* prefix_sum,
+    IndexType rank);
+
+
+}  // namespace par_ilut_factorization
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_DPCPP_BASE_CONFIG_HPP_
+#endif  // GKO_DPCPP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_DP_HPP_
