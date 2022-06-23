@@ -15,6 +15,7 @@ target_sources(
           base/perturbation.cpp
           base/version.cpp
           distributed/partition.cpp
+          distributed/repartition.cpp
           factorization/elimination_forest.cpp
           factorization/factorization.cpp
           factorization/ic.cpp
