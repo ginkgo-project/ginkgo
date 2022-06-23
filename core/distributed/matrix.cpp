@@ -46,8 +46,8 @@ namespace matrix {
 namespace {
 
 
-GKO_REGISTER_OPERATION(build_diag_offdiag,
-                       distributed_matrix::build_diag_offdiag);
+GKO_REGISTER_OPERATION(build_local_nonlocal,
+                       distributed_matrix::build_local_nonlocal);
 
 
 }  // namespace
@@ -64,8 +64,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* inner_matrix_type)
-    : Matrix(exec, comm, inner_matrix_type, inner_matrix_type)
+    const LinOp* local_matrix_type)
+    : Matrix(exec, comm, local_matrix_type, local_matrix_type)
 {}
 
 
@@ -158,44 +158,44 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     this->set_size(global_dim);
 
     // temporary storage for the output
-    array<local_index_type> diag_row_idxs{exec};
-    array<local_index_type> diag_col_idxs{exec};
-    array<value_type> diag_values{exec};
-    array<local_index_type> offdiag_row_idxs{exec};
-    array<local_index_type> offdiag_col_idxs{exec};
-    array<value_type> offdiag_values{exec};
+    array<local_index_type> local_row_idxs{exec};
+    array<local_index_type> local_col_idxs{exec};
+    array<value_type> local_values{exec};
+    array<local_index_type> non_local_row_idxs{exec};
+    array<local_index_type> non_local_col_idxs{exec};
+    array<value_type> non_local_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
     array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
 
-    // build diagonal, off-diagonal matrix and communication structures
-    exec->run(matrix::make_build_diag_offdiag(
+    // build local, non-local matrix data and communication structures
+    exec->run(matrix::make_build_local_nonlocal(
         data, make_temporary_clone(exec, row_partition).get(),
         make_temporary_clone(exec, col_partition).get(), local_part,
-        diag_row_idxs, diag_col_idxs, diag_values, offdiag_row_idxs,
-        offdiag_col_idxs, offdiag_values, recv_gather_idxs,
-        recv_offsets_array.get_data(), non_local_to_global_));
+        local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
+        non_local_col_idxs, non_local_values, recv_gather_idxs,
+        recv_offsets_array, non_local_to_global_));
 
     // read the local matrix data
-    const auto num_diag_rows =
+    const auto num_local_rows =
         static_cast<size_type>(row_partition->get_part_size(local_part));
-    const auto num_diag_cols =
+    const auto num_local_cols =
         static_cast<size_type>(col_partition->get_part_size(local_part));
-    const auto num_ghost_cols = non_local_to_global_.get_num_elems();
-    device_matrix_data<value_type, local_index_type> diag_data{
-        exec, dim<2>{num_diag_rows, num_diag_cols}, std::move(diag_row_idxs),
-        std::move(diag_col_idxs), std::move(diag_values)};
-    device_matrix_data<value_type, local_index_type> offdiag_data{
-        exec, dim<2>{num_diag_rows, num_ghost_cols},
-        std::move(offdiag_row_idxs), std::move(offdiag_col_idxs),
-        std::move(offdiag_values)};
+    const auto num_non_local_cols = non_local_to_global_.get_num_elems();
+    device_matrix_data<value_type, local_index_type> local_data{
+        exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
+        std::move(local_col_idxs), std::move(local_values)};
+    device_matrix_data<value_type, local_index_type> non_local_data{
+        exec, dim<2>{num_local_rows, num_non_local_cols},
+        std::move(non_local_row_idxs), std::move(non_local_col_idxs),
+        std::move(non_local_values)};
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-        ->read(diag_data);
+        ->read(std::move(local_data));
     as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
-        ->read(offdiag_data);
+        ->read(std::move(non_local_data));
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
     exec->get_master()->copy_from(exec.get(), num_parts + 1,
-                                  recv_offsets_array.get_data(),
+                                  recv_offsets_array.get_const_data(),
                                   recv_offsets_.data());
     std::adjacent_difference(recv_offsets_.begin() + 1, recv_offsets_.end(),
                              recv_sizes_.begin());
