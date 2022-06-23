@@ -918,8 +918,9 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         }
     }
     auto row_ptrs = result->get_row_ptrs();
-    components::convert_idxs_to_ptrs(exec, row_idxs, nnz, num_rows + 1,
-                                     row_ptrs);
+    // components::convert_idxs_to_ptrs(exec, row_idxs, nnz, num_rows + 1,
+    //                                 row_ptrs);
+    components::convert_idxs_to_ptrs(exec, row_idxs, nnz, num_rows, row_ptrs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1282,7 +1283,7 @@ void compute_absolute(
                 }
             }
         } else {
-            // std::cout << "NEW_ABSOLUTE" << std::endl;
+            //            std::cout << "NEW_ABSOLUTE" << std::endl;
             size_type num_stored_elements_src =
                 source->get_num_stored_elements();
 // #pragma omp parallel for default(none), shared(source, result, num_blk_src)

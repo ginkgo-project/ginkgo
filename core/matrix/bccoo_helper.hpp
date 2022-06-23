@@ -614,6 +614,8 @@ inline uint8 generate_type_blk(compr_idxs& idxs, compr_blk_idxs blk_idxs,
 {
     uint8 type_blk = {};
 
+    //		std::cout << "GENERATE " << sizeof(ValueType) << std::endl;
+
     // Counting bytes to write block on result
     if (blk_idxs.mul_row) {
         for (size_type j = 0; j < idxs.nblk; j++) {
@@ -646,6 +648,7 @@ inline uint8 generate_type_blk(compr_idxs& idxs, compr_blk_idxs blk_idxs,
     }
     for (size_type j = 0; j < idxs.nblk; j++) {
         ValueType val = vals_blk.get_data()[j];
+        //				std::cout << "WRITE " << j << std::endl;
         set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
         idxs.shf += sizeof(ValueType);
     }

@@ -175,7 +175,10 @@ void Bccoo<ValueType, IndexType>::convert_to(
     // 		cols.get_data(), types.get_data(), offsets.get_data(),
     // 		num_blocks_res, block_size_res, &mem_size_res));
     size_type mem_size_res{};
-    if (exec == exec_master) {
+    if ((compress_res == this->get_compression()) &&
+        (block_size_res == this->get_block_size())) {
+        *result = *this;
+    } else if (exec == exec_master) {
         exec->run(bccoo::make_mem_size_bccoo(this, compress_res, block_size_res,
                                              &mem_size_res));
         auto tmp = Bccoo<ValueType, IndexType>::create(
@@ -208,6 +211,7 @@ void Bccoo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
+/*
 {
     using new_precision = next_precision<ValueType>;
 
@@ -225,6 +229,60 @@ void Bccoo<ValueType, IndexType>::convert_to(
     exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
     tmp->move_to(result);
 }
+*/
+{
+    using new_precision = next_precision<ValueType>;
+
+    auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
+    bccoo::compression compress_src = this->get_compression();
+    size_type block_size_src = this->get_block_size();
+    bccoo::compression compress_res = result->get_compression();
+    size_type block_size_res = result->get_block_size();
+
+    if ((compress_res == matrix::bccoo::compression::def_value) &&
+        (block_size_res == 0)) {
+        block_size_res = block_size_src;
+        compress_res = compress_src;
+    } else {
+        if (compress_res == matrix::bccoo::compression::def_value) {
+            exec->run(bccoo::make_get_default_compression(&compress_res));
+        }
+
+        if (block_size_res == 0) {
+            exec->run(bccoo::make_get_default_block_size(&block_size_res));
+        }
+    }
+
+    auto num_stored_elements = this->get_num_stored_elements();
+
+    size_type mem_size_res{};
+    if (exec == exec_master) {
+        exec->run(bccoo::make_mem_size_bccoo(this, compress_res, block_size_res,
+                                             &mem_size_res));
+        mem_size_res += num_stored_elements * sizeof(new_precision);
+        mem_size_res -= num_stored_elements * sizeof(ValueType);
+        auto tmp = Bccoo<new_precision, IndexType>::create(
+            exec, this->get_size(), num_stored_elements, block_size_res,
+            mem_size_res, compress_res);
+        exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
+        *result = *tmp;
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        exec_master->run(bccoo::make_mem_size_bccoo(
+            host_bccoo.get(), compress_res, block_size_res, &mem_size_res));
+        mem_size_res += num_stored_elements * sizeof(new_precision);
+        mem_size_res -= num_stored_elements * sizeof(ValueType);
+        auto tmp = Bccoo<new_precision, IndexType>::create(
+            exec_master, host_bccoo->get_size(), num_stored_elements,
+            block_size_res, mem_size_res, compress_res);
+        exec_master->run(
+            bccoo::make_convert_to_next_precision(host_bccoo.get(), tmp.get()));
+        *result = *tmp;
+    }
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -240,10 +298,23 @@ void Bccoo<ValueType, IndexType>::convert_to(
     Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Coo<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements());
-    exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
-    tmp->move_to(result);
+    auto exec_master = exec->get_master();
+
+    if (exec == exec_master) {
+        auto tmp = Coo<ValueType, IndexType>::create(
+            exec, this->get_size(), this->get_num_stored_elements());
+        exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
+        tmp->move_to(result);
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        auto tmp = Coo<ValueType, IndexType>::create(
+            exec_master, host_bccoo->get_size(),
+            host_bccoo->get_num_stored_elements());
+        exec_master->run(
+            bccoo::make_convert_to_coo(host_bccoo.get(), tmp.get()));
+        tmp->move_to(result);
+    }
 }
 
 
@@ -259,12 +330,26 @@ void Bccoo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, this->get_size(), this->get_num_stored_elements(),
-        result->get_strategy());
-    exec->run(bccoo::make_convert_to_csr(this, tmp.get()));
-    tmp->make_srow();
-    tmp->move_to(result);
+    auto exec_master = exec->get_master();
+
+    if (exec == exec_master) {
+        auto tmp = Csr<ValueType, IndexType>::create(
+            exec, this->get_size(), this->get_num_stored_elements(),
+            result->get_strategy());
+        exec->run(bccoo::make_convert_to_csr(this, tmp.get()));
+        tmp->make_srow();
+        tmp->move_to(result);
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        auto tmp = Csr<ValueType, IndexType>::create(
+            exec_master, host_bccoo->get_size(),
+            host_bccoo->get_num_stored_elements(), result->get_strategy());
+        exec_master->run(
+            bccoo::make_convert_to_csr(host_bccoo.get(), tmp.get()));
+        tmp->make_srow();
+        tmp->move_to(result);
+    }
 }
 
 
@@ -279,9 +364,21 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(bccoo::make_convert_to_dense(this, tmp.get()));
-    tmp->move_to(result);
+    auto exec_master = exec->get_master();
+
+    if (exec == exec_master) {
+        auto tmp = Dense<ValueType>::create(exec, this->get_size());
+        exec->run(bccoo::make_convert_to_dense(this, tmp.get()));
+        tmp->move_to(result);
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        auto tmp =
+            Dense<ValueType>::create(exec_master, host_bccoo->get_size());
+        exec_master->run(
+            bccoo::make_convert_to_dense(host_bccoo.get(), tmp.get()));
+        tmp->move_to(result);
+    }
 }
 
 
@@ -572,11 +669,23 @@ std::unique_ptr<Diagonal<ValueType>>
 Bccoo<ValueType, IndexType>::extract_diagonal() const
 {
     auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(bccoo::make_fill_array(diag->get_values(), diag->get_size()[0],
                                      zero<ValueType>()));
-    exec->run(bccoo::make_extract_diagonal(this, lend(diag)));
+
+    if (exec == exec_master) {
+        exec->run(bccoo::make_extract_diagonal(this, lend(diag)));
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        auto tmp = Diagonal<ValueType>::create(exec_master, diag_size);
+        exec_master->run(
+            bccoo::make_extract_diagonal(host_bccoo.get(), lend(tmp)));
+        diag->copy_from(std::move(tmp));
+    }
     return diag;
 }
 
@@ -585,7 +694,17 @@ template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::compute_absolute_inplace()
 {
     auto exec = this->get_executor();
-    exec->run(bccoo::make_compute_absolute_inplace(this));
+    auto exec_master = exec->get_master();
+
+    if (exec == exec_master) {
+        exec->run(bccoo::make_compute_absolute_inplace(this));
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        exec_master->run(
+            bccoo::make_compute_absolute_inplace(host_bccoo.get()));
+        *this = *host_bccoo;
+    }
 }
 
 
@@ -593,16 +712,30 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<typename Bccoo<ValueType, IndexType>::absolute_type>
 Bccoo<ValueType, IndexType>::compute_absolute() const
 {
+    auto exec = this->get_executor();
+    auto exec_master = exec->get_master();
+
     size_type block_size = this->get_block_size();
     size_type num_nonzeros = this->get_num_stored_elements();
     size_type num_bytes = this->get_num_bytes();
-    bccoo::compression compression = this->get_compression();
-    auto exec = this->get_executor();
+    bccoo::compression compress = this->get_compression();
     num_bytes += (sizeof(remove_complex<ValueType>) * block_size) -
                  (sizeof(ValueType) * block_size);
     auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
-                                           block_size, num_bytes, compression);
-    exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
+                                           block_size, num_bytes, compress);
+
+    if (exec == exec_master) {
+        exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
+    } else {
+        auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
+        *host_bccoo = *this;
+        auto tmp =
+            absolute_type::create(exec_master, this->get_size(), num_nonzeros,
+                                  block_size, num_bytes, compress);
+        exec_master->run(
+            bccoo::make_compute_absolute(host_bccoo.get(), tmp.get()));
+        *abs_bccoo = *tmp;
+    }
     return abs_bccoo;
 }
 

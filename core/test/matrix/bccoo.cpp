@@ -102,11 +102,10 @@ protected:
         index_type row = {};
         index_type offset = {};
         for (index_type i = 0; i < m->get_num_blocks(); i++) {
-            // std::cout << block_size << " - " << i << " - " <<
-            // rows_data[i]
-            // << " - " << row << " - " << offsets_data[i]
-            // << " - "
-            // << offset << std::endl;
+            //  std::cout << block_size << " - " << i
+            // 	 << " - " << rows_data[i]
+            //    << " - " << row << " - " << offsets_data[i]
+            //    << " - " << offset << std::endl;
             EXPECT_EQ(rows_data[i], row);
             EXPECT_EQ(offsets_data[i], offset);
             auto elms = std::min(block_size, 4 - i * block_size);
@@ -188,12 +187,15 @@ protected:
                     (i + block_size > 2))
                        ? 3
                        : 2;
-            //	std::cout << i << " - "
-            //			<< rows_data[i] << " - " row
-            //			<< " - " << cols_data[i] << " - "
-            //			<< col << " - " << types_data[i] << " - "
-            //			<< type << " - " << offsets_data[i] << " - "
-            //			<< offset << std::endl;
+            // 	std::cout << i
+            // 			<< " - " << rows_data[i]
+            // 			<< " - " << row
+            // 			<< " - " << cols_data[i]
+            // 			<< " - " << col
+            // 			<< " - " << (int) types_data[i]
+            // 			<< " - " << (int) type
+            // 			<< " - " << offsets_data[i]
+            // 			<< " - " << offset << std::endl;
             EXPECT_EQ(rows_data[i], row);
             EXPECT_EQ(cols_data[i], col);
             EXPECT_EQ(types_data[i], type);
