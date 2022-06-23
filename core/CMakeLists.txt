@@ -16,6 +16,7 @@ target_sources(ginkgo
     base/scoped_device_id.cpp
     base/version.cpp
     distributed/partition.cpp
+    distributed/repartition.cpp
     factorization/elimination_forest.cpp
     factorization/ic.cpp
     factorization/ilu.cpp
