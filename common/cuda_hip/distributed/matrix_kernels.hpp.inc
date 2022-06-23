@@ -31,6 +31,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
+template <typename ValueType, typename GlobalIndexType>
+struct input_type {
+    GlobalIndexType row;
+    GlobalIndexType col;
+    ValueType val;
+    size_type row_range;
+    size_type col_range;
+
+    __forceinline__ __device__ __host__
+    input_type(thrust::tuple<GlobalIndexType, GlobalIndexType, ValueType,
+                             size_type, size_type>
+                   t)
+        : row(thrust::get<0>(t)),
+          col(thrust::get<1>(t)),
+          val(thrust::get<2>(t)),
+          row_range(thrust::get<3>(t)),
+          col_range(thrust::get<4>(t))
+    {}
+};
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -118,8 +139,7 @@ void build_local_nonlocal(
                    col_range_starting_indices[range_id];
         };
 
-    using input_type = thrust::tuple<GlobalIndexType, GlobalIndexType,
-                                     ValueType, size_type, size_type>;
+    using input_type = input_type<ValueType, GlobalIndexType>;
     auto input_it = thrust::make_zip_iterator(thrust::make_tuple(
         input.get_const_row_idxs(), input.get_const_col_idxs(),
         input.get_const_values(), row_range_ids.get_const_data(),
@@ -131,13 +151,10 @@ void build_local_nonlocal(
     local_values.resize_and_reset(num_local_elements);
     auto local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col] __host__ __device__(
-                      const input_type& tuple) {
-            auto local_row =
-                map_to_local_row(thrust::get<0>(tuple), thrust::get<3>(tuple));
-            auto local_col =
-                map_to_local_col(thrust::get<1>(tuple), thrust::get<4>(tuple));
-            return thrust::make_tuple(local_row, local_col,
-                                      thrust::get<2>(tuple));
+                      const input_type input) {
+            auto local_row = map_to_local_row(input.row, input.row_range);
+            auto local_col = map_to_local_col(input.col, input.col_range);
+            return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
         thrust::device, local_it, local_it + input.get_num_elems(),
@@ -162,12 +179,11 @@ void build_local_nonlocal(
     array<size_type> non_local_col_range_ids{exec, num_non_local_elements};
     auto non_local_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col,
-                   col_part_ids] __host__ __device__(const input_type& tuple) {
-            auto local_row =
-                map_to_local_row(thrust::get<0>(tuple), thrust::get<3>(tuple));
-            return thrust::make_tuple(
-                local_row, thrust::get<1>(tuple), thrust::get<2>(tuple),
-                col_part_ids[thrust::get<4>(tuple)], thrust::get<4>(tuple));
+                   col_part_ids] __host__ __device__(const input_type input) {
+            auto local_row = map_to_local_row(input.row, input.row_range);
+            return thrust::make_tuple(local_row, input.col, input.val,
+                                      col_part_ids[input.col_range],
+                                      input.col_range);
         });
     thrust::copy_if(
         thrust::device, non_local_it, non_local_it + input.get_num_elems(),
