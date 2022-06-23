@@ -1,11 +1,11 @@
-.before_script_template: &default_before_script
+.before_script_template:
   before_script:
     - export NUM_CORES=${CI_PARALLELISM}
     - export OMP_NUM_THREADS=${NUM_CORES}
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
 
-.before_script_git_template: &git_before_script
+.before_script_git_template:
   before_script:
     - eval $(ssh-agent -s)
     - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
@@ -15,7 +15,7 @@
     - git config --global user.name "${BOT_USER}"
     - git config --global user.email "${BOT_EMAIL}"
 
-.build_template: &default_build
+.build_template:
   stage: build
   extends:
     - .before_script_template
@@ -29,6 +29,9 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
+    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+      fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -38,8 +41,7 @@
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX}
-        -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
@@ -52,7 +54,7 @@
     - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
   dependencies: []
 
-.build_and_test_template: &default_build_with_test
+.build_and_test_template:
   stage: build
   extends:
     - .before_script_template
@@ -68,6 +70,9 @@
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
       fi
+    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+      fi
     - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
@@ -77,8 +82,7 @@
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
-        -DGINKGO_BUILD_MPI=${BUILD_MPI} -DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX}
-        -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
@@ -122,7 +126,7 @@
   dependencies: []
 
 
-.horeka_test_template: &horeka_test
+.horeka_test_template:
   stage: test
   before_script:
     # Sanity checks
@@ -135,7 +139,7 @@
     # We should be reusing the previous image and build directory.
     # Speedup the tests by limiting the number of OMP threads to CI parallelism.
     - export OMP_NUM_THREADS=${CI_PARALLELISM}
-    # The test job should have the name name as the image job, only changing
+    # The test job should have the name as the image job, only changing
     # build to test
     - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
     - cd ${CI_JOB_NAME/test/build}
@@ -144,29 +148,31 @@
   cache: []
 
 
-.horeka_benchmark_before_script_template: &horeka_benchmark_before_script
-  # Sanity checks
-  - if [ -z "${USE_NAME}" ]; then exit 111; fi
-  - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
-  - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
-  - if [[ -z "${EXECUTOR}" ]]; then exit 233; fi
-  - if [[ -z "${SYSTEM_NAME}" ]]; then exit 233; fi
-  - if [[ -z "${BENCHMARK}" ]]; then exit 233; fi
-  # Set environment variables
-  - eval $(ssh-agent -s)
-  - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - ssh-keyscan -t rsa github.com >>~/.ssh/known_hosts
-  - chmod 644 ~/.ssh/known_hosts
-  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-  - unset OMP_NUM_THREADS
-  - git config --global user.name "${BOT_USER}"
-  - git config --global user.email "${BOT_EMAIL}"
+.horeka_benchmark_before_script_template:
+  before_script:
+    # Sanity checks
+    - if [ -z "${USE_NAME}" ]; then exit 111; fi
+    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
+    - if [[ -z "${EXECUTOR}" ]]; then exit 233; fi
+    - if [[ -z "${SYSTEM_NAME}" ]]; then exit 233; fi
+    - if [[ -z "${BENCHMARK}" ]]; then exit 233; fi
+    # Set environment variables
+    - eval $(ssh-agent -s)
+    - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - unset OMP_NUM_THREADS
+    - git config --global user.name "${BOT_USER}"
+    - git config --global user.email "${BOT_EMAIL}"
 
 
-.benchmark_template: &horeka_benchmark
-  before_script: *horeka_benchmark_before_script
+.benchmark_template:
+  extends:
+    - .horeka_benchmark_before_script_template
   variables:
     GIT_CLEAN_FLAGS: none
   script:
