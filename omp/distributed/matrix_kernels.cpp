@@ -240,7 +240,7 @@ void build_local_nonlocal(
         non_local_to_global.get_data()[local_idx] = global_idx;
     }
 
-    // shift recv_sizes to the back, insert 0 in front again
+    // compute sizes from shifted offsets
     for (size_type i = num_parts - 1; i > 0; --i) {
         recv_sizes_ptr[i] -= recv_sizes_ptr[i - 1];
     }
