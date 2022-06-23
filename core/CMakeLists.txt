@@ -15,6 +15,7 @@ target_sources(ginkgo
     base/perturbation.cpp
     base/version.cpp
     distributed/partition.cpp
+    distributed/repartition.cpp
     factorization/elimination_forest.cpp
     factorization/factorization.cpp
     factorization/ic.cpp
@@ -70,7 +71,6 @@ target_sources(ginkgo
     stop/iteration.cpp
     stop/residual_norm.cpp
     stop/time.cpp)
-
 if(GINKGO_HAVE_PAPI_SDE)
     target_sources(ginkgo PRIVATE log/papi.cpp)
 endif()
