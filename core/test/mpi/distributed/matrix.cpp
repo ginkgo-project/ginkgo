@@ -178,18 +178,18 @@ protected:
         }
     }
 
-    template <typename InnerMatrixType, typename OuterMatrixType>
+    template <typename LocalMatrixType, typename NonLocalMatrixType>
     void expected_interface_no_throw(dist_mtx_type* mat,
-                                     InnerMatrixType inner_matrix_type,
-                                     OuterMatrixType outer_matrix_type)
+                                     LocalMatrixType local_matrix_type,
+                                     NonLocalMatrixType non_local_matrix_type)
     {
         auto num_rows = mat->get_size()[0];
         auto a = dist_vec_type::create(ref, comm);
         auto b = dist_vec_type::create(ref, comm);
         auto convert_result = dist_mtx_type::create(
-            ref, comm, inner_matrix_type, outer_matrix_type);
-        auto move_result = dist_mtx_type::create(ref, comm, inner_matrix_type,
-                                                 outer_matrix_type);
+            ref, comm, local_matrix_type, non_local_matrix_type);
+        auto move_result = dist_mtx_type::create(ref, comm, local_matrix_type,
+                                                 non_local_matrix_type);
         gko::matrix_data<value_type, global_index_type> md{mat->get_size()};
         auto part = gko::distributed::Partition<local_index_type,
                                                 global_index_type>::create(ref);
@@ -207,7 +207,7 @@ protected:
 TYPED_TEST_SUITE(MatrixBuilder, gko::test::ValueLocalGlobalIndexTypes);
 
 
-TYPED_TEST(MatrixBuilder, BuildWithInner)
+TYPED_TEST(MatrixBuilder, BuildWithLocal)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::local_index_type;
@@ -230,34 +230,35 @@ TYPED_TEST(MatrixBuilder, BuildWithInner)
 }
 
 
-TYPED_TEST(MatrixBuilder, BuildWithInnerAndGhost)
+TYPED_TEST(MatrixBuilder, BuildWithLocalAndNonLocal)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::local_index_type;
     using dist_mat_type = typename TestFixture::dist_mtx_type;
-    this->template forall_matrix_types([this](auto with_inner_matrix_type,
-                                              auto expected_inner_type_ptr,
-                                              auto additional_inner_test) {
-        using expected_inner_type = typename std::remove_pointer<decltype(
-            expected_inner_type_ptr.get())>::type;
-        this->forall_matrix_types([=](auto with_ghost_matrix_type,
-                                      auto expected_ghost_type_ptr,
-                                      auto additional_ghost_test) {
-            using expected_ghost_type = typename std::remove_pointer<decltype(
-                expected_ghost_type_ptr.get())>::type;
+    this->template forall_matrix_types([this](auto with_local_matrix_type,
+                                              auto expected_local_type_ptr,
+                                              auto additional_local_test) {
+        using expected_local_type = typename std::remove_pointer<decltype(
+            expected_local_type_ptr.get())>::type;
+        this->forall_matrix_types([=](auto with_non_local_matrix_type,
+                                      auto expected_non_local_type_ptr,
+                                      auto additional_non_local_test) {
+            using expected_non_local_type =
+                typename std::remove_pointer<decltype(
+                    expected_non_local_type_ptr.get())>::type;
 
             auto mat = dist_mat_type ::create(this->ref, this->comm,
-                                              with_inner_matrix_type,
-                                              with_ghost_matrix_type);
+                                              with_local_matrix_type,
+                                              with_non_local_matrix_type);
 
             ASSERT_NO_THROW(
-                gko::as<expected_inner_type>(mat->get_local_matrix()));
+                gko::as<expected_local_type>(mat->get_local_matrix()));
             ASSERT_NO_THROW(
-                gko::as<expected_ghost_type>(mat->get_non_local_matrix()));
-            additional_inner_test(mat->get_local_matrix().get());
-            additional_ghost_test(mat->get_non_local_matrix().get());
-            this->expected_interface_no_throw(mat.get(), with_inner_matrix_type,
-                                              with_ghost_matrix_type);
+                gko::as<expected_non_local_type>(mat->get_non_local_matrix()));
+            additional_local_test(mat->get_local_matrix().get());
+            additional_non_local_test(mat->get_non_local_matrix().get());
+            this->expected_interface_no_throw(mat.get(), with_local_matrix_type,
+                                              with_non_local_matrix_type);
         });
     });
 }
@@ -444,17 +445,17 @@ TYPED_TEST(Matrix, ReadsDistributedGlobalData)
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
     auto dist_mat = TestFixture::dist_mtx_type::create(this->ref, this->comm);
-    I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
-    I<I<value_type>> res_offdiag[] = {
+    I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
+    I<I<value_type>> res_non_local[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
     dist_mat->read_distributed(this->mat_input, this->row_part.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
-                        res_diag[rank], 0);
+                        res_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
-                        res_offdiag[rank], 0);
+                        res_non_local[rank], 0);
 }
 
 
@@ -463,17 +464,17 @@ TYPED_TEST(Matrix, ReadsDistributedLocalData)
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
     auto dist_mat = TestFixture::dist_mtx_type::create(this->ref, this->comm);
-    I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
-    I<I<value_type>> res_offdiag[] = {
+    I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
+    I<I<value_type>> res_non_local[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = dist_mat->get_communicator().rank();
 
     dist_mat->read_distributed(this->dist_input[rank], this->row_part.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
-                        res_diag[rank], 0);
+                        res_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
-                        res_offdiag[rank], 0);
+                        res_non_local[rank], 0);
 }
 
 
@@ -482,8 +483,8 @@ TYPED_TEST(Matrix, ReadsDistributedWithColPartition)
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
     auto dist_mat = TestFixture::dist_mtx_type::create(this->ref, this->comm);
-    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_offdiag[] = {
+    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_non_local[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
     auto rank = dist_mat->get_communicator().rank();
 
@@ -491,9 +492,9 @@ TYPED_TEST(Matrix, ReadsDistributedWithColPartition)
                                this->col_part.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_local_matrix()),
-                        res_diag[rank], 0);
+                        res_local[rank], 0);
     GKO_ASSERT_MTX_NEAR(gko::as<csr>(dist_mat->get_non_local_matrix()),
-                        res_offdiag[rank], 0);
+                        res_non_local[rank], 0);
 }
 
 
