@@ -79,8 +79,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
 #include <ginkgo/core/distributed/polymorphic_object.hpp>
+
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 
+#include <ginkgo/core/distributed/repartition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include <ginkgo/core/factorization/factorization.hpp>
