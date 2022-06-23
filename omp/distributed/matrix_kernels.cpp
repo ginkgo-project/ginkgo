@@ -51,19 +51,21 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void build_diag_offdiag(
+void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
-    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
-    array<LocalIndexType>& offdiag_row_idxs,
-    array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
-    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
-    array<GlobalIndexType>& local_to_global_ghost)
+    comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
+    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
+    array<LocalIndexType>& non_local_row_idxs,
+    array<LocalIndexType>& non_local_col_idxs,
+    array<ValueType>& non_local_values,
+    array<LocalIndexType>& local_gather_idxs,
+    array<comm_index_type>& recv_offsets,
+    array<GlobalIndexType>& non_local_to_global)
 {
     using partition_type =
         distributed::Partition<LocalIndexType, GlobalIndexType>;
@@ -76,10 +78,12 @@ void build_diag_offdiag(
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
+    auto recv_offsets_ptr = recv_offsets.get_data();
     size_type row_range_id_hint = 0;
     size_type col_range_id_hint = 0;
     // zero recv_offsets values
-    std::fill_n(recv_offsets, num_parts + 1, comm_index_type{});
+    recv_offsets.resize_and_reset(num_parts + 1);
+    std::fill_n(recv_offsets_ptr, num_parts + 1, comm_index_type{});
 
     auto find_range = [](GlobalIndexType idx, const partition_type* partition,
                          size_type hint) {
@@ -101,29 +105,29 @@ void build_diag_offdiag(
                range_starting_indices[range_id];
     };
 
-    // store offdiagonal columns and their range indices
-    map<GlobalIndexType, range_index_type> offdiag_cols(exec);
-    // store offdiagonal entries with global column idxs
-    vector<global_nonzero> global_offdiag_entries(exec);
-    vector<local_nonzero> diag_entries(exec);
+    // store non-local columns and their range indices
+    map<GlobalIndexType, range_index_type> non_local_cols(exec);
+    // store non-local entries with global column idxs
+    vector<global_nonzero> non_local_entries(exec);
+    vector<local_nonzero> local_entries(exec);
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     auto num_input = input.get_num_elems();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
-    std::vector<size_type> diag_entry_offsets(num_threads, 0);
-    std::vector<size_type> offdiag_entry_offsets(num_threads, 0);
+    std::vector<size_type> local_entry_offsets(num_threads, 0);
+    std::vector<size_type> non_local_entry_offsets(num_threads, 0);
 
 #pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
         std::unordered_map<GlobalIndexType, range_index_type>
-            thread_offdiag_cols;
-        std::vector<global_nonzero> thread_offdiag_entries;
-        std::vector<local_nonzero> thread_diag_entries;
+            thread_non_local_cols;
+        std::vector<global_nonzero> thread_non_local_entries;
+        std::vector<local_nonzero> thread_local_entries;
         std::vector<comm_index_type> thread_recv_sizes;
         auto thread_id = omp_get_thread_num();
         auto thread_begin = thread_id * size_per_thread;
         auto thread_end = std::min(thread_begin + size_per_thread, num_input);
-        // separate diagonal and off-diagonal entries for our input chunk
+        // separate local and non-local entries for our input chunk
         for (auto i = thread_begin; i < thread_end; ++i) {
             const auto global_row = input_row_idxs[i];
             const auto global_col = input_col_idxs[i];
@@ -141,123 +145,123 @@ void build_diag_offdiag(
                     find_range(global_col, col_partition, col_range_id_hint);
                 col_range_id_hint = col_range_id;
                 if (col_part_ids[col_range_id] == local_part) {
-                    // store diagonal entry
+                    // store local entry
                     auto local_col =
                         map_to_local(global_col, col_partition, col_range_id);
-                    thread_diag_entries.emplace_back(local_row, local_col,
-                                                     value);
+                    thread_local_entries.emplace_back(local_row, local_col,
+                                                      value);
                 } else {
-                    thread_offdiag_cols.emplace(global_col, col_range_id);
-                    thread_offdiag_entries.emplace_back(local_row, global_col,
-                                                        value);
+                    thread_non_local_cols.emplace(global_col, col_range_id);
+                    thread_non_local_entries.emplace_back(local_row, global_col,
+                                                          value);
                 }
             }
         }
-        diag_entry_offsets[thread_id] = thread_diag_entries.size();
-        offdiag_entry_offsets[thread_id] = thread_offdiag_entries.size();
+        local_entry_offsets[thread_id] = thread_local_entries.size();
+        non_local_entry_offsets[thread_id] = thread_non_local_entries.size();
 
 #pragma omp critical
         {
-            // collect global off-diagonal columns
-            offdiag_cols.insert(thread_offdiag_cols.begin(),
-                                thread_offdiag_cols.end());
+            // collect global non-local columns
+            non_local_cols.insert(thread_non_local_cols.begin(),
+                                  thread_non_local_cols.end());
         }
 #pragma omp barrier
 #pragma omp single
         {
             // assign output ranges to the individual threads
-            size_type diag{};
-            size_type offdiag{};
+            size_type local{};
+            size_type non_local{};
             for (size_type thread = 0; thread < num_threads; ++thread) {
-                auto size_diag = diag_entry_offsets[thread];
-                auto size_offdiag = offdiag_entry_offsets[thread];
-                diag_entry_offsets[thread] = diag;
-                offdiag_entry_offsets[thread] = offdiag;
-                diag += size_diag;
-                offdiag += size_offdiag;
+                auto size_local = local_entry_offsets[thread];
+                auto size_non_local = non_local_entry_offsets[thread];
+                local_entry_offsets[thread] = local;
+                non_local_entry_offsets[thread] = non_local;
+                local += size_local;
+                non_local += size_non_local;
             }
-            diag_entries.resize(diag);
-            global_offdiag_entries.resize(offdiag);
+            local_entries.resize(local);
+            non_local_entries.resize(non_local);
         }
         // write back the local data to the output ranges
-        auto diag = diag_entry_offsets[thread_id];
-        auto offdiag = offdiag_entry_offsets[thread_id];
-        for (const auto& entry : thread_diag_entries) {
-            diag_entries[diag] = entry;
-            diag++;
+        auto local = local_entry_offsets[thread_id];
+        auto non_local = non_local_entry_offsets[thread_id];
+        for (const auto& entry : thread_local_entries) {
+            local_entries[local] = entry;
+            local++;
         }
-        for (const auto& entry : thread_offdiag_entries) {
-            global_offdiag_entries[offdiag] = entry;
-            offdiag++;
+        for (const auto& entry : thread_non_local_entries) {
+            non_local_entries[non_local] = entry;
+            non_local++;
         }
     }
-    // store diagonal data to output
-    diag_row_idxs.resize_and_reset(diag_entries.size());
-    diag_col_idxs.resize_and_reset(diag_entries.size());
-    diag_values.resize_and_reset(diag_entries.size());
+    // store localonal data to output
+    local_row_idxs.resize_and_reset(local_entries.size());
+    local_col_idxs.resize_and_reset(local_entries.size());
+    local_values.resize_and_reset(local_entries.size());
 #pragma omp parallel for
-    for (size_type i = 0; i < diag_entries.size(); ++i) {
-        const auto& entry = diag_entries[i];
-        diag_row_idxs.get_data()[i] = entry.row;
-        diag_col_idxs.get_data()[i] = entry.column;
-        diag_values.get_data()[i] = entry.value;
+    for (size_type i = 0; i < local_entries.size(); ++i) {
+        const auto& entry = local_entries[i];
+        local_row_idxs.get_data()[i] = entry.row;
+        local_col_idxs.get_data()[i] = entry.column;
+        local_values.get_data()[i] = entry.value;
     }
 
-    // count off-diagonal columns per part
-    for (const auto& entry : offdiag_cols) {
+    // count non-local columns per part
+    for (const auto& entry : non_local_cols) {
         auto col_range_id = entry.second;
-        recv_offsets[col_part_ids[col_range_id]]++;
+        recv_offsets_ptr[col_part_ids[col_range_id]]++;
     }
-    components::prefix_sum(exec, recv_offsets, num_parts + 1);
+    components::prefix_sum(exec, recv_offsets_ptr, num_parts + 1);
 
-    // collect and renumber offdiagonal columns
-    const auto num_ghost_elems =
-        static_cast<size_type>(recv_offsets[num_parts]);
-    local_gather_idxs.resize_and_reset(num_ghost_elems);
-    std::unordered_map<GlobalIndexType, LocalIndexType> offdiag_global_to_local;
-    for (const auto& entry : offdiag_cols) {
+    // collect and renumber non-local columns
+    const auto num_non_local_cols =
+        static_cast<size_type>(recv_offsets_ptr[num_parts]);
+    local_gather_idxs.resize_and_reset(num_non_local_cols);
+    std::unordered_map<GlobalIndexType, LocalIndexType> global_to_non_local;
+    for (const auto& entry : non_local_cols) {
         auto range = entry.second;
         auto part = col_part_ids[range];
-        auto idx = recv_offsets[part];
+        auto idx = recv_offsets_ptr[part];
         local_gather_idxs.get_data()[idx] =
             map_to_local(entry.first, col_partition, entry.second);
-        offdiag_global_to_local[entry.first] = idx;
-        ++recv_offsets[part];
+        global_to_non_local[entry.first] = idx;
+        ++recv_offsets_ptr[part];
     }
 
-    // build local-to-global map for offdiag columns
-    local_to_global_ghost.resize_and_reset(num_ghost_elems);
-    std::fill_n(local_to_global_ghost.get_data(),
-                local_to_global_ghost.get_num_elems(),
+    // build local-to-global map for non-local columns
+    non_local_to_global.resize_and_reset(num_non_local_cols);
+    std::fill_n(non_local_to_global.get_data(),
+                non_local_to_global.get_num_elems(),
                 invalid_index<GlobalIndexType>());
-    for (const auto& key_value : offdiag_global_to_local) {
+    for (const auto& key_value : global_to_non_local) {
         const auto global_idx = key_value.first;
         const auto local_idx = key_value.second;
-        local_to_global_ghost.get_data()[local_idx] = global_idx;
+        non_local_to_global.get_data()[local_idx] = global_idx;
     }
 
     // shift recv_offsets to the back, insert 0 in front again
     LocalIndexType local_prev{};
     for (size_type i = 0; i <= num_parts; i++) {
-        recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
+        recv_offsets_ptr[i] = std::exchange(local_prev, recv_offsets_ptr[i]);
     }
 
-    // map off-diag values to local column indices
-    offdiag_row_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_col_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_values.resize_and_reset(global_offdiag_entries.size());
+    // map non-local values to local column indices
+    non_local_row_idxs.resize_and_reset(non_local_entries.size());
+    non_local_col_idxs.resize_and_reset(non_local_entries.size());
+    non_local_values.resize_and_reset(non_local_entries.size());
 #pragma omp parallel for
-    for (size_type i = 0; i < global_offdiag_entries.size(); i++) {
-        auto global = global_offdiag_entries[i];
-        offdiag_row_idxs.get_data()[i] =
+    for (size_type i = 0; i < non_local_entries.size(); i++) {
+        auto global = non_local_entries[i];
+        non_local_row_idxs.get_data()[i] =
             static_cast<LocalIndexType>(global.row);
-        offdiag_col_idxs.get_data()[i] = offdiag_global_to_local[global.column];
-        offdiag_values.get_data()[i] = global.value;
+        non_local_col_idxs.get_data()[i] = global_to_non_local[global.column];
+        non_local_values.get_data()[i] = global.value;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_BUILD_DIAG_OFFDIAG);
+    GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix

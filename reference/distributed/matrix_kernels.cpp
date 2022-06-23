@@ -46,19 +46,21 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void build_diag_offdiag(
+void build_local_nonlocal(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
     const distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
-    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
-    array<LocalIndexType>& offdiag_row_idxs,
-    array<LocalIndexType>& offdiag_col_idxs, array<ValueType>& offdiag_values,
-    array<LocalIndexType>& local_gather_idxs, comm_index_type* recv_offsets,
-    array<GlobalIndexType>& local_to_global_ghost)
+    comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
+    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
+    array<LocalIndexType>& non_local_row_idxs,
+    array<LocalIndexType>& non_local_col_idxs,
+    array<ValueType>& non_local_values,
+    array<LocalIndexType>& local_gather_idxs,
+    array<comm_index_type>& recv_offsets,
+    array<GlobalIndexType>& non_local_to_global)
 {
     using partition_type =
         distributed::Partition<LocalIndexType, GlobalIndexType>;
@@ -71,10 +73,12 @@ void build_diag_offdiag(
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
     auto num_parts = row_partition->get_num_parts();
+    auto recv_offsets_ptr = recv_offsets.get_data();
     size_type row_range_id_hint = 0;
     size_type col_range_id_hint = 0;
     // zero recv_offsets values
-    std::fill_n(recv_offsets, num_parts + 1, comm_index_type{});
+    recv_offsets.resize_and_reset(num_parts + 1);
+    std::fill_n(recv_offsets_ptr, num_parts + 1, comm_index_type{});
 
     auto find_range = [](GlobalIndexType idx, const partition_type* partition,
                          size_type hint) {
@@ -96,11 +100,11 @@ void build_diag_offdiag(
                range_starting_indices[range_id];
     };
 
-    // store offdiagonal columns and their range indices
-    map<GlobalIndexType, range_index_type> offdiag_cols(exec);
-    // store offdiagonal entries with global column idxs
-    vector<global_nonzero> global_offdiag_entries(exec);
-    vector<local_nonzero> diag_entries(exec);
+    // store non-local columns and their range indices
+    map<GlobalIndexType, range_index_type> non_local_cols(exec);
+    // store non-local entries with global column idxs
+    vector<global_nonzero> global_non_local_entries(exec);
+    vector<local_nonzero> local_entries(exec);
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
         const auto global_row = input_row_idxs[i];
         const auto global_col = input_col_idxs[i];
@@ -118,89 +122,90 @@ void build_diag_offdiag(
                 find_range(global_col, col_partition, col_range_id_hint);
             col_range_id_hint = col_range_id;
             if (col_part_ids[col_range_id] == local_part) {
-                // store diagonal entry
+                // store local entry
                 auto local_col =
                     map_to_local(global_col, col_partition, col_range_id);
-                diag_entries.emplace_back(local_row, local_col, value);
+                local_entries.emplace_back(local_row, local_col, value);
             } else {
-                // store off-diagonal entry
+                // store non-local entry
                 auto is_new_col =
-                    offdiag_cols.emplace(global_col, col_range_id).second;
-                // count the number of off-diagonal entries in each part
+                    non_local_cols.emplace(global_col, col_range_id).second;
+                // count the number of non-local entries in each part
                 if (is_new_col) {
-                    recv_offsets[col_part_ids[col_range_id]]++;
+                    recv_offsets_ptr[col_part_ids[col_range_id]]++;
                 }
-                global_offdiag_entries.emplace_back(local_row, global_col,
-                                                    value);
+                global_non_local_entries.emplace_back(local_row, global_col,
+                                                      value);
             }
         }
     }
 
-    // store diagonal data to output
-    diag_row_idxs.resize_and_reset(diag_entries.size());
-    diag_col_idxs.resize_and_reset(diag_entries.size());
-    diag_values.resize_and_reset(diag_entries.size());
-    std::transform(diag_entries.begin(), diag_entries.end(),
-                   detail::make_zip_iterator(diag_row_idxs.get_data(),
-                                             diag_col_idxs.get_data(),
-                                             diag_values.get_data()),
+    // store local data to output
+    local_row_idxs.resize_and_reset(local_entries.size());
+    local_col_idxs.resize_and_reset(local_entries.size());
+    local_values.resize_and_reset(local_entries.size());
+    std::transform(local_entries.begin(), local_entries.end(),
+                   detail::make_zip_iterator(local_row_idxs.get_data(),
+                                             local_col_idxs.get_data(),
+                                             local_values.get_data()),
                    [](const auto& entry) {
                        return std::make_tuple(entry.row, entry.column,
                                               entry.value);
                    });
 
     // build recv_offsets
-    components::prefix_sum(exec, recv_offsets, num_parts + 1);
+    components::prefix_sum(exec, recv_offsets_ptr, num_parts + 1);
 
-    // collect and renumber offdiagonal columns
-    const auto num_ghost_columns =
-        static_cast<size_type>(recv_offsets[num_parts]);
-    local_gather_idxs.resize_and_reset(num_ghost_columns);
-    std::unordered_map<GlobalIndexType, LocalIndexType> offdiag_global_to_local;
-    for (const auto& entry : offdiag_cols) {
+    // collect and renumber non-local columns
+    const auto num_non_local_cols =
+        static_cast<size_type>(recv_offsets_ptr[num_parts]);
+    local_gather_idxs.resize_and_reset(num_non_local_cols);
+    std::unordered_map<GlobalIndexType, LocalIndexType> global_to_non_local;
+    for (const auto& entry : non_local_cols) {
         auto range = entry.second;
         auto part = col_part_ids[range];
-        auto idx = recv_offsets[part];
+        auto idx = recv_offsets_ptr[part];
         local_gather_idxs.get_data()[idx] =
             map_to_local(entry.first, col_partition, range);
-        offdiag_global_to_local[entry.first] = idx;
-        ++recv_offsets[part];
+        global_to_non_local[entry.first] = idx;
+        ++recv_offsets_ptr[part];
     }
 
-    // build local-to-global map for offdiag columns
-    local_to_global_ghost.resize_and_reset(num_ghost_columns);
-    std::fill_n(local_to_global_ghost.get_data(),
-                local_to_global_ghost.get_num_elems(),
+    // build local-to-global map for non-local columns
+    non_local_to_global.resize_and_reset(num_non_local_cols);
+    std::fill_n(non_local_to_global.get_data(),
+                non_local_to_global.get_num_elems(),
                 invalid_index<GlobalIndexType>());
-    for (const auto& key_value : offdiag_global_to_local) {
+    for (const auto& key_value : global_to_non_local) {
         const auto global_idx = key_value.first;
         const auto local_idx = key_value.second;
-        local_to_global_ghost.get_data()[local_idx] = global_idx;
+        non_local_to_global.get_data()[local_idx] = global_idx;
     }
 
     // shift recv_offsets to the back, insert 0 in front again
     LocalIndexType local_prev{};
     for (size_type i = 0; i <= num_parts; i++) {
-        recv_offsets[i] = std::exchange(local_prev, recv_offsets[i]);
+        recv_offsets_ptr[i] = std::exchange(local_prev, recv_offsets_ptr[i]);
     }
 
-    // map off-diag values to local column indices
-    offdiag_row_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_col_idxs.resize_and_reset(global_offdiag_entries.size());
-    offdiag_values.resize_and_reset(global_offdiag_entries.size());
-    std::transform(global_offdiag_entries.begin(), global_offdiag_entries.end(),
-                   detail::make_zip_iterator(offdiag_row_idxs.get_data(),
-                                             offdiag_col_idxs.get_data(),
-                                             offdiag_values.get_data()),
+    // map non-local values to local column indices
+    non_local_row_idxs.resize_and_reset(global_non_local_entries.size());
+    non_local_col_idxs.resize_and_reset(global_non_local_entries.size());
+    non_local_values.resize_and_reset(global_non_local_entries.size());
+    std::transform(global_non_local_entries.begin(),
+                   global_non_local_entries.end(),
+                   detail::make_zip_iterator(non_local_row_idxs.get_data(),
+                                             non_local_col_idxs.get_data(),
+                                             non_local_values.get_data()),
                    [&](const auto& entry) {
                        return std::make_tuple(
                            static_cast<LocalIndexType>(entry.row),
-                           offdiag_global_to_local[entry.column], entry.value);
+                           global_to_non_local[entry.column], entry.value);
                    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_BUILD_DIAG_OFFDIAG);
+    GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
 
 
 }  // namespace distributed_matrix

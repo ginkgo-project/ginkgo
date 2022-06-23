@@ -89,18 +89,18 @@ protected:
                                                                        input};
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
              ++part) {
-            gko::array<local_index_type> diag_row_idxs{ref};
-            gko::array<local_index_type> diag_col_idxs{ref};
-            gko::array<value_type> diag_values{ref};
-            gko::array<local_index_type> d_diag_row_idxs{exec};
-            gko::array<local_index_type> d_diag_col_idxs{exec};
-            gko::array<value_type> d_diag_values{exec};
-            gko::array<local_index_type> offdiag_row_idxs{ref};
-            gko::array<local_index_type> offdiag_col_idxs{ref};
-            gko::array<value_type> offdiag_values{ref};
-            gko::array<local_index_type> d_offdiag_row_idxs{exec};
-            gko::array<local_index_type> d_offdiag_col_idxs{exec};
-            gko::array<value_type> d_offdiag_values{exec};
+            gko::array<local_index_type> local_row_idxs{ref};
+            gko::array<local_index_type> local_col_idxs{ref};
+            gko::array<value_type> local_values{ref};
+            gko::array<local_index_type> d_local_row_idxs{exec};
+            gko::array<local_index_type> d_local_col_idxs{exec};
+            gko::array<value_type> d_local_values{exec};
+            gko::array<local_index_type> non_local_row_idxs{ref};
+            gko::array<local_index_type> non_local_col_idxs{ref};
+            gko::array<value_type> non_local_values{ref};
+            gko::array<local_index_type> d_non_local_row_idxs{exec};
+            gko::array<local_index_type> d_non_local_col_idxs{exec};
+            gko::array<value_type> d_non_local_values{exec};
             gko::array<local_index_type> gather_idxs{ref};
             gko::array<local_index_type> d_gather_idxs{exec};
             gko::array<comm_index_type> recv_offsets{
@@ -112,24 +112,23 @@ protected:
             gko::array<global_index_type> local_to_global_col{ref};
             gko::array<global_index_type> d_local_to_global_col{exec};
 
-            gko::kernels::reference::distributed_matrix::build_diag_offdiag(
-                ref, input, row_partition, col_partition, part, diag_row_idxs,
-                diag_col_idxs, diag_values, offdiag_row_idxs, offdiag_col_idxs,
-                offdiag_values, gather_idxs, recv_offsets.get_data(),
+            gko::kernels::reference::distributed_matrix::build_local_nonlocal(
+                ref, input, row_partition, col_partition, part, local_row_idxs,
+                local_col_idxs, local_values, non_local_row_idxs,
+                non_local_col_idxs, non_local_values, gather_idxs, recv_offsets,
                 local_to_global_col);
-            gko::kernels::omp::distributed_matrix::build_diag_offdiag(
+            gko::kernels::omp::distributed_matrix::build_local_nonlocal(
                 exec, d_input, d_row_partition, d_col_partition, part,
-                d_diag_row_idxs, d_diag_col_idxs, d_diag_values,
-                d_offdiag_row_idxs, d_offdiag_col_idxs, d_offdiag_values,
-                d_gather_idxs, d_recv_offsets.get_data(),
-                d_local_to_global_col);
+                d_local_row_idxs, d_local_col_idxs, d_local_values,
+                d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
+                d_gather_idxs, d_recv_offsets, d_local_to_global_col);
 
-            assert_device_matrix_data_equal(diag_row_idxs, diag_col_idxs,
-                                            diag_values, d_diag_row_idxs,
-                                            d_diag_col_idxs, d_diag_values);
+            assert_device_matrix_data_equal(local_row_idxs, local_col_idxs,
+                                            local_values, d_local_row_idxs,
+                                            d_local_col_idxs, d_local_values);
             assert_device_matrix_data_equal(
-                offdiag_row_idxs, offdiag_col_idxs, offdiag_values,
-                d_offdiag_row_idxs, d_offdiag_col_idxs, d_offdiag_values);
+                non_local_row_idxs, non_local_col_idxs, non_local_values,
+                d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, d_gather_idxs);
             GKO_ASSERT_ARRAY_EQ(recv_offsets, d_recv_offsets);
             GKO_ASSERT_ARRAY_EQ(local_to_global_col, d_local_to_global_col);
