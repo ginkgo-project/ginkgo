@@ -554,6 +554,7 @@ private:
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
     bool uses_neighbor_comm_;
+    mpi::communicator neighbor_comm_;
 };
 
 

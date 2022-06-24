@@ -109,7 +109,7 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
             auto row = flat_idx(j, i);
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
-                    if (!restricted || ((d_i == 0 && d_j == 0))) {
+                    if (!restricted || ((d_i == 0 || d_j == 0))) {
                         auto col = flat_idx(j + d_j, i + d_i);
                         if (col >= 0 &&
                             col < static_cast<IndexType>(global_size)) {

@@ -166,7 +166,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
 
     MPI_Comm graph;
     MPI_Dist_graph_create(comm.get(), 1, &source, &degree, destinations.data(),
-                          MPI_UNWEIGHTED, MPI_INFO_NULL, false, &graph);
+                          MPI_UNWEIGHTED, MPI_INFO_NULL, true, &graph);
 
     comm_index_type num_in_neighbors;
     comm_index_type num_out_neighbors;
@@ -180,7 +180,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
                              MPI_UNWEIGHTED, num_out_neighbors,
                              out_neighbors.data(), MPI_UNWEIGHTED);
 
-    this->set_commuinicator(mpi::communicator{graph, comm.get_executor()});
+    neighbor_comm_ = mpi::communicator{graph, comm.get_executor()};
+
+    std::vector<comm_index_type> map_old_rank(comm.size());  // new to old rank
+    auto new_rank = neighbor_comm_.rank();
+    auto old_rank = comm.rank();
+    neighbor_comm_.all_gather(&old_rank, 1, map_old_rank.data(), 1);
 
     // compress communication info
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
@@ -190,14 +195,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
 
     for (size_type i = 0; i < out_neighbors.size(); ++i) {
         comp_send_sizes[i] = send_sizes_[out_neighbors[i]];
-        comp_send_offsets[i] = send_offsets_[out_neighbors[i]];
     }
     for (size_type i = 0; i < in_neighbors.size(); ++i) {
         comp_recv_sizes[i] = recv_sizes_[in_neighbors[i]];
-        comp_recv_offsets[i] = recv_offsets_[in_neighbors[i]];
     }
-    comp_send_offsets.back() = send_offsets_.back();
-    comp_recv_offsets.back() = recv_offsets_.back();
+    std::partial_sum(comp_send_sizes.begin(), comp_send_sizes.end(),
+                     comp_send_offsets.begin() + 1);
+    std::partial_sum(comp_recv_sizes.begin(), comp_recv_sizes.end(),
+                     comp_recv_offsets.begin() + 1);
 
     recv_sizes_ = std::move(comp_recv_sizes);
     recv_offsets_ = std::move(comp_recv_offsets);
@@ -368,7 +373,7 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
                         : recv_buffer_->get_values();
     exec->synchronize();
     if (uses_neighbor_comm_) {
-        return comm.i_neighor_all_to_all_v(
+        return neighbor_comm_.i_neighor_all_to_all_v(
             send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
             recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
     } else {
@@ -493,6 +498,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
+        uses_neighbor_comm_ = other.uses_neighbor_comm_;
+        neighbor_comm_ = other.neighbor_comm_;
     }
     return *this;
 }
@@ -518,6 +525,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
+        uses_neighbor_comm_ = std::exchange(other.uses_neighbor_comm_, false);
+        neighbor_comm_ = std::move(other.neighbor_comm_);
     }
     return *this;
 }
