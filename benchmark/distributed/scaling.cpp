@@ -100,8 +100,10 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{global_size, global_size});
 
+    auto global_x_coord = [&](const auto i) { return i + coords[0] * dp; };
+    auto global_y_coord = [&](const auto j) { return j + coords[1] * dp; };
     auto flat_idx = [&](const auto ix, auto iy) {
-        return ix + (coords[0] * dp) + (iy + coords[1] * dp) * dims[0] * dp;
+        return global_x_coord(ix) + global_y_coord(iy) * dims[0] * dp;
     };
 
     for (IndexType i = 0; i < dp; ++i) {
@@ -109,13 +111,14 @@ gko::matrix_data<ValueType, IndexType> generate_2d_stencil(
             auto row = flat_idx(j, i);
             for (IndexType d_i : {-1, 0, 1}) {
                 for (IndexType d_j : {-1, 0, 1}) {
-                    if (!restricted || ((d_i == 0 || d_j == 0))) {
+                    if ((!restricted || ((d_i == 0 || d_j == 0))) &&
+                        global_x_coord(j + d_j) >= 0 &&
+                        global_x_coord(j + d_j) < dp * dims[0] &&
+                        global_y_coord(i + d_i) >= 0 &&
+                        global_y_coord(i + d_i) < dp * dims[1]) {
                         auto col = flat_idx(j + d_j, i + d_i);
-                        if (col >= 0 &&
-                            col < static_cast<IndexType>(global_size)) {
-                            A_data.nonzeros.emplace_back(row, col,
-                                                         gko::one<ValueType>());
-                        }
+                        A_data.nonzeros.emplace_back(row, col,
+                                                     gko::one<ValueType>());
                     }
                 }
             }
@@ -155,9 +158,12 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
     auto A_data = gko::matrix_data<ValueType, IndexType>(
         gko::dim<2>{global_size, global_size});
 
+    auto global_x_coord = [&](const auto i) { return i + coords[0] * dp; };
+    auto global_y_coord = [&](const auto j) { return j + coords[1] * dp; };
+    auto global_z_coord = [&](const auto z) { return z + coords[2] * dp; };
     auto flat_idx = [&](const auto ix, auto iy, auto iz) {
-        return ix + (coords[0] * dp) + (iy + coords[1] * dp) * dims[0] * dp +
-               (iz + coords[2] * dp) * dims[0] * dims[1] * dp * dp;
+        return global_x_coord(ix) + global_y_coord(iy) * dims[0] * dp +
+               global_z_coord(iz) * dims[0] * dims[1] * dp * dp;
     };
 
     for (IndexType i = 0; i < dp; ++i) {
@@ -167,14 +173,18 @@ gko::matrix_data<ValueType, IndexType> generate_3d_stencil(
                 for (IndexType d_i : {-1, 0, 1}) {
                     for (IndexType d_j : {-1, 0, 1}) {
                         for (IndexType d_k : {-1, 0, 1}) {
-                            if (!restricted || ((d_i == 0 && d_j == 0) ||
-                                                (d_i == 0 && d_k == 0) ||
-                                                (d_j == 0 && d_k == 0))) {
+                            if ((!restricted || ((d_i == 0 && d_j == 0) ||
+                                                 (d_i == 0 && d_k == 0) ||
+                                                 (d_j == 0 && d_k == 0))) &&
+                                global_x_coord(k + d_k) >= 0 &&
+                                global_x_coord(k + d_k) < dp * dims[0] &&
+                                global_y_coord(j + d_j) >= 0 &&
+                                global_y_coord(j + d_j) < dp * dims[1] &&
+                                global_z_coord(i + d_i) >= 0 &&
+                                global_z_coord(i + d_i) < dp * dims[2]) {
                                 auto col = flat_idx(k + d_k, j + d_j, i + d_i);
-                                if (col >= 0 && col < global_size) {
-                                    A_data.nonzeros.emplace_back(
-                                        row, col, gko::one<ValueType>());
-                                }
+                                A_data.nonzeros.emplace_back(
+                                    row, col, gko::one<ValueType>());
                             }
                         }
                     }
