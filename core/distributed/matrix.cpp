@@ -158,15 +158,17 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
                       [](const auto v) { return v > 0; }));
     // destinations are ranks where send_size > 0
     std::vector<comm_index_type> destinations;
+    std::vector<comm_index_type> weight;
     for (int r = 0; r < send_sizes_.size(); ++r) {
         if (send_sizes_[r] > 0) {
             destinations.push_back(r);
+            weight.push_back(send_sizes_[r]);
         }
     }
 
     MPI_Comm graph;
     MPI_Dist_graph_create(comm.get(), 1, &source, &degree, destinations.data(),
-                          MPI_UNWEIGHTED, MPI_INFO_NULL, true, &graph);
+                          weight.data(), MPI_INFO_NULL, false, &graph);
 
     comm_index_type num_in_neighbors;
     comm_index_type num_out_neighbors;
@@ -176,37 +178,26 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
 
     std::vector<comm_index_type> out_neighbors(num_out_neighbors);
     std::vector<comm_index_type> in_neighbors(num_in_neighbors);
+    std::vector<comm_index_type> out_weight(num_out_neighbors);
+    std::vector<comm_index_type> in_weight(num_in_neighbors);
     MPI_Dist_graph_neighbors(graph, num_in_neighbors, in_neighbors.data(),
-                             MPI_UNWEIGHTED, num_out_neighbors,
-                             out_neighbors.data(), MPI_UNWEIGHTED);
+                             in_weight.data(), num_out_neighbors,
+                             out_neighbors.data(), out_weight.data());
 
     neighbor_comm_ = mpi::communicator{graph, comm.get_executor()};
 
-    std::vector<comm_index_type> map_old_rank(comm.size());  // new to old rank
-    auto new_rank = neighbor_comm_.rank();
-    auto old_rank = comm.rank();
-    neighbor_comm_.all_gather(&old_rank, 1, map_old_rank.data(), 1);
-
     // compress communication info
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
-    std::vector<comm_index_type> comp_send_sizes(num_out_neighbors);
     std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
-    std::vector<comm_index_type> comp_recv_sizes(num_in_neighbors);
 
-    for (size_type i = 0; i < out_neighbors.size(); ++i) {
-        comp_send_sizes[i] = send_sizes_[out_neighbors[i]];
-    }
-    for (size_type i = 0; i < in_neighbors.size(); ++i) {
-        comp_recv_sizes[i] = recv_sizes_[in_neighbors[i]];
-    }
-    std::partial_sum(comp_send_sizes.begin(), comp_send_sizes.end(),
+    std::partial_sum(out_weight.begin(), out_weight.end(),
                      comp_send_offsets.begin() + 1);
-    std::partial_sum(comp_recv_sizes.begin(), comp_recv_sizes.end(),
+    std::partial_sum(in_weight.begin(), in_weight.end(),
                      comp_recv_offsets.begin() + 1);
 
-    recv_sizes_ = std::move(comp_recv_sizes);
+    recv_sizes_ = std::move(in_weight);
     recv_offsets_ = std::move(comp_recv_offsets);
-    send_sizes_ = std::move(comp_send_sizes);
+    send_sizes_ = std::move(out_weight);
     send_offsets_ = std::move(comp_send_offsets);
 }
 
