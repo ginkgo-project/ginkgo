@@ -211,25 +211,6 @@ void Bccoo<ValueType, IndexType>::move_to(Bccoo<ValueType, IndexType>* result)
 template <typename ValueType, typename IndexType>
 void Bccoo<ValueType, IndexType>::convert_to(
     Bccoo<next_precision<ValueType>, IndexType>* result) const
-/*
-{
-    using new_precision = next_precision<ValueType>;
-
-    auto exec = this->get_executor();
-    bccoo::compression compression = this->get_compression();
-    size_type block_size = this->get_block_size();
-    size_type num_nonzeros = this->get_num_stored_elements();
-    size_type num_bytes = this->get_num_bytes();
-    num_bytes += num_nonzeros * sizeof(new_precision);
-    num_bytes -= num_nonzeros * sizeof(ValueType);
-
-    auto tmp = Bccoo<new_precision, IndexType>::create(exec, this->get_size(),
-                                                       num_nonzeros, block_size,
-                                                       num_bytes, compression);
-    exec->run(bccoo::make_convert_to_next_precision(this, tmp.get()));
-    tmp->move_to(result);
-}
-*/
 {
     using new_precision = next_precision<ValueType>;
 
