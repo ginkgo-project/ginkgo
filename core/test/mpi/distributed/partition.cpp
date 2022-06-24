@@ -64,7 +64,7 @@ protected:
     using Vector = gko::distributed::Vector<double>;
     Repartitioner()
         : ref(gko::ReferenceExecutor::create()),
-          from_comm(gko::mpi::communicator(MPI_COMM_WORLD)),
+          from_comm(gko::mpi::communicator(MPI_COMM_WORLD, ref)),
           from_part(gko::share(
               gko::distributed::Partition<local_index_type>::build_from_mapping(
                   this->ref,
