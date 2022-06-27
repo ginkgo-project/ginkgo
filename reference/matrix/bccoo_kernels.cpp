@@ -668,8 +668,8 @@ void convert_to_bccoo_elm_blk(
         }
         // Counting bytes to write block on result
         idxs_res.nblk = block_size_local;
-        type_blk = generate_type_blk(idxs_res, blk_idxs_res, rows_blk, cols_blk,
-                                     vals_blk, chunk_data_res);
+        type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res, rows_blk,
+                                        cols_blk, vals_blk, chunk_data_res);
         rows_data_res[idxs_res.blk] = blk_idxs_res.row_frs;
         cols_data_res[idxs_res.blk] = blk_idxs_res.col_frs;
         types_data_res[idxs_res.blk] = type_blk;
@@ -825,9 +825,9 @@ void convert_to_bccoo_blk_blk(
             if (j_res == block_size_local_res) {
                 // Counting bytes to write block on result
                 idxs_res.nblk = block_size_local_res;
-                type_blk = generate_type_blk(idxs_res, blk_idxs_res,
-                                             rows_blk_res, cols_blk_res,
-                                             vals_blk_res, chunk_data_res);
+                type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res,
+                                                rows_blk_res, cols_blk_res,
+                                                vals_blk_res, chunk_data_res);
                 rows_data_res[idxs_res.blk] = blk_idxs_res.row_frs;
                 cols_data_res[idxs_res.blk] = blk_idxs_res.col_frs;
                 types_data_res[idxs_res.blk] = type_blk;

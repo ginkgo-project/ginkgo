@@ -550,8 +550,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
                     type_blk =
-                        generate_type_blk(idxs, blk_idxs, rows_blk, cols_blk,
-                                          vals_blk, chunk_data);
+                        write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
+                                             vals_blk, chunk_data);
                     rows_data[idxs.blk] = blk_idxs.row_frs;
                     cols_data[idxs.blk] = blk_idxs.col_frs;
                     types_data[idxs.blk] = type_blk;
@@ -562,8 +562,8 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         if (idxs.nblk > 0) {
-            type_blk = generate_type_blk(idxs, blk_idxs, rows_blk, cols_blk,
-                                         vals_blk, chunk_data);
+            type_blk = write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
+                                            vals_blk, chunk_data);
             rows_data[idxs.blk] = blk_idxs.row_frs;
             cols_data[idxs.blk] = blk_idxs.col_frs;
             types_data[idxs.blk] = type_blk;

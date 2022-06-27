@@ -444,11 +444,9 @@ inline void init_block_indices(const IndexType* rows_data,
     } else if (col_16bits) {
         //				std::cout << "16BITS" << std::endl;
         shf_val = shf_col + block_size * sizeof(uint16);
-        ;
     } else {
         //				std::cout << "32BITS" << std::endl;
         shf_val = shf_col + block_size * sizeof(uint32);
-        ;
     }
 }
 
@@ -607,14 +605,12 @@ inline void get_block_position_value_put(uint8* chunk_data,
 
 
 template <typename IndexType, typename ValueType>
-inline uint8 generate_type_blk(compr_idxs& idxs, compr_blk_idxs blk_idxs,
-                               array<IndexType> rows_blk,
-                               array<IndexType> cols_blk,
-                               array<ValueType> vals_blk, uint8* chunk_data)
+inline uint8 write_chunk_blk_type(
+    // generate_type_blk(
+    compr_idxs& idxs, compr_blk_idxs blk_idxs, array<IndexType> rows_blk,
+    array<IndexType> cols_blk, array<ValueType> vals_blk, uint8* chunk_data)
 {
     uint8 type_blk = {};
-
-    //		std::cout << "GENERATE " << sizeof(ValueType) << std::endl;
 
     // Counting bytes to write block on result
     if (blk_idxs.mul_row) {
@@ -648,12 +644,72 @@ inline uint8 generate_type_blk(compr_idxs& idxs, compr_blk_idxs blk_idxs,
     }
     for (size_type j = 0; j < idxs.nblk; j++) {
         ValueType val = vals_blk.get_data()[j];
-        //				std::cout << "WRITE " << j << std::endl;
         set_value_chunk<ValueType>(chunk_data, idxs.shf, val);
         idxs.shf += sizeof(ValueType);
     }
 
     return type_blk;
+}
+
+
+template <typename ValueType_src, typename ValueType_res, typename Callable>
+inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
+                            const size_type block_size_local_src,
+                            const uint8* chunk_data_src, compr_idxs& idxs_res,
+                            compr_blk_idxs blk_idxs_res,
+                            const size_type block_size_local_res,
+                            uint8* chunk_data_res, Callable finalize_op)
+{
+    ValueType_src val_src;
+    ValueType_res val_res;
+    if (blk_idxs_src.mul_row) {
+        const uint8* rows_blk_src =
+            reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
+        uint8* rows_blk_res =
+            reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+        for (size_type j = 0; j < block_size_local_src; j++) {
+            rows_blk_res[j] = rows_blk_src[j];
+        }
+        idxs_src.shf += block_size_local_src;
+        idxs_res.shf += block_size_local_res;
+    }
+    if (blk_idxs_src.col_8bits) {
+        const uint8* cols_blk_src =
+            reinterpret_cast<const uint8*>(chunk_data_src + idxs_src.shf);
+        uint8* cols_blk_res =
+            reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
+        for (size_type j = 0; j < block_size_local_src; j++) {
+            cols_blk_res[j] = cols_blk_src[j];
+        }
+        idxs_src.shf += block_size_local_src;
+        idxs_res.shf += block_size_local_res;
+    } else if (blk_idxs_src.col_16bits) {
+        std::memcpy(
+            reinterpret_cast<uint16*>(chunk_data_res + idxs_res.shf),
+            reinterpret_cast<const uint16*>(chunk_data_src + idxs_src.shf),
+            block_size_local_res * sizeof(uint16));
+        idxs_src.shf += block_size_local_src * sizeof(uint16);
+        idxs_res.shf += block_size_local_res * sizeof(uint16);
+    } else {
+        std::memcpy(
+            reinterpret_cast<uint32*>(chunk_data_res + idxs_res.shf),
+            reinterpret_cast<const uint32*>(chunk_data_src + idxs_src.shf),
+            block_size_local_res * sizeof(uint32));
+        idxs_src.shf += block_size_local_src * sizeof(uint32);
+        idxs_res.shf += block_size_local_res * sizeof(uint32);
+    }
+    if (true) {
+        for (size_type i = 0; i < block_size_local_res; i++) {
+            val_src =
+                get_value_chunk<ValueType_src>(chunk_data_src, idxs_src.shf);
+            val_res = finalize_op(val_src);
+            //            set_value_chunk<remove_complex<ValueType>>(
+            set_value_chunk<ValueType_res>(chunk_data_res, idxs_res.shf,
+                                           val_res);
+            idxs_src.shf += sizeof(ValueType_src);
+            idxs_res.shf += sizeof(ValueType_res);
+        }
+    }
 }
 
 
