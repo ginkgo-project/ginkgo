@@ -1,3 +1,7 @@
+set(gko_test_single_args "MPI_SIZE")
+set(gko_test_multi_arg "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+
+## Replaces / by _ to create valid target names from relative paths
 function(ginkgo_build_test_name test_name target_name)
     file(RELATIVE_PATH REL_BINARY_DIR
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
@@ -8,7 +12,7 @@ endfunction()
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 function(ginkgo_set_test_target_properties test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "MPI_SIZE" "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" ${gko_test_single_args} ${gko_test_multi_arg})
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
     endif()
@@ -30,8 +34,13 @@ function(ginkgo_set_test_target_properties test_target_name)
 endfunction()
 
 ## Adds a test to the list executed by ctest and sets its output binary name
+## Possible additional arguments:
+## - `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
+## - `DISABLE_EXECUTORS exec1 exec2` disables the test for certain backends (if built for multiple)
+## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
+## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
 function(ginkgo_add_test test_name test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 2 add_test "" "MPI_SIZE" "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+    cmake_parse_arguments(PARSE_ARGV 2 add_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
     if (add_test_MPI_SIZE)
@@ -79,11 +88,13 @@ function(ginkgo_create_dpcpp_test test_name)
     endif()
 endfunction(ginkgo_create_dpcpp_test)
 
+## Test compiled with CUDA
 function(ginkgo_create_cuda_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
     ginkgo_create_cuda_test_internal(${test_name} ${test_name}.cu ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_cuda_test)
 
+## Internal function allowing separate test name, filename and target name
 function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     add_executable(${test_target_name} ${filename})
     target_compile_definitions(${test_target_name} PRIVATE GKO_COMPILING_CUDA)
@@ -108,11 +119,13 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_cuda_test_internal)
 
+## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)
     ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} "" ${ARGN})
 endfunction(ginkgo_create_hip_test)
 
+## Internal function allowing separate filename, test name and test target name.
 function(ginkgo_create_hip_test_internal test_name filename test_target_name additional_flags)
     set_source_files_properties(${filename} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
     set(GINKGO_TEST_HIP_DEFINES -DGKO_COMPILING_HIP ${additional_flags})
@@ -159,6 +172,7 @@ function(ginkgo_create_hip_test_internal test_name filename test_target_name add
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_hip_test_internal)
 
+## Common test compiled with the host compiler, one target for each enabled backend
 function(ginkgo_create_common_test test_name)
     if(GINKGO_BUILD_OMP)
         ginkgo_create_common_test_internal(${test_name} OmpExecutor omp ${ARGN})
@@ -175,7 +189,7 @@ function(ginkgo_create_common_test test_name)
 endfunction(ginkgo_create_common_test)
 
 function(ginkgo_create_common_test_internal test_name exec_type exec)
-    cmake_parse_arguments(PARSE_ARGV 1 common_test "" "MPI_SIZE" "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+    cmake_parse_arguments(PARSE_ARGV 3 common_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
     if(exec IN_LIST common_test_DISABLE_EXECUTORS)
         return()
     endif()
@@ -195,13 +209,15 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
     ginkgo_add_test(${test_name}_${exec} ${test_target_name} ${ARGN})
 endfunction(ginkgo_create_common_test_internal)
 
+## Common test compiled with the device compiler, one target for each enabled backend
 function(ginkgo_create_common_device_test test_name)
-    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "MPI_SIZE" "DISABLE_EXECUTORS;ADDITIONAL_LIBRARIES;ADDITIONAL_INCLUDES")
+    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
     ginkgo_build_test_name(${test_name} test_target_name)
     if(GINKGO_BUILD_DPCPP)
         ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
         target_compile_features(${test_target_name}_dpcpp PRIVATE cxx_std_17)
-        target_link_options(${test_target_name}_dpcpp PRIVATE -fsycl-device-lib=all)
+        target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
+        target_link_options(${test_target_name}_dpcpp PRIVATE -fsycl-device-lib=all -fsycl-device-code-split=per_kernel)
     endif()
     if(GINKGO_BUILD_OMP)
         ginkgo_create_common_test_internal(${test_name} OmpExecutor omp ${ARGN})
@@ -220,6 +236,7 @@ function(ginkgo_create_common_device_test test_name)
     endif()
 endfunction(ginkgo_create_common_device_test)
 
+## Common test compiled with the host compiler for all enabled backends and Reference
 function(ginkgo_create_common_and_reference_test test_name)
     ginkgo_create_common_test(${test_name} ${ARGN})
     ginkgo_create_common_test_internal(${test_name} ReferenceExecutor reference REFERENCE ${ARGN})
