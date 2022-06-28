@@ -96,7 +96,7 @@ trigger_pipeline:
   stage: trigger_pipeline
   extends:
     - .default_variables
-    - .pr_condition
+    - .pr_trigger_condition
     - .use_status-job-settings
   variables:
     STATUS_CONTEXT: "quick"
@@ -134,9 +134,7 @@ trigger_pipeline:
       else
         echo "Can not find the corresponding Pull Request"
       fi
-  # Override variables condition from .pr_condition
-  rules:
-    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "quick"
+
 
 # Build jobs
 # Job with example runs.
