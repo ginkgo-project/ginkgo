@@ -141,9 +141,10 @@ public:
         this->set_size(gko::dim<2>{csr_->get_size()});
 
         oneapi::mkl::sparse::set_csr_data(
-            this->get_mat_handle(), int(this->get_size()[0]),
-            int(this->get_size()[1]), oneapi::mkl::index_base::zero,
-            csr_->get_row_ptrs(), csr_->get_col_idxs(), csr_->get_values());
+            this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
+            static_cast<int>(this->get_size()[1]),
+            oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
+            csr_->get_col_idxs(), csr_->get_values());
         if (optimized) {
             // need the last argument {} to make sure that it uses USM version.
             oneapi::mkl::sparse::optimize_gemv(
