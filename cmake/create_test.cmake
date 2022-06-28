@@ -12,7 +12,7 @@ endfunction()
 ## Set up shared target properties and handle ADDITIONAL_LIBRARIES/ADDITIONAL_INCLUDES
 ## `MPI_SIZE size` causes the tests to be run with `size` MPI processes.
 function(ginkgo_set_test_target_properties test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" ${gko_test_single_args} ${gko_test_multi_arg})
+    cmake_parse_arguments(PARSE_ARGV 1 set_properties "" "${gko_test_single_args}" "${gko_test_multi_arg}")
     if (GINKGO_FAST_TESTS)
         target_compile_definitions(${test_target_name} PRIVATE GINKGO_FAST_TESTS)
     endif()
@@ -40,7 +40,7 @@ endfunction()
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
 function(ginkgo_add_test test_name test_target_name)
-    cmake_parse_arguments(PARSE_ARGV 2 add_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
+    cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
     if (add_test_MPI_SIZE)
@@ -189,7 +189,7 @@ function(ginkgo_create_common_test test_name)
 endfunction(ginkgo_create_common_test)
 
 function(ginkgo_create_common_test_internal test_name exec_type exec)
-    cmake_parse_arguments(PARSE_ARGV 3 common_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
+    cmake_parse_arguments(PARSE_ARGV 3 common_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
     if(exec IN_LIST common_test_DISABLE_EXECUTORS)
         return()
     endif()
@@ -211,7 +211,7 @@ endfunction(ginkgo_create_common_test_internal)
 
 ## Common test compiled with the device compiler, one target for each enabled backend
 function(ginkgo_create_common_device_test test_name)
-    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" ${gko_test_single_arg} ${gko_test_multi_arg})
+    cmake_parse_arguments(PARSE_ARGV 1 common_device_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
     ginkgo_build_test_name(${test_name} test_target_name)
     if(GINKGO_BUILD_DPCPP)
         ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
