@@ -131,7 +131,7 @@ std::string format_description =
 #endif  // HAS_HIP
 #ifdef HAS_DPCPP
     "onemkl_csr: oneMKL Csr SpMV\n"
-    "onemkl_optimized_csr: oneMKL optimized Csr SpMV using optimize_gemv when "
+    "onemkl_optimized_csr: oneMKL optimized Csr SpMV using optimize_gemv after "
     "reading the matrix"
 #endif  // HAS_DPCPP
     ;
