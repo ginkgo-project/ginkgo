@@ -51,11 +51,11 @@
 .benchmark-spmv-cuda-rules:
   rules:
     # First, check that we have any of the following file changes
-    - changes:
-      - cuda/matrix/*
-      - include/ginkgo/core/matrix/*
-      - common/cuda_hip/matrix/*
-      # - common/unified/matrix/* # for now no SpMV there?
-    # Then, check that we are in the full pipeline or master/develop/tags
-    - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
-  when: manual
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full" && $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"
+      changes:
+        - cuda/matrix/*
+        - include/ginkgo/core/matrix/*
+        - common/cuda_hip/matrix/*
+        # - common/unified/matrix/* # for now no SpMV there?
+      when: manual
+      allow_failure: true
