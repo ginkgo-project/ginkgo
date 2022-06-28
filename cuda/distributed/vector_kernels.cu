@@ -33,6 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/distributed/vector_kernels.hpp"
 
 
+#include <thrust/binary_search.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/scatter.h>
+#include <thrust/tuple.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -42,16 +50,7 @@ namespace cuda {
 namespace distributed_vector {
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void build_local(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const device_matrix_data<ValueType, GlobalIndexType>& input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>* partition,
-    comm_index_type local_part,
-    matrix::Dense<ValueType>* local_mtx) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL);
+#include "common/cuda_hip/distributed/vector_kernels.hpp.inc"
 
 
 }  // namespace distributed_vector
