@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/distributed/vector_kernels.hpp"
+
+
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -43,8 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/matrix_data.hpp>
 
 
-#include "core/distributed/vector_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -68,11 +71,17 @@ protected:
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
     using mtx = gko::matrix::Dense<value_type>;
 
-    Vector()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
-          engine(42)
-    {}
+    Vector() : ref(gko::ReferenceExecutor::create()), engine(42)
+    {
+        init_executor(ref, exec);
+    }
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
 
     void validate(
         const gko::distributed::Partition<local_index_type, global_index_type>*
@@ -94,20 +103,23 @@ protected:
 
             gko::kernels::reference::distributed_vector::build_local(
                 ref, input, partition, part, output.get());
-            gko::kernels::omp::distributed_vector::build_local(
+            gko::kernels::EXEC_NAMESPACE::distributed_vector::build_local(
                 exec, d_input, d_partition, part, d_output.get());
 
             GKO_ASSERT_MTX_NEAR(output, d_output, 0);
         }
     }
 
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> exec;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine engine;
 };
+
+TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
+
+
 template <typename ValueType, typename IndexType, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine>
-
 gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
     gko::size_type num_rows, gko::size_type num_cols,
     NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
@@ -121,8 +133,6 @@ gko::device_matrix_data<ValueType, IndexType> generate_random_matrix_data_array(
     return gko::device_matrix_data<ValueType, IndexType>::create_from_host(exec,
                                                                            md);
 }
-
-TYPED_TEST_SUITE(Vector, gko::test::ValueLocalGlobalIndexTypes);
 
 
 TYPED_TEST(Vector, BuildsLocalEmptyIsEquivalentToRef)
