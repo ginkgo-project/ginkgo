@@ -22,6 +22,7 @@ target_sources(ginkgo
     factorization/par_ilut.cpp
     log/convergence.cpp
     log/logger.cpp
+    log/performance_hint.cpp
     log/record.cpp
     log/stream.cpp
     matrix/coo.cpp

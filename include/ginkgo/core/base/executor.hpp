@@ -673,9 +673,14 @@ public:
     void copy_from(const Executor* src_exec, size_type num_elems,
                    const T* src_ptr, T* dest_ptr) const
     {
+        const auto src_loc = reinterpret_cast<uintptr>(src_ptr);
+        const auto dest_loc = reinterpret_cast<uintptr>(dest_ptr);
         this->template log<log::Logger::copy_started>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec) {
+            src_exec->template log<log::Logger::copy_started>(
+                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+        }
         try {
             this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr,
                                 dest_ptr);
@@ -696,8 +701,11 @@ public:
             }
         }
         this->template log<log::Logger::copy_completed>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
+            src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+        if (this != src_exec) {
+            src_exec->template log<log::Logger::copy_completed>(
+                src_exec, this, src_loc, dest_loc, num_elems * sizeof(T));
+        }
     }
 
     /**
