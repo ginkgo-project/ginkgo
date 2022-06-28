@@ -133,20 +133,37 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto* chunk_data = a->get_const_chunk();
                 auto block_size = a->get_block_size();
                 bool new_elm = false;
-                size_type nblk = 0, col = 0;
-                size_type row = rows_data[blk], row_old = 0;
-                size_type shf = offsets_data[blk];
+                compr_idxs idxs = {};
+                size_type row_old = 0;
                 ValueType val;
+                /*
+                                size_type nblk = 0, col = 0;
+                                size_type row = rows_data[blk], row_old = 0;
+                                size_type shf = offsets_data[blk];
+                                ValueType val;
+                */
                 ValueType* sumV = sumV_array.get_data();
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
-                while (shf < offsets_data[blk + 1]) {
-                    row_old = row;
-                    uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                    get_next_position_value(chunk_data, nblk, ind, shf, col,
-                                            val);
-                    if (row_old != row) {
+                idxs.row = rows_data[blk];
+                idxs.shf = offsets_data[blk];
+                while (idxs.shf < offsets_data[blk + 1]) {
+                    //                while (shf < offsets_data[blk + 1]) {
+                    row_old = idxs.row;
+                    uint8 ind = get_position_newrow(chunk_data, idxs.shf,
+                                                    idxs.row, idxs.col);
+                    get_next_position_value(chunk_data, idxs.nblk, ind,
+                                            idxs.shf, idxs.col, val);
+                    /*
+                                        row_old = row;
+                                        uint8 ind =
+                       get_position_newrow(chunk_data, shf, row, col);
+                                        get_next_position_value(chunk_data,
+                       nblk, ind, shf, col, val);
+                    */
+                    // if (row_old != row) {
+                    if (row_old != idxs.row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
@@ -154,13 +171,17 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                         new_elm = false;
                     }
                     for (size_type j = 0; j < num_cols; j++) {
-                        sumV[j] += val * b->at(col, j);
+                        //                        sumV[j] += val * b->at(col,
+                        //                        j);
+                        sumV[j] += val * b->at(idxs.col, j);
                     }
                     new_elm = true;
                 }
                 if (new_elm) {
                     for (size_type j = 0; j < num_cols; j++) {
-                        atomic_add(c->at(row, j), sumV[j]);
+                        atomic_add(c->at(idxs.row, j), sumV[j]);
+                        //                        atomic_add(c->at(row, j),
+                        //                        sumV[j]);
                     }
                 }
             }
@@ -193,14 +214,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 uint8 type_blk = types_data[blk];
                 idxs.shf = offsets_data[blk];
                 idxs.blk = blk;
-                /*
-                                init_block_indices(
-                                    rows_data, cols_data, block_size_local,
-                   idxs.blk, idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-                   blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-                   blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-                   blk_idxs.shf_val);
-                */
                 init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                    types_data[idxs.blk], blk_idxs);
 
@@ -210,14 +223,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 for (size_type i = 0; i < block_size_local; i++) {
                     get_block_position_value<IndexType, ValueType>(
                         chunk_data, blk_idxs, idxs.row, idxs.col, val);
-                    /*
-                                        get_block_position_value<IndexType,
-                       ValueType>( chunk_data, blk_idxs.mul_row,
-                       blk_idxs.col_8bits, blk_idxs.col_16bits,
-                       blk_idxs.row_frs, blk_idxs.col_frs, idxs.row, idxs.col,
-                       val, blk_idxs.shf_row, blk_idxs.shf_col,
-                       blk_idxs.shf_val);
-                    */
                     if (row_old != idxs.row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
@@ -268,31 +273,51 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto num_cols = b->get_size()[1];
                 auto block_size = a->get_block_size();
                 auto alpha_val = alpha->at(0, 0);
-                size_type nblk = 0, col = 0;
-                size_type row = rows_data[blk], row_old = 0;
-                size_type shf = offsets_data[blk];
+                compr_idxs idxs = {};
+                size_type row_old = 0;
                 ValueType val;
+                /*
+                                size_type nblk = 0, col = 0;
+                                size_type row = rows_data[blk], row_old = 0;
+                                size_type shf = offsets_data[blk];
+                                ValueType val;
+                */
                 ValueType* sumV = sumV_array.get_data();
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
-                while (shf < offsets_data[blk + 1]) {
-                    row_old = row;
-                    uint8 ind = get_position_newrow(chunk_data, shf, row, col);
-                    get_next_position_value(chunk_data, nblk, ind, shf, col,
-                                            val);
-                    if (row_old != row) {
+                idxs.row = rows_data[blk];
+                idxs.shf = offsets_data[blk];
+                while (idxs.shf < offsets_data[blk + 1]) {
+                    //                while (shf < offsets_data[blk + 1]) {
+                    row_old = idxs.row;
+                    uint8 ind = get_position_newrow(chunk_data, idxs.shf,
+                                                    idxs.row, idxs.col);
+                    get_next_position_value(chunk_data, idxs.nblk, ind,
+                                            idxs.shf, idxs.col, val);
+                    /*
+                                        row_old = row;
+                                        uint8 ind =
+                       get_position_newrow(chunk_data, shf, row, col);
+                                        get_next_position_value(chunk_data,
+                       nblk, ind, shf, col, val);
+                    */
+                    if (row_old != idxs.row) {
+                        //                    if (row_old != row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
                         }
                     }
                     for (size_type j = 0; j < num_cols; j++) {
-                        sumV[j] += alpha_val * val * b->at(col, j);
+                        sumV[j] += alpha_val * val * b->at(idxs.col, j);
+                        //                        sumV[j] += alpha_val * val *
+                        //                        b->at(col, j);
                     }
                 }
                 for (size_type j = 0; j < num_cols; j++) {
-                    atomic_add(c->at(row, j), sumV[j]);
+                    atomic_add(c->at(idxs.row, j), sumV[j]);
+                    //                    atomic_add(c->at(row, j), sumV[j]);
                 }
             }
         }
@@ -325,14 +350,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 uint8 type_blk = types_data[blk];
                 idxs.shf = offsets_data[blk];
                 idxs.blk = blk;
-                /*
-                                init_block_indices(
-                                    rows_data, cols_data, block_size_local,
-                   idxs.blk, idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-                   blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-                   blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-                   blk_idxs.shf_val);
-                */
                 init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                    types_data[idxs.blk], blk_idxs);
 
@@ -342,14 +359,6 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 for (size_type i = 0; i < block_size_local; i++) {
                     get_block_position_value<IndexType, ValueType>(
                         chunk_data, blk_idxs, idxs.row, idxs.col, val);
-                    /*
-                                        get_block_position_value<IndexType,
-                       ValueType>( chunk_data, blk_idxs.mul_row,
-                       blk_idxs.col_8bits, blk_idxs.col_16bits,
-                       blk_idxs.row_frs, blk_idxs.col_frs, idxs.row, idxs.col,
-                       val, blk_idxs.shf_row, blk_idxs.shf_col,
-                       blk_idxs.shf_val);
-                    */
                     if (row_old != idxs.row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
@@ -406,7 +415,10 @@ void convert_to_next_precision(
     auto num_blk_src = source->get_num_blocks();
     auto num_stored_elements_src = source->get_num_stored_elements();
 
-    if (source->get_block_size() == result->get_block_size()) {
+    if ((source->get_block_size() != result->get_block_size()) ||
+        (source->get_compression() != result->get_compression())) {
+        std::cout << "BAD EXECUTOR" << std::endl;
+    } else {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
@@ -506,16 +518,6 @@ void convert_to_next_precision(
                 idxs_src.shf = offsets_data_src[blk_src];
                 idxs_src.blk = blk_src;
                 ValueType val_src;
-                /*
-                                init_block_indices(
-                                    rows_data_src, cols_data_src,
-                   block_size_local_src, idxs_src.blk, idxs_src.shf,
-                   types_data_src[idxs_src.blk], blk_idxs_src.mul_row,
-                   blk_idxs_src.col_8bits, blk_idxs_src.col_16bits,
-                   blk_idxs_src.row_frs, blk_idxs_src.col_frs,
-                   blk_idxs_src.shf_row, blk_idxs_src.shf_col,
-                   blk_idxs_src.shf_val);
-                */
                 init_block_indices(rows_data_src, cols_data_src,
                                    block_size_local_src, idxs_src,
                                    types_data_src[idxs_src.blk], blk_idxs_src);
@@ -534,16 +536,6 @@ void convert_to_next_precision(
                 idxs_res.shf = offsets_data_res[blk_src];
                 idxs_res.blk = blk_src;
                 next_precision<ValueType> val_res;
-                /*
-                                init_block_indices(
-                                    rows_data_res, cols_data_res,
-                   block_size_local_res, idxs_res.blk, idxs_res.shf,
-                   types_data_res[idxs_res.blk], blk_idxs_res.mul_row,
-                   blk_idxs_res.col_8bits, blk_idxs_res.col_16bits,
-                   blk_idxs_res.row_frs, blk_idxs_res.col_frs,
-                   blk_idxs_res.shf_row, blk_idxs_res.shf_col,
-                   blk_idxs_res.shf_val);
-                */
                 init_block_indices(rows_data_res, cols_data_res,
                                    block_size_local_res, idxs_res,
                                    types_data_res[idxs_res.blk], blk_idxs_res);
@@ -663,46 +655,14 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            /*
-                        init_block_indices(
-                            rows_data, cols_data, block_size_local, idxs.blk,
-               idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-               blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-               blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-               blk_idxs.shf_val);
-            */
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
             size_type row;
             size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
-                row = blk_idxs.row_frs;
-                if (blk_idxs.mul_row) {
-                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
-                        chunk_data + blk_idxs.shf_row);
-                    row += rows_blk[i];
-                }
-                col = blk_idxs.col_frs;
-                if (blk_idxs.col_8bits) {
-                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                } else if (blk_idxs.col_16bits) {
-                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                } else {
-                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                }
-                if (true) {
-                    const ValueType* vals_blk =
-                        reinterpret_cast<const ValueType*>(chunk_data +
-                                                           blk_idxs.shf_val);
-                    val = vals_blk[i];
-                }
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data, blk_idxs, row, col, val);
                 row_idxs[pos + i] = row;
                 col_idxs[pos + i] = col;
                 values[pos + i] = val;
@@ -775,46 +735,39 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            /*
-                        init_block_indices(
-                            rows_data, cols_data, block_size_local, idxs.blk,
-               idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-               blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-               blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-               blk_idxs.shf_val);
-            */
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
             size_type row;
             size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
-                row = blk_idxs.row_frs;
-                if (blk_idxs.mul_row) {
-                    const uint8* rows_blk = reinterpret_cast<const uint8*>(
-                        chunk_data + blk_idxs.shf_row);
-                    row += rows_blk[i];
-                }
-                col = blk_idxs.col_frs;
-                if (blk_idxs.col_8bits) {
-                    const uint8* cols_blk = reinterpret_cast<const uint8*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                } else if (blk_idxs.col_16bits) {
-                    const uint16* cols_blk = reinterpret_cast<const uint16*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                } else {
-                    const uint32* cols_blk = reinterpret_cast<const uint32*>(
-                        chunk_data + blk_idxs.shf_col);
-                    col += cols_blk[i];
-                }
-                if (true) {
-                    const ValueType* vals_blk =
-                        reinterpret_cast<const ValueType*>(chunk_data +
-                                                           blk_idxs.shf_val);
-                    val = vals_blk[i];
-                }
+                get_block_position_value<IndexType, ValueType>(
+                    chunk_data, blk_idxs, row, col, val);
+                /*
+                                row = blk_idxs.row_frs;
+                                if (blk_idxs.mul_row) {
+                                    const uint8* rows_blk =
+                   reinterpret_cast<const uint8*>( chunk_data +
+                   blk_idxs.shf_row); row += rows_blk[i];
+                                }
+                                col = blk_idxs.col_frs;
+                                if (blk_idxs.col_8bits) {
+                                    const uint8* cols_blk =
+                   reinterpret_cast<const uint8*>( chunk_data +
+                   blk_idxs.shf_col); col += cols_blk[i]; } else if
+                   (blk_idxs.col_16bits) { const uint16* cols_blk =
+                   reinterpret_cast<const uint16*>( chunk_data +
+                   blk_idxs.shf_col); col += cols_blk[i]; } else { const uint32*
+                   cols_blk = reinterpret_cast<const uint32*>( chunk_data +
+                   blk_idxs.shf_col); col += cols_blk[i];
+                                }
+                                if (true) {
+                                    const ValueType* vals_blk =
+                                        reinterpret_cast<const
+                   ValueType*>(chunk_data + blk_idxs.shf_val); val =
+                   vals_blk[i];
+                                }
+                */
                 row_idxs[pos + i] = row;
                 col_idxs[pos + i] = col;
                 values[pos + i] = val;
@@ -838,6 +791,7 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto num_blks = source->get_num_blocks();
 
+#pragma omp parallel for default(shared)
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
             result->at(row, col) = zero<ValueType>();
@@ -882,14 +836,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            /*
-                        init_block_indices(
-                            rows_data, cols_data, block_size_local, idxs.blk,
-               idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-               blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-               blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-               blk_idxs.shf_val);
-            */
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
             size_type row;
@@ -898,31 +844,6 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, blk_idxs, row, col, val);
-                /*
-                                row = blk_idxs.row_frs;
-                                if (blk_idxs.mul_row) {
-                                    const uint8* rows_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_row); row += rows_blk[i];
-                                }
-                                col = blk_idxs.col_frs;
-                                if (blk_idxs.col_8bits) {
-                                    const uint8* cols_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else if
-                   (blk_idxs.col_16bits) { const uint16* cols_blk =
-                   reinterpret_cast<const uint16*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else { const uint32*
-                   cols_blk = reinterpret_cast<const uint32*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i];
-                                }
-                                if (true) {
-                                    const ValueType* vals_blk =
-                                        reinterpret_cast<const
-                   ValueType*>(chunk_data + blk_idxs.shf_val); val =
-                   vals_blk[i];
-                                }
-                */
                 result->at(row, col) += val;
             }
         }
@@ -987,14 +908,6 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            /*
-                        init_block_indices(
-                            rows_data, cols_data, block_size_local, idxs.blk,
-               idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-               blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-               blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-               blk_idxs.shf_val);
-            */
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
             size_type row;
@@ -1003,38 +916,6 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, blk_idxs, row, col, val);
-                /*
-                                                                                get_block_position_value<IndexType, ValueType>(chunk_data, blk_idxs.mul_row,
-                                                     blk_idxs.col_8bits,
-                   blk_idxs.col_16bits, blk_idxs.row_frs, blk_idxs.col_frs, row,
-                   col, val, blk_idxs.shf_row, blk_idxs.shf_col,
-                   blk_idxs.shf_val);
-                */
-                /*
-                                row = blk_idxs.row_frs;
-                                if (blk_idxs.mul_row) {
-                                    const uint8* rows_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_row); row += rows_blk[i];
-                                }
-                                col = blk_idxs.col_frs;
-                                if (blk_idxs.col_8bits) {
-                                    const uint8* cols_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else if
-                   (blk_idxs.col_16bits) { const uint16* cols_blk =
-                   reinterpret_cast<const uint16*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else { const uint32*
-                   cols_blk = reinterpret_cast<const uint32*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i];
-                                }
-                                if (true) {
-                                    const ValueType* vals_blk =
-                                        reinterpret_cast<const
-                   ValueType*>(chunk_data + blk_idxs.shf_val); val =
-                   vals_blk[i];
-                                }
-                */
                 if (row == col) {
                     diag_values[row] = val;
                 }
@@ -1093,48 +974,9 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
             compr_blk_idxs blk_idxs = {};
             idxs.shf = offsets_data[blk];
             idxs.blk = blk;
-            /*
-                        init_block_indices(
-                            rows_data, cols_data, block_size_local, idxs.blk,
-               idxs.shf, types_data[idxs.blk], blk_idxs.mul_row,
-               blk_idxs.col_8bits, blk_idxs.col_16bits, blk_idxs.row_frs,
-               blk_idxs.col_frs, blk_idxs.shf_row, blk_idxs.shf_col,
-               blk_idxs.shf_val);
-            */
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
-            /*
-                                                            generate_type_blk<ValueType,ValueType>(
-                                                                                                                                    idxs, blk_idxs,
-                                                                                                                                    block_size_local, chunk_data,
-                                                                                                                                    idxs, blk_idxs,
-                                                                                                                                    block_size_local, chunk_data,
-                                                                                                                                    [](ValueType val) { return abs(val); });
-
-                        size_type row;
-                        size_type col;
-                        ValueType val;
-            */
             for (size_type i = 0; i < block_size_local; i++) {
-                /*
-                                size_type row = blk_idxs.row_frs;
-                                if (blk_idxs.mul_row) {
-                                    const uint8* rows_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_row); row += rows_blk[i];
-                                }
-                                size_type col = blk_idxs.col_frs;
-                                if (blk_idxs.col_8bits) {
-                                    const uint8* cols_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else if
-                   (blk_idxs.col_16bits) { const uint16* cols_blk =
-                   reinterpret_cast<const uint16*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else { const uint32*
-                   cols_blk = reinterpret_cast<const uint32*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i];
-                                }
-                */
                 if (true) {
                     ValueType val;
                     ValueType* vals_blk = reinterpret_cast<ValueType*>(
@@ -1257,16 +1099,6 @@ void compute_absolute(
                 idxs_src.shf = offsets_data_src[blk_src];
                 idxs_src.blk = blk_src;
                 ValueType val_src;
-                /*
-                                init_block_indices(
-                                    rows_data_src, cols_data_src,
-                   block_size_local_src, idxs_src.blk, idxs_src.shf,
-                   types_data_src[idxs_src.blk], blk_idxs_src.mul_row,
-                   blk_idxs_src.col_8bits, blk_idxs_src.col_16bits,
-                   blk_idxs_src.row_frs, blk_idxs_src.col_frs,
-                   blk_idxs_src.shf_row, blk_idxs_src.shf_col,
-                   blk_idxs_src.shf_val);
-                */
                 init_block_indices(rows_data_src, cols_data_src,
                                    block_size_local_src, idxs_src,
                                    types_data_src[idxs_src.blk], blk_idxs_src);
@@ -1285,16 +1117,6 @@ void compute_absolute(
                 idxs_res.shf = offsets_data_res[blk_src];
                 idxs_res.blk = blk_src;
                 remove_complex<ValueType> val_res;
-                /*
-                                init_block_indices(
-                                    rows_data_res, cols_data_res,
-                   block_size_local_res, idxs_res.blk, idxs_res.shf,
-                   types_data_res[idxs_res.blk], blk_idxs_res.mul_row,
-                   blk_idxs_res.col_8bits, blk_idxs_res.col_16bits,
-                   blk_idxs_res.row_frs, blk_idxs_res.col_frs,
-                   blk_idxs_res.shf_row, blk_idxs_res.shf_col,
-                   blk_idxs_res.shf_val);
-                */
                 init_block_indices(rows_data_res, cols_data_res,
                                    block_size_local_res, idxs_res,
                                    types_data_res[idxs_res.blk], blk_idxs_res);
@@ -1303,56 +1125,6 @@ void compute_absolute(
                     chunk_data_src, idxs_res, blk_idxs_res,
                     block_size_local_res, chunk_data_res,
                     [](ValueType val) { return abs(val); });
-                /*
-                                if (blk_idxs_src.mul_row) {
-                                    const uint8* rows_blk_src =
-                   reinterpret_cast<const uint8*>( chunk_data_src +
-                   idxs_src.shf); uint8* rows_blk_res =
-                                        reinterpret_cast<uint8*>(chunk_data_res
-                   + idxs_res.shf); for (size_type j = 0; j <
-                   block_size_local_src; j++) { rows_blk_res[j] =
-                   rows_blk_src[j];
-                                    }
-                                    idxs_src.shf += block_size_local_src;
-                                    idxs_res.shf += block_size_local_res;
-                                }
-                                if (blk_idxs_src.col_8bits) {
-                                    const uint8* cols_blk_src =
-                   reinterpret_cast<const uint8*>( chunk_data_src +
-                   idxs_src.shf); uint8* cols_blk_res =
-                                        reinterpret_cast<uint8*>(chunk_data_res
-                   + idxs_res.shf); for (size_type j = 0; j <
-                   block_size_local_src; j++) { cols_blk_res[j] =
-                   cols_blk_src[j];
-                                    }
-                                    idxs_src.shf += block_size_local_src;
-                                    idxs_res.shf += block_size_local_res;
-                                } else if (blk_idxs_src.col_16bits) {
-                                    std::memcpy(reinterpret_cast<uint16*>(chunk_data_res
-                   + idxs_res.shf), reinterpret_cast<const
-                   uint16*>(chunk_data_src + idxs_src.shf), block_size_local_res
-                   * sizeof(uint16)); idxs_src.shf += block_size_local_src *
-                   sizeof(uint16); idxs_res.shf += block_size_local_res *
-                   sizeof(uint16); } else {
-                                    std::memcpy(reinterpret_cast<uint32*>(chunk_data_res
-                   + idxs_res.shf), reinterpret_cast<const
-                   uint32*>(chunk_data_src + idxs_src.shf), block_size_local_res
-                   * sizeof(uint32)); idxs_src.shf += block_size_local_src *
-                   sizeof(uint32); idxs_res.shf += block_size_local_res *
-                   sizeof(uint32);
-                                }
-                                if (true) {
-                                    for (size_type i = 0; i <
-                   block_size_local_res; i++) { val_src =
-                   get_value_chunk<ValueType>(chunk_data_src, idxs_src.shf);
-                                        val_res = abs(val_src);
-                                        set_value_chunk<remove_complex<ValueType>>(
-                                            chunk_data_res, idxs_res.shf,
-                   val_res); idxs_src.shf += sizeof(ValueType); idxs_res.shf +=
-                   sizeof(remove_complex<ValueType>);
-                                    }
-                                }
-                */
             }
         }
     }
