@@ -115,7 +115,7 @@ protected:
             mtx->copy_from(spd_mtx.get());
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
-                n, n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
+                n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
                 gko::dim<2>{n, n});
         }
         inverse = clone_allocations(mtx.get());
@@ -315,7 +315,7 @@ TEST_F(Isai, DpcppIsaiGenerateAinverseLongIsEquivalentToRef)
         false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
-    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 10 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 30 * r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(a1, da1);
     GKO_ASSERT_ARRAY_EQ(a2, da2);
     ASSERT_GT(a1.get_const_data()[num_rows], 0);

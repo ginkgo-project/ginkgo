@@ -78,8 +78,7 @@ protected:
             std::uniform_int_distribution<>(10, mtx_size[1]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
-            std::uniform_int_distribution<>(1, mtx_size[0]),
+            mtx_size[0], false, std::uniform_int_distribution<>(1, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
         dmtx_ani = Csr::create(hip);

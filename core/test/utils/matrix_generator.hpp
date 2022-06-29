@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -82,22 +83,48 @@ matrix_data<ValueType, IndexType> generate_random_matrix_data(
 
     matrix_data<ValueType, IndexType> data{gko::dim<2>{num_rows, num_cols}, {}};
 
-    std::vector<size_type> col_idx(num_cols);
-    std::iota(begin(col_idx), end(col_idx), size_type(0));
+    std::vector<bool> present_cols(num_cols);
 
-    for (size_type row = 0; row < num_rows; ++row) {
+    for (IndexType row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
-        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
-        // select a subset of `nnz_in_row` column indexes, and fill these
-        // locations with random values
-        std::shuffle(begin(col_idx), end(col_idx), engine);
-        std::for_each(
-            begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
-                data.nonzeros.emplace_back(
-                    row, col,
-                    detail::get_rand_value<ValueType>(value_dist, engine));
-            });
+        const auto nnz_in_row = std::max(
+            size_type(0),
+            std::min(static_cast<size_type>(nonzero_dist(engine)), num_cols));
+        std::uniform_int_distribution<IndexType> col_dist{
+            0, static_cast<IndexType>(num_cols) - 1};
+        if (nnz_in_row > num_cols / 2) {
+            present_cols.assign(num_cols, true);
+            // remove num_cols - nnz_in_row entries from present_cols
+            size_type count = num_cols;
+            while (count > nnz_in_row) {
+                const auto new_col = col_dist(engine);
+                if (present_cols[new_col]) {
+                    present_cols[new_col] = false;
+                    count--;
+                }
+            }
+            for (IndexType col = 0; col < num_cols; col++) {
+                if (present_cols[col]) {
+                    data.nonzeros.emplace_back(
+                        row, col,
+                        detail::get_rand_value<ValueType>(value_dist, engine));
+                }
+            }
+        } else {
+            // add nnz_in_row entries to present_cols
+            present_cols.assign(num_cols, false);
+            size_type count = 0;
+            while (count < nnz_in_row) {
+                const auto col = col_dist(engine);
+                if (!present_cols[col]) {
+                    present_cols[col] = true;
+                    count++;
+                    data.nonzeros.emplace_back(
+                        row, col,
+                        detail::get_rand_value<ValueType>(value_dist, engine));
+                }
+            }
+        }
     }
 
     data.ensure_row_major_order();
@@ -147,8 +174,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param lower_triangular  `true` generates a lower triangular matrix,
@@ -163,52 +189,72 @@ std::unique_ptr<MatrixType> generate_random_matrix(
 template <typename ValueType, typename IndexType, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine>
 matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
-    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
-    bool lower_triangular, NonzeroDistribution&& nonzero_dist,
-    ValueDistribution&& value_dist, Engine&& engine)
+    size_type size, bool ones_on_diagonal, bool lower_triangular,
+    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
+    Engine&& engine)
 {
     using std::begin;
     using std::end;
 
-    matrix_data<ValueType, IndexType> data{gko::dim<2>{num_rows, num_cols}, {}};
-    ValueType one = 1.0;
-    std::vector<size_type> col_idx(num_cols);
-    std::iota(begin(col_idx), end(col_idx), size_type(0));
+    matrix_data<ValueType, IndexType> data{gko::dim<2>{size, size}, {}};
 
-    for (size_type row = 0; row < num_rows; ++row) {
+    std::vector<bool> present_cols(size);
+
+    for (IndexType row = 0; row < size; ++row) {
         // randomly generate number of nonzeros in this row
-        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
-        nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
-        // select a subset of `nnz_in_row` column indexes, and fill these
-        // locations with random values
-        std::shuffle(begin(col_idx), end(col_idx), engine);
-        // add non-zeros
-        bool has_diagonal{};
-        for (size_type nz = 0; nz < nnz_in_row; ++nz) {
-            auto col = col_idx[nz];
-            // skip non-zeros outside triangle
-            if ((col > row && lower_triangular) ||
-                (col < row && !lower_triangular)) {
-                continue;
-            }
-
-            // generate and store non-zero
-            auto val = detail::get_rand_value<ValueType>(value_dist, engine);
-            if (col == row) {
-                has_diagonal = true;
-                if (ones_on_diagonal) {
-                    val = one;
+        const auto min_col = lower_triangular ? 0 : row;
+        const auto max_col =
+            lower_triangular ? row : static_cast<IndexType>(size) - 1;
+        const auto max_row_nnz = max_col - min_col + 1;
+        const auto nnz_in_row = std::max(
+            size_type(0), std::min(static_cast<size_type>(nonzero_dist(engine)),
+                                   static_cast<size_type>(max_row_nnz)));
+        std::uniform_int_distribution<IndexType> col_dist{min_col, max_col};
+        if (nnz_in_row > max_row_nnz / 2) {
+            present_cols.assign(size, true);
+            // remove max_row_nnz - nnz_in_row entries from present_cols
+            size_type count = max_row_nnz;
+            while (count > nnz_in_row) {
+                const auto new_col = col_dist(engine);
+                if (present_cols[new_col]) {
+                    present_cols[new_col] = false;
+                    count--;
                 }
             }
-            data.nonzeros.emplace_back(row, col, val);
-        }
-
-        // add diagonal if it hasn't been added yet
-        if (!has_diagonal && row < num_cols) {
-            auto val = ones_on_diagonal ? one
-                                        : detail::get_rand_value<ValueType>(
-                                              value_dist, engine);
-            data.nonzeros.emplace_back(row, row, val);
+            for (auto col = min_col; col <= max_col; col++) {
+                if (present_cols[col] || col == row) {
+                    data.nonzeros.emplace_back(
+                        row, col,
+                        row == col && ones_on_diagonal
+                            ? one<ValueType>()
+                            : detail::get_rand_value<ValueType>(value_dist,
+                                                                engine));
+                }
+            }
+        } else {
+            // add nnz_in_row entries to present_cols
+            present_cols.assign(size, false);
+            size_type count = 0;
+            while (count < nnz_in_row) {
+                const auto col = col_dist(engine);
+                if (!present_cols[col]) {
+                    present_cols[col] = true;
+                    count++;
+                    data.nonzeros.emplace_back(
+                        row, col,
+                        row == col && ones_on_diagonal
+                            ? one<ValueType>()
+                            : detail::get_rand_value<ValueType>(value_dist,
+                                                                engine));
+                }
+            }
+            if (!present_cols[row]) {
+                data.nonzeros.emplace_back(
+                    row, row,
+                    ones_on_diagonal ? one<ValueType>()
+                                     : detail::get_rand_value<ValueType>(
+                                           value_dist, engine));
+            }
         }
     }
 
@@ -223,27 +269,35 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
  * @tparam MatrixType  type of matrix to generate (must implement
  *                     the interface `ReadableFromMatrixData<>` and provide
  *                     matching `value_type` and `index_type` type aliases)
+ * @tparam NonzeroDistribution  type of nonzero distribution
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
  *
+ * @param size  number of rows and columns
+ * @param ones_on_diagonal  `true` generates only ones on the diagonal,
+ *                          `false` generates random values on the diagonal
+ * @param lower_triangular  `true` generates a lower triangular matrix,
+ *                          `false` an upper triangular matrix
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
- *
- * The other (template) parameters match generate_random_triangular_matrix_data.
  *
  * @return the unique pointer of MatrixType
  */
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_triangular_matrix(
-    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
-    bool lower_triangular, NonzeroDistribution&& nonzero_dist,
-    ValueDistribution&& value_dist, Engine&& engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    size_type size, bool ones_on_diagonal, bool lower_triangular,
+    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
     auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
     result->read(generate_random_triangular_matrix_data<value_type, index_type>(
-        num_rows, num_cols, ones_on_diagonal, lower_triangular,
+        size, ones_on_diagonal, lower_triangular,
         std::forward<NonzeroDistribution>(nonzero_dist),
         std::forward<ValueDistribution>(value_dist),
         std::forward<Engine>(engine)));
@@ -262,8 +316,7 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
  * @tparam Engine  type of random engine
  * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param nonzero_dist  distribution of nonzeros per row
@@ -277,13 +330,13 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
-    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
-    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
-    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    size_type size, bool ones_on_diagonal, NonzeroDistribution&& nonzero_dist,
+    ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     return generate_random_triangular_matrix<MatrixType>(
-        num_rows, num_cols, ones_on_diagonal, true, nonzero_dist, value_dist,
-        engine, std::move(exec), std::forward<MatrixArgs>(args)...);
+        size, ones_on_diagonal, true, nonzero_dist, value_dist, engine,
+        std::move(exec), std::forward<MatrixArgs>(args)...);
 }
 
 
@@ -298,8 +351,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
  * @tparam Engine  type of random engine
  * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
- * @param num_rows  number of rows
- * @param num_cols  number of columns
+ * @param size  number of rows and columns
  * @param ones_on_diagonal  `true` generates only ones on the diagonal,
  *                          `false` generates random values on the diagonal
  * @param nonzero_dist  distribution of nonzeros per row
@@ -313,13 +365,13 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
-    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
-    NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
-    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+    size_type size, bool ones_on_diagonal, NonzeroDistribution&& nonzero_dist,
+    ValueDistribution&& value_dist, Engine&& engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
 {
     return generate_random_triangular_matrix<MatrixType>(
-        num_rows, num_cols, ones_on_diagonal, false, nonzero_dist, value_dist,
-        engine, std::move(exec), std::forward<MatrixArgs>(args)...);
+        size, ones_on_diagonal, false, nonzero_dist, value_dist, engine,
+        std::move(exec), std::forward<MatrixArgs>(args)...);
 }
 
 

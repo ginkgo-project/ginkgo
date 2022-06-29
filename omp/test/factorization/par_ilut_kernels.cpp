@@ -100,19 +100,19 @@ protected:
                                                                       1.0),
             rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
             std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
                                                                       1.0),
             rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], true,
+            mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
             std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
                                                                       1.0),
             rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
             std::normal_distribution<gko::remove_complex<value_type>>(-1.0,
                                                                       1.0),

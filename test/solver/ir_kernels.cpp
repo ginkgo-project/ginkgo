@@ -180,7 +180,7 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     // Note: r<value_type>::value * 150 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
     // difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 150);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 300);
 }
 
 
@@ -258,7 +258,7 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     // Note: r<value_type>::value * 1e2 instead of r<value_type>::value, as
     // the difference in the inner gmres iteration gets amplified by the
     // difference in IR.
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 200);
 }
 
 

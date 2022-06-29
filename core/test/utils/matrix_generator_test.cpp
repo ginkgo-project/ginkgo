@@ -60,11 +60,11 @@ protected:
               std::normal_distribution<real_type>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
-              4, 3, true, std::normal_distribution<real_type>(50, 5),
+              4, true, std::normal_distribution<real_type>(50, 5),
               std::normal_distribution<real_type>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           u_mtx(gko::test::generate_random_upper_triangular_matrix<mtx_type>(
-              3, 4, true, std::normal_distribution<real_type>(50, 5),
+              4, true, std::normal_distribution<real_type>(50, 5),
               std::normal_distribution<real_type>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           lower_bandwidth(2),

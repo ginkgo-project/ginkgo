@@ -97,25 +97,24 @@ protected:
             std::uniform_int_distribution<>(1, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<>(10, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l2 = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], true,
-            std::uniform_int_distribution<>(1, mtx_size[0]),
+            mtx_size[0], true, std::uniform_int_distribution<>(1, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_l_complex =
             gko::test::generate_random_lower_triangular_matrix<ComplexCsr>(
-                mtx_size[0], mtx_size[0], false,
+                mtx_size[0], false,
                 std::uniform_int_distribution<>(10, mtx_size[0]),
                 std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
-            mtx_size[0], mtx_size[0], false,
+            mtx_size[0], false,
             std::uniform_int_distribution<>(10, mtx_size[0]),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         mtx_u_complex =
             gko::test::generate_random_upper_triangular_matrix<ComplexCsr>(
-                mtx_size[0], mtx_size[0], false,
+                mtx_size[0], false,
                 std::uniform_int_distribution<>(10, mtx_size[0]),
                 std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
 
@@ -426,6 +425,10 @@ TEST_F(ParIlut, KernelComplexThresholdFilterAllUppererIsEquivalentToRef)
 
 TEST_F(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter(mtx_l, dmtx_l, 0.5, true);
     auto res = Csr::create(ref, mtx_size);
     auto dres = Csr::create(dpcpp, mtx_size);
@@ -449,24 +452,40 @@ TEST_F(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 
 TEST_F(ParIlut, KernelThresholdFilterApproxLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l, dmtx_l, mtx_l->get_num_stored_elements() / 2);
 }
 
 
 TEST_F(ParIlut, KernelThresholdFilterApproxNoneLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l, dmtx_l, 0);
 }
 
 
 TEST_F(ParIlut, KernelThresholdFilterApproxAllLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l, dmtx_l, mtx_l->get_num_stored_elements() - 1);
 }
 
 
 TEST_F(ParIlut, KernelComplexThresholdFilterApproxLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l_complex, dmtx_l_complex,
                        mtx_l_complex->get_num_stored_elements() / 2,
                        r<value_type>::value);
@@ -475,12 +494,20 @@ TEST_F(ParIlut, KernelComplexThresholdFilterApproxLowerIsEquivalentToRef)
 
 TEST_F(ParIlut, KernelComplexThresholdFilterApproxNoneLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l_complex, dmtx_l_complex, 0, r<value_type>::value);
 }
 
 
 TEST_F(ParIlut, KernelComplexThresholdFilterApproxAllLowerIsEquivalentToRef)
 {
+#if GINKGO_DPCPP_SINGLE_MODE
+    // Need bitwise equivalence to CPU
+    GTEST_SKIP();
+#endif
     test_filter_approx(mtx_l_complex, dmtx_l_complex,
                        mtx_l_complex->get_num_stored_elements() - 1,
                        r<value_type>::value);

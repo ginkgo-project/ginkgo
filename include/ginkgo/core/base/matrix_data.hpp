@@ -169,6 +169,7 @@ struct matrix_data {
         if (is_zero(value)) {
             return;
         }
+        nonzeros.reserve(size[0] * size[1]);
         for (size_type row = 0; row < size[0]; ++row) {
             for (size_type col = 0; col < size[1]; ++col) {
                 nonzeros.emplace_back(row, col, value);
@@ -190,6 +191,7 @@ struct matrix_data {
     matrix_data(dim<2> size_, RandomDistribution&& dist, RandomEngine&& engine)
         : size{size_}
     {
+        nonzeros.reserve(size[0] * size[1]);
         for (size_type row = 0; row < size[0]; ++row) {
             for (size_type col = 0; col < size[1]; ++col) {
                 const auto value =
