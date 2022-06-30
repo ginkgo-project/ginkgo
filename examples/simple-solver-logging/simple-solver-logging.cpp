@@ -165,16 +165,7 @@ int main(int argc, char* argv[])
     // Solve system
     solver->apply(lend(b), lend(x));
 
-    // Finally, get some data from `record_logger` and print the last memory
-    // location copied
-    auto& last_copy = record_logger->get().copy_completed.back();
-    std::cout << "Last memory copied was of size " << std::hex
-              << std::get<0>(*last_copy).num_bytes << " FROM executor "
-              << std::get<0>(*last_copy).exec << " pointer "
-              << std::get<0>(*last_copy).location << " TO executor "
-              << std::get<1>(*last_copy).exec << " pointer "
-              << std::get<1>(*last_copy).location << std::dec << std::endl;
-    // Also print the residual of the last criterion check event (where
+    // Print the residual of the last criterion check event (where
     // convergence happened)
     auto residual =
         record_logger->get().criterion_check_completed.back()->residual.get();
