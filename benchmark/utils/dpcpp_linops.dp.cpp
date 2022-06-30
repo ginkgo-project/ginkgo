@@ -65,9 +65,10 @@ public:
         return this->mat_handle_.get();
     }
 
-    const gko::DpcppExecutor* get_device_exec() const
+    std::shared_ptr<const gko::DpcppExecutor> get_device_exec() const
     {
-        return device_exec_.get();
+        return std::dynamic_pointer_cast<const gko::DpcppExecutor>(
+            this->get_executor());
     }
 
 protected:
@@ -79,7 +80,6 @@ protected:
 
     void initialize_mat_handle()
     {
-        // TODO: weird
         mat_handle_ = handle_manager<oneapi::mkl::sparse::matrix_handle>(
             create_mat_handle(),
             [](oneapi::mkl::sparse::matrix_handle_t mat_handle) {
@@ -91,9 +91,7 @@ protected:
                const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
-        device_exec_ =
-            std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec);
-        if (device_exec_ == nullptr) {
+        if (this->get_device_exec() == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
         this->initialize_mat_handle();
@@ -107,14 +105,12 @@ protected:
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
-            this->device_exec_ = other.device_exec_;
             this->initialize_mat_handle();
         }
         return *this;
     }
 
 private:
-    std::shared_ptr<const gko::DpcppExecutor> device_exec_;
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<oneapi::mkl::sparse::matrix_handle> mat_handle_;
@@ -138,7 +134,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
 
         oneapi::mkl::sparse::set_csr_data(
             this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
