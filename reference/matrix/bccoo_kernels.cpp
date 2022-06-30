@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/bccoo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -232,10 +233,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_elm_elm(
     std::shared_ptr<const ReferenceExecutor> exec,
+    //    std::shared_ptr<const Executor> exec,
     const matrix::Bccoo<ValueType, IndexType>* source,
     matrix::bccoo::compression compress_res, const size_type block_size_res,
     size_type* mem_size)
 {
+    //		GKO_ASSERT(exec == exec->get_master());
+    //		GKO_ASSERT(source->get_executor() ==
+    // source->get_executor()->get_master());
+
     auto* rows_data_src = source->get_const_rows();
     auto* offsets_data_src = source->get_const_offsets();
     auto* chunk_data_src = source->get_const_chunk();
@@ -247,6 +253,7 @@ inline void mem_size_bccoo_elm_elm(
     ValueType val_src;
     compr_idxs idxs_res = {};
     ValueType val_res;
+
     for (size_type i = 0; i < num_stored_elements; i++) {
         // Reading (row,col,val) from source
         get_detect_newblock(rows_data_src, offsets_data_src, idxs_src.nblk,
@@ -433,8 +440,6 @@ inline void mem_size_bccoo_blk_blk(
             if (j_res == 0) {
                 blk_idxs_res.row_frs = idxs_src.row;
                 blk_idxs_res.col_frs = idxs_src.col;
-                //                blk_idxs_res.col_dif = 0;
-                //                blk_idxs_res.mul_row = false;
             }
             blk_idxs_res.mul_row =
                 blk_idxs_res.mul_row || (idxs_src.row != blk_idxs_res.row_frs);

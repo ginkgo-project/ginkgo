@@ -74,7 +74,7 @@ typedef struct compr_blk_idxs {
                         // of several rows
     bool col_8bits;     // determines that col_dif is greater than 0xFF
     bool col_16bits;    // determines that col_dif is greater than 0xFFFF
-} blk_compr_idxs;
+} compr_blk_idxs;
 
 inline void cnt_next_position(const size_type col_src_res, size_type& shf,
                               size_type& col)
@@ -503,14 +503,14 @@ inline void get_block_position_value(const uint8* chunk_data, bool mul_row,
         col += get_value_chunk<uint16>(chunk_data, shf_col);
         //				std::cout << "B-LATER  -> " << col <<
         // std::endl;
-        shf_col += 2;
+        shf_col += sizeof(uint16);
     } else {
         //				std::cout << "C-BEFORE -> " << col <<
         // std::endl;
         col += get_value_chunk<uint32>(chunk_data, shf_col);
         //				std::cout << "C-LATER  -> " << col <<
         // std::endl;
-        shf_col += 4;
+        shf_col += sizeof(uint32);
     }
     val = get_value_chunk<ValueType>(chunk_data, shf_val);
     shf_val += sizeof(ValueType);
@@ -605,10 +605,10 @@ inline void get_block_position_value_put(uint8* chunk_data,
 
 
 template <typename IndexType, typename ValueType>
-inline uint8 write_chunk_blk_type(
-    // generate_type_blk(
-    compr_idxs& idxs, compr_blk_idxs blk_idxs, array<IndexType> rows_blk,
-    array<IndexType> cols_blk, array<ValueType> vals_blk, uint8* chunk_data)
+inline uint8 write_chunk_blk_type(compr_idxs& idxs, compr_blk_idxs blk_idxs,
+                                  array<IndexType> rows_blk,
+                                  array<IndexType> cols_blk,
+                                  array<ValueType> vals_blk, uint8* chunk_data)
 {
     uint8 type_blk = {};
 
@@ -703,7 +703,6 @@ inline void write_chunk_blk(compr_idxs& idxs_src, compr_blk_idxs blk_idxs_src,
             val_src =
                 get_value_chunk<ValueType_src>(chunk_data_src, idxs_src.shf);
             val_res = finalize_op(val_src);
-            //            set_value_chunk<remove_complex<ValueType>>(
             set_value_chunk<ValueType_res>(chunk_data_res, idxs_res.shf,
                                            val_res);
             idxs_src.shf += sizeof(ValueType_src);

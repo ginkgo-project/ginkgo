@@ -136,33 +136,20 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 compr_idxs idxs = {};
                 size_type row_old = 0;
                 ValueType val;
-                /*
-                                size_type nblk = 0, col = 0;
-                                size_type row = rows_data[blk], row_old = 0;
-                                size_type shf = offsets_data[blk];
-                                ValueType val;
-                */
+
                 ValueType* sumV = sumV_array.get_data();
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
+
                 idxs.row = rows_data[blk];
                 idxs.shf = offsets_data[blk];
                 while (idxs.shf < offsets_data[blk + 1]) {
-                    //                while (shf < offsets_data[blk + 1]) {
                     row_old = idxs.row;
                     uint8 ind = get_position_newrow(chunk_data, idxs.shf,
                                                     idxs.row, idxs.col);
                     get_next_position_value(chunk_data, idxs.nblk, ind,
                                             idxs.shf, idxs.col, val);
-                    /*
-                                        row_old = row;
-                                        uint8 ind =
-                       get_position_newrow(chunk_data, shf, row, col);
-                                        get_next_position_value(chunk_data,
-                       nblk, ind, shf, col, val);
-                    */
-                    // if (row_old != row) {
                     if (row_old != idxs.row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
@@ -171,8 +158,6 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                         new_elm = false;
                     }
                     for (size_type j = 0; j < num_cols; j++) {
-                        //                        sumV[j] += val * b->at(col,
-                        //                        j);
                         sumV[j] += val * b->at(idxs.col, j);
                     }
                     new_elm = true;
@@ -276,34 +261,21 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 compr_idxs idxs = {};
                 size_type row_old = 0;
                 ValueType val;
-                /*
-                                size_type nblk = 0, col = 0;
-                                size_type row = rows_data[blk], row_old = 0;
-                                size_type shf = offsets_data[blk];
-                                ValueType val;
-                */
+
                 ValueType* sumV = sumV_array.get_data();
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
+
                 idxs.row = rows_data[blk];
                 idxs.shf = offsets_data[blk];
                 while (idxs.shf < offsets_data[blk + 1]) {
-                    //                while (shf < offsets_data[blk + 1]) {
                     row_old = idxs.row;
                     uint8 ind = get_position_newrow(chunk_data, idxs.shf,
                                                     idxs.row, idxs.col);
                     get_next_position_value(chunk_data, idxs.nblk, ind,
                                             idxs.shf, idxs.col, val);
-                    /*
-                                        row_old = row;
-                                        uint8 ind =
-                       get_position_newrow(chunk_data, shf, row, col);
-                                        get_next_position_value(chunk_data,
-                       nblk, ind, shf, col, val);
-                    */
                     if (row_old != idxs.row) {
-                        //                    if (row_old != row) {
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
@@ -311,13 +283,10 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     }
                     for (size_type j = 0; j < num_cols; j++) {
                         sumV[j] += alpha_val * val * b->at(idxs.col, j);
-                        //                        sumV[j] += alpha_val * val *
-                        //                        b->at(col, j);
                     }
                 }
                 for (size_type j = 0; j < num_cols; j++) {
                     atomic_add(c->at(idxs.row, j), sumV[j]);
-                    //                    atomic_add(c->at(row, j), sumV[j]);
                 }
             }
         }
@@ -743,31 +712,6 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
                     chunk_data, blk_idxs, row, col, val);
-                /*
-                                row = blk_idxs.row_frs;
-                                if (blk_idxs.mul_row) {
-                                    const uint8* rows_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_row); row += rows_blk[i];
-                                }
-                                col = blk_idxs.col_frs;
-                                if (blk_idxs.col_8bits) {
-                                    const uint8* cols_blk =
-                   reinterpret_cast<const uint8*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else if
-                   (blk_idxs.col_16bits) { const uint16* cols_blk =
-                   reinterpret_cast<const uint16*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i]; } else { const uint32*
-                   cols_blk = reinterpret_cast<const uint32*>( chunk_data +
-                   blk_idxs.shf_col); col += cols_blk[i];
-                                }
-                                if (true) {
-                                    const ValueType* vals_blk =
-                                        reinterpret_cast<const
-                   ValueType*>(chunk_data + blk_idxs.shf_val); val =
-                   vals_blk[i];
-                                }
-                */
                 row_idxs[pos + i] = row;
                 col_idxs[pos + i] = col;
                 values[pos + i] = val;
