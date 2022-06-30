@@ -1,0 +1,209 @@
+.before_script_template:
+  before_script:
+    - export NUM_CORES=${CI_PARALLELISM}
+    - export OMP_NUM_THREADS=${NUM_CORES}
+    - export CCACHE_DIR=${CCACHE_DIR}
+    - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
+
+.before_script_git_template:
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
+    - git config --global user.name "${BOT_USER}"
+    - git config --global user.email "${BOT_EMAIL}"
+
+.build_template:
+  stage: build
+  extends:
+    - .before_script_template
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - if [ -n "${CUDA_ARCH}" ]; then
+      CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
+      CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
+      fi
+    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
+      export OMPI_ALLOW_RUN_AS_ROOT=1;
+      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+      fi
+    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+      fi
+    - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+        -GNinja
+        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
+        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_FAST_TESTS=${FAST_TESTS}
+        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
+        -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
+        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+        -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
+  dependencies: []
+
+.build_and_test_template:
+  stage: build
+  extends:
+    - .before_script_template
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - if [ -n "${CUDA_ARCH}" ]; then
+      CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
+      CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
+      fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
+    - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
+      export OMPI_ALLOW_RUN_AS_ROOT=1;
+      export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
+      fi
+    - if [[ "${GINKGO_BUILD_MPI}" == "ON" ]]; then
+      MPI_STR=-DGINKGO_MPI_EXEC_SUFFIX=${MPI_SUFFIX} -DMPI_RUN_AS_ROOT=${MPI_AS_ROOT};
+      fi
+    - cmake ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+        -GNinja
+        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
+        -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_FAST_TESTS=${FAST_TESTS}
+        -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
+        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+        -DGINKGO_RUN_EXAMPLES=${RUN_EXAMPLES}
+        -DGINKGO_EXPORT_BUILD_DIR=${EXPORT_BUILD_DIR}
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
+    - |
+        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
+    - ctest -V --timeout 3000
+    - ninja test_install
+    - pushd test/test_install
+    - ninja install
+    - popd
+    - |
+      if [ "${RUN_EXAMPLES}" == "ON" ]; then
+         export EX_ARG="reference"
+         ninja run_all_examples
+         ninja validate_all_examples
+         if [ "{BUILD_OMP}" == "ON" ]; then
+            export EX_ARG="omp"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+        if [ "{BUILD_CUDA}" == "ON" ]; then
+            export EX_ARG="cuda"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+        if [ "{BUILD_HIP}" == "ON" ]; then
+            export EX_ARG="hip"
+            ninja run_all_examples
+            ninja validate_all_examples
+        fi
+      fi
+    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
+    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
+    - if [ "${EXPORT_BUILD_DIR}" == "ON" ]; then ninja test_exportbuild; fi
+  dependencies: []
+
+
+.horeka_test_template:
+  stage: test
+  before_script:
+    # Sanity checks
+    - if [ -z "${USE_NAME}" ]; then exit 111; fi
+    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
+  variables:
+    GIT_CLEAN_FLAGS: none
+  script:
+    # We should be reusing the previous image and build directory.
+    # Speedup the tests by limiting the number of OMP threads to CI parallelism.
+    - export OMP_NUM_THREADS=${CI_PARALLELISM}
+    # The test job should have the name as the image job, only changing
+    # build to test
+    - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+    - cd ${CI_JOB_NAME/test/build}
+    - ninja test
+    - ninja test_install
+  cache: []
+
+
+.horeka_benchmark_before_script_template:
+  before_script:
+    # Sanity checks
+    - if [ -z "${USE_NAME}" ]; then exit 111; fi
+    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
+    - if [[ -z "${EXECUTOR}" ]]; then exit 233; fi
+    - if [[ -z "${SYSTEM_NAME}" ]]; then exit 233; fi
+    - if [[ -z "${BENCHMARK}" ]]; then exit 233; fi
+    # Set environment variables
+    - eval $(ssh-agent -s)
+    - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - unset OMP_NUM_THREADS
+    - git config --global user.name "${BOT_USER}"
+    - git config --global user.email "${BOT_EMAIL}"
+
+
+.benchmark_template:
+  extends:
+    - .horeka_benchmark_before_script_template
+  variables:
+    GIT_CLEAN_FLAGS: none
+  script:
+    # Install rsync
+    - pushd /
+    - git clone https://github.com/WayneD/rsync -b v3.2.4
+    - pushd rsync
+    - ./configure --disable-lz4 --disable-openssl --disable-doc --disable-xxhash --disable-md2man
+    - make -j10 install
+    - popd
+    - popd
+    # Setup ssget
+    - git clone https://github.com/ginkgo-project/ssget
+    - sed -i 's:ARCHIVE_LOCATION="${HOME}/.config/ssget":ARCHIVE_LOCATION="/ssget":' ssget/ssget
+    - export PATH=$PWD/ssget:$PATH
+    # Setup the benchmark
+    - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
+    - cd ${CI_JOB_NAME}-build
+    - chmod +x benchmark/run_all_benchmarks.sh
+    - cd benchmark
+    - git clone ${BENCHMARK_REPO} data-repo
+    # Use the representative matrix list and launch benchmark
+    - export MATRIX_LIST_FILE=$PWD/data-repo/data/represent.list
+    - ./run_all_benchmarks.sh
+    # Publish the results
+    - rsync -av results/ data-repo/data/
+    - cd data-repo/data/
+    - ./build-list . > list.json
+    - ./agregate < list.json > agregate.json
+    - chmod +x represent
+    - ./represent $PWD > represent.json
+    - git add -A
+    - git diff --quiet HEAD || (git commit -m "Benchmark ${BENCHMARK} on ${EXECUTOR} with ${SYSTEM_NAME} of ginkgo-project/ginkgo@${CI_COMMIT_SHORT_SHA}" && git push)
+  cache: []
