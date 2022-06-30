@@ -62,15 +62,18 @@ class HipsparseBase : public gko::LinOp {
 public:
     hipsparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
-    const gko::HipExecutor* get_gpu_exec() const { return gpu_exec_.get(); }
+    std::shared_ptr<const gko::HipExecutor> get_gpu_exec() const
+    {
+        return std::dynamic_pointer_cast<const gko::HipExecutor>(
+            this->get_executor());
+    }
 
 protected:
     HipsparseBase(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
-        gpu_exec_ = std::dynamic_pointer_cast<const gko::HipExecutor>(exec);
-        if (gpu_exec_ == nullptr) {
+        if (this->get_gpu_exec() == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
         this->initialize_descr();
@@ -84,7 +87,6 @@ protected:
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
-            this->gpu_exec_ = other.gpu_exec_;
             this->initialize_descr();
         }
         return *this;
@@ -92,7 +94,7 @@ protected:
 
     void initialize_descr()
     {
-        const auto id = this->gpu_exec_->get_device_id();
+        const auto id = this->get_gpu_exec()->get_device_id();
         gko::hip::device_guard g{id};
         this->descr_ = handle_manager<hipsparseMatDescr>(
             reinterpret_cast<hipsparseMatDescr*>(
@@ -104,7 +106,6 @@ protected:
     }
 
 private:
-    std::shared_ptr<const gko::HipExecutor> gpu_exec_;
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<hipsparseMatDescr> descr_;
@@ -139,7 +140,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -215,7 +216,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -298,7 +299,7 @@ public:
         auto t_csr = csr::create(this->get_executor(),
                                  std::make_shared<typename csr::classical>());
         t_csr->read(data);
-        this->set_size(gko::dim<2>{t_csr->get_size()});
+        this->set_size(t_csr->get_size());
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::hip::device_guard g{id};

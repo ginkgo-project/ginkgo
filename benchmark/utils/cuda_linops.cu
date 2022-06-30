@@ -72,7 +72,8 @@ public:
     // uses gko::array to allocate buffer.
     std::shared_ptr<const gko::CudaExecutor> get_gpu_exec() const
     {
-        return gpu_exec_;
+        return std::dynamic_pointer_cast<const gko::CudaExecutor>(
+            this->get_executor());
     }
 
 protected:
@@ -80,8 +81,7 @@ protected:
                  const gko::dim<2>& size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
-        gpu_exec_ = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec);
-        if (gpu_exec_ == nullptr) {
+        if (this->get_gpu_exec() == nullptr) {
             GKO_NOT_IMPLEMENTED;
         }
         this->initialize_descr();
@@ -95,7 +95,6 @@ protected:
     {
         if (this != &other) {
             gko::LinOp::operator=(other);
-            this->gpu_exec_ = other.gpu_exec_;
             this->initialize_descr();
         }
         return *this;
@@ -103,7 +102,7 @@ protected:
 
     void initialize_descr()
     {
-        const auto id = this->gpu_exec_->get_device_id();
+        const auto id = this->get_gpu_exec()->get_device_id();
         gko::cuda::device_guard g{id};
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
@@ -114,7 +113,6 @@ protected:
     }
 
 private:
-    std::shared_ptr<const gko::CudaExecutor> gpu_exec_;
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;
     handle_manager<cusparseMatDescr> descr_;
@@ -152,7 +150,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -227,7 +225,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -303,7 +301,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -383,7 +381,7 @@ public:
     void read(const mat_data& data) override
     {
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
     }
 
     gko::size_type get_num_stored_elements() const noexcept
@@ -492,7 +490,7 @@ public:
         auto t_csr = csr::create(this->get_executor(),
                                  std::make_shared<typename csr::classical>());
         t_csr->read(data);
-        this->set_size(gko::dim<2>{t_csr->get_size()});
+        this->set_size(t_csr->get_size());
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::cuda::device_guard g{id};
@@ -638,7 +636,7 @@ public:
     {
         using gko::kernels::cuda::as_culibs_type;
         csr_->read(data);
-        this->set_size(gko::dim<2>{csr_->get_size()});
+        this->set_size(csr_->get_size());
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseCreateCsr(&mat_, csr_->get_size()[0], csr_->get_size()[1],
                               csr_->get_num_stored_elements(),
@@ -731,7 +729,7 @@ public:
     {
         using gko::kernels::cuda::as_culibs_type;
         coo_->read(data);
-        this->set_size(gko::dim<2>{coo_->get_size()});
+        this->set_size(coo_->get_size());
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseCreateCoo(&mat_, coo_->get_size()[0], coo_->get_size()[1],
                               coo_->get_num_stored_elements(),
