@@ -87,9 +87,8 @@ __device__ __forceinline__ void single_matvec_kernel(
     const auto val = a.values;
     const auto col = a.col_idxs;
     for (int tidx = threadIdx.x; tidx < num_rows; tidx += blockDim.x) {
-        ValueType temp = zero<ValueType>();
-        for (size_type nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1];
-             nnz++) {
+        auto temp = zero<ValueType>();
+        for (auto nnz = a.row_ptrs[tidx]; nnz < a.row_ptrs[tidx + 1]; nnz++) {
             const auto col_idx = col[nnz];
             temp += val[nnz] * b[col_idx];
         }
