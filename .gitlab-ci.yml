@@ -917,7 +917,7 @@ gh-pages:
     - cd gh-pages-repo
     - git add -A
     - git diff --quiet HEAD ||
-      (git commit -m "Update documentation from ${CURRENT_SHA}" && git push)
+      (git commit -m "Update documentation from ginkgo-project/ginkgo@${CURRENT_SHA}" && git push)
 
 
 threadsanitizer:
