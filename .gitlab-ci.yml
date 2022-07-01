@@ -367,7 +367,8 @@ test/cuda110/mvapich2/gcc/cuda/debug/shared:
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
     SLURM_TIME: "00:45:00"
-  dependencies: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
+  dependencies: null
+  needs: [ "build/cuda110/mvapich2/gcc/cuda/debug/shared" ]
 
 
 build/cuda110/nompi/clang/cuda/release/static:
@@ -399,7 +400,8 @@ test/cuda110/nompi/clang/cuda/release/static:
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
     SLURM_TIME: "00:45:00"
-  dependencies: [ "build/cuda110/nompi/clang/cuda/release/static" ]
+  dependencies: null
+  needs: [ "build/cuda110/nompi/clang/cuda/release/static" ]
 
 
 build/cuda110/nompi/intel/cuda/debug/static:
@@ -432,7 +434,8 @@ test/cuda110/nompi/intel/cuda/debug/static:
     SLURM_PARTITION: "accelerated"
     SLURM_GRES: "gpu:1"
     SLURM_TIME: "00:45:00"
-  dependencies: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
+  dependencies: null
+  needs: [ "build/cuda110/nompi/intel/cuda/debug/static" ]
 
 
 # cuda 11.4 and friends
@@ -918,6 +921,8 @@ gh-pages:
     - git add -A
     - git diff --quiet HEAD ||
       (git commit -m "Update documentation from ginkgo-project/ginkgo@${CURRENT_SHA}" && git push)
+  dependencies: null
+  needs: [ "sync" ]
 
 
 threadsanitizer:
@@ -1037,4 +1042,5 @@ benchmark-cuda-spmv:
     BENCHMARK: "spmv"
     EXECUTOR: "cuda"
     SYSTEM_NAME: "A100"
-  dependencies: [ "benchmark-cuda-spmv-build" ]
+  dependencies: null
+  needs: [ "benchmark-cuda-spmv-build" ]
