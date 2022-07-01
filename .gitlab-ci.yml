@@ -892,7 +892,7 @@ gh-pages:
     - .before_script_git_template
     - .use_status-job-settings
   variables:
-    PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
+    PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo-generated-documentation.git
   script:
     # build docs
     - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
@@ -917,7 +917,7 @@ gh-pages:
     - cd gh-pages-repo
     - git add -A
     - git diff --quiet HEAD ||
-      (git commit -m "Update documentation from ${CURRENT_SHA}" && git push)
+      (git commit -m "Update documentation from ginkgo-project/ginkgo@${CURRENT_SHA}" && git push)
 
 
 threadsanitizer:
