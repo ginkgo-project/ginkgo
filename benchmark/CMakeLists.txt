@@ -46,6 +46,14 @@ function(ginkgo_benchmark_hipsparse_linops type def)
     target_link_libraries(hipsparse_linops_${type} Ginkgo::ginkgo ${HIPSPARSE_LIBRARIES})
 endfunction()
 
+function(ginkgo_benchmark_onemkl_linops type def)
+    add_library(onemkl_linops_${type} utils/dpcpp_linops.dp.cpp)
+    # make the dependency public to catch issues
+    target_compile_definitions(onemkl_linops_${type} PUBLIC ${def})
+    target_compile_features(onemkl_linops_${type} PRIVATE cxx_std_17)
+    target_link_libraries(onemkl_linops_${type} PRIVATE Ginkgo::ginkgo MKL::MKL_DPCPP)
+endfunction()
+
 
 # Generates an executable for one precision. Each executable will be linked to
 # `ginkgo`, `gflags` and `rapidjson`.
@@ -77,6 +85,10 @@ function(ginkgo_add_single_benchmark_executable name use_lib_linops macro_def ty
         if (GINKGO_BUILD_HIP)
             target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
             target_link_libraries("${name}" hipsparse_linops_${type})
+        endif()
+        if (GINKGO_BUILD_DPCPP)
+            target_compile_definitions("${name}" PRIVATE HAS_DPCPP=1)
+            target_link_libraries("${name}" onemkl_linops_${type})
         endif()
     endif()
 endfunction(ginkgo_add_single_benchmark_executable)
@@ -127,6 +139,12 @@ if (GINKGO_BUILD_HIP)
     target_link_libraries(hip_timer ginkgo)
 endif()
 
+if (GINKGO_BUILD_DPCPP)
+    ginkgo_benchmark_onemkl_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
+    ginkgo_benchmark_onemkl_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
+    ginkgo_benchmark_onemkl_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
+    ginkgo_benchmark_onemkl_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+endif()
 
 add_subdirectory(blas)
 add_subdirectory(conversions)

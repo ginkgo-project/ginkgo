@@ -66,6 +66,9 @@ std::string available_format =
     ", hipsparse_csr, hipsparse_csrmm, hipsparse_coo, hipsparse_ell, "
     "hipsparse_hybrid"
 #endif  // HAS_HIP
+#ifdef HAS_DPCPP
+    ", onemkl_csr, onemkl_optimized_csr"
+#endif  // HAS_DPCPP
     ".\n";
 
 std::string format_description =
@@ -124,8 +127,13 @@ std::string format_description =
     "hipsparse_coo: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
     "               with HIPSPARSE_HYB_PARTITION_USER\n"
     "hipsparse_ell: hipSPARSE CSR SpMV using hipsparseXhybmv\n"
-    "               with HIPSPARSE_HYB_PARTITION_MAX"
+    "               with HIPSPARSE_HYB_PARTITION_MAX\n"
 #endif  // HAS_HIP
+#ifdef HAS_DPCPP
+    "onemkl_csr: oneMKL Csr SpMV\n"
+    "onemkl_optimized_csr: oneMKL optimized Csr SpMV using optimize_gemv after "
+    "reading the matrix"
+#endif  // HAS_DPCPP
     ;
 
 std::string format_command =
@@ -328,6 +336,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hipsparse_coo", read_splib_matrix_from_data<hipsparse_coo>},
         {"hipsparse_ell", read_splib_matrix_from_data<hipsparse_ell>},
 #endif  // HAS_HIP
+#ifdef HAS_DPCPP
+        {"onemkl_csr", read_splib_matrix_from_data<onemkl_csr>},
+        {"onemkl_optimized_csr", read_splib_matrix_from_data<onemkl_optimized_csr>},
+#endif  // HAS_DPCPP
         {"hybrid", read_matrix_from_data<hybrid>},
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
