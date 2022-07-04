@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cassert>
-// #include <dpcpp/base/math.hpp>
 #include <type_traits>
 
 
