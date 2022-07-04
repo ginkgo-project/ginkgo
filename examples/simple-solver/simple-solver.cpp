@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     // the hood call the required smart pointer functions to manage object
     // ownership. The gko::share , gko::give and gko::lend are the functions
     // that you would need to use.
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
