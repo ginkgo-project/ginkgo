@@ -357,9 +357,9 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
                               int32 max_block_size,
                               IndexType* __restrict__ block_ptrs)
 {
-    Array<size_type> nums(exec, 1);
+    array<size_type> nums(exec, 1);
 
-    Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
+    array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
     const dim3 block_size(config::warp_size, 1, 1);
     const dim3 grid_size(
@@ -381,7 +381,7 @@ inline size_type agglomerate_supervariables(
     std::shared_ptr<const DefaultExecutor> exec, int32 max_block_size,
     size_type num_natural_blocks, IndexType* block_ptrs)
 {
-    Array<size_type> nums(exec, 1);
+    array<size_type> nums(exec, 1);
 
     agglomerate_supervariables_kernel(1, 1, 0, exec->get_queue(),
                                       max_block_size, num_natural_blocks,
@@ -396,8 +396,8 @@ inline size_type agglomerate_supervariables(
 
 
 void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
-                           const Array<precision_reduction>& source,
-                           Array<precision_reduction>& precisions)
+                           const array<precision_reduction>& source,
+                           array<precision_reduction>& precisions)
 {
     const auto block_size = default_num_warps * config::warp_size;
     const auto grid_size = min(
@@ -414,7 +414,7 @@ template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
                  const matrix::Csr<ValueType, IndexType>* system_matrix,
                  uint32 max_block_size, size_type& num_blocks,
-                 Array<IndexType>& block_pointers)
+                 array<IndexType>& block_pointers)
 {
     auto num_natural_blocks = find_natural_blocks(
         exec, system_matrix, max_block_size, block_pointers.get_data());
@@ -472,7 +472,7 @@ void transpose_jacobi(
     const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks)
+    array<ValueType>& out_blocks)
 {
     select_transpose_jacobi(
         compiled_kernels(),
@@ -496,7 +496,7 @@ void conj_transpose_jacobi(
     const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    Array<ValueType>& out_blocks)
+    array<ValueType>& out_blocks)
 {
     select_transpose_jacobi(
         compiled_kernels(),
@@ -516,8 +516,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
-    const Array<precision_reduction>& block_precisions,
-    const Array<IndexType>& block_pointers, const Array<ValueType>& blocks,
+    const array<precision_reduction>& block_precisions,
+    const array<IndexType>& block_pointers, const array<ValueType>& blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
     ValueType* result_values, size_type result_stride) GKO_NOT_IMPLEMENTED;
