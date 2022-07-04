@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <limits>
 #include <map>
 #include <regex>
