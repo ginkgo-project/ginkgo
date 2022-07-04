@@ -164,7 +164,8 @@ int main(int argc, char* argv[])
     // executor used by the application
     const auto app_exec = exec->get_master();
 
-    // problem:
+    // Set up the problem: define the exact solution, the right hand side and
+    // the Dirichlet boundary condition.
     auto correct_u = [](ValueType x) { return x * x * x; };
     auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);
