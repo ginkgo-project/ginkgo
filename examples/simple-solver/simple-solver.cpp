@@ -67,6 +67,7 @@ int main(int argc, char* argv[])
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
 
+    // Print help on how to execute this example.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
         std::exit(-1);
