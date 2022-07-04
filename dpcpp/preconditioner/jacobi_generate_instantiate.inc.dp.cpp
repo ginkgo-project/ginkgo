@@ -126,7 +126,7 @@ void generate(
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, max_block_size * warps_per_block>* workspace)
+    uninitialized_array<ValueType, max_block_size * warps_per_block>* workspace)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -162,7 +162,7 @@ void generate(
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<ValueType, max_block_size * warps_per_block>, 0,
+            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
             sycl::access_mode::read_write, sycl::access::target::local>
             workspace_acc_ct1(cgh);
 
@@ -189,7 +189,7 @@ void adaptive_generate(
     precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
     sycl::nd_item<3> item_ct1,
-    UninitializedArray<ValueType, max_block_size * warps_per_block>* workspace)
+    uninitialized_array<ValueType, max_block_size * warps_per_block>* workspace)
 {
     // extract blocks
     const auto block_id =
@@ -284,7 +284,7 @@ void adaptive_generate(
 {
     queue->submit([&](sycl::handler& cgh) {
         sycl::accessor<
-            UninitializedArray<ValueType, max_block_size * warps_per_block>, 0,
+            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0,
             sycl::access_mode::read_write, sycl::access::target::local>
             workspace_acc_ct1(cgh);
 
