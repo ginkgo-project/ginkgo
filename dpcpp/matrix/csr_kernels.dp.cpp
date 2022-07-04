@@ -1201,34 +1201,8 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
-            oneapi::mkl::sparse::matrix_handle_t mat_handle;
-            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
-            oneapi::mkl::sparse::set_csr_data(
-                mat_handle, IndexType(a->get_size()[0]),
-                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-                const_cast<IndexType*>(a->get_const_row_ptrs()),
-                const_cast<IndexType*>(a->get_const_col_idxs()),
-                const_cast<ValueType*>(a->get_const_values()));
-            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
-                oneapi::mkl::sparse::gemv(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                    one<ValueType>(), mat_handle,
-                    const_cast<ValueType*>(b->get_const_values()),
-                    zero<ValueType>(), c->get_values());
-            } else {
-                oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::layout::row_major,
-                    oneapi::mkl::transpose::nontrans,
-                    oneapi::mkl::transpose::nontrans, one<ValueType>(),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    b->get_size()[1], b->get_stride(), zero<ValueType>(),
-                    c->get_values(), c->get_stride());
-            }
-            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        GKO_NOT_IMPLEMENTED;
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -1273,37 +1247,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
-        if (!is_complex<ValueType>()) {
-            oneapi::mkl::sparse::matrix_handle_t mat_handle;
-            oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
-            oneapi::mkl::sparse::set_csr_data(
-                mat_handle, IndexType(a->get_size()[0]),
-                IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-                const_cast<IndexType*>(a->get_const_row_ptrs()),
-                const_cast<IndexType*>(a->get_const_col_idxs()),
-                const_cast<ValueType*>(a->get_const_values()));
-            if (b->get_size()[1] == 1 && b->get_stride() == 1) {
-                oneapi::mkl::sparse::gemv(
-                    *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                    exec->copy_val_to_host(alpha->get_const_values()),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    exec->copy_val_to_host(beta->get_const_values()),
-                    c->get_values());
-            } else {
-                oneapi::mkl::sparse::gemm(
-                    *exec->get_queue(), oneapi::mkl::layout::row_major,
-                    oneapi::mkl::transpose::nontrans,
-                    oneapi::mkl::transpose::nontrans,
-                    exec->copy_val_to_host(alpha->get_const_values()),
-                    mat_handle, const_cast<ValueType*>(b->get_const_values()),
-                    b->get_size()[1], b->get_stride(),
-                    exec->copy_val_to_host(beta->get_const_values()),
-                    c->get_values(), c->get_stride());
-            }
-            oneapi::mkl::sparse::release_matrix_handle(&mat_handle);
-        } else {
-            GKO_NOT_IMPLEMENTED;
-        }
+        GKO_NOT_IMPLEMENTED;
     } else if (a->get_strategy()->get_name() == "classical") {
         IndexType max_length_per_row = 0;
         using Tcsr = matrix::Csr<ValueType, IndexType>;

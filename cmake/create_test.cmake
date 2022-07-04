@@ -41,6 +41,8 @@ function(ginkgo_create_dpcpp_test test_name)
     target_compile_features(${test_target_name} PUBLIC cxx_std_17)
     target_compile_options(${test_target_name} PRIVATE "${GINKGO_DPCPP_FLAGS}")
     target_compile_options(${test_target_name} PRIVATE "${GINKGO_COMPILER_FLAGS}")
+    target_compile_options(${test_target_name} PRIVATE "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-fsycl-unnamed-lambda")
+    target_link_options(${test_target_name} PRIVATE "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-fsycl-unnamed-lambda")
     target_link_options(${test_target_name} PRIVATE -fsycl-device-code-split=per_kernel)
     ginkgo_set_test_target_properties(${test_name} ${test_target_name})
     # Note: MKL_ENV is empty on linux. Maybe need to apply MKL_ENV to all test.

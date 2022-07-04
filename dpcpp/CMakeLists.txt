@@ -1,4 +1,4 @@
-if (NOT GKO_CAN_COMPILE_DPCPP)
+if (DEFINED GKO_CAN_COMPILE_DPCPP AND NOT GKO_CAN_COMPILE_DPCPP)
     message(FATAL_ERROR "The CMAKE_CXX_COMPILER compiler, which is "
         "${CMAKE_CXX_COMPILER} cannot compile DPC++ code!")
 endif()
@@ -6,8 +6,10 @@ endif()
 ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
 set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 
-find_package(MKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
+find_package(oneMKL CONFIG REQUIRED HINTS "$ENV{MKLROOT}")
+
 set(GINKGO_MKL_ROOT "${MKL_ROOT}" PARENT_SCOPE)
+set(ONEDPL_PAR_BACKEND "tbb")
 find_package(oneDPL REQUIRED HINTS "$ENV{DPL_ROOT}")
 set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 
@@ -64,6 +66,9 @@ target_compile_definitions(ginkgo_dpcpp PRIVATE GKO_COMPILING_DPCPP _ONEDPL_COMP
 set(GINKGO_DPCPP_FLAGS ${GINKGO_DPCPP_FLAGS} PARENT_SCOPE)
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_COMPILER_FLAGS}")
+# Does not from ONEMKL::SYCL::SYCL?
+target_compile_options(ginkgo_dpcpp PRIVATE "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-fsycl-unnamed-lambda")
+target_link_options(ginkgo_dpcpp PRIVATE "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-fsycl-unnamed-lambda")
 # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
 # find_package(MKL) everywhere when linking ginkgo (see the MKL example
 # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
@@ -77,7 +82,7 @@ else ()
     target_link_options(ginkgo_dpcpp PUBLIC -fsycl-device-code-split=per_kernel)
 endif()
 target_link_libraries(ginkgo_dpcpp PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_dpcpp PRIVATE MKL::MKL_DPCPP oneDPL)
+target_link_libraries(ginkgo_dpcpp PRIVATE MKL::onemkl_blas_cublas MKL::onemkl_lapack_cusolver MKL::onemkl_rng_curand MKL::onemkl oneDPL)
 if (GINKGO_DPCPP_SINGLE_MODE)
     target_compile_definitions(ginkgo_dpcpp PRIVATE GINKGO_DPCPP_SINGLE_MODE=1)
 endif()
