@@ -39,9 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 #include "core/solver/bicgstab_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -108,54 +110,48 @@ void Bicgstab<ValueType>::apply_dense_impl(
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    using AbsVector = matrix::Dense<remove_complex<ValueType>>;
 
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    array<char> reduction_tmp{exec};
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(y, dense_b);
+    GKO_SOLVER_VECTOR(v, dense_b);
+    GKO_SOLVER_VECTOR(s, dense_b);
+    GKO_SOLVER_VECTOR(t, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(rr, dense_b);
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(gamma, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
+    GKO_SOLVER_SCALAR(omega, dense_b);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto y = Vector::create_with_config_of(dense_b);
-    auto v = Vector::create_with_config_of(dense_b);
-    auto s = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto rr = Vector::create_with_config_of(dense_b);
-
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto gamma = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
-    auto omega = Vector::create_with_config_of(alpha.get());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(bicgstab::make_initialize(
-        dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
-        p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
-        gamma.get(), omega.get(), &stop_status));
     // r = dense_b
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
+    exec->run(bicgstab::make_initialize(dense_b, r, rr, y, s, t, z, v, p,
+                                        prev_rho, rho, alpha, beta, gamma,
+                                        omega, &stop_status));
 
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
+    // r = b - Ax
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
-    rr->copy_from(r.get());
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
+    // rr = r
+    rr->copy_from(r);
 
     int iter = -1;
 
@@ -173,13 +169,13 @@ void Bicgstab<ValueType>::apply_dense_impl(
     while (true) {
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
-        rr->compute_conj_dot(r.get(), rho.get(), reduction_tmp);
+            this, iter, r, dense_x, nullptr, rho);
+        rr->compute_conj_dot(r, rho, reduction_tmp);
 
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -187,43 +183,47 @@ void Bicgstab<ValueType>::apply_dense_impl(
 
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
-                                        prev_rho.get(), alpha.get(),
-                                        omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_1(r, p, v, rho, prev_rho, alpha, omega,
+                                        &stop_status));
 
-        this->get_preconditioner()->apply(p.get(), y.get());
-        this->get_system_matrix()->apply(y.get(), v.get());
-        rr->compute_conj_dot(v.get(), beta.get(), reduction_tmp);
+        // y = preconditioner * p
+        this->get_preconditioner()->apply(p, y);
+        // v = A * y
+        this->get_system_matrix()->apply(y, v);
+        // beta = dot(rr, v)
+        rr->compute_conj_dot(v, beta, reduction_tmp);
         // alpha = rho / beta
         // s = r - alpha * v
-        exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
-                                        alpha.get(), beta.get(), &stop_status));
+        exec->run(
+            bicgstab::make_step_2(r, s, v, rho, alpha, beta, &stop_status));
 
         auto all_converged =
             stop_criterion->update()
                 .num_iterations(iter)
-                .residual(s.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(s)
+                .implicit_sq_residual_norm(rho)
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(dense_x, y.get(), alpha.get(),
-                                              &stop_status));
+            exec->run(bicgstab::make_finalize(dense_x, y, alpha, &stop_status));
         }
         if (all_converged) {
             break;
         }
 
-        this->get_preconditioner()->apply(s.get(), z.get());
-        this->get_system_matrix()->apply(z.get(), t.get());
-        s->compute_conj_dot(t.get(), gamma.get(), reduction_tmp);
-        t->compute_conj_dot(t.get(), beta.get(), reduction_tmp);
+        // z = preconditioner * s
+        this->get_preconditioner()->apply(s, z);
+        // t = A * z
+        this->get_system_matrix()->apply(z, t);
+        // gamma = dot(s, t)
+        s->compute_conj_dot(t, gamma, reduction_tmp);
+        // beta = dot(t, t)
+        t->compute_conj_dot(t, beta, reduction_tmp);
         // omega = gamma / beta
         // x = x + alpha * y + omega * z
         // r = s - omega * t
-        exec->run(bicgstab::make_step_3(
-            dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
-            beta.get(), gamma.get(), omega.get(), &stop_status));
+        exec->run(bicgstab::make_step_3(dense_x, r, s, t, y, z, alpha, beta,
+                                        gamma, omega, &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -247,8 +247,59 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
+template <typename ValueType>
+int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+int workspace_traits<Bicgstab<ValueType>>::num_vectors(const Solver&)
+{
+    return 16;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::op_names(
+    const Solver&)
+{
+    return {
+        "r",   "z",     "y",     "v",         "s",     "t",
+        "p",   "rr",    "alpha", "beta",      "gamma", "prev_rho",
+        "rho", "omega", "one",   "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Bicgstab<ValueType>>::scalars(const Solver&)
+{
+    return {alpha, beta, gamma, prev_rho, rho, omega};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Bicgstab<ValueType>>::vectors(const Solver&)
+{
+    return {r, z, y, v, s, t, p, rr};
+}
+
+
 #define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
+#define GKO_DECLARE_BICGSTAB_TRAITS(_type) \
+    struct workspace_traits<Bicgstab<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_TRAITS);
 
 
 }  // namespace solver

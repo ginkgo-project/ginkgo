@@ -251,6 +251,64 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Idr<ValueType>> {
+    using Solver = Idr<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int residual = 0;
+    // v vector
+    constexpr static int v = 1;
+    // t vector
+    constexpr static int t = 2;
+    // helper vector
+    constexpr static int helper = 3;
+    // m multivector
+    constexpr static int m = 4;
+    // g multivector
+    constexpr static int g = 5;
+    // u multivector
+    constexpr static int u = 6;
+    // subspace multivector
+    constexpr static int subspace = 7;
+    // f "multiscalar"
+    constexpr static int f = 8;
+    // c "multiscalar"
+    constexpr static int c = 9;
+    // omega scalar
+    constexpr static int omega = 10;
+    // residual norm scalar
+    constexpr static int residual_norm = 11;
+    // T^H*T scalar
+    constexpr static int tht = 12;
+    // alpha "multiscalar"
+    constexpr static int alpha = 13;
+    // constant 1.0 scalar
+    constexpr static int one = 14;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 15;
+    // constant -1.0 scalar
+    constexpr static int subspace_minus_one = 16;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

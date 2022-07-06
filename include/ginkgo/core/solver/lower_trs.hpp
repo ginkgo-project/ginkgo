@@ -178,6 +178,29 @@ private:
 };
 
 
+template <typename ValueType, typename IndexType>
+struct workspace_traits<LowerTrs<ValueType, IndexType>> {
+    using Solver = LowerTrs<ValueType, IndexType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // transposed input vector
+    constexpr static int transposed_b = 0;
+    // transposed output vector
+    constexpr static int transposed_x = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

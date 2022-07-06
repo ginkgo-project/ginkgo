@@ -164,6 +164,58 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Gmres<ValueType>> {
+    using Solver = Gmres<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int residual = 0;
+    // preconditioned vector
+    constexpr static int preconditioned_vector = 1;
+    // krylov basis multivector
+    constexpr static int krylov_bases = 2;
+    // hessenberg matrix
+    constexpr static int hessenberg = 3;
+    // givens sin parameters
+    constexpr static int givens_sin = 4;
+    // givens cos parameters
+    constexpr static int givens_cos = 5;
+    // coefficients of the residual in Krylov space
+    constexpr static int residual_norm_collection = 6;
+    // residual norm scalar
+    constexpr static int residual_norm = 7;
+    // solution of the least-squares problem in Krylov space
+    constexpr static int y = 8;
+    // solution of the least-squares problem mapped to the full space
+    constexpr static int before_preconditioner = 9;
+    // preconditioned solution of the least-squares problem
+    constexpr static int after_preconditioner = 10;
+    // constant 1.0 scalar
+    constexpr static int one = 11;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 12;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+    // reduction tmp array
+    constexpr static int final_iter_nums = 2;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

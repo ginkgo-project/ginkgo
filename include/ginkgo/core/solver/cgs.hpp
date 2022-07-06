@@ -138,6 +138,60 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Cgs<ValueType>> {
+    using Solver = Cgs<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // r tilde vector
+    constexpr static int r_tld = 1;
+    // p vector
+    constexpr static int p = 2;
+    // q vector
+    constexpr static int q = 3;
+    // u vector
+    constexpr static int u = 4;
+    // u hat vector
+    constexpr static int u_hat = 5;
+    // v hat vector
+    constexpr static int v_hat = 6;
+    // t vector
+    constexpr static int t = 7;
+    // alpha scalar
+    constexpr static int alpha = 8;
+    // beta scalar
+    constexpr static int beta = 9;
+    // beta scalar
+    constexpr static int gamma = 10;
+    // previous rho scalar
+    constexpr static int prev_rho = 11;
+    // current rho scalar
+    constexpr static int rho = 12;
+    // constant 1.0 scalar
+    constexpr static int one = 13;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 14;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

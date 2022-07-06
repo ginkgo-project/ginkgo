@@ -35,9 +35,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -173,22 +175,24 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                      matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
+    using ws = workspace_traits<Ir>;
     constexpr uint8 relative_stopping_id{1};
 
     auto exec = this->get_executor();
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    this->setup_workspace();
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto inner_solution = Vector::create_with_config_of(dense_b);
+    GKO_SOLVER_VECTOR(residual, dense_b);
+    GKO_SOLVER_VECTOR(inner_solution, dense_b);
+
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
+    auto& stop_status = this->template create_workspace_array<stopping_status>(
+        ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(&stop_status));
 
     residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(lend(neg_one_op), dense_x, lend(one_op),
-                                     lend(residual));
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -198,12 +202,12 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     int iter = -1;
     while (true) {
         ++iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, iter, lend(residual), dense_x);
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            residual, dense_x);
 
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(lend(residual))
+                .residual(residual)
                 .solution(dense_x)
                 .check(relative_stopping_id, true, &stop_status,
                        &one_changed)) {
@@ -214,25 +218,24 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(lend(residual));
-            solver_->apply(lend(residual), lend(inner_solution));
+            inner_solution->copy_from(residual);
+            solver_->apply(residual, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
-            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+            dense_x->add_scaled(relaxation_factor_.get(), inner_solution);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
         } else {
             // x = x + relaxation_factor * A \ residual
-            solver_->apply(lend(relaxation_factor_), lend(residual),
-                           lend(one_op), dense_x);
+            solver_->apply(relaxation_factor_.get(), residual, one_op, dense_x);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
-            this->get_system_matrix()->apply(lend(neg_one_op), dense_x,
-                                             lend(one_op), lend(residual));
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                             residual);
         }
     }
 }
@@ -256,8 +259,59 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
+template <typename ValueType>
+int workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
+{
+    return 1;
+}
+
+
+template <typename ValueType>
+int workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
+{
+    return 4;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Ir<ValueType>>::op_names(
+    const Solver&)
+{
+    return {
+        "residual",
+        "inner_solution",
+        "one",
+        "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Ir<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop"};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Ir<ValueType>>::scalars(const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
+{
+    return {residual, inner_solution};
+}
+
+
 #define GKO_DECLARE_IR(_type) class Ir<_type>
+#define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
 
 
 }  // namespace solver

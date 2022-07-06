@@ -39,13 +39,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
 namespace solver {
+
+
+/**
+ * Traits class providing information on the type and location of workspace
+ * vectors inside a solver.
+ */
+template <typename Solver>
+struct workspace_traits {
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&) { return 0; }
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&) { return 0; }
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&) { return {}; }
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&) { return {}; }
+    // array containing all scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&) { return {}; }
+    // array containing all vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&) { return {}; }
+};
 
 
 /**
@@ -154,6 +177,10 @@ private:
 template <typename MatrixType = LinOp>
 class SolverBase {
 public:
+    SolverBase(std::shared_ptr<const Executor> exec)
+        : workspace_{std::move(exec)}
+    {}
+
     virtual ~SolverBase() = default;
 
     /**
@@ -166,11 +193,103 @@ public:
         return system_matrix_;
     }
 
+    const LinOp* get_workspace_op(int vector_id) const
+    {
+        return workspace_.get_op(vector_id);
+    }
+
+    virtual int get_num_workspace_ops() const { return 0; }
+
+    virtual std::vector<std::string> get_workspace_op_names() const
+    {
+        return {};
+    }
+
+    /**
+     * Returns the IDs of all scalars (workspace vectors with
+     * system dimension-independent size, usually 1 x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_scalars() const { return {}; }
+
+    /**
+     * Returns the IDs of all vectors (workspace vectors with system
+     * dimension-dependent size, usually system_matrix_size x num_rhs).
+     */
+    virtual std::vector<int> get_workspace_vectors() const { return {}; }
+
 protected:
     void set_system_matrix_base(std::shared_ptr<const MatrixType> system_matrix)
     {
         system_matrix_ = std::move(system_matrix);
     }
+
+    void set_workspace_size(int num_operators, int num_arrays) const
+    {
+        workspace_.set_size(num_operators, num_arrays);
+    }
+
+    template <typename LinOpType>
+    LinOpType* create_workspace_op(int vector_id, gko::dim<2> size) const
+    {
+        return workspace_.template create_or_get_op<LinOpType>(
+            vector_id,
+            [&] {
+                return LinOpType::create(this->workspace_.get_executor(), size);
+            },
+            typeid(LinOpType), size, size[1]);
+    }
+
+    template <typename LinOpType>
+    LinOpType* create_workspace_op_with_config_of(int vector_id,
+                                                  const LinOpType* vec) const
+    {
+        return workspace_.template create_or_get_op<LinOpType>(
+            vector_id, [&] { return LinOpType::create_with_config_of(vec); },
+            typeid(*vec), vec->get_size(), vec->get_stride());
+    }
+
+    template <typename LinOpType>
+    LinOpType* create_workspace_op_with_type_of(int vector_id,
+                                                const LinOpType* vec,
+                                                dim<2> size) const
+    {
+        return workspace_.template create_or_get_op<LinOpType>(
+            vector_id,
+            [&] {
+                return LinOpType::create_with_type_of(
+                    vec, workspace_.get_executor(), size, size[1]);
+            },
+            typeid(*vec), size, size[1]);
+    }
+
+    template <typename ValueType>
+    matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
+                                                      size_type size) const
+    {
+        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
+            vector_id,
+            [&] {
+                return matrix::Dense<ValueType>::create(
+                    workspace_.get_executor(), dim<2>{1, size});
+            },
+            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+    }
+
+    template <typename ValueType>
+    array<ValueType>& create_workspace_array(int array_id, size_type size) const
+    {
+        return workspace_.template create_or_get_array<ValueType>(array_id,
+                                                                  size);
+    }
+
+    template <typename ValueType>
+    array<ValueType>& create_workspace_array(int array_id) const
+    {
+        return workspace_.template init_or_get_array<ValueType>(array_id);
+    }
+
+private:
+    mutable detail::workspace workspace_;
 
     std::shared_ptr<const MatrixType> system_matrix_;
 };
@@ -213,9 +332,10 @@ public:
         return *this;
     }
 
-    EnableSolverBase() = default;
+    EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
+        : SolverBase<MatrixType>{self()->get_executor()}
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -223,13 +343,53 @@ public:
     /**
      * Creates a shallow copy of the provided system matrix.
      */
-    EnableSolverBase(const EnableSolverBase& other) { *this = other; }
+    EnableSolverBase(const EnableSolverBase& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
+    {
+        *this = other;
+    }
 
     /**
      * Moves the provided system matrix. The moved-from object has a nullptr
      * system matrix.
      */
-    EnableSolverBase(EnableSolverBase&& other) { *this = std::move(other); }
+    EnableSolverBase(EnableSolverBase&& other)
+        : SolverBase<MatrixType>{other.self()->get_executor()}
+    {
+        *this = std::move(other);
+    }
+
+    int get_num_workspace_ops() const override
+    {
+        using traits = workspace_traits<DerivedType>;
+        return traits::num_vectors(*self());
+    }
+
+    std::vector<std::string> get_workspace_op_names() const override
+    {
+        using traits = workspace_traits<DerivedType>;
+        return traits::op_names(*self());
+    }
+
+    /**
+     * Returns the IDs of all scalars (workspace vectors with
+     * system dimension-independent size, usually 1 x num_rhs).
+     */
+    std::vector<int> get_workspace_scalars() const override
+    {
+        using traits = workspace_traits<DerivedType>;
+        return traits::scalars(*self());
+    }
+
+    /**
+     * Returns the IDs of all vectors (workspace vectors with system
+     * dimension-dependent size, usually system_matrix_size x num_rhs).
+     */
+    std::vector<int> get_workspace_vectors() const override
+    {
+        using traits = workspace_traits<DerivedType>;
+        return traits::vectors(*self());
+    }
 
 protected:
     void set_system_matrix(std::shared_ptr<const MatrixType> new_system_matrix)
@@ -243,6 +403,13 @@ protected:
             }
         }
         this->set_system_matrix_base(new_system_matrix);
+    }
+
+    void setup_workspace() const
+    {
+        using traits = workspace_traits<DerivedType>;
+        this->set_workspace_size(traits::num_vectors(*self()),
+                                 traits::num_arrays(*self()));
     }
 
 private:

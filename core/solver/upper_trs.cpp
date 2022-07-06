@@ -141,6 +141,14 @@ void UpperTrs<ValueType, IndexType>::generate()
 }
 
 
+static bool needs_transpose(std::shared_ptr<const Executor> exec)
+{
+    bool result{};
+    exec->run(upper_trs::make_should_perform_transpose(result));
+    return result;
+}
+
+
 template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
@@ -150,31 +158,27 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
+            using ws = workspace_traits<UpperTrs>;
             const auto exec = this->get_executor();
+            this->setup_workspace();
 
             // This kernel checks if a transpose is needed for the multiple rhs
-            // case. Currently only the algorithm for CUDA version <=9.1 needs
-            // this transposition due to the limitation in the cusparse
-            // algorithm. The other executors (omp and reference) do not use the
+            // case. Currently only the algorithm for HIP needs this
+            // transposition due to the limitation in the hipsparse algorithm.
+            // The other executors (omp and reference, CUDA) do not use the
             // transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
-            bool do_transpose = false;
-            std::shared_ptr<Vector> trans_b;
-            std::shared_ptr<Vector> trans_x;
-            this->get_executor()->run(
-                upper_trs::make_should_perform_transpose(do_transpose));
-            if (do_transpose) {
-                trans_b =
-                    Vector::create(exec, gko::transpose(dense_b->get_size()));
-                trans_x =
-                    Vector::create(exec, gko::transpose(dense_x->get_size()));
-            } else {
-                trans_b = Vector::create(exec);
-                trans_x = Vector::create(exec);
+            Vector* trans_b{};
+            Vector* trans_x{};
+            if (needs_transpose(exec)) {
+                trans_b = this->template create_workspace_op<Vector>(
+                    ws::transposed_b, gko::transpose(dense_b->get_size()));
+                trans_x = this->template create_workspace_op<Vector>(
+                    ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
-            exec->run(upper_trs::make_solve(
-                lend(this->get_system_matrix()), lend(this->solve_struct_),
-                lend(trans_b), lend(trans_x), dense_b, dense_x));
+            exec->run(upper_trs::make_solve(lend(this->get_system_matrix()),
+                                            lend(this->solve_struct_), trans_b,
+                                            trans_x, dense_b, dense_x));
         },
         b, x);
 }
@@ -200,8 +204,64 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 }
 
 
+template <typename ValueType, typename IndexType>
+int workspace_traits<UpperTrs<ValueType, IndexType>>::num_arrays(const Solver&)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+int workspace_traits<UpperTrs<ValueType, IndexType>>::num_vectors(
+    const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? 2 : 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::string>
+workspace_traits<UpperTrs<ValueType, IndexType>>::op_names(const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? std::vector<std::string>{
+        "transposed_b",
+        "transposed_x",
+    } : std::vector<std::string>{};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<std::string>
+workspace_traits<UpperTrs<ValueType, IndexType>>::array_names(const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<int> workspace_traits<UpperTrs<ValueType, IndexType>>::scalars(
+    const Solver&)
+{
+    return {};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::vector<int> workspace_traits<UpperTrs<ValueType, IndexType>>::vectors(
+    const Solver& solver)
+{
+    return needs_transpose(solver.get_executor()) ? std::vector<int>{
+        transposed_b,
+        transposed_x,
+    } : std::vector<int>{};
+}
+
+
 #define GKO_DECLARE_UPPER_TRS(_vtype, _itype) class UpperTrs<_vtype, _itype>
+#define GKO_DECLARE_UPPER_TRS_TRAITS(_vtype, _itype) \
+    struct workspace_traits<UpperTrs<_vtype, _itype>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS_TRAITS);
 
 
 }  // namespace solver

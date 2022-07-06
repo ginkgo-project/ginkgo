@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/bicg_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -131,39 +132,34 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
+    this->setup_workspace();
 
-    array<char> reduction_tmp{exec};
+    GKO_SOLVER_VECTOR(r, dense_b);
+    GKO_SOLVER_VECTOR(z, dense_b);
+    GKO_SOLVER_VECTOR(p, dense_b);
+    GKO_SOLVER_VECTOR(q, dense_b);
+    GKO_SOLVER_VECTOR(r2, dense_b);
+    GKO_SOLVER_VECTOR(z2, dense_b);
+    GKO_SOLVER_VECTOR(p2, dense_b);
+    GKO_SOLVER_VECTOR(q2, dense_b);
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
-    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
+    GKO_SOLVER_SCALAR(alpha, dense_b);
+    GKO_SOLVER_SCALAR(beta, dense_b);
+    GKO_SOLVER_SCALAR(prev_rho, dense_b);
+    GKO_SOLVER_SCALAR(rho, dense_b);
 
-    auto r = Vector::create_with_config_of(dense_b);
-    auto r2 = Vector::create_with_config_of(dense_b);
-    auto z = Vector::create_with_config_of(dense_b);
-    auto z2 = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);
-    auto p2 = Vector::create_with_config_of(dense_b);
-    auto q = Vector::create_with_config_of(dense_b);
-    auto q2 = Vector::create_with_config_of(dense_b);
-
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto beta = Vector::create_with_config_of(alpha.get());
-    auto prev_rho = Vector::create_with_config_of(alpha.get());
-    auto rho = Vector::create_with_config_of(alpha.get());
+    GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    array<stopping_status> stop_status(alpha->get_executor(),
-                                       dense_b->get_size()[1]);
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(bicg::make_initialize(
-        dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
-        r2.get(), z2.get(), p2.get(), q2.get(), &stop_status));
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
+    exec->run(bicg::make_initialize(dense_b, r, z, p, q, prev_rho, rho, r2, z2,
+                                    p2, q2, &stop_status));
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
@@ -190,15 +186,13 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     auto conj_trans_preconditioner =
         as<const Transposable>(this->get_preconditioner())->conj_transpose();
 
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     r.get());
-    // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
-    r2->copy_from(r.get());
+    // r = r - Ax
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     // r2 = r
+    r2->copy_from(r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        r.get());
+        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
 
     int iter = -1;
 
@@ -212,17 +206,17 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
      * 1x norm2 residual        n
      */
     while (true) {
-        this->get_preconditioner()->apply(r.get(), z.get());
-        conj_trans_preconditioner->apply(r2.get(), z2.get());
-        z->compute_conj_dot(r2.get(), rho.get(), reduction_tmp);
+        this->get_preconditioner()->apply(r, z);
+        conj_trans_preconditioner->apply(r2, z2);
+        z->compute_conj_dot(r2, rho, reduction_tmp);
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(
-            this, iter, r.get(), dense_x, nullptr, rho.get());
+            this, iter, r, dense_x, nullptr, rho);
         if (stop_criterion->update()
                 .num_iterations(iter)
-                .residual(r.get())
-                .implicit_sq_residual_norm(rho.get())
+                .residual(r)
+                .implicit_sq_residual_norm(rho)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
@@ -231,17 +225,18 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
-        exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
-                                    rho.get(), prev_rho.get(), &stop_status));
-        this->get_system_matrix()->apply(p.get(), q.get());
-        conj_trans_A->apply(p2.get(), q2.get());
-        p2->compute_conj_dot(q.get(), beta.get(), reduction_tmp);
+        exec->run(bicg::make_step_1(p, z, p2, z2, rho, prev_rho, &stop_status));
+        // q = A * p
+        this->get_system_matrix()->apply(p, q);
+        // q2 = A^T * p2
+        conj_trans_A->apply(p2, q2);
+        // beta = dot(p2, q)
+        p2->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
         // r2 = r2 - tmp * q2
-        exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
-                                    q.get(), q2.get(), beta.get(), rho.get(),
+        exec->run(bicg::make_step_2(dense_x, r, r2, p, q, q2, beta, rho,
                                     &stop_status));
         swap(prev_rho, rho);
     }
@@ -266,8 +261,57 @@ void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
+template <typename ValueType>
+int workspace_traits<Bicg<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+int workspace_traits<Bicg<ValueType>>::num_vectors(const Solver&)
+{
+    return 14;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Bicg<ValueType>>::op_names(
+    const Solver&)
+{
+    return {
+        "r",  "z",     "p",    "q",        "r2",  "z2",  "p2",
+        "q2", "alpha", "beta", "prev_rho", "rho", "one", "minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Bicg<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Bicg<ValueType>>::scalars(const Solver&)
+{
+    return {alpha, beta, prev_rho, rho};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Bicg<ValueType>>::vectors(const Solver&)
+{
+    return {r, z, p, q, r2, z2, p2, q2};
+}
+
+
 #define GKO_DECLARE_BICG(_type) class Bicg<_type>
+#define GKO_DECLARE_BICG_TRAITS(_type) struct workspace_traits<Bicg<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_TRAITS);
 
 
 }  // namespace solver

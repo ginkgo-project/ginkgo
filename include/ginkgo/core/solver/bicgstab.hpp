@@ -146,6 +146,62 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Bicgstab<ValueType>> {
+    using Solver = Bicgstab<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // preconditioned residual vector
+    constexpr static int z = 1;
+    // y vector
+    constexpr static int y = 2;
+    // v vector
+    constexpr static int v = 3;
+    // s vector
+    constexpr static int s = 4;
+    // t vector
+    constexpr static int t = 5;
+    // p vector
+    constexpr static int p = 6;
+    // rr vector
+    constexpr static int rr = 7;
+    // alpha scalar
+    constexpr static int alpha = 8;
+    // beta scalar
+    constexpr static int beta = 9;
+    // gamma scalar
+    constexpr static int gamma = 10;
+    // previous rho scalar
+    constexpr static int prev_rho = 11;
+    // current rho scalar
+    constexpr static int rho = 12;
+    // omega scalar
+    constexpr static int omega = 13;
+    // constant 1.0 scalar
+    constexpr static int one = 14;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 15;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

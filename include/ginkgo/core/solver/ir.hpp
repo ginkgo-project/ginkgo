@@ -249,6 +249,36 @@ template <typename ValueType = default_precision>
 using Richardson = Ir<ValueType>;
 
 
+template <typename ValueType>
+struct workspace_traits<Ir<ValueType>> {
+    using Solver = Ir<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int residual = 0;
+    // inner solution vector
+    constexpr static int inner_solution = 1;
+    // constant 1.0 scalar
+    constexpr static int one = 2;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 3;
+
+    // stopping status array
+    constexpr static int stop = 0;
+};
+
+
 /**
  * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
  * limited stop criterion(iterations and relacation_factor).

@@ -147,6 +147,58 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Bicg<ValueType>> {
+    using Solver = Bicg<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // preconditioned residual vector
+    constexpr static int z = 1;
+    // p vector
+    constexpr static int p = 2;
+    // q vector
+    constexpr static int q = 3;
+    // "transposed" residual vector
+    constexpr static int r2 = 4;
+    // "transposed" preconditioned residual vector
+    constexpr static int z2 = 5;
+    // "transposed" p vector
+    constexpr static int p2 = 6;
+    // "transposed" q vector
+    constexpr static int q2 = 7;
+    // alpha scalar
+    constexpr static int alpha = 8;
+    // beta scalar
+    constexpr static int beta = 9;
+    // previous rho scalar
+    constexpr static int prev_rho = 10;
+    // current rho scalar
+    constexpr static int rho = 11;
+    // constant 1.0 scalar
+    constexpr static int one = 12;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 13;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 

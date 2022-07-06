@@ -39,10 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
 
 
-#include "core/components/fill_array_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
+#include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
@@ -56,7 +57,6 @@ GKO_REGISTER_OPERATION(step_1, idr::step_1);
 GKO_REGISTER_OPERATION(step_2, idr::step_2);
 GKO_REGISTER_OPERATION(step_3, idr::step_3);
 GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
-GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // anonymous namespace
@@ -96,17 +96,11 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 {
     using std::swap;
     using Vector = matrix::Dense<SubspaceType>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
+    using AbsType = remove_complex<ValueType>;
+    using ws = workspace_traits<Idr>;
 
     auto exec = this->get_executor();
-
-    array<char> reduction_tmp{exec};
-
-    auto one_op =
-        initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-    auto neg_one_op =
-        initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec);
-    auto subspace_neg_one_op = initialize<Vector>({-one<SubspaceType>()}, exec);
+    this->setup_workspace();
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -116,64 +110,70 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
     const auto is_deterministic = this->get_deterministic();
     const auto kappa = this->get_kappa();
 
-    auto residual = Vector::create_with_config_of(dense_b);
-    auto v = Vector::create_with_config_of(dense_b);
-    auto t = Vector::create_with_config_of(dense_b);
-    auto helper = Vector::create_with_config_of(dense_b);
+    GKO_SOLVER_VECTOR(residual, dense_b);
+    GKO_SOLVER_VECTOR(v, dense_b);
+    GKO_SOLVER_VECTOR(t, dense_b);
+    GKO_SOLVER_VECTOR(helper, dense_b);
 
-    auto m =
-        Vector::create(exec, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
+    auto m = this->template create_workspace_op<Vector>(
+        ws::m, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
 
-    auto g =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
-    auto u =
-        Vector::create(exec, gko::dim<2>{problem_size, subspace_dim * nrhs});
+    auto g = this->template create_workspace_op<Vector>(
+        ws::g, gko::dim<2>{problem_size, subspace_dim * nrhs});
+    auto u = this->template create_workspace_op<Vector>(
+        ws::u, gko::dim<2>{problem_size, subspace_dim * nrhs});
 
-    auto f = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
-    auto c = Vector::create(exec, gko::dim<2>{subspace_dim, nrhs});
+    auto f = this->template create_workspace_op<Vector>(
+        ws::f, gko::dim<2>{subspace_dim, nrhs});
+    auto c = this->template create_workspace_op<Vector>(
+        ws::c, gko::dim<2>{subspace_dim, nrhs});
 
-    auto omega = Vector::create(exec, gko::dim<2>{1, nrhs});
-    auto residual_norm = NormVector::create(exec, dim<2>{1, nrhs});
-    auto tht = Vector::create(exec, dim<2>{1, nrhs});
-    auto t_norm = NormVector::create(exec, dim<2>{1, nrhs});
-    auto alpha = Vector::create(exec, gko::dim<2>{1, nrhs});
-
-    bool one_changed{};
-    array<stopping_status> stop_status(exec, nrhs);
+    auto omega =
+        this->template create_workspace_scalar<SubspaceType>(ws::omega, nrhs);
+    auto residual_norm = this->template create_workspace_scalar<AbsType>(
+        ws::residual_norm, nrhs);
+    auto tht =
+        this->template create_workspace_scalar<SubspaceType>(ws::tht, nrhs);
+    auto alpha =
+        this->template create_workspace_scalar<SubspaceType>(ws::alpha, nrhs);
 
     // The dense matrix containing the randomly generated subspace vectors.
     // Stored in column major order and complex conjugated. So, if the
     // matrix containing the subspace vectors in row major order is called P,
     // subspace_vectors actually contains P^H.
-    auto subspace_vectors =
-        Vector::create(exec, gko::dim<2>(subspace_dim, problem_size));
+    auto subspace_vectors = this->template create_workspace_op<Vector>(
+        ws::subspace, gko::dim<2>(subspace_dim, problem_size));
+
+    GKO_SOLVER_ONE_MINUS_ONE();
+    auto subspace_neg_one_op =
+        this->template create_workspace_scalar<SubspaceType>(
+            ws::subspace_minus_one, 1);
+    subspace_neg_one_op->fill(-one<SubspaceType>());
+
+    bool one_changed{};
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(nrhs, m.get(), subspace_vectors.get(),
-                                   is_deterministic, &stop_status));
+    exec->run(idr::make_initialize(nrhs, m, subspace_vectors, is_deterministic,
+                                   &stop_status));
 
     // omega = 1
-    exec->run(
-        idr::make_fill_array(omega->get_values(), nrhs, one<SubspaceType>()));
+    omega->fill(one<SubspaceType>());
 
     // residual = b - Ax
     residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(neg_one_op.get(), dense_x, one_op.get(),
-                                     residual.get());
-    residual->compute_norm2(residual_norm.get(), reduction_tmp);
+    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    residual->compute_norm2(residual_norm, reduction_tmp);
 
     // g = u = 0
-    exec->run(idr::make_fill_array(
-        g->get_values(), problem_size * g->get_stride(), zero<SubspaceType>()));
-    exec->run(idr::make_fill_array(
-        u->get_values(), problem_size * u->get_stride(), zero<SubspaceType>()));
-
+    g->fill(zero<SubspaceType>());
+    u->fill(zero<SubspaceType>());
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual.get());
+        residual);
 
     int total_iter = -1;
 
@@ -197,39 +197,38 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
      */
     while (true) {
         ++total_iter;
-        this->template log<log::Logger::iteration_complete>(
-            this, total_iter, residual.get(), dense_x);
+        this->template log<log::Logger::iteration_complete>(this, total_iter,
+                                                            residual, dense_x);
 
         if (stop_criterion->update()
                 .num_iterations(total_iter)
-                .residual(residual.get())
-                .residual_norm(residual_norm.get())
+                .residual(residual)
+                .residual_norm(residual_norm)
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
 
         // f = P^H * residual
-        subspace_vectors->apply(residual.get(), f.get());
+        subspace_vectors->apply(residual, f);
 
         for (size_type k = 0; k < subspace_dim; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
-            exec->run(idr::make_step_1(nrhs, k, m.get(), f.get(),
-                                       residual.get(), g.get(), c.get(),
-                                       v.get(), &stop_status));
+            exec->run(idr::make_step_1(nrhs, k, m, f, residual, g, c, v,
+                                       &stop_status));
 
-            this->get_preconditioner()->apply(v.get(), helper.get());
+            this->get_preconditioner()->apply(v, helper);
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
-            exec->run(idr::make_step_2(nrhs, k, omega.get(), helper.get(),
-                                       c.get(), u.get(), &stop_status));
+            exec->run(
+                idr::make_step_2(nrhs, k, omega, helper, c, u, &stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
 
             // g_k = Au_k
-            this->get_system_matrix()->apply(u_k.get(), helper.get());
+            this->get_system_matrix()->apply(u_k.get(), helper);
 
             // for i = [0,k)
             //     alpha = p^H_i * g_k / m_i,i
@@ -244,18 +243,17 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
-            exec->run(idr::make_step_3(nrhs, k, subspace_vectors.get(), g.get(),
-                                       helper.get(), u.get(), m.get(), f.get(),
-                                       alpha.get(), residual.get(), dense_x,
+            exec->run(idr::make_step_3(nrhs, k, subspace_vectors, g, helper, u,
+                                       m, f, alpha, residual, dense_x,
                                        &stop_status));
         }
 
-        this->get_preconditioner()->apply(residual.get(), helper.get());
-        this->get_system_matrix()->apply(helper.get(), t.get());
+        this->get_preconditioner()->apply(residual, helper);
+        this->get_system_matrix()->apply(helper, t);
 
-        t->compute_conj_dot(residual.get(), omega.get(), reduction_tmp);
-        t->compute_conj_dot(t.get(), tht.get(), reduction_tmp);
-        residual->compute_norm2(residual_norm.get(), reduction_tmp);
+        t->compute_conj_dot(residual, omega, reduction_tmp);
+        t->compute_conj_dot(t, tht, reduction_tmp);
+        residual->compute_norm2(residual_norm, reduction_tmp);
 
         // omega = (t^H * residual) / (t^H * t)
         // rho = (t^H * residual) / (norm(t) * norm(residual))
@@ -264,13 +262,12 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         // end if
         // residual -= omega * t
         // dense_x += omega * v
-        exec->run(idr::make_compute_omega(nrhs, kappa, tht.get(),
-                                          residual_norm.get(), omega.get(),
-                                          &stop_status));
+        exec->run(idr::make_compute_omega(nrhs, kappa, tht, residual_norm,
+                                          omega, &stop_status));
 
-        t->scale(subspace_neg_one_op.get());
-        residual->add_scaled(omega.get(), t.get());
-        dense_x->add_scaled(omega.get(), helper.get());
+        t->scale(subspace_neg_one_op);
+        residual->add_scaled(omega, t);
+        dense_x->add_scaled(omega, helper);
     }
 }
 
@@ -318,8 +315,72 @@ void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
+template <typename ValueType>
+int workspace_traits<Idr<ValueType>>::num_arrays(const Solver&)
+{
+    return 2;
+}
+
+
+template <typename ValueType>
+int workspace_traits<Idr<ValueType>>::num_vectors(const Solver&)
+{
+    return 17;
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Idr<ValueType>>::op_names(
+    const Solver&)
+{
+    return {
+        "residual",
+        "v",
+        "t",
+        "helper",
+        "m",
+        "g",
+        "u",
+        "subspace",
+        "f",
+        "c",
+        "omega",
+        "residual_norm",
+        "tht",
+        "alpha",
+        "one",
+        "minus_one",
+        "subspace_minus_one",
+    };
+}
+
+
+template <typename ValueType>
+std::vector<std::string> workspace_traits<Idr<ValueType>>::array_names(
+    const Solver&)
+{
+    return {"stop", "tmp"};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Idr<ValueType>>::scalars(const Solver&)
+{
+    return {omega, tht, alpha};
+}
+
+
+template <typename ValueType>
+std::vector<int> workspace_traits<Idr<ValueType>>::vectors(const Solver&)
+{
+    return {residual, v, t, helper, m, g, u, subspace, f, c};
+}
+
+
 #define GKO_DECLARE_IDR(_type) class Idr<_type>
+#define GKO_DECLARE_IDR_TRAITS(_type) struct workspace_traits<Idr<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_TRAITS);
 
 
 }  // namespace solver

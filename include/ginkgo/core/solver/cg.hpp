@@ -140,6 +140,50 @@ protected:
 };
 
 
+template <typename ValueType>
+struct workspace_traits<Cg<ValueType>> {
+    using Solver = Cg<ValueType>;
+    // number of vectors used by this workspace
+    static int num_vectors(const Solver&);
+    // number of arrays used by this workspace
+    static int num_arrays(const Solver&);
+    // array containing the num_vectors names for the workspace vectors
+    static std::vector<std::string> op_names(const Solver&);
+    // array containing the num_arrays names for the workspace vectors
+    static std::vector<std::string> array_names(const Solver&);
+    // array containing all varying scalar vectors (independent of problem size)
+    static std::vector<int> scalars(const Solver&);
+    // array containing all varying vectors (dependent on problem size)
+    static std::vector<int> vectors(const Solver&);
+
+    // residual vector
+    constexpr static int r = 0;
+    // preconditioned residual vector
+    constexpr static int z = 1;
+    // p vector
+    constexpr static int p = 2;
+    // q vector
+    constexpr static int q = 3;
+    // alpha scalar
+    constexpr static int alpha = 4;
+    // beta scalar
+    constexpr static int beta = 5;
+    // previous rho scalar
+    constexpr static int prev_rho = 6;
+    // current rho scalar
+    constexpr static int rho = 7;
+    // constant 1.0 scalar
+    constexpr static int one = 8;
+    // constant -1.0 scalar
+    constexpr static int minus_one = 9;
+
+    // stopping status array
+    constexpr static int stop = 0;
+    // reduction tmp array
+    constexpr static int tmp = 1;
+};
+
+
 }  // namespace solver
 }  // namespace gko
 
