@@ -95,7 +95,7 @@ struct MatrixTypeBuilderFromValueAndIndex {
  * at a later stage.
  *
  * For example, the following code creates first a temporary object, which is
- * then used later to construct a operator of the previously defined base type:
+ * then used later to construct an operator of the previously defined base type:
  * ```
  * auto type = gko::with_matrix_type<gko::matrix::Csr>();
  * ...
@@ -278,9 +278,9 @@ public:
      * Reads a square matrix from the device_matrix_data structure and a global
      * partition.
      *
-     * Both the number of rows and columns of the device_matrix_data is ignored.
-     * The global size of the final matrix is inferred only from the size row
-     * partition.
+     * The global size of the final matrix is inferred from the size of the
+     * partition. Both the number of rows and columns of the device_matrix_data
+     * are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
@@ -309,9 +309,9 @@ public:
      * Reads a matrix from the device_matrix_data structure, a global row
      * partition, and a global column partition.
      *
-     * Both the number of rows and columns of the device_matrix_data is ignored.
-     * The global size of the final matrix is inferred only from the size row
-     * partition.
+     * The global size of the final matrix is inferred from the size of the row
+     * partition and the size of the column partition. Both the number of rows
+     * and columns of the device_matrix_data are ignored.
      *
      * @note The matrix data can contain entries for rows other than those owned
      *        by the process. Entries for those rows are discarded.
@@ -340,14 +340,14 @@ public:
         const Partition<local_index_type, global_index_type>* col_partition);
 
     /**
-     * Get read access to the stored local matrix
+     * Get read access to the stored local matrix.
      *
      * @return  Shared pointer to the stored local matrix
      */
     std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
 
     /**
-     * Get read access to the stored non-local matrix
+     * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
      */
@@ -410,7 +410,7 @@ protected:
      *       LinOp*)
      *
      * @tparam MatrixType  A type that has a `create<ValueType,
-     *                     IndexType>(exec)` function to create an smart pointer
+     *                     IndexType>(exec)` function to create a smart pointer
      *                     of a type derived from LinOp and
      *                     ReadableFromMatrixData. @see with_matrix_type
      * @param exec  Executor associated with this matrix.
@@ -438,7 +438,7 @@ protected:
      *       const LinOp*, const LinOp*)
      *
      * @tparam LocalMatrixType  A type that has a `create<ValueType,
-     *                          IndexType>(exec)` function to create an smart
+     *                          IndexType>(exec)` function to create a smart
      *                          pointer of a type derived from LinOp and
      *                          ReadableFromMatrixData. @see with_matrix_type
      * @tparam NonLocalMatrixType  A (possible different) type with the same
