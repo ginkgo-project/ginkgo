@@ -412,8 +412,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
@@ -439,7 +439,7 @@ ValueType* Vector<ValueType>::get_local_values()
 
 
 template <typename ValueType>
-const ValueType* Vector<ValueType>::get_const_local_values()
+const ValueType* Vector<ValueType>::get_const_local_values() const
 {
     return local_.get_const_values();
 }
