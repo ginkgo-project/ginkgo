@@ -443,6 +443,7 @@ protected:
      *                          ReadableFromMatrixData. @see with_matrix_type
      * @tparam NonLocalMatrixType  A (possible different) type with the same
      *                             constraints as LocalMatrixType.
+     *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param local_matrix_template  the local matrix will be constructed
@@ -506,6 +507,7 @@ protected:
     /**
      * Starts a non-blocking communication of the values of b that are shared
      * with other processors.
+     *
      * @param local_b  The full local vector to be communicated. The subset of
      *                 shared values is automatically extracted.
      * @return  MPI request for the non-blocking communication.
