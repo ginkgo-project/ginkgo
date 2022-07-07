@@ -195,7 +195,7 @@ void build_local_nonlocal(
             non_local++;
         }
     }
-    // store localonal data to output
+    // store local data to output
     local_row_idxs.resize_and_reset(local_entries.size());
     local_col_idxs.resize_and_reset(local_entries.size());
     local_values.resize_and_reset(local_entries.size());
