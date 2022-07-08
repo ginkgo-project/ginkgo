@@ -106,7 +106,7 @@ TYPED_TEST(Vector, BuildsLocalEmpty)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::Array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
+    gko::array<comm_index_type> mapping{this->ref, {1, 0, 2, 2, 0, 1, 1, 2}};
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
@@ -122,7 +122,7 @@ TYPED_TEST(Vector, BuildsLocalSmall)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::Array<comm_index_type> mapping{this->ref, {1, 0}};
+    gko::array<comm_index_type> mapping{this->ref, {1, 0}};
     comm_index_type num_parts = 2;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,
@@ -138,7 +138,7 @@ TYPED_TEST(Vector, BuildsLocal)
 {
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
-    gko::Array<comm_index_type> mapping{this->ref, {1, 2, 0, 0, 2, 1}};
+    gko::array<comm_index_type> mapping{this->ref, {1, 2, 0, 0, 2, 1}};
     comm_index_type num_parts = 3;
     auto partition = gko::distributed::Partition<
         local_index_type, global_index_type>::build_from_mapping(this->ref,

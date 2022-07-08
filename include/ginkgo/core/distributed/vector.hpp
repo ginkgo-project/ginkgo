@@ -43,12 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
 namespace distributed {
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+class Partition;
 
 
 /**
@@ -75,6 +78,8 @@ namespace distributed {
  *
  * @ingroup dist_vector
  * @ingroup distributed
+ * @ingroup mat_formats
+ * @ingroup LinOp
  */
 template <typename ValueType = double>
 class Vector
@@ -319,7 +324,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_local_values();
+    const value_type* get_const_local_values() const;
 
     /**
      * Direct (read) access to the underlying local local_vector_type vectors.

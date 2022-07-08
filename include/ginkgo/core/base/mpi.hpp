@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 
 #include <ginkgo/config.hpp>
@@ -55,6 +56,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+/**
+ * @brief The mpi namespace, contains wrapper for many MPI functions.
+ *
+ * @ingroup mpi
+ * @ingroup distributed
+ */
 namespace mpi {
 
 
@@ -77,6 +84,14 @@ static constexpr bool is_gpu_aware()
         static MPI_Datatype get_type() { return mpi_type; } \
     }
 
+/**
+ * A struct that is used to determine the MPI_Datatype of a specified type.
+ *
+ * @tparam T  type of which the MPI_Datatype should be inferred.
+ *
+ * @note  any specialization of this type hast to provide a static function
+ *        `get_type()` that returns an MPI_Datatype
+ */
 template <typename T>
 struct type_impl {};
 
@@ -88,6 +103,7 @@ GKO_REGISTER_MPI_TYPE(int, MPI_INT);
 GKO_REGISTER_MPI_TYPE(unsigned short, MPI_UNSIGNED_SHORT);
 GKO_REGISTER_MPI_TYPE(unsigned long, MPI_UNSIGNED_LONG);
 GKO_REGISTER_MPI_TYPE(long, MPI_LONG);
+GKO_REGISTER_MPI_TYPE(long long, MPI_LONG_LONG_INT);
 GKO_REGISTER_MPI_TYPE(float, MPI_FLOAT);
 GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
@@ -95,11 +111,86 @@ GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_COMPLEX);
 GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
 
 
-template <typename T>
-inline const T* in_place()
-{
-    return reinterpret_cast<const T*>(MPI_IN_PLACE);
-}
+/**
+ * A move-only wrapper for a contiguous MPI_Datatype.
+ *
+ * The underlying MPI_Datatype is automatically created and committed when an
+ * object of this type is constructed, and freed when it is destructed.
+ */
+class contiguous_type {
+public:
+    /**
+     * Constructs a wrapper for a contiguous MPI_Datatype.
+     *
+     * @param count  the number of old_type elements the new datatype contains.
+     * @param old_type  the MPI_Datatype that is contained.
+     */
+    contiguous_type(int count, MPI_Datatype old_type) : type_(MPI_DATATYPE_NULL)
+    {
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_contiguous(count, old_type, &type_));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Type_commit(&type_));
+    }
+
+    /**
+     * Constructs empty wrapper with MPI_DATATYPE_NULL.
+     */
+    contiguous_type() : type_(MPI_DATATYPE_NULL) {}
+
+    /**
+     * Disallow copying of wrapper type.
+     */
+    contiguous_type(const contiguous_type&) = delete;
+
+    /**
+     * Disallow copying of wrapper type.
+     */
+    contiguous_type& operator=(const contiguous_type&) = delete;
+
+    /**
+     * Move constructor, leaves other with MPI_DATATYPE_NULL.
+     *
+     * @param other  to be moved from object.
+     */
+    contiguous_type(contiguous_type&& other) noexcept : type_(MPI_DATATYPE_NULL)
+    {
+        *this = std::move(other);
+    }
+
+    /**
+     * Move assignment, leaves other with MPI_DATATYPE_NULL.
+     *
+     * @param other  to be moved from object.
+     *
+     * @return  this object.
+     */
+    contiguous_type& operator=(contiguous_type&& other) noexcept
+    {
+        if (this != &other) {
+            this->type_ = std::exchange(other.type_, MPI_DATATYPE_NULL);
+        }
+        return *this;
+    }
+
+    /**
+     * Destructs object by freeing wrapped MPI_Datatype.
+     */
+    ~contiguous_type()
+    {
+        if (type_ != MPI_DATATYPE_NULL) {
+            MPI_Type_free(&type_);
+        }
+    }
+
+    /**
+     * Access the underlying MPI_Datatype.
+     *
+     * @return  the underlying MPI_Datatype.
+     */
+    MPI_Datatype get() const { return type_; }
+
+private:
+    MPI_Datatype type_;
+};
 
 
 /**
@@ -406,6 +497,10 @@ public:
      * @param send_count  the number of elements to send
      * @param destination_rank  the rank to send the data to
      * @param send_tag  the tag for the send call
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
      */
     template <typename SendType>
     void send(const SendType* send_buffer, const int send_count,
@@ -424,6 +519,10 @@ public:
      * @param send_count  the number of elements to send
      * @param destination_rank  the rank to send the data to
      * @param send_tag  the tag for the send call
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
      *
      * @return  the request handle for the send call
      */
@@ -446,6 +545,10 @@ public:
      * @param source_rank  the rank to receive the data from
      * @param recv_tag  the tag for the recv call
      *
+     * @tparam RecvType  the type of the data to receive. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     *
      * @return  the status of completion of this call
      */
     template <typename RecvType>
@@ -467,6 +570,10 @@ public:
      * @param source_rank  the rank to receive the data from
      * @param recv_tag  the tag for the recv call
      *
+     * @tparam RecvType  the type of the data to receive. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     *
      * @return  the request handle for the recv call
      */
     template <typename RecvType>
@@ -486,6 +593,10 @@ public:
      * @param buffer  the buffer to broadcsat
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
+     *
+     * @tparam BroadcastType  the type of the data to broadcast. Has to be a
+     *                        type which has a specialization of type_impl that
+     *                        defines its MPI_Datatype.
      */
     template <typename BroadcastType>
     void broadcast(BroadcastType* buffer, int count, int root_rank) const
@@ -502,6 +613,10 @@ public:
      * @param buffer  the buffer to broadcsat
      * @param count  the number of elements to broadcast
      * @param root_rank  the rank to broadcast from
+     *
+     * @tparam BroadcastType  the type of the data to broadcast. Has to be a
+     *                        type which has a specialization of type_impl that
+     *                        defines its MPI_Datatype.
      *
      * @return  the request handle for the call
      */
@@ -523,6 +638,10 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the MPI_Op type reduce operation.
+     *
+     * @tparam ReduceType  the type of the data to reduce. Has to be a type
+     *                     which has a specialization of type_impl that defines
+     *                     its MPI_Datatype.
      */
     template <typename ReduceType>
     void reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
@@ -541,6 +660,10 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the MPI_Op type reduce operation.
+     *
+     * @tparam ReduceType  the type of the data to reduce. Has to be a type
+     *                     which has a specialization of type_impl that defines
+     *                     its MPI_Datatype.
      *
      * @return  the request handle for the call
      */
@@ -562,13 +685,17 @@ public:
      * @param recv_buffer  the data to reduce and the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the MPI_Op type reduce operation.
+     *
+     * @tparam ReduceType  the type of the data to send. Has to be a type which
+     *                     has a specialization of type_impl that defines its
+     *                     MPI_Datatype.
      */
     template <typename ReduceType>
     void all_reduce(ReduceType* recv_buffer, int count, MPI_Op operation) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
-            in_place<ReduceType>(), recv_buffer, count,
-            type_impl<ReduceType>::get_type(), operation, this->get()));
+            MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
+            operation, this->get()));
     }
 
     /**
@@ -579,6 +706,10 @@ public:
      * @param count  the number of elements to reduce
      * @param operation  the reduce operation. See @MPI_Op
      *
+     * @tparam ReduceType  the type of the data to reduce. Has to be a type
+     *                     which has a specialization of type_impl that defines
+     *                     its MPI_Datatype.
+     *
      * @return  the request handle for the call
      */
     template <typename ReduceType>
@@ -586,10 +717,9 @@ public:
                          MPI_Op operation) const
     {
         request req;
-        GKO_ASSERT_NO_MPI_ERRORS(
-            MPI_Iallreduce(in_place<ReduceType>(), recv_buffer, count,
-                           type_impl<ReduceType>::get_type(), operation,
-                           this->get(), req.get()));
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
+            MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
+            operation, this->get(), req.get()));
         return req;
     }
 
@@ -601,6 +731,10 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the reduce operation. See @MPI_Op
+     *
+     * @tparam ReduceType  the type of the data to send. Has to be a type which
+     *                     has a specialization of type_impl that defines its
+     *                     MPI_Datatype.
      */
     template <typename ReduceType>
     void all_reduce(const ReduceType* send_buffer, ReduceType* recv_buffer,
@@ -619,6 +753,10 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the reduce operation. See @MPI_Op
+     *
+     * @tparam ReduceType  the type of the data to reduce. Has to be a type
+     *                     which has a specialization of type_impl that defines
+     *                     its MPI_Datatype.
      *
      * @return  the request handle for the call
      */
@@ -641,6 +779,12 @@ public:
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param root_rank  the rank to gather into
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void gather(const SendType* send_buffer, const int send_count,
@@ -662,6 +806,12 @@ public:
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param root_rank  the rank to gather into
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -688,6 +838,12 @@ public:
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param root_rank  the rank to gather into
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void gather_v(const SendType* send_buffer, const int send_count,
@@ -710,6 +866,12 @@ public:
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param root_rank  the rank to gather into
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -734,6 +896,12 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void all_gather(const SendType* send_buffer, const int send_count,
@@ -753,6 +921,12 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -775,6 +949,12 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void scatter(const SendType* send_buffer, const int send_count,
@@ -795,6 +975,12 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -821,6 +1007,12 @@ public:
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param comm  the communicator
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void scatter_v(const SendType* send_buffer, const int* send_counts,
@@ -843,6 +1035,12 @@ public:
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param comm  the communicator
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -868,6 +1066,10 @@ public:
      * @param recv_count  the number of elements to receive
      * @param comm  the communicator
      *
+     * @tparam RecvType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     *
      * @note This overload uses MPI_IN_PLACE and the source and destination
      * buffers are the same.
      */
@@ -875,18 +1077,22 @@ public:
     void all_to_all(RecvType* recv_buffer, const int recv_count) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
-            in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
+            MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get()));
     }
 
     /**
      * (In-place, Non-blocking) Communicate data from all ranks to all other
-     * ranks in place (MPI_Alltoall). See MPI documentation for more details.
+     * ranks in place (MPI_Ialltoall). See MPI documentation for more details.
      *
      * @param buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
      * @param comm  the communicator
+     *
+     * @tparam RecvType  the type of the data to receive. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
      *
      * @return  the request handle for the call
      *
@@ -898,7 +1104,7 @@ public:
     {
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
-            in_place<RecvType>(), recv_count, type_impl<RecvType>::get_type(),
+            MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get(), req.get()));
         return req;
@@ -912,6 +1118,12 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to receive
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void all_to_all(const SendType* send_buffer, const int send_count,
@@ -925,12 +1137,18 @@ public:
 
     /**
      * (Non-blocking) Communicate data from all ranks to all other ranks
-     * (MPI_Alltoall). See MPI documentation for more details.
+     * (MPI_Ialltoall). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to receive
      * @param recv_count  the number of elements to receive
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -957,6 +1175,12 @@ public:
      * @param recv_count  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
      * @param comm  the communicator
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      */
     template <typename SendType, typename RecvType>
     void all_to_all_v(const SendType* send_buffer, const int* send_counts,
@@ -971,7 +1195,38 @@ public:
 
     /**
      * Communicate data from all ranks to all other ranks with
-     * offsets (MPI_Alltoallv). See MPI documentation for more details.
+     * offsets (MPI_Ialltoallv). See MPI documentation for more details.
+     *
+     * @param send_buffer  the buffer to send
+     * @param send_count  the number of elements to send
+     * @param send_offsets  the offsets for the send buffer
+     * @param send_type  the MPI_Datatype for the send buffer
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param recv_offsets  the offsets for the recv buffer
+     * @param recv_type  the MPI_Datatype for the recv buffer
+     *
+     * @return  the request handle for the call
+     *
+     * @note This overload allows specifying the MPI_Datatype for both
+     *       the send and received data.
+     */
+    request i_all_to_all_v(const void* send_buffer, const int* send_counts,
+                           const int* send_offsets, MPI_Datatype send_type,
+                           void* recv_buffer, const int* recv_counts,
+                           const int* recv_offsets,
+                           MPI_Datatype recv_type) const
+    {
+        request req;
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type, this->get(), req.get()));
+        return req;
+    }
+
+    /**
+     * Communicate data from all ranks to all other ranks with
+     * offsets (MPI_Ialltoallv). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to send
      * @param send_count  the number of elements to send
@@ -979,6 +1234,12 @@ public:
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
+     *
+     * @tparam SendType  the type of the data to send. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
+     * @tparam RecvType  the type of the data to receive. The same restrictions
+     *                   as for SendType apply.
      *
      * @return  the request handle for the call
      */
@@ -988,13 +1249,10 @@ public:
                            const int* recv_counts,
                            const int* recv_offsets) const
     {
-        request req;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
-            send_buffer, send_counts, send_offsets,
-            type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), this->get(),
-            req.get()));
-        return req;
+        return this->i_all_to_all_v(send_buffer, send_counts, send_offsets,
+                                    type_impl<SendType>::get_type(),
+                                    recv_buffer, recv_counts, recv_offsets,
+                                    type_impl<RecvType>::get_type());
     }
 
     /**
@@ -1005,6 +1263,10 @@ public:
      * @param recv_buffer  the result buffer
      * @param recv_count  the number of elements to scan
      * @param operation  the operation type to be used for the scan. See @MPI_Op
+     *
+     * @tparam ScanType  the type of the data to scan. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
      */
     template <typename ScanType>
     void scan(const ScanType* send_buffer, ScanType* recv_buffer, int count,
@@ -1017,12 +1279,16 @@ public:
 
     /**
      * Does a scan operation with the given operator.
-     * (MPI_Scan). See MPI documentation for more details.
+     * (MPI_Iscan). See MPI documentation for more details.
      *
      * @param send_buffer  the buffer to scan from
      * @param recv_buffer  the result buffer
      * @param recv_count  the number of elements to scan
      * @param operation  the operation type to be used for the scan. See @MPI_Op
+     *
+     * @tparam ScanType  the type of the data to scan. Has to be a type which
+     *                   has a specialization of type_impl that defines its
+     *                   MPI_Datatype.
      *
      * @return  the request handle for the call
      */
