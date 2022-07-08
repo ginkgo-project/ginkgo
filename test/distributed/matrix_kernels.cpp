@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/distributed/matrix_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -70,10 +71,21 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::HipExecutor::create(0, ref)),
-          engine(42)
+        : engine(42)
     {}
+
+    void SetUp()
+    {
+        ref = gko::ReferenceExecutor::create();
+        init_executor(ref, exec);
+    }
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
 
     void validate(
         const gko::distributed::Partition<local_index_type, global_index_type>*
@@ -118,7 +130,7 @@ protected:
                 local_col_idxs, local_values, non_local_row_idxs,
                 non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
-            gko::kernels::hip::distributed_matrix::build_local_nonlocal(
+            gko::kernels::EXEC_NAMESPACE::distributed_matrix::build_local_nonlocal(
                 exec, d_input, d_row_partition, d_col_partition, part,
                 d_local_row_idxs, d_local_col_idxs, d_local_values,
                 d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
@@ -137,7 +149,7 @@ protected:
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> exec;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine engine;
 };
 
@@ -219,7 +231,7 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols),
+        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
                                            static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
@@ -346,7 +358,7 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols - 1)),
+                                           static_cast<int>(num_cols)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
@@ -370,5 +382,6 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
     this->validate(row_partition.get(), col_partition.get(),
                    d_row_partition.get(), d_col_partition.get(), input);
 }
+
 
 }  // namespace
