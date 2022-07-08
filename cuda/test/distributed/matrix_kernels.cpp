@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <algorithm>
 #include <memory>
 
@@ -71,7 +70,7 @@ protected:
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
+          exec(gko::CudaExecutor::create(0, ref)),
           engine(42)
     {}
 
@@ -118,7 +117,7 @@ protected:
                 local_col_idxs, local_values, non_local_row_idxs,
                 non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
-            gko::kernels::omp::distributed_matrix::build_local_nonlocal(
+            gko::kernels::cuda::distributed_matrix::build_local_nonlocal(
                 exec, d_input, d_row_partition, d_col_partition, part,
                 d_local_row_idxs, d_local_col_idxs, d_local_values,
                 d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
@@ -136,8 +135,8 @@ protected:
         }
     }
 
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> exec;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CudaExecutor> exec;
     std::default_random_engine engine;
 };
 
@@ -219,7 +218,7 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
+        std::uniform_int_distribution<int>(static_cast<int>(num_cols),
                                            static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
@@ -346,7 +345,7 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
         value_type, global_index_type>(
         num_rows, num_cols,
         std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols)),
+                                           static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
@@ -370,6 +369,5 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
     this->validate(row_partition.get(), col_partition.get(),
                    d_row_partition.get(), d_col_partition.get(), input);
 }
-
 
 }  // namespace
