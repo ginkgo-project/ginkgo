@@ -36,31 +36,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include <thrust/binary_search.h>
+#include <thrust/copy.h>
+#include <thrust/distance.h>
+#include <thrust/execution_policy.h>
+#include <thrust/for_each.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+#include <thrust/transform_reduce.h>
+#include <thrust/unique.h>
+
+
+#include "hip/components/atomic.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
 namespace distributed_matrix {
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void build_local_nonlocal(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const device_matrix_data<ValueType, GlobalIndexType>& input,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
-        row_partition,
-    const distributed::Partition<LocalIndexType, GlobalIndexType>*
-        col_partition,
-    comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
-    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
-    array<LocalIndexType>& non_local_row_idxs,
-    array<LocalIndexType>& non_local_col_idxs,
-    array<ValueType>& non_local_values,
-    array<LocalIndexType>& local_gather_idxs,
-    array<comm_index_type>& recv_offsets,
-    array<GlobalIndexType>& non_local_to_global) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+#include "common/cuda_hip/distributed/matrix_kernels.hpp.inc"
 
 
 }  // namespace distributed_matrix
