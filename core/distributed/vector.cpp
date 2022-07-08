@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/vector.hpp>
 
 
+#include <ginkgo/core/distributed/partition.hpp>
+
+
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
@@ -425,6 +428,20 @@ template <typename ValueType>
 ValueType Vector<ValueType>::at_local(size_type idx) const noexcept
 {
     return local_.at(idx);
+}
+
+
+template <typename ValueType>
+ValueType* Vector<ValueType>::get_local_values()
+{
+    return local_.get_values();
+}
+
+
+template <typename ValueType>
+const ValueType* Vector<ValueType>::get_const_local_values() const
+{
+    return local_.get_const_values();
 }
 
 

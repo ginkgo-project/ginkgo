@@ -5,7 +5,7 @@ GENERATE_LATEX         = YES
 LATEX_OUTPUT           = .
 LATEX_CMD_NAME         = latex
 MAKEINDEX_CMD_NAME     = makeindex
-COMPACT_LATEX          = NO 
+COMPACT_LATEX          = NO
 PAPER_TYPE             = a4
 EXTRA_PACKAGES         = amsmath amsfonts amssymb mathtools
 LATEX_HEADER           =
@@ -21,7 +21,7 @@ LATEX_BIB_STYLE        = plain
 LATEX_TIMESTAMP        = NO
 
 # this is used to hide protected members
-PREDEFINED = protected=private
+PREDEFINED = @default_predefined_macros@ protected=private
 
 # hide all unnecessary graphs
 CLASS_DIAGRAMS         = NO
