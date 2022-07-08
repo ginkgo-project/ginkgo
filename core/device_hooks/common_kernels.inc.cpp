@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/reduce_array_kernels.hpp"
+#include "core/distributed/matrix_kernels.hpp"
 #include "core/distributed/partition_kernels.hpp"
 #include "core/distributed/vector_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
@@ -258,6 +259,14 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
 
 
 }
+
+namespace distributed_matrix {
+
+
+GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_BUILD_LOCAL_NONLOCAL);
+
+
+}  // namespace distributed_matrix
 
 
 namespace dense {
