@@ -132,9 +132,11 @@ int main(int argc, char* argv[])
     }
 
     // Get number of discretization points
-    const auto executor_string = argc >= 2 ? argv[1] : "reference";
     const unsigned int discretization_points =
         argc >= 3 ? std::atoi(argv[2]) : 100;
+
+    // Get the executor string
+    const auto executor_string = argc >= 2 ? argv[1] : "reference";
 
     // Figure out where to run the code
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -162,7 +164,8 @@ int main(int argc, char* argv[])
     // executor used by the application
     const auto app_exec = exec->get_master();
 
-    // problem:
+    // Set up the problem: define the exact solution, the right hand side and
+    // the Dirichlet boundary condition.
     auto correct_u = [](ValueType x) { return x * x * x; };
     auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);

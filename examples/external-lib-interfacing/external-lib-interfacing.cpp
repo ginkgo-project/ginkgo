@@ -906,7 +906,7 @@ void AdvectionProblem<dim>::solve()
                      preconditioner);
     *******************************************************/
 
-    // Give the solution back to deall.ii
+    // Distribute the possible hanging nodes constraints
     hanging_node_constraints.distribute(solution);
 }
 
