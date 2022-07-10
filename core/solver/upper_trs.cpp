@@ -134,9 +134,9 @@ template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::generate()
 {
     if (this->get_system_matrix()) {
-        this->get_executor()->run(
-            upper_trs::make_generate(this->get_system_matrix().get(),
-                                     this->solve_struct_, parameters_.num_rhs));
+        this->get_executor()->run(upper_trs::make_generate(
+            this->get_system_matrix().get(), this->solve_struct_,
+            this->get_parameters().unit_diagonal, parameters_.num_rhs));
     }
 }
 
@@ -176,9 +176,10 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 trans_x = this->template create_workspace_op<Vector>(
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
-            exec->run(upper_trs::make_solve(lend(this->get_system_matrix()),
-                                            lend(this->solve_struct_), trans_b,
-                                            trans_x, dense_b, dense_x));
+            exec->run(upper_trs::make_solve(
+                lend(this->get_system_matrix()), lend(this->solve_struct_),
+                this->get_parameters().unit_diagonal, trans_b, trans_x, dense_b,
+                dense_x));
         },
         b, x);
 }

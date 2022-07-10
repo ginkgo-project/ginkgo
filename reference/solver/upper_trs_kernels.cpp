@@ -66,7 +66,7 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
-              const gko::size_type num_rhs)
+              bool unit_diag, const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -85,7 +85,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
-           const solver::SolveStruct* solve_struct,
+           const solver::SolveStruct* solve_struct, bool unit_diag,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {
@@ -97,13 +97,22 @@ void solve(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type inv_row = 0; inv_row < matrix->get_size()[0];
              ++inv_row) {
             auto row = matrix->get_size()[0] - 1 - inv_row;
-            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row]];
+            auto diag = one<ValueType>();
+            bool found_diag = false;
+            x->at(row, j) = b->at(row, j);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col > row) {
-                    x->at(row, j) +=
-                        -vals[k] * x->at(col, j) / vals[row_ptrs[row]];
+                    x->at(row, j) -= vals[k] * x->at(col, j);
                 }
+                if (col == row) {
+                    diag = vals[k];
+                    found_diag = true;
+                }
+            }
+            if (!unit_diag) {
+                GKO_ASSERT(found_diag);
+                x->at(row, j) /= diag;
             }
         }
     }

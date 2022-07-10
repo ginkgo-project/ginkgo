@@ -790,6 +790,13 @@ inline void set_mat_fill_mode(cusparseMatDescr_t descr,
 }
 
 
+inline void set_mat_diag_type(cusparseMatDescr_t descr,
+                              cusparseDiagType_t diag_type)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(descr, diag_type));
+}
+
+
 inline void destroy(cusparseMatDescr_t descr)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
