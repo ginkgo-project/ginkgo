@@ -73,11 +73,10 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const HipExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
-              const gko::size_type num_rhs)
+              bool unit_diag, const gko::size_type num_rhs)
 {
-    init_struct_kernel(exec, solve_struct);
-    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct.get(),
-                                          num_rhs, true);
+    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
+                                          true, unit_diag);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -87,7 +86,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const HipExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
-           const solver::SolveStruct* solve_struct,
+           const solver::SolveStruct* solve_struct, bool unit_diag,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {

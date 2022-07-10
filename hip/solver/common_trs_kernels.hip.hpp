@@ -72,7 +72,7 @@ struct SolveStruct : gko::solver::SolveStruct {
     hipsparseMatDescr_t factor_descr;
     int factor_work_size;
     void* factor_work_vec;
-    SolveStruct()
+    SolveStruct(bool is_upper, bool unit_diag)
     {
         factor_work_vec = nullptr;
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateMatDescr(&factor_descr));
@@ -80,8 +80,12 @@ struct SolveStruct : gko::solver::SolveStruct {
             hipsparseSetMatIndexBase(factor_descr, HIPSPARSE_INDEX_BASE_ZERO));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(
             hipsparseSetMatType(factor_descr, HIPSPARSE_MATRIX_TYPE_GENERAL));
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatFillMode(
+            factor_descr,
+            is_upper ? HIPSPARSE_FILL_MODE_UPPER : HIPSPARSE_FILL_MODE_LOWER));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatDiagType(
-            factor_descr, HIPSPARSE_DIAG_TYPE_NON_UNIT));
+            factor_descr, unit_diag ? HIPSPARSE_DIAG_TYPE_UNIT
+                                    : HIPSPARSE_DIAG_TYPE_NON_UNIT));
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateCsrsv2Info(&solve_info));
         policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
     }
@@ -124,30 +128,23 @@ void should_perform_transpose_kernel(std::shared_ptr<const HipExecutor> exec,
 }
 
 
-void init_struct_kernel(std::shared_ptr<const HipExecutor> exec,
-                        std::shared_ptr<solver::SolveStruct>& solve_struct)
-{
-    solve_struct = std::make_shared<solver::hip::SolveStruct>();
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* matrix,
-                     solver::SolveStruct* solve_struct,
-                     const gko::size_type num_rhs, bool is_upper)
+                     std::shared_ptr<solver::SolveStruct>& solve_struct,
+                     const gko::size_type num_rhs, bool is_upper,
+                     bool unit_diag)
 {
     if (matrix->get_size()[0] == 0) {
         return;
     }
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
+        solve_struct =
+            std::make_shared<solver::hip::SolveStruct>(is_upper, unit_diag);
         if (auto hip_solve_struct =
-                dynamic_cast<solver::hip::SolveStruct*>(solve_struct)) {
+                std::dynamic_pointer_cast<solver::hip::SolveStruct>(
+                    solve_struct)) {
             auto handle = exec->get_hipsparse_handle();
-            if (is_upper) {
-                GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatFillMode(
-                    hip_solve_struct->factor_descr, HIPSPARSE_FILL_MODE_UPPER));
-            }
 
             {
                 hipsparse::pointer_mode_guard pm_guard(handle);
