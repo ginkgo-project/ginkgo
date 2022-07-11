@@ -130,12 +130,12 @@ protected:
                 non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
             gko::kernels::EXEC_NAMESPACE::distributed_matrix::
-                build_local_nonlocal(
-                    exec, d_input, d_row_partition, d_col_partition, part,
-                    d_local_row_idxs, d_local_col_idxs, d_local_values,
-                    d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
-                    d_gather_idxs, d_recv_sizes,
-                    d_local_to_global_col);
+                build_local_nonlocal(exec, d_input, d_row_partition,
+                                     d_col_partition, part, d_local_row_idxs,
+                                     d_local_col_idxs, d_local_values,
+                                     d_non_local_row_idxs, d_non_local_col_idxs,
+                                     d_non_local_values, d_gather_idxs,
+                                     d_recv_sizes, d_local_to_global_col);
 
             GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
             GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
