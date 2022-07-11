@@ -54,7 +54,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-static constexpr auto kcfg_1d_list_simple_reduction = kcfg_1d_list_t();
+static constexpr auto dcfg_1d_list_simple_reduction = dcfg_1d_list_t();
 
 
 template <typename DeviceConfig, typename ValueType, typename KernelFunction,
@@ -249,7 +249,7 @@ void run_kernel_reduction_impl(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(select_run_kernel_reduction,
                                                   run_kernel_reduction_impl,
-                                                  KCFG_1D)
+                                                  DCFG_1D)
 
 
 template <typename ValueType, typename KernelFunction, typename ReductionOp,
@@ -261,12 +261,12 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                  array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
-        as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        as_array(dcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
+            return validate(exec->get_queue(), DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
     select_run_kernel_reduction(
-        kcfg_1d_list_simple_reduction,
+        dcfg_1d_list_simple_reduction,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
@@ -283,12 +283,12 @@ void run_kernel_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                  array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
-        as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        as_array(dcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
+            return validate(exec->get_queue(), DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
     select_run_kernel_reduction(
-        kcfg_1d_list_simple_reduction,
+        dcfg_1d_list_simple_reduction,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
@@ -600,7 +600,7 @@ void run_kernel_row_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(
     select_kernel_row_reduction_stage1, run_kernel_row_reduction_stage1,
-    KCFG_1D);
+    DCFG_1D);
 
 
 template <typename cfg, typename ValueType, typename KernelFunction,
@@ -666,7 +666,7 @@ void run_kernel_col_reduction_stage1(std::shared_ptr<const DpcppExecutor> exec,
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(
     select_kernel_col_reduction_stage1, run_kernel_col_reduction_stage1,
-    KCFG_1D);
+    DCFG_1D);
 
 
 }  // namespace
@@ -682,12 +682,12 @@ void run_kernel_row_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                      KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
-        as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        as_array(dcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
+            return validate(exec->get_queue(), DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
     select_kernel_row_reduction_stage1(
-        kcfg_1d_list_simple_reduction,
+        dcfg_1d_list_simple_reduction,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
@@ -705,12 +705,12 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
                                      array<char>& tmp, KernelArgs&&... args)
 {
     const auto desired_cfg = get_first_cfg(
-        as_array(kcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
-            return validate(exec->get_queue(), KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        as_array(dcfg_1d_list_simple_reduction), [&](std::uint32_t cfg) {
+            return validate(exec->get_queue(), DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
     select_kernel_col_reduction_stage1(
-        kcfg_1d_list_simple_reduction,
+        dcfg_1d_list_simple_reduction,
         [&](std::uint32_t cfg) { return cfg == desired_cfg; },
         syn::value_list<bool>(), syn::value_list<int>(),
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,

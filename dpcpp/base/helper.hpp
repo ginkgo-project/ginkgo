@@ -86,11 +86,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                       sycl::queue* queue, InferredArgs... args)           \
     {                                                                     \
         queue->submit([&](sycl::handler& cgh) {                           \
-            if constexpr (KCFG_1D::decode<1>(encoded) > 1) {              \
+            if constexpr (DCFG_1D::decode<1>(encoded) > 1) {              \
                 cgh.parallel_for(                                         \
                     sycl_nd_range(grid, block), [=                        \
                 ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
-                                                    KCFG_1D::decode<1>(   \
+                                                    DCFG_1D::decode<1>(   \
                                                         encoded))]] {     \
                         kernel_<encoded>(args..., item_ct1);              \
                     });                                                   \

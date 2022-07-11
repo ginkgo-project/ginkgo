@@ -63,8 +63,8 @@ namespace dpcpp {
 
 
 static constexpr int default_block_size = 256;
-static constexpr auto kcfg_1d_list = kcfg_1d_list_t();
-static constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+static constexpr auto dcfg_1d_list = dcfg_1d_list_t();
+static constexpr auto dcfg_1d_array = as_array(dcfg_1d_list);
 
 /**
  * @internal
@@ -236,10 +236,10 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 }
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(reduce_add_array_config,
-                                                  reduce_add_array, KCFG_1D);
+                                                  reduce_add_array, DCFG_1D);
 
 GKO_ENABLE_DEFAULT_CONFIG_CALL(reduce_add_array_call, reduce_add_array_config,
-                               kcfg_1d_list);
+                               dcfg_1d_list);
 
 
 /**
@@ -260,14 +260,14 @@ ValueType reduce_add_array(std::shared_ptr<const DpcppExecutor> exec,
     auto block_results = array<ValueType>(exec);
     ValueType answer = zero<ValueType>();
     auto queue = exec->get_queue();
-    constexpr auto kcfg_1d_array = as_array(kcfg_1d_list);
+    constexpr auto dcfg_1d_array = as_array(dcfg_1d_list);
     const std::uint32_t cfg =
-        get_first_cfg(kcfg_1d_array, [&queue](std::uint32_t cfg) {
-            return validate(queue, KCFG_1D::decode<0>(cfg),
-                            KCFG_1D::decode<1>(cfg));
+        get_first_cfg(dcfg_1d_array, [&queue](std::uint32_t cfg) {
+            return validate(queue, DCFG_1D::decode<0>(cfg),
+                            DCFG_1D::decode<1>(cfg));
         });
-    const auto wg_size = KCFG_1D::decode<0>(cfg);
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
+    const auto wg_size = DCFG_1D::decode<0>(cfg);
+    const auto sg_size = DCFG_1D::decode<1>(cfg);
 
     if (size > wg_size) {
         const auto n = ceildiv(size, wg_size);

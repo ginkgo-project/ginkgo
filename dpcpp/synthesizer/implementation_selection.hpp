@@ -114,7 +114,7 @@ namespace syn {
 
 
 #define GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(_name, _callable,  \
-                                                          _kcfg)             \
+                                                          _dcfg)             \
     template <typename Predicate, bool... BoolArgs, int... IntArgs,          \
               gko::size_type... SizeTArgs, typename... TArgs,                \
               typename... InferredArgs>                                      \
@@ -139,7 +139,7 @@ namespace syn {
         if (is_eligible(K)) {                                                \
             _callable<BoolArgs..., IntArgs..., SizeTArgs..., TArgs...,       \
                       ::gko::kernels::dpcpp::device_config<                  \
-                          _kcfg::decode<0>(K), _kcfg::decode<1>(K)>>(        \
+                          _dcfg::decode<0>(K), _dcfg::decode<1>(K)>>(        \
                 std::forward<InferredArgs>(args)...);                        \
         } else {                                                             \
             _name(::gko::syn::value_list<std::uint32_t, Rest...>(),          \
