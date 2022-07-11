@@ -61,8 +61,10 @@ void build_local_nonlocal(
     comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
     array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
     array<LocalIndexType>& non_local_row_idxs,
-    array<LocalIndexType>& non_local_col_idxs, array<ValueType>& non_local_values,
-    array<LocalIndexType>& local_gather_idxs, array<comm_index_type>& recv_sizes,
+    array<LocalIndexType>& non_local_col_idxs,
+    array<ValueType>& non_local_values,
+    array<LocalIndexType>& local_gather_idxs,
+    array<comm_index_type>& recv_sizes,
     array<GlobalIndexType>& non_local_to_global) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
