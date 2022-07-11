@@ -105,6 +105,21 @@ public:
     using local_vector_type = gko::matrix::Dense<value_type>;
 
     /**
+     * Creates a distributed Vector with the same size and stride as another
+     * Vector.
+     *
+     * @param other  The other vector whose configuration needs to copied.
+     */
+    static std::unique_ptr<Vector> create_with_config_of(const Vector* other)
+    {
+        // De-referencing `other` before calling the functions (instead of
+        // using operator `->`) is currently required to be compatible with
+        // CUDA 10.1.
+        // Otherwise, it results in a compile error.
+        return (*other).create_with_same_config();
+    }
+
+    /**
      * Reads a vector from the device_matrix_data structure and a global row
      * partition.
      *
@@ -401,6 +416,8 @@ public:
      */
     std::unique_ptr<real_type> create_real_view();
 
+    size_type get_stride() const noexcept { return local_.get_stride(); }
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
@@ -470,6 +487,19 @@ protected:
 
     void apply_impl(const LinOp*, const LinOp*, const LinOp*,
                     LinOp*) const override;
+
+    /**
+     * Creates a distributed vector with the same size and stride as the callers
+     * vector.
+     *
+     * @returns a Vector with the same size and stride as the caller.
+     */
+    std::unique_ptr<Vector> create_with_same_config() const
+    {
+        return Vector::create(
+            this->get_executor(), this->get_communicator(), this->get_size(),
+            this->get_local_vector()->get_size(), this->get_stride());
+    }
 
 private:
     local_vector_type local_;
