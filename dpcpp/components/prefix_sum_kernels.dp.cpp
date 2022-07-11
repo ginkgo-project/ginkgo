@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/types.hpp"
 #include "dpcpp/base/helper.hpp"
 #include "dpcpp/components/prefix_sum.dp.hpp"
+#include "dpcpp/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
@@ -50,18 +51,16 @@ namespace dpcpp {
 namespace components {
 
 
-using BlockCfg = ConfigSet<11>;
+static constexpr auto block_cfg_list = dcfg_block_list_t();
 
-constexpr auto block_cfg_list =
-    ::gko::syn::value_list<std::uint32_t, BlockCfg::encode(512),
-                           BlockCfg::encode(256), BlockCfg::encode(128)>();
 
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(start_prefix_sum, start_prefix_sum)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(start_prefix_sum,
+                                                  start_prefix_sum, DCFG_1D);
 GKO_ENABLE_DEFAULT_CONFIG_CALL(start_prefix_sum_call, start_prefix_sum,
                                block_cfg_list)
 
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION(finalize_prefix_sum,
-                                           finalize_prefix_sum)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(finalize_prefix_sum,
+                                                  finalize_prefix_sum, DCFG_1D);
 GKO_ENABLE_DEFAULT_CONFIG_CALL(finalize_prefix_sum_call, finalize_prefix_sum,
                                block_cfg_list)
 
@@ -76,9 +75,10 @@ void prefix_sum(std::shared_ptr<const DpcppExecutor> exec, IndexType* counts,
         constexpr auto block_cfg_array = as_array(block_cfg_list);
         const std::uint32_t cfg =
             get_first_cfg(block_cfg_array, [&queue](std::uint32_t cfg) {
-                return validate(queue, BlockCfg::decode<0>(cfg), 16);
+                return validate(queue, DCFG_1D::decode<0>(cfg),
+                                DCFG_1D::decode<1>(cfg));
             });
-        const auto wg_size = BlockCfg::decode<0>(cfg);
+        const auto wg_size = DCFG_1D::decode<0>(cfg);
         auto num_blocks = ceildiv(num_entries, wg_size);
         array<IndexType> block_sum_array(exec, num_blocks - 1);
         auto block_sums = block_sum_array.get_data();

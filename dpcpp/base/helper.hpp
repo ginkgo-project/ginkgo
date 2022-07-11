@@ -86,11 +86,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                       sycl::queue* queue, InferredArgs... args)           \
     {                                                                     \
         queue->submit([&](sycl::handler& cgh) {                           \
-            if constexpr (KCFG_1D::decode<1>(encoded) > 1) {              \
+            if constexpr (DCFG_1D::decode<1>(encoded) > 1) {              \
                 cgh.parallel_for(                                         \
                     sycl_nd_range(grid, block), [=                        \
                 ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
-                                                    KCFG_1D::decode<1>(   \
+                                                    DCFG_1D::decode<1>(   \
                                                         encoded))]] {     \
                         kernel_<encoded>(args..., item_ct1);              \
                     });                                                   \
@@ -103,6 +103,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         });                                                               \
     }
 
+#define GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(name_, kernel_)                 \
+    template <typename DeviceConfig, typename... InferredArgs>              \
+    inline void name_(dim3 grid, dim3 block, gko::size_type,                \
+                      sycl::queue* queue, InferredArgs... args)             \
+    {                                                                       \
+        queue->submit([&](sycl::handler& cgh) {                             \
+            cgh.parallel_for(                                               \
+                sycl_nd_range(grid, block),                                 \
+                [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size( \
+                    DeviceConfig::                                          \
+                        subgroup_size)]] __WG_BOUND__(DeviceConfig::        \
+                                                          block_size) {     \
+                    kernel_<DeviceConfig>(args..., item_ct1);               \
+                });                                                         \
+        });                                                                 \
+    }
+
 /**
  * GKO_ENABLE_DEFAULT_CONFIG_CALL gives a default config selection call
  * implementation for those kernels which require config selection but do not
@@ -110,7 +127,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @param name_  the name of the calling function
  * @param callable_  the host function with selection
- * @param cfg_  the ConfigSet for encode/decode method
  * @param list_  the list for encoded config selection, whose value should be
  *               available to decode<0> for blocksize and decode<1> for
  *               subgroup_size by cfg_
@@ -128,6 +144,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             ::gko::syn::value_list<gko::size_type>(),                         \
             ::gko::syn::type_list<>(), grid, block, dynamic_shared_memory,    \
             queue, std::forward<InferredArgs>(args)...);                      \
+    }
+
+/**
+ * GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE gives a default config selection call
+ * implementation for those kernels which require config selection but do not
+ * need explicit template parameter
+ *
+ * @param name_  the name of the calling function
+ * @param callable_  the host function with selection
+ */
+#define GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE(name_, callable_)                  \
+    template <typename TypeList, typename Predicate, typename... InferredArgs> \
+    void name_(TypeList list, Predicate selector, InferredArgs... args)        \
+    {                                                                          \
+        callable_(list, selector, ::gko::syn::value_list<bool>(),              \
+                  ::gko::syn::value_list<int>(),                               \
+                  ::gko::syn::value_list<gko::size_type>(),                    \
+                  ::gko::syn::type_list<>(),                                   \
+                  std::forward<InferredArgs>(args)...);                        \
     }
 
 // __WG_BOUND__ gives the cuda-like launch bound in cuda ordering
