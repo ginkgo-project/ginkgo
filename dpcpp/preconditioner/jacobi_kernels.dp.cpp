@@ -152,7 +152,9 @@ void compare_adjacent_rows(dim3 grid, dim3 block,
                            bool* matching_next_row)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                                        config::warp_size)]] {
             compare_adjacent_rows(num_rows, max_block_size, row_ptrs, col_idx,
                                   matching_next_row, item_ct1);
         });
@@ -280,7 +282,8 @@ void transpose_jacobi(
     const IndexType* block_ptrs, size_type num_blocks, ValueType* out_blocks)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             transpose_jacobi<conjugate, max_block_size, subwarp_size,
                              warps_per_block>(blocks, storage_scheme,
                                               block_ptrs, num_blocks,
@@ -310,10 +313,6 @@ void adaptive_transpose_jacobi(
     const auto block_stride = storage_scheme.get_stride();
     const auto rank = subwarp.thread_rank();
     if (rank < block_size) {
-        /*
-        DPCT1007:6: Migration of this CUDA API is not supported by the Intel(R)
-        DPC++ Compatibility Tool.
-        */
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, block_precisions[block_id],
             auto local_block =
@@ -342,7 +341,8 @@ void adaptive_transpose_jacobi(
     size_type num_blocks, ValueType* out_blocks)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
                                       warps_per_block>(
                 blocks, storage_scheme, block_precisions, block_ptrs,

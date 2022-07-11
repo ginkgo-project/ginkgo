@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -107,7 +107,8 @@ void advanced_apply(
     const ValueType* b, int32 b_stride, ValueType* x, int32 x_stride)
 {
     queue->parallel_for(
-        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
             advanced_apply<max_block_size, subwarp_size, warps_per_block>(
                 blocks, storage_scheme, block_ptrs, num_blocks, alpha, b,
                 b_stride, x, x_stride, item_ct1);
@@ -163,12 +164,14 @@ void advanced_adaptive_apply(
     size_type num_blocks, const ValueType* alpha, const ValueType* b,
     int32 b_stride, ValueType* x, int32 x_stride)
 {
-    queue->parallel_for(sycl_nd_range(grid, block), [=](sycl::nd_item<3>
-                                                            item_ct1) {
-        advanced_adaptive_apply<max_block_size, subwarp_size, warps_per_block>(
-            blocks, storage_scheme, block_precisions, block_ptrs, num_blocks,
-            alpha, b, b_stride, x, x_stride, item_ct1);
-    });
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=
+    ](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(subwarp_size)]] {
+            advanced_adaptive_apply<max_block_size, subwarp_size,
+                                    warps_per_block>(
+                blocks, storage_scheme, block_precisions, block_ptrs,
+                num_blocks, alpha, b, b_stride, x, x_stride, item_ct1);
+        });
 }
 
 

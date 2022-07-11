@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "dpcpp/test/utils.hpp"
 
 
@@ -53,6 +54,7 @@ namespace {
 
 class Jacobi : public ::testing::Test {
 protected:
+    using index_type = int32_t;
 #if GINKGO_DPCPP_SINGLE_MODE
     using value_type = float;
 #else
@@ -308,13 +310,13 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Sorted)
     auto d_bj = d_bj_factory->generate(mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
-                        50 * r<value_type>::value);
+                        100 * r<value_type>::value);
 }
 
 
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Unsorted)
 {
-    std::ranlux48 engine(42);
+    std::default_random_engine engine(42);
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 110, 1, 0.1, false);
     gko::test::unsort_matrix(mtx.get(), engine);
 
@@ -322,7 +324,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithBlockSize32Unsorted)
     auto d_bj = d_bj_factory->generate(mtx);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
-                        50 * r<value_type>::value);
+                        100 * r<value_type>::value);
 }
 
 
@@ -424,11 +426,14 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRef)
 TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
-    std::ranlux48 engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<value_type>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    std::default_random_engine engine(42);
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<>(1.0, 2.0), engine);
+    gko::utils::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
@@ -473,11 +478,14 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
 TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
 {
     gko::size_type dim = 313;
-    std::ranlux48 engine(42);
-    auto dense_smtx = gko::share(gko::test::generate_random_matrix<Vec>(
-        dim, dim, std::uniform_int_distribution<>(1, dim),
-        std::normal_distribution<value_type>(1.0, 2.0), engine, ref));
-    gko::test::make_diag_dominant(dense_smtx.get());
+    std::default_random_engine engine(42);
+    auto dense_data =
+        gko::test::generate_random_matrix_data<value_type, index_type>(
+            dim, dim, std::uniform_int_distribution<>(1, dim),
+            std::normal_distribution<value_type>(1.0, 2.0), engine);
+    gko::utils::make_diag_dominant(dense_data);
+    auto dense_smtx = gko::share(Vec::create(ref));
+    dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx.get());
     auto sb = gko::share(gko::test::generate_random_matrix<Vec>(
@@ -601,16 +609,18 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
             .on(dpcpp)
             ->generate(give(mtx));
 
+    // both blocks are in the same group, both need (7, 8)
     auto h_bj = clone(ref, bj);
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    EXPECT_EQ(prec[0], gko::precision_reduction(0, 2));
-// 2 - 0 is same as 1 - 1 when it is float
+    // 2 - 0 is same as 1 - 1 when it is float
 #if GINKGO_DPCPP_SINGLE_MODE
+    EXPECT_EQ(prec[0], gko::precision_reduction(2, 0));
     ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
 #else
-    ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
-#endif
+    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
+    ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
+#endif  // GINKGO_DPCPP_SINGLE_MODE
 }
 
 
@@ -636,7 +646,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 2e-7);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
 }
 
 
