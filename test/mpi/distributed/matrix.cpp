@@ -57,12 +57,15 @@ namespace {
 template <typename ValueLocalGlobalIndexType>
 class MatrixCreation : public ::testing::Test {
 protected:
-    using value_type = typename std::tuple_element<
-        0, decltype(ValueLocalGlobalIndexType())>::type;
-    using local_index_type = typename std::tuple_element<
-        1, decltype(ValueLocalGlobalIndexType())>::type;
-    using global_index_type = typename std::tuple_element<
-        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using value_type =
+        typename std::tuple_element<0, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using local_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<2, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
@@ -308,7 +311,7 @@ public:
             part_type::build_from_mapping(exec, col_mapping, num_parts);
 
         dist_mat_large->read_distributed(mat_md, row_part_large.get(),
-                                   col_part_large.get());
+                                         col_part_large.get());
         csr_mat->read(mat_md);
 
         x->read_distributed(vec_md, col_part_large.get());
@@ -434,8 +437,8 @@ TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
 {
     this->init_large(100, 17);
 
-    this->dist_mat_large->apply(this->alpha.get(), this->x.get(), this->beta.get(),
-                          this->y.get());
+    this->dist_mat_large->apply(this->alpha.get(), this->x.get(),
+                                this->beta.get(), this->y.get());
     this->csr_mat->apply(this->alpha.get(), this->dense_x.get(),
                          this->beta.get(), this->dense_y.get());
 
@@ -523,13 +526,11 @@ public:
 
     static std::unique_ptr<HostToDeviceLogger> create()
     {
-        return std::unique_ptr<HostToDeviceLogger>(
-            new HostToDeviceLogger());
+        return std::unique_ptr<HostToDeviceLogger>(new HostToDeviceLogger());
     }
 
 protected:
-    HostToDeviceLogger()
-        : gko::log::Logger(gko::log::Logger::copy_started_mask)
+    HostToDeviceLogger() : gko::log::Logger(gko::log::Logger::copy_started_mask)
     {}
 
 private:
