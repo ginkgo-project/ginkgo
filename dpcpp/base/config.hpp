@@ -77,20 +77,20 @@ struct config {
 
 
 /**
- * KCFG_1D provides the usual way to embed information from workgroup size and
+ * DCFG_1D provides the usual way to embed information from workgroup size and
  * sub_group size. We consider the workgroup size up to 4096 which requires 13
- * bits to store it and sub_group size up to 64 which requires 7 bits to store
- * it.
+ * bits, and sub_group size up to 64 which requires 7 bits.
  */
-using KCFG_1D = ConfigSet<13, 7>;
+using DCFG_1D = ConfigSet<13, 7>;
 
 
 template <uint32 block, uint32 subgroup>
 struct device_config {
     static constexpr uint32 block_size = block;
     static constexpr uint32 subgroup_size = subgroup;
-    static constexpr uint32 encode = KCFG_1D::encode(block_size, subgroup_size);
+    static constexpr uint32 encode = DCFG_1D::encode(block_size, subgroup_size);
 };
+
 
 /**
  * encode_list base type
@@ -112,30 +112,44 @@ struct encode_list<syn::type_list<Types...>> {
 };
 
 
-using block_cfg_type_list_t =
+// dcfg_block_type_list_t is the type list for different workgroup size.
+using dcfg_block_type_list_t =
     syn::type_list<device_config<512, 16>, device_config<256, 16>,
                    device_config<128, 16>>;
 
-using block_cfg_list_t = encode_list<block_cfg_type_list_t>::type;
+// dcfg_block_list_t is the value list variant of dcfg_block_type_list_t
+using dcfg_block_list_t = encode_list<dcfg_block_type_list_t>::type;
 
 
-using kcfg_1d_list_t =
-    syn::value_list<uint32, KCFG_1D::encode(512, 64), KCFG_1D::encode(512, 32),
-                    KCFG_1D::encode(512, 16), KCFG_1D::encode(256, 32),
-                    KCFG_1D::encode(256, 16), KCFG_1D::encode(256, 8)>;
+// dcfg_1d_type_list_t is the type list for different workgroup and sub_group
+// size.
+using dcfg_1d_type_list_t =
+    syn::type_list<device_config<512, 64>, device_config<512, 32>,
+                   device_config<512, 16>, device_config<256, 32>,
+                   device_config<256, 16>, device_config<256, 8>>;
+
+// dcfg_1d_type_list_t is the value list variant of dcfg_1d_type_type_list_t
+using dcfg_1d_list_t = encode_list<dcfg_1d_type_list_t>::type;
 
 
-using kcfg_sq_type_list_t =
+// dcfg_sq_type_list_t is the type list for different sub_group size and its
+// workgroup size is square of sub_group.
+using dcfg_sq_type_list_t =
     syn::type_list<device_config<4096, 64>, device_config<1024, 32>,
                    device_config<256, 16>, device_config<64, 8>>;
 
-using kcfg_sq_list_t = encode_list<kcfg_sq_type_list_t>::type;
+// dcfg_sq_list_t is the value list variant of dcfg_sq_type_list_t
+using dcfg_sq_list_t = encode_list<dcfg_sq_type_list_t>::type;
 
 
-using kcfg_1sg_list_t =
-    syn::value_list<uint32, KCFG_1D::encode(64, 64), KCFG_1D::encode(32, 32),
-                    KCFG_1D::encode(16, 16), KCFG_1D::encode(8, 8),
-                    KCFG_1D::encode(4, 4)>;
+// dcfg_1sg_list_t is the type list for only one sub_group in a workgroup.
+using dcfg_1sg_type_list_t =
+    syn::type_list<device_config<64, 64>, device_config<32, 32>,
+                   device_config<16, 16>, device_config<8, 8>,
+                   device_config<4, 4>>;
+
+// dcfg_1sg_list_t is the value list variant of dcfg_1sg_type_list_t
+using dcfg_1sg_list_t = encode_list<dcfg_1sg_type_list_t>::type;
 
 
 }  // namespace dpcpp

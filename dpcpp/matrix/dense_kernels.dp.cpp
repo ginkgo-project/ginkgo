@@ -73,10 +73,10 @@ namespace dense {
 
 // Disable the 64 subgroup. CPU supports 64 now, but conj_transpose will
 // lead CL_OUT_OF_RESOURCES. TODO: investigate this issue.
-constexpr auto kcfg_1d_list = kcfg_1d_list_t();
-constexpr auto subgroup_list = kcfg_1sg_list_t();
-constexpr auto kcfg_sq_list = kcfg_sq_list_t();
-constexpr auto kcfg_1d_array = syn::as_array(kcfg_1d_list);
+constexpr auto dcfg_1d_list = dcfg_1d_list_t();
+constexpr auto subgroup_list = dcfg_1sg_list_t();
+constexpr auto dcfg_sq_list = dcfg_sq_list_t();
+constexpr auto dcfg_1d_array = syn::as_array(dcfg_1d_list);
 constexpr int default_block_size = 256;
 
 
@@ -113,7 +113,7 @@ void transpose(
     ValueType* __restrict__ out, const size_type out_stride,
     sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
-                                      DeviceConfig::subgroup_size + 1)>& space)
+                                       DeviceConfig::subgroup_size + 1)>& space)
 {
     transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -160,7 +160,7 @@ void conj_transpose(
     ValueType* __restrict__ out, const size_type out_stride,
     sycl::nd_item<3> item_ct1,
     uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
-                                      DeviceConfig::subgroup_size + 1)>& space)
+                                       DeviceConfig::subgroup_size + 1)>& space)
 {
     transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -193,9 +193,9 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(conj_transpose,
-                                                  conj_transpose, KCFG_1D);
+                                                  conj_transpose, DCFG_1D);
 GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
-                               kcfg_sq_list);
+                               dcfg_sq_list);
 
 
 }  // namespace kernel
@@ -552,7 +552,7 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto queue = exec->get_queue();
     kernel::transpose_call(
-        kcfg_sq_type_list_t(),
+        dcfg_sq_type_list_t(),
         [&queue](auto cfg) {
             const auto sg_size = cfg.subgroup_size;
             return validate(queue, cfg.block_size, sg_size) &&
@@ -572,17 +572,17 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::Dense<ValueType>* trans)
 {
     auto size = orig->get_size();
-    auto sq_array = syn::as_array(kcfg_sq_list);
+    auto sq_array = syn::as_array(dcfg_sq_list);
     auto queue = exec->get_queue();
     const std::uint32_t cfg =
         get_first_cfg(sq_array, [&queue](std::uint32_t cfg) {
-            const auto sg_size = KCFG_1D::decode<1>(cfg);
-            return validate(queue, KCFG_1D::decode<0>(cfg), sg_size) &&
+            const auto sg_size = DCFG_1D::decode<1>(cfg);
+            return validate(queue, DCFG_1D::decode<0>(cfg), sg_size) &&
                    sg_size * (sg_size + 1) * sizeof(ValueType) <=
                        queue->get_device()
                            .get_info<sycl::info::device::local_mem_size>();
         });
-    const auto sg_size = KCFG_1D::decode<1>(cfg);
+    const auto sg_size = DCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
     kernel::conj_transpose_call(cfg, grid, block, 0, queue, size[0], size[1],

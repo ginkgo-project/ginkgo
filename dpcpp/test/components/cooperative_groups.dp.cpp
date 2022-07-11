@@ -61,7 +61,7 @@ namespace {
 
 
 using namespace gko::kernels::dpcpp;
-constexpr auto default_config_list = kcfg_1sg_list_t();
+constexpr auto default_config_list = dcfg_1sg_list_t();
 
 
 class CooperativeGroups : public testing::TestWithParam<unsigned int> {
@@ -87,7 +87,7 @@ protected:
         auto queue = dpcpp->get_queue();
         if (gko::kernels::dpcpp::validate(queue, subgroup_size,
                                           subgroup_size)) {
-            const auto cfg = KCFG_1D::encode(subgroup_size, subgroup_size);
+            const auto cfg = DCFG_1D::encode(subgroup_size, subgroup_size);
             for (int i = 0; i < test_case * subgroup_size; i++) {
                 result.get_data()[i] = true;
             }
@@ -147,7 +147,7 @@ void cg_shuffle_host(dim3 grid, dim3 block,
 
 // config selection
 GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_shuffle_config,
-                                                  cg_shuffle_host, KCFG_1D)
+                                                  cg_shuffle_host, DCFG_1D)
 
 // the call
 void cg_shuffle_config_call(std::uint32_t desired_cfg, dim3 grid, dim3 block,
@@ -184,7 +184,7 @@ void cg_all(bool* s, sycl::nd_item<3> item_ct1)
 }
 
 GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(cg_all, cg_all)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_all, cg_all, KCFG_1D)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_all, cg_all, DCFG_1D)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_all_call, cg_all, default_config_list)
 
 TEST_P(CooperativeGroups, All) { test_all_subgroup(cg_all_call<bool*>); }
@@ -204,7 +204,7 @@ void cg_any(bool* s, sycl::nd_item<3> item_ct1)
 }
 
 GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(cg_any, cg_any)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_any, cg_any, KCFG_1D)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_any, cg_any, DCFG_1D)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_any_call, cg_any, default_config_list)
 
 TEST_P(CooperativeGroups, Any) { test_all_subgroup(cg_any_call<bool*>); }
@@ -225,7 +225,7 @@ void cg_ballot(bool* s, sycl::nd_item<3> item_ct1)
 }
 
 GKO_ENABLE_DEFAULT_HOST_CONFIG_TYPE(cg_ballot, cg_ballot)
-GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_ballot, cg_ballot, KCFG_1D)
+GKO_ENABLE_IMPLEMENTATION_CONFIG_SELECTION_TOTYPE(cg_ballot, cg_ballot, DCFG_1D)
 GKO_ENABLE_DEFAULT_CONFIG_CALL(cg_ballot_call, cg_ballot, default_config_list)
 
 TEST_P(CooperativeGroups, Ballot) { test_all_subgroup(cg_ballot_call<bool*>); }
