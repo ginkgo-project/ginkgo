@@ -4,9 +4,9 @@ project(custom-stopping-criterion)
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.5.0 REQUIRED)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
 endif()
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 add_executable(custom-stopping-criterion
 	custom-stopping-criterion.cpp)

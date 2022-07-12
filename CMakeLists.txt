@@ -14,22 +14,8 @@ set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
 # Determine which modules can be compiled
-if(NOT DEFINED GINKGO_BUILD_HIP OR GINKGO_BUILD_HIP)
-    include(cmake/hip_path.cmake)
-endif()
+include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
-include(cmake/build_type_helpers.cmake)
-
-# Load other CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/install_helpers.cmake)
-
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
-endif()
-if (MINGW OR CYGWIN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
-endif()
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -100,6 +86,31 @@ option(GINKGO_DPCPP_SINGLE_MODE "Do not compile double kernels for the DPC++ bac
 option(GINKGO_INSTALL_RPATH "Set the RPATH when installing its libraries." ON)
 option(GINKGO_INSTALL_RPATH_ORIGIN "Add $ORIGIN (Linux) or @loader_path (MacOS) to the installation RPATH." ON)
 option(GINKGO_INSTALL_RPATH_DEPENDENCIES "Add dependencies to the installation RPATH." OFF)
+
+# load executor-specific configuration
+if(GINKGO_BUILD_CUDA)
+    include(cmake/cuda.cmake)
+endif()
+if(GINKGO_BUILD_HIP)
+    include(cmake/hip.cmake)
+endif()
+if(GINKGO_BUILD_OMP)
+    find_package(OpenMP 3.0 REQUIRED)
+endif()
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+include(cmake/build_type_helpers.cmake)
+
+# Load other CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+if (MINGW OR CYGWIN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
 
 set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
@@ -193,33 +204,6 @@ endif()
 
 if(GINKGO_BUILD_MPI)
     find_package(MPI REQUIRED)
-endif()
-
-# We keep using NVCC/HCC for consistency with previous releases even if AMD
-# updated everything to use NVIDIA/AMD in ROCM 4.1
-set(GINKGO_HIP_PLATFORM_NVCC 0)
-set(GINKGO_HIP_PLATFORM_HCC 0)
-
-if(GINKGO_BUILD_HIP)
-    # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
-    if(DEFINED ENV{HIP_PLATFORM})
-        set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
-    elseif(GINKGO_HIPCONFIG_PATH)
-        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH}
-            --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
-    else()
-        message(FATAL_ERROR "No platform could be found for HIP. "
-            "Set and export the environment variable HIP_PLATFORM.")
-    endif()
-    message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
-    set(HIP_PLATFORM_AMD_REGEX "hcc|amd")
-    set(HIP_PLATFORM_NVIDIA_REGEX "nvcc|nvidia")
-
-    if (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_AMD_REGEX}")
-        set(GINKGO_HIP_PLATFORM_HCC 1)
-    elseif (GINKGO_HIP_PLATFORM MATCHES "${HIP_PLATFORM_NVIDIA_REGEX}")
-        set(GINKGO_HIP_PLATFORM_NVCC 1)
-    endif()
 endif()
 
 # Try to find the third party packages before using our subdirectories
