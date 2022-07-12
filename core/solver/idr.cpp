@@ -257,8 +257,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 gko::detail::get_local(g), gko::detail::get_local(helper),
                 gko::detail::get_local(u), gko::detail::get_local(m),
                 gko::detail::get_local(f), gko::detail::get_local(alpha),
-                gko::detail::get_local(residual), gko::detail::get_local(dense_x),
-                &stop_status));
+                gko::detail::get_local(residual),
+                gko::detail::get_local(dense_x), &stop_status));
         }
 
         this->get_preconditioner()->apply(residual, helper);
