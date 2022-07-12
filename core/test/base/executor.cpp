@@ -165,16 +165,6 @@ TEST(OmpExecutor, IsItsOwnMaster)
 #if GKO_HAVE_HWLOC
 
 
-TEST(OmpExecutor, CanGetNumCpusFromExecInfo)
-{
-    auto omp = gko::OmpExecutor::create();
-
-    auto num_cpus = omp->get_num_cores() * omp->get_num_threads_per_core();
-
-    ASSERT_EQ(std::thread::hardware_concurrency(), num_cpus);
-}
-
-
 inline int get_os_id(int log_id)
 {
     return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
