@@ -92,8 +92,8 @@ void build_local_nonlocal(
                range_starting_indices[range_id];
     };
 
-    vector<global_nonzero> inner_entries(exec);
-    vector<global_nonzero> ghost_entries(exec);
+    vector<global_nonzero> local_entries(exec);
+    vector<global_nonzero> non_local_entries(exec);
     size_type row_range_id = 0;
     size_type col_range_id = 0;
     for (size_type i = 0; i < input.get_num_elems(); ++i) {
@@ -103,12 +103,12 @@ void build_local_nonlocal(
             auto global_col = input_col_idxs[i];
             col_range_id = find_range(global_col, col_partition, col_range_id);
             if (col_part_ids[col_range_id] == local_part) {
-                inner_entries.push_back(
+                local_entries.push_back(
                     {map_to_local(global_row, row_partition, row_range_id),
                      map_to_local(global_col, col_partition, col_range_id),
                      input_vals[i]});
             } else {
-                ghost_entries.push_back(
+                non_local_entries.push_back(
                     {map_to_local(global_row, row_partition, row_range_id),
                      global_col, input_vals[i]});
             }
@@ -116,11 +116,11 @@ void build_local_nonlocal(
     }
 
     // create local matrix
-    local_row_idxs.resize_and_reset(inner_entries.size());
-    local_col_idxs.resize_and_reset(inner_entries.size());
-    local_values.resize_and_reset(inner_entries.size());
-    for (size_type i = 0; i < inner_entries.size(); ++i) {
-        const auto& entry = inner_entries[i];
+    local_row_idxs.resize_and_reset(local_entries.size());
+    local_col_idxs.resize_and_reset(local_entries.size());
+    local_values.resize_and_reset(local_entries.size());
+    for (size_type i = 0; i < local_entries.size(); ++i) {
+        const auto& entry = local_entries[i];
         local_row_idxs.get_data()[i] = entry.row;
         local_col_idxs.get_data()[i] = entry.column;
         local_values.get_data()[i] = entry.value;
@@ -134,7 +134,7 @@ void build_local_nonlocal(
         return col_part_ids[range_id];
     };
     vector<GlobalIndexType> unique_columns(exec);
-    std::transform(ghost_entries.begin(), ghost_entries.end(),
+    std::transform(non_local_entries.begin(), non_local_entries.end(),
                    std::back_inserter(unique_columns),
                    [](const auto& entry) { return entry.column; });
     std::sort(unique_columns.begin(), unique_columns.end(),
@@ -151,9 +151,10 @@ void build_local_nonlocal(
         unique_columns.end());
 
     // 3. create mapping from unique_columns
-    unordered_map<GlobalIndexType, LocalIndexType> ghost_column_map(exec);
+    unordered_map<GlobalIndexType, LocalIndexType> non_local_column_map(exec);
     for (std::size_t i = 0; i < unique_columns.size(); ++i) {
-        ghost_column_map[unique_columns[i]] = static_cast<LocalIndexType>(i);
+        non_local_column_map[unique_columns[i]] =
+            static_cast<LocalIndexType>(i);
     }
 
     // 3.5 copy unique_columns to array
@@ -161,13 +162,13 @@ void build_local_nonlocal(
                                                  unique_columns.end()};
 
     // 4. fill non_local_data
-    non_local_row_idxs.resize_and_reset(ghost_entries.size());
-    non_local_col_idxs.resize_and_reset(ghost_entries.size());
-    non_local_values.resize_and_reset(ghost_entries.size());
-    for (size_type i = 0; i < ghost_entries.size(); ++i) {
-        const auto& entry = ghost_entries[i];
+    non_local_row_idxs.resize_and_reset(non_local_entries.size());
+    non_local_col_idxs.resize_and_reset(non_local_entries.size());
+    non_local_values.resize_and_reset(non_local_entries.size());
+    for (size_type i = 0; i < non_local_entries.size(); ++i) {
+        const auto& entry = non_local_entries[i];
         non_local_row_idxs.get_data()[i] = entry.row;
-        non_local_col_idxs.get_data()[i] = ghost_column_map[entry.column];
+        non_local_col_idxs.get_data()[i] = non_local_column_map[entry.column];
         non_local_values.get_data()[i] = entry.value;
     }
 
