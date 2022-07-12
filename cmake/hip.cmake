@@ -219,7 +219,5 @@ set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS} ${GINKGO_AMD_ARC
 # whether we created any shared libraries, and sets PIC flags accordingly.
 # CMake's scoping rules means that this makes the hip_add_* calls order- and
 # scope-dependent, which is not good. Let's set the flags ourselves instead.
-if(BUILD_SHARED_LIBS) 
-    list(APPEND GINKGO_HIP_CLANG_OPTIONS "-fPIC")
-    list(APPEND GINKGO_HIP_NVCC_OPTIONS "--shared -Xcompiler '-fPIC'")
-endif()
+list(APPEND GINKGO_HIP_CLANG_OPTIONS "-fPIC")
+list(APPEND GINKGO_HIP_NVCC_OPTIONS "--shared -Xcompiler '-fPIC'")
