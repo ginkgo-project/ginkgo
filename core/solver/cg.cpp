@@ -175,8 +175,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho / prev_rho
         // p = z + tmp * p
         exec->run(cg::make_step_1(gko::detail::get_local(p),
-                                  gko::detail::get_local(z), rho,
-                                  prev_rho, &stop_status));
+                                  gko::detail::get_local(z), rho, prev_rho,
+                                  &stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // beta = dot(p, q)
@@ -186,8 +186,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // r = r - tmp * q
         exec->run(cg::make_step_2(
             gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(p), gko::detail::get_local(q), beta,
-            rho, &stop_status));
+            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
+            &stop_status));
         swap(prev_rho, rho);
     }
 }
