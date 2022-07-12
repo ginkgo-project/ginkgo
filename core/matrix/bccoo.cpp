@@ -281,7 +281,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         auto tmp = Coo<ValueType, IndexType>::create(
             exec, this->get_size(), this->get_num_stored_elements());
         exec->run(bccoo::make_convert_to_coo(this, tmp.get()));
@@ -313,7 +313,7 @@ void Bccoo<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         auto tmp = Csr<ValueType, IndexType>::create(
             exec, this->get_size(), this->get_num_stored_elements(),
             result->get_strategy());
@@ -347,7 +347,7 @@ void Bccoo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         auto tmp = Dense<ValueType>::create(exec, this->get_size());
         exec->run(bccoo::make_convert_to_dense(this, tmp.get()));
         tmp->move_to(result);
@@ -657,7 +657,7 @@ Bccoo<ValueType, IndexType>::extract_diagonal() const
     exec->run(bccoo::make_fill_array(diag->get_values(), diag->get_size()[0],
                                      zero<ValueType>()));
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         exec->run(bccoo::make_extract_diagonal(this, lend(diag)));
     } else {
         auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
@@ -677,7 +677,7 @@ void Bccoo<ValueType, IndexType>::compute_absolute_inplace()
     auto exec = this->get_executor();
     auto exec_master = exec->get_master();
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         exec->run(bccoo::make_compute_absolute_inplace(this));
     } else {
         auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
@@ -705,7 +705,7 @@ Bccoo<ValueType, IndexType>::compute_absolute() const
     auto abs_bccoo = absolute_type::create(exec, this->get_size(), num_nonzeros,
                                            block_size, num_bytes, compress);
 
-    if (exec == exec_master) {
+    if ((exec == exec_master) || this->use_block_compression()) {
         exec->run(bccoo::make_compute_absolute(this, abs_bccoo.get()));
     } else {
         auto host_bccoo = Bccoo<ValueType, IndexType>::create(exec_master);
