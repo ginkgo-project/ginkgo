@@ -186,6 +186,8 @@ public:
          */
         strategy_type(std::string name) : name_(name) {}
 
+        virtual ~strategy_type() = default;
+
         /**
          * Returns the name of strategy
          *

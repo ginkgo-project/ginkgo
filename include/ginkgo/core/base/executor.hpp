@@ -1480,8 +1480,8 @@ protected:
                  bool device_reset = false,
                  allocation_mode alloc_mode = default_cuda_alloc_mode)
         : EnableDeviceReset{device_reset},
-          alloc_mode_{alloc_mode},
-          master_(master)
+          master_(master),
+          alloc_mode_{alloc_mode}
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
@@ -1685,8 +1685,8 @@ protected:
                 bool device_reset = false,
                 allocation_mode alloc_mode = default_hip_alloc_mode)
         : EnableDeviceReset{device_reset},
-          alloc_mode_(alloc_mode),
-          master_(master)
+          master_(master),
+          alloc_mode_(alloc_mode)
     {
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;

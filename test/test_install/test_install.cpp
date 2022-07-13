@@ -328,7 +328,7 @@ int main()
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(exec);
+        auto test = gko::log::Convergence<>::create();
     }
 
     // core/log/record.hpp
@@ -338,13 +338,13 @@ int main()
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(exec);
+        auto test = gko::log::Stream<>::create();
     }
 
 #if GKO_HAVE_PAPI_SDE
     // core/log/papi.hpp
     {
-        auto test = gko::log::Papi<>::create(exec);
+        auto test = gko::log::Papi<>::create();
     }
 #endif  // GKO_HAVE_PAPI_SDE
 
