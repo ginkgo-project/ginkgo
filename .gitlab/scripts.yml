@@ -143,8 +143,13 @@
     # build to test
     - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
     - cd ${CI_JOB_NAME/test/build}
-    - ninja test
+    - |
+        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
+    - ctest -V --timeout 3000
     - ninja test_install
+    - pushd test/test_install
+    - ninja install
+    - popd
   cache: []
 
 
