@@ -144,9 +144,12 @@ TEST_F(HipExecutor, CanBindToCores)
 TEST_F(HipExecutor, ClosestCpusIsPopulated)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-    auto close_cpus0 = hip->get_closest_pus();
+    auto close_cpus = hip->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    ASSERT_NE(close_cpus0[0], -1);
+    ASSERT_NE(close_cpus[0], -1);
 }
 
 
@@ -154,9 +157,12 @@ TEST_F(HipExecutor, KnowsItsNuma)
 {
     hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
     auto numa0 = hip->get_closest_numa();
-    auto close_cpu0 = hip->get_closest_pus();
+    auto close_cpus = hip->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpu0[0]));
+    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpus[0]));
 
     ASSERT_TRUE(numa0 == numa_sys0);
 }

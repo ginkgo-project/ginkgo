@@ -139,9 +139,12 @@ TEST_F(CudaExecutor, CanBindToCores)
 TEST_F(CudaExecutor, ClosestCpusIsPopulated)
 {
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    auto close_cpus0 = cuda->get_closest_pus();
+    auto close_cpus = cuda->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    ASSERT_NE(close_cpus0[0], -1);
+    ASSERT_NE(close_cpus[0], -1);
 }
 
 
@@ -149,9 +152,12 @@ TEST_F(CudaExecutor, KnowsItsNuma)
 {
     cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     auto numa0 = cuda->get_closest_numa();
-    auto close_cpu0 = cuda->get_closest_pus()[0];
+    auto close_cpus = cuda->get_closest_pus();
+    if (close_cpus.size() == 0) {
+        GTEST_SKIP();
+    }
 
-    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpu0));
+    auto numa_sys0 = numa_node_of_cpu(get_cpu_os_id(close_cpus[0]));
 
     ASSERT_TRUE(numa0 == numa_sys0);
 }
