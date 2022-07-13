@@ -531,6 +531,8 @@ public:
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
 
+    virtual ~Logger() = default;
+
 protected:
     /**
      * Constructor for a Logger object.
