@@ -183,7 +183,7 @@ do
     mkdir -p "${TMPDIR}/${TEMPLATE_FILES_LOCATIONS[$i-1]}"
 
     # Evaluate the extension and try to find the matching files
-    for j in "${GINKGO_ROOT_DIR}/${sourcepath}/*";
+    for j in $(ls ${GINKGO_ROOT_DIR}/${sourcepath})
     do
         if [ -f "$j" ]
         then
@@ -231,7 +231,7 @@ then
         for ((i=1; i<=${#CMAKE_FILES[@]}; i++))
         do
             sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-        for j in "${GINKGO_ROOT_DIR}/${sourcepath}/"*;
+            for j in $(ls ${GINKGO_ROOT_DIR}/${sourcepath})
             do
                 filename=$(basename -- "$j")
                 shortname=$(echo "$filename" | cut -d"." -f1)
