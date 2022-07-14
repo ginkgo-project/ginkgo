@@ -103,8 +103,8 @@ size_type calculate_max_nnz_per_row(
 
 template <typename ValueType, typename IndexType>
 void BatchEll<ValueType, IndexType>::create_from_batch_csc_impl(
-    const gko::Array<ValueType>& values, const gko::Array<IndexType>& row_idxs,
-    const gko::Array<IndexType>& col_ptrs)
+    const gko::array<ValueType>& values, const gko::array<IndexType>& row_idxs,
+    const gko::array<IndexType>& col_ptrs)
 {
     this->get_executor()->run(batch_ell::make_convert_from_batch_csc(
         this, values, row_idxs, col_ptrs));

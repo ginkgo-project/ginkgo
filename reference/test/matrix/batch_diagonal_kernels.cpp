@@ -79,7 +79,7 @@ protected:
         const gko::dim<2> size{3, 5};
         const size_type num_entries = 2;
         const size_type stored = std::min(size[0], size[1]);
-        gko::Array<value_type> vals(exec, stored * num_entries);
+        gko::array<value_type> vals(exec, stored * num_entries);
         auto valarr = vals.get_data();
         valarr[0] = 2.5;
         valarr[1] = -1.5;
@@ -415,7 +415,7 @@ protected:
         const gko::dim<2> size{3, 5};
         const size_type num_entries = 2;
         const size_type stored = std::min(size[0], size[1]);
-        gko::Array<value_type> vals(exec, stored * num_entries);
+        gko::array<value_type> vals(exec, stored * num_entries);
         auto valarr = vals.get_data();
         valarr[0] = 2.5 + 1.0i;
         valarr[1] = -1.5 - 0.5i;

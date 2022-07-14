@@ -157,7 +157,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec,
     }
     const gko::batch_dense::UniformBatch<cu_value_type> x_b =
         get_batch_struct(x);
-    Array<ValueType> arr(exec->get_master());
+    array<ValueType> arr(exec->get_master());
     if (opts.deterministic_gen) {
         arr.resize_and_reset(x_b.num_rows * opts.subspace_dim_val);
         auto dist =

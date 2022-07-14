@@ -546,8 +546,8 @@ TEST_F(BatchDense, MoveToBatchCsrIsEquivalentToRef)
 TEST_F(BatchDense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     const int num_entries_in_batch = 10;
-    gko::Array<std::size_t> ref_max_nnz_per_row;
-    gko::Array<std::size_t> omp_max_nnz_per_row;
+    gko::array<std::size_t> ref_max_nnz_per_row;
+    gko::array<std::size_t> omp_max_nnz_per_row;
     ref_max_nnz_per_row.set_executor(ref);
     ref_max_nnz_per_row.resize_and_reset(num_entries_in_batch);
     omp_max_nnz_per_row.set_executor(omp);

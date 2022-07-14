@@ -307,7 +307,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
                                 const matrix::BatchDense<ValueType>* source,
-                                Array<size_type>* result) GKO_NOT_IMPLEMENTED;
+                                array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL);

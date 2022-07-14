@@ -248,9 +248,9 @@ public:
      */
     static std::unique_ptr<const BatchCsr> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs,
-        gko::detail::ConstArrayView<IndexType>&& row_ptrs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs,
+        gko::detail::const_array_view<IndexType>&& row_ptrs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -448,9 +448,9 @@ private:
                         input->get_const_row_ptrs(), row_ptrs);
     }
 
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
 
     void add_scaled_identity_impl(const BatchLinOp* a,
                                   const BatchLinOp* b) override;

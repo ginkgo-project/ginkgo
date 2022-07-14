@@ -88,14 +88,14 @@ TEST(BatchSimpleFinalLogger, Logs)
     auto cuexec = gko::HipExecutor::create(0, exec);
     const size_t nbatch = 3;
     const int dbs = gko::kernels::hip::default_block_size;
-    gko::Array<real_type> res_norms_log(exec, nbatch);
-    gko::Array<int> iters_log(exec, nbatch);
+    gko::array<real_type> res_norms_log(exec, nbatch);
+    gko::array<int> iters_log(exec, nbatch);
     for (int i = 0; i < nbatch; i++) {
         res_norms_log.get_data()[i] = 0.0;
         iters_log.get_data()[i] = -1;
     }
-    gko::Array<real_type> d_res_norms_log(cuexec, res_norms_log);
-    gko::Array<int> d_iters_log(cuexec, iters_log);
+    gko::array<real_type> d_res_norms_log(cuexec, res_norms_log);
+    gko::array<int> d_iters_log(cuexec, iters_log);
     const int iter = 5;
 
     BatchLog blog(d_res_norms_log.get_data(), d_iters_log.get_data());

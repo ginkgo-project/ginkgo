@@ -147,7 +147,7 @@ namespace kernels {
 #define GKO_DECLARE_BATCH_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(_type) \
     void calculate_nonzeros_per_row(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                     \
-        const matrix::BatchDense<_type>* source, Array<size_type>* result)
+        const matrix::BatchDense<_type>* source, array<size_type>* result)
 
 #define GKO_DECLARE_BATCH_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)  \
     void calculate_total_cols(                                      \

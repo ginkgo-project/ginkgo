@@ -229,8 +229,8 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingData)
     auto batch_mtx = gko::matrix::BatchEll<value_type, index_type>::create(
         this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
         gko::batch_stride(2, 2), gko::batch_stride{2, 3},
-        gko::Array<value_type>::view(this->exec, 12, values),
-        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+        gko::array<value_type>::view(this->exec, 12, values),
+        gko::array<index_type>::view(this->exec, 6, col_idxs));
 
     ASSERT_EQ(batch_mtx->get_const_values(), values);
     ASSERT_EQ(batch_mtx->get_const_col_idxs(), col_idxs);
@@ -250,8 +250,8 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingConstData)
         gko::matrix::BatchEll<value_type, index_type>::create_const(
             this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
             gko::batch_stride(2, 2), gko::batch_stride{2, 3},
-            gko::Array<value_type>::const_view(this->exec, 12, values),
-            gko::Array<index_type>::const_view(this->exec, 6, col_idxs));
+            gko::array<value_type>::const_view(this->exec, 12, values),
+            gko::array<index_type>::const_view(this->exec, 6, col_idxs));
 
     ASSERT_EQ(batch_mtx->get_const_values(), values);
     ASSERT_EQ(batch_mtx->get_const_col_idxs(), col_idxs);
@@ -270,8 +270,8 @@ TYPED_TEST(BatchEll, CanBeDuplicatedFromOneEllMatrix)
 
     auto ell_mat = gko::matrix::Ell<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 4},
-        gko::Array<value_type>::view(this->exec, 6, values),
-        gko::Array<index_type>::view(this->exec, 6, col_idxs), 2, 3);
+        gko::array<value_type>::view(this->exec, 6, values),
+        gko::array<index_type>::view(this->exec, 6, col_idxs), 2, 3);
 
     auto mtx = gko::matrix::BatchEll<value_type, index_type>::create(
         this->exec, 3, ell_mat.get());
@@ -298,8 +298,8 @@ TYPED_TEST(BatchEll, CanBeDuplicatedFromBatchMatrices)
     auto batch_mtx = gko::matrix::BatchEll<value_type, index_type>::create(
         this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 4}},
         gko::batch_stride{2, 2}, gko::batch_stride{2, 3},
-        gko::Array<value_type>::view(this->exec, 12, values),
-        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+        gko::array<value_type>::view(this->exec, 12, values),
+        gko::array<index_type>::view(this->exec, 6, col_idxs));
 
     auto mtx = gko::matrix::BatchEll<value_type, index_type>::create(
         this->exec, 3, batch_mtx.get());
