@@ -182,7 +182,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
+    array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -288,7 +288,7 @@ void check_diagonal_entries_exist(
     if (!mtx->get_size().stores_equal_sizes()) GKO_NOT_IMPLEMENTED;
     const auto nmin = static_cast<int>(
         std::min(mtx->get_size().at(0)[0], mtx->get_size().at(0)[1]));
-    Array<bool> d_result(exec, 1);
+    array<bool> d_result(exec, 1);
     hipLaunchKernelGGL(check_all_diagonal_locations, 1, default_block_size, 0,
                        0, nmin, mtx->get_const_row_ptrs(),
                        mtx->get_const_col_idxs(), d_result.get_data());

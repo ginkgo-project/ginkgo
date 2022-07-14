@@ -389,9 +389,9 @@ GKO_DECLARE_MAKE_BLOCK_DIAGONAL_ELL(ValueType, IndexType)
         }
     }
     const size_type stride = total_rows;
-    Array<IndexType> h_col_idxs(exec->get_master(),
+    array<IndexType> h_col_idxs(exec->get_master(),
                                 stride * overall_elems_per_row);
-    Array<ValueType> h_values(exec->get_master(),
+    array<ValueType> h_values(exec->get_master(),
                               stride * overall_elems_per_row);
     size_type roffset = 0;
     for (size_type im = 0; im < matrices.size(); im++) {

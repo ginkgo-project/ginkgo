@@ -95,7 +95,7 @@ namespace kernels {
     void calculate_nonzeros_per_row(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const matrix::BatchCsr<ValueType, IndexType>* source,              \
-        Array<size_type>* result)
+        array<size_type>* result)
 
 #define GKO_DECLARE_BATCH_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType)   \
     void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \

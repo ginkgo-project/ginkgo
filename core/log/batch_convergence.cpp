@@ -44,7 +44,7 @@ namespace log {
 
 template <typename ValueType>
 void BatchConvergence<ValueType>::on_batch_solver_completed(
-    const Array<int>& num_iterations,
+    const array<int>& num_iterations,
     const BatchLinOp* const residual_norm) const
 {
     using NormVector = matrix::BatchDense<real_type>;

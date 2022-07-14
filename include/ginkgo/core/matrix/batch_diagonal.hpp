@@ -326,10 +326,10 @@ private:
      * Compute the number of elements stored in each batch and store it in a
      * prefixed sum fashion
      */
-    inline Array<size_type> compute_num_elems_per_batch_cumul(
+    inline array<size_type> compute_num_elems_per_batch_cumul(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes)
     {
-        auto num_elems = Array<size_type>(exec->get_master(),
+        auto num_elems = array<size_type>(exec->get_master(),
                                           sizes.get_num_batch_entries() + 1);
         num_elems.get_data()[0] = 0;
         for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
@@ -441,7 +441,7 @@ protected:
             num_elems_per_batch_cumul_ = compute_num_elems_per_batch_cumul(
                 exec->get_master(), this->get_size());
         }
-        values_ = Array<ValueType>(exec, compute_batch_mem(this->get_size()));
+        values_ = array<ValueType>(exec, compute_batch_mem(this->get_size()));
         size_type offset = 0;
         for (size_type i = 0; i < num_duplications; ++i) {
             if (non_uniform) {
@@ -510,8 +510,8 @@ protected:
     }
 
 private:
-    Array<value_type> values_;
-    Array<size_type> num_elems_per_batch_cumul_;
+    array<value_type> values_;
+    array<size_type> num_elems_per_batch_cumul_;
 };
 
 

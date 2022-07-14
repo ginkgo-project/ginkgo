@@ -261,7 +261,7 @@ void BatchDense<ValueType>::convert_to(BatchCsr<ValueType, int32>* result) const
     }
 
     auto num_stored_nonzeros =
-        Array<size_type>{exec->get_master(), this->get_num_batch_entries()};
+        array<size_type>{exec->get_master(), this->get_num_batch_entries()};
 
     exec->get_master()->run(
         batch_dense::make_count_nonzeros(this, num_stored_nonzeros.get_data()));

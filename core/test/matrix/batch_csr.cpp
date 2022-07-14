@@ -177,9 +177,9 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromOneCsrMatrix)
 
     auto csr_mat = gko::matrix::Csr<value_type, index_type>::create(
         this->exec, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 4, values),
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs));
+        gko::array<value_type>::view(this->exec, 4, values),
+        gko::array<index_type>::view(this->exec, 4, col_idxs),
+        gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, 3, csr_mat.get());
@@ -205,9 +205,9 @@ TYPED_TEST(BatchCsr, CanBeDuplicatedFromBatchMatrices)
 
     auto batch_mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, 2, gko::dim<2>{3, 2},
-        gko::Array<value_type>::view(this->exec, 8, values),
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs));
+        gko::array<value_type>::view(this->exec, 8, values),
+        gko::array<index_type>::view(this->exec, 4, col_idxs),
+        gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, 3, batch_mtx.get());
@@ -230,9 +230,9 @@ TYPED_TEST(BatchCsr, CanBeCreatedFromExistingData)
 
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create(
         this->exec, gko::batch_dim<>(2, gko::dim<2>{3, 2}),
-        gko::Array<value_type>::view(this->exec, 8, values),
-        gko::Array<index_type>::view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::view(this->exec, 4, row_ptrs));
+        gko::array<value_type>::view(this->exec, 8, values),
+        gko::array<index_type>::view(this->exec, 4, col_idxs),
+        gko::array<index_type>::view(this->exec, 4, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
@@ -251,9 +251,9 @@ TYPED_TEST(BatchCsr, CanBeCreatedFromExistingConstData)
 
     auto mtx = gko::matrix::BatchCsr<value_type, index_type>::create_const(
         this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}},
-        gko::Array<value_type>::const_view(this->exec, 8, values),
-        gko::Array<index_type>::const_view(this->exec, 4, col_idxs),
-        gko::Array<index_type>::const_view(this->exec, 4, row_ptrs));
+        gko::array<value_type>::const_view(this->exec, 8, values),
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::array<index_type>::const_view(this->exec, 4, row_ptrs));
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
