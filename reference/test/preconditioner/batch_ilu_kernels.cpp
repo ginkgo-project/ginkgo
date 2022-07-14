@@ -192,7 +192,7 @@ TYPED_TEST(BatchIlu, GenerationFromCoreIsEquivalentToUnbatched)
     }
 
     auto prec_fact = prec_type::build().on(exec);
-    auto prec = prec_fact->generate(gko::share(this->mtx));
+    auto prec = prec_fact->generate(this->mtx);
 
     auto l_factors = prec->get_const_lower_factor()->unbatch();
     auto u_factors = prec->get_const_upper_factor()->unbatch();
@@ -220,8 +220,7 @@ TYPED_TEST(BatchIlu, ExactTrsvAppliesToSingleVector)
                                            exec);
     auto x =
         BDense::create(exec, gko::batch_dim<>(2, gko::dim<2>(this->nrows, 1)));
-    auto mtx = gko::share(this->mtx);
-    auto umtxs = gko::test::share(mtx->unbatch());
+    auto umtxs = gko::test::share(this->mtx->unbatch());
     auto ub = b->unbatch();
     auto ux = x->unbatch();
     auto unbatch_prec = unbatch_prec_type::build().on(exec);

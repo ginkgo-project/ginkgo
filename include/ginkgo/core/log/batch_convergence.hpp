@@ -129,7 +129,7 @@ protected:
     explicit BatchConvergence(
         std::shared_ptr<const gko::Executor> exec,
         const mask_type& enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events),
+        : Logger(enabled_events),
           num_iterations_(exec->get_master()),
           residual_norm_(
               matrix::BatchDense<real_type>::create(exec->get_master()))
