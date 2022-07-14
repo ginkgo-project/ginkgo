@@ -396,7 +396,7 @@ public:
      */
     static std::unique_ptr<const BatchDense> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
-        gko::detail::ConstArrayView<ValueType>&& values,
+        gko::detail::const_array_view<ValueType>&& values,
         const batch_stride& strides)
     {
         // cast const-ness away, but return a const object afterwards,
@@ -472,11 +472,11 @@ private:
      * Compute the number of elements stored in each batch and store it in a
      * prefixed sum fashion
      */
-    inline Array<size_type> compute_num_elems_per_batch_cumul(
+    inline array<size_type> compute_num_elems_per_batch_cumul(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         const batch_stride& strides)
     {
-        auto num_elems = Array<size_type>(exec->get_master(),
+        auto num_elems = array<size_type>(exec->get_master(),
                                           sizes.get_num_batch_entries() + 1);
         num_elems.get_data()[0] = 0;
         for (auto i = 0; i < sizes.get_num_batch_entries(); ++i) {
@@ -702,8 +702,8 @@ protected:
 
 private:
     batch_stride stride_;
-    Array<size_type> num_elems_per_batch_cumul_;
-    Array<value_type> values_;
+    array<size_type> num_elems_per_batch_cumul_;
+    array<value_type> values_;
 
     void add_scaled_identity_impl(const BatchLinOp* a,
                                   const BatchLinOp* b) override;

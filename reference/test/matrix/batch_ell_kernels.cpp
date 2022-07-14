@@ -206,15 +206,15 @@ TYPED_TEST(BatchEll, CanBeCreatedFromExistingCscData)
     auto mtx =
         gko::matrix::BatchEll<value_type, index_type>::create_from_batch_csc(
             this->exec, 2, gko::dim<2>{3, 2}, 2,
-            gko::Array<value_type>::view(this->exec, 8, csc_values),
-            gko::Array<index_type>::view(this->exec, 4, row_idxs),
-            gko::Array<index_type>::view(this->exec, 3, col_ptrs));
+            gko::array<value_type>::view(this->exec, 8, csc_values),
+            gko::array<index_type>::view(this->exec, 4, row_idxs),
+            gko::array<index_type>::view(this->exec, 3, col_ptrs));
 
     auto comp = gko::matrix::BatchEll<value_type, index_type>::create(
         this->exec, gko::batch_dim<2>{2, gko::dim<2>{3, 2}},
         gko::batch_stride{2, 2}, gko::batch_stride{2, 3},
-        gko::Array<value_type>::view(this->exec, 12, ell_values),
-        gko::Array<index_type>::view(this->exec, 6, col_idxs));
+        gko::array<value_type>::view(this->exec, 12, ell_values),
+        gko::array<index_type>::view(this->exec, 6, col_idxs));
 
     GKO_ASSERT_BATCH_MTX_NEAR(mtx.get(), comp.get(), 0.0);
 }

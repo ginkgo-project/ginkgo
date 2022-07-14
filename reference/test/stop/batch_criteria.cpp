@@ -59,8 +59,8 @@ protected:
 
     void check_helper(const bool relative, const bool check_converged)
     {
-        gko::Array<real_type> h_resnorms(this->exec, 1);
-        gko::Array<real_type> h_bnorms(this->exec, 1);
+        gko::array<real_type> h_resnorms(this->exec, 1);
+        gko::array<real_type> h_bnorms(this->exec, 1);
         if (check_converged) {
             h_bnorms.get_data()[0] = 1.0e6;
             if (relative) {

@@ -59,7 +59,7 @@ __device__ __forceinline__ void orthonormalize_subspace_vectors(
 
             ValueType* const w_j_sh = subspace_vecs_sh + j * num_rows;
 
-            __shared__ UninitializedArray<ValueType, 1> mul_sh;
+            __shared__ uninitialized_array<ValueType, 1> mul_sh;
             if (threadIdx.x / config::warp_size == 0) {
                 single_compute_dot_product(warp_grp, num_rows, w_j_sh, p_i_sh,
                                            mul_sh[0]);
@@ -553,11 +553,11 @@ __global__ void apply_kernel(
         const auto norms_tmp_sh =
             reinterpret_cast<real_type*>(tempv_sh + nrows);
 
-        __shared__ UninitializedArray<ValueType, 1> omega_sh;
-        __shared__ UninitializedArray<ValueType, 1> temp1_sh;
-        __shared__ UninitializedArray<ValueType, 1> temp2_sh;
-        __shared__ UninitializedArray<real_type, 1> norms_t_sh;
-        __shared__ UninitializedArray<real_type, 1> norms_r_sh;
+        __shared__ uninitialized_array<ValueType, 1> omega_sh;
+        __shared__ uninitialized_array<ValueType, 1> temp1_sh;
+        __shared__ uninitialized_array<ValueType, 1> temp2_sh;
+        __shared__ uninitialized_array<real_type, 1> norms_t_sh;
+        __shared__ uninitialized_array<real_type, 1> norms_r_sh;
         __shared__ real_type norms_rhs_sh[1];
         __shared__ real_type norms_res_sh[1];
 
