@@ -161,11 +161,11 @@ int main(int argc, char* argv[])
     //  out of them.
     // Ginkgo expects the nonzero values for all the small matrices to be
     //  allocated contiguously, one matrix after the other.
-    auto vals_view = gko::Array<value_type>::const_view(
+    auto vals_view = gko::array<value_type>::const_view(
         exec, num_systems * appl_sys.nnz, appl_sys.all_values);
-    auto rowptrs_view = gko::Array<index_type>::const_view(exec, num_rows + 1,
+    auto rowptrs_view = gko::array<index_type>::const_view(exec, num_rows + 1,
                                                            appl_sys.row_ptrs);
-    auto colidxs_view = gko::Array<index_type>::const_view(exec, appl_sys.nnz,
+    auto colidxs_view = gko::array<index_type>::const_view(exec, appl_sys.nnz,
                                                            appl_sys.col_idxs);
     auto A = gko::share(mtx_type::create_const(
         exec, batch_mat_size, std::move(vals_view), std::move(colidxs_view),
@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
     //  as the common value for all the matrices.
     auto batch_vec_stride = gko::batch_stride(num_systems, 1);
     // Create RHS, again reusing application allocation
-    auto b_view = gko::Array<value_type>::const_view(
+    auto b_view = gko::array<value_type>::const_view(
         exec, num_systems * num_rows, appl_sys.all_rhs);
     auto b = vec_type::create_const(exec, batch_vec_size, std::move(b_view),
                                     batch_vec_stride);

@@ -87,8 +87,8 @@ int get_num_threads_per_block(std::shared_ptr<const HipExecutor> exec,
     hipDeviceGetAttribute(&max_regs_blk, hipDeviceAttributeMaxRegistersPerBlock,
                           exec->get_device_id());
     const int max_threads_regs =
-        ((max_regs_blk / num_regs_used_per_thread) / config::warp_size) *
-        config::warp_size;
+        (max_regs_blk /
+         num_regs_used_per_thread);  // - (5 * config::warp_size);
     const int max_threads = std::min(max_threads_regs, device_max_threads);
     return std::min(nwarps * static_cast<int>(config::warp_size), max_threads);
 }
@@ -110,7 +110,7 @@ public:
 
     template <typename BatchMatrixType, typename PrecType, typename StopType,
               typename LogType>
-    void call_kernel(LogType logger, const BatchMatrixType& a, PrecType prec,
+    void call_kernel(LogType logger, const BatchMatrixType& a,
                      const gko::batch_dense::UniformBatch<const value_type>& b,
                      const gko::batch_dense::UniformBatch<value_type>& x) const
     {
@@ -134,27 +134,27 @@ public:
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(value_type) +
             (sconf.prec_shared ? prec_size : 0);
-        auto workspace = gko::Array<value_type>(
+        auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 
         // std::cerr << " Bicgstab: vectors in shared memory = " <<
         // sconf.n_shared
-        //          << "\n";
+        //           << "\n";
         // if (sconf.prec_shared) {
-        //    std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
-        //}
+        //     std::cerr << " Bicgstab: precondiioner is in shared memory.\n";
+        // }
         // std::cerr << " Bicgstab: vectors in global memory = " <<
         // sconf.n_global
-        //          << "\n Hip: number of threads per warp = "
-        //          << config::warp_size
-        //          << "\n Bicgstab: number of threads per block = " <<
-        //          block_size
-        //          << "\n";
-        hipLaunchKernelGGL(apply_kernel<StopType>, dim3(nbatch),
-                           dim3(block_size), shared_size, 0, shared_gap, sconf,
-                           opts_.max_its, opts_.residual_tol, logger, prec, a,
-                           b.values, x.values, workspace.get_data());
+        //           << "\n Hip: number of threads per warp = "
+        //           << config::warp_size
+        //           << "\n Bicgstab: number of threads per block = " <<
+        //           block_size
+        //           << "\n";
+        hipLaunchKernelGGL(
+            apply_kernel<StopType>, dim3(nbatch), dim3(block_size), shared_size,
+            0, shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger,
+            PrecType(), a, b.values, x.values, workspace.get_data());
     }
 
 private:
@@ -166,15 +166,15 @@ private:
 template <typename ValueType>
 void apply(std::shared_ptr<const HipExecutor> exec,
            const BatchBicgstabOptions<remove_complex<ValueType>>& opts,
-           const BatchLinOp* const a, const BatchLinOp* const precon,
+           const BatchLinOp* const a,
            const matrix::BatchDense<ValueType>* const b,
            matrix::BatchDense<ValueType>* const x,
            log::BatchLogData<ValueType>& logdata)
 {
     using d_value_type = hip_type<ValueType>;
     auto dispatcher = batch_solver::create_dispatcher<ValueType>(
-        KernelCaller<d_value_type>(exec, opts), opts, a, precon);
-    dispatcher.apply(b, x, logdata);
+        KernelCaller<d_value_type>(exec, opts), opts);
+    dispatcher.apply(a, b, x, logdata);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL);

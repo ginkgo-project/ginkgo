@@ -114,8 +114,8 @@ protected:
     void check_helper(const bool relative, const bool check_converged)
     {
         const auto dbs = gko::kernels::cuda::default_block_size;
-        gko::Array<real_type> h_resnorms(this->exec, 1);
-        gko::Array<real_type> h_bnorms(this->exec, 1);
+        gko::array<real_type> h_resnorms(this->exec, 1);
+        gko::array<real_type> h_bnorms(this->exec, 1);
         if (check_converged) {
             h_bnorms.get_data()[0] = 1.0e6;
             if (relative) {
@@ -132,9 +132,9 @@ protected:
             }
         }
 
-        const gko::Array<real_type> resnorms(this->cuexec, h_resnorms);
-        const gko::Array<real_type> bnorms(this->cuexec, h_bnorms);
-        gko::Array<bool> all_conv(this->cuexec, 1);
+        const gko::array<real_type> resnorms(this->cuexec, h_resnorms);
+        const gko::array<real_type> bnorms(this->cuexec, h_bnorms);
+        gko::array<bool> all_conv(this->cuexec, 1);
 
         if (relative) {
             simple_rel_conv_check<value_type>
@@ -145,7 +145,7 @@ protected:
                 nrows, resnorms.get_const_data(), all_conv.get_data());
         }
 
-        gko::Array<bool> h_all_conv(this->exec, all_conv);
+        gko::array<bool> h_all_conv(this->exec, all_conv);
         if (check_converged) {
             ASSERT_TRUE(h_all_conv.get_const_data()[0]);
         } else {
