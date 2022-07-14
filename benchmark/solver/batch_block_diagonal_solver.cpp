@@ -433,7 +433,7 @@ void solve_system(const std::string& solver_name,
         IterationControl ic{get_timer(exec, FLAGS_gpu_timer)};
 
         // warm run
-        auto it_logger = std::make_shared<IterationLogger>(exec);
+        auto it_logger = std::make_shared<IterationLogger>();
         for (auto _ : ic.warmup_run()) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
@@ -454,7 +454,7 @@ void solve_system(const std::string& solver_name,
             auto x_clone = clone(x);
 
             auto gen_logger =
-                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
+                std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
@@ -476,7 +476,7 @@ void solve_system(const std::string& solver_name,
             }
 
             auto apply_logger =
-                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
+                std::make_shared<OperationLogger>(FLAGS_nested_names);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b), lend(x_clone));
@@ -489,8 +489,7 @@ void solve_system(const std::string& solver_name,
             if (b->get_size()[1] == 1) {
                 x_clone = clone(x);
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
-                    exec, lend(system_matrix), b,
-                    solver_json["recurrent_residuals"],
+                    lend(system_matrix), b, solver_json["recurrent_residuals"],
                     solver_json["true_residuals"],
                     solver_json["implicit_residuals"],
                     solver_json["iteration_timestamps"], allocator);
