@@ -609,16 +609,16 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
             .on(dpcpp)
             ->generate(give(mtx));
 
-    // both blocks are in the same group, both need (7, 8)
+    // dpcpp considers all block separately
     auto h_bj = clone(ref, bj);
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    // 2 - 0 is same as 1 - 1 when it is float
 #if GINKGO_DPCPP_SINGLE_MODE
-    EXPECT_EQ(prec[0], gko::precision_reduction(2, 0));
+    ASSERT_EQ(prec[0], gko::precision_reduction(0, 2));
+    // In single value, precision_reduction(1, 1) == precision_reduction(2, 0)
     ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
 #else
-    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
+    ASSERT_EQ(prec[0], gko::precision_reduction(0, 2));
     ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
 #endif  // GINKGO_DPCPP_SINGLE_MODE
 }
@@ -646,7 +646,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-6);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-5);
 }
 
 
@@ -893,7 +893,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-5);
 }
 
 
