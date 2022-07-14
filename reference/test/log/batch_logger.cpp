@@ -69,8 +69,8 @@ TYPED_TEST(BatchFinalLogger, LogsOneRhsConvergedOneIteration)
 {
     using real_type = typename TestFixture::real_type;
     using BatchLog = typename TestFixture::BatchLog;
-    gko::Array<real_type> res_norms_log(this->exec, this->nbatch);
-    gko::Array<int> iters_log(this->exec, this->nbatch);
+    gko::array<real_type> res_norms_log(this->exec, this->nbatch);
+    gko::array<int> iters_log(this->exec, this->nbatch);
     for (int i = 0; i < this->nbatch; i++) {
         res_norms_log.get_data()[i] = 0.0;
         iters_log.get_data()[i] = -1;

@@ -92,7 +92,7 @@ public:
             gko::kernels::batch_rich::local_memory_requirement<ValueType>(
                 nrows, nrhs) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
-        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        // array<unsigned char> local_space(exec_, local_size_bytes);
 
 #pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {

@@ -57,7 +57,7 @@ struct BatchLogDataBase {
      * Stores convergence iteration counts for every matrix in the batch and
      * for every right-hand side.
      */
-    Array<int> iter_counts;
+    array<int> iter_counts;
 
     virtual ~BatchLogDataBase() = default;
 };
