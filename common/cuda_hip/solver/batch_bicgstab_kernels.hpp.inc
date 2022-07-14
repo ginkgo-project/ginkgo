@@ -262,11 +262,11 @@ __global__ void apply_kernel(
             x_sh = r_hat_sh + padded_vec_len;
         }
 
-        __shared__ UninitializedArray<ValueType, 1> rho_old_sh;
-        __shared__ UninitializedArray<ValueType, 1> rho_new_sh;
-        __shared__ UninitializedArray<ValueType, 1> omega_sh;
-        __shared__ UninitializedArray<ValueType, 1> alpha_sh;
-        __shared__ UninitializedArray<ValueType, 1> temp_sh;
+        __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
+        __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
+        __shared__ uninitialized_array<ValueType, 1> omega_sh;
+        __shared__ uninitialized_array<ValueType, 1> alpha_sh;
+        __shared__ uninitialized_array<ValueType, 1> temp_sh;
         __shared__ real_type norms_rhs_sh[1];
         __shared__ real_type norms_res_sh[1];
 

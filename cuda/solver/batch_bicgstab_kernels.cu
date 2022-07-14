@@ -174,7 +174,7 @@ public:
         const size_t shared_size =
             sconf.n_shared * shared_gap * sizeof(value_type) +
             (sconf.prec_shared ? prec_size : 0);
-        auto workspace = gko::Array<value_type>(
+        auto workspace = gko::array<value_type>(
             exec_, sconf.gmem_stride_bytes * nbatch / sizeof(value_type));
         assert(sconf.gmem_stride_bytes % sizeof(value_type) == 0);
 

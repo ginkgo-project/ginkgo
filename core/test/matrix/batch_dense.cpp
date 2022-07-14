@@ -161,7 +161,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingData)
     auto m = gko::matrix::BatchDense<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::Array<value_type>::view(this->exec, 12, data),
+        gko::array<value_type>::view(this->exec, 12, data),
         std::vector<size_type>{3, 3});
 
     ASSERT_EQ(m->get_const_values(), data);
@@ -187,7 +187,7 @@ TYPED_TEST(BatchDense, CanBeConstructedFromExistingConstData)
     auto m = gko::matrix::BatchDense<TypeParam>::create_const(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{2, 2}, gko::dim<2>{2, 2}},
-        gko::Array<value_type>::const_view(this->exec, 12, data),
+        gko::array<value_type>::const_view(this->exec, 12, data),
         std::vector<size_type>{3, 3});
 
     ASSERT_EQ(m->get_const_values(), data);

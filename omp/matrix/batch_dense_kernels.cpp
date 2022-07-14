@@ -415,7 +415,7 @@ template <typename ValueType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const OmpExecutor>,
     const matrix::BatchDense<ValueType>* const source,
-    Array<size_type>* const result)
+    array<size_type>* const result)
 {
     size_type cumul_prev_rows = 0;
     for (size_type batch = 0; batch < source->get_num_batch_entries();
