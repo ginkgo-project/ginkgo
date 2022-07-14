@@ -545,7 +545,7 @@ protected:
      *             which stores the final residual norms.
      */
     GKO_LOGGER_REGISTER_EVENT(28, batch_solver_completed, const array<int>& its,
-                              const LinOp* res_norms)
+                              const BatchLinOp* res_norms)
 
 public:
     /**
@@ -555,7 +555,7 @@ public:
      * @param input  the PolymorphicObject to be move from
      * @param output  the PolymorphicObject to be move into
      */
-    GKO_LOGGER_REGISTER_EVENT(22, polymorphic_object_move_started,
+    GKO_LOGGER_REGISTER_EVENT(29, polymorphic_object_move_started,
                               const Executor* exec,
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
@@ -567,7 +567,7 @@ public:
      * @param input  the PolymorphicObject to be move from
      * @param output  the PolymorphicObject to be move into
      */
-    GKO_LOGGER_REGISTER_EVENT(23, polymorphic_object_move_completed,
+    GKO_LOGGER_REGISTER_EVENT(30, polymorphic_object_move_completed,
                               const Executor* exec,
                               const PolymorphicObject* input,
                               const PolymorphicObject* output)
