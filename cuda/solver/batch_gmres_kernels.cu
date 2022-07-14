@@ -105,7 +105,7 @@ public:
         const int global_gap =
             6 * nrows * nrhs + 3 * restart * nrhs + (restart + 1) * nrhs +
             restart * (restart + 1) * nrhs + nrows * (restart + 1) * nrhs;
-        auto workspace = gko::Array<value_type>(exec_);
+        auto workspace = gko::array<value_type>(exec_);
 
         const int shared_size =
             gko::kernels::batch_gmres::local_memory_requirement<value_type>(
@@ -113,7 +113,7 @@ public:
             PrecType::dynamic_work_size(a.num_rows, a.num_nnz) *
                 sizeof(value_type);
 #if GKO_CUDA_BATCH_GMRES_HAVE_NO_SHMEM
-        workspace = gko::Array<value_type>(
+        workspace = gko::array<value_type>(
             exec_,
             static_cast<size_type>(shared_size * nbatch / sizeof(value_type)));
         apply_kernel<StopType><<<nbatch, default_block_size>>>(

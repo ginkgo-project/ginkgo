@@ -203,7 +203,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::BatchEll<ValueType, IndexType>* source,
-    Array<size_type>* result) GKO_NOT_IMPLEMENTED;
+    array<size_type>* result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL);
@@ -260,9 +260,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec,
                             matrix::BatchEll<ValueType, IndexType>* ell,
-                            const Array<ValueType>& values_arr,
-                            const Array<IndexType>& row_idxs_arr,
-                            const Array<IndexType>& col_ptrs_arr)
+                            const array<ValueType>& values_arr,
+                            const array<IndexType>& row_idxs_arr,
+                            const array<IndexType>& col_ptrs_arr)
 {
     GKO_NOT_IMPLEMENTED;
 #if 0

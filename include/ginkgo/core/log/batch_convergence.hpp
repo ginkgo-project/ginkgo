@@ -77,7 +77,7 @@ public:
      *     num_matrices x 1 x num_RHS, which stores the final residual norms.
      */
     void on_batch_solver_completed(
-        const Array<int>& num_iterations,
+        const array<int>& num_iterations,
         const BatchLinOp* residual_norm) const override;
 
     /**
@@ -105,7 +105,7 @@ public:
     /**
      * @return  The number of iterations for entire batch
      */
-    const Array<int>& get_num_iterations() const noexcept
+    const array<int>& get_num_iterations() const noexcept
     {
         return num_iterations_;
     }
@@ -136,7 +136,7 @@ protected:
     {}
 
 private:
-    mutable Array<int> num_iterations_;
+    mutable array<int> num_iterations_;
     mutable std::unique_ptr<matrix::BatchDense<real_type>> residual_norm_{};
 };
 

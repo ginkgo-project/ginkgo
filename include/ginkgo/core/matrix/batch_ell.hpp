@@ -130,9 +130,9 @@ public:
     static std::unique_ptr<BatchEll> create_from_batch_csc(
         std::shared_ptr<const Executor> exec, const size_type num_batch_entries,
         const dim<2>& size, const size_type num_elems_per_row,
-        const gko::Array<ValueType>& values,
-        const gko::Array<IndexType>& row_idxs,
-        const gko::Array<IndexType>& col_ptrs)
+        const gko::array<ValueType>& values,
+        const gko::array<IndexType>& row_idxs,
+        const gko::array<IndexType>& col_ptrs)
     {
         GKO_ASSERT_EQ(values.get_num_elems(),
                       row_idxs.get_num_elems() * num_batch_entries);
@@ -307,8 +307,8 @@ public:
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         const batch_stride& num_stored_elems_per_row,
         const batch_stride& stride,
-        gko::detail::ConstArrayView<ValueType>&& values,
-        gko::detail::ConstArrayView<IndexType>&& col_idxs)
+        gko::detail::const_array_view<ValueType>&& values,
+        gko::detail::const_array_view<IndexType>&& col_idxs)
     {
         // cast const-ness away, but return a const object afterwards,
         // so we can ensure that no modifications take place.
@@ -468,9 +468,9 @@ protected:
                       col_idxs_.get_num_elems() * size.get_num_batch_entries());
     }
 
-    void create_from_batch_csc_impl(const gko::Array<ValueType>& values,
-                                    const gko::Array<IndexType>& row_idxs,
-                                    const gko::Array<IndexType>& col_ptrs);
+    void create_from_batch_csc_impl(const gko::array<ValueType>& values,
+                                    const gko::array<IndexType>& row_idxs,
+                                    const gko::array<IndexType>& col_ptrs);
 
     void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override;
 
@@ -500,9 +500,9 @@ private:
 
     batch_num_stored_elems_per_row num_stored_elems_per_row_;
     batch_stride stride_;
-    Array<value_type> values_;
-    Array<index_type> col_idxs_;
-    Array<index_type> row_ptrs_;
+    array<value_type> values_;
+    array<index_type> col_idxs_;
+    array<index_type> row_ptrs_;
 
     size_type linearize_index(size_type batch_id, size_type row,
                               size_type col) const noexcept

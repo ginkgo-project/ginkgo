@@ -61,7 +61,7 @@ struct DummyLogged : gko::log::EnableLogging<DummyLogged> {
 
     void apply()
     {
-        gko::Array<int> iter_counts(exec, nbatch * nrhs);
+        gko::array<int> iter_counts(exec, nbatch * nrhs);
         int* const itervals = iter_counts.get_data();
         const gko::batch_dim<> sizes(nbatch, gko::dim<2>{1, nrhs});
         auto res_norms =
