@@ -61,7 +61,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
                                                         a_ub.num_nnz) *
         sizeof(ValueType);
     using byte = unsigned char;
-    Array<byte> local_space(exec, local_size_bytes);
+    array<byte> local_space(exec, local_size_bytes);
     host::BatchJacobi<ValueType> prec;
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);
@@ -92,7 +92,7 @@ void batch_jacobi_apply(std::shared_ptr<const gko::ReferenceExecutor> exec,
                                                         a_ub.num_nnz) *
         sizeof(ValueType);
     using byte = unsigned char;
-    Array<byte> local_space(exec, local_size_bytes);
+    array<byte> local_space(exec, local_size_bytes);
     host::BatchJacobi<ValueType> prec;
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
         const auto a_b = gko::batch::batch_entry(a_ub, batch);

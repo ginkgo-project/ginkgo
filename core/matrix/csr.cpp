@@ -829,9 +829,9 @@ GKO_DECLARE_BLOCK_DIAG_CSR_MATRIX(ValueType, IndexType)
         total_rows += matrices[imat]->get_size()[0];
         total_nnz += matrices[imat]->get_num_stored_elements();
     }
-    Array<IndexType> h_row_ptrs(exec->get_master(), total_rows + 1);
-    Array<IndexType> h_col_idxs(exec->get_master(), total_nnz);
-    Array<ValueType> h_values(exec->get_master(), total_nnz);
+    array<IndexType> h_row_ptrs(exec->get_master(), total_rows + 1);
+    array<IndexType> h_col_idxs(exec->get_master(), total_nnz);
+    array<ValueType> h_values(exec->get_master(), total_nnz);
     size_type roffset = 0, nzoffset = 0;
     for (size_type im = 0; im < matrices.size(); im++) {
         auto imatrix = mtx_type::create(exec->get_master());

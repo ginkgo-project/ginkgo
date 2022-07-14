@@ -156,7 +156,7 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
     using ValueType = typename MatrixType::value_type;
     using IndexType = typename MatrixType::index_type;
     const int nnz = 3 * (nrows - 2) + 4;
-    gko::Array<IndexType> row_ptrs(exec, nrows + 1);
+    gko::array<IndexType> row_ptrs(exec, nrows + 1);
     {
         const auto ra = row_ptrs.get_data();
         ra[0] = 0;
@@ -167,7 +167,7 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
         ra[nrows] = ra[nrows - 1] + 2;
         GKO_ASSERT(ra[nrows] == nnz);
     }
-    gko::Array<IndexType> col_idxs(exec, nnz);
+    gko::array<IndexType> col_idxs(exec, nnz);
     {
         const auto ca = col_idxs.get_data();
         ca[0] = 0;
@@ -182,7 +182,7 @@ std::unique_ptr<MatrixType> create_poisson1d_batch(
         ca[lrstart] = nrows - 2;
         ca[lrstart + 1] = nrows - 1;
     }
-    gko::Array<ValueType> vals(exec, nnz * nbatch);
+    gko::array<ValueType> vals(exec, nnz * nbatch);
     for (int i = 0; i < nbatch; i++) {
         ValueType* const va = vals.get_data() + i * nnz;
         va[0] = 2.0;
@@ -238,7 +238,7 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
     std::generate(spacings.begin(), spacings.end(),
                   [&]() { return distb(rgen); });
 
-    Array<value_type> h_allvalues(h_exec, nnz * nsystems);
+    array<value_type> h_allvalues(h_exec, nnz * nsystems);
     for (size_type isys = 0; isys < nsystems; isys++) {
         h_allvalues.get_data()[isys * nnz] = 2.0 / spacings[isys * nrows];
         h_allvalues.get_data()[isys * nnz + 1] = -1.0;
@@ -258,7 +258,7 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
         assert(isys * nnz + 2 + (nrows - 2) * 3 + 2 == (isys + 1) * nnz);
     }
 
-    Array<index_type> h_rowptrs(h_exec, nrows + 1);
+    array<index_type> h_rowptrs(h_exec, nrows + 1);
     h_rowptrs.get_data()[0] = 0;
     h_rowptrs.get_data()[1] = 2;
     for (int i = 2; i < nrows; i++) {
@@ -267,7 +267,7 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
     h_rowptrs.get_data()[nrows] = h_rowptrs.get_data()[nrows - 1] + 2;
     assert(h_rowptrs.get_data()[nrows] == nnz);
 
-    Array<index_type> h_colidxs(h_exec, nnz);
+    array<index_type> h_colidxs(h_exec, nnz);
     h_colidxs.get_data()[0] = 0;
     h_colidxs.get_data()[1] = 1;
     const int nnz_per_row = 3;
@@ -284,7 +284,7 @@ BatchSystem<typename MatrixType::value_type> generate_solvable_batch_system(
     h_colidxs.get_data()[2 + (nrows - 2) * nnz_per_row + 1] = nrows - 1;
     assert(2 + (nrows - 2) * nnz_per_row + 1 == nnz - 1);
 
-    Array<value_type> h_allb(h_exec, nrows * nrhs * nsystems);
+    array<value_type> h_allb(h_exec, nrows * nrhs * nsystems);
     for (size_type ib = 0; ib < nsystems; ib++) {
         for (int j = 0; j < nrhs; j++) {
             const value_type bval = distb(rgen);

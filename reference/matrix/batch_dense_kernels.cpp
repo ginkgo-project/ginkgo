@@ -394,7 +394,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
                                 const matrix::BatchDense<ValueType>* source,
-                                Array<size_type>* result)
+                                array<size_type>* result)
 {
     for (size_type batch = 0; batch < source->get_num_batch_entries();
          ++batch) {

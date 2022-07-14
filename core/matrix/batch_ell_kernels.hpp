@@ -95,7 +95,7 @@ namespace kernels {
     void calculate_nonzeros_per_row(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const matrix::BatchEll<ValueType, IndexType>* source,              \
-        Array<size_type>* result)
+        array<size_type>* result)
 
 #define GKO_DECLARE_BATCH_ELL_SORT_BY_COLUMN_INDEX(ValueType, IndexType)   \
     void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec, \
@@ -124,9 +124,9 @@ namespace kernels {
 #define GKO_DECLARE_BATCH_ELL_CONVERT_FROM_BATCH_CSC(ValueType, IndexType)   \
     void convert_from_batch_csc(std::shared_ptr<const DefaultExecutor> exec, \
                                 matrix::BatchEll<ValueType, IndexType>* ell, \
-                                const Array<ValueType>& values,              \
-                                const Array<IndexType>& row_idxs,            \
-                                const Array<IndexType>& col_ptrs)
+                                const array<ValueType>& values,              \
+                                const array<IndexType>& row_idxs,            \
+                                const array<IndexType>& col_ptrs)
 
 #define GKO_DECLARE_BATCH_ELL_CONVERT_TO_BATCH_DENSE(ValueType, IndexType) \
     void convert_to_batch_dense(                                           \

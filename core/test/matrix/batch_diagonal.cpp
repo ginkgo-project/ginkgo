@@ -68,7 +68,7 @@ protected:
                                              gko::dim<2>{6, 4}};
         const size_type num_entries = sizes.size();
         const size_type stored = 3 + 4;
-        gko::Array<value_type> vals(exec, stored);
+        gko::array<value_type> vals(exec, stored);
         auto valarr = vals.get_data();
         valarr[0] = 2.5;
         valarr[1] = -1.5;
@@ -120,12 +120,12 @@ protected:
         const
     {
         const size_type csize{3};
-        gko::Array<value_type> vals1(this->exec, 3);
+        gko::array<value_type> vals1(this->exec, 3);
         auto valarr1 = vals1.get_data();
         valarr1[0] = -1.0;
         valarr1[1] = 2.0;
         valarr1[2] = 3.0;
-        gko::Array<value_type> vals2(this->exec, 3);
+        gko::array<value_type> vals2(this->exec, 3);
         auto valarr2 = vals2.get_data();
         valarr2[0] = 1.0;
         valarr2[1] = 2.5;
@@ -194,7 +194,7 @@ TYPED_TEST(BatchDiagonal, CanBeConstructedFromExistingData)
     auto m = gko::matrix::BatchDiagonal<TypeParam>::create(
         this->exec,
         std::vector<gko::dim<2>>{gko::dim<2>{4, 2}, gko::dim<2>{4, 5}},
-        gko::Array<value_type>::view(this->exec, 12, data));
+        gko::array<value_type>::view(this->exec, 12, data));
 
     ASSERT_EQ(m->get_const_values(), data);
     ASSERT_EQ(m->at(0, 0), value_type{1.0});

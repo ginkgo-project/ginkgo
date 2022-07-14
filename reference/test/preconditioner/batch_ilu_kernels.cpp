@@ -108,18 +108,18 @@ TYPED_TEST(BatchIlu, GenerationIsEquivalentToUnbatched)
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
     // extract the first matrix, as a view, into a regular Csr matrix.
     const auto unbatch_size = gko::dim<2>(nrows, sys_csr->get_size().at(0)[1]);
-    auto sys_rows_view = gko::Array<index_type>::const_view(
+    auto sys_rows_view = gko::array<index_type>::const_view(
         exec, nrows + 1, sys_csr->get_const_row_ptrs());
-    auto sys_cols_view = gko::Array<index_type>::const_view(
+    auto sys_cols_view = gko::array<index_type>::const_view(
         exec, nnz, sys_csr->get_const_col_idxs());
-    auto sys_vals_view = gko::Array<value_type>::const_view(
+    auto sys_vals_view = gko::array<value_type>::const_view(
         exec, nnz, sys_csr->get_const_values());
     auto first_csr = unbatch_type::create_const(
         exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
         std::move(sys_rows_view));
     // initialize L and U factors
-    gko::Array<index_type> l_row_ptrs(exec, nrows + 1);
-    gko::Array<index_type> u_row_ptrs(exec, nrows + 1);
+    gko::array<index_type> l_row_ptrs(exec, nrows + 1);
+    gko::array<index_type> u_row_ptrs(exec, nrows + 1);
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
         exec, first_csr.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data());
     const auto l_nnz = exec->copy_val_to_host(&l_row_ptrs.get_data()[nrows]);
