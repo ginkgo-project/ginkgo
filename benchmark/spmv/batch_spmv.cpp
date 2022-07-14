@@ -96,7 +96,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         auto nbatch = FLAGS_num_duplications;
-        auto storage_logger = std::make_shared<StorageLogger>(exec);
+        auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
         auto system_matrix = share(
             formats::batch_matrix_factory.at(format_name)(exec, nbatch, data));
@@ -211,7 +211,7 @@ void apply_spmv(const char* format_name, std::shared_ptr<gko::Executor> exec,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         auto n_dup = FLAGS_num_duplications;
-        auto storage_logger = std::make_shared<StorageLogger>(exec);
+        auto storage_logger = std::make_shared<StorageLogger>();
         exec->add_logger(storage_logger);
         auto system_matrix = share(
             formats::batch_matrix_factory2.at(format_name)(exec, n_dup, data));
