@@ -81,12 +81,12 @@ protected:
 
 TEST_F(BatchIlu, GenerateIsEquivalentToReference)
 {
-    auto d_mtx = gko::clone(d_exec, mtx.get());
+    auto d_mtx = gko::share(gko::clone(d_exec, mtx.get()));
     auto prec_fact = prec_type::build().on(ref);
     auto d_prec_fact = prec_type::build().on(d_exec);
 
     auto prec = prec_fact->generate(mtx);
-    auto d_prec = d_prec_fact->generate(gko::share(d_mtx));
+    auto d_prec = d_prec_fact->generate(d_mtx);
 
     auto l_factor = prec->get_const_lower_factor();
     auto u_factor = prec->get_const_upper_factor();
