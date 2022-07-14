@@ -65,7 +65,7 @@ void batch_identity_apply(std::shared_ptr<const gko::OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type batch = 0; batch < a->get_num_batch_entries(); ++batch) {
-        Array<byte> local_space(exec, local_size_bytes);
+        array<byte> local_space(exec, local_size_bytes);
         host::BatchIdentity<ValueType> prec;
 
         const auto a_b = gko::batch::batch_entry(a_ub, batch);

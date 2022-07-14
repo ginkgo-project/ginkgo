@@ -88,19 +88,19 @@ void BatchIlu<ValueType, IndexType>::generate(
 
     // extract the first matrix, as a view, into a regular Csr matrix.
     const auto unbatch_size = gko::dim<2>{nrows, sys_csr->get_size().at(0)[1]};
-    auto sys_rows_view = Array<IndexType>::const_view(
+    auto sys_rows_view = array<IndexType>::const_view(
         exec, nrows + 1, sys_csr->get_const_row_ptrs());
     auto sys_cols_view =
-        Array<IndexType>::const_view(exec, nnz, sys_csr->get_const_col_idxs());
+        array<IndexType>::const_view(exec, nnz, sys_csr->get_const_col_idxs());
     auto sys_vals_view =
-        Array<ValueType>::const_view(exec, nnz, sys_csr->get_const_values());
+        array<ValueType>::const_view(exec, nnz, sys_csr->get_const_values());
     auto first_csr = unbatch_type::create_const(
         exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
         std::move(sys_rows_view));
 
     // initialize L and U factors
-    Array<IndexType> l_row_ptrs(exec, nrows + 1);
-    Array<IndexType> u_row_ptrs(exec, nrows + 1);
+    array<IndexType> l_row_ptrs(exec, nrows + 1);
+    array<IndexType> u_row_ptrs(exec, nrows + 1);
     exec->run(batch_ilu::make_unbatch_initialize_row_ptrs_l_u(
         first_csr.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
     const auto l_nnz =

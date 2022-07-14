@@ -89,7 +89,7 @@ public:
                 nrows, nrhs, opts_.restart_num) +
             PrecType::dynamic_work_size(nrows, a.num_nnz) * sizeof(ValueType);
         // For some reason, gko::Array allocation fails here
-        // Array<unsigned char> local_space(exec_, local_size_bytes);
+        // array<unsigned char> local_space(exec_, local_size_bytes);
 
 #pragma omp parallel for firstprivate(logger)
         for (size_type ibatch = 0; ibatch < nbatch; ibatch++) {
