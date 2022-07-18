@@ -249,6 +249,7 @@ void build_local_nonlocal(
     // I have to precompute the lower bounds because the calling binary
     // searches from the device does not work:
     // https://github.com/NVIDIA/thrust/issues/1415
+    // TODO: compute lower bounds on-the-fly if available
     thrust::lower_bound(
         thrust::device, non_local_global_col_idxs_begin,
         non_local_global_col_idxs_begin + num_non_local_cols,
