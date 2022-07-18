@@ -558,7 +558,7 @@ There are two main steps:
 + In `short-intro`: The name of the example.
 + In `results.dox`: Run the example and write the output you get.
 + In `kind`: The kind of the example. For different kinds see [the
-  documentation](https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html).
+  documentation](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/develop/Examples.html).
   Examples can be of `basic`, `techniques`, `logging`, `stopping_criteria` or
   `preconditioners`. If your example does not fit any of these categories, feel
   free to create one.
