@@ -122,8 +122,6 @@ public:
         init_executor(gko::ReferenceExecutor::create(), exec, comm);
     }
 
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
-
     void TearDown() override
     {
         if (exec != nullptr) {
