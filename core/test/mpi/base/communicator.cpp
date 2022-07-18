@@ -45,7 +45,7 @@ namespace {
 
 class Communicator : public ::testing::Test {
 protected:
-    Communicator() : comm(MPI_COMM_WORLD) {}
+    Communicator() : comm(MPI_COMM_WORLD, gko::ReferenceExecutor::create()) {}
 
     void SetUp()
     {
@@ -104,7 +104,8 @@ TEST_F(Communicator, CommunicatorCanBeCopyAssigned)
 
 TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 {
-    gko::mpi::communicator comm2(MPI_COMM_WORLD);
+    gko::mpi::communicator comm2(MPI_COMM_WORLD,
+                                 gko::ReferenceExecutor::create());
     gko::mpi::communicator copy(std::move(comm2));
 
     EXPECT_TRUE(copy == comm);
@@ -113,8 +114,10 @@ TEST_F(Communicator, CommunicatorCanBeMoveConstructed)
 
 TEST_F(Communicator, CommunicatorCanBeMoveAssigned)
 {
-    gko::mpi::communicator comm2(MPI_COMM_WORLD);
-    gko::mpi::communicator copy(MPI_COMM_NULL);
+    gko::mpi::communicator comm2(MPI_COMM_WORLD,
+                                 gko::ReferenceExecutor::create());
+    gko::mpi::communicator copy(MPI_COMM_NULL,
+                                gko::ReferenceExecutor::create());
     copy = std::move(comm2);
 
     EXPECT_TRUE(copy == comm);

@@ -60,7 +60,7 @@ TYPED_TEST_SUITE(MpiBindings, gko::test::PODTypes, TypenameNameGenerator);
 
 TYPED_TEST(MpiBindings, CanSetADefaultwindow)
 {
-    gko::mpi::window<TypeParam> win;
+    gko::mpi::window<TypeParam> win(this->ref);
     ASSERT_EQ(win.get_window(), MPI_WIN_NULL);
 }
 
@@ -68,10 +68,10 @@ TYPED_TEST(MpiBindings, CanSetADefaultwindow)
 TYPED_TEST(MpiBindings, CanCreatewindow)
 {
     auto data = std::vector<TypeParam>{1, 2, 3, 4};
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
 
-    auto win =
-        gko::mpi::window<TypeParam>(data.data(), 4 * sizeof(TypeParam), comm);
+    auto win = gko::mpi::window<TypeParam>(this->ref, data.data(),
+                                           4 * sizeof(TypeParam), comm);
 
     ASSERT_NE(win.get_window(), MPI_WIN_NULL);
     win.lock_all();
@@ -81,7 +81,7 @@ TYPED_TEST(MpiBindings, CanCreatewindow)
 
 TYPED_TEST(MpiBindings, CanSendAndRecvValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto recv_array = gko::array<TypeParam>{this->ref};
@@ -107,14 +107,15 @@ TYPED_TEST(MpiBindings, CanSendAndRecvValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> send_array;
     auto recv_array = gko::array<TypeParam>{this->ref};
     TypeParam* data;
-    auto req1 = std::vector<gko::mpi::request>(num_ranks);
-    auto req2 = gko::mpi::request();
+    auto req1 =
+        std::vector<gko::mpi::request>(num_ranks, gko::mpi::request{this->ref});
+    auto req2 = gko::mpi::request(this->ref);
 
     if (my_rank == 0) {
         send_array = std::vector<TypeParam>{1, 2, 3, 4};
@@ -143,7 +144,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingSendAndNonBlockingRecvValues)
 TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -154,7 +155,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
     }
 
     {
-        auto win = window(data.data(), 4, comm);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             win.lock_all();
             for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -174,7 +175,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanNonBlockingPutValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -185,8 +186,8 @@ TYPED_TEST(MpiBindings, CanNonBlockingPutValuesWithLockAll)
     }
 
     {
-        gko::mpi::request req;
-        auto win = window(data.data(), 4, comm);
+        gko::mpi::request req(this->ref);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             win.lock_all();
             for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -207,7 +208,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingPutValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -219,7 +220,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
     }
 
     {
-        auto win = window(data.data(), 4, comm);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             for (auto rank = 0; rank < num_ranks; ++rank) {
                 if (rank != my_rank) {
@@ -240,7 +241,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithExclusiveLock)
 TYPED_TEST(MpiBindings, CanPutValuesWithSharedLock)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -252,7 +253,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithSharedLock)
     }
 
     {
-        auto win = window(data.data(), 4, comm);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             for (auto rank = 0; rank < num_ranks; ++rank) {
                 if (rank != my_rank) {
@@ -273,7 +274,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithSharedLock)
 TYPED_TEST(MpiBindings, CanPutValuesWithFence)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -282,7 +283,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4, comm);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     win.fence();
     if (my_rank == 0) {
@@ -302,7 +303,7 @@ TYPED_TEST(MpiBindings, CanPutValuesWithFence)
 TYPED_TEST(MpiBindings, CanAccumulateValues)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -317,7 +318,7 @@ TYPED_TEST(MpiBindings, CanAccumulateValues)
     }
 
     {
-        auto win = window(data.data(), 4, comm);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             win.lock_all();
             for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -349,7 +350,7 @@ TYPED_TEST(MpiBindings, CanAccumulateValues)
 TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -363,9 +364,9 @@ TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
 
-    gko::mpi::request req;
+    gko::mpi::request req(this->ref);
     {
-        auto win = window(data.data(), 4, comm);
+        auto win = window(this->ref, data.data(), 4, comm);
         if (my_rank == 0) {
             win.lock_all();
             for (auto rank = 0; rank < num_ranks; ++rank) {
@@ -398,7 +399,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAccumulateValues)
 TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -407,7 +408,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4, comm);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     if (my_rank != 0) {
         win.lock_all();
@@ -423,7 +424,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanNonBlockingGetValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -432,8 +433,8 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetValuesWithLockAll)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    gko::mpi::request req;
-    auto win = window(data.data(), 4, comm);
+    gko::mpi::request req(this->ref);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     if (my_rank != 0) {
         win.lock_all();
@@ -450,7 +451,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -459,7 +460,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4, comm);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     if (my_rank != 0) {
         win.lock(0, window::lock_type::exclusive);
@@ -475,7 +476,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithExclusiveLock)
 TYPED_TEST(MpiBindings, CanGetValuesWithSharedLock)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -484,7 +485,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithSharedLock)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4, comm);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     if (my_rank != 0) {
         win.lock(0);
@@ -500,7 +501,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithSharedLock)
 TYPED_TEST(MpiBindings, CanGetValuesWithFence)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -509,7 +510,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
     } else {
         data = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    auto win = window(data.data(), 4, comm);
+    auto win = window(this->ref, data.data(), 4, comm);
 
     win.fence();
     if (my_rank != 0) {
@@ -525,7 +526,7 @@ TYPED_TEST(MpiBindings, CanGetValuesWithFence)
 TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -546,7 +547,7 @@ TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
     }
 
     {
-        auto win = window(target.data(), 4, comm);
+        auto win = window(this->ref, target.data(), 4, comm);
 
         if (my_rank == 2) {
             win.lock_all();
@@ -571,7 +572,7 @@ TYPED_TEST(MpiBindings, CanGetAccumulateValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -590,10 +591,10 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
         data = std::vector<TypeParam>{0, 0, 0, 0};
         target = std::vector<TypeParam>{0, 0, 0, 0};
     }
-    gko::mpi::request req;
+    gko::mpi::request req(this->ref);
 
     {
-        auto win = window(target.data(), 4, comm);
+        auto win = window(this->ref, target.data(), 4, comm);
 
         if (my_rank == 2) {
             win.lock_all();
@@ -624,7 +625,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGetAccumulateValuesWithLockAll)
 TYPED_TEST(MpiBindings, CanFetchAndOperate)
 {
     using window = gko::mpi::window<TypeParam>;
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     std::vector<TypeParam> data;
@@ -645,7 +646,7 @@ TYPED_TEST(MpiBindings, CanFetchAndOperate)
     }
 
     {
-        auto win = window(target.data(), 4, comm);
+        auto win = window(this->ref, target.data(), 4, comm);
 
         if (my_rank == 2) {
             win.lock_all();
@@ -668,7 +669,7 @@ TYPED_TEST(MpiBindings, CanFetchAndOperate)
 
 TYPED_TEST(MpiBindings, CanBroadcastValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto array = gko::array<TypeParam>{this->ref, 8};
@@ -685,7 +686,7 @@ TYPED_TEST(MpiBindings, CanBroadcastValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingBroadcastValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto array = gko::array<TypeParam>{this->ref, 8};
@@ -703,7 +704,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingBroadcastValues)
 
 TYPED_TEST(MpiBindings, CanReduceValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum, max, min;
@@ -731,7 +732,7 @@ TYPED_TEST(MpiBindings, CanReduceValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingReduceValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum, max, min;
@@ -762,7 +763,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingReduceValues)
 
 TYPED_TEST(MpiBindings, CanAllReduceValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum;
@@ -784,7 +785,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValues)
 
 TYPED_TEST(MpiBindings, CanAllReduceValuesInPlace)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -806,7 +807,7 @@ TYPED_TEST(MpiBindings, CanAllReduceValuesInPlace)
 
 TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum;
@@ -829,7 +830,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValuesInPlace)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -852,7 +853,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllReduceValuesInPlace)
 
 TYPED_TEST(MpiBindings, CanGatherValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -879,7 +880,7 @@ TYPED_TEST(MpiBindings, CanGatherValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingGatherValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -907,7 +908,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGatherValues)
 
 TYPED_TEST(MpiBindings, CanAllGatherValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -932,7 +933,7 @@ TYPED_TEST(MpiBindings, CanAllGatherValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingAllGatherValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data;
@@ -958,7 +959,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingAllGatherValues)
 
 TYPED_TEST(MpiBindings, CanGatherValuesWithDisplacements)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto gather_from_array = gko::array<TypeParam>{this->ref};
@@ -1001,7 +1002,7 @@ TYPED_TEST(MpiBindings, CanGatherValuesWithDisplacements)
 
 TYPED_TEST(MpiBindings, CanNonBlockingGatherValuesWithDisplacements)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto gather_from_array = gko::array<TypeParam>{this->ref};
@@ -1045,7 +1046,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingGatherValuesWithDisplacements)
 
 TYPED_TEST(MpiBindings, CanScatterValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto scatter_from_array = gko::array<TypeParam>{this->ref};
@@ -1078,7 +1079,7 @@ TYPED_TEST(MpiBindings, CanScatterValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingScatterValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto scatter_from_array = gko::array<TypeParam>{this->ref};
@@ -1112,7 +1113,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingScatterValues)
 
 TYPED_TEST(MpiBindings, CanScatterValuesWithDisplacements)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto scatter_from_array = gko::array<TypeParam>{this->ref};
@@ -1163,7 +1164,7 @@ TYPED_TEST(MpiBindings, CanScatterValuesWithDisplacements)
 
 TYPED_TEST(MpiBindings, CanNonBlockingScatterValuesWithDisplacements)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto scatter_from_array = gko::array<TypeParam>{this->ref};
@@ -1215,7 +1216,7 @@ TYPED_TEST(MpiBindings, CanNonBlockingScatterValuesWithDisplacements)
 
 TYPED_TEST(MpiBindings, AllToAllWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto send_array = gko::array<TypeParam>{this->ref};
@@ -1244,7 +1245,7 @@ TYPED_TEST(MpiBindings, AllToAllWorksCorrectly)
 
 TYPED_TEST(MpiBindings, NonBlockingAllToAllWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto send_array = gko::array<TypeParam>{this->ref};
@@ -1275,7 +1276,7 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllWorksCorrectly)
 
 TYPED_TEST(MpiBindings, AllToAllInPlaceWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto recv_array = gko::array<TypeParam>{this->ref};
@@ -1302,7 +1303,7 @@ TYPED_TEST(MpiBindings, AllToAllInPlaceWorksCorrectly)
 
 TYPED_TEST(MpiBindings, NonBlockingAllToAllInPlaceWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto recv_array = gko::array<TypeParam>{this->ref};
@@ -1331,7 +1332,7 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllInPlaceWorksCorrectly)
 
 TYPED_TEST(MpiBindings, AllToAllVWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto send_array = gko::array<TypeParam>{this->ref};
@@ -1384,7 +1385,7 @@ TYPED_TEST(MpiBindings, AllToAllVWorksCorrectly)
 
 TYPED_TEST(MpiBindings, NonBlockingAllToAllVWorksCorrectly)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     auto send_array = gko::array<TypeParam>{this->ref};
@@ -1440,7 +1441,7 @@ TYPED_TEST(MpiBindings, NonBlockingAllToAllVWorksCorrectly)
 
 TYPED_TEST(MpiBindings, CanScanValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum, max, min;
@@ -1480,7 +1481,7 @@ TYPED_TEST(MpiBindings, CanScanValues)
 
 TYPED_TEST(MpiBindings, CanNonBlockingScanValues)
 {
-    auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    auto comm = gko::mpi::communicator(MPI_COMM_WORLD, this->ref);
     auto my_rank = comm.rank();
     auto num_ranks = comm.size();
     TypeParam data, sum, max, min;
