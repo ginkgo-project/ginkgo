@@ -454,12 +454,6 @@ inline std::vector<status> wait_all(std::vector<request>& reqs)
 class communicator {
 public:
     /**
-     * Default empty constructor using the invalid MPI_COMM_NULL and
-     * a ReferenceExecutor.
-     */
-    communicator() : communicator(MPI_COMM_NULL, ReferenceExecutor::create()) {}
-
-    /**
      * Non-owning constructor for an existing communicator of type MPI_Comm. The
      * MPI_Comm object will not be deleted after the communicator object has
      * been freed and an explicit MPI_Comm_free needs to be called on the

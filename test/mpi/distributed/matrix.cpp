@@ -72,16 +72,15 @@ public:
 
     int get_transfer_count() const { return transfer_count_; }
 
-    static std::unique_ptr<HostToDeviceLogger> create(
-        std::shared_ptr<const gko::Executor> exec)
+    static std::unique_ptr<HostToDeviceLogger> create()
     {
         return std::unique_ptr<HostToDeviceLogger>(
-            new HostToDeviceLogger(std::move(exec)));
+            new HostToDeviceLogger());
     }
 
 protected:
-    explicit HostToDeviceLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec, gko::log::Logger::copy_started_mask)
+    explicit HostToDeviceLogger()
+        : gko::log::Logger(gko::log::Logger::copy_started_mask)
     {}
 
 private:
@@ -104,9 +103,10 @@ public:
 
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
+          comm(MPI_COMM_WORLD, ref),
           size{53, 53},
           num_rhs(11),
-          logger(gko::share(HostToDeviceLogger::create(exec))),
+          logger(gko::share(HostToDeviceLogger::create())),
           engine()
     {
         init_executor(ref, exec);
