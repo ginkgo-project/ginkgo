@@ -152,7 +152,7 @@ void build_local_nonlocal(
 
     // 3. create mapping from unique_columns
     unordered_map<GlobalIndexType, LocalIndexType> non_local_column_map(exec);
-    for (std::size_t i = 0; i < unique_columns.size(); ++i) {
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
         non_local_column_map[unique_columns[i]] =
             static_cast<LocalIndexType>(i);
     }
