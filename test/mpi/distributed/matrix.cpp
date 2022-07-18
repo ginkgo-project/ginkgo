@@ -534,11 +534,13 @@ public:
 
     static std::unique_ptr<HostToDeviceLogger> create()
     {
-        return std::unique_ptr<HostToDeviceLogger>(new HostToDeviceLogger());
+        return std::unique_ptr<HostToDeviceLogger>(
+            new HostToDeviceLogger());
     }
 
 protected:
-    HostToDeviceLogger() : gko::log::Logger(gko::log::Logger::copy_started_mask)
+    explicit HostToDeviceLogger()
+        : gko::log::Logger(gko::log::Logger::copy_started_mask)
     {}
 
 private:
