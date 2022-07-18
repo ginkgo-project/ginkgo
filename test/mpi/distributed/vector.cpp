@@ -111,6 +111,7 @@ public:
 
     VectorCreation()
         : ref(gko::ReferenceExecutor::create()),
+          comm(MPI_COMM_WORLD, ref),
           part(gko::share(part_type::build_from_contiguous(
               this->ref, {ref, {0, 2, 4, 6}}))),
           local_size{4, 11},
@@ -121,8 +122,6 @@ public:
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
         size = gko::dim<2>{local_size[1] * comm.size(), 11};
     }
-
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
     void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
@@ -371,7 +370,8 @@ public:
     using real_dense_type = typename dense_type::real_type;
 
     VectorReductions()
-        : ref(gko::ReferenceExecutor::create()), size{53, 11}, engine(42)
+        : ref(gko::ReferenceExecutor::create()),
+          comm(MPI_COMM_WORLD, ref), size{53, 11}, engine(42)
     {
         init_executor(gko::ReferenceExecutor::create(), exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
@@ -635,7 +635,9 @@ public:
     using real_dense_type = typename dense_type ::real_type;
 
     VectorLocalOps()
-        : ref(gko::ReferenceExecutor::create()), local_size{4, 11}, engine(42)
+        : ref(gko::ReferenceExecutor::create()),
+          comm(MPI_COMM_WORLD, ref),
+          local_size{4, 11}, engine(42)
     {
         init_executor(ref, exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
