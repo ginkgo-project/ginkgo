@@ -1010,7 +1010,7 @@ TEST_F(Dense, ComputeDotIsEquivalentToRef)
     x->compute_dot(y.get(), dot_expected.get());
     dx->compute_dot(y.get(), ddot.get());
 
-    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value * 2);
 }
 
 
@@ -1060,7 +1060,7 @@ TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
     x->compute_conj_dot(y.get(), dot_expected.get());
     dx->compute_conj_dot(y.get(), ddot.get());
 
-    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(ddot, dot_expected, r<vtype>::value * 2);
 }
 
 
