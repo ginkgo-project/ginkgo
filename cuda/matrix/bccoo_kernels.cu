@@ -137,6 +137,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (a->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -176,6 +177,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (a->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -249,6 +251,7 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (source->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -307,6 +310,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (source->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -359,6 +363,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, stride, as_cuda_type(result->get_values()));
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (source->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -395,6 +400,7 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (orig->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -430,6 +436,7 @@ void compute_absolute_inplace(std::shared_ptr<const CudaExecutor> exec,
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (matrix->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));
@@ -468,6 +475,7 @@ void compute_absolute(
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
+        // If there is work to compute
         if (source->use_block_compression()) {
             int num_blocks_grid = std::min(
                 num_blocks_matrix, (size_type)ceildiv(nwarps, warps_in_block));

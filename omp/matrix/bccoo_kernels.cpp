@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/bccoo_helper.hpp"
+#include "core/matrix/bccoo_memsize_convert.hpp"
 #include "omp/components/atomic.hpp"
 
 
@@ -121,11 +122,12 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_blks = a->get_num_blocks();
     if (a->use_element_compression()) {
-// Computation of chunk
+        // For element compression objects
 #pragma omp parallel default(shared)
         {
             auto num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
+            // Each block is computed separately
 #pragma omp for
             for (size_type blk = 0; blk < num_blks; blk++) {
                 auto* rows_data = a->get_const_rows();
@@ -138,6 +140,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 ValueType val;
 
                 ValueType* sumV = sumV_array.get_data();
+                // The auxiliary vector is initialized to zero
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -151,6 +154,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     get_next_position_value(chunk_data, idxs.nblk, ind,
                                             idxs.shf, idxs.col, val);
                     if (row_old != idxs.row) {
+                        // When a new row ia achieved, the computed values
+                        // have to be accumulated to c
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
@@ -163,19 +168,21 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     new_elm = true;
                 }
                 if (new_elm) {
+                    // If some values are processed and not accumulated,
+                    // the computed values have to be accumulated to c
                     for (size_type j = 0; j < num_cols; j++) {
                         atomic_add(c->at(idxs.row, j), sumV[j]);
-                        //                        atomic_add(c->at(row, j),
-                        //                        sumV[j]);
                     }
                 }
             }
         }
     } else {
+        // For block compression objects
 #pragma omp parallel default(shared)
         {
             auto num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
+            // Each block is computed separately
 #pragma omp for
             for (size_type blk = 0; blk < num_blks; blk++) {
                 auto* rows_data = a->get_const_rows();
@@ -188,6 +195,7 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto num_stored_elements = a->get_num_stored_elements();
 
                 ValueType* sumV = sumV_array.get_data();
+                // The auxiliary vector is initialized to zero
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -209,6 +217,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     get_block_position_value<IndexType, ValueType>(
                         chunk_data, blk_idxs, idxs.row, idxs.col, val);
                     if (row_old != idxs.row) {
+                        // When a new row ia achieved, the computed values
+                        // have to be accumulated to c
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
@@ -222,6 +232,8 @@ void spmv2(std::shared_ptr<const OmpExecutor> exec,
                     row_old = idxs.row;
                 }
                 if (new_elm) {
+                    // If some values are processed and not accumulated,
+                    // the computed values have to be accumulated to c
                     for (size_type j = 0; j < num_cols; j++) {
                         atomic_add(c->at(row_old, j), sumV[j]);
                         sumV[j] = zero<ValueType>();
@@ -245,11 +257,12 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = a->get_num_blocks();
 
     if (a->use_element_compression()) {
-// Computation of chunk
+        // For element compression objects
 #pragma omp parallel default(shared)
         {
             auto num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
+            // Each block is computed separately
 #pragma omp for
             for (size_type blk = 0; blk < num_blks; blk++) {
                 auto* rows_data = a->get_const_rows();
@@ -257,12 +270,14 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto* chunk_data = a->get_const_chunk();
                 auto num_cols = b->get_size()[1];
                 auto block_size = a->get_block_size();
+                bool new_elm = false;
                 auto alpha_val = alpha->at(0, 0);
                 compr_idxs idxs = {};
                 size_type row_old = 0;
                 ValueType val;
 
                 ValueType* sumV = sumV_array.get_data();
+                // The auxiliary vector is initialized to zero
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -276,17 +291,25 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     get_next_position_value(chunk_data, idxs.nblk, ind,
                                             idxs.shf, idxs.col, val);
                     if (row_old != idxs.row) {
+                        // When a new row ia achieved, the computed values
+                        // have to be accumulated to c
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
                         }
+                        new_elm = false;
                     }
                     for (size_type j = 0; j < num_cols; j++) {
                         sumV[j] += alpha_val * val * b->at(idxs.col, j);
                     }
+                    new_elm = true;
                 }
-                for (size_type j = 0; j < num_cols; j++) {
-                    atomic_add(c->at(idxs.row, j), sumV[j]);
+                if (new_elm) {
+                    // If some values are processed and not accumulated,
+                    // the computed values have to be accumulated to c
+                    for (size_type j = 0; j < num_cols; j++) {
+                        atomic_add(c->at(idxs.row, j), sumV[j]);
+                    }
                 }
             }
         }
@@ -295,6 +318,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
         {
             auto num_cols = b->get_size()[1];
             array<ValueType> sumV_array(exec, num_cols);
+            // Each block is computed separately
 #pragma omp for
             for (size_type blk = 0; blk < num_blks; blk++) {
                 auto* rows_data = a->get_const_rows();
@@ -308,6 +332,7 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                 auto alpha_val = alpha->at(0, 0);
 
                 ValueType* sumV = sumV_array.get_data();
+                // The auxiliary vector is initialized to zero
                 for (size_type j = 0; j < num_cols; j++) {
                     sumV[j] = zero<ValueType>();
                 }
@@ -329,6 +354,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     get_block_position_value<IndexType, ValueType>(
                         chunk_data, blk_idxs, idxs.row, idxs.col, val);
                     if (row_old != idxs.row) {
+                        // When a new row ia achieved, the computed values
+                        // have to be accumulated to c
                         for (size_type j = 0; j < num_cols; j++) {
                             atomic_add(c->at(row_old, j), sumV[j]);
                             sumV[j] = zero<ValueType>();
@@ -342,6 +369,8 @@ void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     row_old = idxs.row;
                 }
                 if (new_elm) {
+                    // If some values are processed and not accumulated,
+                    // the computed values have to be accumulated to c
                     for (size_type j = 0; j < num_cols; j++) {
                         atomic_add(c->at(row_old, j), sumV[j]);
                         sumV[j] = zero<ValueType>();
@@ -359,9 +388,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Bccoo<ValueType, IndexType>* source,
-                    matrix::bccoo::compression commpress_res,
-                    const size_type block_size_res,
-                    size_type* mem_size) GKO_NOT_IMPLEMENTED;
+                    matrix::bccoo::compression compress_res,
+                    const size_type block_size_res, size_type* mem_size)
+{
+    // This code is exactly equal to the reference executor
+    if ((source->get_block_size() == block_size_res) &&
+        (source->get_compression() == compress_res)) {
+        *mem_size = source->get_num_bytes();
+    } else if ((source->use_element_compression()) &&
+               (compress_res == source->get_compression())) {
+        mem_size_bccoo_elm_elm(exec, source, block_size_res, mem_size);
+    } else if (source->use_element_compression()) {
+        mem_size_bccoo_elm_blk(exec, source, block_size_res, mem_size);
+    } else if (compress_res == matrix::bccoo::compression::element) {
+        mem_size_bccoo_blk_elm(exec, source, block_size_res, mem_size);
+    } else {
+        mem_size_bccoo_blk_blk(exec, source, block_size_res, mem_size);
+    }
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_BCCOO_MEM_SIZE_BCCOO_KERNEL);
@@ -384,14 +429,31 @@ void convert_to_next_precision(
     auto num_blk_src = source->get_num_blocks();
     auto num_stored_elements_src = source->get_num_stored_elements();
 
+    // If the block_size or the compression are different in source
+    // and result, the code is exactly equal to the reference executor
     if ((source->get_block_size() != result->get_block_size()) ||
         (source->get_compression() != result->get_compression())) {
-        std::cout << "BAD EXECUTOR" << std::endl;
+        auto compress_res = result->get_compression();
+        if ((source->use_element_compression()) &&
+            (result->use_element_compression())) {
+            convert_to_bccoo_elm_elm(exec, source, result,
+                                     [](ValueType val) { return val; });
+        } else if (source->use_element_compression()) {
+            convert_to_bccoo_elm_blk(exec, source, result);
+        } else if (compress_res == matrix::bccoo::compression::element) {
+            convert_to_bccoo_blk_elm(exec, source, result);
+        } else {
+            convert_to_bccoo_blk_blk(exec, source, result,
+                                     [](ValueType val) { return val; });
+        }
     } else {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
         if (source->use_element_compression()) {
+            // For element compression objects
+            // First, the non chunk vectors are copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -405,10 +467,12 @@ void convert_to_next_precision(
                 rows_data_res[blk_src] = rows_data_src[blk_src];
                 offsets_data_res[blk_src + 1] =
                     offsets_data_src[blk_src + 1] +
-                    (block_size_src * sizeof(next_precision<ValueType>)) -
-                    (block_size_src * sizeof(ValueType));
+                    ((blk_src + 1) * block_size_src *
+                     sizeof(next_precision<ValueType>)) -
+                    ((blk_src + 1) * block_size_src * sizeof(ValueType));
             }
-// Computation of chunk
+            // Finally, the chunk vector is copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -416,36 +480,41 @@ void convert_to_next_precision(
                 auto* chunk_data_src = source->get_const_chunk();
                 size_type block_size_src = source->get_block_size();
                 size_type num_bytes_src = source->get_num_bytes();
-                size_type nblk_src = 0, col_src = 0;
-                size_type row_src = rows_data_src[blk_src];
-                size_type shf_src = offsets_data_src[blk_src];
+                compr_idxs idxs_src = {};
                 ValueType val_src;
+                idxs_src.row = rows_data_src[blk_src];
+                idxs_src.shf = offsets_data_src[blk_src];
 
                 auto* rows_data_res = result->get_rows();
                 auto* offsets_data_res = result->get_offsets();
                 auto* chunk_data_res = result->get_chunk();
                 size_type block_size_res = result->get_block_size();
                 size_type num_bytes_res = result->get_num_bytes();
-                size_type nblk_res = 0, col_res = 0;
+                compr_idxs idxs_res = {};
                 size_type blk_res = blk_src;
-                size_type row_res = row_src;
-                size_type shf_res = shf_src;
                 next_precision<ValueType> val_res;
-
-                while (shf_src < offsets_data_src[blk_src + 1]) {
+                idxs_res.row = rows_data_res[blk_res];
+                idxs_res.shf = offsets_data_res[blk_res];
+                while (idxs_src.shf < offsets_data_src[blk_src + 1]) {
                     uint8 ind_src = get_position_newrow_put(
-                        chunk_data_src, shf_src, row_src, col_src,
-                        chunk_data_res, nblk_res, blk_res, rows_data_res,
-                        shf_res, row_res, col_res);
-                    get_next_position_value(chunk_data_src, nblk_src, ind_src,
-                                            shf_src, col_src, val_src);
+                        chunk_data_src, idxs_src.shf, idxs_src.row,
+                        idxs_src.col, chunk_data_res, idxs_res.nblk, blk_res,
+                        rows_data_res, idxs_res.shf, idxs_res.row,
+                        idxs_res.col);
+                    get_next_position_value(chunk_data_src, idxs_src.nblk,
+                                            ind_src, idxs_src.shf, idxs_src.col,
+                                            val_src);
                     val_res = (val_src);
-                    put_next_position_value(chunk_data_res, nblk_res,
-                                            col_src - col_res, shf_res, col_res,
+                    put_next_position_value(chunk_data_res, idxs_res.nblk,
+                                            idxs_src.col - idxs_res.col,
+                                            idxs_res.shf, idxs_res.col,
                                             val_res);
                 }
             }
         } else {
+            // For block compression objects
+            // First, the non chunk vectors are copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -465,10 +534,12 @@ void convert_to_next_precision(
                 types_data_res[blk_src] = types_data_src[blk_src];
                 offsets_data_res[blk_src + 1] =
                     offsets_data_src[blk_src + 1] +
-                    (block_size_src * sizeof(next_precision<ValueType>)) -
-                    (block_size_src * sizeof(ValueType));
+                    ((blk_src + 1) * block_size_src *
+                     sizeof(next_precision<ValueType>)) -
+                    ((blk_src + 1) * block_size_src * sizeof(ValueType));
             }
-// Computation of chunk
+            // Finally, the chunk vector is copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -509,56 +580,11 @@ void convert_to_next_precision(
                                    block_size_local_res, idxs_res,
                                    types_data_res[idxs_res.blk], blk_idxs_res);
 
-                if (blk_idxs_res.mul_row) {
-                    const uint8* rows_blk_src =
-                        reinterpret_cast<const uint8*>(chunk_data_src) +
-                        idxs_src.shf;
-                    uint8* rows_blk_res =
-                        reinterpret_cast<uint8*>(chunk_data_res) + idxs_res.shf;
-                    for (size_type j = 0; j < block_size_local_src; j++) {
-                        rows_blk_res[j] = rows_blk_src[j];
-                    }
-                    idxs_src.shf += block_size_local_src;
-                    idxs_res.shf += block_size_local_res;
-                }
-                if (blk_idxs_res.col_8bits) {
-                    const uint8* cols_blk_src = reinterpret_cast<const uint8*>(
-                        chunk_data_src + idxs_src.shf);
-                    uint8* cols_blk_res =
-                        reinterpret_cast<uint8*>(chunk_data_res + idxs_res.shf);
-                    for (size_type j = 0; j < block_size_local_src; j++) {
-                        cols_blk_res[j] = cols_blk_src[j];
-                    }
-                    idxs_src.shf += block_size_local_src;
-                    idxs_res.shf += block_size_local_res;
-                } else if (blk_idxs_res.col_16bits) {
-                    std::memcpy(reinterpret_cast<uint16*>(chunk_data_res +
-                                                          idxs_res.shf),
-                                reinterpret_cast<const uint16*>(chunk_data_src +
-                                                                idxs_src.shf),
-                                block_size_local_res * sizeof(uint16));
-                    idxs_src.shf += block_size_local_src * sizeof(uint16);
-                    idxs_res.shf += block_size_local_res * sizeof(uint16);
-                } else {
-                    std::memcpy(reinterpret_cast<uint32*>(chunk_data_res +
-                                                          idxs_res.shf),
-                                reinterpret_cast<const uint32*>(chunk_data_src +
-                                                                idxs_src.shf),
-                                block_size_local_res * sizeof(uint32));
-                    idxs_src.shf += block_size_local_src * sizeof(uint32);
-                    idxs_res.shf += block_size_local_res * sizeof(uint32);
-                }
-                if (true) {
-                    for (size_type i = 0; i < block_size_local_res; i++) {
-                        val_src = get_value_chunk<ValueType>(chunk_data_src,
-                                                             idxs_src.shf);
-                        val_res = val_src;
-                        set_value_chunk<next_precision<ValueType>>(
-                            chunk_data_res, idxs_res.shf, val_res);
-                        idxs_src.shf += sizeof(ValueType);
-                        idxs_res.shf += sizeof(next_precision<ValueType>);
-                    }
-                }
+                write_chunk_blk<ValueType, next_precision<ValueType>>(
+                    idxs_src, blk_idxs_src, block_size_local_src,
+                    chunk_data_src, idxs_res, blk_idxs_res,
+                    block_size_local_res, chunk_data_res,
+                    [](ValueType val) { return (val); });
             }
         }
     }
@@ -576,6 +602,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = source->get_num_blocks();
 
     if (source->use_element_compression()) {
+        // For element compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -600,7 +628,8 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-// Computation of chunk
+        // For block compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -626,14 +655,12 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
             idxs.blk = blk;
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
-            size_type row;
-            size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, row, col, val);
-                row_idxs[pos + i] = row;
-                col_idxs[pos + i] = col;
+                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                row_idxs[pos + i] = idxs.row;
+                col_idxs[pos + i] = idxs.col;
                 values[pos + i] = val;
             }
         }
@@ -658,6 +685,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     IndexType* row_idxs = rows_array.get_data();
 
     if (source->use_element_compression()) {
+        // For element compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -681,7 +710,8 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-// Computation of chunk
+        // For block compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -706,14 +736,12 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
             idxs.blk = blk;
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
-            size_type row;
-            size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, row, col, val);
-                row_idxs[pos + i] = row;
-                col_idxs[pos + i] = col;
+                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                row_idxs[pos + i] = idxs.row;
+                col_idxs[pos + i] = idxs.col;
                 values[pos + i] = val;
             }
         }
@@ -735,6 +763,7 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto num_blks = source->get_num_blocks();
 
+    // First, result is initialized to zero
 #pragma omp parallel for default(shared)
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type col = 0; col < num_cols; col++) {
@@ -743,6 +772,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     }
 
     if (source->use_element_compression()) {
+        // For element compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -760,7 +791,8 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-// Computation of chunk
+        // For block compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = source->get_const_rows();
@@ -782,13 +814,11 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
             idxs.blk = blk;
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
-            size_type row;
-            size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, row, col, val);
-                result->at(row, col) += val;
+                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                result->at(idxs.row, idxs.col) += val;
             }
         }
     }
@@ -807,12 +837,15 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
     auto num_rows = diag->get_size()[0];
     auto num_blks = orig->get_num_blocks();
 
+    // First, diag is initialized to zero
 #pragma omp parallel for default(shared)
     for (size_type row = 0; row < num_rows; row++) {
         diag_values[row] = zero<ValueType>();
     }
 
     if (orig->use_element_compression()) {
+        // For element compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = orig->get_const_rows();
@@ -832,7 +865,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-// Computation of chunk
+        // For block compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = orig->get_const_rows();
@@ -854,14 +888,12 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
             idxs.blk = blk;
             init_block_indices(rows_data, cols_data, block_size_local, idxs,
                                types_data[idxs.blk], blk_idxs);
-            size_type row;
-            size_type col;
             ValueType val;
             for (size_type i = 0; i < block_size_local; i++) {
                 get_block_position_value<IndexType, ValueType>(
-                    chunk_data, blk_idxs, row, col, val);
-                if (row == col) {
-                    diag_values[row] = val;
+                    chunk_data, blk_idxs, idxs.row, idxs.col, val);
+                if (idxs.row == idxs.col) {
+                    diag_values[idxs.row] = val;
                 }
             }
         }
@@ -879,7 +911,8 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
     auto num_blks = matrix->get_num_blocks();
 
     if (matrix->use_element_compression()) {
-// Computation of chunk
+        // For element compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = matrix->get_const_rows();
@@ -898,7 +931,8 @@ void compute_absolute_inplace(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     } else {
-// Computation of chunk
+        // For block compression objects
+        // Each block is computed separately
 #pragma omp parallel for default(shared)
         for (size_type blk = 0; blk < num_blks; blk++) {
             auto* rows_data = matrix->get_const_rows();
@@ -945,14 +979,25 @@ void compute_absolute(
     remove_complex<matrix::Bccoo<ValueType, IndexType>>* result)
 {
     auto num_blk_src = source->get_num_blocks();
+    // If the block_size or the compression are different in source
+    // and result, the code is exactly equal to the reference executor
     if ((source->get_block_size() != result->get_block_size()) ||
         (source->get_compression() != result->get_compression())) {
-        std::cout << "BAD EXECUTOR" << std::endl;
+        if (source->use_element_compression()) {
+            convert_to_bccoo_elm_elm(exec, source, result,
+                                     [](ValueType val) { return abs(val); });
+        } else {
+            convert_to_bccoo_blk_blk(exec, source, result,
+                                     [](ValueType val) { return abs(val); });
+        }
     } else {
         if (source->get_num_stored_elements() > 0) {
             result->get_offsets()[0] = 0;
         }
         if (source->use_element_compression()) {
+            // For element compression objects
+            // First, the non chunk vectors are copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -962,7 +1007,8 @@ void compute_absolute(
                 rows_data_res[blk_src] = rows_data_src[blk_src];
                 offsets_data_res[blk_src + 1] = offsets_data_src[blk_src + 1];
             }
-// Computation of chunk
+            // Finally, the chunk vector is copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -1000,8 +1046,11 @@ void compute_absolute(
                 }
             }
         } else {
+            // For block compression objects
             size_type num_stored_elements_src =
                 source->get_num_stored_elements();
+            // First, the non chunk vectors are copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();
@@ -1024,7 +1073,8 @@ void compute_absolute(
                     (block_size_local * sizeof(remove_complex<ValueType>)) -
                     (block_size_local * sizeof(ValueType));
             }
-// Computation of chunk
+            // Finally, the chunk vector is copied
+            // Each block is computed separately
 #pragma omp parallel for default(shared)
             for (size_type blk_src = 0; blk_src < num_blk_src; blk_src++) {
                 auto* rows_data_src = source->get_const_rows();

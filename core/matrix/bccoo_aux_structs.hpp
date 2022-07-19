@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #ifndef GKO_CORE_MATRIX_BCCOO_AUX_STRUCTS_HPP_
-#define GKO_CORE_MATRIX_BCCOO_AUX_STRUCTS
+#define GKO_CORE_MATRIX_BCCOO_AUX_STRUCTS_HPP_
 
 
 #include <cstring>
@@ -47,13 +47,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-// Definition of the auxiliary struct
-
-
+/**
+ *  Constants used to manage bccoo objects
+ */
 constexpr uint8 cst_rows_multiple = 1;
 constexpr uint8 cst_cols_8bits = 2;
 constexpr uint8 cst_cols_16bits = 4;
 
+
+/**
+ *  Struct to manage bccoo objects
+ */
 typedef struct compr_idxs {
     size_type nblk;  // position in the block
     size_type blk;   // active block
@@ -62,6 +66,10 @@ typedef struct compr_idxs {
     size_type shf;   // shift on the chunk
 } compr_idxs;
 
+
+/**
+ *  Specific struct to manage block compression bccoo objects
+ */
 typedef struct compr_blk_idxs {
     size_type row_frs;  // minimum row index in a block
     size_type col_frs;  // minimum column index in a block
@@ -77,12 +85,21 @@ typedef struct compr_blk_idxs {
 } compr_blk_idxs;
 
 
-// Routines for element compression objects
+/*
+ *  Routines for managing bccoo objects
+ */
 
 
-// Routines for block compression objects
+/*
+ *  Routines for managing block compression objects
+ */
 
 
+/**
+ *  This routine initializes a compr_blk_idxs object from the information
+ *  included in idxs and type_blk, making easier the management of
+ * 	a block compression bccoo object
+ */
 template <typename IndexType>
 inline GKO_ATTRIBUTES void init_block_indices(const IndexType* rows_data,
                                               const IndexType* cols_data,

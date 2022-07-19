@@ -157,9 +157,7 @@ protected:
 
 
 TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
 
     mtx_blk->apply(y.get(), expected.get());
@@ -168,25 +166,9 @@ TEST_F(Bccoo, SimpleApplyIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
-/*
-TEST_F(Bccoo, SimpleApplyIsEquivalentToRefUnsorted)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:bccoo): change the code imported from matrix/coo if needed
-//    set_up_apply_data();
-//    unsort_mtx();
-//
-//    mtx->apply(y.get(), expected.get());
-//    dmtx->apply(dy.get(), dresult.get());
-//
-//    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-//}
-*/
 
 TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
 
     mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
@@ -197,9 +179,7 @@ TEST_F(Bccoo, AdvancedApplyIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
 
     mtx_blk->apply2(y.get(), expected.get());
@@ -210,9 +190,7 @@ TEST_F(Bccoo, SimpleApplyAddIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
 
     mtx_blk->apply2(alpha.get(), y.get(), expected.get());
@@ -223,9 +201,7 @@ TEST_F(Bccoo, AdvancedApplyAddIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(3);
 
     mtx_blk->apply(y.get(), expected.get());
@@ -236,9 +212,7 @@ TEST_F(Bccoo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(3);
 
     mtx_blk->apply(alpha.get(), y.get(), beta.get(), expected.get());
@@ -249,9 +223,7 @@ TEST_F(Bccoo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(3);
 
     mtx_blk->apply2(y.get(), expected.get());
@@ -262,9 +234,7 @@ TEST_F(Bccoo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(33);
 
     mtx_blk->apply2(y.get(), expected.get());
@@ -275,9 +245,7 @@ TEST_F(Bccoo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(3);
 
     mtx_blk->apply2(alpha.get(), y.get(), expected.get());
@@ -288,9 +256,7 @@ TEST_F(Bccoo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk(33);
 
     mtx_blk->apply2(y.get(), expected.get());
@@ -301,9 +267,7 @@ TEST_F(Bccoo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(cuda);
@@ -316,26 +280,11 @@ TEST_F(Bccoo, ApplyToComplexIsEquivalentToRef)
     dmtx_blk->apply(dcomplex_b.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-
-    //    set_up_apply_data();
-    //    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    //    auto dcomplex_b = ComplexVec::create(cuda);
-    //    dcomplex_b->copy_from(complex_b.get());
-    //    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    //    auto dcomplex_x = ComplexVec::create(cuda);
-    //    dcomplex_x->copy_from(complex_x.get());
-    //
-    //    mtx->apply(complex_b.get(), complex_x.get());
-    //    dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
-    //
-    //    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 
 TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(cuda);
@@ -349,27 +298,11 @@ TEST_F(Bccoo, AdvancedApplyToComplexIsEquivalentToRef)
                     dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-
-    //    set_up_apply_data();
-    //    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    //    auto dcomplex_b = ComplexVec::create(cuda);
-    //    dcomplex_b->copy_from(complex_b.get());
-    //    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    //    auto dcomplex_x = ComplexVec::create(cuda);
-    //    dcomplex_x->copy_from(complex_x.get());
-    //
-    //    mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
-    //    dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(),
-    //    dcomplex_x.get());
-    //
-    //    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 
 TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
     set_up_apply_data_blk();
     auto complex_b = gen_mtx<ComplexVec>(231, 3);
     auto dcomplex_b = ComplexVec::create(cuda);
@@ -382,27 +315,11 @@ TEST_F(Bccoo, ApplyAddToComplexIsEquivalentToRef)
     dmtx_blk->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
 
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-
-    //    set_up_apply_data();
-    //    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    //    auto dcomplex_b = ComplexVec::create(cuda);
-    //    dcomplex_b->copy_from(complex_b.get());
-    //    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    //    auto dcomplex_x = ComplexVec::create(cuda);
-    //    dcomplex_x->copy_from(complex_x.get());
-    //
-    //    mtx->apply2(alpha.get(), complex_b.get(), complex_x.get());
-    //    dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
-    //
-    //    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 
 TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
     auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx_blk = gko::matrix::Dense<>::create(cuda);
@@ -415,10 +332,7 @@ TEST_F(Bccoo, ConvertToDenseIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
 
     auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
@@ -434,10 +348,7 @@ TEST_F(Bccoo, ConvertToCooIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
 
     auto dense_mtx_blk = gko::matrix::Dense<>::create(ref);
@@ -453,10 +364,7 @@ TEST_F(Bccoo, ConvertToCsrIsEquivalentToRef)
 
 
 TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
 
     auto diag = mtx_blk->extract_diagonal();
@@ -467,28 +375,18 @@ TEST_F(Bccoo, ExtractDiagonalIsEquivalentToRef)
 
 
 TEST_F(Bccoo, InplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
 
-    //		printf ("InPlace_00\n");
     mtx_blk->compute_absolute_inplace();
-    //		printf ("InPlace_01\n");
     dmtx_blk->compute_absolute_inplace();
-    //		printf ("InPlace_02\n");
 
     GKO_ASSERT_MTX_NEAR(mtx_blk, dmtx_blk, 1e-14);
-    //		printf ("InPlace_03\n");
 }
 
 
 TEST_F(Bccoo, OutplaceAbsoluteMatrixIsEquivalentToRef)
-// GKO_NOT_IMPLEMENTED;
 {
-    // TODO (script:bccoo): change the code imported from matrix/coo if needed
-    //    set_up_apply_data();
     set_up_apply_data_blk();
 
     auto abs_mtx_blk = mtx_blk->compute_absolute();

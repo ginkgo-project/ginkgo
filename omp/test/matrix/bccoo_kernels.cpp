@@ -495,7 +495,7 @@ TEST_F(Bccoo, ConvertToDenseIsEquivalentToRefBlk)
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 1e-14);
 }
 
-/*
+
 TEST_F(Bccoo, ConvertToPrecisionIsEquivalentToRefElm)
 {
     using ValueType = Mtx::value_type;
@@ -505,7 +505,6 @@ TEST_F(Bccoo, ConvertToPrecisionIsEquivalentToRefElm)
     using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
     auto tmp = OtherBccoo::create(ref);
     auto dtmp = OtherBccoo::create(omp);
-//    auto res = Bccoo::create(omp);
     // If OtherType is more precise: 0, otherwise r
     auto residual = r<OtherType>::value < r<ValueType>::value
                         ? gko::remove_complex<ValueType>{0}
@@ -515,12 +514,33 @@ TEST_F(Bccoo, ConvertToPrecisionIsEquivalentToRefElm)
 
     mtx_elm->move_to(tmp.get());
     dmtx_elm->move_to(dtmp.get());
-//    tmp->move_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(tmp, dtmp, residual);
-//    GKO_ASSERT_MTX_NEAR(mtx_blk, res, residual);
 }
-*/
+
+
+TEST_F(Bccoo, ConvertToPrecisionIsEquivalentToRefBlk)
+{
+    using ValueType = Mtx::value_type;
+    using IndexType = Mtx::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Bccoo = Mtx;
+    using OtherBccoo = gko::matrix::Bccoo<OtherType, IndexType>;
+    auto tmp = OtherBccoo::create(ref);
+    auto dtmp = OtherBccoo::create(omp);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    set_up_apply_data_blk();
+
+    mtx_blk->move_to(tmp.get());
+    dmtx_blk->move_to(dtmp.get());
+
+    GKO_ASSERT_MTX_NEAR(tmp, dtmp, residual);
+}
+
 
 TEST_F(Bccoo, ConvertToCooIsEquivalentToRefElm)
 {

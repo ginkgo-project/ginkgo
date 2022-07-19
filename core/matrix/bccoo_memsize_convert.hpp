@@ -47,11 +47,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-// Routines for mem_size computing
+/**
+ *  Routines for mem_size computing
+ */
 
-// Returns the size of the chunk, which it is need
-// to store the data included in an element compression object
-// into an element compression object whose block_size is specified
+/**
+ *  Returns the size of the chunk, which it is need
+ *  to store the data included in an element compression object
+ *  into an element compression object whose block_size is specified
+ */
 template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_elm_elm(
     std::shared_ptr<const Executor> exec,
@@ -97,9 +101,11 @@ inline void mem_size_bccoo_elm_elm(
 }
 
 
-// Returns the size of the chunk, which it is need
-// to store the data included in an element compression object
-// into a block compression object whose block_size is specified
+/**
+ *  Returns the size of the chunk, which it is need
+ *  to store the data included in an element compression object
+ *  into a block compression object whose block_size is specified
+ */
 template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_elm_blk(
     std::shared_ptr<const Executor> exec,
@@ -143,16 +149,16 @@ inline void mem_size_bccoo_elm_blk(
                                blk_idxs_res);
         }
         // Counting bytes to write block on result
-        cnt_block_indices<IndexType, ValueType>(block_size_local, blk_idxs_res,
-                                                idxs_res);
+        cnt_block_indices<ValueType>(block_size_local, blk_idxs_res, idxs_res);
     }
     *mem_size = idxs_res.shf;
 }
 
-
-// Returns the size of the chunk, which it is need
-// to store the data included in a blok compression object
-// into an element compression object whose block_size is specified
+/**
+ *  Returns the size of the chunk, which it is need
+ *  to store the data included in a blok compression object
+ *  into an element compression object whose block_size is specified
+ */
 template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_blk_elm(
     std::shared_ptr<const Executor> exec,
@@ -206,9 +212,11 @@ inline void mem_size_bccoo_blk_elm(
 }
 
 
-// Returns the size of the chunk, which it is need
-// to store the data included in a block compression object
-// into a block compression object whose block_size is specified
+/**
+ *  Returns the size of the chunk, which it is need
+ *  to store the data included in a block compression object
+ *  into a block compression object whose block_size is specified
+ */
 template <typename ValueType, typename IndexType>
 inline void mem_size_bccoo_blk_blk(
     std::shared_ptr<const Executor> exec,
@@ -262,8 +270,8 @@ inline void mem_size_bccoo_blk_blk(
             idxs_res.nblk++;
             if (idxs_res.nblk == block_size_local_res) {
                 // Counting bytes to write block on result
-                cnt_block_indices<IndexType, ValueType>(block_size_local_res,
-                                                        blk_idxs_res, idxs_res);
+                cnt_block_indices<ValueType>(block_size_local_res, blk_idxs_res,
+                                             idxs_res);
                 i_res += block_size_local_res;
                 block_size_local_res =
                     std::min(block_size_res, num_stored_elements - i_res);
@@ -278,9 +286,15 @@ inline void mem_size_bccoo_blk_blk(
 }
 
 
-// Routines for conversion
+/**
+ *  Routines for conversion between bccoo objects
+ */
 
-// Make a raw copy between objects whose block_size and compression is the same
+
+/**
+ *  This routine makes a raw copy between bccoo objects whose block_size
+ *  and compression are the same
+ */
 template <typename ValueType, typename IndexType>
 void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
                            const matrix::Bccoo<ValueType, IndexType>* source,
@@ -318,8 +332,10 @@ void convert_to_bccoo_copy(std::shared_ptr<const Executor> exec,
 }
 
 
-// Complete the conversion between two element compression objects
-// Additionally, finalize_op function is applied before to copy the values
+/**
+ *  This routine makes the conversion between two element compression objects
+ *  Additionally, finalize_op function is applied before to copy the values
+ */
 template <typename ValueType_src, typename ValueType_res, typename IndexType,
           typename Callable>
 void convert_to_bccoo_elm_elm(
@@ -381,8 +397,10 @@ void convert_to_bccoo_elm_elm(
 }
 
 
-// Complete the conversion between an element compression object
-// and a block compression object
+/**
+ *  This routine makes the conversion between an element compression object
+ *  and a block compression object
+ */
 template <typename ValueType_src, typename ValueType_res, typename IndexType>
 void convert_to_bccoo_elm_blk(
     std::shared_ptr<const Executor> exec,
@@ -413,9 +431,9 @@ void convert_to_bccoo_elm_blk(
     compr_idxs idxs_res = {};
     ValueType_res val_res;
 
-    Array<IndexType> rows_blk(exec, block_size_res);
-    Array<IndexType> cols_blk(exec, block_size_res);
-    Array<ValueType_res> vals_blk(exec, block_size_res);
+    array<IndexType> rows_blk(exec, block_size_res);
+    array<IndexType> cols_blk(exec, block_size_res);
+    array<ValueType_res> vals_blk(exec, block_size_res);
 
     if (num_stored_elements > 0) {
         offsets_data_res[0] = 0;
@@ -446,7 +464,7 @@ void convert_to_bccoo_elm_blk(
             cols_blk.get_data()[j] = idxs_src.col;
             vals_blk.get_data()[j] = val_src;
         }
-        // Counting bytes to write block on result
+        // Writing block on result
         idxs_res.nblk = block_size_local;
         type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res, rows_blk,
                                         cols_blk, vals_blk, chunk_data_res);
@@ -458,8 +476,10 @@ void convert_to_bccoo_elm_blk(
 }
 
 
-// Complete the conversion between a block compression object
-// and an element compression object
+/**
+ *  This routine makes the conversion between a block compression object
+ *  and an element compression object
+ */
 template <typename ValueType_src, typename ValueType_res, typename IndexType>
 void convert_to_bccoo_blk_elm(
     std::shared_ptr<const Executor> exec,
@@ -528,8 +548,10 @@ void convert_to_bccoo_blk_elm(
 }
 
 
-// Complete the conversion between two block compression objects
-// Additionally, finalize_op function is applied before to copy the values
+/**
+ *  This routine makes the conversion between two block compression objects
+ *  Additionally, finalize_op function is applied before to copy the values
+ */
 template <typename ValueType_src, typename ValueType_res, typename IndexType,
           typename Callable>
 void convert_to_bccoo_blk_blk(
@@ -565,9 +587,9 @@ void convert_to_bccoo_blk_blk(
     compr_idxs idxs_res = {};
     compr_blk_idxs blk_idxs_res = {};
 
-    Array<IndexType> rows_blk_res(exec, block_size_res);
-    Array<IndexType> cols_blk_res(exec, block_size_res);
-    Array<ValueType_res> vals_blk_res(exec, block_size_res);
+    array<IndexType> rows_blk_res(exec, block_size_res);
+    array<IndexType> cols_blk_res(exec, block_size_res);
+    array<ValueType_res> vals_blk_res(exec, block_size_res);
 
     uint8 type_blk = {};
     size_type i_res = 0;
@@ -599,7 +621,7 @@ void convert_to_bccoo_blk_blk(
                 (ValueType_res)finalize_op(val_src);
             idxs_res.nblk++;
             if (idxs_res.nblk == block_size_local_res) {
-                // Counting bytes to write block on result
+                // Writing block on result
                 idxs_res.nblk = block_size_local_res;
                 type_blk = write_chunk_blk_type(idxs_res, blk_idxs_res,
                                                 rows_blk_res, cols_blk_res,
@@ -624,4 +646,4 @@ void convert_to_bccoo_blk_blk(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_BCCOO_HELPER_HPP_
+#endif  // GKO_CORE_MATRIX_BCCOO_MEMSIZE_CONVERT_HPP_

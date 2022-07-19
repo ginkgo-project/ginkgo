@@ -463,7 +463,7 @@ protected:
           compression_{compression}
     {}
     /**
-     * Creates an uninitialized BCCOO matrix of the specified size.
+     * Creates an uninitialized BCCOO matrix of the specified sizes.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix

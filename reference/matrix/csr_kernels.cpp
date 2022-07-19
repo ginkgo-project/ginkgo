@@ -364,14 +364,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 template <typename ValueType, typename IndexType>
 void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* csr,
-                    //                    IndexType* rows, IndexType* offsets,
-                    //                    const size_type num_blocks,
                     const size_type block_size,
                     const matrix::bccoo::compression compress,
                     size_type* mem_size)
 {
     if (compress == matrix::bccoo::compression::element) {
-        // Computation of rows, offsets and m (mem_size)
+        // For element compression objects
         const IndexType* row_ptrs = csr->get_const_row_ptrs();
         const IndexType* col_idxs = csr->get_const_col_idxs();
         const ValueType* values = csr->get_const_values();
@@ -380,6 +378,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         compr_idxs idxs = {};
         for (size_type i = 0; i < num_rows; i++) {
             for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                // Counting bytes to write (row,col,val) on result
                 const size_type row = i;
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
@@ -394,6 +393,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         *mem_size = idxs.shf;
     } else {
+        // For block compression objects
         const IndexType* row_ptrs = csr->get_const_row_ptrs();
         const IndexType* col_idxs = csr->get_const_col_idxs();
         const ValueType* values = csr->get_const_values();
@@ -408,30 +408,11 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type row = i;
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
-                if (idxs.nblk == 0) {
-                    blk_idxs.row_frs = row;
-                    blk_idxs.col_frs = col;
-                }
-                blk_idxs.mul_row =
-                    blk_idxs.mul_row || (row != blk_idxs.row_frs);
-                if (col < blk_idxs.col_frs) {
-                    blk_idxs.col_dif += (blk_idxs.col_frs - col);
-                    blk_idxs.col_frs = col;
-                } else if (col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                    blk_idxs.col_dif = col - blk_idxs.col_frs;
-                }
+                proc_block_indices(row, col, idxs, blk_idxs);
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
                     // Counting bytes to write block on result
-                    if (blk_idxs.mul_row) idxs.shf += block_size;
-                    if (blk_idxs.col_dif <= 0xFF) {
-                        idxs.shf += block_size;
-                    } else if (blk_idxs.col_dif <= 0xFFFF) {
-                        idxs.shf += 2 * block_size;
-                    } else {
-                        idxs.shf += 4 * block_size;
-                    }
-                    idxs.shf += sizeof(ValueType) * block_size;
+                    cnt_block_indices<ValueType>(block_size, blk_idxs, idxs);
                     idxs.blk++;
                     idxs.nblk = 0;
                     blk_idxs = {};
@@ -440,15 +421,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            if (blk_idxs.mul_row) idxs.shf += idxs.nblk;
-            if (blk_idxs.col_dif <= 0xFF) {
-                idxs.shf += idxs.nblk;
-            } else if (blk_idxs.col_dif <= 0xFFFF) {
-                idxs.shf += 2 * idxs.nblk;
-            } else {
-                idxs.shf += 4 * idxs.nblk;
-            }
-            idxs.shf += sizeof(ValueType) * idxs.nblk;
+            cnt_block_indices<ValueType>(block_size, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
             blk_idxs = {};
@@ -467,12 +440,12 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Bccoo<ValueType, IndexType>* result)
 {
     if (result->use_element_compression()) {
+        // For element compression objects
         size_type block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
         IndexType* offsets_data = result->get_offsets();
         uint8* chunk_data = result->get_chunk();
 
-        // Computation of chunk
         const IndexType* row_ptrs = source->get_const_row_ptrs();
         const IndexType* col_idxs = source->get_const_col_idxs();
         const ValueType* values = source->get_const_values();
@@ -487,6 +460,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type row = i;
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
+                // Writing (row,col,val) to result
                 put_detect_newblock(chunk_data, rows_data, idxs.nblk, idxs.blk,
                                     idxs.shf, idxs.row, row - idxs.row,
                                     idxs.col);
@@ -499,6 +473,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     } else {
+        // For block compression objects
         const IndexType* row_ptrs = source->get_const_row_ptrs();
         const IndexType* col_idxs = source->get_const_col_idxs();
         const ValueType* values = source->get_const_values();
@@ -531,24 +506,14 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type row = i;
                 const size_type col = col_idxs[j];
                 const ValueType val = values[j];
-                if (idxs.nblk == 0) {
-                    blk_idxs.row_frs = row;
-                    blk_idxs.col_frs = col;
-                    //                    blk_idxs.col_dif = 0;
-                }
+                // Analyzing the impact of (row,col,val) in the block
+                proc_block_indices(row, col, idxs, blk_idxs);
                 rows_blk.get_data()[idxs.nblk] = row;
                 cols_blk.get_data()[idxs.nblk] = col;
                 vals_blk.get_data()[idxs.nblk] = val;
-                blk_idxs.mul_row =
-                    blk_idxs.mul_row || (row != blk_idxs.row_frs);
-                if (col < blk_idxs.col_frs) {
-                    blk_idxs.col_dif += (blk_idxs.col_frs - col);
-                    blk_idxs.col_frs = col;
-                } else if (col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                    blk_idxs.col_dif = col - blk_idxs.col_frs;
-                }
                 idxs.nblk++;
                 if (idxs.nblk == block_size) {
+                    // Writing block on result
                     type_blk =
                         write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
                                              vals_blk, chunk_data);
@@ -562,6 +527,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         if (idxs.nblk > 0) {
+            // Writing block on result
             type_blk = write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
                                             vals_blk, chunk_data);
             rows_data[idxs.blk] = blk_idxs.row_frs;

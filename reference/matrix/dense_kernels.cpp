@@ -461,7 +461,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                     size_type* result)
 {
     if (compress == matrix::bccoo::compression::element) {
-        // Computation of rows, offsets and m (mem_size)
+        // For element compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         auto num_nonzeros = 0;  // TODO: Also compute and return this value
@@ -469,6 +469,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
+                    // Counting bytes to write (row,col,val) on result
                     cnt_detect_newblock(idxs.nblk, idxs.shf, idxs.row,
                                         row - idxs.row, idxs.col);
                     size_type col_src_res = cnt_position_newrow_mat_data(
@@ -481,6 +482,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         *result = idxs.shf;
     } else {
+        // For block compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
         auto num_nonzeros = 0;  // TODO: Also compute and return this value
@@ -489,32 +491,12 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
-                    if (idxs.nblk == 0) {
-                        blk_idxs.row_frs = row;
-                        blk_idxs.col_frs = col;
-                        //                        blk_idxs.col_dif = 0;
-                        //                        blk_idxs.mul_row = false;
-                    }
-                    blk_idxs.mul_row =
-                        blk_idxs.mul_row || (row != blk_idxs.row_frs);
-                    if (col < blk_idxs.col_frs) {
-                        blk_idxs.col_dif += (blk_idxs.col_frs - col);
-                        blk_idxs.col_frs = col;
-                    } else if (col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                        blk_idxs.col_dif = col - blk_idxs.col_frs;
-                    }
+                    proc_block_indices(row, col, idxs, blk_idxs);
                     idxs.nblk++;
                     if (idxs.nblk == block_size) {
                         // Counting bytes to write block on result
-                        if (blk_idxs.mul_row) idxs.shf += block_size;
-                        if (blk_idxs.col_dif <= 0xFF) {
-                            idxs.shf += block_size;
-                        } else if (blk_idxs.col_dif <= 0xFFFF) {
-                            idxs.shf += block_size * sizeof(uint16);
-                        } else {
-                            idxs.shf += block_size * sizeof(uint32);
-                        }
-                        idxs.shf += sizeof(ValueType) * block_size;
+                        cnt_block_indices<ValueType>(block_size, blk_idxs,
+                                                     idxs);
                         idxs.blk++;
                         idxs.nblk = 0;
                         blk_idxs = {};
@@ -524,15 +506,7 @@ void mem_size_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         }
         if (idxs.nblk > 0) {
             // Counting bytes to write block on result
-            if (blk_idxs.mul_row) idxs.shf += idxs.nblk;
-            if (blk_idxs.col_dif <= 0xFF) {
-                idxs.shf += idxs.nblk;
-            } else if (blk_idxs.col_dif <= 0xFFFF) {
-                idxs.shf += idxs.nblk * sizeof(uint16);
-            } else {
-                idxs.shf += idxs.nblk * sizeof(uint32);
-            }
-            idxs.shf += sizeof(ValueType) * idxs.nblk;
+            cnt_block_indices<ValueType>(idxs.nblk, blk_idxs, idxs);
             idxs.blk++;
             idxs.nblk = 0;
             blk_idxs = {};
@@ -550,12 +524,12 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::Bccoo<ValueType, IndexType>* result)
 {
     if (result->use_element_compression()) {
+        // For element compression objects
         size_type block_size = result->get_block_size();
         IndexType* rows_data = result->get_rows();
         IndexType* offsets_data = result->get_offsets();
         uint8* chunk_data = result->get_chunk();
 
-        // Computation of chunk
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
 
@@ -568,6 +542,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
+                    // Writing (row,col,val) to result
                     put_detect_newblock(chunk_data, rows_data, idxs.nblk,
                                         idxs.blk, idxs.shf, idxs.row,
                                         row - idxs.row, idxs.col);
@@ -582,6 +557,7 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     } else {
+        // For block compression objects
         auto num_rows = source->get_size()[0];
         auto num_cols = source->get_size()[1];
 
@@ -609,25 +585,14 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type row = 0; row < num_rows; ++row) {
             for (size_type col = 0; col < num_cols; ++col) {
                 if (source->at(row, col) != zero<ValueType>()) {
-                    if (idxs.nblk == 0) {
-                        blk_idxs.row_frs = row;
-                        blk_idxs.col_frs = col;
-                        //                        blk_idxs.col_dif = 0;
-                        //                        blk_idxs.mul_row = false;
-                    }
+                    // Analyzing the impact of (row,col,val) in the block
+                    proc_block_indices(row, col, idxs, blk_idxs);
                     rows_blk.get_data()[idxs.nblk] = row;
                     cols_blk.get_data()[idxs.nblk] = col;
                     vals_blk.get_data()[idxs.nblk] = source->at(row, col);
-                    blk_idxs.mul_row =
-                        blk_idxs.mul_row || (row != blk_idxs.row_frs);
-                    if (col < blk_idxs.col_frs) {
-                        blk_idxs.col_dif += (blk_idxs.col_frs - col);
-                        blk_idxs.col_frs = col;
-                    } else if (col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
-                        blk_idxs.col_dif = col - blk_idxs.col_frs;
-                    }
                     idxs.nblk++;
                     if (idxs.nblk == block_size) {
+                        // Writing block on result
                         type_blk = write_chunk_blk_type(idxs, blk_idxs,
                                                         rows_blk, cols_blk,
                                                         vals_blk, chunk_data);
@@ -636,13 +601,13 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                         types_data[idxs.blk] = type_blk;
                         offsets_data[++idxs.blk] = idxs.shf;
                         idxs.nblk = 0;
-                        //                        type_blk = {};
                         blk_idxs = {};
                     }
                 }
             }
         }
         if (idxs.nblk > 0) {
+            // Writing block on result
             type_blk = write_chunk_blk_type(idxs, blk_idxs, rows_blk, cols_blk,
                                             vals_blk, chunk_data);
             rows_data[idxs.blk] = blk_idxs.row_frs;
@@ -650,7 +615,6 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             types_data[idxs.blk] = type_blk;
             offsets_data[++idxs.blk] = idxs.shf;
             idxs.nblk = 0;
-            //            type_blk = {};
             blk_idxs = {};
         }
     }

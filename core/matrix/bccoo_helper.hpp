@@ -42,39 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/unaligned_access.hpp"
-
+#include "core/matrix/bccoo_aux_structs.hpp"
 
 namespace gko {
 
-// namespace matrix {
 
-// namespace bccoo {
+/*
+ *  Routines for mananing bccoo objects
+ */
 
-constexpr uint8 cst_rows_multiple = 1;
-constexpr uint8 cst_cols_8bits = 2;
-constexpr uint8 cst_cols_16bits = 4;
-
-typedef struct compr_idxs {
-    size_type nblk;  // position in the block
-    size_type blk;   // active block
-    size_type row;   // row index
-    size_type col;   // column index
-    size_type shf;   // shift on the chunk
-} compr_idxs;
-
-typedef struct compr_blk_idxs {
-    size_type row_frs;  // minimum row index in a block
-    size_type col_frs;  // minimum column index in a block
-    size_type col_dif;  // maximum difference between column indices
-                        // in a block
-    size_type shf_row;  // shift in chunk where the rows vector starts
-    size_type shf_col;  // shift in chunk where the cols vector starts
-    size_type shf_val;  // shift in chunk where the vals vector starts
-    bool mul_row;       // determines if the block includes elements
-                        // of several rows
-    bool col_8bits;     // determines that col_dif is greater than 0xFF
-    bool col_16bits;    // determines that col_dif is greater than 0xFFFF
-} compr_blk_idxs;
 
 inline void cnt_next_position(const size_type col_src_res, size_type& shf,
                               size_type& col)
@@ -380,140 +356,42 @@ inline void cnt_detect_endblock(const size_type block_size, size_type& nblk,
 }
 
 
-// ===============================================
-
 /*
-inline void get_block_features(const uint8 type_blk, bool& mul_row,
-                                                                                                                         bool& col_8bits, bool& col_16bits)
-{
-    mul_row = type_blk & cst_rows_multiple;
-    col_8bits = type_blk & cst_cols_8bits;
-    col_16bits = type_blk & cst_cols_16bits;
-}
+ *  Routines for managing block compression objects
+ */
 
 
 template <typename IndexType>
-inline void init_block_indices(const IndexType* rows_data,
-                               const IndexType* cols_data,
-                               const size_type block_size, const size_type blk,
-                               const size_type shf, const bool mul_row,
-                               const bool col_8bits, const bool col_16bits,
-                               size_type& row_frs, size_type& col_frs,
-                               size_type& shf_row, size_type& shf_col,
-                               size_type& shf_val)
+inline void proc_block_indices(const IndexType row, const IndexType col,
+                               const compr_idxs idxs, compr_blk_idxs& blk_idxs)
 {
-    row_frs = rows_data[blk];
-    col_frs = cols_data[blk];
-    shf_row = shf_col = shf;
-    if (mul_row) shf_col += block_size;
-    if (col_8bits) {
-        shf_val = shf_col + block_size;
-    } else if (col_16bits) {
-        shf_val = shf_col + block_size * 2;
-    } else {
-        shf_val = shf_col + block_size * 4;
+    if (idxs.nblk == 0) {
+        blk_idxs.row_frs = row;
+        blk_idxs.col_frs = col;
     }
-}
-*/
-
-template <typename IndexType>
-inline void init_block_indices(const IndexType* rows_data,
-                               const IndexType* cols_data,
-                               const size_type block_size, const size_type blk,
-                               const size_type shf, const uint8 type_blk,
-                               bool& mul_row, bool& col_8bits, bool& col_16bits,
-                               size_type& row_frs, size_type& col_frs,
-                               size_type& shf_row, size_type& shf_col,
-                               size_type& shf_val)
-{
-    mul_row = type_blk & cst_rows_multiple;
-    col_8bits = type_blk & cst_cols_8bits;
-    col_16bits = type_blk & cst_cols_16bits;
-    // if (type_blk & cst_rows_multiple)
-    // 		std::cout << blk << "TYPEBLK" << std::endl;
-    // if (mul_row)
-    // 		std::cout << blk << "MULTIROW" << std::endl;
-
-    row_frs = rows_data[blk];
-    col_frs = cols_data[blk];
-    shf_row = shf_col = shf;
-    if (mul_row) shf_col += block_size;
-    if (col_8bits) {
-        //				std::cout << " 8BITS" << std::endl;
-        shf_val = shf_col + block_size;
-    } else if (col_16bits) {
-        //				std::cout << "16BITS" << std::endl;
-        shf_val = shf_col + block_size * sizeof(uint16);
-    } else {
-        //				std::cout << "32BITS" << std::endl;
-        shf_val = shf_col + block_size * sizeof(uint32);
+    blk_idxs.mul_row = blk_idxs.mul_row || (row != blk_idxs.row_frs);
+    if (col < blk_idxs.col_frs) {
+        blk_idxs.col_dif += (blk_idxs.col_frs - col);
+        blk_idxs.col_frs = col;
+    } else if (col > (blk_idxs.col_frs + blk_idxs.col_dif)) {
+        blk_idxs.col_dif = col - blk_idxs.col_frs;
     }
 }
 
 
-template <typename IndexType>
-inline void init_block_indices(const IndexType* rows_data,
-                               const IndexType* cols_data,
-                               const size_type block_size,
-                               const compr_idxs idxs, const uint8 type_blk,
-                               compr_blk_idxs& blk_idxs)
+template <typename ValueType>
+inline void cnt_block_indices(const size_type block_size,
+                              const compr_blk_idxs blk_idxs, compr_idxs& idxs)
 {
-    blk_idxs.mul_row = type_blk & cst_rows_multiple;
-    blk_idxs.col_8bits = type_blk & cst_cols_8bits;
-    blk_idxs.col_16bits = type_blk & cst_cols_16bits;
-
-    blk_idxs.row_frs = rows_data[idxs.blk];
-    blk_idxs.col_frs = cols_data[idxs.blk];
-    blk_idxs.shf_row = blk_idxs.shf_col = idxs.shf;
-    if (blk_idxs.mul_row) blk_idxs.shf_col += block_size;
-    if (blk_idxs.col_8bits) {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size;
-    } else if (blk_idxs.col_16bits) {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size * sizeof(uint16);
+    if (blk_idxs.mul_row) idxs.shf += block_size;
+    if (blk_idxs.col_dif <= 0xFF) {
+        idxs.shf += block_size;
+    } else if (blk_idxs.col_dif <= 0xFFFF) {
+        idxs.shf += block_size * sizeof(uint16);
     } else {
-        blk_idxs.shf_val = blk_idxs.shf_col + block_size * sizeof(uint32);
+        idxs.shf += block_size * sizeof(uint32);
     }
-}
-
-
-template <typename IndexType, typename ValueType>
-inline void get_block_position_value(const uint8* chunk_data, bool mul_row,
-                                     bool col_8bits, bool col_16bits,
-                                     size_type row_frs, size_type col_frs,
-                                     size_type& row, size_type& col,
-                                     ValueType& val, size_type& shf_row,
-                                     size_type& shf_col, size_type& shf_val)
-{
-    row = row_frs;
-    col = col_frs;
-    if (mul_row) {
-        row += get_value_chunk<uint8>(chunk_data, shf_row);
-        shf_row++;
-    }
-    if (col_8bits) {
-        //				std::cout << "A-BEFORE -> " << col <<
-        // std::endl;
-        col += get_value_chunk<uint8>(chunk_data, shf_col);
-        //				std::cout << "A-LATER  -> " << col <<
-        // std::endl;
-        shf_col++;
-    } else if (col_16bits) {
-        //				std::cout << "B-BEFORE -> " << col <<
-        // std::endl;
-        col += get_value_chunk<uint16>(chunk_data, shf_col);
-        //				std::cout << "B-LATER  -> " << col <<
-        // std::endl;
-        shf_col += sizeof(uint16);
-    } else {
-        //				std::cout << "C-BEFORE -> " << col <<
-        // std::endl;
-        col += get_value_chunk<uint32>(chunk_data, shf_col);
-        //				std::cout << "C-LATER  -> " << col <<
-        // std::endl;
-        shf_col += sizeof(uint32);
-    }
-    val = get_value_chunk<ValueType>(chunk_data, shf_val);
-    shf_val += sizeof(ValueType);
+    idxs.shf += sizeof(ValueType) * block_size;
 }
 
 
