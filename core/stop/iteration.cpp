@@ -45,8 +45,8 @@ std::shared_ptr<AsyncHandle> Iteration::check_impl(
     bool result = updater.num_iterations_ >= parameters_.max_iters;
     if (result) {
         host_storage->get_data()[1] = true;
-        this->set_all_statuses(handle, stoppingId, setFinalized, stop_status),
-            result;
+        this->set_all_statuses(handle, stoppingId, setFinalized, stop_status);
+        // result;
     }
     host_storage->get_data()[0] = result;
     return handle;

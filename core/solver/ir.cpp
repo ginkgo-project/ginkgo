@@ -296,6 +296,15 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
         this->template log<log::Logger::iteration_complete>(
             this, iter, lend(residual), dense_x);
 
+        // if (stop_criterion->update()
+        //         .num_iterations(iter)
+        //         .residual(residual.get())
+        //         .solution(dense_x)
+        //         .check(relative_stopping_id, true, &this->stop_status_,
+        //                this->host_storage_.get_data())) {
+        //     break;
+        // }
+
         stop_criterion->update()
             .num_iterations(iter)
             .residual(lend(residual))
@@ -308,7 +317,7 @@ std::shared_ptr<AsyncHandle> Ir<ValueType>::apply_dense_impl(
             break;
         }
 
-#if GINKGO_BUILD_MPI
+#if 0  // GINKGO_BUILD_MPI
         auto dist_mat =
             gko::as<const gko::distributed::Matrix<ValueType, int32>>(
                 this->get_system_matrix());

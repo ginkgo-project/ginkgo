@@ -246,8 +246,9 @@ int main(int argc, char* argv[])
     // to a right hand side, b to
     // obtain the solution, x.
     exec->synchronize();
+    auto hand1 = exec->get_handle_at(1);
     auto a_tic = std::chrono::steady_clock::now();
-    solver->apply(lend(b), lend(x));
+    solver->apply(lend(b), lend(x), hand1)->wait();
     exec->synchronize();
     auto a_tac = std::chrono::steady_clock::now();
     auto apply_time =

@@ -203,16 +203,16 @@ int main(int argc, char* argv[])
     // Create solver factory
     gko::remove_complex<ValueType> inner2_red = 1e-6;
 
-    auto coarse_gen =
-        amgx_pgm::build().with_deterministic(true).on(exec)->generate(A);
-    auto coarse_mat = coarse_gen->get_coarse_op();
-    auto coarse_solver = cg::build()
-                             .with_criteria(gko::stop::Iteration::build()
-                                                .with_max_iters(c_max_iters)
-                                                .on(exec))
-                             .on(exec)
-                             ->generate(coarse_mat);
-    auto schwarz_precond =
+    // auto coarse_gen =
+    //     amgx_pgm::build().with_deterministic(true).on(exec)->generate(A);
+    // auto coarse_mat = coarse_gen->get_coarse_op();
+    // auto coarse_solver = cg::build()
+    //                          .with_criteria(gko::stop::Iteration::build()
+    //                                             .with_max_iters(c_max_iters)
+    //                                             .on(exec))
+    //                          .on(exec)
+    //                          ->generate(coarse_mat);
+    auto schwarz_precond = gko::share(
         schwarz::build()
             .with_block_dimensions(block_sizes)
             // .with_coarse_relaxation_factors(c_relax_fac)
@@ -234,13 +234,14 @@ int main(int argc, char* argv[])
                             .on(exec))
                     .on(exec))
             .on(exec)
-            ->generate(A);
+            ->generate(A));
     auto solver_gen = ir::build()
-                          .with_generated_solver(gko::share(schwarz_precond))
+                          .with_generated_solver(schwarz_precond)
                           .with_criteria(combined_stop)
                           .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
+    solver->add_logger(logger);
 
     // Solve system
     exec->synchronize();

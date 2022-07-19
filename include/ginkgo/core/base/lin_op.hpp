@@ -423,8 +423,8 @@ protected:
     virtual std::shared_ptr<AsyncHandle> apply_impl(
         const LinOp* b, LinOp* x, std::shared_ptr<AsyncHandle> handle) const
     {
-        std::clog << "Running Sync version" << std::endl;
-        this->apply_impl(b, x);
+        // std::clog << "Running Sync version" << std::endl;
+        this->apply_impl(b, x, handle);
         return handle;
     }
 
