@@ -72,6 +72,7 @@ if (GINKGO_BUILD_MPI)
         PRIVATE
         mpi/exception.cpp
         distributed/matrix.cpp
+        distributed/partition_helpers.cpp
         distributed/vector.cpp)
 endif()
 
