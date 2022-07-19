@@ -72,23 +72,34 @@ protected:
               {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{2, 3.0, 1.0}, {0.0, 3, 2.0}, {0.0, 0.0, 4}}, exec)),
+          mtx_big_upper(gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                              {0.0, -642.0, 684.0, 68.0, 387.0},
+                                              {0.0, 0.0, 134, -651.0, 654.0},
+                                              {0.0, 0.0, 0.0, 43.0, -789.0},
+                                              {0.0, 0.0, 0.0, 0.0, 124.0}},
+                                             exec)),
+          mtx_big_general(
+              gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                    {6.0, -642.0, 684.0, 68.0, 387.0},
+                                    {0.0, 0.0, 134, -651.0, 654.0},
+                                    {0.0, 0.0, -1.0, 43.0, -789.0},
+                                    {0.0, 2.0, 0.0, 4.0, 124.0}},
+                                   exec)),
           upper_trs_factory(Solver::build().on(exec)),
           upper_trs_factory_mrhs(Solver::build().with_num_rhs(2u).on(exec)),
-          mtx_big(gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
-                                        {0.0, -642.0, 684.0, 68.0, 387.0},
-                                        {0.0, 0.0, 134, -651.0, 654.0},
-                                        {0.0, 0.0, 0.0, 43.0, -789.0},
-                                        {0.0, 0.0, 0.0, 0.0, 124.0}},
-                                       exec))
+          upper_trs_factory_unit(
+              Solver::build().with_unit_diagonal(true).on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Mtx> mtx_big_upper;
+    std::shared_ptr<Mtx> mtx_big_general;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory_mrhs;
+    std::unique_ptr<typename Solver::Factory> upper_trs_factory_unit;
 };
 
 TYPED_TEST_SUITE(UpperTrs, gko::test::ValueIndexTypes,
@@ -325,7 +336,39 @@ TYPED_TEST(UpperTrs, SolvesBigDenseSystem)
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
         {-6021.0, 3018.0, -2055.0, 1707.0, -248.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
-    auto solver = this->upper_trs_factory->generate(this->mtx_big);
+    auto solver = this->upper_trs_factory->generate(this->mtx_big_upper);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(UpperTrs, SolvesBigDenseSystemWithUnitDiagonal)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {-5657.0, 5590.0, -3252.0, 1581.0, -2.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->upper_trs_factory_unit->generate(this->mtx_big_upper);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(UpperTrs, SolveBigDenseSystemIgnoresNonTriangleEntries)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {-6021.0, 3018.0, -2055.0, 1707.0, -248.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->upper_trs_factory->generate(this->mtx_big_general);
 
     solver->apply(b.get(), x.get());
 

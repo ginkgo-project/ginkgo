@@ -89,7 +89,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
-                    size_type num_rhs, bool is_upper)
+                    size_type num_rhs, bool is_upper, bool unit_diag)
         : handle{exec->get_cusparse_handle()},
           spsm_descr{},
           descr_a{},
@@ -107,7 +107,8 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             descr_a, CUSPARSE_SPMAT_FILL_MODE,
             is_upper ? CUSPARSE_FILL_MODE_UPPER : CUSPARSE_FILL_MODE_LOWER);
         cusparse::set_attribute<cusparseDiagType_t>(
-            descr_a, CUSPARSE_SPMAT_DIAG_TYPE, CUSPARSE_DIAG_TYPE_NON_UNIT);
+            descr_a, CUSPARSE_SPMAT_DIAG_TYPE,
+            unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
 
         const auto rows = matrix->get_size()[0];
         // workaround suggested by NVIDIA engineers: for some reason
@@ -193,7 +194,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
-                    size_type num_rhs, bool is_upper)
+                    size_type num_rhs, bool is_upper, bool unit_diag)
         : exec{exec},
           handle{exec->get_cusparse_handle()},
           algorithm{},
@@ -208,6 +209,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         cusparse::set_mat_fill_mode(
             factor_descr,
             is_upper ? CUSPARSE_FILL_MODE_UPPER : CUSPARSE_FILL_MODE_LOWER);
+        cusparse::set_mat_diag_type(
+            factor_descr,
+            unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
         algorithm = 0;
         policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
 
@@ -286,14 +290,15 @@ template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* matrix,
                      std::shared_ptr<solver::SolveStruct>& solve_struct,
-                     const gko::size_type num_rhs, bool is_upper)
+                     const gko::size_type num_rhs, bool is_upper,
+                     bool unit_diag)
 {
     if (matrix->get_size()[0] == 0) {
         return;
     }
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         solve_struct = std::make_shared<CudaSolveStruct<ValueType, IndexType>>(
-            exec, matrix, num_rhs, is_upper);
+            exec, matrix, num_rhs, is_upper, unit_diag);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -377,7 +382,8 @@ __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
     const ValueType* const vals, const ValueType* const b, size_type b_stride,
     ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
+    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    IndexType* atomic_counter)
 {
     __shared__ uninitialized_array<ValueType, default_block_size> x_s_array;
     __shared__ IndexType block_base_idx;
@@ -409,12 +415,16 @@ __global__ void sptrsv_naive_caching_kernel(
     // upper tri matrix: start at last entry (row_end - 1), run backward
     // until first entry, which is the diagonal entry
     const auto row_begin = is_upper ? rowptrs[row + 1] - 1 : rowptrs[row];
-    const auto row_diag = is_upper ? rowptrs[row] : rowptrs[row + 1] - 1;
+    const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = 0.0;
-    for (auto i = row_begin; i != row_diag; i += row_step) {
+    auto sum = zero<ValueType>();
+    auto i = row_begin;
+    for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
+        if (is_upper ? dependency <= row : dependency >= row) {
+            break;
+        }
         auto x_p = &x[dependency * x_stride + rhs];
 
         const auto dependency_gid = is_upper ? (n - 1 - dependency) * nrhs + rhs
@@ -434,7 +444,9 @@ __global__ void sptrsv_naive_caching_kernel(
         sum += x * vals[i];
     }
 
-    const auto r = (b[row * b_stride + rhs] - sum) / vals[row_diag];
+    // The first entry past the triangular part will be the diagonal
+    const auto diag = unit_diag ? one<ValueType>() : vals[i];
+    const auto r = (b[row * b_stride + rhs] - sum) / diag;
 
     store(x_s, self_shid, r);
     x[row * x_stride + rhs] = r;
@@ -453,7 +465,8 @@ __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
     const ValueType* const vals, const ValueType* const b, size_type b_stride,
     ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool* nan_produced, IndexType* atomic_counter)
+    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    IndexType* atomic_counter)
 {
     __shared__ IndexType block_base_idx;
     if (threadIdx.x == 0) {
@@ -470,18 +483,16 @@ __global__ void sptrsv_naive_legacy_kernel(
         return;
     }
 
-    // lower tri matrix: start at beginning, run forward until last entry,
-    // (row_end - 1) which is the diagonal entry
+    // lower tri matrix: start at beginning, run forward
     // upper tri matrix: start at last entry (row_end - 1), run backward
-    // until first entry, which is the diagonal entry
     const auto row_begin = is_upper ? rowptrs[row + 1] - 1 : rowptrs[row];
-    const auto row_diag = is_upper ? rowptrs[row] : rowptrs[row + 1] - 1;
+    const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
     ValueType sum = 0.0;
     auto j = row_begin;
-    while (j != row_diag + row_step) {
-        auto col = colidxs[j];
+    auto col = colidxs[j];
+    while (j != row_end) {
         auto x_val = load(x, col * x_stride + rhs);
         while (!is_nan(x_val)) {
             sum += vals[j] * x_val;
@@ -489,10 +500,18 @@ __global__ void sptrsv_naive_legacy_kernel(
             col = colidxs[j];
             x_val = load(x, col * x_stride + rhs);
         }
-        if (row == col) {
-            const auto r = (b[row * b_stride + rhs] - sum) / vals[row_diag];
+        // to avoid the kernel hanging on matrices without diagonal,
+        // we bail out if we are past the triangle, even if it's not
+        // the diagonal entry. This may lead to incorrect results,
+        // but prevents an infinite loop.
+        if (is_upper ? row >= col : row <= col) {
+            // assert(row == col);
+            auto diag = unit_diag ? one<ValueType>() : vals[j];
+            const auto r = (b[row * b_stride + rhs] - sum) / diag;
             store(x, row * x_stride + rhs, r);
-            j += row_step;
+            // after we encountered the diagonal, we are done
+            // this also skips entries outside the triangle
+            j = row_end;
             if (is_nan(r)) {
                 store(x, row * x_stride + rhs, zero<ValueType>());
                 *nan_produced = true;
@@ -514,7 +533,7 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
 template <bool is_upper, typename ValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Csr<ValueType, IndexType>* matrix,
-                          const matrix::Dense<ValueType>* b,
+                          bool unit_diag, const matrix::Dense<ValueType>* b,
                           matrix::Dense<ValueType>* x)
 {
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
@@ -540,14 +559,14 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs, unit_diag,
             nan_produced.get_data(), atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper><<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_cuda_type(matrix->get_const_values()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs,
+            as_cuda_type(x->get_values()), x->get_stride(), n, nrhs, unit_diag,
             nan_produced.get_data(), atomic_counter.get_data());
     }
 

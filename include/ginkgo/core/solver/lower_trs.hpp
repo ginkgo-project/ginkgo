@@ -110,6 +110,12 @@ public:
          *       here. But currently, there is no need to use it.
          */
         gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
+
+        /**
+         * Should the solver use the values on the diagonal of the system matrix
+         * (false) or should it assume they are 1.0 (true)?
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(unit_diagonal, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -72,25 +72,34 @@ protected:
               {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
+          mtx_big_lower(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
+                                              {43.0, -789.0, 0.0, 0.0, 0.0},
+                                              {134.5, -651.0, 654.0, 0.0, 0.0},
+                                              {-642.0, 684.0, 68.0, 387.0, 0.0},
+                                              {365.0, 97.0, -654.0, 8.0, 91.0}},
+                                             exec)),
+          mtx_big_general(
+              gko::initialize<Mtx>({{124.0, 4.0, -4.0, 0.0, 2.0},
+                                    {43.0, -789.0, 0.0, 2.0, 1.0},
+                                    {134.5, -651.0, 654.0, 0.0, 0.5},
+                                    {-642.0, 684.0, 68.0, 387.0, 0.0},
+                                    {365.0, 97.0, -654.0, 8.0, 91.0}},
+                                   exec)),
           lower_trs_factory(Solver::build().on(exec)),
           lower_trs_factory_mrhs(Solver::build().with_num_rhs(2u).on(exec)),
-          mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
-                                        {43.0, -789.0, 0.0, 0.0, 0.0},
-                                        {134.5, -651.0, 654.0, 0.0, 0.0},
-                                        {-642.0, 684.0, 68.0, 387.0, 0.0},
-                                        {365.0, 97.0, -654.0, 8.0, 91.0}},
-                                       exec)),
-          lower_trs_factory_big(Solver::build().on(exec))
+          lower_trs_factory_unit(
+              Solver::build().with_unit_diagonal(true).on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Mtx> mtx_big_lower;
+    std::shared_ptr<Mtx> mtx_big_general;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_mrhs;
-    std::unique_ptr<typename Solver::Factory> lower_trs_factory_big;
+    std::unique_ptr<typename Solver::Factory> lower_trs_factory_unit;
 };
 
 TYPED_TEST_SUITE(LowerTrs, gko::test::ValueIndexTypes,
@@ -326,7 +335,39 @@ TYPED_TEST(LowerTrs, SolvesBigDenseSystem)
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
         {-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
-    auto solver = this->lower_trs_factory_big->generate(this->mtx_big);
+    auto solver = this->lower_trs_factory->generate(this->mtx_big_lower);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesBigDenseSystemWithUnitDiagonal)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {-1.0, -39.0, -2729.5, 3993.0, -5841.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory_unit->generate(this->mtx_big_lower);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(LowerTrs, SolveBigDenseSystemIgnoresNonTriangleEntries)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx_big_general);
 
     solver->apply(b.get(), x.get());
 
