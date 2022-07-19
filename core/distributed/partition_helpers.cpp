@@ -49,13 +49,13 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
                                 static_cast<GlobalIndexType>(local_end)};
 
     // make all range_ends available on each rank
-    Array<GlobalIndexType> ranges_start_end(exec->get_master(),
+    array<GlobalIndexType> ranges_start_end(exec->get_master(),
                                             comm.size() * 2);
     ranges_start_end.fill(0);
     comm.all_gather(range, 2, ranges_start_end.get_data(), 2);
 
     // remove duplicates
-    Array<GlobalIndexType> ranges(exec->get_master(), comm.size() + 1);
+    array<GlobalIndexType> ranges(exec->get_master(), comm.size() + 1);
     auto ranges_se_data = ranges_start_end.get_const_data();
     ranges.get_data()[0] = ranges_se_data[0];
     for (int i = 1; i < ranges_start_end.get_num_elems() - 1; i += 2) {
