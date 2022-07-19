@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
 
@@ -103,11 +102,11 @@ protected:
     void initialize_descr()
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
             [id](cusparseMatDescr_t descr) {
-                gko::cuda::device_guard g{id};
+                gko::detail::cuda_scoped_device_id g{id};
                 gko::kernels::cuda::cusparse::destroy(descr);
             });
     }
@@ -167,7 +166,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         gko::kernels::cuda::cusparse::spmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -242,7 +241,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -318,7 +317,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         gko::kernels::cuda::cusparse::spmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -405,7 +404,7 @@ protected:
         gko::size_type buffer_size = 0;
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         auto handle = this->get_gpu_exec()->get_cusparse_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
@@ -577,7 +576,7 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     auto db = dense_b->get_const_values();
     auto dx = dense_x->get_values();
     const auto id = gpu_exec->get_device_id();
-    gko::cuda::device_guard g{id};
+    gko::detail::cuda_scoped_device_id g{id};
     cusparseDnVecDescr_t vecb, vecx;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseCreateDnVec(&vecx, dense_x->get_num_stored_elements(),
@@ -655,7 +654,7 @@ public:
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            gko::detail::cuda_scoped_device_id g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr
@@ -748,7 +747,7 @@ public:
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            gko::detail::cuda_scoped_device_id g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr
