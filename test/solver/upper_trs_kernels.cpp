@@ -130,10 +130,10 @@ protected:
 TEST_F(UpperTrs, ApplyFullDenseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -145,12 +145,12 @@ TEST_F(UpperTrs, ApplyFullDenseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -162,10 +162,10 @@ TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullSparseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -177,12 +177,12 @@ TEST_F(UpperTrs, ApplyFullSparseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -194,10 +194,10 @@ TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -209,12 +209,12 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -226,10 +226,10 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularSparseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -241,12 +241,12 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -258,10 +258,10 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -273,12 +273,12 @@ TEST_F(UpperTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 5, 50);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -290,10 +290,10 @@ TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 6, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -305,12 +305,12 @@ TEST_F(UpperTrs, ApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 7, 5);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx);
-    auto d_solver = d_lower_trs_factory->generate(dmtx);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -322,10 +322,10 @@ TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -337,12 +337,12 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 9, 50);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -354,10 +354,10 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 10, 5);
-    auto lower_trs_factory = solver_type::build().on(ref);
-    auto d_lower_trs_factory = solver_type::build().on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
@@ -369,15 +369,296 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 11, 5);
-    auto lower_trs_factory =
+    auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
-    auto d_lower_trs_factory =
+    auto d_upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(exec);
-    auto solver = lower_trs_factory->generate(mtx_u);
-    auto d_solver = d_lower_trs_factory->generate(dmtx_u);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(db.get(), dx.get());
 
     GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
 }
+
+
+#ifdef GKO_COMPILING_CUDA
+
+
+TEST_F(UpperTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
+{
+    initialize_data(50, 1, 50);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagIsEquivalentToRef)
+{
+    initialize_data(50, 1, 50);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullSparseMtxIsEquivalentToRef)
+{
+    initialize_data(50, 1, 5);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullSparseMtxUnitDiagIsEquivalentToRef)
+{
+    initialize_data(50, 1, 5);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
+{
+    initialize_data(50, 1, 50);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
+{
+    initialize_data(50, 1, 50);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxIsEquivalentToRef)
+{
+    initialize_data(50, 1, 5);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
+{
+    initialize_data(50, 1, 5);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 4, 50);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 5, 50);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 6, 5);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs,
+       ClassicalApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 7, 5);
+    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto d_solver = d_upper_trs_factory->generate(dmtx);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 8, 50);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs,
+       ClassicalApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 9, 50);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 10, 5);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory = solver_type::build().on(ref);
+    auto d_upper_trs_factory = solver_type::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs,
+       ClassicalApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+{
+    initialize_data(50, 11, 5);
+    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    auto upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(ref);
+    auto d_upper_trs_factory =
+        solver_type::build().with_unit_diagonal(true).on(exec);
+    auto solver = upper_trs_factory->generate(mtx_u);
+    auto d_solver = d_upper_trs_factory->generate(dmtx_u);
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(db.get(), dx.get());
+
+    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+}
+
+
+#endif
