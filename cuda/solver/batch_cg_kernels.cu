@@ -187,8 +187,8 @@ public:
         //           << "\n";
 
         apply_kernel<StopType><<<nbatch, block_size, shared_size>>>(
-            shared_gap, sconf, opts_.max_its, opts_.residual_tol, logger, prec,
-            a, b.values, x.values, workspace.get_data());
+            sconf, opts_.max_its, opts_.residual_tol, logger, prec, a, b.values,
+            x.values, workspace.get_data());
 
         GKO_CUDA_LAST_IF_ERROR_THROW;
     }
