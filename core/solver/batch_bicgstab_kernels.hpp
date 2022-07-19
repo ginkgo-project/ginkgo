@@ -102,12 +102,15 @@ struct StorageConfig {
 
     // global stride from one batch entry to the next
     int gmem_stride_bytes;
+
+    // padded vector length
+    int padded_vec_len;
 };
 
 
 namespace {
 
-template <typename ValueType, int align_bytes>
+template <int align_bytes>
 void set_gmem_stride_bytes(StorageConfig& sconf,
                            const int multi_vector_size_bytes,
                            const int prec_storage_bytes)
@@ -165,22 +168,13 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
 {
     using real_type = remove_complex<ValueType>;
     const int vec_size = num_rows * num_rhs * sizeof(ValueType);
-    // const int padded_vec_size = ((vec_size - 1) / align_bytes + 1) *
-    // align_bytes; const int padded_multivec_len = padded_vec_size /
-    // sizeof(ValueType); assert(padded_multivec_len % sizeof(ValueType) == 0);
-    // const int num_value_scalars = 5 * num_rhs;
-    // const int num_real_scalars = 2 * num_rhs;
     const int num_priority_vecs = 4;
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
-    // int rem_shared = shared_mem_per_blk -
-    //                 num_value_scalars * sizeof(ValueType) -
-    //                 num_real_scalars * sizeof(real_type);
     int rem_shared = shared_mem_per_blk;
-    StorageConfig sconf{false, 0, 9, 0};
+    StorageConfig sconf{false, 0, 9, 0, num_rows};
     if (rem_shared <= 0) {
-        set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
-                                                      prec_storage);
+        set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
     const int initial_vecs_available = rem_shared / vec_size;
@@ -192,8 +186,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     // for simplicity, we don't allocate anything else in shared
     //  if all the spmv vectors were not.
     if (priority_available < num_priority_vecs) {
-        set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
-                                                      prec_storage);
+        set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
     }
     rem_shared -= priority_available * vec_size;
@@ -204,15 +197,10 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int shared_other_vecs =
         rem_shared / vec_size >= 0 ? rem_shared / vec_size : 0;
     sconf.n_shared += shared_other_vecs;
-    if (sconf.n_shared > 9) {
-        sconf.n_shared = 9;
-    }
+    sconf.n_shared = min(sconf.n_shared, 9);
     sconf.n_global -= shared_other_vecs;
-    if (sconf.n_global < 0) {
-        sconf.n_global = 0;
-    }
-    set_gmem_stride_bytes<ValueType, align_bytes>(sconf, vec_size,
-                                                  prec_storage);
+    sconf.n_global = max(sconf.n_global, 0);
+    set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
     return sconf;
 }
 
