@@ -371,7 +371,9 @@ public:
 
     VectorReductions()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD, ref), size{53, 11}, engine(42)
+          comm(MPI_COMM_WORLD, ref),
+          size{53, 11},
+          engine(42)
     {
         init_executor(gko::ReferenceExecutor::create(), exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
@@ -637,7 +639,8 @@ public:
     VectorLocalOps()
         : ref(gko::ReferenceExecutor::create()),
           comm(MPI_COMM_WORLD, ref),
-          local_size{4, 11}, engine(42)
+          local_size{4, 11},
+          engine(42)
     {
         init_executor(ref, exec);
         comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);

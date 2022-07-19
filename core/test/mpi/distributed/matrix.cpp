@@ -239,8 +239,9 @@ TYPED_TEST(MatrixBuilder, BuildWithLocalAndNonLocal)
         this->forall_matrix_types([=](auto with_non_local_matrix_type,
                                       auto expected_non_local_type_ptr,
                                       auto additional_non_local_test) {
-            using expected_non_local_type = typename std::remove_pointer<decltype(
-                expected_non_local_type_ptr.get())>::type;
+            using expected_non_local_type =
+                typename std::remove_pointer<decltype(
+                    expected_non_local_type_ptr.get())>::type;
 
             auto mat = dist_mat_type ::create(this->ref, this->comm,
                                               with_local_matrix_type,

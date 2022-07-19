@@ -191,8 +191,11 @@ protected:
     using MixedLocalVec = typename T::mixed_non_dist_vector_type;
     using Part = typename T::partition_type;
 
-    Solver() : ref(gko::ReferenceExecutor::create()),
-               comm(MPI_COMM_WORLD, ref), rand_engine(15) {}
+    Solver()
+        : ref(gko::ReferenceExecutor::create()),
+          comm(MPI_COMM_WORLD, ref),
+          rand_engine(15)
+    {}
 
     void SetUp()
     {
