@@ -37,15 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#if GINKGO_BUILD_MPI
-#include <ginkgo/core/base/mpi.hpp>
-#endif
-
-
 #include <memory>
 
 
 #include <gtest/gtest.h>
+
+
+#include <ginkgo/core/base/mpi.hpp>
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
@@ -66,7 +64,10 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::CudaExecutor>& exec)
 {
     ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    exec = gko::CudaExecutor::create(0, ref);
+    exec = gko::CudaExecutor::create(
+        gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
+                                        gko::CudaExecutor::get_num_devices()),
+        ref);
 }
 
 
@@ -74,84 +75,30 @@ void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::HipExecutor>& exec)
 {
     ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    exec = gko::HipExecutor::create(0, ref);
+    exec = gko::HipExecutor::create(
+        gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
+                                        gko::HipExecutor::get_num_devices()),
+        ref);
 }
 
 
 void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
                    std::shared_ptr<gko::DpcppExecutor>& exec)
 {
-    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "gpu");
-    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "cpu");
+    auto num_gpu_devices = gko::DpcppExecutor::get_num_devices("gpu");
+    auto num_cpu_devices = gko::DpcppExecutor::get_num_devices("cpu");
+    if (num_gpu_devices > 0) {
+        exec = gko::DpcppExecutor::create(
+            gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_gpu_devices),
+            ref, "gpu");
+    } else if (num_cpu_devices > 0) {
+        exec = gko::DpcppExecutor::create(
+            gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_cpu_devices),
+            ref, "cpu");
     } else {
         FAIL() << "No suitable DPC++ devices";
     }
 }
-
-
-#if GINKGO_BUILD_MPI
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::ReferenceExecutor>& exec,
-                   gko::mpi::communicator comm)
-{
-    exec = gko::ReferenceExecutor::create();
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::OmpExecutor>& exec,
-                   gko::mpi::communicator comm)
-{
-    exec = gko::OmpExecutor::create();
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::CudaExecutor>& exec,
-                   gko::mpi::communicator comm)
-{
-    ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    auto device_id =
-        comm.node_local_rank() % gko::CudaExecutor::get_num_devices();
-    exec = gko::CudaExecutor::create(device_id, ref, false,
-                                     gko::allocation_mode::device);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::HipExecutor>& exec,
-                   gko::mpi::communicator comm)
-{
-    ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    auto device_id =
-        comm.node_local_rank() % gko::HipExecutor::get_num_devices();
-    exec = gko::HipExecutor::create(device_id, ref);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::DpcppExecutor>& exec,
-                   gko::mpi::communicator comm)
-{
-    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        auto device_id =
-            comm.node_local_rank() % gko::DpcppExecutor::get_num_devices("gpu");
-        exec = gko::DpcppExecutor::create(device_id, ref);
-    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        auto device_id =
-            comm.node_local_rank() % gko::DpcppExecutor::get_num_devices("cpu");
-        exec = gko::DpcppExecutor::create(device_id, ref);
-    } else {
-        FAIL() << "No suitable DPC++ devices";
-    }
-}
-
-
-#endif
 
 
 #endif  // GKO_TEST_UTILS_EXECUTOR_HPP_

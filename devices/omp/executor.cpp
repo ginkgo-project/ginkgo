@@ -92,4 +92,7 @@ void OmpExecutor::synchronize() const
 }
 
 
+scoped_device_id OmpExecutor::get_scoped_device_id() const { return {this, 0}; }
+
+
 }  // namespace gko

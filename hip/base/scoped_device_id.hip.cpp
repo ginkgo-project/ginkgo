@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-#define GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#ifndef GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
+#define GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
 
 
 #include <exception>
@@ -41,59 +41,57 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 
 
 namespace gko {
-namespace hip {
+namespace detail {
 
 
-/**
- * This class defines a device guard for the hip functions and the hip module.
- * The guard is used to make sure that the device code is run on the correct
- * hip device, when run with multiple devices. The class records the current
- * device id and uses `hipSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
- */
-class device_guard {
-public:
-    device_guard(int device_id) : original_device_id{}, need_reset{}
-    {
-        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        if (original_device_id != device_id) {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
-            need_reset = true;
+hip_scoped_device_id::hip_scoped_device_id(int device_id)
+    : original_device_id_{}, need_reset_{}
+{
+    GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id_));
+    if (original_device_id_ != device_id) {
+        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
+        need_reset_ = true;
+    }
+}
+
+
+hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
+{
+    if (need_reset_) {
+        /* Ignore the error during stack unwinding for this call */
+        if (std::uncaught_exception()) {
+            hipSetDevice(original_device_id_);
+        } else {
+            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id_));
         }
     }
+}
 
-    device_guard(device_guard& other) = delete;
 
-    device_guard& operator=(const device_guard& other) = delete;
+hip_scoped_device_id::hip_scoped_device_id(
+    hip_scoped_device_id&& other) noexcept
+{
+    *this = std::move(other);
+}
 
-    device_guard(device_guard&& other) = delete;
 
-    device_guard const& operator=(device_guard&& other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        if (need_reset) {
-            /* Ignore the error during stack unwinding for this call */
-            if (std::uncaught_exception()) {
-                hipSetDevice(original_device_id);
-            } else {
-                GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id));
-            }
-        }
+hip_scoped_device_id& hip_scoped_device_id::operator=(
+    hip_scoped_device_id&& other) noexcept
+{
+    if (this != &other) {
+        original_device_id_ = std::exchange(other.original_device_id_, 0);
+        need_reset_ = std::exchange(other.need_reset_, false);
     }
-
-private:
-    int original_device_id;
-    bool need_reset;
-};
+    return *this;
+}
 
 
-}  // namespace hip
+}  // namespace detail
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#endif  // GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_

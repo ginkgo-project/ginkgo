@@ -78,6 +78,13 @@ void Vector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     GKO_NOT_SUPPORTED(this);
 }
 
+
+template <typename ValueType>
+Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec)
+    : Vector(exec, mpi::communicator(MPI_COMM_WORLD, exec), dim<2>{}, dim<2>{})
+{}
+
+
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
@@ -518,7 +525,6 @@ Vector<ValueType>::create_real_view()
                              dim<2>{num_global_rows, num_cols},
                              local_.create_real_view().get());
 }
-
 
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);

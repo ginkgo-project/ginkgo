@@ -93,8 +93,7 @@ protected:
     using dist_vec_type = gko::distributed::Vector<value_type>;
 
     MatrixBuilder()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(gko::mpi::communicator(MPI_COMM_WORLD))
+        : ref(gko::ReferenceExecutor::create()), comm(MPI_COMM_WORLD, ref)
     {}
 
     void SetUp() override {}

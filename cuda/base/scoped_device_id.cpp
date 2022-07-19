@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_DEVICE_GUARD_HPP_
-#define GKO_CUDA_BASE_DEVICE_GUARD_HPP_
+#ifndef GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
+#define GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
 
 
 #include <exception>
@@ -41,59 +41,57 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 
 
 namespace gko {
-namespace cuda {
+namespace detail {
 
 
-/**
- * This class defines a device guard for the cuda functions and the cuda module.
- * The guard is used to make sure that the device code is run on the correct
- * cuda device, when run with multiple devices. The class records the current
- * device id and uses `cudaSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
- */
-class device_guard {
-public:
-    device_guard(int device_id) : original_device_id{}, need_reset{}
-    {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        if (original_device_id != device_id) {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-            need_reset = true;
+cuda_scoped_device_id::cuda_scoped_device_id(int device_id)
+    : original_device_id_{}, need_reset_{}
+{
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id_));
+    if (original_device_id_ != device_id) {
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
+        need_reset_ = true;
+    }
+}
+
+
+cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
+{
+    if (need_reset_) {
+        /* Ignore the error during stack unwinding for this call */
+        if (std::uncaught_exception()) {
+            cudaSetDevice(original_device_id_);
+        } else {
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id_));
         }
     }
+}
 
-    device_guard(device_guard& other) = delete;
 
-    device_guard& operator=(const device_guard& other) = delete;
+cuda_scoped_device_id::cuda_scoped_device_id(
+    cuda_scoped_device_id&& other) noexcept
+{
+    *this = std::move(other);
+}
 
-    device_guard(device_guard&& other) = delete;
 
-    device_guard const& operator=(device_guard&& other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        if (need_reset) {
-            /* Ignore the error during stack unwinding for this call */
-            if (std::uncaught_exception()) {
-                cudaSetDevice(original_device_id);
-            } else {
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
-            }
-        }
+cuda_scoped_device_id& cuda_scoped_device_id::operator=(
+    cuda_scoped_device_id&& other) noexcept
+{
+    if (this != &other) {
+        original_device_id_ = std::exchange(other.original_device_id_, 0);
+        need_reset_ = std::exchange(other.need_reset_, false);
     }
-
-private:
-    int original_device_id;
-    bool need_reset;
-};
+    return *this;
+}
 
 
-}  // namespace cuda
+}  // namespace detail
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_DEVICE_GUARD_HPP_
+#endif  // GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_

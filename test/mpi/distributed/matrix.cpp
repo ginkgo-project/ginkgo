@@ -557,11 +557,12 @@ public:
 
     MatrixGpuAwareCheck()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
+          comm(MPI_COMM_WORLD, ref),
           logger(gko::share(HostToDeviceLogger::create())),
           engine()
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
+        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
         exec->add_logger(logger);
 
         mat = dist_mtx_type::create(exec, comm);

@@ -399,12 +399,21 @@ protected:
     /**
      * Creates an empty distributed matrix.
      *
+     * @note This will use the MPI_COMM_WORLD communicator.
+     *
+     * @param exec  Executor associated with this matrix.
+     */
+    explicit Matrix(std::shared_ptr<const Executor> exec);
+
+    /**
+     * Creates an empty distributed matrix.
+     *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
      */
     explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
+                    mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
