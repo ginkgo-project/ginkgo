@@ -152,7 +152,7 @@ public:
         //           block_size
         //           << "\n";
         hipLaunchKernelGGL(apply_kernel<StopType>, dim3(nbatch),
-                           dim3(block_size), shared_size, 0, shared_gap, sconf,
+                           dim3(block_size), shared_size, 0, sconf,
                            opts_.max_its, opts_.residual_tol, logger, prec, a,
                            b.values, x.values, workspace.get_data());
     }
