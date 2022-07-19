@@ -500,7 +500,12 @@ __global__ void sptrsv_naive_legacy_kernel(
             col = colidxs[j];
             x_val = load(x, col * x_stride + rhs);
         }
-        if (row == col) {
+        // to avoid the kernel hanging on matrices without diagonal,
+        // we bail out if we are past the triangle, even if it's not
+        // the diagonal entry. This may lead to incorrect results,
+        // but prevents an infinite loop.
+        if (is_upper ? row >= col : row <= col) {
+            // assert(row == col);
             auto diag = unit_diag ? one<ValueType>() : vals[j];
             const auto r = (b[row * b_stride + rhs] - sum) / diag;
             store(x, row * x_stride + rhs, r);
