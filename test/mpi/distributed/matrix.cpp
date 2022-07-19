@@ -74,8 +74,7 @@ public:
 
     static std::unique_ptr<HostToDeviceLogger> create()
     {
-        return std::unique_ptr<HostToDeviceLogger>(
-            new HostToDeviceLogger());
+        return std::unique_ptr<HostToDeviceLogger>(new HostToDeviceLogger());
     }
 
 protected:
