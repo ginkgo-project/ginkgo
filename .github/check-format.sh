@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cp .github/bot-pr-format-base.sh /tmp
 source /tmp/bot-pr-format-base.sh

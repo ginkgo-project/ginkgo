@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 pushd old
 source .github/bot-pr-base.sh
