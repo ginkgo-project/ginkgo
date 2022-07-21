@@ -65,6 +65,7 @@ target_sources(ginkgo
     reorder/mc64.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+    solver/async_richardson.cpp
     solver/batch_bicgstab.cpp
     solver/bicg.cpp
     solver/bicgstab.cpp
