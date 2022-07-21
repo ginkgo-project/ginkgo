@@ -492,7 +492,7 @@ public:
         this->set_size(t_csr->get_size());
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         gko::kernels::cuda::cusparse::csr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -504,7 +504,7 @@ public:
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            gko::detail::cuda_scoped_device_id g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CusparseHybrid hyb_ matrix: "
@@ -525,7 +525,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -542,7 +542,7 @@ protected:
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        gko::detail::cuda_scoped_device_id g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
     }
 
