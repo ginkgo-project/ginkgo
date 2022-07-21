@@ -78,13 +78,12 @@ int main(int argc, char* argv[])
     // initialization and finalization.
     const gko::mpi::environment env(argc, argv);
 
-    // Create a MPI communicator wrapper and get the rank.
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    // Create an MPI communicator wrapper and get the rank.
+    const gko::mpi::communicator comm{MPI_COMM_WORLD};
     const auto rank = comm.rank();
 
-
+    // Print the ginkgo version information and help message.
     if (rank == 0) {
-        // Print the ginkgo version information.
         std::cout << gko::version_info::get() << std::endl;
     }
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
@@ -104,23 +103,23 @@ int main(int argc, char* argv[])
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
 
-    // Pick requested executor.
+    // Pick the requested executor.
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
              [&] {
                  return gko::CudaExecutor::create(
-                     comm.node_local_rank() %
-                         gko::CudaExecutor::get_num_devices(),
+                     gko::mpi::map_rank_to_device_id(
+                         MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), false,
                      gko::allocation_mode::device);
              }},
             {"hip",
              [&] {
                  return gko::HipExecutor::create(
-                     comm.node_local_rank() %
-                         gko::HipExecutor::get_num_devices(),
+                     gko::mpi::map_rank_to_device_id(
+                         MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
@@ -128,13 +127,15 @@ int main(int argc, char* argv[])
                  auto ref = gko::ReferenceExecutor::create();
                  if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         comm.node_local_rank() %
-                             gko::DpcppExecutor::get_num_devices("gpu"),
+                         gko::mpi::map_rank_to_device_id(
+                             MPI_COMM_WORLD,
+                             gko::DpcppExecutor::get_num_devices("gpu")),
                          ref);
                  } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         comm.node_local_rank() %
-                             gko::DpcppExecutor::get_num_devices("cpu"),
+                         gko::mpi::map_rank_to_device_id(
+                             MPI_COMM_WORLD,
+                             gko::DpcppExecutor::get_num_devices("cpu")),
                          ref);
                  } else {
                      throw std::runtime_error("No suitable DPC++ devices");
@@ -226,7 +227,7 @@ int main(int argc, char* argv[])
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
-    Ainv->apply(lend(b), lend(x));
+    Ainv->apply(gko::lend(b), gko::lend(x));
 
     // Take timings.
     comm.synchronize();
@@ -237,9 +238,10 @@ int main(int argc, char* argv[])
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A_host->apply(gko::lend(minus_one), gko::lend(x_host), gko::lend(one),
+                  gko::lend(b_host));
     auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(res_norm));
+    b_host->compute_norm2(gko::lend(res_norm));
 
     // Take timings.
     comm.synchronize();
