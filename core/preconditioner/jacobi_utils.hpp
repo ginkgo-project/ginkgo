@@ -89,13 +89,15 @@ struct precision_reduction_descriptor {
     static constexpr GKO_ATTRIBUTES uint32
     singleton(const precision_reduction& pr)
     {
+        // clang-format off
         return pr == precision_reduction(0, 0)   ? p0n0
                : pr == precision_reduction(0, 1) ? p0n1
                : pr == precision_reduction(0, 2) ? p0n2
                : pr == precision_reduction(1, 0) ? p1n0
                : pr == precision_reduction(1, 1) ? p1n1
                : pr == precision_reduction(2, 0) ? p2n0
-                                                 : p0n0;
+               : p0n0;
+        // clang-format on
     }
 };
 

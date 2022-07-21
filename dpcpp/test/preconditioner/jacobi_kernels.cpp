@@ -343,7 +343,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithDifferentBlockSize)
 
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithMPW)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
 
     auto bj = bj_factory->generate(mtx);
@@ -356,7 +356,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithMPW)
 
 TEST_F(Jacobi, DpcppTransposedPreconditionerEquivalentToRefWithMPW)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
 
     auto bj = bj_factory->generate(mtx);
@@ -370,7 +370,7 @@ TEST_F(Jacobi, DpcppTransposedPreconditionerEquivalentToRefWithMPW)
 
 TEST_F(Jacobi, DpcppConjTransposedPreconditionerEquivalentToRefWithMPW)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
 
     auto bj = bj_factory->generate(mtx);
@@ -411,7 +411,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithDifferentBlockSize)
 
 TEST_F(Jacobi, DpcppApplyEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -459,7 +459,7 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
 
 TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
@@ -517,7 +517,7 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
 
 TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99, 5);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -531,7 +531,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRef)
 
 TEST_F(Jacobi, DpcppLinearCombinationApplyToMultipleVectorsEquivalentToRef)
 {
-    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 32,
                     97, 99, 5);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
@@ -551,7 +551,7 @@ TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97, 99);
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 32, 97, 99);
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = clone(ref, d_bj_factory->generate(mtx));
@@ -613,12 +613,11 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
     auto h_bj = clone(ref, bj);
     auto prec =
         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-#if GINKGO_DPCPP_SINGLE_MODE
     ASSERT_EQ(prec[0], gko::precision_reduction(0, 2));
+#if GINKGO_DPCPP_SINGLE_MODE
     // In single value, precision_reduction(1, 1) == precision_reduction(2, 0)
     ASSERT_EQ(prec[1], gko::precision_reduction(2, 0));
 #else
-    ASSERT_EQ(prec[0], gko::precision_reduction(0, 2));
     ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
 #endif  // GINKGO_DPCPP_SINGLE_MODE
 }
@@ -640,7 +639,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithFullPrecision)
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 13, 97,
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -653,7 +652,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithReducedPrecision)
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 13, 97,
+                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -666,7 +665,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomReducedPrecision)
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 13, 97,
+                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -679,7 +678,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithQuarteredPrecision)
 TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithCustomQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 13, 97,
+                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -693,7 +692,7 @@ TEST_F(Jacobi, DpcppPreconditionerEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -708,7 +707,7 @@ TEST_F(Jacobi,
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -725,7 +724,7 @@ TEST_F(Jacobi,
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 32, 97,
                     99);
 
     auto bj = bj_factory->generate(mtx);
@@ -741,7 +740,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithFullPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97,
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -757,7 +756,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithReducedPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 13, 97,
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -773,7 +772,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 13, 97,
+                    {tp, tp, tp, tp, tp, tp, tp, tp, tp, tp, tp}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -788,7 +787,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedPrecision)
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 13, 97,
+                    {hp, hp, hp, hp, hp, hp, hp, hp, hp, hp, hp}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -803,7 +802,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithQuarteredPrecision)
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {up, up, up, up, up, up, up, up, up, up, up}, {}, 13, 97,
+                    {up, up, up, up, up, up, up, up, up, up, up}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -818,7 +817,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomReducedAndReducedPrecision)
 TEST_F(Jacobi, DpcppApplyEquivalentToRefWithCustomQuarteredPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 13, 97,
+                    {qp, qp, qp, qp, qp, qp, qp, qp, qp, qp, qp}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -834,7 +833,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 32, 97,
                     99);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -850,7 +849,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 13, 97,
+                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 32, 97,
                     99);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
@@ -870,7 +869,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97,
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 32, 97,
                     99, 5);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -885,7 +884,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithFullPrecision)
 TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithReducedPrecision)
 {
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 13, 97,
+                    {sp, sp, sp, sp, sp, sp, sp, sp, sp, sp, sp}, {}, 32, 97,
                     99, 5);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -901,7 +900,7 @@ TEST_F(Jacobi, DpcppApplyToMultipleVectorsEquivalentToRefWithAdaptivePrecision)
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 32, 97,
                     99, 5);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -919,7 +918,7 @@ TEST_F(
 {
     SKIP_IF_SINGLE_MODE;
     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 13, 97,
+                    {sp, dp, dp, sp, sp, sp, dp, dp, sp, dp, sp}, {}, 32, 97,
                     99, 5);
     auto alpha = gko::initialize<Vec>({2.0}, ref);
     auto d_alpha = gko::initialize<Vec>({2.0}, dpcpp);
