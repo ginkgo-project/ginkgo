@@ -1088,6 +1088,28 @@ public:                                                                      \
                   "semi-colon warnings")
 
 
+namespace detail {
+
+
+template <
+    typename T, typename Arg,
+    typename = typename std::enable_if<std::is_assignable<T, Arg>::value>::type>
+void parameter_assignment_helper(T& parameter, Arg&& arg)
+{
+    parameter = std::forward<Arg>(arg);
+}
+
+
+template <typename T, typename... Args>
+void parameter_assignment_helper(T& parameter, Args&&... args)
+{
+    parameter = T{std::forward<Args>(args)...};
+}
+
+
+}  // namespace detail
+
+
 #if !(defined(__CUDACC__) || defined(__HIPCC__))
 /**
  * Creates a factory parameter in the factory parameters structure.
@@ -1108,8 +1130,8 @@ public:                                                                      \
     auto with_##_name(Args&&... _value)                                      \
         const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
-        using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Args>(_value)...};                   \
+        ::gko::detail::parameter_assignment_helper(                          \
+            this->_name, std::forward<Args>(_value)...);                     \
         return *this;                                                        \
     }                                                                        \
     static_assert(true,                                                      \
@@ -1173,8 +1195,8 @@ public:                                                                      \
     auto with_##_name(Arg&& _value)                                          \
         const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
-        using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Arg>(_value)};                       \
+        ::gko::detail::parameter_assignment_helper(                          \
+            this->_name, std::forward<Args>(_value));                        \
         return *this;                                                        \
     }                                                                        \
     static_assert(true,                                                      \
@@ -1188,8 +1210,8 @@ public:                                                                      \
     auto with_##_name(Args&&... _value)                                      \
         const->const std::decay_t<decltype(*this)>&                          \
     {                                                                        \
-        using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Args>(_value)...};                   \
+        ::gko::detail::parameter_assignment_helper(                          \
+            this->_name, std::forward<Args>(_value)...);                     \
         return *this;                                                        \
     }                                                                        \
     static_assert(true,                                                      \
