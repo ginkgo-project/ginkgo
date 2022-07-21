@@ -178,6 +178,57 @@ void generate(
     });
 }
 
+namespace detail {
+
+
+/**
+ * TODO: Less threads involve the verificator1 when the function try calling the
+ * verificator1 twice on some CPU. Need to investigate furthermore and get the
+ * reproducer. The current workaround we pass the same lambda function as
+ * verificator1 to verificator3. Others is copied from
+ * core/preconditioner/jacobi_utils.hpp.
+ */
+template <typename ValueType, typename AccuracyType, typename CondType,
+          typename Predicate1, typename Predicate2, typename Predicate3>
+GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions_dpcpp(
+    AccuracyType accuracy, CondType cond, Predicate1 verificator1,
+    Predicate2 verificator2, Predicate3 verificator3)
+{
+    using gko::detail::float_traits;
+    using type = remove_complex<ValueType>;
+    using prd = preconditioner::detail::precision_reduction_descriptor;
+    auto accurate = [&cond, &accuracy](type eps) {
+        return cond * eps < accuracy;
+    };
+    uint8 is_verified1 = 2;
+    auto supported = static_cast<uint32>(prd::p0n0);
+    // the following code uses short-circuiting to avoid calling possibly
+    // expensive verificatiors multiple times
+    if (accurate(float_traits<truncate_type<truncate_type<type>>>::eps)) {
+        supported |= prd::p2n0;
+    }
+    if (accurate(float_traits<truncate_type<reduce_precision<type>>>::eps) &&
+        (is_verified1 = verificator1())) {
+        supported |= prd::p1n1;
+    }
+    if (accurate(float_traits<reduce_precision<reduce_precision<type>>>::eps) &&
+        is_verified1 != 0 && verificator2()) {
+        supported |= prd::p0n2;
+    }
+    if (accurate(float_traits<truncate_type<type>>::eps)) {
+        supported |= prd::p1n0;
+    }
+    if (accurate(float_traits<reduce_precision<type>>::eps) &&
+        (is_verified1 == 1 ||
+         (is_verified1 == 2 && (is_verified1 = verificator3())))) {
+        supported |= prd::p0n1;
+    }
+    return supported;
+}
+
+
+}  // namespace detail
+
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
@@ -225,8 +276,8 @@ void adaptive_generate(
             preconditioner::detail::precision_reduction_descriptor::singleton(
                 prec);
         if (prec == precision_reduction::autodetect()) {
-            using preconditioner::detail::get_supported_storage_reductions;
-            prec_descriptor = get_supported_storage_reductions<ValueType>(
+            using detail::get_supported_storage_reductions_dpcpp;
+            prec_descriptor = get_supported_storage_reductions_dpcpp<ValueType>(
                 accuracy, block_cond,
                 [&subwarp, &block_size, &row, &block_data, &storage_scheme,
                  &block_id] {
@@ -242,6 +293,16 @@ void adaptive_generate(
                  &block_id] {
                     using target =
                         reduce_precision<reduce_precision<ValueType>>;
+                    return validate_precision_reduction_feasibility<
+                        max_block_size, target>(
+                        subwarp, block_size, row,
+                        block_data +
+                            storage_scheme.get_global_block_offset(block_id),
+                        storage_scheme.get_stride());
+                },
+                [&subwarp, &block_size, &row, &block_data, &storage_scheme,
+                 &block_id] {
+                    using target = reduce_precision<ValueType>;
                     return validate_precision_reduction_feasibility<
                         max_block_size, target>(
                         subwarp, block_size, row,
