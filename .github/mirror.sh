@@ -18,6 +18,9 @@ git config user.name "Ginkgo Bot"
 
 # Fetch from github
 git fetch fork "$BRANCH_NAME"
-git checkout -b fork/$BRANCH_NAME
+git checkout -b "$BRANCH_NAME"
+git reset --hard fork/"$BRANCH_NAME"
+git status
+git show-ref
 # Push to gitlab
-git push --force --prune gitlab $BRANCH_NAME
+git push -u --force --prune gitlab HEAD:$BRANCH_NAME
