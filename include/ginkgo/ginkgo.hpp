@@ -133,6 +133,7 @@
 #include <ginkgo/core/reorder/reordering_base.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 
+#include <ginkgo/core/solver/async_richardson.hpp>
 #include <ginkgo/core/solver/batch_bicgstab.hpp>
 #include <ginkgo/core/solver/batch_cg.hpp>
 #include <ginkgo/core/solver/batch_solver_base.hpp>

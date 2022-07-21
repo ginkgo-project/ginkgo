@@ -103,6 +103,7 @@ target_sources(${ginkgo_core}
     reorder/mc64.cpp
     reorder/rcm.cpp
     reorder/scaled_reordered.cpp
+    solver/async_richardson.cpp
     solver/batch_bicgstab.cpp
     solver/batch_cg.cpp
     solver/bicg.cpp

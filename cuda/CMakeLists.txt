@@ -24,6 +24,7 @@ target_sources(ginkgo_cuda
     ${FBCSR_INSTANTIATE}
     matrix/fft_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
+    solver/async_richardson_kernels.cu
     solver/batch_bicgstab_kernels.cu
     ${BATCH_BICGSTAB_INSTANTIATE1}
     ${BATCH_BICGSTAB_INSTANTIATE2}

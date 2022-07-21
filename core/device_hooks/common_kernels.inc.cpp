@@ -52,6 +52,7 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/sor_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
+#include "core/solver/async_richardson_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
@@ -493,6 +494,14 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 }  // namespace diagonal
+
+namespace async_richardson {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL);
+
+
+}  // namespace async_richardson
 
 
 namespace batch_bicgstab {
