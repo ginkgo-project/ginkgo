@@ -68,7 +68,7 @@ namespace mpi {
 /**
  * Return if GPU aware functionality is available
  */
-static constexpr bool is_gpu_aware()
+inline constexpr bool is_gpu_aware()
 {
 #if GINKGO_HAVE_GPU_AWARE_MPI
     return true;
@@ -85,7 +85,7 @@ static constexpr bool is_gpu_aware()
  * @param num_devices  the number of devices per node.
  * @return  device id that this rank should use.
  */
-static int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
+inline int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
 {
     GKO_ASSERT(num_devices > 0);
     if (num_devices == 1) {
@@ -1986,7 +1986,10 @@ namespace mpi {
 /**
  * Dummy implementation that always returns 0.
  */
-int map_rank_to_device_id(MPI_Comm comm, const int num_devices) { return 0; }
+inline int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
+{
+    return 0;
+}
 
 
 }  // namespace mpi
