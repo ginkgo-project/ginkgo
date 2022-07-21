@@ -336,6 +336,29 @@ TEST_F(EnableLinOp, AdvancedApplyIsLogged)
 }
 
 
+struct counted_type {
+    counted_type() = default;
+
+    counted_type(const counted_type&) { copy++; }
+    counted_type(counted_type&&) { move++; }
+    counted_type& operator=(const counted_type&)
+    {
+        copy++;
+        return *this;
+    }
+    counted_type& operator=(counted_type&&) noexcept
+    {
+        move++;
+        return *this;
+    }
+
+    static int copy;
+    static int move;
+};
+int counted_type::copy = 0;
+int counted_type::move = 0;
+
+
 template <typename T = int>
 class DummyLinOpWithFactory
     : public gko::EnableLinOp<DummyLinOpWithFactory<T>> {
@@ -347,6 +370,8 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         T GKO_FACTORY_PARAMETER_SCALAR(value, T{5});
+
+        counted_type GKO_FACTORY_PARAMETER_SCALAR(counter, counted_type{});
     };
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -396,6 +421,36 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 
     ASSERT_EQ(factory->get_parameters().value, 7);
     ASSERT_EQ(factory->get_executor(), ref);
+}
+
+
+TEST_F(EnableLinOpFactory, ParameterCanBeCopied)
+{
+    counted_type c;
+    auto num_copies = counted_type::copy;
+    auto num_moves = counted_type::move;
+
+    // adding .on(...) would incur an extra copy of the parameters struct, so it
+    // is left out here
+    auto& factory = DummyLinOpWithFactory<>::build().with_counter(c);
+
+    ASSERT_EQ(counted_type::copy, num_copies + 1);
+    ASSERT_EQ(counted_type::move, num_moves);
+}
+
+
+TEST_F(EnableLinOpFactory, ParameterCanBeMoved)
+{
+    auto num_copies = counted_type::copy;
+    auto num_moves = counted_type::move;
+
+    // adding .on(...) would incur an extra copy of the parameters struct, so it
+    // is left out here
+    auto& factory =
+        DummyLinOpWithFactory<>::build().with_counter(counted_type{});
+
+    ASSERT_EQ(counted_type::copy, num_copies);
+    ASSERT_EQ(counted_type::move, num_moves + 1);
 }
 
 
