@@ -61,11 +61,11 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::transpose() const
         .with_generated_preconditioner(share(
             as<BatchTransposable>(this->get_preconditioner())->transpose()))
         .with_left_scaling_op(share(
-            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+            as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
         .with_right_scaling_op(share(
-            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
+            as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
         .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(parameters_.residual_tol)
+        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
@@ -87,13 +87,13 @@ std::unique_ptr<BatchLinOp> BatchIdr<ValueType>::conj_transpose() const
             share(as<BatchTransposable>(this->get_preconditioner())
                       ->conj_transpose()))
         .with_left_scaling_op(
-            share(as<BatchTransposable>(parameters_.left_scaling_op)
+            share(as<BatchTransposable>(this->get_left_scaling_op())
                       ->conj_transpose()))
         .with_right_scaling_op(
-            share(as<BatchTransposable>(parameters_.right_scaling_op)
+            share(as<BatchTransposable>(this->get_right_scaling_op())
                       ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(parameters_.residual_tol)
+        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
         .with_subspace_dim(parameters_.subspace_dim)
         .with_complex_subspace(parameters_.complex_subspace)
         .with_kappa(parameters_.kappa)
@@ -113,7 +113,7 @@ void BatchIdr<ValueType>::solver_apply(const BatchLinOp* const b,
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_idr::BatchIdrOptions<remove_complex<ValueType>> opts{
-        parameters_.max_iterations, parameters_.residual_tol,
+        parameters_.max_iterations, static_cast<real_type>(this->residual_tol_),
         parameters_.subspace_dim,   parameters_.complex_subspace,
         parameters_.kappa,          parameters_.smoothing,
         parameters_.deterministic,  parameters_.tolerance_type};

@@ -47,6 +47,7 @@ struct common_batch_params {
     std::shared_ptr<const BatchLinOp> generated_prec;
     std::shared_ptr<const BatchLinOp> left_scaling_op;
     std::shared_ptr<const BatchLinOp> right_scaling_op;
+    double residual_tolerance;
 };
 
 
@@ -54,7 +55,8 @@ template <typename ParamsType>
 common_batch_params extract_common_batch_params(ParamsType& params)
 {
     return {params.preconditioner, params.generated_preconditioner,
-            params.left_scaling_op, params.right_scaling_op};
+            params.left_scaling_op, params.right_scaling_op,
+            params.residual_tol};
 }
 
 
@@ -107,6 +109,10 @@ public:
         return right_scaling_;
     }
 
+    double get_residual_tolerance() const { return residual_tol_; }
+
+    void set_residual_tolerance(double res_tol) { residual_tol_ = res_tol; }
+
 protected:
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
@@ -125,6 +131,7 @@ protected:
     std::shared_ptr<const BatchLinOp> preconditioner_{};
     std::shared_ptr<const BatchLinOp> left_scaling_{};
     std::shared_ptr<const BatchLinOp> right_scaling_{};
+    double residual_tol_;
 
 private:
     /**
