@@ -94,7 +94,7 @@
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 3000
+    - ctest --output-on-failure --timeout 3000
     - ninja test_install
     - pushd test/test_install
     - ninja install
@@ -145,7 +145,7 @@
     - cd ${CI_JOB_NAME/test/build}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest -V --timeout 3000
+    - ctest --output-on-failure --timeout 3000
     - ninja test_install
     - pushd test/test_install
     - ninja install

@@ -935,7 +935,7 @@ threadsanitizer:
   script:
     - LD_PRELOAD=/usr/local/lib/libomp.so
       CC=clang CXX=clang++
-        ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
+        ctest --output-on-failure -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
         -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
         -DCTEST_MEMORYCHECK_SANITIZER_OPTIONS=ignore_noninstrumented_modules=1
         --timeout 6000
@@ -948,7 +948,7 @@ leaksanitizer:
     - .before_script_template
     - .use_gko-cuda101-openmpi-gnu8-llvm11-intel2019
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
+    - ctest --output-on-failure -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
       -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
 
 addresssanitizer:
@@ -959,7 +959,7 @@ addresssanitizer:
     - .before_script_template
     - .use_gko-cuda101-openmpi-gnu8-llvm11-intel2019
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
+    - ctest --output-on-failure -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
       -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
 
 undefinedsanitizer:
@@ -972,7 +972,7 @@ undefinedsanitizer:
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
     # in the Ubuntu setup we are using.
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=UBSAN
+    - ctest --output-on-failure -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=UBSAN
       -DCTEST_MEMORYCHECK_TYPE=UndefinedBehaviorSanitizer
 
 cudamemcheck:
@@ -986,7 +986,7 @@ cudamemcheck:
     - private_ci
     - nvidia-gpu
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
+    - ctest --output-on-failure -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
       -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck
 
 new-issue-on-failure:
