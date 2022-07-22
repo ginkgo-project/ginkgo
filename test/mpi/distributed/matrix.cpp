@@ -563,29 +563,30 @@ public:
 
     MatrixGpuAwareCheck()
         : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD, ref),
+          ref_comm(MPI_COMM_WORLD, ref),
+          exec_comm(MPI_COMM_WORLD, ref),
           size{53, 53},
           num_rhs(11),
           logger(gko::share(HostToDeviceLogger::create())),
           engine()
     {
         init_executor(ref, exec);
-        comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+        exec_comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
         exec->add_logger(logger);
 
-        mat = dist_mtx_type::create(ref, comm);
-        dmat = dist_mtx_type::create(exec, comm);
-        x = dist_vec_type::create(ref, comm);
-        dx = dist_vec_type::create(exec, comm);
-        y = dist_vec_type::create(ref, comm);
-        dy = dist_vec_type::create(exec, comm);
+        mat = dist_mtx_type::create(ref_comm);
+        dmat = dist_mtx_type::create(exec_comm);
+        x = dist_vec_type::create(ref, ref_comm);
+        dx = dist_vec_type::create(exec, exec_comm);
+        y = dist_vec_type::create(ref, ref_comm);
+        dy = dist_vec_type::create(exec, exec_comm);
         alpha = dense_type::create(ref);
         dalpha = dense_type::create(exec);
         beta = dense_type::create(ref);
         dbeta = dense_type::create(exec);
 
         auto num_parts =
-            static_cast<gko::distributed::comm_index_type>(comm.size());
+            static_cast<gko::distributed::comm_index_type>(ref_comm.size());
         auto mapping =
             gko::test::generate_random_array<gko::distributed::comm_index_type>(
                 size[0],
@@ -647,7 +648,8 @@ public:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
-    gko::mpi::communicator comm;
+        gko::mpi::communicator ref_comm;
+        gko::mpi::communicator exec_comm;
 
     gko::dim<2> size;
     gko::size_type num_rhs;

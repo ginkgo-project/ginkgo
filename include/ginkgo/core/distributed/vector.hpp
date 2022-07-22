@@ -63,7 +63,7 @@ class Partition;
  * vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
- * auto vector = Vector<...>::create(exec, comm);
+ * auto vector = Vector<...>::create(exec, ref_comm);
  * vector->read_distributed(matrix_data, part);
  * ```
  * Using this approach the size of the global vectors, as well as the size of
@@ -421,13 +421,17 @@ public:
 
 protected:
     /**
-     * Creates an empty distributed vector.
-     *
-     * @note This will use the MPI_COMM_WORLD communicator.
+     * Creates an empty distributed vector with a specified size
      *
      * @param exec  Executor associated with vector
+     * @param comm  Communicator associated with vector
+     * @param partition  Partition of global rows
+     * @param global_size  Global size of the vector
+     * @param local_size  Processor-local size of the vector, uses local_size[1]
+     *                    as the stride
      */
-    explicit Vector(std::shared_ptr<const Executor> exec);
+    explicit Vector(mpi::communicator comm, dim<2> global_size = {},
+                    dim<2> local_size = {});
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -440,22 +444,8 @@ protected:
      * @param local_size  Processor-local size of the vector
      * @param stride  Stride of the local vector.
      */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, dim<2> local_size, size_type stride);
-
-    /**
-     * Creates an empty distributed vector with a specified size
-     *
-     * @param exec  Executor associated with vector
-     * @param comm  Communicator associated with vector
-     * @param partition  Partition of global rows
-     * @param global_size  Global size of the vector
-     * @param local_size  Processor-local size of the vector, uses local_size[1]
-     *                    as the stride
-     */
-    explicit Vector(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, dim<2> global_size = {},
-                    dim<2> local_size = {});
+    Vector(mpi::communicator comm, dim<2> global_size, dim<2> local_size,
+           size_type stride);
 
     /**
      * Creates a distributed vector from local vectors with a specified size.
@@ -470,8 +460,8 @@ protected:
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
      */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           dim<2> global_size, local_vector_type* local_vector);
+    Vector(mpi::communicator comm, dim<2> global_size,
+           local_vector_type* local_vector);
 
     /**
      * Creates a distributed vector from local vectors. The global size will
@@ -487,8 +477,7 @@ protected:
      * @param local_vector  The underlying local vector, the data will be moved
      *                      into this
      */
-    Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-           local_vector_type* local_vector);
+    Vector(mpi::communicator comm, local_vector_type* local_vector);
 
     void resize(dim<2> global_size, dim<2> local_size);
 
@@ -505,9 +494,9 @@ protected:
      */
     std::unique_ptr<Vector> create_with_same_config() const
     {
-        return Vector::create(
-            this->get_executor(), this->get_communicator(), this->get_size(),
-            this->get_local_vector()->get_size(), this->get_stride());
+        return Vector::create(this->get_communicator(), this->get_size(),
+                              this->get_local_vector()->get_size(),
+                              this->get_stride());
     }
 
 private:
@@ -518,6 +507,35 @@ private:
 
 
 }  // namespace distributed
+
+
+template <typename ValueType>
+struct polymorphic_object_traits<distributed::Vector<ValueType>> {
+    using Vector = distributed::Vector<ValueType>;
+
+    static std::unique_ptr<PolymorphicObject> create_default_impl(
+        const Vector* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Vector>{new Vector(
+            mpi::communicator{self->get_communicator().get(), exec})};
+    }
+
+    static std::unique_ptr<Vector> create_conversion_target_impl(
+        const distributed::Vector<next_precision<ValueType>>* self,
+        std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Vector>{new Vector(
+            mpi::communicator{self->get_communicator().get(), exec})};
+    }
+
+    static PolymorphicObject* clear_impl(Vector* self)
+    {
+        *self = Vector{self->get_communicator()};
+        return self;
+    }
+};
+
+
 }  // namespace gko
 
 

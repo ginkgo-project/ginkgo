@@ -263,7 +263,6 @@ public:
     using global_index_type = GlobalIndexType;
     using global_vector_type = gko::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
-    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
 
     using EnableLinOp<Matrix>::convert_to;
     using EnableLinOp<Matrix>::move_to;
@@ -394,21 +393,11 @@ protected:
     /**
      * Creates an empty distributed matrix.
      *
-     * @note This will use the MPI_COMM_WORLD communicator.
-     *
-     * @param exec  Executor associated with this matrix.
-     */
-    explicit Matrix(std::shared_ptr<const Executor> exec);
-
-    /**
-     * Creates an empty distributed matrix.
-     *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm);
+    explicit Matrix(mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -429,13 +418,12 @@ protected:
      *                         return value of make_matrix_template.
      */
     template <typename MatrixType>
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, MatrixType matrix_template)
-        : Matrix(exec, comm,
-                 static_cast<const LinOp*>(
-                     matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
-                         .get()))
+    explicit Matrix(mpi::communicator comm, MatrixType matrix_template)
+        : Matrix(comm, static_cast<const LinOp*>(
+                           matrix_template
+                               .template create<ValueType, LocalIndexType>(
+                                   comm.get_executor())
+                               .get()))
     {}
 
     /**
@@ -465,18 +453,19 @@ protected:
      *                                   return value of make_matrix_template.
      */
     template <typename LocalMatrixType, typename NonLocalMatrixType>
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm,
+    explicit Matrix(mpi::communicator comm,
                     LocalMatrixType local_matrix_template,
                     NonLocalMatrixType non_local_matrix_template)
-        : Matrix(exec, comm,
+        : Matrix(comm,
                  static_cast<const LinOp*>(
                      local_matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
+                         .template create<ValueType, LocalIndexType>(
+                             comm.get_executor())
                          .get()),
                  static_cast<const LinOp*>(
                      non_local_matrix_template
-                         .template create<ValueType, LocalIndexType>(exec)
+                         .template create<ValueType, LocalIndexType>(
+                             comm.get_executor())
                          .get()))
     {}
 
@@ -492,8 +481,7 @@ protected:
      * @param matrix_template  the local matrices will be constructed with the
      *                         same runtime type.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, const LinOp* matrix_template);
+    explicit Matrix(mpi::communicator comm, const LinOp* matrix_template);
 
     /**
      * Creates an empty distributed matrix with specified types for the local
@@ -509,8 +497,7 @@ protected:
      * @param non_local_matrix_template  the non-local matrix will be
      *                                   constructed with the same runtime type.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm, const LinOp* local_matrix_template,
+    explicit Matrix(mpi::communicator comm, const LinOp* local_matrix_template,
                     const LinOp* non_local_matrix_template);
 
     /**
@@ -546,6 +533,29 @@ private:
 
 
 }  // namespace distributed
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+struct polymorphic_object_traits<
+    distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>> {
+    using Matrix =
+        distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
+
+    static std::unique_ptr<PolymorphicObject> create_default_impl(
+        const Matrix* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Matrix>{new Matrix(
+            mpi::communicator{self->get_communicator().get(), exec})};
+    }
+
+    static PolymorphicObject* clear_impl(Matrix* self)
+    {
+        *self = Matrix{self->get_communicator()};
+        return self;
+    }
+};
+
+
 }  // namespace gko
 
 

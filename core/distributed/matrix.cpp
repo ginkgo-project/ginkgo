@@ -57,42 +57,34 @@ GKO_REGISTER_OPERATION(build_local_nonlocal,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec)
-    : Matrix(exec, mpi::communicator(MPI_COMM_WORLD, exec))
+    mpi::communicator comm)
+    : Matrix(comm, with_matrix_type<gko::matrix::Csr>())
 {}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm)
-    : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
+    mpi::communicator comm, const LinOp* local_matrix_type)
+    : Matrix(comm, local_matrix_type, local_matrix_type)
 {}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* local_matrix_type)
-    : Matrix(exec, comm, local_matrix_type, local_matrix_type)
-{}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    const LinOp* local_matrix_template, const LinOp* non_local_matrix_template)
-    : EnableLinOp<
-          Matrix<value_type, local_index_type, global_index_type>>{exec},
+    mpi::communicator comm, const LinOp* local_matrix_template,
+    const LinOp* non_local_matrix_template)
+    : EnableLinOp<Matrix<value_type, local_index_type,
+                         global_index_type>>{comm.get_executor()},
       DistributedBase{comm},
       send_offsets_(comm.size() + 1),
       send_sizes_(comm.size()),
       recv_offsets_(comm.size() + 1),
       recv_sizes_(comm.size()),
-      gather_idxs_{exec},
-      non_local_to_global_{exec},
+      gather_idxs_{this->get_executor()},
+      non_local_to_global_{this->get_executor()},
       one_scalar_{},
-      local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      local_mtx_{local_matrix_template->clone(this->get_executor())},
+      non_local_mtx_{non_local_matrix_template->clone(this->get_executor())}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -100,7 +92,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
             non_local_mtx_.get())));
-    one_scalar_.init(exec, dim<2>{1, 1});
+    one_scalar_.init(this->get_executor(), dim<2>{1, 1});
     one_scalar_->fill(one<value_type>());
 }
 

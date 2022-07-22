@@ -80,51 +80,42 @@ void Vector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec)
-    : Vector(exec, mpi::communicator(MPI_COMM_WORLD, exec), dim<2>{}, dim<2>{})
-{}
-
-
-template <typename ValueType>
-Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          mpi::communicator comm, dim<2> global_size,
+Vector<ValueType>::Vector(mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size)
-    : Vector(exec, comm, global_size, local_size, local_size[1])
+    : Vector(comm, global_size, local_size, local_size[1])
 {}
 
 
 template <typename ValueType>
-Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          mpi::communicator comm, dim<2> global_size,
+Vector<ValueType>::Vector(mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableLinOp<Vector<ValueType>>{comm.get_executor(), global_size},
       DistributedBase{comm},
-      local_{exec, local_size, stride}
+      local_{this->get_executor(), local_size, stride}
 {
     GKO_ASSERT_EQUAL_COLS(global_size, local_size);
 }
 
 template <typename ValueType>
-Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          mpi::communicator comm, dim<2> global_size,
+Vector<ValueType>::Vector(mpi::communicator comm, dim<2> global_size,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, global_size},
+    : EnableLinOp<Vector<ValueType>>{comm.get_executor(), global_size},
       DistributedBase{comm},
-      local_{exec}
+      local_{this->get_executor()}
 {
     local_vector->move_to(&local_);
 }
 
 
 template <typename ValueType>
-Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
-                          mpi::communicator comm,
+Vector<ValueType>::Vector(mpi::communicator comm,
                           local_vector_type* local_vector)
-    : EnableLinOp<Vector<ValueType>>{exec, {}},
+    : EnableLinOp<Vector<ValueType>>{comm.get_executor(),
+                                     compute_global_size(
+                                         comm, local_vector->get_size())},
       DistributedBase{comm},
-      local_{exec}
+      local_{this->get_executor()}
 {
-    this->set_size(compute_global_size(comm, local_vector->get_size()));
     local_vector->move_to(&local_);
 }
 
@@ -195,7 +186,7 @@ Vector<ValueType>::compute_absolute() const
     auto exec = this->get_executor();
 
     auto result =
-        absolute_type::create(exec, this->get_communicator(), this->get_size(),
+        absolute_type::create(this->get_communicator(), this->get_size(),
                               this->get_local_vector()->get_size());
 
     exec->run(vector::make_outplace_absolute_dense(this->get_local_vector(),
@@ -224,10 +215,10 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::complex_type>
 Vector<ValueType>::make_complex() const
 {
-    auto result = complex_type::create(
-        this->get_executor(), this->get_communicator(), this->get_size(),
-        this->get_local_vector()->get_size(),
-        this->get_local_vector()->get_stride());
+    auto result =
+        complex_type::create(this->get_communicator(), this->get_size(),
+                             this->get_local_vector()->get_size(),
+                             this->get_local_vector()->get_stride());
     this->make_complex(result.get());
     return result;
 }
@@ -244,8 +235,7 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_real() const
 {
-    auto result = real_type::create(this->get_executor(),
-                                    this->get_communicator(), this->get_size(),
+    auto result = real_type::create(this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
     this->get_real(result.get());
@@ -264,8 +254,7 @@ template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::real_type>
 Vector<ValueType>::get_imag() const
 {
-    auto result = real_type::create(this->get_executor(),
-                                    this->get_communicator(), this->get_size(),
+    auto result = real_type::create(this->get_communicator(), this->get_size(),
                                     this->get_local_vector()->get_size(),
                                     this->get_local_vector()->get_stride());
     this->get_imag(result.get());
@@ -455,8 +444,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
@@ -506,7 +495,7 @@ Vector<ValueType>::create_real_view() const
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return real_type::create(this->get_executor(), this->get_communicator(),
+    return real_type::create(this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
                              const_cast<typename real_type::local_vector_type*>(
                                  local_.create_real_view().get()));
@@ -521,7 +510,7 @@ Vector<ValueType>::create_real_view()
     const auto num_cols =
         is_complex<ValueType>() ? 2 * this->get_size()[1] : this->get_size()[1];
 
-    return real_type::create(this->get_executor(), this->get_communicator(),
+    return real_type::create(this->get_communicator(),
                              dim<2>{num_global_rows, num_cols},
                              local_.create_real_view().get());
 }
