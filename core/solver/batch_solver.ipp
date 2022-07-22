@@ -62,7 +62,8 @@ EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
         exec, gko::transpose(system_matrix->get_size())),
       system_matrix_{std::move(system_matrix)},
       left_scaling_{common_params.left_scaling_op},
-      right_scaling_{common_params.right_scaling_op}
+      right_scaling_{common_params.right_scaling_op},
+      residual_tol_{common_params.residual_tolerance}
 {
     GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
