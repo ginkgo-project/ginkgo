@@ -617,6 +617,13 @@ struct polymorphic_object_traits {
         return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
     }
 
+    template <typename OtherType>
+    static std::unique_ptr<ConcreteObject> create_conversion_target_impl(
+        const OtherType* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+    }
+
     static PolymorphicObject* clear_impl(ConcreteObject* self)
     {
         *self = ConcreteObject{self->get_executor()};
