@@ -143,7 +143,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
     friend class EnableCreateMethod<Csr>;
-    friend class EnablePolymorphicObject<Csr, LinOp>;
+    friend class polymorphic_object_traits<Csr>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;

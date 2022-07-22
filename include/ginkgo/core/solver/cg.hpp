@@ -75,7 +75,7 @@ class Cg : public EnableLinOp<Cg<ValueType>>,
            public EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Cg>;
-    friend class EnablePolymorphicObject<Cg, LinOp>;
+    friend class polymorphic_object_traits<Cg>;
 
 public:
     using value_type = ValueType;

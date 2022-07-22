@@ -53,7 +53,7 @@ namespace stop {
  * @ingroup stop
  */
 class Combined : public EnablePolymorphicObject<Combined, Criterion> {
-    friend class EnablePolymorphicObject<Combined, Criterion>;
+    friend class polymorphic_object_traits<Combined>;
 
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
