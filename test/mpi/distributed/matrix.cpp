@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/mpi/executor.hpp"
 
 
 namespace {
