@@ -55,6 +55,7 @@ namespace async_richardson {
 
 #define GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL(ValueType, IndexType) \
     void apply(std::shared_ptr<const DefaultExecutor> exec,             \
+               const matrix::Dense<ValueType>* relaxation_factor,       \
                const matrix::Csr<ValueType, IndexType>* a,              \
                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
