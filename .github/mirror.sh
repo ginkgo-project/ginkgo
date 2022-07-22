@@ -16,7 +16,7 @@ ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
 
 # Fetch from github
 git fetch fork "$BRANCH_NAME"
-git checkout -b "$BRANCH_NAME"
+git checkout -B "$BRANCH_NAME"
 git reset --hard fork/"$BRANCH_NAME"
 # Push to gitlab
-git push -u --force --prune gitlab HEAD:$BRANCH_NAME
+git push -u --force gitlab HEAD:$BRANCH_NAME
