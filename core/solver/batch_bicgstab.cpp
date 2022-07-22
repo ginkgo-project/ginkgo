@@ -61,11 +61,11 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::transpose() const
         .with_generated_preconditioner(share(
             as<BatchTransposable>(this->get_preconditioner())->transpose()))
         .with_left_scaling_op(share(
-            as<BatchTransposable>(parameters_.left_scaling_op)->transpose()))
+            as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
         .with_right_scaling_op(share(
-            as<BatchTransposable>(parameters_.right_scaling_op)->transpose()))
+            as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
         .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(parameters_.residual_tol)
+        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(
@@ -82,13 +82,13 @@ std::unique_ptr<BatchLinOp> BatchBicgstab<ValueType>::conj_transpose() const
             share(as<BatchTransposable>(this->get_preconditioner())
                       ->conj_transpose()))
         .with_left_scaling_op(
-            share(as<BatchTransposable>(parameters_.left_scaling_op)
+            share(as<BatchTransposable>(this->get_left_scaling_op())
                       ->conj_transpose()))
         .with_right_scaling_op(
-            share(as<BatchTransposable>(parameters_.right_scaling_op)
+            share(as<BatchTransposable>(this->get_right_scaling_op())
                       ->conj_transpose()))
         .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(parameters_.residual_tol)
+        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
         .with_tolerance_type(parameters_.tolerance_type)
         .on(this->get_executor())
         ->generate(share(as<BatchTransposable>(this->get_system_matrix())
@@ -104,7 +104,8 @@ void BatchBicgstab<ValueType>::solver_apply(const BatchLinOp* const b,
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_bicgstab::BatchBicgstabOptions<
         remove_complex<ValueType>>
-        opts{parameters_.max_iterations, parameters_.residual_tol,
+        opts{parameters_.max_iterations,
+             static_cast<real_type>(this->residual_tol_),
              parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_bicgstab::make_apply(

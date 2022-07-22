@@ -179,7 +179,7 @@ TYPED_TEST(BatchBicgstab, ApplyUsesInitialGuessReturnsTrue)
 }
 
 
-TYPED_TEST(BatchBicgstab, CanSetCriteria)
+TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
 {
     using Solver = typename TestFixture::Solver;
     using RT = typename TestFixture::real_type;
@@ -197,6 +197,25 @@ TYPED_TEST(BatchBicgstab, CanSetCriteria)
     ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
+}
+
+
+TYPED_TEST(BatchBicgstab, CanSetResidualTol)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_max_iterations(22)
+            .with_residual_tol(static_cast<RT>(0.25))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(this->exec);
+    auto solver = batchbicgstab_factory->generate(this->mtx);
+
+    solver->set_residual_tolerance(0.5);
+
+    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, 0.0);
+    ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
 }
 
 

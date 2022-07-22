@@ -178,7 +178,7 @@ TYPED_TEST(BatchCg, ApplyUsesInitialGuessReturnsTrue)
 }
 
 
-TYPED_TEST(BatchCg, CanSetCriteria)
+TYPED_TEST(BatchCg, CanSetCriteriaInFactory)
 {
     using Solver = typename TestFixture::Solver;
     using RT = typename TestFixture::real_type;
@@ -196,6 +196,25 @@ TYPED_TEST(BatchCg, CanSetCriteria)
     ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
+}
+
+
+TYPED_TEST(BatchCg, CanSetResidualTol)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(22)
+            .with_residual_tol(static_cast<RT>(0.25))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+
+    solver->set_residual_tolerance(0.5);
+
+    ASSERT_EQ(solver->get_parameters().residual_tol, 0.25);
+    ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
 }
 
 
