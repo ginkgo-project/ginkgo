@@ -88,7 +88,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Ell>;
-    friend class EnablePolymorphicObject<Ell, LinOp>;
+    friend class polymorphic_object_traits<Ell>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;

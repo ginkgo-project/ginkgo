@@ -130,7 +130,7 @@ class Dense
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
       public ScaledIdentityAddable {
     friend class EnableCreateMethod<Dense>;
-    friend class EnablePolymorphicObject<Dense, LinOp>;
+    friend class polymorphic_object_traits<Dense>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;

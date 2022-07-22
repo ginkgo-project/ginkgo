@@ -71,7 +71,7 @@ class FixedCoarsening
     : public EnableLinOp<FixedCoarsening<ValueType, IndexType>>,
       public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<FixedCoarsening>;
-    friend class EnablePolymorphicObject<FixedCoarsening, LinOp>;
+    friend class polymorphic_object_traits<FixedCoarsening>;
 
 public:
     using value_type = ValueType;

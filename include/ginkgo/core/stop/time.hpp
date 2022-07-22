@@ -50,7 +50,7 @@ namespace stop {
  * @ingroup stop
  */
 class Time : public EnablePolymorphicObject<Time, Criterion> {
-    friend class EnablePolymorphicObject<Time, Criterion>;
+    friend class polymorphic_object_traits<Time>;
 
 public:
     using clock = std::chrono::steady_clock;
