@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
-#include <sstream>
-#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -85,54 +83,7 @@ inline constexpr bool is_gpu_aware()
  * @param num_devices  the number of devices per node.
  * @return  device id that this rank should use.
  */
-inline int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
-{
-    GKO_ASSERT(num_devices > 0);
-    if (num_devices == 1) {
-        return 0;
-    } else {
-        auto mpi_node_local_rank = [](MPI_Comm comm_) {
-            int local_rank;
-            MPI_Comm local_comm;
-            GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split_type(
-                comm_, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &local_comm));
-            GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_rank(local_comm, &local_rank));
-            MPI_Comm_free(&local_comm);
-            return local_rank;
-        };
-
-        // When we are using MPI_COMM_WORLD, there might be already an
-        // environment variable describing the node local rank, so we
-        // prioritize it. If no suitable environment variable is found
-        // we determine the node-local rank with MPI calls.
-        int local_rank;
-        int compare_result;
-        int is_initialized;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Initialized(&is_initialized));
-        if (is_initialized) {
-            GKO_ASSERT_NO_MPI_ERRORS(
-                MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_result));
-        } else {
-            compare_result = MPI_IDENT;
-        }
-        if (compare_result != MPI_IDENT && compare_result != MPI_CONGRUENT) {
-            local_rank = mpi_node_local_rank(comm);
-        } else {
-            if (auto str = std::getenv("MV2_COMM_WORLD_LOCAL_RANK")) {
-                local_rank = std::stoi(str);
-            } else if (auto str = std::getenv("OMPI_COMM_WORLD_LOCAL_RANK")) {
-                local_rank = std::stoi(str);
-            } else if (auto str = std::getenv("MPI_LOCALRANKID")) {
-                local_rank = std::stoi(str);
-            } else if (auto str = std::getenv("SLURM_LOCALID")) {
-                local_rank = std::stoi(str);
-            } else {
-                local_rank = mpi_node_local_rank(comm);
-            }
-        }
-        return local_rank % num_devices;
-    }
-}
+int map_rank_to_device_id(MPI_Comm comm, int num_devices);
 
 
 #define GKO_REGISTER_MPI_TYPE(input_type, mpi_type)         \
@@ -1581,17 +1532,15 @@ public:
            create_type c_type = create_type::create)
         : window(std::move(exec))
     {
+        auto guard = this->exec_->get_scoped_device_id();
         unsigned size = num_elems * sizeof(ValueType);
         if (c_type == create_type::create) {
-            auto guard = this->exec_->get_scoped_device_id();
             GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create(
                 base, size, disp_unit, input_info, comm.get(), &this->window_));
         } else if (c_type == create_type::dynamic_create) {
-            auto guard = this->exec_->get_scoped_device_id();
             GKO_ASSERT_NO_MPI_ERRORS(
                 MPI_Win_create_dynamic(input_info, comm.get(), &this->window_));
         } else if (c_type == create_type::allocate) {
-            auto guard = this->exec_->get_scoped_device_id();
             GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_allocate(
                 size, disp_unit, input_info, comm.get(), base, &this->window_));
         } else {
@@ -1630,12 +1579,11 @@ public:
      */
     void lock(int rank, lock_type lock_t = lock_type::shared, int assert = 0)
     {
+        auto guard = this->exec_->get_scoped_device_id();
         if (lock_t == lock_type::shared) {
-            auto guard = this->exec_->get_scoped_device_id();
             GKO_ASSERT_NO_MPI_ERRORS(
                 MPI_Win_lock(MPI_LOCK_SHARED, rank, assert, this->window_));
         } else if (lock_t == lock_type::exclusive) {
-            auto guard = this->exec_->get_scoped_device_id();
             GKO_ASSERT_NO_MPI_ERRORS(
                 MPI_Win_lock(MPI_LOCK_EXCLUSIVE, rank, assert, this->window_));
         } else {
@@ -1964,32 +1912,6 @@ private:
     MPI_Win window_;
     std::shared_ptr<const Executor> exec_;
 };
-
-
-}  // namespace mpi
-}  // namespace gko
-
-
-#else
-
-
-struct MPI_Comm {};
-
-
-constexpr MPI_Comm MPI_COMM_WORLD{};
-
-
-namespace gko {
-namespace mpi {
-
-
-/**
- * Dummy implementation that always returns 0.
- */
-inline int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
-{
-    return 0;
-}
 
 
 }  // namespace mpi
