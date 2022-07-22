@@ -13,8 +13,6 @@ echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
-git config user.email "ginkgo.library@gmail.com"
-git config user.name "Ginkgo Bot"
 
 # Fetch from github
 git fetch fork "$BRANCH_NAME"
