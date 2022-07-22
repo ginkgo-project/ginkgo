@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,11 +97,14 @@ int main(int argc, char* argv[])
     auto preprocessing = gko::share(preprocessing_fact->generate(A));
 
     // Create reusable GLU factory for first matrix
+    auto lower_solver = gko::share(
+        gko::solver::LowerTrs<>::build().with_unit_diagonal(true).on(exec));
     auto lu_fact = gko::share(
         gko::factorization::Glu<ValueType, IndexType>::build_reusable().on(
             exec, A.get(), preprocessing.get()));
     auto inner_solver_fact = gko::share(gko::preconditioner::Ilu<>::build()
                                             .with_factorization_factory(lu_fact)
+                                            .with_l_solver_factory(lower_solver)
                                             .on(exec));
     auto solver_fact = gko::share(
         gko::solver::Gmres<>::build()
@@ -131,34 +134,18 @@ int main(int argc, char* argv[])
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<real_vec>({1e10}, exec->get_master());
 
-    for (auto i = 0; i <= argc - 3; i++) {
-        auto x = vec::create(exec);
-        x->copy_from(host_b.get());
-        auto b = vec::create_with_config_of(x.get());
-        A->apply(x.get(), b.get());
-        x->copy_from(host_x.get());
+    auto x = vec::create(exec);
+    x->copy_from(host_b.get());
+    auto b = vec::create_with_config_of(x.get());
+    A->apply(x.get(), b.get());
+    x->copy_from(host_x.get());
 
-        auto solver = reordered_solver_fact->generate(A);
+    auto solver = reordered_solver_fact->generate(A);
 
-        auto inner = gko::as<gko::solver::Gmres<>>(solver->get_solver());
-        auto precond =
-            gko::as<gko::preconditioner::Ilu<>>(inner->get_preconditioner());
-        auto status = precond->get_status();
-        std::cout << "Factorization Status: " << status << std::endl;
+    solver->apply(b.get(), x.get());
 
-        solver->apply(b.get(), x.get());
-
-        // Print solution
-        // std::ofstream x_out{"x.mtx"};
-        // write(x_out, gko::lend(x));
-
-        x->add_scaled(neg_one.get(), host_b.get());
-        x->compute_norm2(gko::lend(res));
-        std::cout << "Final error norm sqrt(r^T r):\n";
-        write(std::cout, gko::lend(res));
-
-        if (3 + i == argc) break;
-        mat_string = argv[3 + i];
-        A = gko::share(gko::read<mtx>(std::ifstream(mat_string), exec));
-    }
+    x->add_scaled(neg_one.get(), host_b.get());
+    x->compute_norm2(gko::lend(res));
+    std::cout << "Final error norm sqrt(r^T r):\n";
+    write(std::cout, gko::lend(res));
 }

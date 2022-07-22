@@ -88,18 +88,22 @@ int main(int argc, char* argv[])
 
     // Read data
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
-    auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
-    auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    // auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
+    // auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate incomplete factors using ParILU
     auto par_ilu_fact =
-        gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
+        gko::experimental::factorization::Lu<ValueType, IndexType>::build()
+            .with_symmetric_sparsity(true)
+            .on(exec);
     // Generate concrete factorization for input matrix
     auto par_ilu = gko::share(par_ilu_fact->generate(A));
 
+    gko::write(std::ofstream{"fact.mtx"}, par_ilu->get_combined().get(),
+               gko::layout_type::coordinate);
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the exact triangular solves
-    auto ilu_pre_factory =
+    /*auto ilu_pre_factory =
         gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
                                  gko::solver::UpperTrs<ValueType, IndexType>,
                                  false>::build()
@@ -141,5 +145,5 @@ int main(int argc, char* argv[])
     b->compute_norm2(gko::lend(res));
 
     std::cout << "Residual norm sqrt(r^T r):\n";
-    write(std::cout, gko::lend(res));
+    write(std::cout, gko::lend(res));*/
 }

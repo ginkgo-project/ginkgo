@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -54,7 +54,8 @@ namespace solver {
 
 
 template <typename ValueType = default_precision>
-class ScaledReordered : public EnableLinOp<ScaledReordered<ValueType>> {
+class ScaledReordered : public EnableLinOp<ScaledReordered<ValueType>>,
+                        public EnableSolverBase<ScaledReordered<ValueType>> {
     friend class EnableLinOp<ScaledReordered>;
     friend class EnablePolymorphicObject<ScaledReordered, LinOp>;
 
@@ -146,9 +147,10 @@ protected:
                         ->row_permute(mc64->get_permutation().get()));
                 mc64->get_row_scaling()->apply(PA.get(), PA.get());
                 mc64->get_col_scaling()->rapply(PA.get(), PA.get());
-                PA = as<matrix::Csr<double, int>>(PA->inverse_column_permute(
-                    mc64->get_inverse_permutation().get()));
-                system_matrix_ = gko::share(PA);
+                system_matrix_ = gko::share(
+                    as<matrix::Csr<double, int>>(PA->inverse_column_permute(
+                        mc64->get_inverse_permutation().get())));
+                // system_matrix_ = gko::share(PA);
             }
         }
         if (parameters_.solver) {

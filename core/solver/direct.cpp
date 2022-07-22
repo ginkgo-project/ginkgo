@@ -140,7 +140,8 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
               factory->get_parameters().factorization, system_matrix)}
 {
     using factorization::storage_type;
-    const auto lower_factory = lower_type::build().on(factory->get_executor());
+    const auto lower_factory = lower_type::build().with_unit_diagonal(true).on(
+        factory->get_executor());
     const auto upper_factory = upper_type::build().on(factory->get_executor());
     const auto factors = this->get_system_matrix();
     switch (factors->get_storage_type()) {

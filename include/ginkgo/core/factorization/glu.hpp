@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2021, the Ginkgo authors
+Copyright (c) 2017-2022, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 
@@ -200,6 +201,8 @@ public:
         void symbolic_factorization(const LinOp* system_matrix);
 
     public:
+        std::shared_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
+            symbolic_;
         std::vector<unsigned> row_ptrs_;
         std::vector<unsigned> col_idxs_;
         std::vector<int> level_idx_;
@@ -236,12 +239,12 @@ protected:
         }
         auto reusable = Glu::build_reusable().on(factory->get_executor(),
                                                  system_matrix.get());
-        generate_l_u(system_matrix, reusable->row_ptrs_, reusable->col_idxs_,
-                     reusable->level_idx_, reusable->level_ptr_,
-                     reusable->csr_r_ptr, reusable->csr_c_idx,
-                     reusable->csr_diag_ptr, reusable->l_col_ptr,
-                     reusable->csr_val, reusable->sym_nnz_, reusable->num_lev_,
-                     parameters_.skip_sorting)
+        generate_l_u(system_matrix, reusable->symbolic_, reusable->row_ptrs_,
+                     reusable->col_idxs_, reusable->level_idx_,
+                     reusable->level_ptr_, reusable->csr_r_ptr,
+                     reusable->csr_c_idx, reusable->csr_diag_ptr,
+                     reusable->l_col_ptr, reusable->csr_val, reusable->sym_nnz_,
+                     reusable->num_lev_, parameters_.skip_sorting)
             ->move_to(this);
     }
 
@@ -258,12 +261,12 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate_l_u(system_matrix, factory->row_ptrs_, factory->col_idxs_,
-                     factory->level_idx_, factory->level_ptr_,
-                     factory->csr_r_ptr, factory->csr_c_idx,
-                     factory->csr_diag_ptr, factory->l_col_ptr,
-                     factory->csr_val, factory->sym_nnz_, factory->num_lev_,
-                     parameters_.skip_sorting)
+        generate_l_u(system_matrix, factory->symbolic_, factory->row_ptrs_,
+                     factory->col_idxs_, factory->level_idx_,
+                     factory->level_ptr_, factory->csr_r_ptr,
+                     factory->csr_c_idx, factory->csr_diag_ptr,
+                     factory->l_col_ptr, factory->csr_val, factory->sym_nnz_,
+                     factory->num_lev_, parameters_.skip_sorting)
             ->move_to(this);
     }
 
@@ -284,6 +287,8 @@ protected:
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
+        const std::shared_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
+            symbolic,
         const std::vector<unsigned>& row_ptrs,
         const std::vector<unsigned>& col_idxs,
         const std::vector<int>& level_idx, const std::vector<int>& level_ptr,
