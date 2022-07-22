@@ -30,58 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/async_richardson_kernels.hpp"
-
-
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/reduction.cuh"
-#include "cuda/components/thread_ids.cuh"
-
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-/**
- * @brief The async_richardson solver namespace.
- *
- * @ingroup async_richardson
- */
-namespace async_richardson {
-
-
-constexpr int default_block_size = 4 * config::warp_size;
-
-
-#include "common/cuda_hip/solver/async_richardson_kernels.hpp.inc"
-
-
-template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType>* relaxation_factor,
-           const matrix::Csr<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void subwarp_apply(
+    const int iteration, const size_type num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
 {
-    dim3 grid(ceildiv(a->get_size()[0], 4), b->get_size()[1]);
-    std::cout << "Run" << std::endl;
-    subwarp_apply<config::warp_size><<<grid, default_block_size>>>(
-        1000, a->get_size()[0], as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), a->get_const_row_ptrs(),
-        as_cuda_type(relaxation_factor->get_const_values()),
-        as_cuda_type(b->get_const_values()), b->get_stride(),
-        as_cuda_type(c->get_values()), c->get_stride());
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subid = subwarp_tile.thread_rank();
+    const auto column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const auto alpha_val = alpha[0];
+    if (row < num_rows) {
+        const auto rhs = b[row * b_stride + column_id];
+        for (int i = 0; i < iteration; i++) {
+            const auto ind_end = row_ptrs[row + 1];
+            ValueType temp_val = zero<ValueType>();
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val += val[ind] * c[col_idxs[ind] * c_stride + column_id];
+            }
+            auto subwarp_result = reduce(
+                subwarp_tile, temp_val,
+                [](const ValueType& a, const ValueType& b) { return a + b; });
+            if (subid == 0) {
+                c[row * c_stride + column_id] +=
+                    alpha_val * (rhs - subwarp_result);
+            }
+            // __threadfence();
+        }
+    }
 }
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL);
-
-
-}  // namespace async_richardson
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko

@@ -176,7 +176,8 @@ void AsyncRichardson<ValueType, IndexType>::apply_dense_impl(
     GKO_SOLVER_ONE_MINUS_ONE();
 
     exec->run(async_richardson::make_apply(
-        as<Csr>(this->get_system_matrix().get()), dense_b, dense_x));
+        relaxation_factor_.get(), as<Csr>(this->get_system_matrix().get()),
+        dense_b, dense_x));
 }
 
 
