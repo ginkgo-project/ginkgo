@@ -137,7 +137,7 @@ class Fbcsr : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
               public EnableAbsoluteComputation<
                   remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Fbcsr>;
-    friend class EnablePolymorphicObject<Fbcsr, LinOp>;
+    friend class polymorphic_object_traits<Fbcsr>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;

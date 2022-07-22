@@ -121,7 +121,7 @@ enum class mid_smooth_type { both, post_smoother, pre_smoother, standalone };
  */
 class Multigrid : public EnableLinOp<Multigrid> {
     friend class EnableLinOp<Multigrid>;
-    friend class EnablePolymorphicObject<Multigrid, LinOp>;
+    friend class polymorphic_object_traits<Multigrid>;
 
 public:
     /**

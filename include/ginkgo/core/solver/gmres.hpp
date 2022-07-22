@@ -76,7 +76,7 @@ class Gmres
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Gmres>;
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
+    friend class polymorphic_object_traits<Gmres>;
 
 public:
     using value_type = ValueType;

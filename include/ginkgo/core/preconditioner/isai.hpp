@@ -106,7 +106,7 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
              public Transposable {
     friend class EnableLinOp<Isai>;
-    friend class EnablePolymorphicObject<Isai, LinOp>;
+    friend class polymorphic_object_traits<Isai>;
     friend class Isai<isai_type::general, ValueType, IndexType>;
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;
@@ -116,12 +116,10 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using transposed_type =
-        Isai<IsaiType == isai_type::general
-                 ? isai_type::general
-                 : IsaiType == isai_type::spd
-                       ? isai_type::spd
-                       : IsaiType == isai_type::lower ? isai_type::upper
-                                                      : isai_type::lower,
+        Isai<IsaiType == isai_type::general ? isai_type::general
+             : IsaiType == isai_type::spd   ? isai_type::spd
+             : IsaiType == isai_type::lower ? isai_type::upper
+                                            : isai_type::lower,
              ValueType, IndexType>;
     using Comp = Composition<ValueType>;
     using Csr = matrix::Csr<ValueType, IndexType>;

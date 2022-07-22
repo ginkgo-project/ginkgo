@@ -77,7 +77,7 @@ class Fft : public EnableLinOp<Fft>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
-    friend class EnablePolymorphicObject<Fft, LinOp>;
+    friend class polymorphic_object_traits<Fft>;
     friend class EnableCreateMethod<Fft>;
 
 public:
@@ -173,7 +173,7 @@ class Fft2 : public EnableLinOp<Fft2>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft2, LinOp>;
+    friend class polymorphic_object_traits<Fft2>;
     friend class EnableCreateMethod<Fft2>;
 
 public:
@@ -285,7 +285,7 @@ class Fft3 : public EnableLinOp<Fft3>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft3, LinOp>;
+    friend class polymorphic_object_traits<Fft3>;
     friend class EnableCreateMethod<Fft3>;
 
 public:

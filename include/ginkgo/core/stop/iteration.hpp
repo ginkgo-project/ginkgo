@@ -50,7 +50,7 @@ namespace stop {
  * @ingroup stop
  */
 class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
-    friend class EnablePolymorphicObject<Iteration, Criterion>;
+    friend class polymorphic_object_traits<Iteration>;
 
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)

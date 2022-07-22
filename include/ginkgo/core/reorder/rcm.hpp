@@ -95,7 +95,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Rcm
     : public EnablePolymorphicObject<Rcm<ValueType, IndexType>, ReorderingBase>,
       public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Rcm, ReorderingBase>;
+    friend class polymorphic_object_traits<Rcm>;
 
 public:
     using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;

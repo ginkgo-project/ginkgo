@@ -67,7 +67,7 @@ template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Composition, LinOp>;
+    friend class polymorphic_object_traits<Composition>;
     friend class EnableCreateMethod<Composition>;
 
 public:
@@ -79,8 +79,8 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept
     {
         return operators_;
     }
