@@ -50,9 +50,9 @@ load(const thrust::complex<ValueType>* values, IndexType index)
 }
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(
-    ValueType* values, IndexType index,
-    std::enable_if_t<!is_complex_s<ValueType>::value, ValueType> value)
+__device__ __forceinline__
+    std::enable_if_t<!is_complex_s<ValueType>::value, void>
+    store(ValueType* values, IndexType index, ValueType value)
 {
     volatile ValueType* val = values + index;
     *val = value;

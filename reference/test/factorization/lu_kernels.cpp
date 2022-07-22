@@ -31,12 +31,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <algorithm>
+#include <fstream>
 #include <memory>
 
 
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 

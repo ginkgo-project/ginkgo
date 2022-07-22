@@ -119,7 +119,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         auto val = vals[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
-        assert(dep < row);
+        // assert(dep < row);
         if (dep_block == block) {
             // wait for a local dependency
             while (!load(sh_ready, dep_local)) {
