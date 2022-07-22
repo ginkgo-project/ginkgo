@@ -142,8 +142,7 @@ struct conversion_helper {
         using candidate_type =
             std::conditional_t<std::is_const<MaybeConstLinOp>::value,
                                const FirstCandidate, FirstCandidate>;
-        candidate_type* cast_obj{};
-        if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
+        if (auto cast_obj = dynamic_cast<candidate_type*>(obj)) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
             auto converted = TargetType::create(obj->get_executor());
@@ -172,8 +171,8 @@ struct conversion_helper<> {
     static std::unique_ptr<T, std::function<void(T*)>> convert(
         MaybeConstLinOp* obj)
     {
-        // return nullptr if no previous candidates matched
-        return {nullptr, null_deleter<T>{}};
+        // throw if no previous candidates matched
+        GKO_NOT_SUPPORTED(obj);
     }
 };
 

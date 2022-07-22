@@ -70,13 +70,8 @@ template <typename ValueType>
 detail::temporary_conversion<matrix::Dense<ValueType>>
 make_temporary_conversion(LinOp* matrix)
 {
-    auto result =
-        detail::temporary_conversion<matrix::Dense<ValueType>>::template create<
-            matrix::Dense<next_precision<ValueType>>>(matrix);
-    if (!result) {
-        GKO_NOT_SUPPORTED(matrix);
-    }
-    return result;
+    return detail::temporary_conversion<matrix::Dense<ValueType>>::
+        template create<matrix::Dense<next_precision<ValueType>>>(matrix);
 }
 
 
@@ -85,12 +80,8 @@ template <typename ValueType>
 detail::temporary_conversion<const matrix::Dense<ValueType>>
 make_temporary_conversion(const LinOp* matrix)
 {
-    auto result = detail::temporary_conversion<const matrix::Dense<ValueType>>::
+    return detail::temporary_conversion<const matrix::Dense<ValueType>>::
         template create<matrix::Dense<next_precision<ValueType>>>(matrix);
-    if (!result) {
-        GKO_NOT_SUPPORTED(matrix);
-    }
-    return result;
 }
 
 
