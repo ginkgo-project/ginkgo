@@ -66,7 +66,7 @@ namespace gko {
 template <typename ValueType = default_precision>
 class Perturbation : public EnableLinOp<Perturbation<ValueType>>,
                      public EnableCreateMethod<Perturbation<ValueType>> {
-    friend class EnablePolymorphicObject<Perturbation, LinOp>;
+    friend class polymorphic_object_traits<Perturbation>;
     friend class EnableCreateMethod<Perturbation>;
 
 public:

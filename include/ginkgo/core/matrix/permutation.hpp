@@ -79,7 +79,7 @@ template <typename IndexType = int32>
 class Permutation : public EnableLinOp<Permutation<IndexType>>,
                     public EnableCreateMethod<Permutation<IndexType>> {
     friend class EnableCreateMethod<Permutation>;
-    friend class EnablePolymorphicObject<Permutation, LinOp>;
+    friend class polymorphic_object_traits<Permutation>;
 
 public:
     using index_type = IndexType;

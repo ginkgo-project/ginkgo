@@ -609,6 +609,22 @@ std::shared_ptr<const R> copy_and_convert_to(
 }
 
 
+template <typename ConcreteObject>
+struct polymorphic_object_traits {
+    static std::unique_ptr<PolymorphicObject> create_default_impl(
+        const ConcreteObject* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+    }
+
+    static PolymorphicObject* clear_impl(ConcreteObject* self)
+    {
+        *self = ConcreteObject{self->get_executor()};
+        return self;
+    }
+};
+
+
 /**
  * This mixin inherits from (a subclass of) PolymorphicObject and provides a
  * base implementation of a new concrete polymorphic object.
@@ -653,7 +669,8 @@ protected:
     std::unique_ptr<PolymorphicObject> create_default_impl(
         std::shared_ptr<const Executor> exec) const override
     {
-        return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
+        return polymorphic_object_traits<ConcreteObject>::create_default_impl(
+            self(), std::move(exec));
     }
 
     PolymorphicObject* copy_from_impl(const PolymorphicObject* other) override
@@ -684,8 +701,7 @@ protected:
 
     PolymorphicObject* clear_impl() override
     {
-        *self() = ConcreteObject{this->get_executor()};
-        return this;
+        return polymorphic_object_traits<ConcreteObject>::clear_impl(self());
     }
 
 private:

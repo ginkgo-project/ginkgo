@@ -110,7 +110,7 @@ class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public Transposable {
     friend class EnableLinOp<Ir>;
-    friend class EnablePolymorphicObject<Ir, LinOp>;
+    friend class polymorphic_object_traits<Ir>;
 
 public:
     using value_type = ValueType;

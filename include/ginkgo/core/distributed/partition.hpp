@@ -110,7 +110,7 @@ class Partition
           Partition<LocalIndexType, GlobalIndexType>>,
       public EnableCreateMethod<Partition<LocalIndexType, GlobalIndexType>> {
     friend class EnableCreateMethod<Partition>;
-    friend class EnablePolymorphicObject<Partition>;
+    friend class polymorphic_object_traits<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");

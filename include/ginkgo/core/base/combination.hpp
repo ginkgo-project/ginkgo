@@ -59,7 +59,7 @@ template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,
                     public EnableCreateMethod<Combination<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Combination, LinOp>;
+    friend class polymorphic_object_traits<Combination>;
     friend class EnableCreateMethod<Combination>;
 
 public:
@@ -71,8 +71,8 @@ public:
      *
      * @return a list of coefficients
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients()
+        const noexcept
     {
         return coefficients_;
     }
@@ -82,8 +82,8 @@ public:
      *
      * @return a list of operators
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_operators() const
-        noexcept
+    const std::vector<std::shared_ptr<const LinOp>>& get_operators()
+        const noexcept
     {
         return operators_;
     }

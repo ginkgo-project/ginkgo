@@ -63,7 +63,7 @@ template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>,
                  public EnableCreateMethod<Identity<ValueType>>,
                  public Transposable {
-    friend class EnablePolymorphicObject<Identity, LinOp>;
+    friend class polymorphic_object_traits<Identity>;
     friend class EnableCreateMethod<Identity>;
 
 public:
@@ -130,7 +130,7 @@ protected:
 template <typename ValueType = default_precision>
 class IdentityFactory
     : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
-    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
+    friend class polymorphic_object_traits<IdentityFactory>;
 
 public:
     using value_type = ValueType;

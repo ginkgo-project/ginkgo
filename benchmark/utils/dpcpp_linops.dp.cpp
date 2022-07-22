@@ -126,7 +126,7 @@ class OnemklCsr
           OnemklCsr<optimized, ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<OnemklCsr>;
-    friend class gko::EnablePolymorphicObject<OnemklCsr, OnemklBase>;
+    friend class gko::polymorphic_object_traits<OnemklCsr>;
 
 public:
     using Csr = gko::matrix::Csr<ValueType, IndexType>;

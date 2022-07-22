@@ -88,8 +88,8 @@ class Vector
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnableCreateMethod<Vector<ValueType>>;
-    friend class EnablePolymorphicObject<Vector<ValueType>, LinOp>;
+    friend class EnableCreateMethod<Vector>;
+    friend class polymorphic_object_traits<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<next_precision<ValueType>>;

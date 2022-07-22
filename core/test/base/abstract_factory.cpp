@@ -55,7 +55,7 @@ using base = gko::AbstractFactory<MyInt, int>;
 struct IntFactory
     : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
     friend class gko::enable_parameters_type<parameters_type, IntFactory>;
-    friend class gko::EnablePolymorphicObject<IntFactory, base>;
+    friend class gko::polymorphic_object_traits<IntFactory>;
     using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
                                     base>::EnableDefaultFactory;
 };
