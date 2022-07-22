@@ -446,8 +446,8 @@ protected:
      *                    as the stride
      */
     explicit Vector(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
-                    dim<2> global_size = {}, dim<2> local_size = {});
+                    mpi::communicator comm, dim<2> global_size = {},
+                    dim<2> local_size = {});
 
     /**
      * Creates a distributed vector from local vectors with a specified size.
@@ -510,6 +510,35 @@ private:
 
 
 }  // namespace distributed
+
+
+template <typename ValueType>
+struct polymorphic_object_traits<distributed::Vector<ValueType>> {
+    using Vector = distributed::Vector<ValueType>;
+
+    static std::unique_ptr<PolymorphicObject> create_default_impl(
+        const Vector* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Vector>{
+            new Vector(exec, self->get_communicator())};
+    }
+
+    static std::unique_ptr<Vector> create_conversion_target_impl(
+        const distributed::Vector<next_precision<ValueType>>* self,
+        std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Vector>{
+            new Vector(exec, self->get_communicator())};
+    }
+
+    static PolymorphicObject* clear_impl(Vector* self)
+    {
+        *self = Vector{self->get_executor(), self->get_communicator()};
+        return self;
+    }
+};
+
+
 }  // namespace gko
 
 
