@@ -263,7 +263,6 @@ public:
     using global_index_type = GlobalIndexType;
     using global_vector_type = gko::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
-    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
 
     using EnableLinOp<Matrix>::convert_to;
     using EnableLinOp<Matrix>::move_to;
@@ -398,8 +397,7 @@ protected:
      * @param comm  Communicator associated with this matrix.
      *              The default is the MPI_COMM_WORLD.
      */
-    explicit Matrix(std::shared_ptr<const Executor> exec,
-                    mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD));
+    Matrix(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with specified type
@@ -537,6 +535,29 @@ private:
 
 
 }  // namespace distributed
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+struct polymorphic_object_traits<
+    distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>> {
+    using Matrix =
+        distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
+
+    static std::unique_ptr<PolymorphicObject> create_default_impl(
+        const Matrix* self, std::shared_ptr<const Executor> exec)
+    {
+        return std::unique_ptr<Matrix>{
+            new Matrix(exec, self->get_communicator())};
+    }
+
+    static PolymorphicObject* clear_impl(Matrix* self)
+    {
+        *self = Matrix{self->get_executor(), self->get_communicator()};
+        return self;
+    }
+};
+
+
 }  // namespace gko
 
 
