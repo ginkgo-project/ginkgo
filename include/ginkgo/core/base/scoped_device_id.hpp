@@ -65,7 +65,7 @@ public:
     virtual ~generic_scoped_device_id() noexcept(false){};
 
     // Prohibit copy construction
-    generic_scoped_device_id(generic_scoped_device_id& other) = delete;
+    generic_scoped_device_id(const generic_scoped_device_id& other) = delete;
 
     // Prohibit copy assignment
     generic_scoped_device_id& operator=(const generic_scoped_device_id& other) =
@@ -208,12 +208,14 @@ public:
     scoped_device_id(const scoped_device_id&) = delete;
 
     // Allow move construction.
+    // These are needed, since C++14 does not guarantee copy elision.
     scoped_device_id(scoped_device_id&&) = default;
 
     // Prohibit copy assignment.
     scoped_device_id& operator=(const scoped_device_id&) = delete;
 
     // Allow move construction.
+    // These are needed, since C++14 does not guarantee copy elision.
     scoped_device_id& operator=(scoped_device_id&&) = default;
 
     ~scoped_device_id() = default;

@@ -123,7 +123,6 @@ void DpcppExecutor::run(const Operation& op) const
 scoped_device_id DpcppExecutor::get_scoped_device_id() const
 {
     GKO_NOT_COMPILED(cuda);
-    return {static_cast<OmpExecutor*>(nullptr), 0};
 }
 
 
