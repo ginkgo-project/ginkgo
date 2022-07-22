@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ic_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/lu_kernels.hpp"
 #include "core/factorization/par_ic_kernels.hpp"
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
@@ -502,6 +503,8 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
 GKO_STUB_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType)
@@ -692,6 +695,16 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
 
 
 }  // namespace ilu_factorization
+
+
+namespace lu_factorization {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_INITIALIZE);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);
+
+
+}  // namespace lu_factorization
 
 
 namespace par_ic_factorization {
