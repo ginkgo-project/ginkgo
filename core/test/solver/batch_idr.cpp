@@ -181,7 +181,7 @@ TYPED_TEST(BatchIdr, ApplyUsesInitialGuessReturnsTrue)
 }
 
 
-TYPED_TEST(BatchIdr, CanSetCriteria)
+TYPED_TEST(BatchIdr, CanSetCriteriaInFactory)
 {
     using Solver = typename TestFixture::Solver;
     using RT = typename TestFixture::real_type;
@@ -208,6 +208,25 @@ TYPED_TEST(BatchIdr, CanSetCriteria)
     ASSERT_EQ(solver->get_parameters().complex_subspace, true);
     ASSERT_EQ(solver->get_parameters().subspace_dim,
               static_cast<gko::size_type>(3));
+}
+
+
+TYPED_TEST(BatchIdr, CanSetResidualTol)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+    auto factory =
+        Solver::build()
+            .with_max_iterations(22)
+            .with_residual_tol(static_cast<RT>(0.25))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+
+    solver->set_residual_tolerance(0.5);
+
+    ASSERT_EQ(solver->get_parameters().residual_tol, 0.25);
+    ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
 }
 
 
