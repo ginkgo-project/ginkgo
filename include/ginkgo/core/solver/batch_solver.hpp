@@ -109,8 +109,19 @@ public:
         return right_scaling_;
     }
 
+    /**
+     * Get the residual tolerance used by the solver.
+     *
+     * @return The residual tolerance.
+     */
     double get_residual_tolerance() const { return residual_tol_; }
 
+    /**
+     * Update the residual tolerance to be used by the solver.
+     *
+     * @param res_tol  The residual tolerance to be used for subsequent
+     *                 invocations of the solver.
+     */
     void set_residual_tolerance(double res_tol) { residual_tol_ = res_tol; }
 
 protected:
