@@ -146,7 +146,11 @@ struct conversion_helper {
         if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
             // if the cast is successful, obj is of dynamic type candidate_type
             // so we can convert from this type to TargetType
-            auto converted = TargetType::create(obj->get_executor());
+            auto converted =
+                polymorphic_object_traits<std::remove_cv_t<TargetType>>::
+                    create_conversion_target_impl(cast_obj,
+                                                  cast_obj->get_executor());
+            // TargetType::create(obj->get_executor());
             cast_obj->convert_to(converted.get());
             // Make sure ConvertibleTo<TargetType> is available and symmetric
             static_assert(
