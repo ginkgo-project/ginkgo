@@ -870,7 +870,7 @@ class DummyLinOp
       public gko::EnableCreateMethod<DummyLinOp<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::WritableToMatrixData<ValueType, IndexType> {
-    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
+    friend class gko::polymorphic_object_traits<DummyLinOp>;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:
