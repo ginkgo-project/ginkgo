@@ -111,7 +111,6 @@ void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 scoped_device_id CudaExecutor::get_scoped_device_id() const
 {
     GKO_NOT_COMPILED(cuda);
-    return {static_cast<OmpExecutor*>(nullptr), 0};
 }
 
 
