@@ -186,10 +186,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::use_neighbor_comm()
     std::vector<comm_index_type> comp_send_offsets(num_out_neighbors + 1);
     std::vector<comm_index_type> comp_recv_offsets(num_in_neighbors + 1);
 
-    std::partial_sum(out_weight.begin(), out_weight.end(),
-                     comp_send_offsets.begin() + 1);
-    std::partial_sum(in_weight.begin(), in_weight.end(),
-                     comp_recv_offsets.begin() + 1);
+    for (int r = 0; r < in_neighbors.size(); ++r) {
+        comp_recv_offsets[r] = recv_offsets_[in_neighbors[r]];
+    }
+    comp_recv_offsets.back() = recv_offsets_.back();
+    for (int r = 0; r < out_neighbors.size(); ++r) {
+        comp_send_offsets[r] = send_offsets_[out_neighbors[r]];
+    }
+    comp_send_offsets.back() = send_offsets_.back();
 
     recv_sizes_ = std::move(in_weight);
     recv_offsets_ = std::move(comp_recv_offsets);
