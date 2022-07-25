@@ -93,7 +93,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       one_scalar_{},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)},
-      uses_neighbor_comm_(false)
+      uses_neighbor_comm_(false),
+      neighbor_comm_(comm)
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -452,7 +453,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      neighbor_comm_(other.get_communicator())
 {
     *this = other;
 }
@@ -463,7 +465,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
     : EnableLinOp<Matrix<value_type, local_index_type,
                          global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      neighbor_comm_(other.get_communicator())
 {
     *this = std::move(other);
 }
