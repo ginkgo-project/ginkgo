@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
@@ -176,7 +177,10 @@ public:
         return u_solver_;
     }
 
-    const int get_status() const { return status_; }
+    const experimental::factorization::status get_status() const
+    {
+        return status_.get_const_data()[0];
+    }
 
     std::unique_ptr<LinOp> transpose() const override
     {
@@ -338,12 +342,14 @@ protected:
             }
         }
 
-        auto glu =
-            gko::as<gko::factorization::Glu<value_type, index_type>>(comp);
+        auto glu = gko::as<
+            gko::experimental::factorization::Glu<value_type, index_type>>(
+            comp);
         if (glu) {
-            status_ = glu->get_status();
+            status_.get_data()[0] = glu->get_status();
         } else {
-            status_ = 0;
+            status_.get_data()[0] =
+                experimental::factorization::status::success;
         }
 
         if (comp->get_operators().size() == 2) {
@@ -430,7 +436,8 @@ protected:
 private:
     std::shared_ptr<const l_solver_type> l_solver_{};
     std::shared_ptr<const u_solver_type> u_solver_{};
-    int status_;
+    array<experimental::factorization::status> status_{
+        this->get_executor()->get_master(), 1};
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.

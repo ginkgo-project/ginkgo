@@ -4,7 +4,7 @@ add_subdirectory(nicslu)
 add_library(glu 
             Timer.cpp 
             symbolic.cc 
-            numeric.cu
+            #numeric.cu
             preprocess/preprocess.c
             nicslu/source/nicslu_aegraph.c
             nicslu/source/nicslu_amd.c

@@ -65,6 +65,11 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    const experimental::factorization::status get_factorization_status() const
+    {
+        return this->get_system_matrix()->get_status();
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         std::shared_ptr<const LinOpFactory> factorization;

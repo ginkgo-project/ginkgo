@@ -120,8 +120,8 @@ void Mc64<double, int>::generate(std::shared_ptr<const Executor>& exec,
     auto rs = nicslu->col_scale_perm;
     auto cs = nicslu->row_scale;
 
-    Array<double> row_scaling_array{cpu_exec, num_rows};
-    Array<double> col_scaling_array{cpu_exec, num_rows};
+    array<double> row_scaling_array{cpu_exec, num_rows};
+    array<double> col_scaling_array{cpu_exec, num_rows};
     index_array perm_array{cpu_exec, num_rows};
     index_array inv_perm_array{cpu_exec, num_rows};
     index_array pivot_array{cpu_exec, num_rows};

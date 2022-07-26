@@ -97,12 +97,13 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                matrix::Csr<ValueType, IndexType>* factors,
-               array<int>& tmp_storage)
+               array<int>& tmp_storage, bool& success)
 {
     const auto num_rows = factors->get_size()[0];
     const auto row_ptrs = factors->get_const_row_ptrs();
     const auto cols = factors->get_const_col_idxs();
     const auto vals = factors->get_values();
+    bool failure = false;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_diag = diag_idxs[row];
@@ -113,6 +114,10 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             const auto dep_diag_idx = diag_idxs[dep];
             const auto dep_diag = vals[dep_diag_idx];
             const auto dep_end = row_ptrs[dep + 1];
+            if (dep_diag == zero<ValueType>() || is_nan(dep_diag) ||
+                !is_finite(dep_diag)) {
+                failure = true;
+            }
             const auto scale = vals[lower_nz] / dep_diag;
             vals[lower_nz] = scale;
             for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end; dep_nz++) {
@@ -123,6 +128,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     }
+    success = !failure;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);

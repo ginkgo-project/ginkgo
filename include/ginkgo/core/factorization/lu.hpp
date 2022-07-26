@@ -125,7 +125,7 @@ public:
      *       It is only necessary because smart pointers aren't covariant.
      */
     std::unique_ptr<factorization_type> generate(
-        std::shared_ptr<const LinOp> system_matrix) const;
+        std::shared_ptr<const LinOp> system_matrix);
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }

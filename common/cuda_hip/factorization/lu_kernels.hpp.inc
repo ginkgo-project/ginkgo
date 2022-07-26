@@ -85,7 +85,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     const int32* __restrict__ storage, const int64* __restrict__ row_descs,
     const IndexType* __restrict__ diag_idxs, ValueType* __restrict__ vals,
     int* __restrict__ ready, int* __restrict__ block_counter,
-    size_type num_rows)
+    size_type num_rows, bool* failure)
 {
     __shared__ int threadblock_offset;
     __shared__ int sh_ready[default_block_size / config::warp_size];
@@ -136,6 +136,10 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         const auto scale = val / diag;
         if (lane == 0) {
             vals[lower_nz] = scale;
+            if (diag == 0 || is_nan(diag) ||
+                diag == device_numeric_limits<ValueType>::inf) {
+                *failure = true;
+            }
         }
         // subtract all entries past the diagonal
         for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
@@ -186,10 +190,12 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                matrix::Csr<ValueType, IndexType>* factors,
-               array<int>& tmp_storage)
+               array<int>& tmp_storage, bool& success)
 {
     const auto num_rows = factors->get_size()[0];
     if (num_rows > 0) {
+        array<bool> failure(exec, 1);
+        components::fill_array(exec, failure.get_data(), 1, false);
         tmp_storage.resize_and_reset(num_rows + 1);
         components::fill_array(exec, tmp_storage.get_data(), num_rows + 1,
                                int{});
@@ -199,7 +205,10 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
             factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
             lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
             as_device_type(factors->get_values()), tmp_storage.get_data(),
-            tmp_storage.get_data() + num_rows, num_rows);
+            tmp_storage.get_data() + num_rows, num_rows, failure.get_data());
+        if (!exec->copy_val_to_host(failure.get_const_data())) {
+            success = true;
+        }
     }
 }
 

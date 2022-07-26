@@ -82,6 +82,9 @@ enum class storage_type {
 };
 
 
+enum class status { success, failure };
+
+
 template <typename ValueType, typename IndexType>
 class Factorization : public EnableLinOp<Factorization<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Factorization, LinOp>;
@@ -113,6 +116,8 @@ public:
 
     std::shared_ptr<const matrix_type> get_combined() const;
 
+    const status get_status() const { return status_; };
+
     /** Creates a deep copy of the factorization. */
     Factorization(const Factorization&);
 
@@ -132,6 +137,9 @@ public:
     static std::unique_ptr<Factorization> create_from_combined_lu(
         std::unique_ptr<matrix_type>);
 
+    static std::unique_ptr<Factorization> create_from_combined_lu(
+        std::unique_ptr<matrix_type>, status stat);
+
     static std::unique_ptr<Factorization> create_from_combined_ldu(
         std::unique_ptr<matrix_type>);
 
@@ -147,6 +155,9 @@ protected:
     Factorization(std::unique_ptr<Composition<ValueType>> factors,
                   storage_type type);
 
+    Factorization(std::unique_ptr<Composition<ValueType>> factors,
+                  storage_type type, status stat);
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -154,6 +165,7 @@ protected:
 
 private:
     storage_type storage_type_;
+    status status_;
     std::unique_ptr<Composition<ValueType>> factors_;
 };
 

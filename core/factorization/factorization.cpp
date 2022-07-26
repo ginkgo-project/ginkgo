@@ -146,6 +146,7 @@ template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(const Factorization& fact)
     : EnableLinOp<Factorization<ValueType, IndexType>>{fact},
       storage_type_{fact.storage_type_},
+      status_{fact.status_},
       factors_{fact.factors_->clone()}
 {}
 
@@ -154,6 +155,7 @@ template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(Factorization&& fact)
     : EnableLinOp<Factorization<ValueType, IndexType>>{std::move(fact)},
       storage_type_{std::exchange(fact.storage_type_, storage_type::empty)},
+      status_{fact.status_},
       factors_{std::exchange(fact.factors_, fact.factors_->create_default())}
 {}
 
@@ -165,6 +167,7 @@ Factorization<ValueType, IndexType>::operator=(const Factorization& fact)
     if (this != &fact) {
         EnableLinOp<Factorization<ValueType, IndexType>>::operator=(fact);
         storage_type_ = fact.storage_type_;
+        status_ = fact.status_;
         *factors_ = *fact.factors_;
     }
     return *this;
@@ -179,6 +182,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
         EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
             std::move(fact));
         storage_type_ = std::exchange(fact.storage_type_, storage_type::empty);
+        status_ = fact.status_;
         factors_ =
             std::exchange(fact.factors_, fact.factors_->create_default());
         if (factors_->get_executor() != this->get_executor()) {
@@ -194,6 +198,7 @@ Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
     : EnableLinOp<Factorization<ValueType, IndexType>>{exec},
       storage_type_{storage_type::empty},
+      status_{status::success},
       factors_{Composition<ValueType>::create(exec)}
 {}
 
@@ -204,6 +209,19 @@ Factorization<ValueType, IndexType>::Factorization(
     : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
                                                        factors->get_size()},
       storage_type_{type},
+      status_{status::success},
+      factors_{std::move(factors)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+Factorization<ValueType, IndexType>::Factorization(
+    std::unique_ptr<Composition<ValueType>> factors, storage_type type,
+    status stat)
+    : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
+                                                       factors->get_size()},
+      storage_type_{type},
+      status_{stat},
       factors_{std::move(factors)}
 {}
 
@@ -239,6 +257,18 @@ Factorization<ValueType, IndexType>::create_from_combined_lu(
         new Factorization<ValueType, IndexType>{
             composition_type::create(gko::share(std::move(combined))),
             storage_type::combined_lu}};
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Factorization<ValueType, IndexType>>
+Factorization<ValueType, IndexType>::create_from_combined_lu(
+    std::unique_ptr<matrix_type> combined, status stat)
+{
+    return std::unique_ptr<Factorization<ValueType, IndexType>>{
+        new Factorization<ValueType, IndexType>{
+            composition_type::create(gko::share(std::move(combined))),
+            storage_type::combined_lu, stat}};
 }
 
 

@@ -98,7 +98,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
                matrix::Csr<ValueType, IndexType>* factors,
-               array<int>& tmp_storage)
+               array<int>& tmp_storage, bool& success)
 {
     const auto num_rows = factors->get_size()[0];
     const auto row_ptrs = factors->get_const_row_ptrs();

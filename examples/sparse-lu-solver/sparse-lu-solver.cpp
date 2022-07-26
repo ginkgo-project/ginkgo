@@ -97,15 +97,14 @@ int main(int argc, char* argv[])
     auto preprocessing = gko::share(preprocessing_fact->generate(A));
 
     // Create reusable GLU factory for first matrix
-    auto lower_solver = gko::share(
-        gko::solver::LowerTrs<>::build().with_unit_diagonal(true).on(exec));
     auto lu_fact = gko::share(
-        gko::factorization::Glu<ValueType, IndexType>::build_reusable().on(
-            exec, A.get(), preprocessing.get()));
-    auto inner_solver_fact = gko::share(gko::preconditioner::Ilu<>::build()
-                                            .with_factorization_factory(lu_fact)
-                                            .with_l_solver_factory(lower_solver)
-                                            .on(exec));
+        gko::experimental::factorization::Glu<ValueType,
+                                              IndexType>::build_reusable()
+            .on(exec, A.get(), preprocessing.get()));
+    auto inner_solver_fact = gko::share(
+        gko::experimental::solver::Direct<ValueType, IndexType>::build()
+            .with_factorization(lu_fact)
+            .on(exec));
     auto solver_fact = gko::share(
         gko::solver::Gmres<>::build()
             .with_criteria(

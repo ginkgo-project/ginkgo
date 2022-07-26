@@ -71,8 +71,7 @@ Lu<ValueType, IndexType>::Lu(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Factorization<ValueType, IndexType>>
-Lu<ValueType, IndexType>::generate(
-    std::shared_ptr<const LinOp> system_matrix) const
+Lu<ValueType, IndexType>::generate(std::shared_ptr<const LinOp> system_matrix)
 {
     auto product =
         std::unique_ptr<factorization_type>(static_cast<factorization_type*>(
@@ -86,6 +85,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     std::shared_ptr<const LinOp> system_matrix) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    // status_ = factorization_status::not_complete;
     const auto exec = this->get_executor();
     // TODO deal with non Csr matrices
     const auto mtx = as<matrix_type>(system_matrix);
@@ -137,11 +137,15 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
         storage.get_const_data(), diag_idxs.get_data(), factors.get()));
     // run numerical factorization
     array<int> tmp{exec};
-    exec->run(make_factorize(storage_offsets.get_const_data(),
-                             row_descs.get_const_data(),
-                             storage.get_const_data(),
-                             diag_idxs.get_const_data(), factors.get(), tmp));
-    return factorization_type::create_from_combined_lu(std::move(factors));
+    bool success = false;
+    exec->run(make_factorize(
+        storage_offsets.get_const_data(), row_descs.get_const_data(),
+        storage.get_const_data(), diag_idxs.get_const_data(), factors.get(),
+        tmp, success));
+    factorization::status stat = success ? factorization::status::success
+                                         : factorization::status::failure;
+    return factorization_type::create_from_combined_lu(std::move(factors),
+                                                       stat);
 }
 
 

@@ -105,7 +105,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = gko::matrix::Csr<double, int>;
-    using index_array = Array<IndexType>;
+    using index_array = array<IndexType>;
 
     /**
      * Gets the permutation (permutation matrix, output of the algorithm) of the

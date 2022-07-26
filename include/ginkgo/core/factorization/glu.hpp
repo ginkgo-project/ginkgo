@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -53,6 +54,7 @@ namespace gko {
  *
  * @ingroup factor
  */
+namespace experimental {
 namespace factorization {
 
 
@@ -72,35 +74,19 @@ namespace factorization {
  */
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class Glu : public Composition<ValueType> {
+class Glu : public Factorization<ValueType, IndexType> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     using diag = matrix::Diagonal<ValueType>;
-    using index_array = Array<IndexType>;
-
-    std::shared_ptr<const matrix_type> get_l_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[0]);
-    }
-
-    std::shared_ptr<const matrix_type> get_u_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[1]);
-    }
-
-    const int get_status() const { return status_; }
+    using index_array = array<IndexType>;
 
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
     template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args&&... args) =
-        delete;
+    static std::unique_ptr<Factorization<ValueType, IndexType>> create(
+        Args&&... args) = delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -203,17 +189,6 @@ public:
     public:
         std::shared_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
             symbolic_;
-        std::vector<unsigned> row_ptrs_;
-        std::vector<unsigned> col_idxs_;
-        std::vector<int> level_idx_;
-        std::vector<int> level_ptr_;
-        unsigned num_lev_;
-        unsigned sym_nnz_;
-        std::vector<unsigned> csr_r_ptr;
-        std::vector<unsigned> csr_c_idx;
-        std::vector<unsigned> csr_diag_ptr;
-        std::vector<unsigned> l_col_ptr;
-        std::vector<value_type> csr_val;
     };
 
     friend EnableDefaultFactory<ReusableFactory, Glu, ReusableFactoryParameters,
@@ -226,7 +201,7 @@ public:
 
 protected:
     Glu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{factory->get_executor()},
+        : Factorization<ValueType, IndexType>{factory->get_executor()},
           parameters_{factory->get_parameters()}
     {
         if (parameters_.l_strategy == nullptr) {
@@ -239,18 +214,12 @@ protected:
         }
         auto reusable = Glu::build_reusable().on(factory->get_executor(),
                                                  system_matrix.get());
-        generate_l_u(system_matrix, reusable->symbolic_, reusable->row_ptrs_,
-                     reusable->col_idxs_, reusable->level_idx_,
-                     reusable->level_ptr_, reusable->csr_r_ptr,
-                     reusable->csr_c_idx, reusable->csr_diag_ptr,
-                     reusable->l_col_ptr, reusable->csr_val, reusable->sym_nnz_,
-                     reusable->num_lev_, parameters_.skip_sorting)
-            ->move_to(this);
+        generate_l_u(system_matrix, reusable->symbolic_)->move_to(this);
     }
 
     Glu(const ReusableFactory* factory,
         std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{factory->get_executor()},
+        : Factorization<ValueType, IndexType>{factory->get_executor()},
           parameters_{factory->get_parameters()}
     {
         if (parameters_.l_strategy == nullptr) {
@@ -261,13 +230,7 @@ protected:
             parameters_.u_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate_l_u(system_matrix, factory->symbolic_, factory->row_ptrs_,
-                     factory->col_idxs_, factory->level_idx_,
-                     factory->level_ptr_, factory->csr_r_ptr,
-                     factory->csr_c_idx, factory->csr_diag_ptr,
-                     factory->l_col_ptr, factory->csr_val, factory->sym_nnz_,
-                     factory->num_lev_, parameters_.skip_sorting)
-            ->move_to(this);
+        generate_l_u(system_matrix, factory->symbolic_)->move_to(this);
     }
 
     /**
@@ -285,25 +248,18 @@ protected:
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
+    std::unique_ptr<Factorization<ValueType, IndexType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
         const std::shared_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
-            symbolic,
-        const std::vector<unsigned>& row_ptrs,
-        const std::vector<unsigned>& col_idxs,
-        const std::vector<int>& level_idx, const std::vector<int>& level_ptr,
-        const std::vector<unsigned>& csr_r_ptr,
-        const std::vector<unsigned>& csr_c_idx,
-        const std::vector<unsigned>& csr_diag_ptr,
-        const std::vector<unsigned>& l_col_ptr,
-        const std::vector<ValueType>& csr_val, unsigned sym_nnz,
-        unsigned num_lev, bool skip_sorting);
+            symbolic);
 
-    int status_;
+    array<gko::experimental::factorization::status> status_{
+        this->get_executor()->get_master(), 1};
 };
 
 
 }  // namespace factorization
+}  // namespace experimental
 }  // namespace gko
 
 

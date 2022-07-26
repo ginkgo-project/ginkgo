@@ -57,6 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace factorization {
 namespace glu_factorization {
 namespace {
@@ -134,48 +135,22 @@ void Glu<double, int>::ReusableFactory::symbolic_factorization(
     }
 
     symbolic_ = gko::matrix::SparsityCsr<double, int>::create(
-        exec->get_master(), system_matrix->get_size(), col_idxs, row_ptrs);
-    symbolic_->sort_by_column_index();
-    row_ptrs_ = A_sym.sym_c_ptr;
-    col_idxs_ = A_sym.sym_r_idx;
-    level_idx_ = A_sym.level_idx;
-    level_ptr_ = A_sym.level_ptr;
-    sym_nnz_ = A_sym.nnz;
-    num_lev_ = A_sym.num_lev;
-    csr_c_idx = A_sym.csr_c_idx;
-    csr_r_ptr = A_sym.csr_r_ptr;
-    csr_diag_ptr = A_sym.csr_diag_ptr;
-    csr_val = A_sym.val;
-    l_col_ptr = A_sym.l_col_ptr;
+        exec, system_matrix->get_size(), col_idxs, row_ptrs);
 }
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>> Glu<ValueType, IndexType>::generate_l_u(
+std::unique_ptr<Factorization<ValueType, IndexType>>
+Glu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix,
     const std::shared_ptr<gko::matrix::SparsityCsr<ValueType, IndexType>>
-        symbolic,
-    const std::vector<unsigned>& row_ptrs,
-    const std::vector<unsigned>& col_idxs, const std::vector<int>& level_idx,
-    const std::vector<int>& level_ptr, const std::vector<unsigned>& csr_r_ptr,
-    const std::vector<unsigned>& csr_c_idx,
-    const std::vector<unsigned>& csr_diag_ptr,
-    const std::vector<unsigned>& l_col_ptr,
-    const std::vector<ValueType>& csr_val, unsigned sym_nnz, unsigned num_lev,
-    bool skip_sorting) GKO_NOT_IMPLEMENTED;
+        symbolic) GKO_NOT_IMPLEMENTED;
 
 
 template <>
-std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
+std::unique_ptr<Factorization<double, int>> Glu<double, int>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix,
-    const std::shared_ptr<gko::matrix::SparsityCsr<double, int>> symbolic,
-    const std::vector<unsigned>& row_ptrs,
-    const std::vector<unsigned>& col_idxs, const std::vector<int>& level_idx,
-    const std::vector<int>& level_ptr, const std::vector<unsigned>& csr_r_ptr,
-    const std::vector<unsigned>& csr_c_idx,
-    const std::vector<unsigned>& csr_diag_ptr,
-    const std::vector<unsigned>& l_col_ptr, const std::vector<double>& csr_val,
-    unsigned sym_nnz, unsigned num_lev, bool skip_sorting)
+    const std::shared_ptr<gko::matrix::SparsityCsr<double, int>> symbolic)
 {
     auto exec = system_matrix->get_executor();
     const auto matrix_size = system_matrix->get_size();
@@ -185,11 +160,7 @@ std::unique_ptr<Composition<double>> Glu<double, int>::generate_l_u(
                     .with_symbolic_factorization(symbolic)
                     .on(exec);
     auto lu = fact->generate(system_matrix);
-    auto l_factor = as<matrix_type>(lu->get_combined());
-    auto u_factor = gko::clone(exec, l_factor.get());
-
-    return Composition<double>::create(std::move(l_factor),
-                                       std::move(u_factor));
+    return lu;
 }
 
 
@@ -198,4 +169,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GLU);
 
 
 }  // namespace factorization
+}  // namespace experimental
 }  // namespace gko
