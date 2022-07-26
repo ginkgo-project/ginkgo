@@ -136,8 +136,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         const auto scale = val / diag;
         if (lane == 0) {
             vals[lower_nz] = scale;
-            if (diag == 0 || is_nan(diag) ||
-                diag == device_numeric_limits<ValueType>::inf) {
+            if (diag == 0 || is_nan(diag) || !is_finite(diag)) {
                 *failure = true;
             }
         }
