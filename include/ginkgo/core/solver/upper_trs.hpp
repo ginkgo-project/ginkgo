@@ -116,6 +116,15 @@ public:
          * (false) or should it assume they are 1.0 (true)?
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(unit_diagonal, false);
+
+        /**
+         * Select the implementation which is supposed to be used for
+         * the triangular solver. This only matters for the Cuda
+         * executor where the choice is between the Ginkgo and the
+         * Cusparse implementation. Default is Ginkgo.
+         */
+        trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
+            algorithm, trisolve_algorithm::sparselib);
     };
     GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
