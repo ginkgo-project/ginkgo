@@ -590,6 +590,14 @@ private:
 };
 
 
+/**
+ * A helper for algorithm selection in the triangular solvers.
+ * It currently only matters for the Cuda executor as there,
+ * we have a choice between the Ginkgo and cuSPARSE implementations.
+ */
+enum class trisolve_algorithm { sparselib, ginkgo };
+
+
 }  // namespace solver
 }  // namespace gko
 
