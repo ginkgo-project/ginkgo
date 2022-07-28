@@ -281,8 +281,8 @@ public:
         /**
          * Select the implementation which is supposed to be used for
          * the triangular solver. This only matters for the Cuda
-         * executor where the choice is between the Ginkgo and the
-         * Cusparse implementation. Default is Ginkgo.
+         * executor where the choice is between the Ginkgo (syncfree) and the
+         * Cusparse (sparselib) implementation. Default is sparselib.
          */
         trisolve_algorithm GKO_FACTORY_PARAMETER_SCALAR(
             algorithm, trisolve_algorithm::sparselib);
