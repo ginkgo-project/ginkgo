@@ -133,13 +133,13 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(LowerTrs, CudaSingleRhsApplySparselibIsEquivalentToRef)
+TEST_F(LowerTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
@@ -166,27 +166,21 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
-TEST_F(LowerTrs, CudaMultipleRhsApplySparselibIsEquivalentToRef)
+TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 3);
     auto lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
         gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(3u)
             .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
     d_b2->convert_to(db2_strided.get());
-    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
-    // so the input and output stride need to match
-#if CUDA_VERSION >= 11031
-    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
-#else
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
-#endif
 
     solver->apply(b2.get(), x.get());
     d_solver->apply(db2_strided.get(), dx_strided.get());
@@ -206,7 +200,13 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db2_strided = Mtx::create(cuda, b->get_size(), 4);
     d_b2->convert_to(db2_strided.get());
+    // The cuSPARSE Generic SpSM implementation uses the wrong stride here
+    // so the input and output stride need to match
+#if CUDA_VERSION >= 11031
+    auto dx_strided = Mtx::create(cuda, x->get_size(), 4);
+#else
     auto dx_strided = Mtx::create(cuda, x->get_size(), 5);
+#endif
 
     solver->apply(b2.get(), x.get());
     d_solver->apply(db2_strided.get(), dx_strided.get());
