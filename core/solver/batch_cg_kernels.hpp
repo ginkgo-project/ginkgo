@@ -81,6 +81,13 @@ inline int local_memory_requirement(const int num_rows, const int num_rhs)
 }
 
 
+/**
+ * Encodes information about where solver vectors are stored, as well as
+ * hardware-specific problem dimensions.
+ *
+ * @note Vector counts, such as `n_shared` and `n_global`, do not include
+ *       preconditioner storage.
+ */
 struct StorageConfig {
     // preconditioner storage
     bool prec_shared;
@@ -155,7 +162,8 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int prec_storage =
         Prectype::dynamic_work_size(num_rows, num_nz) * sizeof(ValueType);
     int rem_shared = shared_mem_per_blk;
-    StorageConfig sconf{false, 0, 6, 0, num_rows};
+    const int num_cg_vecs{6};
+    StorageConfig sconf{false, 0, num_cg_vecs, 0, num_rows};
     if (rem_shared <= 0) {
         set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);
         return sconf;
@@ -180,7 +188,7 @@ StorageConfig compute_shared_storage(const int shared_mem_per_blk,
     const int shared_other_vecs =
         rem_shared / vec_size >= 0 ? rem_shared / vec_size : 0;
     sconf.n_shared += shared_other_vecs;
-    sconf.n_shared = min(sconf.n_shared, 6);
+    sconf.n_shared = min(sconf.n_shared, num_cg_vecs);
     sconf.n_global -= shared_other_vecs;
     sconf.n_global = max(sconf.n_global, 0);
     set_gmem_stride_bytes<align_bytes>(sconf, vec_size, prec_storage);

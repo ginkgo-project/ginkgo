@@ -110,7 +110,9 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
-        const int shared_gap = ((a.num_rows - 1) / 8 + 1) * 8;
+        const int align_multiple = 8;
+        const int shared_gap =
+            ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
         static_assert(default_block_size >= 2 * config::warp_size,
                       "Need at least two warps!");
 
