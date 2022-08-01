@@ -43,6 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+#include <libkahypar.h>
+
+
 int main(int argc, char* argv[])
 {
     // @sect3{Type Definitiions}
@@ -78,23 +81,6 @@ int main(int argc, char* argv[])
     // initialization and finalization.
     const gko::mpi::environment env(argc, argv);
 
-    // Create a MPI communicator wrapper and get the rank.
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
-    const auto rank = comm.rank();
-
-
-    if (rank == 0) {
-        // Print the ginkgo version information.
-        std::cout << gko::version_info::get() << std::endl;
-    }
-    if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        if (rank == 0) {
-            std::cerr << "Usage: " << argv[0]
-                      << " [executor] [num_grid_points] " << std::endl;
-        }
-        std::exit(-1);
-    }
-
     ValueType t_init = gko::mpi::get_walltime();
 
     // User input settings:
@@ -111,16 +97,16 @@ int main(int argc, char* argv[])
             {"cuda",
              [&] {
                  return gko::CudaExecutor::create(
-                     comm.node_local_rank() %
-                         gko::CudaExecutor::get_num_devices(),
+                     gko::mpi::map_rank_to_device_id(
+                         MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), false,
                      gko::allocation_mode::device);
              }},
             {"hip",
              [&] {
                  return gko::HipExecutor::create(
-                     comm.node_local_rank() %
-                         gko::HipExecutor::get_num_devices(),
+                     gko::mpi::map_rank_to_device_id(
+                         MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
                      gko::ReferenceExecutor::create(), true);
              }},
             {"dpcpp",
@@ -128,13 +114,15 @@ int main(int argc, char* argv[])
                  auto ref = gko::ReferenceExecutor::create();
                  if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         comm.node_local_rank() %
-                             gko::DpcppExecutor::get_num_devices("gpu"),
+                         gko::mpi::map_rank_to_device_id(
+                             MPI_COMM_WORLD,
+                             gko::DpcppExecutor::get_num_devices("gpu")),
                          ref);
                  } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
                      return gko::DpcppExecutor::create(
-                         comm.node_local_rank() %
-                             gko::DpcppExecutor::get_num_devices("cpu"),
+                         gko::mpi::map_rank_to_device_id(
+                             MPI_COMM_WORLD,
+                             gko::DpcppExecutor::get_num_devices("cpu")),
                          ref);
                  } else {
                      throw std::runtime_error("No suitable DPC++ devices");
@@ -142,6 +130,23 @@ int main(int argc, char* argv[])
              }},
             {"reference", [] { return gko::ReferenceExecutor::create(); }}};
     const auto exec = exec_map.at(executor_string)();
+
+    // Create a MPI communicator wrapper and get the rank.
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+    const auto rank = comm.rank();
+
+
+    if (rank == 0) {
+        // Print the ginkgo version information.
+        std::cout << gko::version_info::get() << std::endl;
+    }
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        if (rank == 0) {
+            std::cerr << "Usage: " << argv[0]
+                      << " [executor] [num_grid_points] " << std::endl;
+        }
+        std::exit(-1);
+    }
 
     // @sect3{Creating the Distributed Matrix and Vectors}
     // As a first step, we create a partition of the rows. The partition
@@ -169,12 +174,12 @@ int main(int argc, char* argv[])
     x_data.size = {num_rows, 1};
     const auto range_start = partition->get_range_bounds()[rank];
     const auto range_end = partition->get_range_bounds()[rank + 1];
-    for (int i = range_start; i < range_end; i++) {
+    for (int i = 0; i < num_rows; i++) {
         if (i > 0) {
             A_data.nonzeros.emplace_back(i, i - 1, -1);
         }
         A_data.nonzeros.emplace_back(i, i, 2);
-        if (i < grid_dim - 1) {
+        if (i < num_rows - 1) {
             A_data.nonzeros.emplace_back(i, i + 1, -1);
         }
         b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
@@ -184,6 +189,26 @@ int main(int argc, char* argv[])
     // Take timings.
     comm.synchronize();
     ValueType t_init_end = gko::mpi::get_walltime();
+
+
+    if (rank == 0) {
+        using sparsity_mat =
+            gko::matrix::SparsityCsr<ValueType, kahypar_hyperedge_weight_t>;
+        auto graph = sparsity_mat::create(exec);
+        // graph->read(A_data);
+
+        kahypar_context_t* context = kahypar_context_new();
+        kahypar_configure_context_from_file(context, "");
+        // hyperedges are columns, so we would need to transpose the graph
+        // won't do that here since it's symmetrical
+        kahypar_hyperedge_weight_t objective;
+        std::vector<kahypar_partition_id_t> new_partition(num_rows);
+        kahypar_partition(num_rows, num_rows, 0.03, comm.size(), nullptr,
+                          nullptr, graph->get_const_row_ptrs(),
+                          graph->get_const_col_idxs(), &objective, context,
+                          new_partition.data());
+    }
+
 
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
@@ -226,7 +251,7 @@ int main(int argc, char* argv[])
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
-    Ainv->apply(lend(b), lend(x));
+    Ainv->apply(gko::lend(b), gko::lend(x));
 
     // Take timings.
     comm.synchronize();
@@ -237,9 +262,10 @@ int main(int argc, char* argv[])
     x_host->copy_from(x.get());
     auto one = gko::initialize<vec>({1.0}, exec);
     auto minus_one = gko::initialize<vec>({-1.0}, exec);
-    A_host->apply(lend(minus_one), lend(x_host), lend(one), lend(b_host));
+    A_host->apply(gko::lend(minus_one), gko::lend(x_host), gko::lend(one),
+                  gko::lend(b_host));
     auto res_norm = gko::initialize<vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(lend(res_norm));
+    b_host->compute_norm2(gko::lend(res_norm));
 
     // Take timings.
     comm.synchronize();
