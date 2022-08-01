@@ -148,7 +148,9 @@ public:
     {
         using real_type = gko::remove_complex<value_type>;
         const size_type nbatch = a.num_batch;
-        const int shared_gap = ((a.num_rows - 1) / 5 + 1) * 5;
+        constexpr int align_multiple = 8;
+        const int shared_gap =
+            ((a.num_rows - 1) / align_multiple + 1) * align_multiple;
 
         const auto matrix_storage = a.get_entry_storage();
         const int shmem_per_blk =
@@ -159,6 +161,7 @@ public:
             get_num_threads_per_block<StopType, PrecType, LogType,
                                       BatchMatrixType, value_type>(exec_,
                                                                    a.num_rows);
+        // The solver requires at least two warps to function correctly
         assert(block_size >= 2 * config::warp_size);
 
         const size_t prec_size =
