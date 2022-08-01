@@ -203,20 +203,20 @@ int main(int argc, char* argv[])
     // Create solver factory
     gko::remove_complex<ValueType> inner2_red = 1e-6;
 
-    // auto coarse_gen =
-    //     amgx_pgm::build().with_deterministic(true).on(exec)->generate(A);
-    // auto coarse_mat = coarse_gen->get_coarse_op();
-    // auto coarse_solver = cg::build()
-    //                          .with_criteria(gko::stop::Iteration::build()
-    //                                             .with_max_iters(c_max_iters)
-    //                                             .on(exec))
-    //                          .on(exec)
-    //                          ->generate(coarse_mat);
+    auto coarse_gen =
+        amgx_pgm::build().with_deterministic(false).on(exec)->generate(A);
+    auto coarse_mat = coarse_gen->get_coarse_op();
+    auto coarse_solver = cg::build()
+                             .with_criteria(gko::stop::Iteration::build()
+                                                .with_max_iters(c_max_iters)
+                                                .on(exec))
+                             .on(exec)
+                             ->generate(coarse_mat);
     auto schwarz_precond = gko::share(
         schwarz::build()
             .with_block_dimensions(block_sizes)
             // .with_coarse_relaxation_factors(c_relax_fac)
-            // .with_generated_coarse_solvers(gko::share(coarse_solver))
+            .with_generated_coarse_solvers(gko::share(coarse_solver))
             .with_inner_solver(
                 cg::build()
                     // .with_preconditioner(bj::build().on(exec))
