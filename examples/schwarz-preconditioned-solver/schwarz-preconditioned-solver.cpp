@@ -132,11 +132,11 @@ int main(int argc, char* argv[])
     b->read(b_data);
     x->read(x_data);
 
-    auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
-    auto tol_stop = gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
-                        .on(exec);
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_reduction_factor(reduction_factor)
+                                   .on(exec));
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create(exec);
     iter_stop->add_logger(logger);
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
 
     auto solver_gen =
         cg::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            .with_criteria(iter_stop, tol_stop)
             // .with_preconditioner(bj::build().on(exec))
             // .with_preconditioner(ic::build().on(exec))
             // .with_preconditioner(multigrid_factory)

@@ -1,1 +1,4 @@
-Solve a simple linear system with CG. Read a matrix and right hand side from a file.
+Generate an Schwarz preconditioner.
+Explore different options of the Schwarz preconditioner
+Use an Schwarz preconditioner in an iterative solver.
+Solve a linear system.
