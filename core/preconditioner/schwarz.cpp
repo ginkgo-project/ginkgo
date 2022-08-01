@@ -79,34 +79,34 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(
     for (size_type i = 0; i < this->num_subdomains_; ++i) {
         size_type l_num_rows = this->subdomain_matrices_[i]->get_size()[0];
         auto rspan = gko::span(offset, offset + l_num_rows);
-        const auto b_view = dense_b->create_submatrix(
+        const auto b_view = dense_b->create_const_submatrix(
             rspan, gko::span(0, dense_b->get_size()[1]));
         auto x_view = dense_x->create_submatrix(
             rspan, gko::span(0, dense_x->get_size()[1]));
         this->subdomain_solvers_[i]->apply(b_view.get(), x_view.get());
         offset += l_num_rows;
     }
-    if (parameters_.coarse_solver.uses_coarse_solver_) {
+    if (coarse_solvers_.size() > 0) {
         auto r = Vector::create_with_config_of(dense_b);
         r->copy_from(dense_b);
-        auto restrict_op =
-            parameters_.coarse_solver.coarse_op_->get_restrict_op();
-        auto prolong_op =
-            parameters_.coarse_solver.coarse_op_->get_prolong_op();
+        for (auto i = 0; i < coarse_solvers_.size(); ++i) {
+            auto restrict_op = coarse_operators_[i]->get_restrict_op();
+            auto prolong_op = coarse_operators_[i]->get_prolong_op();
 
-        system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
-        auto restricted_r = Vector::create(
-            exec,
-            gko::dim<2>(restrict_op->get_size()[0], dense_x->get_size()[1]));
-        restrict_op->apply(r.get(), restricted_r.get());
-        auto restricted_e = Vector::create(
-            exec,
-            gko::dim<2>(restrict_op->get_size()[0], dense_x->get_size()[1]));
-        restricted_e->fill(zero<ValueType>());
-        parameters_.coarse_solver.coarse_solver_->apply(restricted_r.get(),
-                                                        restricted_e.get());
-        prolong_op->apply(one_op.get(), restricted_e.get(), one_op.get(),
-                          dense_x);
+            system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
+                                  r.get());
+            auto restricted_r =
+                Vector::create(exec, gko::dim<2>(restrict_op->get_size()[0],
+                                                 dense_x->get_size()[1]));
+            restrict_op->apply(r.get(), restricted_r.get());
+            auto restricted_e =
+                Vector::create(exec, gko::dim<2>(restrict_op->get_size()[0],
+                                                 dense_x->get_size()[1]));
+            restricted_e->fill(zero<ValueType>());
+            coarse_solvers_[i]->apply(restricted_r.get(), restricted_e.get());
+            prolong_op->apply(one_op.get(), restricted_e.get(), one_op.get(),
+                              dense_x);
+        }
     }
 }
 
@@ -125,7 +125,7 @@ void Schwarz<ValueType, IndexType>::apply_impl(const LinOp* alpha,
             for (size_type i = 0; i < this->num_subdomains_; ++i) {
                 size_type l_num_rows = parameters_.subdomain_sizes[i];
                 auto rspan = gko::span(offset, offset + l_num_rows);
-                const auto b_view = dense_b->create_submatrix(
+                const auto b_view = dense_b->create_const_submatrix(
                     rspan, gko::span(0, dense_b->get_size()[1]));
                 auto x_view = dense_x->create_submatrix(
                     rspan, gko::span(0, dense_x->get_size()[1]));
@@ -168,23 +168,25 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
     if (parameters_.subdomain_sizes.size() == 0) {
         subd_sizes = std::vector<size_type>(num_subdomains_,
                                             mat_size[0] / num_subdomains_);
-        subd_sizes[0] += mat_size[0] - (num_subdomains_ * subd_sizes[1]);
-    } else {
-        subd_sizes = parameters_.subdomain_sizes;
+        subd_sizes[0] += num_subdomains_ > 1
+                             ? mat_size[0] - (num_subdomains_ * subd_sizes[1])
+                             : 0;
+        parameters_.subdomain_sizes = subd_sizes;
     }
     size_type l_num_rows = 0;
     // TODO Replace with BlockApprox
     for (size_type i = 0; i < num_subdomains_; ++i) {
-        size_type l_num_rows = subd_sizes[i];
+        size_type l_num_rows = parameters_.subdomain_sizes[i];
         auto rspan = gko::span(offset, offset + l_num_rows);
         auto cspan = gko::span(offset, offset + l_num_rows);
         subdomain_matrices_.emplace_back(
             gko::share(csr_mtx->create_submatrix(rspan, cspan)));
         offset += l_num_rows;
     }
-    if (parameters_.generated_inner_solvers.size() > 0) {
+    if (parameters_.generated_inner_solvers[0] != nullptr) {
         GKO_ASSERT(parameters_.generated_inner_solvers.size() ==
                    num_subdomains_);
+        subdomain_solvers_ = parameters_.generated_inner_solvers;
     } else if (parameters_.inner_solver) {
         for (size_type i = 0; i < num_subdomains_; ++i) {
             subdomain_solvers_.emplace_back(
@@ -192,9 +194,6 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix,
         }
     } else {
         GKO_NOT_IMPLEMENTED;
-    }
-    if (parameters_.coarse_solver.uses_coarse_solver_) {
-        coarse_solver_ = parameters_.coarse_solver.coarse_solver_;
     }
 }
 

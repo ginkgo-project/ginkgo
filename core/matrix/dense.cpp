@@ -1668,6 +1668,27 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
+    const span& rows, const span& columns, const size_type stride) const
+{
+    const_row_major_range range_this{this->get_const_values(),
+                                     this->get_size()[0], this->get_size()[1],
+                                     this->get_stride()};
+    const auto range_result = range_this(rows, columns);
+    size_type storage_size =
+        rows.length() > 0
+            ? range_result.length(0) * this->get_stride() - columns.begin
+            : 0;
+    return Dense::create_const(
+        this->get_executor(),
+        dim<2>{range_result.length(0), range_result.length(1)},
+        make_const_array_view(this->get_executor(), storage_size,
+                              range_result->data),
+        stride);
+}
+
+
 #define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 

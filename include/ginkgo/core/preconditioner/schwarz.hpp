@@ -61,8 +61,7 @@ namespace preconditioner {
  * treatment and variations of the method.
  *
  * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  integral type used to store pointers to the start of each
- *                    block
+ * @tparam IndexType  integral type of the preconditioner
  *
  * @ingroup schwarz
  * @ingroup precond
@@ -106,48 +105,6 @@ public:
         return subdomain_matrices_;
     }
 
-    /**
-     * A struct that stores the coarse operator and solver and generates the
-     * coarse solver with the given operator
-     */
-    struct coarse_solver_type {
-        /**
-         * Basic Constructor storing whether to use a coarse solver or not.
-         *
-         * @param uses_coarse_solver  To use the coarse solver or not.
-         */
-        coarse_solver_type(bool uses_coarse_solver = false)
-            : uses_coarse_solver_(uses_coarse_solver),
-              coarse_op_{nullptr},
-              coarse_solver_{nullptr}
-        {}
-
-        /**
-         * Constructor forming the coarse solver struct.
-         *
-         * @param coarse_operator The object that stores the MultigridLevel
-         *                        object, which in turn stores the coarse
-         *                        operator, restriction operator and the
-         *                        prolongation operator
-         *
-         * @param coarse_factory The LinOpFactory object that stores the
-         *                       solver to be generated on the coarse operator
-         */
-        coarse_solver_type(
-            std::shared_ptr<const multigrid::MultigridLevel> coarse_operator,
-            std::shared_ptr<const LinOpFactory> coarse_factory)
-            : uses_coarse_solver_(coarse_operator != nullptr &&
-                                  coarse_factory != nullptr),
-              coarse_op_{coarse_operator},
-              coarse_solver_{
-                  coarse_factory->generate(coarse_operator->get_coarse_op())}
-        {}
-
-        bool uses_coarse_solver_;
-        std::shared_ptr<const LinOp> coarse_solver_;
-        std::shared_ptr<const multigrid::MultigridLevel> coarse_op_;
-    };
-
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -169,15 +126,6 @@ public:
          *        sorting step will be performed during the preconditioner
          *        generation (it will not change the matrix given).
          *        The matrix must be sorted for this preconditioner to work.
-         *
-         * The `system_matrix`, which will be given to this factory, must be
-         * sorted (first by row, then by column) in order for the algorithm
-         * to work. If it is known that the matrix will be sorted, this
-         * parameter can be set to `true` to skip the sorting (therefore,
-         * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, this preconditioner might be
-         * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
@@ -191,14 +139,19 @@ public:
          * Generated Inner solvers.
          */
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
-            generated_inner_solvers,
-            std::vector<std::shared_ptr<const LinOp>>{});
+            generated_inner_solvers, nullptr);
 
         /**
-         * Generated Coarse solvers.
+         * Coarse Operators as MultigridLevel
          */
-        coarse_solver_type GKO_FACTORY_PARAMETER_SCALAR(coarse_solver,
-                                                        coarse_solver_type{});
+        std::vector<std::shared_ptr<const multigrid::MultigridLevel>>
+            GKO_FACTORY_PARAMETER_VECTOR(coarse_operators, nullptr);
+
+        /**
+         * Coarse Solvers
+         */
+        std::vector<std::shared_ptr<const LinOpFactory>>
+            GKO_FACTORY_PARAMETER_VECTOR(coarse_factories, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Schwarz, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -228,8 +181,19 @@ protected:
           num_subdomains_{parameters_.subdomain_sizes.size() > 0
                               ? parameters_.subdomain_sizes.size()
                               : parameters_.num_subdomains},
-          system_matrix_{std::move(system_matrix)}
+          system_matrix_{std::move(system_matrix)},
+          coarse_operators_{parameters_.coarse_operators}
     {
+        if (coarse_operators_[0] != nullptr) {
+            GKO_ASSERT(coarse_operators_.size() ==
+                       parameters_.coarse_factories.size());
+            for (auto i = 0; i < coarse_operators_.size(); ++i) {
+                coarse_solvers_.emplace_back(
+                    parameters_.coarse_factories[i]->generate(
+                        coarse_operators_[i]->get_coarse_op()));
+            }
+            GKO_ASSERT(coarse_operators_.size() == coarse_solvers_.size());
+        }
         this->generate(lend(system_matrix_), parameters_.skip_sorting);
     }
 
@@ -256,8 +220,10 @@ private:
     size_type num_subdomains_;
     std::shared_ptr<const LinOp> system_matrix_{};
     std::vector<std::shared_ptr<LinOp>> subdomain_matrices_;
-    std::vector<std::shared_ptr<LinOp>> subdomain_solvers_;
-    std::shared_ptr<const LinOp> coarse_solver_;
+    std::vector<std::shared_ptr<const LinOp>> subdomain_solvers_;
+    std::vector<std::shared_ptr<const LinOp>> coarse_solvers_;
+    std::vector<std::shared_ptr<const multigrid::MultigridLevel>>
+        coarse_operators_;
 };
 
 

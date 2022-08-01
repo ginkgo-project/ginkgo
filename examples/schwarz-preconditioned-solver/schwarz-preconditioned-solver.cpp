@@ -105,20 +105,27 @@ int main(int argc, char* argv[])
         for (int j = 0; j < grid_dim; j++) {
             for (int k = 0; k < grid_dim; k++) {
                 auto idx = i * grid_dim * grid_dim + j * grid_dim + k;
-                if (i > 0)
+                if (i > 0) {
                     A_data.nonzeros.emplace_back(idx, idx - grid_dim * grid_dim,
                                                  -1);
-                if (j > 0)
+                }
+                if (j > 0) {
                     A_data.nonzeros.emplace_back(idx, idx - grid_dim, -1);
-                if (k > 0) A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                }
+                if (k > 0) {
+                    A_data.nonzeros.emplace_back(idx, idx - 1, -1);
+                }
                 A_data.nonzeros.emplace_back(idx, idx, 8);
-                if (k < grid_dim - 1)
+                if (k < grid_dim - 1) {
                     A_data.nonzeros.emplace_back(idx, idx + 1, -1);
-                if (j < grid_dim - 1)
+                }
+                if (j < grid_dim - 1) {
                     A_data.nonzeros.emplace_back(idx, idx + grid_dim, -1);
-                if (i < grid_dim - 1)
+                }
+                if (i < grid_dim - 1) {
                     A_data.nonzeros.emplace_back(idx, idx + grid_dim * grid_dim,
                                                  -1);
+                }
                 b_data.nonzeros.emplace_back(idx, 0, 1.0);
                 x_data.nonzeros.emplace_back(idx, 0, 0.0);
             }
@@ -179,22 +186,17 @@ int main(int argc, char* argv[])
 
     auto coarse_op = gko::as<gko::multigrid::MultigridLevel>(
         share(mg_level_gen->generate(A)));
-    // auto coarse_op = gko::share(mg_level_gen->generate(A));
 
-    auto solver_gen =
-        cg::build()
-            .with_criteria(iter_stop, tol_stop)
-            // .with_preconditioner(bj::build().on(exec))
-            // .with_preconditioner(ic::build().on(exec))
-            // .with_preconditioner(multigrid_factory)
-            .with_preconditioner(
-                schwarz::build()
-                    .with_coarse_solver(schwarz::coarse_solver_type{
-                        coarse_op, ic::build().on(exec)})
-                    .with_num_subdomains(num_subdomains)
-                    .with_inner_solver(ic::build().on(exec))
-                    .on(exec))
-            .on(exec);
+    auto solver_gen = cg::build()
+                          .with_criteria(iter_stop, tol_stop)
+                          .with_preconditioner(
+                              schwarz::build()
+                                  .with_coarse_operators(coarse_op)
+                                  .with_coarse_factories(ic::build().on(exec))
+                                  .with_num_subdomains(num_subdomains)
+                                  .with_inner_solver(ic::build().on(exec))
+                                  .on(exec))
+                          .on(exec);
     auto solver = solver_gen->generate(A);
 
     solver->apply(lend(b), lend(x));

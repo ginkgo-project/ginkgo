@@ -348,7 +348,7 @@ TYPED_TEST(Dense, CanCreateSubmatrix)
     EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
     EXPECT_EQ(submtx->at(1, 0), value_type{2.5});
     EXPECT_EQ(submtx->at(1, 1), value_type{3.5});
-    submtx->at(0, 0) = value_type{1.5};
+    ASSERT_NO_THROW(submtx->at(0, 0) = value_type{1.5});
 }
 
 
@@ -357,11 +357,9 @@ TYPED_TEST(Dense, CanCreateSubmatrixFromConstObj)
     using value_type = typename TestFixture::value_type;
     const auto mat = gko::initialize<const gko::matrix::Dense<TypeParam>>(
         {{2, 3, 4}, {7, 5, 9}, {32, 42, 102}, {3, 5, 10}}, this->exec);
-    auto submtx = mat->create_submatrix(gko::span{1, 3}, gko::span{1, 2});
+    const auto submtx =
+        mat->create_const_submatrix(gko::span{1, 3}, gko::span{1, 2});
 
-    // Uncomment if you want to check that there is a compilation failure when
-    // you try to modify a const object.
-    // submtx->at(0, 0) = value_type{1.5};
     EXPECT_EQ(mat->get_size()[0], 4);
     EXPECT_EQ(mat->get_size()[1], 3);
     EXPECT_EQ(submtx->get_size()[0], 2);

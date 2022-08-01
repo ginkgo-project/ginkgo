@@ -1,4 +1,4 @@
-Generate an Schwarz preconditioner.
-Explore different options of the Schwarz preconditioner
-Use an Schwarz preconditioner in an iterative solver.
+Generate a Schwarz preconditioner.
+Explore different options of the Schwarz preconditioner.
+Use a Schwarz preconditioner in an iterative solver.
 Solve a linear system.

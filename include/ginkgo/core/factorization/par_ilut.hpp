@@ -136,18 +136,9 @@ public:
          * @brief `true` means it is known that the matrix given to this
          *        factory will be sorted first by row, then by column index,
          *        `false` means it is unknown or not sorted, so an additional
-         *        sorting step will be performed during the factorization
-         *        (it will not change the matrix given).
-         *        The matrix must be sorted for this factorization to work.
-         *
-         * The `system_matrix`, which will be given to this factory, must be
-         * sorted (first by row, then by column) in order for the algorithm
-         * to work. If it is known that the matrix will be sorted, this
-         * parameter can be set to `true` to skip the sorting (therefore,
-         * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, the factorization might be
-         * incorrect.
+         *        sorting step will be performed during the preconditioner
+         *        generation (it will not change the matrix given).
+         *        The matrix must be sorted for this preconditioner to work.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
