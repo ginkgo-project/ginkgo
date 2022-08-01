@@ -664,15 +664,6 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE);
 }  // namespace cholesky
 
 
-namespace schwarz {
-
-
-GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ_APPLY_KERNEL);
-
-
-}  // namespace schwarz
-
-
 namespace factorization {
 
 

@@ -47,21 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/utils.hpp"
-#include "core/preconditioner/schwarz_kernels.hpp"
 
 
 namespace gko {
 namespace preconditioner {
-namespace schwarz {
-namespace {
-
-
-GKO_REGISTER_OPERATION(apply, schwarz::apply);
-// GKO_REGISTER_OPERATION(advanced_apply, schwarz::advanced_apply);
-
-
-}  // anonymous namespace
-}  // namespace schwarz
 
 
 template <typename ValueType, typename IndexType>
@@ -86,6 +75,7 @@ void Schwarz<ValueType, IndexType>::apply_dense_impl(
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
     size_type offset = 0;
 
+    // FIXME: Sequential solution of subdomains.
     for (size_type i = 0; i < this->num_subdomains_; ++i) {
         size_type l_num_rows = this->subdomain_matrices_[i]->get_size()[0];
         auto rspan = gko::span(offset, offset + l_num_rows);

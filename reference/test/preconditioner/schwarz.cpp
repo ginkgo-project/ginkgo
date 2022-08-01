@@ -65,7 +65,6 @@ protected:
     using CsrMat = gko::matrix::Csr<value_type, index_type>;
     using Prec = gko::preconditioner::Schwarz<value_type, index_type>;
     using InnerSolver = gko::preconditioner::Jacobi<value_type, index_type>;
-    // using InnerSolver = gko::solver::Cg<value_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using mdata = gko::matrix_data<value_type, index_type>;
@@ -77,15 +76,6 @@ protected:
     {
         inner_factory =
             gko::share(InnerSolver::build().with_max_block_size(5u).on(exec));
-        // inner_factory = gko::share(
-        //     InnerSolver::build()
-        //         .with_criteria(
-        //             gko::stop::Iteration::build().with_max_iters(100u).on(exec),
-        //             gko::stop::ResidualNorm<value_type>::build()
-        //                 .with_reduction_factor(
-        //                     gko::remove_complex<value_type>(1e-16))
-        //                 .on(exec))
-        //         .on(exec));
         schwarz_factory = gko::share(
             Prec::build()
                 .with_subdomain_sizes(std::vector<gko::size_type>{2, 2, 1})

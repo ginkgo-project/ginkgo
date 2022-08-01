@@ -27,7 +27,6 @@ target_sources(ginkgo_omp
     multigrid/amgx_pgm_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
-    preconditioner/schwarz_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/gmres_kernels.cpp

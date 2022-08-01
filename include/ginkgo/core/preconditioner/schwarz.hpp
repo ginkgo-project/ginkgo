@@ -53,7 +53,12 @@ namespace preconditioner {
 
 
 /**
- * TODO
+ * A Schwarz preconditioner is a simple domain decomposition preconditioner that
+ * generalizes the Block Jacobi preconditioner, incorporating options for
+ * different local subdomain solvers and overlaps between the subdomains.
+ *
+ * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
+ * treatment and variations of the method.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  integral type used to store pointers to the start of each
@@ -91,18 +96,43 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    /**
+     * Returns the subdomain matrices.
+     *
+     * @return the subdomain matrices
+     */
     std::vector<std::shared_ptr<LinOp>> get_subdomain_matrices() const
     {
         return subdomain_matrices_;
     }
 
+    /**
+     * A struct that stores the coarse operator and solver and generates the
+     * coarse solver with the given operator
+     */
     struct coarse_solver_type {
+        /**
+         * Basic Constructor storing whether to use a coarse solver or not.
+         *
+         * @param uses_coarse_solver  To use the coarse solver or not.
+         */
         coarse_solver_type(bool uses_coarse_solver = false)
             : uses_coarse_solver_(uses_coarse_solver),
               coarse_op_{nullptr},
               coarse_solver_{nullptr}
         {}
 
+        /**
+         * Constructor forming the coarse solver struct.
+         *
+         * @param coarse_operator The object that stores the MultigridLevel
+         *                        object, which in turn stores the coarse
+         *                        operator, restriction operator and the
+         *                        prolongation operator
+         *
+         * @param coarse_factory The LinOpFactory object that stores the
+         *                       solver to be generated on the coarse operator
+         */
         coarse_solver_type(
             std::shared_ptr<const multigrid::MultigridLevel> coarse_operator,
             std::shared_ptr<const LinOpFactory> coarse_factory)
@@ -163,13 +193,6 @@ public:
         std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
             generated_inner_solvers,
             std::vector<std::shared_ptr<const LinOp>>{});
-
-        // FIXME
-        // /**
-        //  * Coarse solver factory.
-        //  */
-        // std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER_SCALAR(
-        //     coarse_solver, nullptr);
 
         /**
          * Generated Coarse solvers.
