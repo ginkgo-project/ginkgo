@@ -64,7 +64,7 @@ protected:
     using Vector = gko::distributed::Vector<double>;
     Repartitioner()
         : ref(gko::ReferenceExecutor::create()),
-          from_comm(gko::mpi::communicator(MPI_COMM_WORLD)),
+          from_comm(gko::mpi::communicator(MPI_COMM_WORLD, ref)),
           from_part(gko::share(
               gko::distributed::Partition<local_index_type>::build_from_mapping(
                   this->ref,
@@ -422,11 +422,10 @@ TYPED_TEST(Repartitioner, GatherMatrix_4_1)
     repartitioner->gather(from_mat.get(), to_mat.get());
 
     if (repartitioner->to_has_data()) {
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_diag()),
-                            gko::as<Csr>(result_mat->get_const_local_diag()),
-                            0);
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_offdiag()),
-                            gko::as<Csr>(result_mat->get_const_local_offdiag()),
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_local_matrix()),
+                            gko::as<Csr>(result_mat->get_local_matrix()), 0);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_non_local_matrix()),
+                            gko::as<Csr>(result_mat->get_non_local_matrix()),
                             0);
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(to_mat->get_size(), gko::dim<2>{});
@@ -455,11 +454,10 @@ TYPED_TEST(Repartitioner, GatherMatrix_4_2)
     repartitioner->gather(from_mat.get(), to_mat.get());
 
     if (repartitioner->to_has_data()) {
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_diag()),
-                            gko::as<Csr>(result_mat->get_const_local_diag()),
-                            0);
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_offdiag()),
-                            gko::as<Csr>(result_mat->get_const_local_offdiag()),
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_local_matrix()),
+                            gko::as<Csr>(result_mat->get_local_matrix()), 0);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_non_local_matrix()),
+                            gko::as<Csr>(result_mat->get_non_local_matrix()),
                             0);
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(to_mat->get_size(), gko::dim<2>{});
@@ -488,11 +486,10 @@ TYPED_TEST(Repartitioner, GatherMatrix_4_3)
     repartitioner->gather(from_mat.get(), to_mat.get());
 
     if (repartitioner->to_has_data()) {
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_diag()),
-                            gko::as<Csr>(result_mat->get_const_local_diag()),
-                            0);
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_const_local_offdiag()),
-                            gko::as<Csr>(result_mat->get_const_local_offdiag()),
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_local_matrix()),
+                            gko::as<Csr>(result_mat->get_local_matrix()), 0);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(to_mat->get_non_local_matrix()),
+                            gko::as<Csr>(result_mat->get_non_local_matrix()),
                             0);
     } else {
         GKO_ASSERT_EQUAL_DIMENSIONS(to_mat->get_size(), gko::dim<2>{});
