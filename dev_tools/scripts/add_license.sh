@@ -17,33 +17,27 @@ COMMENTED_LICENSE_FILE="${THIS_DIR}/commented_license.tmp"
 DIFF_FILE="${THIS_DIR}/diff.patch.tmp"
 
 # Test if required commands are present on the system:
-command -v find &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v find &> /dev/null; then
     echo 'The command `find` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-command -v diff &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v diff &> /dev/null; then
     echo 'The command `diff` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-command -v patch &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v patch &> /dev/null; then
     echo 'The command `patch` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-command -v grep &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v grep &> /dev/null; then
     echo 'The command `grep` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-command -v sed &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v sed &> /dev/null; then
     echo 'The command `sed` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
-command -v cut &> /dev/null
-if [ ${?} -ne 0 ]; then
+if ! command -v cut &> /dev/null; then
     echo 'The command `cut` is required for this script to work, but not supported by your system.' 1>&2
     exit 1
 fi
