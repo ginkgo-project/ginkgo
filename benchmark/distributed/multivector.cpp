@@ -420,11 +420,6 @@ int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    gko::mpi::communicator comm(MPI_COMM_WORLD, exec);
-    const auto rank = comm.rank();
-
     std::string header =
         "A benchmark for measuring performance of Ginkgo's BLAS-like "
         "operations.\nParameters for a benchmark case are:\n"
@@ -437,6 +432,11 @@ int main(int argc, char* argv[])
                          "    { \"n\": 200, \"r\": 20, \"stride_x\": 22 }\n" +
                          "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
+
+    gko::mpi::communicator comm(MPI_COMM_WORLD, exec);
+    const auto rank = comm.rank();
     if (rank == 0) {
         std::string extra_information =
             "The operations are " + FLAGS_operations + "\n";
