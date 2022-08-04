@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/log/gpu_tracer_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -804,6 +805,18 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
+
+
+namespace gpu_tracer {
+
+
+GKO_STUB(GKO_DECLARE_GPU_TRACER_PUSH_KERNEL);
+GKO_STUB(GKO_DECLARE_GPU_TRACER_POP_KERNEL);
+
+
+}  // namespace gpu_tracer
+
+
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

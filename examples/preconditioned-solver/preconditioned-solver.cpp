@@ -91,7 +91,8 @@ int main(int argc, char* argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
-
+    A->add_logger(gko::log::GpuTracer::create());
+    exec->add_logger(gko::log::GpuTracer::create());
     const RealValueType reduction_factor{1e-7};
     // Create solver factory
     auto solver_gen =
@@ -107,7 +108,7 @@ int main(int argc, char* argv[])
             .on(exec);
     // Create solver
     auto solver = solver_gen->generate(A);
-
+    solver->add_logger(gko::log::GpuTracer::create());
     // Solve system
     solver->apply(lend(b), lend(x));
 

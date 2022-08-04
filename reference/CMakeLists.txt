@@ -47,7 +47,8 @@ target_sources(ginkgo_reference
     solver/multigrid_kernels.cpp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
-    stop/residual_norm_kernels.cpp)
+    stop/residual_norm_kernels.cpp
+    log/gpu_tracer_kernels.cpp)
 
 target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
 ginkgo_compile_features(ginkgo_reference)

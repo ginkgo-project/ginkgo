@@ -36,6 +36,7 @@ target_sources(ginkgo_omp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
     stop/residual_norm_kernels.cpp
+    log/gpu_tracer_kernels.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
 

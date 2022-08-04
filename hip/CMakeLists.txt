@@ -43,6 +43,7 @@ set(GINKGO_HIP_SOURCES
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
+    log/gpu_tracer_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
 
@@ -101,10 +102,11 @@ target_include_directories(ginkgo_hip
         ${HIPFFT_INCLUDE_DIRS}
         ${hiprand_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
+        ${ROCM_PATH}/include/roctracer
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 target_link_libraries(ginkgo_hip PUBLIC ginkgo_device)
-target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse hip::hiprand roc::rocrand ${ROCM_PATH}/lib/libroctx64.so)
 if (hipfft_FOUND)
     target_link_libraries(ginkgo_hip PRIVATE hip::hipfft)
 endif()
