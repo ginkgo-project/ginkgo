@@ -683,8 +683,11 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 #define GKO_INSTANTIATE_FOR_EACH_INDEX_CONVERSION(_macro) \
     template _macro(int32, int64);                        \
-    template _macro(int64, int32)
-
+    template _macro(int64, int32);                        \
+    template _macro(int64, uint64);                       \
+    template _macro(uint64, int64);                       \
+    template _macro(int64, uint32);                       \
+    template _macro(uint32, int64)
 
 /**
  * Instantiates a template for each value type pair compiled by Ginkgo.

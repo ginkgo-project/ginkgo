@@ -8,8 +8,10 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 
+message("EXAMPLE: ${CMAKE_PREFIX_PATH}")
 pkg_check_modules(Kahypar REQUIRED IMPORTED_TARGET libkahypar)
 
-
 add_executable(distributed-solver distributed-solver.cpp)
-target_link_libraries(distributed-solver Ginkgo::ginkgo PkgConfig::Kahypar parmetis)
+target_link_libraries(distributed-solver Ginkgo::ginkgo PkgConfig::Kahypar)
+
+file(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/km1_kKaHyPar_sea20.ini ${CMAKE_CURRENT_BINARY_DIR}/km1_kKaHyPar_sea20.ini SYMBOLIC)

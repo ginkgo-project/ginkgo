@@ -157,9 +157,6 @@ int main(int argc, char* argv[])
     // specialized constructor. See @ref gko::distributed::Partition for other
     // modes of creating a partition.
     const auto num_rows = grid_dim;
-    auto partition = gko::share(part_type::build_from_global_size_uniform(
-        exec->get_master(), comm.size(),
-        static_cast<GlobalIndexType>(num_rows)));
 
     // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
     // with a sine value. The distributed matrix supports only constructing an
@@ -172,8 +169,6 @@ int main(int argc, char* argv[])
     A_data.size = {num_rows, num_rows};
     b_data.size = {num_rows, 1};
     x_data.size = {num_rows, 1};
-    const auto range_start = partition->get_range_bounds()[rank];
-    const auto range_end = partition->get_range_bounds()[rank + 1];
     for (int i = 0; i < num_rows; i++) {
         if (i > 0) {
             A_data.nonzeros.emplace_back(i, i - 1, -1);
@@ -190,25 +185,50 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_init_end = gko::mpi::get_walltime();
 
-
+    std::vector<kahypar_partition_id_t> new_partition(num_rows);
     if (rank == 0) {
         using sparsity_mat =
-            gko::matrix::SparsityCsr<ValueType, kahypar_hyperedge_weight_t>;
-        auto graph = sparsity_mat::create(exec);
-        // graph->read(A_data);
+            gko::matrix::SparsityCsr<ValueType, GlobalIndexType>;
+        auto graph = sparsity_mat::create(exec->get_master());
+        graph->read(A_data);
 
         kahypar_context_t* context = kahypar_context_new();
-        kahypar_configure_context_from_file(context, "");
+        kahypar_configure_context_from_file(context, "km1_kKaHyPar_sea20.ini");
         // hyperedges are columns, so we would need to transpose the graph
         // won't do that here since it's symmetrical
         kahypar_hyperedge_weight_t objective;
-        std::vector<kahypar_partition_id_t> new_partition(num_rows);
-        kahypar_partition(num_rows, num_rows, 0.03, comm.size(), nullptr,
-                          nullptr, graph->get_const_row_ptrs(),
-                          graph->get_const_col_idxs(), &objective, context,
-                          new_partition.data());
-    }
 
+        gko::array<size_t> net_indices(exec->get_master());
+        net_indices =
+            gko::make_array_view(exec, num_rows + 1, graph->get_row_ptrs());
+
+        gko::array<kahypar_hyperedge_id_t> nets(exec->get_master());
+        nets = gko::make_array_view(exec, graph->get_num_nonzeros(),
+                                    graph->get_col_idxs());
+
+        gko::array<kahypar_hypernode_weight_t> vertex_weights(
+            exec->get_master(), num_rows);
+        std::adjacent_difference(net_indices.get_data() + 1,
+                                 net_indices.get_data() + num_rows + 1,
+                                 vertex_weights.get_data());
+
+        kahypar_partition(num_rows, num_rows, 0.03, comm.size(),
+                          vertex_weights.get_const_data(), nullptr,
+                          net_indices.get_const_data(), nets.get_const_data(),
+                          &objective, context, new_partition.data());
+
+        std::cout << "Partition objective: " << objective << std::endl;
+        for (int i = 0; i < num_rows; ++i) {
+            std::cout << i << "-> " << new_partition[i] << std::endl;
+        }
+    }
+    comm.broadcast(new_partition.data(), num_rows, 0);
+
+    auto partition = gko::share(part_type::build_from_mapping(
+        exec->get_master(),
+        gko::make_array_view(exec->get_master(), num_rows,
+                             new_partition.data()),
+        comm.size()));
 
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
