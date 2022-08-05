@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -62,7 +64,7 @@ protected:
     using Solver = gko::solver::AsyncRichardson<>;
     using Csr = gko::matrix::Csr<>;
 
-    AsyncRichardson() : rand_engine(30) {}
+    AsyncRichardson() : rand_engine(77) {}
 
     void SetUp()
     {
@@ -82,15 +84,60 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-0.5, 0.5), rand_engine, ref);
+            std::uniform_real_distribution<>(-0.125, 0.125), rand_engine, ref);
     }
 
+
+    void form_csr(int m, int n, int* ia, int* ja, double* a)
+    {
+        double val = -0.25;  // off-diagonal value
+        int k = 0;
+
+        for (int i = 0; i < n; i++) {
+            ia[i] = k;
+
+            // index in grid
+            int gridx = i % m;
+            int gridy = i / m;
+
+            if (gridy != 0) {
+                ja[k] = i - m;
+                a[k] = val;
+                k++;
+            }
+
+            if (gridx != 0) {
+                ja[k] = i - 1;
+                a[k] = val;
+                k++;
+            }
+
+            // diagonal entry
+            ja[k] = i;
+            a[k] = 1.;
+            k++;
+
+            if (gridx != m - 1) {
+                ja[k] = i + 1;
+                a[k] = val;
+                k++;
+            }
+
+            if (gridy != m - 1) {
+                ja[k] = i + m;
+                a[k] = val;
+                k++;
+            }
+        }
+        ia[n] = k;
+        std::cout << "k " << k << std::endl;
+    }
     std::unique_ptr<Csr> gen_laplacian(int grid)
     {
         int size = grid * grid;
         int y[] = {0, -1, 0, 1, 0};
         int x[] = {-1, 0, 0, 0, 1};
-        double coef[] = {-1, -1, 4, -1, -1};
+        double coef[] = {-0.25, -0.25, 1, -0.25, -0.25};
         gko::matrix_data<> mtx_data{gko::dim<2>(size, size)};
         for (int i = 0; i < grid; i++) {
             for (int j = 0; j < grid; j++) {
@@ -105,10 +152,15 @@ protected:
                 }
             }
         }
-        std::cout << "size " << mtx_data.nonzeros.size();
         mtx_data.ensure_row_major_order();
+        std::cout << "size " << mtx_data.nonzeros.size() << std::endl;
         auto mtx = Csr::create(ref);
         mtx->read(mtx_data);
+
+        // auto mtx = Csr::create(ref, gko::dim<2>(size, size),
+        //                        grid * grid * 5 - 4 * grid);
+        // this->form_csr(grid, size, mtx->get_row_ptrs(), mtx->get_col_idxs(),
+        //                mtx->get_values());
         return std::move(mtx);
     }
 
@@ -156,36 +208,69 @@ protected:
 
 TEST_F(AsyncRichardson, AsyncRichardsonApplySolve)
 {
-    initialize_data(20, 1);
+    initialize_data(50, 1);
+    auto neg_one = gko::initialize<Mtx>({-1.0}, cuda);
+    auto one = gko::initialize<Mtx>({1.0}, cuda);
+
+    {
+        auto neg_one = gko::initialize<Mtx>({-1.0}, ref);
+        auto one = gko::initialize<Mtx>({1.0}, ref);
+        auto ref_solver =
+            gko::solver::Ir<>::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(500u).on(ref))
+                // .with_solver(gko::preconditioner::Jacobi<>::build()
+                //                  .with_max_block_size(1)
+                //                  .on(ref))
+                .on(ref)
+                ->generate(csr);
+        // gko::write(std::cout, csr.get());
+        auto x = d_x->clone(ref);
+        auto b = d_b->clone(ref);
+        auto residual_norm = Mtx::create(ref, gko::dim<2>{1, b->get_size()[1]});
+
+        ref_solver->apply(b.get(), x.get());
+        x->compute_norm2(residual_norm.get());
+        std::cout << " original b " << residual_norm->at(0, 0) << std::endl;
+
+        auto b_clone = b->clone();
+        b_clone->compute_norm2(residual_norm.get());
+        auto initial_norm = residual_norm->at(0, 0);
+
+        // b = b-Ax;
+        csr->apply(neg_one.get(), x.get(), one.get(), b_clone.get());
+        x->compute_norm2(residual_norm.get());
+        std::cout << " original b " << residual_norm->at(0, 0) << std::endl;
+        // gko::write(std::cout, x.get());
+
+        b_clone->compute_norm2(residual_norm.get());
+        auto norm = residual_norm->at(0, 0);
+        std::cout << "Ref " << initial_norm << " -> " << norm
+                  << " rel: " << norm / initial_norm << std::endl;
+    }
+
     cuda_async_richardson_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
-            .with_relaxation_factor(0.25)
+            .with_relaxation_factor(1)
             .on(cuda);
     auto cuda_solver = cuda_async_richardson_factory->generate(d_csr);
 
-    // gko::write(std::cout, d_x.get());
     cuda_solver->apply(d_b.get(), d_x.get());
-    auto neg_one = gko::initialize<Mtx>({-1.0}, cuda);
-    auto one = gko::initialize<Mtx>({1.0}, cuda);
-    std::cout << "Solved" << std::endl;
-    // gko::write(std::cout, d_x.get());
     auto d_clone = gko::clone(cuda, d_b);
     // clone = b-Ax
     d_csr->apply(neg_one.get(), d_x.get(), one.get(), d_clone.get());
     auto residual_norm =
         Mtx::create(cuda, gko::dim<2>{1, d_clone->get_size()[1]});
     d_clone->compute_norm2(lend(residual_norm));
-    // initial_norm = b_norm due to x is zero
-    auto initial_norm = Mtx::create(cuda, gko::dim<2>{1, d_b->get_size()[1]});
-    d_b->compute_norm2(lend(initial_norm));
-    std::cout << "initial "
-              << cuda->copy_val_to_host(initial_norm->get_const_values())
-              << " residual "
-              << cuda->copy_val_to_host(residual_norm->get_const_values())
-              << std::endl;
-    GKO_ASSERT_MTX_NEAR(d_b, d_clone, 1e-13);
+    auto norm = cuda->copy_val_to_host(residual_norm->get_const_values());
+    d_b->compute_norm2(lend(residual_norm));
+    auto initial_norm =
+        cuda->copy_val_to_host(residual_norm->get_const_values());
+    std::cout << "async " << initial_norm << " -> " << norm
+              << " rel: " << norm / initial_norm << std::endl;
+    // GKO_ASSERT_MTX_NEAR(d_b, d_clone, 1e-13);
 }
 
 
