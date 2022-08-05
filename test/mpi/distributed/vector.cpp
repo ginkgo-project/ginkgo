@@ -679,8 +679,7 @@ public:
                                                           local_size[1]),
             std::normal_distribution<gko::remove_complex<vtype>>(), engine,
             exec);
-        dist =
-            DistVectorType::create(exec_comm, size, gko::clone(local).get());
+        dist = DistVectorType::create(exec_comm, size, gko::clone(local).get());
     }
 
     void init_vectors()

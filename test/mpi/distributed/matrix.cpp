@@ -648,8 +648,8 @@ public:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::EXEC_TYPE> exec;
 
-        gko::mpi::communicator ref_comm;
-        gko::mpi::communicator exec_comm;
+    gko::mpi::communicator ref_comm;
+    gko::mpi::communicator exec_comm;
 
     gko::dim<2> size;
     gko::size_type num_rhs;

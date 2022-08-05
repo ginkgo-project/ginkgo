@@ -30,17 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <ginkgo/core/base/mpi.hpp>
 
 
 #if GINKGO_BUILD_MPI
 
 
-#include <string>
-
-
 #include <mpi.h>
+#include <string>
 
 
 namespace gko {
