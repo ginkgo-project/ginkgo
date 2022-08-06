@@ -69,7 +69,7 @@ public:
          * system matrix if its symbolic factorization is already known.
          * If it is set to nullptr, the symbolic factorization will be computed.
          * @note Currently, the symbolic factorization needs to be provided if
-         *       the system matrix is not symmetric.
+         *       the system matrix does not have a symmetric sparsity pattern.
          */
         std::shared_ptr<const sparsity_pattern_type> symbolic_factorization{
             nullptr};
@@ -131,8 +131,8 @@ public:
     static parameters_type build() { return {}; }
 
 protected:
-    Lu(std::shared_ptr<const Executor> exec,
-       const parameters_type& params = {});
+    explicit Lu(std::shared_ptr<const Executor> exec,
+                const parameters_type& params = {});
 
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;

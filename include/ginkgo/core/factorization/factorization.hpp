@@ -47,35 +47,35 @@ namespace factorization {
 
 
 enum class storage_type {
-    /** the factorization is empty (moved-from or default-constructed) */
+    /** The factorization is empty (moved-from or default-constructed) */
     empty,
     /**
-     * the two factors are stored as a composition L * U or L * D * U
+     * The two factors are stored as a composition L * U or L * D * U
      * where L and U are Csr matrices and D is a Diagonal matrix
      */
     composition,
     /*
-     * the two factors are stored as a single matrix containing L + U - I, where
+     * The two factors are stored as a single matrix containing L + U - I, where
      * L has an implicit unit diagonal
      */
     combined_lu,
     /*
-     * the factorization L * D * U is stored as L + D + U - 2I, where
+     * The factorization L * D * U is stored as L + D + U - 2I, where
      * L and U have implicit unit diagonals
      */
     combined_ldu,
     /**
-     * the two factors are stored as a composition L * L^H or L * D * L^H
+     * The two factors are stored as a composition L * L^H or L * D * L^H
      * where L and L^T are Csr matrices and D is a Diagonal matrix
      */
     symm_composition,
     /*
-     * the factorization L * L^H is symmetric and stored as a single matrix
+     * The factorization L * L^H is symmetric and stored as a single matrix
      * containing L + L^H - diag(L)
      */
     symm_combined_cholesky,
     /*
-     * the factorization is symmetric and stored as a single matrix containing
+     * The factorization is symmetric and stored as a single matrix containing
      * L + D + L^H - 2 * diag(L), where L and L^H have an implicit unit diagonal
      */
     symm_combined_ldl,
@@ -105,12 +105,28 @@ public:
 
     storage_type get_storage_type() const;
 
+    /**
+     * Returns the lower triangular factor of the factorization, if available,
+     * nullptr otherwise.
+     */
     std::shared_ptr<const matrix_type> get_lower_factor() const;
 
+    /**
+     * Returns the diagonal scaling matrix of the factorization, if available,
+     * nullptr otherwise.
+     */
     std::shared_ptr<const diag_type> get_diagonal() const;
 
+    /**
+     * Returns the upper triangular factor of the factorization, if available,
+     * nullptr otherwise.
+     */
     std::shared_ptr<const matrix_type> get_upper_factor() const;
 
+    /**
+     * Returns the matrix storing a compact representation of the factorization,
+     * if available, nullptr otherwise.
+     */
     std::shared_ptr<const matrix_type> get_combined() const;
 
     /** Creates a deep copy of the factorization. */
@@ -142,7 +158,7 @@ public:
         std::unique_ptr<matrix_type>);
 
 protected:
-    Factorization(std::shared_ptr<const Executor> exec);
+    explicit Factorization(std::shared_ptr<const Executor> exec);
 
     Factorization(std::unique_ptr<Composition<ValueType>> factors,
                   storage_type type);
