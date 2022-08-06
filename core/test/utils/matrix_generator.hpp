@@ -190,6 +190,39 @@ std::unique_ptr<MatrixType> generate_random_matrix(
 
 
 /**
+ * Generates a random dense matrix.
+ *
+ * @tparam ValueType  value type of the generated matrix
+ * @tparam ValueDistribution  type of value distribution
+ * @tparam Engine  type of random engine
+ *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param value_dist  distribution of matrix values
+ * @param engine  a random engine
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ *
+ * @return the unique pointer of gko::matrix::Dense<ValueType>
+ */
+template <typename ValueType, typename ValueDistribution, typename Engine,
+          typename... MatrixArgs>
+std::unique_ptr<gko::matrix::Dense<ValueType>> generate_random_dense_matrix(
+    size_type num_rows, size_type num_cols, ValueDistribution&& value_dist,
+    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+{
+    auto result = gko::matrix::Dense<ValueType>::create(
+        exec, gko::dim<2>{num_rows, num_cols},
+        std::forward<MatrixArgs>(args)...);
+    result->read(
+        matrix_data<ValueType, int>{gko::dim<2>{num_rows, num_cols},
+                                    std::forward<ValueDistribution>(value_dist),
+                                    std::forward<Engine>(engine)});
+    return result;
+}
+
+
+/**
  * Generates a random triangular matrix.
  *
  * @tparam ValueType  the type for matrix values
