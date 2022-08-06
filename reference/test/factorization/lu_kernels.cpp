@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/factorization/lu.hpp>
+
+
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -51,6 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
+#include "ginkgo/core/factorization/factorization.hpp"
+#include "ginkgo/core/matrix/sparsity_csr.hpp"
 #include "matrices/config.hpp"
 
 
@@ -98,7 +103,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::size_type num_rows;
-    std::unique_ptr<matrix_type> mtx;
+    std::shared_ptr<matrix_type> mtx;
     std::unique_ptr<matrix_type> mtx_lu;
     gko::array<index_type> storage_offsets;
     gko::array<gko::int32> storage;
@@ -186,6 +191,28 @@ TYPED_TEST(Lu, KernelFactorizeWorks)
 }
 
 
+TYPED_TEST(Lu, FactorizeWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx,
+                gko::matrices::location_ani1_lu_mtx);
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symmetric_sparsity(true)
+            .on(this->ref);
+
+    auto lu = factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu, r<value_type>::value);
+    ASSERT_EQ(lu->get_storage_type(),
+              gko::experimental::factorization::storage_type::combined_lu);
+    ASSERT_EQ(lu->get_lower_factor(), nullptr);
+    ASSERT_EQ(lu->get_upper_factor(), nullptr);
+    ASSERT_EQ(lu->get_diagonal(), nullptr);
+}
+
+
 TYPED_TEST(Lu, KernelFactorizeAmdWorks)
 {
     using value_type = typename TestFixture::value_type;
@@ -209,6 +236,31 @@ TYPED_TEST(Lu, KernelFactorizeAmdWorks)
         diag_idxs.get_const_data(), this->mtx_lu.get(), tmp);
 
     GKO_ASSERT_MTX_NEAR(this->mtx_lu, mtx_lu_ref, r<value_type>::value);
+}
+
+
+TYPED_TEST(Lu, FactorizeAmdWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_amd_mtx,
+                gko::matrices::location_ani1_amd_lu_mtx);
+    auto pattern = gko::share(
+        gko::matrix::SparsityCsr<value_type, index_type>::create(this->ref));
+    pattern->copy_from(this->mtx_lu.get());
+    auto factory =
+        gko::experimental::factorization::Lu<value_type, index_type>::build()
+            .with_symbolic_factorization(pattern)
+            .on(this->ref);
+
+    auto lu = factory->generate(this->mtx);
+
+    GKO_ASSERT_MTX_NEAR(lu->get_combined(), this->mtx_lu, r<value_type>::value);
+    ASSERT_EQ(lu->get_storage_type(),
+              gko::experimental::factorization::storage_type::combined_lu);
+    ASSERT_EQ(lu->get_lower_factor(), nullptr);
+    ASSERT_EQ(lu->get_upper_factor(), nullptr);
+    ASSERT_EQ(lu->get_diagonal(), nullptr);
 }
 
 
