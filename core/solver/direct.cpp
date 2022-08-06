@@ -140,12 +140,25 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
               factory->get_parameters().factorization, system_matrix)}
 {
     using factorization::storage_type;
-    const auto lower_factory = lower_type::build().on(factory->get_executor());
-    const auto upper_factory = upper_type::build().on(factory->get_executor());
     const auto factors = this->get_system_matrix();
-    switch (factors->get_storage_type()) {
+    const auto exec = this->get_executor();
+    const auto type = factors->get_storage_type();
+    const bool lower_unit_diag = type == storage_type::combined_lu ||
+                                 type == storage_type::combined_ldu ||
+                                 type == storage_type::symm_combined_ldl;
+    const bool upper_unit_diag = type == storage_type::combined_ldu ||
+                                 type == storage_type::symm_combined_ldl;
+    const bool separate_diag = factors->get_diagonal() ||
+                               type == storage_type::combined_ldu ||
+                               type == storage_type::symm_combined_ldl;
+    const auto lower_factory =
+        lower_type::build().with_unit_diagonal(lower_unit_diag).on(exec);
+    const auto upper_factory =
+        upper_type::build().with_unit_diagonal(upper_unit_diag).on(exec);
+    switch (type) {
     case storage_type::empty:
-        // leave both solvers as nullptr
+        // remove the factor storage entirely
+        this->clear();
         break;
     case storage_type::composition:
     case storage_type::symm_composition:
@@ -157,7 +170,6 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     case storage_type::combined_ldu:
     case storage_type::symm_combined_cholesky:
     case storage_type::symm_combined_ldl:
-        // TODO handle diagonal
         lower_solver_ = lower_factory->generate(factors->get_combined());
         upper_solver_ = upper_factory->generate(factors->get_combined());
         break;
@@ -168,14 +180,14 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
 template <typename ValueType, typename IndexType>
 void Direct<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->lower_solver_ ||
+        !this->upper_solver_) {
         return;
     }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
             using ws = gko::solver::workspace_traits<Direct>;
-            const auto exec = this->get_executor();
             this->setup_workspace();
             auto intermediate = this->create_workspace_op_with_config_of(
                 ws::intermediate, dense_b);
@@ -191,14 +203,14 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                               const LinOp* b, const LinOp* beta,
                                               LinOp* x) const
 {
-    if (!this->get_system_matrix()) {
+    if (!this->get_system_matrix() || !this->lower_solver_ ||
+        !this->upper_solver_) {
         return;
     }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             using Vector = matrix::Dense<ValueType>;
             using ws = gko::solver::workspace_traits<Direct>;
-            const auto exec = this->get_executor();
             this->setup_workspace();
             auto intermediate = this->create_workspace_op_with_config_of(
                 ws::intermediate, dense_b);
