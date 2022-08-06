@@ -133,7 +133,7 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(LowerTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
+TEST_F(LowerTrs, CudaSingleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
