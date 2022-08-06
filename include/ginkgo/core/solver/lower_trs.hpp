@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_PUBLIC_CORE_SOLVER_LOWER_TRS_HPP_
 #define GKO_PUBLIC_CORE_SOLVER_LOWER_TRS_HPP_
 
+
 #ifdef __GNUC__
 #pragma message \
     "This file is deprecated and will be removed in a later major release."
