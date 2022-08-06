@@ -90,7 +90,7 @@ public:
     Direct& operator=(Direct&&);
 
 protected:
-    Direct(std::shared_ptr<const Executor> exec);
+    explicit Direct(std::shared_ptr<const Executor> exec);
 
     Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
 

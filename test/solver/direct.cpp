@@ -37,8 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 
 
 #include "core/components/fill_array_kernels.hpp"
@@ -50,9 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_lookup.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
-#include "ginkgo/core/base/exception.hpp"
-#include "ginkgo/core/matrix/sparsity_csr.hpp"
-#include "ginkgo/core/solver/direct.hpp"
 #include "matrices/config.hpp"
 #include "test/utils/executor.hpp"
 
