@@ -61,7 +61,7 @@ namespace upper_trs {
 #define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)                 \
     void generate(std::shared_ptr<const DefaultExecutor> exec,                \
                   const matrix::Csr<_vtype, _itype>* matrix,                  \
-                  std::shared_ptr<gko::solver::SolveStruct>& solve_struct,    \
+                  std::shared_ptr<solver::SolveStruct>& solve_struct,         \
                   bool unit_diag, const solver::trisolve_algorithm algorithm, \
                   const size_type num_rhs)
 

@@ -166,7 +166,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreelibIsEquivalentToRef)
+TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 3);
     auto upper_trs_factory =
