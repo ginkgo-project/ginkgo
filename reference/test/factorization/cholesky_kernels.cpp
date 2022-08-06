@@ -38,11 +38,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/cholesky_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
+#include "core/factorization/symbolic.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "matrices/config.hpp"
@@ -61,6 +63,17 @@ protected:
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
 
     Cholesky() : ref(gko::ReferenceExecutor::create()), tmp{ref} {}
+
+    std::unique_ptr<matrix_type> combined_factor(const matrix_type* l_factor)
+    {
+        auto one = gko::initialize<gko::matrix::Dense<value_type>>(
+            {gko::one<value_type>()}, ref);
+        auto id = gko::matrix::Identity<value_type>::create(
+            ref, l_factor->get_size()[0]);
+        auto result = gko::as<matrix_type>(l_factor->transpose());
+        l_factor->apply(one.get(), id.get(), one.get(), result.get());
+        return result;
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<index_type> tmp;
@@ -245,6 +258,22 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1)
 }
 
 
+TYPED_TEST(Cholesky, SymbolicFactorizeAni1)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using index_type = typename TestFixture::index_type;
+    std::ifstream stream{gko::matrices::location_ani1_mtx};
+    std::ifstream ref_stream{gko::matrices::location_ani1_chol_mtx};
+    auto mtx = gko::read<matrix_type>(stream, this->ref);
+    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
+    auto combined_factor_ref = this->combined_factor(l_factor_ref.get());
+
+    auto combined_factor = gko::factorization::symbolic_cholesky(mtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
+}
+
+
 TYPED_TEST(Cholesky, KernelSymbolicCountAni1Amd)
 {
     using matrix_type = typename TestFixture::matrix_type;
@@ -285,6 +314,22 @@ TYPED_TEST(Cholesky, KernelSymbolicFactorizeAni1Amd)
         this->ref, mtx.get(), forest, l_factor.get(), this->tmp);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(l_factor, l_factor_ref);
+}
+
+
+TYPED_TEST(Cholesky, SymbolicFactorizeAni1Amd)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using value_type = typename TestFixture::value_type;
+    std::ifstream stream{gko::matrices::location_ani1_amd_mtx};
+    std::ifstream ref_stream{gko::matrices::location_ani1_amd_chol_mtx};
+    auto mtx = gko::read<matrix_type>(stream, this->ref);
+    auto l_factor_ref = gko::read<matrix_type>(ref_stream, this->ref);
+    auto combined_factor_ref = this->combined_factor(l_factor_ref.get());
+
+    auto combined_factor = gko::factorization::symbolic_cholesky(mtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(combined_factor, combined_factor_ref);
 }
 
 
