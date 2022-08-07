@@ -51,6 +51,7 @@ namespace async_richardson {
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Dense<ValueType>* relaxation_factor,
+           const matrix::Dense<ValueType>* second_factor,
            const matrix::Csr<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {

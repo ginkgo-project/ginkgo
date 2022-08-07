@@ -64,3 +64,62 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply(
         }
     }
 }
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void second_subwarp_apply(
+    const int iteration, const size_type num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ beta, const ValueType* __restrict__ b,
+    const size_type b_stride, ValueType* __restrict__ c,
+    const size_type c_stride)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subid = subwarp_tile.thread_rank();
+    const auto column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const auto alpha_val = alpha[0];
+    const auto beta_val = beta[0];
+    if (row < num_rows) {
+        const auto rhs = b[row * b_stride + column_id];
+        ValueType old_x = c[row * c_stride + column_id];  // x_0
+        {
+            // first iteration: 1st order
+            const auto ind_end = row_ptrs[row + 1];
+            ValueType temp_val = zero<ValueType>();
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val += val[ind] * c[col_idxs[ind] * c_stride + column_id];
+            }
+            auto subwarp_result = reduce(
+                subwarp_tile, temp_val,
+                [](const ValueType& a, const ValueType& b) { return a + b; });
+            if (subid == 0) {
+                c[row * c_stride + column_id] =
+                    old_x + alpha_val * (rhs - subwarp_result);
+            }
+        }
+        for (int i = 1; i < iteration; i++) {
+            const auto curr_x = c[row * c_stride + column_id];  // curr_x
+            const auto ind_end = row_ptrs[row + 1];
+            ValueType temp_val = zero<ValueType>();
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val += val[ind] * c[col_idxs[ind] * c_stride + column_id];
+            }
+            auto subwarp_result = reduce(
+                subwarp_tile, temp_val,
+                [](const ValueType& a, const ValueType& b) { return a + b; });
+            if (subid == 0) {
+                // new_x
+                c[row * c_stride + column_id] =
+                    (1 + beta_val) *
+                        (curr_x + alpha_val * (rhs - subwarp_result)) -
+                    beta_val * old_x;
+            }
+            old_x = curr_x;
+        }
+    }
+}
