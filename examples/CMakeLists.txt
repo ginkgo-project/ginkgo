@@ -4,6 +4,7 @@ set(EXAMPLES_EXEC_LIST
     adaptiveprecision-blockjacobi
     batched-solver
     cb-gmres
+    cb-gmres-benchmark
     custom-logger
     ginkgo-ranges
     ilu-preconditioned-solver

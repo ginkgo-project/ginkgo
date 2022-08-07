@@ -409,7 +409,7 @@ endif()
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
-ginkgo_install()
+#ginkgo_install()
 ginkgo_export_binary_dir()
 
 set(GINKGO_TEST_INSTALL_SRC_DIR "${Ginkgo_SOURCE_DIR}/test/test_install/")

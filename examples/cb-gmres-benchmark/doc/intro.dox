@@ -1,0 +1,9 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example showcases the usage of the Ginkgo solver CB-GMRES (Compressed
+Basis GMRES) in a benchmark that compares different compression techniques.
+
+Both solves are timed and the residual norm of each solution is computed to
+show the correctness of thesolutions.

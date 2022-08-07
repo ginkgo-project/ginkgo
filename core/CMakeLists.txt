@@ -121,6 +121,14 @@ ginkgo_compile_features(ginkgo)
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
+
+# Added through SZ
+#find_package(frsz REQUIRED PATHS "/projects/local_install")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/frsz")
+find_package(LibPressio REQUIRED)
+find_package(std_compat REQUIRED)
+target_link_libraries(ginkgo   PRIVATE frsz  LibPressio::libpressio OpenMP::OpenMP_CXX)
+
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
 endif()

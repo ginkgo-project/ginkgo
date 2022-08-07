@@ -6,6 +6,11 @@
 
 
 #include <type_traits>
+#include <vector>
+
+
+#include <frsz.h>
+#include <libpressio_ext/cpp/libpressio.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -122,6 +127,9 @@ struct helper {
         case cb_gmres::storage_precision::ireduce2:
             callable(to_integer<reduce_precision_count<ValueType, 2>>{});
             break;
+        case cb_gmres::storage_precision::use_sz:
+            callable(ValueType{1});
+            break;
         default:
             callable(ValueType{});
         }
@@ -149,6 +157,7 @@ struct helper<std::complex<T>> {
         case cb_gmres::storage_precision::integer:
         case cb_gmres::storage_precision::ireduce1:
         case cb_gmres::storage_precision::ireduce2:
+        case cb_gmres::storage_precision::use_sz:
             GKO_NOT_SUPPORTED(st);
             break;
         default:
@@ -172,6 +181,77 @@ void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
+bool check_for_sz(double value) { return value == 1.0; }
+
+template <typename T>
+bool check_for_sz(T value)
+{
+    return false;
+}
+
+
+template <typename RangeHelper>
+void compress_data(RangeHelper&& helper, std::vector<pressio_data>& p_data_vec,
+                   pressio_data& temp)
+{}
+
+template <typename ValueType, typename StorageType,
+          bool all_double = std::is_same<ValueType, double>::value&&
+              std::is_same<StorageType, double>::value>
+struct compression_helper {
+    compression_helper(bool use_sz, size_type num_rows, size_type num_vecs)
+        : use_sz_{use_sz && all_double},
+          num_rows_{num_rows},
+          plibrary_{},
+          pc_{},
+          in_temp_{},
+          out_temp_{},
+          p_data_vec_(use_sz_ ? num_vecs : 0)
+    {
+        if (use_sz_) {
+            register_frsz();
+            pc_ = plibrary_.get_compressor("frsz");
+            pc_->set_options({{"frsz:epsilon", 5.0}});
+            for (size_type i = 0; i < p_data_vec_.size(); ++i) {
+                p_data_vec_[i] =
+                    pressio_data::owning(pressio_double_dtype, {num_rows_});
+            }
+            in_temp_ = pressio_data::owning(pressio_double_dtype, {num_rows_});
+            out_temp_ = pressio_data::owning(pressio_double_dtype, {num_rows_});
+        }
+    }
+
+    void compress(size_type krylov_idx,
+                  gko::cb_gmres::Range3dHelper<ValueType, StorageType>& rhelper)
+    {
+        if (!use_sz_) {
+            return;
+        }
+        GKO_ASSERT(rhelper.get_range().length(2) == 1);
+        GKO_ASSERT(krylov_idx < p_data_vec_.size());
+
+        auto raw_krylov_base =
+            rhelper.get_bases().get_data() + krylov_idx * num_rows_;
+        std::memcpy(in_temp_.data(), raw_krylov_base,
+                    num_rows_ * sizeof(ValueType));
+        pc_->compress(&in_temp_, &p_data_vec_[krylov_idx]);
+        pc_->decompress(&p_data_vec_[krylov_idx], &out_temp_);
+        std::memcpy(raw_krylov_base, out_temp_.data(),
+                    num_rows_ * sizeof(ValueType));
+    }
+
+
+private:
+    bool use_sz_;
+    size_type num_rows_;
+    pressio plibrary_;
+    pressio_compressor pc_;
+    pressio_data in_temp_;
+    pressio_data out_temp_;
+    std::vector<pressio_data> p_data_vec_;
+};
+
+
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
     const matrix::Dense<ValueType>* dense_b,
@@ -181,12 +261,12 @@ void CbGmres<ValueType>::apply_dense_impl(
     // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
+        const bool use_sz = check_for_sz(value);
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
         using Range3dHelper =
             gko::cb_gmres::Range3dHelper<ValueType, storage_type>;
-
 
         constexpr uint8 RelativeStoppingId{1};
 
@@ -208,6 +288,9 @@ void CbGmres<ValueType>::apply_dense_impl(
         const dim<3> krylov_bases_dim{krylov_dim + 1, num_rows, num_rhs};
         Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
+
+        compression_helper<ValueType, storage_type> comp_helper(
+            use_sz, num_rows, krylov_dim + 1);
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
@@ -261,6 +344,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         // krylov_bases(:, 1) = residual / residual_norm
         // next_krylov_basis = residual / residual_norm
         // final_iter_nums = {0, ..., 0}
+        comp_helper.compress(0, helper);  // ADDED
 
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
             this->get_system_matrix(),
@@ -392,6 +476,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                 // krylov_bases(:, 1) = residual / residual_norm
                 // next_krylov_basis = residual / residual_norm
                 // final_iter_nums = {0, ..., 0}
+                comp_helper.compress(0, helper);  // ADDED
                 restart_iter = 0;
             }
 
@@ -440,6 +525,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             // End apply givens rotation
             // Calculate residual norm
 
+            comp_helper.compress(restart_iter + 1, helper);  // ADDED
             restart_iter++;
         }  // closes while(true)
         // Solve x
