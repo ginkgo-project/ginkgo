@@ -252,13 +252,15 @@ build/cuda101/nompi/clang/all/release/static:
     CUDA_ARCH: 35
 
 # clang-cuda with cuda 10.1 and friends
-build/clang-cuda101/openmpi/gcc/cuda/release/shared:
+build/clang-cuda101/openmpi/clang/cuda/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
     - .use_gko-cuda101-openmpi-gnu8-llvm13-intel2019
   variables:
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
     CUDA_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
