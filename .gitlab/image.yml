@@ -38,8 +38,8 @@
     - controller
     - cpu
 
-.use_gko-cuda101-openmpi-gnu8-llvm11-intel2019:
-  image: ginkgohub/cuda:101-openmpi-gnu8-llvm11-intel2019
+.use_gko-cuda101-openmpi-gnu8-llvm13-intel2019:
+  image: ginkgohub/cuda:101-openmpi-gnu8-llvm13-intel2019
   tags:
     - private_ci
     - nvidia-gpu
