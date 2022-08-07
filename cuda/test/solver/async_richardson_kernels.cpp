@@ -208,7 +208,7 @@ protected:
 
 TEST_F(AsyncRichardson, AsyncRichardsonApplySolve)
 {
-    initialize_data(50, 1);
+    initialize_data(100, 1);
     auto neg_one = gko::initialize<Mtx>({-1.0}, cuda);
     auto one = gko::initialize<Mtx>({1.0}, cuda);
 
@@ -254,6 +254,7 @@ TEST_F(AsyncRichardson, AsyncRichardsonApplySolve)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .with_relaxation_factor(1)
+            .with_second_factor(0.9)
             .on(cuda);
     auto cuda_solver = cuda_async_richardson_factory->generate(d_csr);
 

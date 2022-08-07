@@ -174,6 +174,11 @@ public:
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor,
                                                value_type{1});
+
+        /**
+         * Second factor for Richardson iteration
+         */
+        ValueType GKO_FACTORY_PARAMETER_SCALAR(second_factor, value_type{0});
     };
     GKO_ENABLE_LIN_OP_FACTORY(AsyncRichardson, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -206,11 +211,14 @@ protected:
     {
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
+        second_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+            {parameters_.second_factor}, this->get_executor());
     }
 
 private:
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
+    std::shared_ptr<const matrix::Dense<ValueType>> second_factor_{};
 };
 
 
