@@ -285,14 +285,14 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
     {
         // make sure the diagonal is nonzero
         gko::utils::make_hpd(data, 1.2);
-        gko::utils::make_lower_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build();
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::sparselib);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -330,14 +330,14 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     {
         // make sure the diagonal is nonzero
         gko::utils::make_hpd(data, 1.2);
-        gko::utils::make_upper_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build();
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::sparselib);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -359,6 +359,76 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static constexpr bool logs_iteration_complete() { return false; }
+};
+
+
+struct LowerTrsUnitdiag : LowerTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct UpperTrsUnitdiag : UpperTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct LowerTrsSyncfree : LowerTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::syncfree);
+    }
+};
+
+
+struct UpperTrsSyncfree : UpperTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::syncfree);
+    }
+};
+
+
+struct LowerTrsSyncfreeUnitdiag : LowerTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct UpperTrsSyncfreeUnitdiag : UpperTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_unit_diagonal(true);
+    }
 };
 
 
@@ -717,7 +787,13 @@ using SolverTypes =
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>, LowerTrs,
-                     UpperTrs>;
+                     UpperTrs, LowerTrsUnitdiag, UpperTrsUnitdiag
+#ifdef GKO_COMPILING_CUDA
+                     ,
+                     LowerTrsSyncfree, UpperTrsSyncfree,
+                     LowerTrsSyncfreeUnitdiag, UpperTrsSyncfreeUnitdiag
+#endif  // GKO_COMPILING_CUDA
+                     >;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
