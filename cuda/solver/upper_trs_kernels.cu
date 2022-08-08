@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "cuda/base/cusparse_bindings.hpp"

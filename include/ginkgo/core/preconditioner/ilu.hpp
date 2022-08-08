@@ -47,9 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/solver_traits.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
