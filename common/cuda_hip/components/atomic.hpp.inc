@@ -147,6 +147,17 @@ GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
+#if defined(__HIPCC__) && defined(__HIP_DEVICE_COMPILE__) && \
+    GINKGO_HIP_PLATFORM_HCC
+
+
+// the double atomicAdd is added after 4.3
+GKO_BIND_ATOMIC_ADD(double);
+
+
+#endif  // defined(__HIPCC__) && defined(__HIP_DEVICE_COMPILE__) &&
+        // GINKGO_HIP_PLATFORM_HCC
+
 #if !defined(__HIPCC__) || \
     (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
 
