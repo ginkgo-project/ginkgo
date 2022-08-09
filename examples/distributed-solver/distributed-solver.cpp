@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
+    const gko::mpi::environment env(argc, argv);
     // @sect3{Type Definitiions}
     // Define the needed types. In a parallel program we need to differentiate
     // beweeen global and local indices, thus we have two index types.
@@ -66,28 +67,20 @@ int main(int argc, char* argv[])
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =
-        gko::experimental::distributed::Partition<LocalIndexType,
-                                                  GlobalIndexType>;
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>;
     // We can use here the same solver type as you would use in a
     // non-distributed program. Please note that not all solvers support
     // distributed systems at the moment.
     using solver = gko::solver::Cg<ValueType>;
+    using schwarz =
+        gko::distributed::preconditioner::Schwarz<ValueType, LocalIndexType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
 
     // @sect3{Initialization and User Input Handling}
     // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
     // done with the following helper construct that uses RAII to automize the
     // initialization and finalization.
-    const gko::experimental::mpi::environment env(argc, argv);
-
-    // Create an MPI communicator wrapper and get the rank.
-    const gko::experimental::mpi::communicator comm{MPI_COMM_WORLD};
-    const auto rank = comm.rank();
-
-    // Print the ginkgo version information and help message.
-    if (rank == 0) {
-        std::cout << gko::version_info::get() << std::endl;
-    }
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
@@ -97,7 +90,7 @@ int main(int argc, char* argv[])
         std::exit(-1);
     }
 
-    ValueType t_init = gko::experimental::mpi::get_walltime();
+    ValueType t_init = gko::mpi::get_walltime();
 
     // User input settings:
     // - The executor, defaults to reference.
@@ -108,46 +101,46 @@ int main(int argc, char* argv[])
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
 
-    // Pick the requested executor.
-    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-        exec_map{
-            {"omp", [] { return gko::OmpExecutor::create(); }},
+    const std::map<std::string,
+                   std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
+        executor_factory_mpi{
+            {"reference",
+             [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
+            {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
             {"cuda",
-             [&] {
+             [](MPI_Comm comm) {
+                 int device_id = gko::mpi::map_rank_to_device_id(
+                     comm, gko::CudaExecutor::get_num_devices());
                  return gko::CudaExecutor::create(
-                     gko::experimental::mpi::map_rank_to_device_id(
-                         MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
-                     gko::ReferenceExecutor::create(), false,
+                     device_id, gko::ReferenceExecutor::create(), false,
                      gko::allocation_mode::device);
              }},
             {"hip",
-             [&] {
+             [](MPI_Comm comm) {
+                 int device_id = gko::mpi::map_rank_to_device_id(
+                     comm, gko::HipExecutor::get_num_devices());
                  return gko::HipExecutor::create(
-                     gko::experimental::mpi::map_rank_to_device_id(
-                         MPI_COMM_WORLD, gko::HipExecutor::get_num_devices()),
-                     gko::ReferenceExecutor::create(), true);
+                     device_id, gko::ReferenceExecutor::create(), true);
              }},
-            {"dpcpp",
-             [&] {
-                 auto ref = gko::ReferenceExecutor::create();
-                 if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-                     return gko::DpcppExecutor::create(
-                         gko::experimental::mpi::map_rank_to_device_id(
-                             MPI_COMM_WORLD,
-                             gko::DpcppExecutor::get_num_devices("gpu")),
-                         ref);
-                 } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-                     return gko::DpcppExecutor::create(
-                         gko::experimental::mpi::map_rank_to_device_id(
-                             MPI_COMM_WORLD,
-                             gko::DpcppExecutor::get_num_devices("cpu")),
-                         ref);
+            {"dpcpp", [](MPI_Comm comm) {
+                 int device_id = 0;
+                 if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                     device_id = gko::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
+                 } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                     device_id = gko::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
                  } else {
-                     throw std::runtime_error("No suitable DPC++ devices");
+                     GKO_NOT_IMPLEMENTED;
                  }
-             }},
-            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
-    const auto exec = exec_map.at(executor_string)();
+                 return gko::DpcppExecutor::create(
+                     device_id, gko::ReferenceExecutor::create());
+             }}};
+
+    auto exec = executor_factory_mpi.at(executor_string)(MPI_COMM_WORLD);
+
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+    const auto rank = comm.rank();
 
     // @sect3{Creating the Distributed Matrix and Vectors}
     // As a first step, we create a partition of the rows. The partition
@@ -155,9 +148,8 @@ int main(int argc, char* argv[])
     // These part-ids will be used for the distributed data structures to
     // determine which rows will be stored locally. In this example each rank
     // has (nearly) the same number of rows, so we can use the following
-    // specialized constructor. See @ref
-    // gko::experimental::distributed::Partition for other modes of creating a
-    // partition.
+    // specialized constructor. See @ref gko::distributed::Partition for other
+    // modes of creating a partition.
     const auto num_rows = grid_dim;
     auto partition = gko::share(part_type::build_from_global_size_uniform(
         exec->get_master(), comm.size(),
@@ -190,7 +182,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_init_end = gko::experimental::mpi::get_walltime();
+    ValueType t_init_end = gko::mpi::get_walltime();
 
     // Read the matrix data, currently this is only supported on CPU executors.
     // This will also set up the communication pattern needed for the
@@ -212,12 +204,16 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_read_setup_end = gko::experimental::mpi::get_walltime();
+    ValueType t_read_setup_end = gko::mpi::get_walltime();
 
     // @sect3{Solve the Distributed System}
     // Generate the solver, this is the same as in the non-distributed case.
+    //
+    auto local_solver = gko::share(bj::build().on(exec));
     auto Ainv =
         solver::build()
+            .with_preconditioner(
+                schwarz::build().with_local_solver(local_solver).on(exec))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(num_iters).on(
                     exec),
@@ -230,7 +226,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_generate_end = gko::experimental::mpi::get_walltime();
+    ValueType t_solver_generate_end = gko::mpi::get_walltime();
 
     // Apply the distributed solver, this is the same as in the non-distributed
     // case.
@@ -238,7 +234,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_solver_apply_end = gko::experimental::mpi::get_walltime();
+    ValueType t_solver_apply_end = gko::mpi::get_walltime();
 
     // Compute the residual, this is done in the same way as in the
     // non-distributed case.
@@ -252,7 +248,7 @@ int main(int argc, char* argv[])
 
     // Take timings.
     comm.synchronize();
-    ValueType t_end = gko::experimental::mpi::get_walltime();
+    ValueType t_end = gko::mpi::get_walltime();
 
     // @sect3{Printing Results}
     // Print the achieved residual norm and timings on rank 0.
