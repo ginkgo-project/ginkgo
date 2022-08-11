@@ -6,6 +6,7 @@ set(GINKGO_HIP_SOURCES
     base/scoped_device_id.hip.cpp
     base/version.hip.cpp
     components/prefix_sum_kernels.hip.cpp
+    distributed/coarse_gen_kernels.hip.cpp
     distributed/matrix_kernels.hip.cpp
     distributed/partition_kernels.hip.cpp
     distributed/vector_kernels.hip.cpp

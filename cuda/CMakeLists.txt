@@ -8,6 +8,7 @@ target_sources(ginkgo_cuda
     base/scoped_device_id.cpp
     base/version.cpp
     components/prefix_sum_kernels.cu
+    distributed/coarse_gen_kernels.cu
     distributed/matrix_kernels.cu
     distributed/partition_kernels.cu
     distributed/vector_kernels.cu
