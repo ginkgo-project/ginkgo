@@ -11,6 +11,7 @@ target_sources(ginkgo_reference
     components/reduce_array_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/prefix_sum_kernels.cpp
+    distributed/coarse_gen_kernels.cpp
     distributed/matrix_kernels.cpp
     distributed/partition_kernels.cpp
     distributed/vector_kernels.cpp

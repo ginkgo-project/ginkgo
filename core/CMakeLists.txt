@@ -77,6 +77,7 @@ if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
         PRIVATE
         mpi/exception.cpp
+        distributed/coarse_gen.cpp
         distributed/matrix.cpp
         distributed/vector.cpp
         distributed/preconditioner/schwarz.cpp)
