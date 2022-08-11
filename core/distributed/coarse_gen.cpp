@@ -90,8 +90,8 @@ void CoarseGen<ValueType, IndexType>::generate_with_aggregation()
     const auto global_num_rows = this->system_matrix_->get_size()[0];
     const auto local_num_rows = coarsegen_op->get_local_matrix()->get_size()[0];
     auto agg_ = coarse_indices_map_;
-    Array<IndexType> strongest_neighbor(this->get_executor(), local_num_rows);
-    Array<IndexType> intermediate_agg(
+    array<IndexType> strongest_neighbor(this->get_executor(), local_num_rows);
+    array<IndexType> intermediate_agg(
         this->get_executor(), parameters_.deterministic * local_num_rows);
 
     // Initial agg = -1

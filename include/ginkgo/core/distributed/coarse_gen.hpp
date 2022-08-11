@@ -213,7 +213,7 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    Array<IndexType> coarse_indices_map_;
+    array<IndexType> coarse_indices_map_;
 };
 
 
