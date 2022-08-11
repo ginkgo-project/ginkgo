@@ -66,8 +66,8 @@ void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_diag,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_offdiag,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& strongest_neighbor)
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& strongest_neighbor)
 {
     const auto wdiag_row_ptrs = weight_mtx_diag->get_const_row_ptrs();
     const auto wdiag_col_idxs = weight_mtx_diag->get_const_col_idxs();
@@ -123,8 +123,8 @@ void assign_to_exist_agg(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_diag,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_offdiag,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& intermediate_agg)
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& intermediate_agg)
 {
     const auto row_ptrs = weight_mtx_diag->get_const_row_ptrs();
     const auto col_idxs = weight_mtx_diag->get_const_col_idxs();

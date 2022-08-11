@@ -63,11 +63,11 @@ namespace coarse_gen {
 
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
-    std::shared_ptr<const CudaExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_diag,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_offdiag,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& strongest_neighbor) GKO_NOT_IMPLEMENTED;
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& strongest_neighbor) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_FIND_STRONGEST_NEIGHBOR);
@@ -78,8 +78,8 @@ void assign_to_exist_agg(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_diag,
     const matrix::Csr<ValueType, IndexType>* weight_mtx_offdiag,
-    const matrix::Diagonal<ValueType>* diag, Array<IndexType>& agg,
-    Array<IndexType>& intermediate_agg) GKO_NOT_IMPLEMENTED;
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& intermediate_agg) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG);
