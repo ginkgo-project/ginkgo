@@ -31,8 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <memory>
-#include <mpi.h>
 #include <random>
+
+
+#include <mpi.h>
 
 
 #include <gtest/gtest.h>
