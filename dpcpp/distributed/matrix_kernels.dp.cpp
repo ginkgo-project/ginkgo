@@ -56,7 +56,7 @@ void build_local_nonlocal(
     array<LocalIndexType>& non_local_col_idxs,
     array<ValueType>& non_local_values,
     array<LocalIndexType>& local_gather_idxs,
-    array<comm_index_type>& recv_offsets,
+    array<comm_index_type>& recv_sizes,
     array<GlobalIndexType>& non_local_to_global) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
