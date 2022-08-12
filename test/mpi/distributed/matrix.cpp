@@ -32,8 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <array>
 #include <memory>
-#include <mpi.h>
 #include <random>
+
+
+#include <mpi.h>
 
 
 #include <gtest/gtest.h>
@@ -132,7 +134,8 @@ protected:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypes);
+TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
 
 
 TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
@@ -265,7 +268,7 @@ public:
     {
         auto host_part = gko::clone(this->ref, part);
         auto range_bounds = host_part->get_range_bounds();
-        auto part_ids = part->get_part_ids();
+        auto part_ids = host_part->get_part_ids();
         std::vector<global_index_type> gather_idxs;
         for (gko::size_type range_id = 0;
              range_id < host_part->get_num_ranges(); ++range_id) {
@@ -353,7 +356,7 @@ public:
     std::default_random_engine engine;
 };
 
-TYPED_TEST_SUITE(Matrix, gko::test::ValueTypes);
+TYPED_TEST_SUITE(Matrix, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 TYPED_TEST(Matrix, CanApplyToSingleVector)
