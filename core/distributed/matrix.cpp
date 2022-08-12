@@ -165,7 +165,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     array<local_index_type> non_local_col_idxs{exec};
     array<value_type> non_local_values{exec};
     array<local_index_type> recv_gather_idxs{exec};
-    array<comm_index_type> recv_offsets_array{exec, num_parts + 1};
+    array<comm_index_type> recv_sizes_array{exec, num_parts};
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
@@ -173,7 +173,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, recv_gather_idxs,
-        recv_offsets_array, non_local_to_global_));
+        recv_sizes_array, non_local_to_global_));
 
     // read the local matrix data
     const auto num_local_rows =
@@ -194,15 +194,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         ->read(std::move(non_local_data));
 
     // exchange step 1: determine recv_sizes, send_sizes, send_offsets
-    exec->get_master()->copy_from(exec.get(), num_parts + 1,
-                                  recv_offsets_array.get_const_data(),
-                                  recv_offsets_.data());
-    std::adjacent_difference(recv_offsets_.begin() + 1, recv_offsets_.end(),
-                             recv_sizes_.begin());
+    exec->get_master()->copy_from(exec.get(), num_parts,
+                                  recv_sizes_array.get_const_data(),
+                                  recv_sizes_.data());
+    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
+                     recv_offsets_.begin() + 1);
     comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
+    recv_offsets_[0] = 0;
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer =

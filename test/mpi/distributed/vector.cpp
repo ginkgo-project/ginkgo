@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <memory>
+#include <random>
+
+
 #include <mpi.h>
 
 
@@ -37,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -70,16 +76,13 @@ public:
 
     int get_transfer_count() const { return transfer_count_; }
 
-    static std::unique_ptr<HostToDeviceLogger> create(
-        std::shared_ptr<const gko::Executor> exec)
+    static std::unique_ptr<HostToDeviceLogger> create()
     {
-        return std::unique_ptr<HostToDeviceLogger>(
-            new HostToDeviceLogger(std::move(exec)));
+        return std::unique_ptr<HostToDeviceLogger>(new HostToDeviceLogger());
     }
 
 protected:
-    explicit HostToDeviceLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec, gko::log::Logger::copy_started_mask)
+    HostToDeviceLogger() : gko::log::Logger(gko::log::Logger::copy_started_mask)
     {}
 
 private:
@@ -374,7 +377,7 @@ public:
     {
         init_executor(gko::ReferenceExecutor::create(), exec, comm);
 
-        logger = gko::share(HostToDeviceLogger::create(ref));
+        logger = gko::share(HostToDeviceLogger::create());
         exec->add_logger(logger);
 
         dense_x = dense_type::create(exec);
