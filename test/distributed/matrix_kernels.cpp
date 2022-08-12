@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/distributed/matrix_kernels.hpp"
+
+
 #include <algorithm>
 #include <memory>
 
@@ -44,8 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/distributed/matrix_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 namespace {
@@ -68,11 +71,20 @@ protected:
                                            ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
-    Matrix()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
-          engine(42)
-    {}
+    Matrix() : engine(42) {}
+
+    void SetUp()
+    {
+        ref = gko::ReferenceExecutor::create();
+        init_executor(ref, exec);
+    }
+
+    void TearDown()
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
 
     void validate(
         const gko::distributed::Partition<local_index_type, global_index_type>*
@@ -103,50 +115,42 @@ protected:
             gko::array<value_type> d_non_local_values{exec};
             gko::array<local_index_type> gather_idxs{ref};
             gko::array<local_index_type> d_gather_idxs{exec};
-            gko::array<comm_index_type> recv_offsets{
-                ref, static_cast<gko::size_type>(
-                         row_partition->get_num_parts() + 1)};
-            gko::array<comm_index_type> d_recv_offsets{
-                exec, static_cast<gko::size_type>(
-                          row_partition->get_num_parts() + 1)};
+            gko::array<comm_index_type> recv_sizes{
+                ref,
+                static_cast<gko::size_type>(row_partition->get_num_parts())};
+            gko::array<comm_index_type> d_recv_sizes{
+                exec,
+                static_cast<gko::size_type>(row_partition->get_num_parts())};
             gko::array<global_index_type> local_to_global_col{ref};
             gko::array<global_index_type> d_local_to_global_col{exec};
 
             gko::kernels::reference::distributed_matrix::build_local_nonlocal(
                 ref, input, row_partition, col_partition, part, local_row_idxs,
                 local_col_idxs, local_values, non_local_row_idxs,
-                non_local_col_idxs, non_local_values, gather_idxs, recv_offsets,
+                non_local_col_idxs, non_local_values, gather_idxs, recv_sizes,
                 local_to_global_col);
-            gko::kernels::omp::distributed_matrix::build_local_nonlocal(
-                exec, d_input, d_row_partition, d_col_partition, part,
-                d_local_row_idxs, d_local_col_idxs, d_local_values,
-                d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values,
-                d_gather_idxs, d_recv_offsets, d_local_to_global_col);
+            gko::kernels::EXEC_NAMESPACE::distributed_matrix::
+                build_local_nonlocal(exec, d_input, d_row_partition,
+                                     d_col_partition, part, d_local_row_idxs,
+                                     d_local_col_idxs, d_local_values,
+                                     d_non_local_row_idxs, d_non_local_col_idxs,
+                                     d_non_local_values, d_gather_idxs,
+                                     d_recv_sizes, d_local_to_global_col);
 
-            assert_device_matrix_data_equal(local_row_idxs, local_col_idxs,
-                                            local_values, d_local_row_idxs,
-                                            d_local_col_idxs, d_local_values);
-            assert_device_matrix_data_equal(
-                non_local_row_idxs, non_local_col_idxs, non_local_values,
-                d_non_local_row_idxs, d_non_local_col_idxs, d_non_local_values);
+            GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
+            GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
+            GKO_ASSERT_ARRAY_EQ(local_values, d_local_values);
+            GKO_ASSERT_ARRAY_EQ(non_local_row_idxs, d_non_local_row_idxs);
+            GKO_ASSERT_ARRAY_EQ(non_local_col_idxs, d_non_local_col_idxs);
+            GKO_ASSERT_ARRAY_EQ(non_local_values, d_non_local_values);
             GKO_ASSERT_ARRAY_EQ(gather_idxs, d_gather_idxs);
-            GKO_ASSERT_ARRAY_EQ(recv_offsets, d_recv_offsets);
+            GKO_ASSERT_ARRAY_EQ(recv_sizes, d_recv_sizes);
             GKO_ASSERT_ARRAY_EQ(local_to_global_col, d_local_to_global_col);
         }
     }
 
-    template <typename AI, typename AV>
-    void assert_device_matrix_data_equal(AI& row_idxs, AI& col_idxs, AV& values,
-                                         AI& d_row_idxs, AI& d_col_idxs,
-                                         AV& d_values)
-    {
-        GKO_ASSERT_ARRAY_EQ(row_idxs, d_row_idxs);
-        GKO_ASSERT_ARRAY_EQ(col_idxs, d_col_idxs);
-        GKO_ASSERT_ARRAY_EQ(values, d_values);
-    }
-
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> exec;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine engine;
 };
 
@@ -228,8 +232,8 @@ TYPED_TEST(Matrix, BuildsLocalIsEquivalentToRef)
     auto input = gko::test::generate_random_device_matrix_data<
         value_type, global_index_type>(
         num_rows, num_cols,
-        std::uniform_int_distribution<int>(static_cast<int>(num_cols),
-                                           static_cast<int>(num_cols)),
+        std::uniform_int_distribution<int>(static_cast<int>(num_cols - 1),
+                                           static_cast<int>(num_cols - 1)),
         std::uniform_real_distribution<gko::remove_complex<value_type>>(0, 1),
         this->engine, this->ref);
 
