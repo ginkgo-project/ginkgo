@@ -174,10 +174,11 @@ void AsyncRichardson<ValueType, IndexType>::apply_dense_impl(
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
-
+    std::cout << "iter : " << this->get_parameters().max_iters << std::endl;
     exec->run(async_richardson::make_apply(
-        relaxation_factor_.get(), second_factor_.get(),
-        as<Csr>(this->get_system_matrix().get()), dense_b, dense_x));
+        this->get_parameters().max_iters, relaxation_factor_.get(),
+        second_factor_.get(), as<Csr>(this->get_system_matrix().get()), dense_b,
+        dense_x));
 }
 
 
