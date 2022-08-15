@@ -62,7 +62,7 @@ constexpr int default_block_size = 4 * config::warp_size;
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const DefaultExecutor> exec,
+void apply(std::shared_ptr<const DefaultExecutor> exec, int max_iters,
            const matrix::Dense<ValueType>* relaxation_factor,
            const matrix::Dense<ValueType>* second_factor,
            const matrix::Csr<ValueType, IndexType>* a,
@@ -71,7 +71,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int subwarp_size = 1;
     dim3 grid(ceildiv(a->get_size()[0], default_block_size / subwarp_size),
               b->get_size()[1]);
-    std::cout << "Run" << std::endl;
     // subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
     //     500, a->get_size()[0], as_cuda_type(a->get_const_values()),
     //     a->get_const_col_idxs(), a->get_const_row_ptrs(),
@@ -79,7 +78,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     //     as_cuda_type(b->get_const_values()), b->get_stride(),
     //     as_cuda_type(c->get_values()), c->get_stride());
     second_subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
-        500, a->get_size()[0], as_cuda_type(a->get_const_values()),
+        max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
         a->get_const_col_idxs(), a->get_const_row_ptrs(),
         as_cuda_type(relaxation_factor->get_const_values()),
         as_cuda_type(second_factor->get_const_values()),

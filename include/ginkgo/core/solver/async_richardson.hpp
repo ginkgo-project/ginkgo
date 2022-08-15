@@ -175,6 +175,8 @@ public:
         ValueType GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor,
                                                value_type{1});
 
+        int GKO_FACTORY_PARAMETER_SCALAR(max_iters, 100);
+
         /**
          * Second factor for Richardson iteration
          */
