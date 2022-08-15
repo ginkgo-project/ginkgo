@@ -31,6 +31,7 @@ set(EXAMPLES_LIST
     performance-debugging
     preconditioner-export
     reordered-preconditioned-solver
+    richardson
     simple-solver-logging)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
