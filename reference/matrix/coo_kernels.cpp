@@ -255,6 +255,9 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
             put_detect_endblock(offsets_data, idxs.shf, block_size, idxs.nblk,
                                 idxs.blk);
         }
+        if (idxs.nblk > 0) {
+            offsets_data[idxs.blk + 1] = idxs.shf;
+        }
     } else {
         // For block compression objects
         const IndexType* row_idxs = source->get_const_row_idxs();

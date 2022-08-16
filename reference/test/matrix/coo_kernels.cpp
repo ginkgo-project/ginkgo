@@ -105,6 +105,8 @@ protected:
 
     void assert_equal_to_mtx_elm(const Bccoo* m)
     {
+        auto rows_data = m->get_const_rows();
+        auto offsets_data = m->get_const_offsets();
         auto chunk_data = m->get_const_chunk();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -112,7 +114,19 @@ protected:
 
         gko::size_type block_size = m->get_block_size();
 
-        std::cout << "CHUNK" << std::endl;
+        index_type row = {};
+        index_type offset = {};
+        for (index_type i = 0; i < m->get_num_blocks(); i++) {
+            EXPECT_EQ(rows_data[i], row);
+            EXPECT_EQ(offsets_data[i], offset);
+            auto elms = std::min(block_size, 4 - i * block_size);
+            row += ((block_size == 1) && (i == 2)) || (block_size == 3);
+            offset += (1 + sizeof(value_type)) * elms +
+                      (((block_size == 2) || (block_size >= 4)) &&
+                       (i + block_size > 2));
+        }
+        EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
+
         index_type ind = {};
 
         EXPECT_EQ(chunk_data[ind], 0x00);
@@ -151,6 +165,10 @@ protected:
 
     void assert_equal_to_mtx_blk(const Bccoo* m)
     {
+        auto rows_data = m->get_const_rows();
+        auto cols_data = m->get_const_cols();
+        auto types_data = m->get_const_types();
+        auto offsets_data = m->get_const_offsets();
         auto chunk_data = m->get_const_chunk();
 
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
@@ -163,40 +181,53 @@ protected:
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
 
+        index_type row = {};
+        index_type col = {};
+        gko::uint8 type = ((block_size >= 4) ? 3 : 2);
+        index_type offset = {};
+        for (index_type i = 0; i < m->get_num_blocks(); i++) {
+            auto elms = std::min(block_size, 4 - i * block_size);
+            row = ((i > 0) && (i + block_size) == 4) ? 1 : 0;
+            col = i % 3 + i / 3;
+            type = (((block_size == 2) || (block_size >= 4)) &&
+                    (i + block_size > 2))
+                       ? 3
+                       : 2;
+            EXPECT_EQ(rows_data[i], row);
+            EXPECT_EQ(cols_data[i], col);
+            EXPECT_EQ(types_data[i], type);
+            EXPECT_EQ(offsets_data[i], offset);
+            offset += (1 + sizeof(value_type)) * elms +
+                      (((block_size == 2) || (block_size >= 4)) &&
+                       (i + block_size > 2)) *
+                          elms;
+        }
+
         switch (block_size) {
         case 1:
-            std::cout << ind << std::endl;
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{1.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{3.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{2.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
-            //	std::cout << ind << std::endl;
             EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
                       value_type{5.0});
             ind += sizeof(value_type);
-            //	std::cout << ind << std::endl;
 
             break;
         case 2:
@@ -290,49 +321,65 @@ protected:
             break;
         }
     }
+    /*
+        void assert_equal_to_mtx(const Bccoo* m)
+        {
+            auto rows_data = bccoo_mtx->get_const_rows();
+            auto offsets_data = bccoo_mtx->get_const_offsets();
+            auto chunk_data = m->get_const_chunk();
+            gko::size_type block_size = m->get_block_size();
+            index_type ind = {};
 
-    void assert_equal_to_mtx(const Bccoo* m)
-    {
-        auto chunk_data = m->get_const_chunk();
-        gko::size_type block_size = m->get_block_size();
-        index_type ind = {};
+            ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+            ASSERT_EQ(m->get_num_stored_elements(), 4);
 
-        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-        ASSERT_EQ(m->get_num_stored_elements(), 4);
-        EXPECT_EQ(chunk_data[ind], 0x00);
-        ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{1.0});
-        ind += sizeof(value_type);
+            index_type row = {};
+            index_type offset = {};
+            for (index_type i = 0; i < m->get_num_blocks(); i++) {
+                EXPECT_EQ(rows_data[i], row);
+                EXPECT_EQ(offsets_data[i], offset);
+                auto elms = std::min(block_size, 4 - i * block_size);
+                row += ((block_size == 1) && (i == 2)) || (block_size == 3);
+                offset += (1 + sizeof(value_type)) * elms +
+                          (((block_size == 2) || (block_size >= 4)) &&
+                           (i + block_size > 2));
+            }
+            EXPECT_EQ(offsets_data[m->get_num_blocks()], offset);
 
-        EXPECT_EQ(chunk_data[ind], 0x01);
-        ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{3.0});
-        ind += sizeof(value_type);
-
-        if (block_size < 3) {
-            EXPECT_EQ(chunk_data[ind], 0x02);
-        } else {
-            EXPECT_EQ(chunk_data[ind], 0x01);
-        }
-        ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{2.0});
-        ind += sizeof(value_type);
-
-        if ((block_size == 2) || (block_size >= 4)) {
-            EXPECT_EQ(chunk_data[ind], 0xFF);
+            EXPECT_EQ(chunk_data[ind], 0x00);
             ind++;
+            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                      value_type{1.0});
+            ind += sizeof(value_type);
+
+            EXPECT_EQ(chunk_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                      value_type{3.0});
+            ind += sizeof(value_type);
+
+            if (block_size < 3) {
+                EXPECT_EQ(chunk_data[ind], 0x02);
+            } else {
+                EXPECT_EQ(chunk_data[ind], 0x01);
+            }
+            ind++;
+            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                      value_type{2.0});
+            ind += sizeof(value_type);
+
+            if ((block_size == 2) || (block_size >= 4)) {
+                EXPECT_EQ(chunk_data[ind], 0xFF);
+                ind++;
+            }
+
+            EXPECT_EQ(chunk_data[ind], 0x01);
+            ind++;
+            EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
+                      value_type{5.0});
+            ind += sizeof(value_type);
         }
-
-        EXPECT_EQ(chunk_data[ind], 0x01);
-        ind++;
-        EXPECT_EQ(gko::get_value_chunk<value_type>(chunk_data, ind),
-                  value_type{5.0});
-        ind += sizeof(value_type);
-    }
-
+    */
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> uns_mtx;
@@ -520,7 +567,7 @@ TYPED_TEST(Coo, ConvertsToBccooElm)
     this->assert_equal_to_mtx_elm(bccoo_mtx_elm.get());
 }
 
-/* */
+
 TYPED_TEST(Coo, ConvertsToBccooBlk)
 {
     using Bccoo = typename TestFixture::Bccoo;
@@ -532,7 +579,7 @@ TYPED_TEST(Coo, ConvertsToBccooBlk)
 
     this->assert_equal_to_mtx_blk(bccoo_mtx_blk.get());
 }
-/* */
+
 
 TYPED_TEST(Coo, MovesToBccooElm)
 {
@@ -543,22 +590,22 @@ TYPED_TEST(Coo, MovesToBccooElm)
 
     this->mtx->move_to(bccoo_mtx_elm.get());
 
-    this->assert_equal_to_mtx(bccoo_mtx_elm.get());
+    this->assert_equal_to_mtx_elm(bccoo_mtx_elm.get());
 }
 
-/* */
+
 TYPED_TEST(Coo, MovesToBccooBlk)
 {
     using Bccoo = typename TestFixture::Bccoo;
     auto bccoo_mtx_blk =
         Bccoo::create(this->mtx->get_executor(), BCCOO_BLOCK_SIZE_TESTED,
-                      gko::matrix::bccoo::compression::element);
+                      gko::matrix::bccoo::compression::block);
 
     this->mtx->move_to(bccoo_mtx_blk.get());
 
-    this->assert_equal_to_mtx(bccoo_mtx_blk.get());
+    this->assert_equal_to_mtx_blk(bccoo_mtx_blk.get());
 }
-/* */
+
 
 TYPED_TEST(Coo, ConvertsEmptyToCsr)
 {

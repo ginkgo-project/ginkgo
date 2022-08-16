@@ -556,6 +556,9 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
         }
+        if (idxs.nblk > 0) {
+            offsets_data[idxs.blk + 1] = idxs.shf;
+        }
     } else {
         // For block compression objects
         auto num_rows = source->get_size()[0];
