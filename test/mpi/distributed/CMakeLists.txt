@@ -1,2 +1,2 @@
-ginkgo_create_common_and_reference_mpi_test(matrix 3)
-ginkgo_create_common_and_reference_mpi_test(vector 3)
+ginkgo_create_common_test(matrix MPI_SIZE 3)
+ginkgo_create_common_test(vector MPI_SIZE 3)
