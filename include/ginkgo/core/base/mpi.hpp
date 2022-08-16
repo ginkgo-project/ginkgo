@@ -426,7 +426,9 @@ public:
      * @param color The color to split the original comm object
      * @param key  The key to split the comm object
      */
-    communicator(const MPI_Comm& comm, int color, int key)
+    communicator(const MPI_Comm& comm, int color, int key,
+                 std::shared_ptr<const Executor> exec)
+        : exec_(std::move(exec))
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
