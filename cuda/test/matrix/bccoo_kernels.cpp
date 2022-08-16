@@ -104,13 +104,13 @@ protected:
         dbeta = Vec::create(cuda);
         dbeta->copy_from(beta.get());
     }
-
-    void unsort_mtx()
-    {
-        gko::test::unsort_matrix(mtx.get(), rand_engine);
-        dmtx->copy_from(mtx.get());
-    }
-
+    /*
+        void unsort_mtx()
+        {
+            gko::test::unsort_matrix(mtx.get(), rand_engine);
+            dmtx->copy_from(mtx.get());
+        }
+    */
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
 

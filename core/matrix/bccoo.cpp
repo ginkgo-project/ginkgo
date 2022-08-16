@@ -277,6 +277,9 @@ void Bccoo<ValueType, IndexType>::read(const mat_data& data)
             put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
         }
     }
+    if (nblk > 0) {
+        offsets_data[blk + 1] = shf;
+    }
 
     // Creation of the Bccoo object
     auto tmp =

@@ -213,6 +213,9 @@ void convert_to_bccoo(std::shared_ptr<const ReferenceExecutor> exec,
                                 val);
         put_detect_endblock(offsets_data, shf, block_size, nblk, blk);
     }
+    if (nblk > 0) {
+        offsets_data[blk + 1] = shf;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
