@@ -62,7 +62,8 @@ constexpr int default_block_size = 4 * config::warp_size;
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const DefaultExecutor> exec, int max_iters,
+void apply(std::shared_ptr<const DefaultExecutor> exec,
+           const std::string& check, int max_iters,
            const matrix::Dense<ValueType>* relaxation_factor,
            const matrix::Dense<ValueType>* second_factor,
            const matrix::Csr<ValueType, IndexType>* a,
@@ -71,19 +72,42 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, int max_iters,
     constexpr int subwarp_size = 1;
     dim3 grid(ceildiv(a->get_size()[0], default_block_size / subwarp_size),
               b->get_size()[1]);
-    // subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
-    //     500, a->get_size()[0], as_cuda_type(a->get_const_values()),
+    if (check == "time") {
+        subwarp_apply_time<subwarp_size><<<grid, default_block_size>>>(
+            max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(),
+            as_cuda_type(relaxation_factor->get_const_values()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else if (check == "flow") {
+        subwarp_apply_flow<subwarp_size><<<grid, default_block_size>>>(
+            max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(),
+            as_cuda_type(relaxation_factor->get_const_values()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else if (check == "halfflow") {
+        subwarp_apply_halfflow<subwarp_size><<<grid, default_block_size>>>(
+            max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(),
+            as_cuda_type(relaxation_factor->get_const_values()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else {
+        subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
+            max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(),
+            as_cuda_type(relaxation_factor->get_const_values()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+    }
+    // second_subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
+    //     max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
     //     a->get_const_col_idxs(), a->get_const_row_ptrs(),
     //     as_cuda_type(relaxation_factor->get_const_values()),
+    //     as_cuda_type(second_factor->get_const_values()),
     //     as_cuda_type(b->get_const_values()), b->get_stride(),
     //     as_cuda_type(c->get_values()), c->get_stride());
-    second_subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
-        max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
-        a->get_const_col_idxs(), a->get_const_row_ptrs(),
-        as_cuda_type(relaxation_factor->get_const_values()),
-        as_cuda_type(second_factor->get_const_values()),
-        as_cuda_type(b->get_const_values()), b->get_stride(),
-        as_cuda_type(c->get_values()), c->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

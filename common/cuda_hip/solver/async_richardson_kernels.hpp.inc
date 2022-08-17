@@ -60,7 +60,171 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply(
                 c[row * c_stride + column_id] +=
                     alpha_val * (rhs - subwarp_result);
             }
-            // __threadfence();
+            __threadfence();
+        }
+    }
+}
+
+namespace {
+template <typename ResultType, typename ValueType>
+__forceinline__ __device__ ResultType reinterpret(ValueType val)
+{
+    static_assert(sizeof(ValueType) == sizeof(ResultType),
+                  "The type to reinterpret to must be of the same size as the "
+                  "original type.");
+    return reinterpret_cast<ResultType&>(val);
+}
+}  // namespace
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
+    const int iteration, const size_type num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subid = subwarp_tile.thread_rank();
+    const auto column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const int alpha_val = real(alpha[0]);
+    if (row < num_rows) {
+        const auto rhs = b[row * b_stride + column_id];
+        for (int i = 0; i < iteration; i++) {
+            const auto ind_end = row_ptrs[row + 1];
+            unsigned long long temp_val = 1 << (2 * 12);
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val +=
+                    (((reinterpret<unsigned long long>(static_cast<double>(
+                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                       (2 * 12)) &
+                      0xFFF)
+                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
+            }
+
+            auto subwarp_result =
+                reduce(subwarp_tile, temp_val,
+                       [](const unsigned long long& a,
+                          const unsigned long long& b) { return a + b; });
+            if (subid == 0) {
+                // c[row * c_stride + column_id] +=
+                //     alpha_val * (rhs - subwarp_result);
+                c[row * c_stride + column_id] =
+                    static_cast<ValueType>(
+                        reinterpret<double>(alpha_val * subwarp_result)) +
+                    (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+            }
+            __threadfence();
+        }
+    }
+}
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
+    const int iteration, const size_type num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subid = subwarp_tile.thread_rank();
+    const auto column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const int alpha_val = real(alpha[0]);
+    if (row < num_rows) {
+        const auto rhs = b[row * b_stride + column_id];
+        for (int i = 0; i < iteration; i++) {
+            const auto ind_end = row_ptrs[row + 1];
+            unsigned long long temp_val = 1 << (2 * 12);
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val +=
+                    (((reinterpret<unsigned long long>(static_cast<double>(
+                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                       (2 * 12)) &
+                      0xFFF)
+                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
+            }
+
+            auto subwarp_result =
+                reduce(subwarp_tile, temp_val,
+                       [](const unsigned long long& a,
+                          const unsigned long long& b) { return a + b; });
+            if (subid == 0) {
+                // c[row * c_stride + column_id] +=
+                //     alpha_val * (rhs - subwarp_result);
+                if (i < iteration / 2) {
+                    c[row * c_stride + column_id] =
+                        static_cast<ValueType>(
+                            reinterpret<double>(alpha_val * subwarp_result)) +
+                        (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+                } else {
+                    c[row * c_stride + column_id] =
+                        static_cast<ValueType>(reinterpret<double>(
+                            (1 - alpha_val) * subwarp_result)) +
+                        (1 - alpha_val) * rhs + c[row * c_stride + column_id];
+                }
+            }
+            __threadfence();
+        }
+    }
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void subwarp_apply_time(
+    const int iteration, const size_type num_rows,
+    const ValueType* __restrict__ val, const IndexType* __restrict__ col_idxs,
+    const IndexType* __restrict__ row_ptrs, const ValueType* __restrict__ alpha,
+    const ValueType* __restrict__ b, const size_type b_stride,
+    ValueType* __restrict__ c, const size_type c_stride)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subid = subwarp_tile.thread_rank();
+    const auto column_id = blockIdx.y;
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    const int alpha_val = real(alpha[0]);
+    unsigned int time = 0;
+    unsigned int start = 0;
+    asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(start));
+    if (row < num_rows) {
+        const auto rhs = b[row * b_stride + column_id];
+        for (int i = 0; i < iteration; i++) {
+            const auto ind_end = row_ptrs[row + 1];
+            unsigned long long temp_val = 0;
+            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+                 ind += subwarp_size) {
+                temp_val +=
+                    (((reinterpret<unsigned long long>(static_cast<double>(
+                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                       (2 * 12)) &
+                      0xFFF)
+                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
+            }
+
+            auto subwarp_result =
+                reduce(subwarp_tile, temp_val,
+                       [](const unsigned long long& a,
+                          const unsigned long long& b) { return a + b; });
+
+            if (subid == 0) {
+                // c[row * c_stride + column_id] +=
+                //     alpha_val * (rhs - subwarp_result);
+                asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(time));
+                c[row * c_stride + column_id] =
+                    static_cast<ValueType>(reinterpret<double>(
+                        (1 - alpha_val) * subwarp_result +
+                        ((static_cast<unsigned long long>(start) << 32) +
+                         time))) +
+                    (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+            }
+            __threadfence();
         }
     }
 }
