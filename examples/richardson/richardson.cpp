@@ -42,7 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Add the STL map header for the executor selection
 #include <map>
 // Add the string manipulation header to handle strings.
+#include <algorithm>
 #include <chrono>
+#include <cstring>
+#include <iomanip>
 #include <random>
 #include <string>
 
@@ -80,6 +83,88 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
 }
 
 
+std::unique_ptr<gko::matrix::Csr<double>> gen_mask(
+    std::shared_ptr<const gko::Executor> exec, int grid)
+{
+    int size = grid * grid;
+    int y[] = {0, -1, 0, 1, 0};
+    int x[] = {-1, 0, 0, 0, 1};
+    double coef[] = {4, 3, 2, 1, 0};
+    // int64_t coef_[] = {0xFFF << (4 * 12), 0xFFF << (3 * 12), 0xFFF << (2 *
+    // 12),
+    //                    0xFFF << (1 * 12), 0xFFF};
+    // for (int i = 0; i < 5; i++) {
+    //     std::memcpy(coef_ + i, coef + i, sizeof(double));
+    //     std::cout << coef[i] << std::endl;
+    // }
+    gko::matrix_data<> mtx_data{gko::dim<2>(size, size)};
+    for (int i = 0; i < grid; i++) {
+        for (int j = 0; j < grid; j++) {
+            auto c = i * grid + j;
+            for (int k = 0; k < 5; k++) {
+                auto ii = i + x[k];
+                auto jj = j + y[k];
+                auto cc = ii * grid + jj;
+                if (0 <= ii && ii < grid && 0 <= jj && jj < grid) {
+                    mtx_data.nonzeros.emplace_back(c, cc, coef[k]);
+                }
+            }
+        }
+    }
+    mtx_data.ensure_row_major_order();
+    auto mtx = gko::matrix::Csr<double>::create(
+        exec, std::make_shared<gko::matrix::Csr<>::classical>());
+    mtx->read(mtx_data);
+
+    // auto mtx = Csr::create(ref, gko::dim<2>(size, size),
+    //                        grid * grid * 5 - 4 * grid);
+    // this->form_csr(grid, size, mtx->get_row_ptrs(), mtx->get_col_idxs(),
+    //                mtx->get_values());
+    return std::move(mtx);
+}
+
+
+void print(int i, std::uint64_t n)
+{
+    std::uint64_t cap[] = {0xFFFull << (4 * 12), 0xFFFull << (3 * 12),
+                           0xFFFull << (2 * 12), 0xFFFull << (1 * 12),
+                           0xFFFull << (0 * 12)};
+    std::cout << std::setw(6) << i;
+    for (int i = 0; i < 5; i++) {
+        std::cout << ", " << std::setw(6) << ((n & cap[i]) >> ((4 - i) * 12));
+    }
+    std::cout << std::endl;
+}
+
+void print_time(int i, std::uint64_t n)
+{
+    // std::cout << std::setw(6);
+    std::cout << std::setw(6) << i << ", " << std::setw(40)
+              << ((n >> 32) & 0xFFFFFFFF) << ", " << std::setw(40)
+              << (n & 0xFFFFFFFF) << std::endl;
+    // std::cout << std::endl;
+}
+
+double avg(std::vector<double>& input)
+{
+    auto sum = std::accumulate(input.begin(), input.end(), 0.0);
+    return sum / input.size();
+}
+
+// th: 0(min) 1(25 th) 2(med) 3(75th) 4(max)
+double quartile(std::vector<double>& input, int th)
+{
+    if (th == 4) {
+        return input.front();
+    } else if (th == 0) {
+        return input.back();
+    } else {
+        int k = (th * (input.size() + 1) / 4) - 1;
+        double alpha = (th * (input.size() + 1) / 4.0) - k;
+        return (1 - alpha) * input.at(k) + alpha * input.at(k + 1);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
@@ -102,23 +187,26 @@ int main(int argc, char* argv[])
     std::cout << gko::version_info::get() << std::endl;
 
     // Print help on how to execute this example.
-    if (argc < 5 || (std::string(argv[1]) == "--help")) {
+    if (argc < 6 || (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [executor] [type] [problem_size] [iteration] "
+                  << " [executor] [type] [normal/flow/halfflow/time] "
+                     "[problem_size] [iteration]"
                   << std::endl;
         std::exit(-1);
     }
 
     std::string executor_string(argv[1]);
     std::string type_string(argv[2]);
-    int problem_size = std::stoi(argv[3]);
-    int iteration = std::stoi(argv[4]);
+    std::string check_string(argv[3]);
+    int problem_size = std::stoi(argv[4]);
+    int iteration = std::stoi(argv[5]);
 
     std::cout << "Perform " << type_string << " richardson on "
               << executor_string << std::endl;
     std::cout << "Problem size " << problem_size << " dim "
               << problem_size * problem_size << std::endl;
     std::cout << "update " << iteration << " times" << std::endl;
+    std::cout << "check " << check_string << std::endl;
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -142,7 +230,12 @@ int main(int argc, char* argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
-    auto A = gko::share(gen_laplacian(exec, problem_size));
+    std::shared_ptr<mtx> A = nullptr;
+    if (check_string == "normal") {
+        A = gko::share(gen_laplacian(exec, problem_size));
+    } else {
+        A = gko::share(gen_mask(exec, problem_size));
+    }
     auto b_host =
         vec::create(exec->get_master(), gko::dim<2>(A->get_size()[1], 1));
     // generate right hand side
@@ -165,6 +258,7 @@ int main(int argc, char* argv[])
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(iteration).on(
                         exec))
+                .with_check(check_string)
                 .on(exec);
     } else {
         solver_gen =
@@ -186,16 +280,19 @@ int main(int argc, char* argv[])
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied
     // to a right hand side, b to
     // obtain the solution, x.
-    int num_re = 50;
+    int num_re = 100;
     auto residual_norm = vec::create(exec, gko::dim<2>{1, b->get_size()[1]});
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto one = gko::initialize<vec>({1.0}, exec);
-    double norm_sum = 0.0;
-    double time_sum = 0.0;
+    std::vector<double> norm(num_re, 0.0);
+    std::vector<double> time(num_re, 0.0);
     std::chrono::time_point<std::chrono::steady_clock> start;
     std::chrono::time_point<std::chrono::steady_clock> stop;
-    b->compute_norm2(residual_norm.get());
-    double initial_norm = exec->copy_val_to_host(residual_norm->get_values());
+    double initial_norm = 0;
+    if (check_string == "normal") {
+        b->compute_norm2(residual_norm.get());
+        initial_norm = exec->copy_val_to_host(residual_norm->get_values());
+    }
     for (int i = 0; i < num_re; i++) {
         auto x_clone = x->clone();
         exec->synchronize();
@@ -203,14 +300,41 @@ int main(int argc, char* argv[])
         solver->apply(lend(b), lend(x_clone));
         exec->synchronize();
         stop = std::chrono::steady_clock::now();
-        auto b_clone = b->clone();
-        A->apply(lend(neg_one), lend(x_clone), lend(one), lend(b_clone));
-        b_clone->compute_norm2(residual_norm.get());
-        norm_sum += exec->copy_val_to_host(residual_norm->get_values());
+        if (check_string == "normal") {
+            auto b_clone = b->clone();
+            A->apply(lend(neg_one), lend(x_clone), lend(one), lend(b_clone));
+            b_clone->compute_norm2(residual_norm.get());
+            norm.at(i) = exec->copy_val_to_host(residual_norm->get_values()) /
+                         initial_norm;
+        }
         std::chrono::duration<double> duration_time = stop - start;
-        time_sum += duration_time.count();
+        time.at(i) = duration_time.count();
     }
-    std::cout << "average time " << time_sum / num_re
-              << " average relative residual norm "
-              << norm_sum / num_re / initial_norm << std::endl;
+    std::cout << "             , mean, min, q1, median, q3, max" << std::endl;
+    std::sort(time.begin(), time.end());
+    std::cout << "time         , " << avg(time) << ", " << quartile(time, 0)
+              << ", " << quartile(time, 1) << ", " << quartile(time, 2) << ", "
+              << quartile(time, 3) << ", " << quartile(time, 4) << std::endl;
+    if (check_string == "normal") {
+        std::sort(norm.begin(), norm.end());
+        std::cout << "relative_norm, " << avg(norm) << ", " << quartile(norm, 0)
+                  << ", " << quartile(norm, 1) << ", " << quartile(norm, 2)
+                  << ", " << quartile(norm, 3) << ", " << quartile(norm, 4)
+                  << std::endl;
+    } else {
+        solver->apply(lend(b), lend(x));
+        exec->synchronize();
+        auto host_x = x->clone(exec->get_master());
+        for (int i = 0; i < x->get_size()[0]; i++) {
+            std::uint64_t n = 0;
+            std::memcpy(&n, host_x->get_const_values() + i,
+                        sizeof(std::uint64_t));
+
+            if (check_string == "time") {
+                print_time(i, n);
+            } else {
+                print(i, n);
+            }
+        }
+    }
 }

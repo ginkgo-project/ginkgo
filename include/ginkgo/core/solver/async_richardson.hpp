@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_SOLVER_ASYNC_RICHARDSON_HPP_
 
 
+#include <string>
 #include <vector>
 
 
@@ -181,6 +182,17 @@ public:
          * Second factor for Richardson iteration
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(second_factor, value_type{0});
+
+        /**
+         * check is to get the async iteration information (it is only designed
+         * for 5-pt example with specific settings)
+         * - "flow": get the source.
+         * - "halfflow": get the source but only record the information until
+         * half of max_iters.
+         * - "time": record the start and end time information
+         * - others: normal operation
+         */
+        std::string GKO_FACTORY_PARAMETER_SCALAR(check, std::string("normal"));
     };
     GKO_ENABLE_LIN_OP_FACTORY(AsyncRichardson, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

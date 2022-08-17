@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <string>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -53,11 +54,12 @@ namespace kernels {
 namespace async_richardson {
 
 
-#define GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL(ValueType, IndexType)    \
-    void apply(std::shared_ptr<const DefaultExecutor> exec, int max_iters, \
-               const matrix::Dense<ValueType>* relaxation_factor,          \
-               const matrix::Dense<ValueType>* second_factor,              \
-               const matrix::Csr<ValueType, IndexType>* a,                 \
+#define GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL(ValueType, IndexType) \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,             \
+               const std::string& check, int max_iters,                 \
+               const matrix::Dense<ValueType>* relaxation_factor,       \
+               const matrix::Dense<ValueType>* second_factor,           \
+               const matrix::Csr<ValueType, IndexType>* a,              \
                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
 
