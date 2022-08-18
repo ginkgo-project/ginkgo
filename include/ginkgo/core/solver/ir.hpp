@@ -109,7 +109,6 @@ class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public Transposable,
-           public ResidualCacheable,
            public EnableZeroInput {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;

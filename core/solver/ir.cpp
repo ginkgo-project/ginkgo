@@ -189,13 +189,6 @@ void Ir<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    // If the residual cache is from outside, replace the residual pointer.
-    auto residual_cache =
-        std::dynamic_pointer_cast<Vector>(this->get_residual_cache());
-    if (residual_cache) {
-        residual = residual_cache.get();
-    }
-
     bool one_changed{};
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
