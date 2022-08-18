@@ -83,6 +83,8 @@ struct SimpleSolverTest {
 
     static bool will_not_allocate() { return true; }
 
+    static bool supports_wide_vectors() { return true; }
+
     static double tolerance() { return 1e4 * r<value_type>::value; }
 
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
@@ -279,6 +281,11 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
 
     static bool is_preconditionable() { return false; }
 
+#ifdef GKO_COMPILING_CUDA
+    // cuSPARSE bug related to inputs with more than 32 rhs
+    static bool supports_wide_vectors() { return false; }
+#endif
+
     static double tolerance() { return r<value_type>::value; }
 
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
@@ -323,6 +330,11 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     static bool is_iterative() { return false; }
 
     static bool is_preconditionable() { return false; }
+
+#ifdef GKO_COMPILING_CUDA
+    // cuSPARSE bug related to inputs with more than 32 rhs
+    static bool supports_wide_vectors() { return false; }
+#endif
 
     static double tolerance() { return r<value_type>::value; }
 
@@ -387,6 +399,8 @@ struct UpperTrsUnitdiag : UpperTrs {
 
 
 struct LowerTrsSyncfree : LowerTrs {
+    static bool supports_wide_vectors() { return true; }
+
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
@@ -398,6 +412,8 @@ struct LowerTrsSyncfree : LowerTrs {
 
 
 struct UpperTrsSyncfree : UpperTrs {
+    static bool supports_wide_vectors() { return true; }
+
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
@@ -409,6 +425,8 @@ struct UpperTrsSyncfree : UpperTrs {
 
 
 struct LowerTrsSyncfreeUnitdiag : LowerTrs {
+    static bool supports_wide_vectors() { return true; }
+
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
@@ -421,6 +439,8 @@ struct LowerTrsSyncfreeUnitdiag : LowerTrs {
 
 
 struct UpperTrsSyncfreeUnitdiag : UpperTrs {
+    static bool supports_wide_vectors() { return true; }
+
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
@@ -754,12 +774,12 @@ protected:
             guarded_fn(gen_in_vec<VecType>(solver, 2, 3),
                        gen_out_vec<VecType>(solver, 2, 4));
         }
-        {
+        if (Config::supports_wide_vectors()) {
             SCOPED_TRACE("Multivector with 40 columns");
             guarded_fn(gen_in_vec<VecType>(solver, 40, 40),
                        gen_out_vec<VecType>(solver, 40, 40));
         }
-        {
+        if (Config::supports_wide_vectors()) {
             SCOPED_TRACE("Strided multivector with 40 columns");
             guarded_fn(gen_in_vec<VecType>(solver, 40, 43),
                        gen_out_vec<VecType>(solver, 40, 45));

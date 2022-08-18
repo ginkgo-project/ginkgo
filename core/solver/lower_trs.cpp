@@ -84,6 +84,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     if (this != &other) {
         EnableLinOp<LowerTrs>::operator=(other);
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
+        this->parameters_ = other.parameters_;
         this->generate();
     }
     return *this;
@@ -97,6 +98,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     if (this != &other) {
         EnableLinOp<LowerTrs>::operator=(std::move(other));
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
+        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {
             this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
         } else {
