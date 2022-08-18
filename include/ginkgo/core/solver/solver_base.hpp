@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
@@ -49,6 +50,136 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace solver {
 
+
+/**
+ * give the hint of input to apply
+ */
+enum class input_hint {
+    /**
+     * the input is zero
+     */
+    zero,
+    /**
+     * the input is right hand side
+     */
+    rhs,
+    /**
+     * the input is given
+     */
+    given
+};
+
+namespace {
+
+inline void fill_zero(LinOp* input)
+{
+    if (auto dense = dynamic_cast<matrix::Dense<float>*>(input)) {
+        dense->fill(gko::zero<float>());
+    } else if (auto dense = dynamic_cast<matrix::Dense<double>*>(input)) {
+        dense->fill(gko::zero<double>());
+    } else if (auto dense =
+                   dynamic_cast<matrix::Dense<std::complex<float>>*>(input)) {
+        dense->fill(gko::zero<std::complex<float>>());
+    } else if (auto dense =
+                   dynamic_cast<matrix::Dense<std::complex<double>>*>(input)) {
+        dense->fill(gko::zero<std::complex<double>>());
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+}  // namespace
+class ApplyHint {
+public:
+    ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
+    {
+        this->apply_impl(b, x, hint);
+        return this;
+    }
+
+    const ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint) const
+    {
+        this->apply_impl(b, x, hint);
+        return this;
+    }
+
+    ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                          LinOp* x, input_hint hint)
+    {
+        this->apply_impl(alpha, b, beta, x, hint);
+        return this;
+    }
+
+    const ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b,
+                                const LinOp* beta, LinOp* x,
+                                input_hint hint) const
+    {
+        this->apply_impl(alpha, b, beta, x, hint);
+        return this;
+    }
+
+protected:
+    virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
+    {
+        if (hint == input_hint::zero) {
+            fill_zero(x);
+        } else if (hint == input_hint::rhs) {
+            x->copy_from(b);
+        }
+        this->apply_impl(b, x);
+    }
+
+    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
+                            const LinOp* beta, LinOp* x, input_hint hint) const
+    {
+        if (hint == input_hint::zero) {
+            fill_zero(x);
+        } else if (hint == input_hint::rhs) {
+            x->copy_from(b);
+        }
+        this->apply_impl(b, x);
+    }
+
+    // override at the same time when overrided
+    virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
+    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
+                            const LinOp* beta, LinOp* x) const = 0;
+};
+
+template <typename DerivedType>
+class EnableApplyHint : public ApplyHint {
+public:
+    DerivedType* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
+    {
+        ApplyHint::apply_hint(b, x, hint);
+        return self();
+    }
+
+    const DerivedType* apply_hint(const LinOp* b, LinOp* x,
+                                  input_hint hint) const
+    {
+        ApplyHint::apply_hint(b, x, hint);
+        return self();
+    }
+
+    DerivedType* apply_hint(const LinOp* alpha, const LinOp* b,
+                            const LinOp* beta, LinOp* x, input_hint hint)
+    {
+        ApplyHint::apply_hint(alpha, b, beta, x, hint);
+        return self();
+    }
+
+    const DerivedType* apply_hint(const LinOp* alpha, const LinOp* b,
+                                  const LinOp* beta, LinOp* x,
+                                  input_hint hint) const
+    {
+        ApplyHint::apply_hint(alpha, b, beta, x, hint);
+        return self();
+    }
+
+protected:
+    GKO_ENABLE_SELF(DerivedType);
+};
 
 /**
  * Traits class providing information on the type and location of workspace
@@ -458,7 +589,8 @@ private:
 
 
 /**
- * A LinOp deriving from this CRTP class stores a stopping criterion factory.
+ * A LinOp deriving from this CRTP class stores a stopping criterion factory and
+ * allow apply with hint.
  *
  * @tparam DerivedType  the CRTP type that derives from this
  *
@@ -466,7 +598,8 @@ private:
  * @ingroup LinOp
  */
 template <typename DerivedType>
-class EnableIterativeBase : public IterativeBase {
+class EnableIterativeBase : public IterativeBase,
+                            public EnableApplyHint<DerivedType> {
 public:
     /**
      * Creates a shallow copy of the provided stopping criterion, clones it onto

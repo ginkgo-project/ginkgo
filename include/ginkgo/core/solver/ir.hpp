@@ -108,8 +108,7 @@ template <typename ValueType = default_precision>
 class Ir : public EnableLinOp<Ir<ValueType>>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
-           public Transposable,
-           public EnableZeroInput {
+           public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 
@@ -206,10 +205,15 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_dense_impl(const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x) const;
+                          matrix::Dense<ValueType>* x, input_hint hint) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const override;
+
+    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
+                    LinOp* x, input_hint hint) const override;
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);

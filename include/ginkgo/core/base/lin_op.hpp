@@ -764,34 +764,6 @@ public:
 
 
 /**
- * The EnableZeroInput gives the hint that input vector is zero. LinOp can use
- * the hint to avoid some unneccessary computation.
- */
-class EnableZeroInput {
-public:
-    /**
-     * get_input_zero returns the current setting of input
-     *
-     * @return bool is zero or not
-     */
-    bool get_input_zero() const noexcept { return is_zero_; }
-
-    /**
-     * set_input_zero is to set the status of input
-     *
-     * @param is_zero  the input will be zero or not.
-     */
-    void set_input_zero(bool is_zero) const { is_zero_ = is_zero; }
-
-protected:
-    EnableZeroInput() : is_zero_(false) {}
-
-private:
-    mutable bool is_zero_;
-};
-
-
-/**
  * The AbsoluteComputable is an interface that allows to get the component wise
  * absolute of a LinOp. Use EnableAbsoluteComputation<AbsoluteLinOp> to
  * implement this interface.

@@ -273,11 +273,9 @@ struct MultigridState {
                        mid_case == multigrid::mid_smooth_type::pre_smoother;
         if (use_pre && pre_smoother) {
             auto pre_allow_zero_input =
-                std::dynamic_pointer_cast<const EnableZeroInput>(pre_smoother);
+                std::dynamic_pointer_cast<const ApplyHint>(pre_smoother);
             if (x_is_zero && pre_allow_zero_input) {
-                pre_allow_zero_input->set_input_zero(true);
-                pre_smoother->apply(b, x);
-                pre_allow_zero_input->set_input_zero(false);
+                pre_allow_zero_input->apply_hint(b, x, input_hint::zero);
             } else {
                 pre_smoother->apply(b, x);
             }
