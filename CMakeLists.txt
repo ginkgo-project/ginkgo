@@ -67,6 +67,8 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
+# the details of fine/coarse grain memory and unsafe atomic are available https://docs.olcf.ornl.gov/systems/crusher_quick_start_guide.html#floating-point-fp-atomic-operations-and-coarse-fine-grained-memory-allocations
+option(GINKGO_HIP_AMD_UNSAFE_ATOMIC "Compiler uses unsafe floating point atomic (only for AMD GPU and ROCM >= 5). Default is ON because we use hipMalloc, which is always on coarse grain. Must turn off when allocating memory on fine grain" ON)
 set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING

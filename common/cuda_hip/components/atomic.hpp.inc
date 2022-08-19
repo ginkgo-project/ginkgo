@@ -147,8 +147,15 @@ GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
-#if !defined(__HIPCC__) || \
-    (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
+// AMD
+#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+
+
+// the double atomicAdd is added after 4.3
+GKO_BIND_ATOMIC_ADD(double);
+
+
+#else  // NVIDIA
 
 
 #if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
@@ -179,11 +186,11 @@ GKO_BIND_ATOMIC_ADD(__half2);
         // (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
 
 
-#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&
-        // GINKGO_HIP_PLATFORM_HCC)
+#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
 
 
 #undef GKO_BIND_ATOMIC_ADD
+
 
 template <typename T>
 __forceinline__ __device__ T atomic_max(T* __restrict__ addr, T val)
