@@ -3,7 +3,27 @@ if(GINKGO_BUILD_TESTS AND (NOT GTest_FOUND))
     add_subdirectory(gtest)
 endif()
 
-if(NOT GINKGO_DEVEL_TOOLS)
+if(GINKGO_BUILD_HWLOC AND (NOT HWLOC_FOUND))
+    add_subdirectory(hwloc)
+endif()
+
+if(GINKGO_BUILD_PYTHON_BINDINGSj)
+    find_package(Python REQUIRED COMPONENTS Interpreter Development)
+    if(NOT pybind11_FOUND)
+      add_subdirectory(pybind11)
+    endif()
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+    pybind11_add_module(pygko ${PROJECT_SOURCE_DIR}/bindings/python.cpp)
+
+    target_include_directories(pygko PRIVATE ${Ginkgo_BINARY_DIR}/include)
+    target_link_libraries(pygko PRIVATE Ginkgo::ginkgo)
+    set_property(TARGET pygko PROPERTY CXX_STANDARD 14)
+endif()
+
+if(GINKGO_DEVEL_TOOLS)
+    set(GCF_IGNORE_LIST "third_party" CACHE STRING "Ignore directories for GCF")
+    add_subdirectory(git-cmake-format)
+else()
     add_subdirectory(dummy-hook)
 endif()
 

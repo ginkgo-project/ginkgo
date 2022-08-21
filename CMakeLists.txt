@@ -30,6 +30,7 @@ option(GINKGO_BUILD_SYCL
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
+option(GINKGO_BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 option(GINKGO_FAST_TESTS "Reduces the input size for a few tests known to be time-intensive" OFF)
 option(GINKGO_TEST_NONDEFAULT_STREAM "Uses non-default streams in CUDA and HIP tests" OFF)
 option(GINKGO_MIXED_PRECISION "Instantiate true mixed-precision kernels (otherwise they will be conversion-based using implicit temporary storage)" OFF)
@@ -276,6 +277,10 @@ if(GINKGO_BUILD_PAPI_SDE)
 endif()
 
 # Bundled third party libraries
+if(GINKGO_BUILD_PYTHON_BINDINGS)
+  find_package(pybind11)
+endif()
+
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 if(MSVC)
