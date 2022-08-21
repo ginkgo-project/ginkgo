@@ -274,7 +274,7 @@ private:
 inline std::vector<status> wait_all(std::vector<request>& req)
 {
     std::vector<status> stat;
-    for (auto i = 0; i < req.size(); ++i) {
+    for (std::size_t i = 0; i < req.size(); ++i) {
         stat.emplace_back(req[i].wait());
     }
     return stat;
