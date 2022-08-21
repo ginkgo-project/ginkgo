@@ -164,6 +164,15 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
     ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cudagpu)
 endfunction(ginkgo_create_cuda_test_internal)
 
+# Test python bindings
+function(ginkgo_create_python_test test_name)
+  add_test(
+    NAME ${REL_BINARY_DIR}/${test_name}
+    COMMAND python3 bindings/test/${test_name}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endfunction(ginkgo_create_python_test)
+
+
 ## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name)

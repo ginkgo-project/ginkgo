@@ -400,6 +400,10 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
 endif()
 unset(BASH CACHE)
 
+if(GINKGO_BUILD_PYTHON_BINDINGS)
+  find_package(pybind11)
+  add_subdirectory(bindings/test)
+endif()
 
 # Installation
 include(cmake/information_helpers.cmake)
