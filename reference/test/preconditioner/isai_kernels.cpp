@@ -86,8 +86,10 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(1000u).on(
                           exec),
-                      gko::stop::RelativeResidualNorm<value_type>::build()
-                          .with_tolerance(gko::remove_complex<value_type>{1e-6})
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::rhs_norm)
+                          .with_reduction_factor(
+                              gko::remove_complex<value_type>{1e-6})
                           .on(exec))
                   .on(exec)),
           a_dense{gko::initialize<Dense>({{2, 1, 2}, {1, -2, 3}, {-1, 1, 1}},

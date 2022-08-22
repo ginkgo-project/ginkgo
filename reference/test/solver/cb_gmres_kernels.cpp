@@ -82,7 +82,8 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
@@ -100,7 +101,8 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(this->reduction_factor())
                           .on(exec))
                   .on(exec)),
@@ -275,7 +277,8 @@ TYPED_TEST(CbGmres, SolvesStencilSystem2)
                 gko::stop::Time::build()
                     .with_time_limit(std::chrono::seconds(6))
                     .on(this->exec),
-                gko::stop::ResidualNormReduction<T>::build()
+                gko::stop::ResidualNorm<T>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
@@ -541,7 +544,8 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .on(this->exec);
@@ -568,7 +572,8 @@ TYPED_TEST(CbGmres, SolvesWithPreconditioner)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(this->reduction_factor())
                     .on(this->exec))
             .with_preconditioner(
