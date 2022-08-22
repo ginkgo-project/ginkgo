@@ -156,8 +156,9 @@ int main(int argc, char* argv[])
         cb_gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::RelativeResidualNorm<ValueType>::build()
-                    .with_tolerance(reduction_factor)
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::rhs_norm)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_krylov_dim(100u)
             .with_storage_precision(
@@ -168,8 +169,9 @@ int main(int argc, char* argv[])
         cb_gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::RelativeResidualNorm<ValueType>::build()
-                    .with_tolerance(reduction_factor)
+                gko::stop::ResidualNorm<ValueType>::build()
+                    .with_baseline(gko::stop::mode::rhs_norm)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_krylov_dim(100u)
             .with_storage_precision(

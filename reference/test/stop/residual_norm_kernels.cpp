@@ -549,29 +549,29 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
 
 template <typename T>
-class ResidualNormReduction : public ::testing::Test {
+class ResidualNormWithInitialResnorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
-    ResidualNormReduction()
+    ResidualNormWithInitialResnorm()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::ResidualNormReduction<T>::build()
+        factory_ = gko::stop::ResidualNorm<T>::build()
+                       .with_baseline(gko::stop::mode::initial_resnorm)
                        .with_reduction_factor(r<T>::value)
                        .on(exec_);
     }
 
-    std::unique_ptr<typename gko::stop::ResidualNormReduction<T>::Factory>
-        factory_;
+    std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory_;
     std::shared_ptr<const gko::ReferenceExecutor> exec_;
 };
 
-TYPED_TEST_SUITE(ResidualNormReduction, gko::test::ValueTypes,
+TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
-TYPED_TEST(ResidualNormReduction,
+TYPED_TEST(ResidualNormWithInitialResnorm,
            CanCreateCriterionWithMtxRhsXWithoutInitialRes)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -585,7 +585,7 @@ TYPED_TEST(ResidualNormReduction,
 }
 
 
-TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
+TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
@@ -623,7 +623,8 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalWithoutInitialRes)
+TYPED_TEST(ResidualNormWithInitialResnorm,
+           WaitsTillResidualGoalWithoutInitialRes)
 {
     using T = TypeParam;
     using Mtx = typename TestFixture::Mtx;
@@ -659,7 +660,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalWithoutInitialRes)
 }
 
 
-TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
@@ -701,44 +702,45 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 
 
 template <typename T>
-class RelativeResidualNorm : public ::testing::Test {
+class ResidualNormWithRhsNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
-    RelativeResidualNorm()
+    ResidualNormWithRhsNorm()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::RelativeResidualNorm<T>::build()
-                       .with_tolerance(r<T>::value)
+        factory_ = gko::stop::ResidualNorm<T>::build()
+                       .with_baseline(gko::stop::mode::rhs_norm)
+                       .with_reduction_factor(r<T>::value)
                        .on(exec_);
     }
 
-    std::unique_ptr<typename gko::stop::RelativeResidualNorm<T>::Factory>
-        factory_;
+    std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(RelativeResidualNorm, gko::test::ValueTypes,
+TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
-TYPED_TEST(RelativeResidualNorm, CanCreateFactory)
+TYPED_TEST(ResidualNormWithRhsNorm, CanCreateFactory)
 {
     ASSERT_NE(this->factory_, nullptr);
-    ASSERT_EQ(this->factory_->get_parameters().tolerance, r<TypeParam>::value);
+    ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
+              r<TypeParam>::value);
     ASSERT_EQ(this->factory_->get_executor(), this->exec_);
 }
 
 
-TYPED_TEST(RelativeResidualNorm, CannotCreateCriterionWithoutB)
+TYPED_TEST(ResidualNormWithRhsNorm, CannotCreateCriterionWithoutB)
 {
     ASSERT_THROW(this->factory_->generate(nullptr, nullptr, nullptr, nullptr),
                  gko::NotSupported);
 }
 
 
-TYPED_TEST(RelativeResidualNorm, CanCreateCriterionWithB)
+TYPED_TEST(ResidualNormWithRhsNorm, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
     std::shared_ptr<gko::LinOp> scalar =
@@ -750,7 +752,7 @@ TYPED_TEST(RelativeResidualNorm, CanCreateCriterionWithB)
 }
 
 
-TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
+TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoal)
 {
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
@@ -791,7 +793,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
@@ -1001,44 +1003,45 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
 
 template <typename T>
-class AbsoluteResidualNorm : public ::testing::Test {
+class ResidualNormWithAbsolute : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
-    AbsoluteResidualNorm()
+    ResidualNormWithAbsolute()
     {
         exec_ = gko::ReferenceExecutor::create();
-        factory_ = gko::stop::AbsoluteResidualNorm<T>::build()
-                       .with_tolerance(r<T>::value)
+        factory_ = gko::stop::ResidualNorm<T>::build()
+                       .with_baseline(gko::stop::mode::absolute)
+                       .with_reduction_factor(r<T>::value)
                        .on(exec_);
     }
 
-    std::unique_ptr<typename gko::stop::AbsoluteResidualNorm<T>::Factory>
-        factory_;
+    std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
 
-TYPED_TEST_SUITE(AbsoluteResidualNorm, gko::test::ValueTypes,
+TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
-TYPED_TEST(AbsoluteResidualNorm, CanCreateFactory)
+TYPED_TEST(ResidualNormWithAbsolute, CanCreateFactory)
 {
     ASSERT_NE(this->factory_, nullptr);
-    ASSERT_EQ(this->factory_->get_parameters().tolerance, r<TypeParam>::value);
+    ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
+              r<TypeParam>::value);
     ASSERT_EQ(this->factory_->get_executor(), this->exec_);
 }
 
 
-TYPED_TEST(AbsoluteResidualNorm, CannotCreateCriterionWithoutB)
+TYPED_TEST(ResidualNormWithAbsolute, CannotCreateCriterionWithoutB)
 {
     ASSERT_THROW(this->factory_->generate(nullptr, nullptr, nullptr, nullptr),
                  gko::NotSupported);
 }
 
 
-TYPED_TEST(AbsoluteResidualNorm, CanCreateCriterionWithB)
+TYPED_TEST(ResidualNormWithAbsolute, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
     std::shared_ptr<gko::LinOp> scalar =
@@ -1050,7 +1053,7 @@ TYPED_TEST(AbsoluteResidualNorm, CanCreateCriterionWithB)
 }
 
 
-TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
+TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
@@ -1087,7 +1090,7 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;

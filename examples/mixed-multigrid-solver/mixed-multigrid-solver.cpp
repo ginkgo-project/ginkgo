@@ -116,10 +116,10 @@ int main(int argc, char* argv[])
     const gko::remove_complex<ValueType> tolerance = 1e-12;
     auto iter_stop =
         gko::share(gko::stop::Iteration::build().with_max_iters(100u).on(exec));
-    auto tol_stop =
-        gko::share(gko::stop::AbsoluteResidualNorm<ValueType>::build()
-                       .with_tolerance(tolerance)
-                       .on(exec));
+    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                                   .with_baseline(gko::stop::mode::absolute)
+                                   .with_reduction_factor(tolerance)
+                                   .on(exec));
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();

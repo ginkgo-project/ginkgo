@@ -74,7 +74,8 @@ protected:
                   .with_storage_precision(storage_precision)
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
@@ -85,7 +86,8 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(nc_value_type{1e-6})
                           .on(exec))
                   .on(exec)),
@@ -241,7 +243,8 @@ TYPED_TEST(CbGmres, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_baseline(gko::stop::mode::initial_resnorm)
                     .with_reduction_factor(nc_value_type{1e-6})
                     .on(this->exec))
             .with_preconditioner(

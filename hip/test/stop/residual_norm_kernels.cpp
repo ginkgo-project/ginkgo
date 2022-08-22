@@ -346,27 +346,28 @@ TEST_F(ResidualNorm, WaitsTillResidualGoalMultipleRHSForAbsResNorm)
     ASSERT_TRUE(one_changed);
 }
 
-class ResidualNormReduction : public ::testing::Test {
+class ResidualNormWithInitialResnorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<double>>;
 
-    ResidualNormReduction()
+    ResidualNormWithInitialResnorm()
     {
         ref_ = gko::ReferenceExecutor::create();
         hip_ = gko::HipExecutor::create(0, ref_);
-        factory_ = gko::stop::ResidualNormReduction<>::build()
+        factory_ = gko::stop::ResidualNorm<>::build()
+                       .with_baseline(gko::stop::mode::initial_resnorm)
                        .with_reduction_factor(tol)
                        .on(hip_);
     }
 
-    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
+    std::unique_ptr<gko::stop::ResidualNorm<>::Factory> factory_;
     std::shared_ptr<const gko::HipExecutor> hip_;
     std::shared_ptr<gko::ReferenceExecutor> ref_;
 };
 
 
-TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
+TEST_F(ResidualNormWithInitialResnorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto res_norm = gko::initialize<NormVector>({0.0}, this->ref_);
@@ -409,7 +410,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto res_norm = gko::initialize<NormVector>({{0.0, 0.0}}, this->ref_);
@@ -454,27 +455,28 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 }
 
 
-class RelativeResidualNorm : public ::testing::Test {
+class ResidualNormWithRhsNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<double>>;
 
-    RelativeResidualNorm()
+    ResidualNormWithRhsNorm()
     {
         ref_ = gko::ReferenceExecutor::create();
         hip_ = gko::HipExecutor::create(0, ref_);
-        factory_ =
-            gko::stop::RelativeResidualNorm<>::build().with_tolerance(tol).on(
-                hip_);
+        factory_ = gko::stop::ResidualNorm<>::build()
+                       .with_baseline(gko::stop::mode::rhs_norm)
+                       .with_reduction_factor(tol)
+                       .on(hip_);
     }
 
-    std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
+    std::unique_ptr<gko::stop::ResidualNorm<>::Factory> factory_;
     std::shared_ptr<const gko::HipExecutor> hip_;
     std::shared_ptr<gko::ReferenceExecutor> ref_;
 };
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
+TEST_F(ResidualNormWithRhsNorm, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto d_res = gko::clone(hip_, res);
@@ -517,7 +519,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = gko::clone(hip_, res);
@@ -670,26 +672,27 @@ TEST_F(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 }
 
 
-class AbsoluteResidualNorm : public ::testing::Test {
+class ResidualNormWithAbsolute : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
 
-    AbsoluteResidualNorm()
+    ResidualNormWithAbsolute()
     {
         ref_ = gko::ReferenceExecutor::create();
         hip_ = gko::HipExecutor::create(0, ref_);
-        factory_ =
-            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(tol).on(
-                hip_);
+        factory_ = gko::stop::ResidualNorm<>::build()
+                       .with_baseline(gko::stop::mode::absolute)
+                       .with_reduction_factor(tol)
+                       .on(hip_);
     }
 
-    std::unique_ptr<gko::stop::AbsoluteResidualNorm<>::Factory> factory_;
+    std::unique_ptr<gko::stop::ResidualNorm<>::Factory> factory_;
     std::shared_ptr<const gko::HipExecutor> hip_;
     std::shared_ptr<gko::ReferenceExecutor> ref_;
 };
 
 
-TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
+TEST_F(ResidualNormWithAbsolute, WaitsTillResidualGoal)
 {
     auto res = gko::initialize<Mtx>({100.0}, ref_);
     auto d_res = gko::clone(hip_, res);
@@ -730,7 +733,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 }
 
 
-TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
+TEST_F(ResidualNormWithAbsolute, WaitsTillResidualGoalMultipleRHS)
 {
     auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = gko::clone(hip_, res);

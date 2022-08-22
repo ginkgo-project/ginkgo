@@ -193,8 +193,9 @@ int main(int argc, char* argv[])
     auto solver =
         gko::solver::Cg<>::build()
             .with_preconditioner(gko::preconditioner::Ic<>::build().on(exec))
-            .with_criteria(gko::stop::RelativeResidualNorm<>::build()
-                               .with_tolerance(1e-10)
+            .with_criteria(gko::stop::ResidualNorm<>::build()
+                               .with_baseline(gko::stop::mode::rhs_norm)
+                               .with_reduction_factor(1e-10)
                                .on(exec))
             .on(exec)
             ->generate(stencil_matrix);

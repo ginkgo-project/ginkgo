@@ -296,7 +296,8 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
+                      gko::stop::ResidualNorm<value_type>::build()
+                          .with_baseline(gko::stop::mode::initial_resnorm)
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
@@ -357,7 +358,8 @@ protected:
                     gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(6))
                         .on(exec),
-                    gko::stop::ResidualNormReduction<value_type>::build()
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_baseline(gko::stop::mode::initial_resnorm)
                         .with_reduction_factor(r<value_type>::value)
                         .on(exec))
                 .with_cycle(cycle)
@@ -382,7 +384,8 @@ protected:
                     gko::stop::Time::build()
                         .with_time_limit(std::chrono::seconds(100))
                         .on(exec),
-                    gko::stop::ResidualNormReduction<value_type>::build()
+                    gko::stop::ResidualNorm<value_type>::build()
+                        .with_baseline(gko::stop::mode::initial_resnorm)
                         .with_reduction_factor(r<value_type>::value)
                         .on(exec))
                 .with_cycle(cycle)

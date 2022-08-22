@@ -504,18 +504,6 @@ int main()
                                 .with_baseline(gko::stop::mode::absolute)
                                 .on(exec);
 
-        auto res_red = gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(1e-10)
-                           .on(exec);
-
-        auto rel_res =
-            gko::stop::RelativeResidualNorm<>::build().with_tolerance(1e-10).on(
-                exec);
-
-        auto abs_res =
-            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(1e-10).on(
-                exec);
-
         // stopping_status.hpp
         auto stop_status = gko::stopping_status{};
 
