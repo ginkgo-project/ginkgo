@@ -52,12 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mpi.h>
 
 
-#else
-
-
-using MPI_Op = int;
-
-
 #endif
 
 
@@ -511,6 +505,7 @@ public:
     static constexpr mask_type mpi_non_blocking_communication_mask{mask_type{1}
                                                                    << 25};
 
+#if GINKGO_BUILD_MPI
 
 #define GKO_LOGGER_REGISTER_MPI_EVENT(_id, _event_name, ...)              \
 protected:                                                                \
@@ -575,6 +570,11 @@ public:                                                                   \
                                   MPI_Datatype type, MPI_Op operation,
                                   int root_rank, const MPI_Request* req)
 
+#undef GKO_LOGGER_REGISTER_MPI_EVENT
+
+
+#endif
+
 
 #undef GKO_LOGGER_REGISTER_EVENT
 
@@ -624,6 +624,10 @@ public:                                                                   \
     static constexpr mask_type criterion_events_mask =
         criterion_check_started_mask | criterion_check_completed_mask;
 
+
+#if GINKGO_BUILD_MPI
+
+
     static constexpr mask_type mpi_point_to_point_events_mask =
         mpi_blocking_communication_mask | mpi_non_blocking_communication_mask |
         mpi_point_to_point_communication_started_mask |
@@ -637,6 +641,9 @@ public:                                                                   \
 
     static constexpr mask_type mpi_events_mask =
         mpi_point_to_point_events_mask | mpi_collective_events_mask;
+
+
+#endif
 
     /**
      * Returns true if this logger, when attached to an Executor, needs to be
