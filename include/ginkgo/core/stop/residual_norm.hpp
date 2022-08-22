@@ -312,6 +312,18 @@ protected:
 };
 
 
+// The following classes are deprecated, but they internally reference
+// themselves. To reduce unnecessary warnings, we disable deprecation warnings
+// for the definition of these classes.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
+
 /**
  * The ResidualNormReduction class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
@@ -478,6 +490,13 @@ protected:
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(pop)
+#endif
 
 
 }  // namespace stop
