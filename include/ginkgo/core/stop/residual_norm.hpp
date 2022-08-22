@@ -57,7 +57,7 @@ namespace stop {
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
  *                    $ \frac{|| r ||}{|| r_0||} < \tau $
  *
- * - rhs_resnorm:     Check for tolerance relative to the rhs norm.
+ * - rhs_norm:        Check for tolerance relative to the rhs norm.
  *                    $ \frac{|| r ||}{|| b ||} < \tau $
  *
  * @ingroup stop
@@ -326,13 +326,14 @@ protected:
  * `residual_norm` or the `residual` being set. When any of those is not
  * correctly provided, an exception ::gko::NotSupported() is thrown.
  *
- * @deprecated Please use the class ResidualNorm with the factory parameter
- *             baseline = mode::initial_resnorm
- *
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ResidualNormReduction : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::initial_resnorm")]] ResidualNormReduction
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -379,13 +380,14 @@ protected:
  * right-hand side. If this is not correctly provided, an exception
  * ::gko::NotSupported() is thrown.
  *
- * @deprecated Please use the class ResidualNorm with the factory parameter
- *             baseline = mode::rhs_norm
- *
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::rhs_norm")]] RelativeResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -430,13 +432,14 @@ protected:
  * If this is not correctly provided, an exception ::gko::NotSupported()
  * is thrown.
  *
- * @deprecated Please use the class ResidualNorm with the factory parameter
- *             baseline = mode::absolute
- *
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class AbsoluteResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::absolute")]] AbsoluteResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
