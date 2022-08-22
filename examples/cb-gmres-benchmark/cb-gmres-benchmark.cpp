@@ -51,6 +51,7 @@ struct solver_settings {
 struct solver_result {
     unsigned iters;
     double time_s;
+    double init_res_norm;
     double res_norm;
 };
 
@@ -71,13 +72,25 @@ solver_result benchmark_solver(
     using real_vec = gko::matrix::Dense<RealValueType>;
     constexpr int repeats{1};
     double duration{0};
+    solver_result result{};
     // Make a copy of x, so we can re-use the same initial guess multiple times
     auto x_copy = x->clone();
+
+    auto one = gko::initialize<vec>({1.0}, exec);
+    auto neg_one = gko::initialize<vec>({-1.0}, exec);
+
+    auto res_norm = gko::initialize<real_vec>({0.0}, exec);
+    auto tmp = gko::clone(b);
+
+    A->apply(one, x_copy, neg_one, tmp);
+    tmp->compute_norm2(res_norm);
+    result.init_res_norm = exec->copy_val_to_host(res_norm->get_const_values());
 
     auto iter_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(s_s.stop_iter).on(exec));
     auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
                                    .with_reduction_factor(s_s.stop_rel_res)
+                                   .with_baseline(gko::stop::mode::rhs_norm)
                                    .on(exec));
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
@@ -117,20 +130,14 @@ solver_result benchmark_solver(
     // one, neg_one are objects that represent the numbers which allow for a
     // uniform interface when computing on any device. To compute the residual,
     // the (advanced) apply method is used.
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto neg_one = gko::initialize<vec>({-1.0}, exec);
-
-    auto res_norm = gko::initialize<real_vec>({0.0}, exec);
-    auto tmp = gko::clone(b);
-
     // tmp = Ax - tmp
+    tmp->copy_from(b);
     A->apply(one, x_copy, neg_one, tmp);
     tmp->compute_norm2(res_norm);
 
-    solver_result result{};
     result.iters = logger->get_num_iterations();
     result.time_s = duration / static_cast<double>(repeats);
-    result.res_norm = exec->copy_val_to_host(tmp->get_const_values());
+    result.res_norm = exec->copy_val_to_host(res_norm->get_const_values());
     return result;
 }
 
@@ -196,6 +203,9 @@ int main(int argc, char* argv[])
     // (norm2(b) == 1), followed by copying it to the actual executor
     // (to make sure it also works for GPUs)
     const auto A_size = A->get_size();
+
+    std::cout << "Matrix size: " << A_size[0] << " x " << A_size[1] << '\n';
+
     auto b_host = vec::create(exec->get_master(), gko::dim<2>{A_size[0], 1});
     for (gko::size_type i = 0; i < A_size[0]; ++i) {
         b_host->at(i, 0) =
@@ -205,32 +215,60 @@ int main(int argc, char* argv[])
     b_host->compute_norm2(b_norm);
     auto b = clone(exec, b_host);
 
+    std::cout << "b-norm: " << b_norm->at(0, 0) << '\n';
+
     // As an initial guess, use the right-hand side
-    auto x = clone(b);
+    auto x_host = clone(b_host);
+    for (gko::size_type i = 0; i < A_size[0]; ++i) {
+        x_host->at(i, 0) = 0;
+    }
+    auto x = clone(exec, x_host);
 
-    solver_settings s_s{};
-    s_s.stop_iter = 20000u;
-    s_s.stop_rel_res = 1e-6;
-    s_s.krylov_dim = 100u;
-    s_s.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
+    // Default_settings
+    solver_settings default_ss{};
+    default_ss.stop_iter = 2000u;
+    default_ss.stop_rel_res = 1e-6;
+    default_ss.krylov_dim = 100u;
+    default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
 
-    // Solve both system and measure the time for each.
-    auto keep = benchmark_solver(exec, s_s, A, b.get(), x.get());
-    s_s.storage_prec = gko::solver::cb_gmres::storage_precision::use_sz;
-    auto sz = benchmark_solver(exec, s_s, A, b.get(), x.get());
-    s_s.storage_prec = gko::solver::cb_gmres::storage_precision::reduce1;
-    auto reduce = benchmark_solver(exec, s_s, A, b.get(), x.get());
+    struct bench_type {
+        std::string name;
+        solver_settings settings;
+        solver_result result;
+    };
+
+    std::array<bench_type, 3> benchmarks = {
+        bench_type{"keep",
+                   {default_ss.krylov_dim, default_ss.stop_iter,
+                    default_ss.stop_rel_res,
+                    gko::solver::cb_gmres::storage_precision::keep},
+                   {}},
+        bench_type{"reduce1",
+                   {default_ss.krylov_dim, default_ss.stop_iter,
+                    default_ss.stop_rel_res,
+                    gko::solver::cb_gmres::storage_precision::reduce1},
+                   {}},
+        bench_type{"use_sz",
+                   {default_ss.krylov_dim, default_ss.stop_iter,
+                    default_ss.stop_rel_res,
+                    gko::solver::cb_gmres::storage_precision::use_sz},
+                   {}},
+    };
 
     // Make sure the output is in scientific notation for easier comparison
     std::cout << std::scientific;
+
     // Note: The time might not be significantly different since the matrix is
     //       quite small
-    std::cout << "Solve time without compression: " << keep.time_s << " s\n"
-              << "Solve time with compression:    " << sz.time_s << " s\n";
-    std::cout << "Number iterations without compression: " << keep.iters << '\n'
-              << "Number iterations with compression:    " << sz.iters << '\n';
-
-    std::cout << "\nResidual norm without compression: " << keep.res_norm;
-
-    std::cout << "\nResidual norm with compression:    " << sz.res_norm << '\n';
+    for (auto&& val : benchmarks) {
+        val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
+        std::cout << val.name << " time: " << val.result.time_s << " s" << '\n'
+                  << val.name << " iters: " << val.result.iters << '\n'
+                  << val.name
+                  << " res norm before: " << val.result.init_res_norm << '\n'
+                  << val.name << " res norm after: " << val.result.res_norm
+                  << '\n'
+                  << val.name << " rel_res_norm: "
+                  << val.result.res_norm / val.result.init_res_norm << '\n';
+    }
 }

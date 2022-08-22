@@ -211,7 +211,7 @@ struct compression_helper {
         if (use_sz_) {
             register_frsz();
             pc_ = plibrary_.get_compressor("frsz");
-            pc_->set_options({{"frsz:epsilon", 1e-15}});
+            pc_->set_options({{"frsz:epsilon", 1e-3}});
             for (size_type i = 0; i < p_data_vec_.size(); ++i) {
                 p_data_vec_[i] =
                     pressio_data::owning(pressio_double_dtype, {num_rows_});
