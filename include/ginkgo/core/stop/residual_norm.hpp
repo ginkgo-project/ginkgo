@@ -326,6 +326,9 @@ protected:
  * `residual_norm` or the `residual` being set. When any of those is not
  * correctly provided, an exception ::gko::NotSupported() is thrown.
  *
+ * @deprecated Please use the class ResidualNorm with the factory parameter
+ *             baseline = mode::initial_resnorm
+ *
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
@@ -380,6 +383,9 @@ protected:
  * right-hand side. If this is not correctly provided, an exception
  * ::gko::NotSupported() is thrown.
  *
+ * @deprecated Please use the class ResidualNorm with the factory parameter
+ *             baseline = mode::rhs_norm
+ *
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
@@ -431,6 +437,9 @@ protected:
  * constructor depends on `b` in order to get the number of right-hand sides.
  * If this is not correctly provided, an exception ::gko::NotSupported()
  * is thrown.
+ *
+ * @deprecated Please use the class ResidualNorm with the factory parameter
+ *             baseline = mode::absolute
  *
  * @ingroup stop
  */
