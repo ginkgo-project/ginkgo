@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <random>
 #include <string>
@@ -124,24 +125,24 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_mask(
 }
 
 
-void print(int i, std::uint64_t n)
+void print(int i, std::uint64_t n, std::ostream& output)
 {
     std::uint64_t cap[] = {0xFFFull << (4 * 12), 0xFFFull << (3 * 12),
                            0xFFFull << (2 * 12), 0xFFFull << (1 * 12),
                            0xFFFull << (0 * 12)};
-    std::cout << std::setw(6) << i;
+    output << std::setw(6) << i;
     for (int i = 0; i < 5; i++) {
-        std::cout << ", " << std::setw(6) << ((n & cap[i]) >> ((4 - i) * 12));
+        output << ", " << std::setw(6) << ((n & cap[i]) >> ((4 - i) * 12));
     }
-    std::cout << std::endl;
+    output << std::endl;
 }
 
-void print_time(int i, std::uint64_t n)
+void print_time(int i, std::uint64_t n, std::ostream& output)
 {
     // std::cout << std::setw(6);
-    std::cout << std::setw(6) << i << ", " << std::setw(40)
-              << ((n >> 32) & 0xFFFFFFFF) << ", " << std::setw(40)
-              << (n & 0xFFFFFFFF) << std::endl;
+    output << std::setw(6) << i << ", " << std::setw(40)
+           << ((n >> 32) & 0xFFFFFFFF) << ", " << std::setw(40)
+           << (n & 0xFFFFFFFF) << std::endl;
     // std::cout << std::endl;
 }
 
@@ -155,9 +156,9 @@ double avg(std::vector<double>& input)
 double quartile(std::vector<double>& input, int th)
 {
     if (th == 4) {
-        return input.front();
-    } else if (th == 0) {
         return input.back();
+    } else if (th == 0) {
+        return input.front();
     } else {
         int k = (th * (input.size() + 1) / 4) - 1;
         double alpha = (th * (input.size() + 1) / 4.0) - k;
@@ -271,7 +272,7 @@ int main(int argc, char* argv[])
     auto solver = solver_gen->generate(A);
 
     // warmup
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 10; i++) {
         auto x_clone = x->clone();
         exec->synchronize();
         solver->apply(lend(b), lend(x_clone));
@@ -306,14 +307,32 @@ int main(int argc, char* argv[])
             b_clone->compute_norm2(residual_norm.get());
             norm.at(i) = exec->copy_val_to_host(residual_norm->get_values()) /
                          initial_norm;
+        } else {
+            auto host_x = x_clone->clone(exec->get_master());
+            std::stringstream output_file;
+            output_file << "grid" << problem_size << "_2/" << check_string
+                        << "_update" << iteration << "_re" << i << ".csv";
+            std::ofstream output(output_file.str());
+            for (int i = 0; i < host_x->get_size()[0]; i++) {
+                std::uint64_t n = 0;
+                std::memcpy(&n, host_x->get_const_values() + i,
+                            sizeof(std::uint64_t));
+                if (check_string == "time") {
+                    print_time(i, n, output);
+                } else {
+                    print(i, n, output);
+                }
+            }
         }
         std::chrono::duration<double> duration_time = stop - start;
         time.at(i) = duration_time.count();
     }
-    std::cout << "             , mean, min, q1, median, q3, max" << std::endl;
+
+    std::cout << type_string << " grid " << problem_size << " update "
+              << iteration << ", mean, min, q1, median, q3, max" << std::endl;
     std::sort(time.begin(), time.end());
-    std::cout << "time         , " << avg(time) << ", " << quartile(time, 0)
-              << ", " << quartile(time, 1) << ", " << quartile(time, 2) << ", "
+    std::cout << "time, " << avg(time) << ", " << quartile(time, 0) << ", "
+              << quartile(time, 1) << ", " << quartile(time, 2) << ", "
               << quartile(time, 3) << ", " << quartile(time, 4) << std::endl;
     if (check_string == "normal") {
         std::sort(norm.begin(), norm.end());
@@ -321,20 +340,5 @@ int main(int argc, char* argv[])
                   << ", " << quartile(norm, 1) << ", " << quartile(norm, 2)
                   << ", " << quartile(norm, 3) << ", " << quartile(norm, 4)
                   << std::endl;
-    } else {
-        solver->apply(lend(b), lend(x));
-        exec->synchronize();
-        auto host_x = x->clone(exec->get_master());
-        for (int i = 0; i < x->get_size()[0]; i++) {
-            std::uint64_t n = 0;
-            std::memcpy(&n, host_x->get_const_values() + i,
-                        sizeof(std::uint64_t));
-
-            if (check_string == "time") {
-                print_time(i, n);
-            } else {
-                print(i, n);
-            }
-        }
     }
 }
