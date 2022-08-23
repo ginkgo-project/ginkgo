@@ -302,7 +302,7 @@ public:
 };
 
 
-using partial_logger = std::function<void(const request*)>;
+using partial_logger = std::function<void(request*)>;
 
 
 }  // namespace
@@ -356,8 +356,11 @@ public:
     /**
      * The default constructor. It creates a null MPI_Request of
      * MPI_REQUEST_NULL type.
+     *
+     * @param logger a function accepting a request*. Mostly used to log
+     *               the completion of a non-blocking communication.
      */
-    explicit request(partial_logger logger = [](const request*) {})
+    explicit request(partial_logger logger = [](request*) {})
         : req_(MPI_REQUEST_NULL), partial_logger_(std::move(logger))
     {}
 
@@ -546,7 +549,18 @@ public:
      */
     void synchronize() const
     {
+        auto type = MPI_DATATYPE_NULL;
+        this->template log<
+            log::Logger::blocking_mpi_collective_communication_started>(
+            "barrier", comm_.get(), 0, 0, nullptr, nullptr, &type, 0, 0,
+            nullptr, nullptr, &type, log::Logger::unspecified_mpi_rank,
+            nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(this->get()));
+        this->template log<
+            log::Logger::blocking_mpi_collective_communication_completed>(
+            "barrier", comm_.get(), 0, 0, nullptr, nullptr, &type, 0, 0,
+            nullptr, nullptr, &type, log::Logger::unspecified_mpi_rank,
+            nullptr);
     }
 
     /**
@@ -572,7 +586,7 @@ public:
         this->template log<
             log::Logger::blocking_mpi_point_to_point_communication_started>(
             "send", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-            send_count, type, log::Logger::unspecified_mpi_rank,
+            send_count, &type, log::Logger::unspecified_mpi_rank,
             destination_rank, send_tag, nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Send(send_buffer, send_count, type,
                                           destination_rank, send_tag,
@@ -580,7 +594,7 @@ public:
         this->template log<
             log::Logger::blocking_mpi_point_to_point_communication_completed>(
             "send", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-            send_count, type, this->rank(), destination_rank, send_tag,
+            send_count, &type, this->rank(), destination_rank, send_tag,
             nullptr);
     }
 
@@ -607,18 +621,18 @@ public:
     {
         auto guard = exec->get_scoped_device_id_guard();
         auto type = type_impl<SendType>::get_type();
-        request req([&](const request* req) {
+        request req([&](request* req) {
             this->template log<
                 log::Logger::
                     non_blocking_mpi_point_to_point_communication_completed>(
                 "send", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-                send_count, type, this->rank(), destination_rank, send_tag,
-                req);
+                send_count, &type, this->rank(), destination_rank, send_tag,
+                req->get());
         });
         this->template log<
             log::Logger::non_blocking_mpi_point_to_point_communication_started>(
             "send", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-            send_count, type, this->rank(), destination_rank, send_tag,
+            send_count, &type, this->rank(), destination_rank, send_tag,
             nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -649,11 +663,6 @@ public:
         auto guard = exec->get_scoped_device_id_guard();
         status st;
         auto type = type_impl<RecvType>::get_type();
-        this->template log<
-            log::Logger::blocking_mpi_point_to_point_communication_started>(
-            "send", comm_.get(), reinterpret_cast<uintptr>(recv_buffer),
-            recv_count, type, source_rank, log::Logger::unspecified_mpi_rank,
-            recv_tag, nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                      source_rank, recv_tag, this->get(), st.get()));
@@ -709,10 +718,15 @@ public:
         this->template log<
             log::Logger::blocking_mpi_collective_communication_started>(
             "broadcast", comm_.get(), reinterpret_cast<uintptr>(buffer), count,
-            nullptr, nullptr, type, reinterpret_cast<uintptr>(buffer), count,
-            nullptr, nullptr, type, root_rank, nullptr);
+            nullptr, nullptr, &type, reinterpret_cast<uintptr>(buffer), count,
+            nullptr, nullptr, &type, root_rank, nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Bcast(buffer, count, type, root_rank, this->get()));
+        this->template log<
+            log::Logger::blocking_mpi_collective_communication_completed>(
+            "broadcast", comm_.get(), reinterpret_cast<uintptr>(buffer), count,
+            nullptr, nullptr, &type, reinterpret_cast<uintptr>(buffer), count,
+            nullptr, nullptr, &type, root_rank, nullptr);
     }
 
     /**
@@ -1243,19 +1257,18 @@ public:
         this->template log<
             log::Logger::blocking_mpi_collective_communication_started>(
             "all_to_all", comm_.get(), reinterpret_cast<uintptr>(recv_buffer),
-            recv_count, nullptr, nullptr, type,
+            recv_count, nullptr, nullptr, &type,
             reinterpret_cast<uintptr>(recv_buffer), recv_count, nullptr,
-            nullptr, type, log::Logger::unspecified_mpi_rank, nullptr);
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
-            MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
-            recv_buffer, recv_count, type_impl<RecvType>::get_type(),
-            this->get()));
+            nullptr, &type, log::Logger::unspecified_mpi_rank, nullptr);
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(MPI_IN_PLACE, recv_count, type,
+                                              recv_buffer, recv_count, type,
+                                              this->get()));
         this->template log<
             log::Logger::blocking_mpi_collective_communication_completed>(
             "all_to_all", comm_.get(), reinterpret_cast<uintptr>(recv_buffer),
-            recv_count, nullptr, nullptr, type,
+            recv_count, nullptr, nullptr, &type,
             reinterpret_cast<uintptr>(recv_buffer), recv_count, nullptr,
-            nullptr, type, log::Logger::unspecified_mpi_rank, nullptr);
+            nullptr, &type, log::Logger::unspecified_mpi_rank, nullptr);
     }
 
     /**
@@ -1411,6 +1424,12 @@ public:
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
             recv_counts, recv_offsets, recv_type, this->get()));
+        this->template log<
+            log::Logger::blocking_mpi_collective_communication_completed>(
+            "all_to_all_v", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
+            0, send_counts, send_offsets, send_type,
+            reinterpret_cast<uintptr>(recv_buffer), 0, recv_counts,
+            recv_offsets, recv_type, log::Logger::unspecified_mpi_rank, nullptr);
     }
 
     /**
@@ -1502,11 +1521,14 @@ public:
         auto type = type_impl<ScanType>::get_type();
         this->template log<log::Logger::blocking_mpi_reduction_started>(
             "scan", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-            reinterpret_cast<uintptr>(recv_buffer), count, type, operation,
+            reinterpret_cast<uintptr>(recv_buffer), count, &type, &operation,
             log::Logger::unspecified_mpi_rank, nullptr);
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
-                                          type_impl<ScanType>::get_type(),
+        GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count, type,
                                           operation, this->get()));
+        this->template log<log::Logger::blocking_mpi_reduction_completed>(
+            "scan", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
+            reinterpret_cast<uintptr>(recv_buffer), count, &type, &operation,
+            log::Logger::unspecified_mpi_rank, nullptr);
     }
 
     /**
