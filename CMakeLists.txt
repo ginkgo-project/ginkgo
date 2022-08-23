@@ -401,6 +401,7 @@ endif()
 unset(BASH CACHE)
 
 if(GINKGO_BUILD_PYTHON_BINDINGS)
+  find_package(Python REQUIRED COMPONENTS Interpreter Development)
   find_package(pybind11)
   add_subdirectory(bindings/test)
 endif()

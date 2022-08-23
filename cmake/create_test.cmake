@@ -168,7 +168,9 @@ endfunction(ginkgo_create_cuda_test_internal)
 function(ginkgo_create_python_test test_name)
   add_test(
     NAME ${REL_BINARY_DIR}/${test_name}
-    COMMAND python3 bindings/test/${test_name}
+    COMMAND ${CMAKE_COMMAND} -E env
+        PYTHONPATH=${CMAKE_BINARY_DIR}/third_party:$ENV{PYTHONPATH}
+        ${PYTHON_EXECUTABLE} bindings/test/${test_name}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endfunction(ginkgo_create_python_test)
 
