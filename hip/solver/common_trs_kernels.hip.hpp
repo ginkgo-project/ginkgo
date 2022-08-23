@@ -189,7 +189,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType>* b,
                   matrix::Dense<ValueType>* x)
 {
-    if (matrix->get_size()[0] == 0) {
+    if (matrix->get_size()[0] == 0 || b->get_size()[1] == 0) {
         return;
     }
     using vec = matrix::Dense<ValueType>;
