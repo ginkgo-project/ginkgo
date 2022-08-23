@@ -548,12 +548,8 @@ public:                                                                   \
                      (_id < event_count_max)>                             \
     on(Params&&... params) const                                          \
     {                                                                     \
-        if (enabled_events_ & mask_type{1} << _id &&                      \
-            ((Event & size_type{1} &&                                     \
-              enabled_events_ & mpi_blocking_communication_mask) ||       \
-             (!(Event & size_type{1}) &&                                  \
-              enabled_events_ & mpi_non_blocking_communication_mask))) {  \
-            this->on_##_event_name(Event& size_type{1},                   \
+        if (enabled_events_ & (mask_type{1} << Event)) {                  \
+            this->on_##_event_name(Event == blocking_##_event_name,       \
                                    std::forward<Params>(params)...);      \
         }                                                                 \
     }                                                                     \
