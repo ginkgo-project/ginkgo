@@ -69,7 +69,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    constexpr int subwarp_size = 1;
+    constexpr int subwarp_size = 2;
     dim3 grid(ceildiv(a->get_size()[0], default_block_size / subwarp_size),
               b->get_size()[1]);
     if (check == "time") {

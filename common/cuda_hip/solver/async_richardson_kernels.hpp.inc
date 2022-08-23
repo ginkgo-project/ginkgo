@@ -94,7 +94,7 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
         const auto rhs = b[row * b_stride + column_id];
         for (int i = 0; i < iteration; i++) {
             const auto ind_end = row_ptrs[row + 1];
-            unsigned long long temp_val = 1 << (2 * 12);
+            unsigned long long temp_val = 0;
             for (auto ind = row_ptrs[row] + subid; ind < ind_end;
                  ind += subwarp_size) {
                 temp_val +=
@@ -108,7 +108,8 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
             auto subwarp_result =
                 reduce(subwarp_tile, temp_val,
                        [](const unsigned long long& a,
-                          const unsigned long long& b) { return a + b; });
+                          const unsigned long long& b) { return a + b; }) +
+                (1 << (2 * 12));
             if (subid == 0) {
                 // c[row * c_stride + column_id] +=
                 //     alpha_val * (rhs - subwarp_result);
@@ -140,7 +141,7 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
         const auto rhs = b[row * b_stride + column_id];
         for (int i = 0; i < iteration; i++) {
             const auto ind_end = row_ptrs[row + 1];
-            unsigned long long temp_val = 1 << (2 * 12);
+            unsigned long long temp_val = 0;
             for (auto ind = row_ptrs[row] + subid; ind < ind_end;
                  ind += subwarp_size) {
                 temp_val +=
@@ -154,7 +155,8 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
             auto subwarp_result =
                 reduce(subwarp_tile, temp_val,
                        [](const unsigned long long& a,
-                          const unsigned long long& b) { return a + b; });
+                          const unsigned long long& b) { return a + b; }) +
+                (1 << (2 * 12));
             if (subid == 0) {
                 // c[row * c_stride + column_id] +=
                 //     alpha_val * (rhs - subwarp_result);
@@ -166,8 +168,11 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
                 } else {
                     c[row * c_stride + column_id] =
                         static_cast<ValueType>(reinterpret<double>(
-                            (1 - alpha_val) * subwarp_result)) +
-                        (1 - alpha_val) * rhs + c[row * c_stride + column_id];
+                            (1 - alpha_val) * subwarp_result +
+                            reinterpret<unsigned long long>(static_cast<double>(
+                                real(c[row * c_stride + column_id]))) +
+                            (1 << (2 * 12)))) +
+                        (1 - alpha_val) * rhs;
                 }
             }
             __threadfence();
