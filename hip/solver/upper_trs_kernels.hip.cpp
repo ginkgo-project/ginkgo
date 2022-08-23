@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "hip/base/hipsparse_bindings.hip.hpp"
@@ -73,7 +73,8 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const HipExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
-              bool unit_diag, const gko::size_type num_rhs)
+              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              const size_type num_rhs)
 {
     generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
                                           true, unit_diag);
@@ -87,6 +88,7 @@ template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const HipExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
+           const solver::trisolve_algorithm algorithm,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {

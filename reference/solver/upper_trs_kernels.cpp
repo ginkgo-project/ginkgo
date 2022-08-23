@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 namespace gko {
@@ -66,7 +66,8 @@ template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
-              bool unit_diag, const gko::size_type num_rhs)
+              bool unit_diag, const solver::trisolve_algorithm algorithm,
+              const size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -86,6 +87,7 @@ template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
+           const solver::trisolve_algorithm algorithm,
            matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
 {

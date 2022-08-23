@@ -34,15 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_UPPER_TRS_KERNELS_HPP_
 
 
-#include <ginkgo/core/solver/upper_trs.hpp>
-
-
 #include <memory>
 
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"
@@ -58,17 +56,19 @@ namespace upper_trs {
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)              \
-    void generate(std::shared_ptr<const DefaultExecutor> exec,             \
-                  const matrix::Csr<_vtype, _itype>* matrix,               \
-                  std::shared_ptr<gko::solver::SolveStruct>& solve_struct, \
-                  bool unit_diag, const gko::size_type num_rhs)
+#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)                 \
+    void generate(std::shared_ptr<const DefaultExecutor> exec,                \
+                  const matrix::Csr<_vtype, _itype>* matrix,                  \
+                  std::shared_ptr<solver::SolveStruct>& solve_struct,         \
+                  bool unit_diag, const solver::trisolve_algorithm algorithm, \
+                  const size_type num_rhs)
 
 
 #define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
     void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
                const matrix::Csr<_vtype, _itype>* matrix,                      \
                const solver::SolveStruct* solve_struct, bool unit_diag,        \
+               const solver::trisolve_algorithm algorithm,                     \
                matrix::Dense<_vtype>* trans_b, matrix::Dense<_vtype>* trans_x, \
                const matrix::Dense<_vtype>* b, matrix::Dense<_vtype>* x)
 

@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/lower_trs.hpp>
-
-
 #include <memory>
 #include <random>
 
@@ -47,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
@@ -133,12 +131,14 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 }
 
 
-TEST_F(LowerTrs, CudaSingleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(LowerTrs, CudaSingleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 1);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+    auto d_lower_trs_factory =
+        gko::solver::LowerTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
@@ -164,14 +164,16 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
-TEST_F(LowerTrs, CudaMultipleRhsApplyClassicalIsEquivalentToRef)
+TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 3);
     auto lower_trs_factory =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_lower_trs_factory =
-        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
-    d_csr_mtx->set_strategy(std::make_shared<CsrMtx::classical>());
+        gko::solver::LowerTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_num_rhs(3u)
+            .on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     auto db2_strided = Mtx::create(cuda, b->get_size(), 4);

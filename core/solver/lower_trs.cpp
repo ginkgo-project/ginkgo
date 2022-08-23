@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/lower_trs.hpp>
-
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -42,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
@@ -87,6 +84,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     if (this != &other) {
         EnableLinOp<LowerTrs>::operator=(other);
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
+        this->parameters_ = other.parameters_;
         this->generate();
     }
     return *this;
@@ -100,6 +98,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     if (this != &other) {
         EnableLinOp<LowerTrs>::operator=(std::move(other));
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
+        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {
             this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
         } else {
@@ -136,7 +135,8 @@ void LowerTrs<ValueType, IndexType>::generate()
     if (this->get_system_matrix()) {
         this->get_executor()->run(lower_trs::make_generate(
             this->get_system_matrix().get(), this->solve_struct_,
-            this->get_parameters().unit_diagonal, parameters_.num_rhs));
+            this->get_parameters().unit_diagonal, parameters_.algorithm,
+            parameters_.num_rhs));
     }
 }
 
@@ -178,8 +178,8 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             }
             exec->run(lower_trs::make_solve(
                 lend(this->get_system_matrix()), lend(this->solve_struct_),
-                this->get_parameters().unit_diagonal, trans_b, trans_x, dense_b,
-                dense_x));
+                this->get_parameters().unit_diagonal, parameters_.algorithm,
+                trans_b, trans_x, dense_b, dense_x));
         },
         b, x);
 }

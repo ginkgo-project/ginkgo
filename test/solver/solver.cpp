@@ -54,8 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -83,6 +82,8 @@ struct SimpleSolverTest {
     static bool is_preconditionable() { return true; }
 
     static bool will_not_allocate() { return true; }
+
+    static bool supports_wide_vectors() { return true; }
 
     static double tolerance() { return 1e4 * r<value_type>::value; }
 
@@ -280,20 +281,25 @@ struct LowerTrs : SimpleSolverTest<gko::solver::LowerTrs<solver_value_type>> {
 
     static bool is_preconditionable() { return false; }
 
+#ifdef GKO_COMPILING_CUDA
+    // cuSPARSE bug related to inputs with more than 32 rhs
+    static bool supports_wide_vectors() { return false; }
+#endif
+
     static double tolerance() { return r<value_type>::value; }
 
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
         gko::utils::make_hpd(data, 1.2);
-        gko::utils::make_lower_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build();
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::sparselib);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -325,20 +331,25 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
 
     static bool is_preconditionable() { return false; }
 
+#ifdef GKO_COMPILING_CUDA
+    // cuSPARSE bug related to inputs with more than 32 rhs
+    static bool supports_wide_vectors() { return false; }
+#endif
+
     static double tolerance() { return r<value_type>::value; }
 
     static void preprocess(gko::matrix_data<value_type, index_type>& data)
     {
         // make sure the diagonal is nonzero
         gko::utils::make_hpd(data, 1.2);
-        gko::utils::make_upper_triangular(data);
     }
 
     static typename solver_type::parameters_type build(
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count)
     {
-        return solver_type::build();
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::sparselib);
     }
 
     static typename solver_type::parameters_type build_preconditioned(
@@ -360,6 +371,84 @@ struct UpperTrs : SimpleSolverTest<gko::solver::UpperTrs<solver_value_type>> {
     }
 
     static constexpr bool logs_iteration_complete() { return false; }
+};
+
+
+struct LowerTrsUnitdiag : LowerTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct UpperTrsUnitdiag : UpperTrs {
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::sparselib)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct LowerTrsSyncfree : LowerTrs {
+    static bool supports_wide_vectors() { return true; }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::syncfree);
+    }
+};
+
+
+struct UpperTrsSyncfree : UpperTrs {
+    static bool supports_wide_vectors() { return true; }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build().with_algorithm(
+            gko::solver::trisolve_algorithm::syncfree);
+    }
+};
+
+
+struct LowerTrsSyncfreeUnitdiag : LowerTrs {
+    static bool supports_wide_vectors() { return true; }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_unit_diagonal(true);
+    }
+};
+
+
+struct UpperTrsSyncfreeUnitdiag : UpperTrs {
+    static bool supports_wide_vectors() { return true; }
+
+    static typename solver_type::parameters_type build(
+        std::shared_ptr<const gko::Executor> exec,
+        gko::size_type iteration_count)
+    {
+        return solver_type::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_unit_diagonal(true);
+    }
 };
 
 
@@ -685,12 +774,12 @@ protected:
             guarded_fn(gen_in_vec<VecType>(solver, 2, 3),
                        gen_out_vec<VecType>(solver, 2, 4));
         }
-        {
+        if (Config::supports_wide_vectors()) {
             SCOPED_TRACE("Multivector with 40 columns");
             guarded_fn(gen_in_vec<VecType>(solver, 40, 40),
                        gen_out_vec<VecType>(solver, 40, 40));
         }
-        {
+        if (Config::supports_wide_vectors()) {
             SCOPED_TRACE("Strided multivector with 40 columns");
             guarded_fn(gen_in_vec<VecType>(solver, 40, 43),
                        gen_out_vec<VecType>(solver, 40, 45));
@@ -718,7 +807,13 @@ using SolverTypes =
                      /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, CbGmres<2>, CbGmres<10>, Gmres<2>, Gmres<10>, LowerTrs,
-                     UpperTrs>;
+                     UpperTrs, LowerTrsUnitdiag, UpperTrsUnitdiag
+#ifdef GKO_COMPILING_CUDA
+                     ,
+                     LowerTrsSyncfree, UpperTrsSyncfree,
+                     LowerTrsSyncfreeUnitdiag, UpperTrsSyncfreeUnitdiag
+#endif  // GKO_COMPILING_CUDA
+                     >;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
