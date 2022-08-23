@@ -43,6 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+#if GINKGO_BUILD_MPI
+
+
+#include <mpi.h>
+
+
+#endif
+
+
 namespace gko {
 
 /**
@@ -226,6 +235,9 @@ struct criterion_data {
 };
 
 
+#if GINKGO_BUILD_MPI
+
+
 struct mpi_point_to_point_data {
     bool is_blocking;
     std::string operation_name;
@@ -259,6 +271,8 @@ struct mpi_collective_data {
     MPI_Request request;
 };
 
+
+#endif
 
 /**
  * Record is a Logger which logs every event to an object. The object can
@@ -445,45 +459,53 @@ public:
         const LinOp* residual_norm,
         const LinOp* implicit_sq_residual_norm) const override;
 
+
+#if GINKGO_BUILD_MPI
+
+
     void on_mpi_point_to_point_communication_started(
-        bool is_blocking, const char* name, const MPI_Comm* comm,
-        const uintptr& loc, int size, MPI_Datatype type, int source_rank,
-        int destination_rank, int tag, const MPI_Request* req) const override;
+        bool is_blocking, const char* name, const void* comm,
+        const uintptr& loc, int size, const void* type, int source_rank,
+        int destination_rank, int tag, const void* req) const override;
 
     void on_mpi_point_to_point_communication_completed(
-        bool is_blocking, const char* name, const MPI_Comm* comm,
-        const uintptr& loc, int size, MPI_Datatype type, int source_rank,
-        int destination_rank, int tag, const MPI_Request* req) const override;
+        bool is_blocking, const char* name, const void* comm,
+        const uintptr& loc, int size, const void* type, int source_rank,
+        int destination_rank, int tag, const void* req) const override;
 
     void on_mpi_collective_communication_started(
-        bool is_blocking, const char* name, const MPI_Comm* comm,
+        bool is_blocking, const char* name, const void* comm,
         const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, MPI_Datatype send_type,
+        const int* send_displacements, const void* send_type,
         const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
-        const MPI_Request* req) const override;
+        const int* recv_displacements, const void* recv_type, int root_rank,
+        const void* req) const override;
 
     void on_mpi_collective_communication_completed(
-        bool is_blocking, const char* name, const MPI_Comm* comm,
+        bool is_blocking, const char* name, const void* comm,
         const uintptr& send_loc, int send_size, const int* send_sizes,
-        const int* send_displacements, MPI_Datatype send_type,
+        const int* send_displacements, const void* send_type,
         const uintptr& recv_loc, int recv_size, const int* recv_sizes,
-        const int* recv_displacements, MPI_Datatype recv_type, int root_rank,
-        const MPI_Request* req);
+        const int* recv_displacements, const void* recv_type, int root_rank,
+        const void* req) const override;
 
     void on_mpi_reduction_started(bool is_blocking, const char* name,
-                                  const MPI_Comm* comm,
-                                  const uintptr& send_buffer,
+                                  const void* comm, const uintptr& send_buffer,
                                   const uintptr& recv_buffer, int size,
-                                  MPI_Datatype type, MPI_Op operation,
-                                  int root_rank, const MPI_Request* req);
+                                  const void* type, const void* operation,
+                                  int root_rank,
+                                  const void* req) const override;
 
     void on_mpi_reduction_completed(bool is_blocking, const char* name,
-                                    const MPI_Comm* comm,
+                                    const void* comm,
                                     const uintptr& send_buffer,
                                     const uintptr& recv_buffer, int size,
-                                    MPI_Datatype type, MPI_Op operation,
-                                    int root_rank, const MPI_Request* req);
+                                    const void* type, const void* operation,
+                                    int root_rank,
+                                    const void* req) const override;
+
+
+#endif
 
 
     /**
