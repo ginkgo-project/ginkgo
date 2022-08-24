@@ -148,70 +148,23 @@ solver_result benchmark_solver(
 }
 
 
-int main(int argc, char* argv[])
+template <typename ValueType, typename IndexType>
+void run_benchmarks(std::shared_ptr<gko::Executor> exec,
+                    const std::string matrix_path, const unsigned max_iters,
+                    const double rel_res_norm)
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
-    using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
-    using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using real_vec = gko::matrix::Dense<RealValueType>;
-    // The gko::matrix::Csr class is used here, but any other matrix class such
-    // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
-    // gko::matrix::Sellp could also be used.
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    // The gko::solver::CbGmres is used here, but any other solver class can
-    // also be used.
     using cb_gmres = gko::solver::CbGmres<ValueType>;
 
-    // Print the ginkgo version information.
-    // std::cout << gko::version_info::get() << std::endl;
+    auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
 
-    if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
-        std::exit(-1);
-    }
-
-    // Map which generates the appropriate executor
-    const auto executor_string = "omp";  // argc >= 2 ? argv[1] : "omp";
-    const std::string matrix_string = argc >= 2 ? argv[1] : "data/A.mtx";
-    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
-        exec_map{
-            {"omp", [] { return gko::OmpExecutor::create(); }},
-            {"cuda",
-             [] {
-                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
-                                                  true);
-             }},
-            {"hip",
-             [] {
-                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
-                                                 true);
-             }},
-            {"dpcpp",
-             [] {
-                 return gko::DpcppExecutor::create(0,
-                                                   gko::OmpExecutor::create());
-             }},
-            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
-
-    // executor where Ginkgo will perform the computation
-    const auto exec = exec_map.at(executor_string)();  // throws if not valid
-
-    // Note: this matrix is copied from "SOURCE_DIR/matrices" instead of from
-    //       the local directory. For details, see
-    //       "examples/cb-gmres/CMakeLists.txt"
-    auto A = share(gko::read<mtx>(std::ifstream(matrix_string), exec));
-    // Create a uniform right-hand side with a norm2 of 1 on the host
-    // (norm2(b) == 1), followed by copying it to the actual executor
-    // (to make sure it also works for GPUs)
     const auto A_size = A->get_size();
 
     std::cout << "Matrix: "
-              << matrix_string.substr(matrix_string.find_last_of('/') + 1)
+              << matrix_path.substr(matrix_path.find_last_of('/') + 1)
               << "; size: " << A_size[0] << " x " << A_size[1] << '\n';
 
     auto b_host = vec::create(exec->get_master(), gko::dim<2>{A_size[0], 1});
@@ -242,23 +195,28 @@ int main(int argc, char* argv[])
     using precond_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     // Default_settings
     solver_settings default_ss{};
-    default_ss.stop_iter = 2000u;
-    default_ss.stop_rel_res = 1e-9;
+    default_ss.stop_iter = max_iters;
+    default_ss.stop_rel_res = rel_res_norm;
     default_ss.krylov_dim = 100u;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
+    /*
     default_ss.precond = precond_type::build()
                              .with_max_block_size(1u)
                              .with_skip_sorting(true)
                              .on(exec)
                              ->generate(A);
+    */
     default_ss.frsz_epsilon = 1e-2;
 
     std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
-              << default_ss.stop_rel_res << " res norm\n";
+              << default_ss.stop_rel_res << " res norm; ";
     std::cout << "Jacobi BS: "
-              << dynamic_cast<const precond_type*>(default_ss.precond.get())
-                     ->get_storage_scheme()
-                     .block_offset
+              << (default_ss.precond == nullptr
+                      ? 0
+                      : dynamic_cast<const precond_type*>(
+                            default_ss.precond.get())
+                            ->get_storage_scheme()
+                            .block_offset)
               << '\n';
     struct bench_type {
         std::string name;
@@ -297,15 +255,15 @@ int main(int argc, char* argv[])
     benchmarks[2].name = get_name(2);
     benchmarks[2].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce2;
-    benchmarks[3].name = str_pre + "sz" + str_post;
+    benchmarks[3].name = str_pre + "sz1" + str_post;
     benchmarks[3].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::use_sz;
     benchmarks[3].settings.frsz_epsilon = 1e-1;
-    benchmarks[4].name = str_pre + "sz" + str_post;
+    benchmarks[4].name = str_pre + "sz2" + str_post;
     benchmarks[4].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::use_sz;
     benchmarks[4].settings.frsz_epsilon = 1e-2;
-    benchmarks[5].name = str_pre + "sz" + str_post;
+    benchmarks[5].name = str_pre + "sz3" + str_post;
     benchmarks[5].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::use_sz;
     benchmarks[5].settings.frsz_epsilon = 1e-3;
@@ -333,5 +291,56 @@ int main(int argc, char* argv[])
                   << std::setw(widths[5])
                   << val.result.res_norm / val.result.init_res_norm << delim
                   << std::setw(widths[6]) << val.settings.frsz_epsilon << '\n';
+    }
+}
+
+
+int main(int argc, char* argv[])
+{
+    if (argc == 2 && (std::string(argv[1]) == "--help")) {
+        std::cerr << "Usage: " << argv[0]
+                  << " [path/to/matrix.mtx] [max_iters] [rel_res_norm] "
+                     "[{double,float}]"
+                  << std::endl;
+        std::exit(-1);
+    }
+
+    // Map which generates the appropriate executor
+    const auto executor_string = "omp";  // argc >= 2 ? argv[1] : "omp";
+    const std::string matrix_path = argc >= 2 ? argv[1] : "data/A.mtx";
+    const unsigned max_iters = argc >= 3 ? std::stoi(argv[2]) : 2000;
+    const unsigned rel_res_norm = argc >= 4 ? std::stof(argv[3]) : 1e-6;
+    const std::string precision = argc >= 5 ? argv[4] : "double";
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [] {
+                 return gko::CudaExecutor::create(0, gko::OmpExecutor::create(),
+                                                  true);
+             }},
+            {"hip",
+             [] {
+                 return gko::HipExecutor::create(0, gko::OmpExecutor::create(),
+                                                 true);
+             }},
+            {"dpcpp",
+             [] {
+                 return gko::DpcppExecutor::create(0,
+                                                   gko::OmpExecutor::create());
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
+
+    // executor where Ginkgo will perform the computation
+    const auto exec = exec_map.at(executor_string)();  // throws if not valid
+
+    if (precision == std::string("double")) {
+        run_benchmarks<double, int>(exec, matrix_path, max_iters, rel_res_norm);
+    } else if (precision == std::string("float")) {
+        run_benchmarks<float, int>(exec, matrix_path, max_iters, rel_res_norm);
+    } else {
+        std::cerr << "Unknown precision string \"" << argv[4]
+                  << "\". Supported values: \"double\", \"float\"\n";
+        std::exit(-1);
     }
 }
