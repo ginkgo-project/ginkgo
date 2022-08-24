@@ -114,7 +114,7 @@ void HipExecutor::run(const Operation& op) const
 
 scoped_device_id HipExecutor::get_scoped_device_id() const
 {
-    GKO_NOT_COMPILED(cuda);
+    GKO_NOT_COMPILED(hip);
 }
 
 
@@ -155,6 +155,18 @@ void HipExecutor::set_gpu_property() {}
 
 
 void HipExecutor::init_handles() {}
+
+
+namespace detail {
+
+
+hip_scoped_device_id::hip_scoped_device_id(int device_id) GKO_NOT_IMPLEMENTED;
+
+hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
+    GKO_NOT_IMPLEMENTED;
+
+
+}  // namespace detail
 
 
 }  // namespace gko
