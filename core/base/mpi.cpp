@@ -69,14 +69,8 @@ int map_rank_to_device_id(MPI_Comm comm, const int num_devices)
         // we determine the node-local rank with MPI calls.
         int local_rank;
         int compare_result;
-        int is_initialized;
-        GKO_ASSERT_NO_MPI_ERRORS(MPI_Initialized(&is_initialized));
-        if (is_initialized) {
-            GKO_ASSERT_NO_MPI_ERRORS(
-                MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_result));
-        } else {
-            compare_result = MPI_IDENT;
-        }
+        GKO_ASSERT_NO_MPI_ERRORS(
+            MPI_Comm_compare(comm, MPI_COMM_WORLD, &compare_result));
         if (compare_result != MPI_IDENT && compare_result != MPI_CONGRUENT) {
             local_rank = mpi_node_local_rank(comm);
         } else {
