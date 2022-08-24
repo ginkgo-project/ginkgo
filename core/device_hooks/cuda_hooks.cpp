@@ -160,6 +160,18 @@ void CudaExecutor::set_gpu_property() {}
 void CudaExecutor::init_handles() {}
 
 
+namespace detail {
+
+
+cuda_scoped_device_id::cuda_scoped_device_id(int device_id) GKO_NOT_IMPLEMENTED;
+
+cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
+    GKO_NOT_IMPLEMENTED;
+
+
+}  // namespace detail
+
+
 }  // namespace gko
 
 

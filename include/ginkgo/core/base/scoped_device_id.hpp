@@ -62,6 +62,8 @@ public:
     // linker errors
     // This is explicitly not noexcept, since setting the device id may throw in
     // the derived classes for CUDA and HIP.
+    // Also, this can't be defaulted, because the default would use
+    // noexcept(true), which leads to the default implementation to be deleted.
     virtual ~generic_scoped_device_id() noexcept(false){};
 
     // Prohibit copy construction
@@ -79,11 +81,7 @@ public:
  * This is used for OmpExecutor and DpcppExecutor, since they don't require
  * setting a device id.
  */
-class noop_scoped_device_id : public generic_scoped_device_id {
-public:
-    noop_scoped_device_id() = default;
-    ~noop_scoped_device_id() noexcept(false) override {}
-};
+class noop_scoped_device_id : public generic_scoped_device_id {};
 
 
 /**

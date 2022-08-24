@@ -13,6 +13,7 @@ target_sources(ginkgo
     base/mpi.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/scoped_device_id.cpp
     base/version.cpp
     distributed/partition.cpp
     factorization/elimination_forest.cpp

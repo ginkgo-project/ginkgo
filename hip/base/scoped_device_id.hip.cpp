@@ -72,24 +72,6 @@ hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
 }
 
 
-hip_scoped_device_id::hip_scoped_device_id(
-    hip_scoped_device_id&& other) noexcept
-{
-    *this = std::move(other);
-}
-
-
-hip_scoped_device_id& hip_scoped_device_id::operator=(
-    hip_scoped_device_id&& other) noexcept
-{
-    if (this != &other) {
-        original_device_id_ = std::exchange(other.original_device_id_, 0);
-        need_reset_ = std::exchange(other.need_reset_, false);
-    }
-    return *this;
-}
-
-
 }  // namespace detail
 }  // namespace gko
 
