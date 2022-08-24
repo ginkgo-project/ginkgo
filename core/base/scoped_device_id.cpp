@@ -30,17 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
-#define GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
+#include <utility>
 
 
-#include <exception>
+#include <ginkgo/config.hpp>
 
 
-#include <cuda_runtime.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/scoped_device_id.hpp>
 
 
@@ -48,32 +43,41 @@ namespace gko {
 namespace detail {
 
 
-cuda_scoped_device_id::cuda_scoped_device_id(int device_id)
-    : original_device_id_{}, need_reset_{}
+cuda_scoped_device_id::cuda_scoped_device_id(
+    cuda_scoped_device_id&& other) noexcept
 {
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id_));
-    if (original_device_id_ != device_id) {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-        need_reset_ = true;
-    }
+    *this = std::move(other);
 }
 
 
-cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
+cuda_scoped_device_id& cuda_scoped_device_id::operator=(
+    cuda_scoped_device_id&& other) noexcept
 {
-    if (need_reset_) {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id_);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id_));
-        }
+    if (this != &other) {
+        original_device_id_ = std::exchange(other.original_device_id_, 0);
+        need_reset_ = std::exchange(other.need_reset_, false);
     }
+    return *this;
+}
+
+
+hip_scoped_device_id::hip_scoped_device_id(
+    hip_scoped_device_id&& other) noexcept
+{
+    *this = std::move(other);
+}
+
+
+hip_scoped_device_id& hip_scoped_device_id::operator=(
+    hip_scoped_device_id&& other) noexcept
+{
+    if (this != &other) {
+        original_device_id_ = std::exchange(other.original_device_id_, 0);
+        need_reset_ = std::exchange(other.need_reset_, false);
+    }
+    return *this;
 }
 
 
 }  // namespace detail
 }  // namespace gko
-
-
-#endif  // GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
