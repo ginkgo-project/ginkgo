@@ -621,13 +621,13 @@ public:
     {
         auto guard = exec->get_scoped_device_id_guard();
         auto type = type_impl<SendType>::get_type();
-        request req([&](request* req) {
-            this->template log<
+        request req([=, comm = *this](request* req) {
+            comm.template log<
                 log::Logger::
                     non_blocking_mpi_point_to_point_communication_completed>(
-                "send", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
-                send_count, &type, this->rank(), destination_rank, send_tag,
-                req->get());
+                "send", comm.comm_.get(),
+                reinterpret_cast<uintptr>(send_buffer), send_count, &type,
+                this->rank(), destination_rank, send_tag, req->get());
         });
         this->template log<
             log::Logger::non_blocking_mpi_point_to_point_communication_started>(
@@ -1459,7 +1459,24 @@ public:
                            MPI_Datatype recv_type) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        request req;
+        request req([=, comm = *this](request* req) {
+            comm.template log<
+                log::Logger::
+                    non_blocking_mpi_collective_communication_completed>(
+                "all_to_all_v", comm.comm_.get(),
+                reinterpret_cast<uintptr>(send_buffer), 0, send_counts,
+                send_offsets, &send_type,
+                reinterpret_cast<uintptr>(recv_buffer), 0, recv_counts,
+                recv_offsets, &recv_type, log::Logger::unspecified_mpi_rank,
+                req->get());
+        });
+        this->template log<
+            log::Logger::non_blocking_mpi_collective_communication_started>(
+            "all_to_all_v", comm_.get(), reinterpret_cast<uintptr>(send_buffer),
+            0, send_counts, send_offsets, &send_type,
+            reinterpret_cast<uintptr>(recv_buffer), 0, recv_counts,
+            recv_offsets, &recv_type, log::Logger::unspecified_mpi_rank,
+            req.get());
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
             recv_counts, recv_offsets, recv_type, this->get(), req.get()));
