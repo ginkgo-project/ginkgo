@@ -203,13 +203,16 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
-        residual_stop = gko::share(
-            gko::stop::RelativeResidualNorm<rc_etype>::build()
-                .with_tolerance(static_cast<rc_etype>(FLAGS_rel_res_goal))
-                .on(exec));
+        residual_stop =
+            gko::share(gko::stop::ResidualNorm<rc_etype>::build()
+                           .with_baseline(gko::stop::mode::initial_resnorm)
+                           .with_reduction_factor(
+                               static_cast<rc_etype>(FLAGS_rel_res_goal))
+                           .on(exec));
     } else {
         residual_stop =
             gko::share(gko::stop::ResidualNorm<rc_etype>::build()
+                           .with_baseline(gko::stop::mode::rhs_norm)
                            .with_reduction_factor(
                                static_cast<rc_etype>(FLAGS_rel_res_goal))
                            .on(exec));

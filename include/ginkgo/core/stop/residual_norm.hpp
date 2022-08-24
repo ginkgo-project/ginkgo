@@ -57,7 +57,7 @@ namespace stop {
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
  *                    $ \frac{|| r ||}{|| r_0||} < \tau $
  *
- * - rhs_resnorm:     Check for tolerance relative to the rhs norm.
+ * - rhs_norm:        Check for tolerance relative to the rhs norm.
  *                    $ \frac{|| r ||}{|| b ||} < \tau $
  *
  * @ingroup stop
@@ -312,6 +312,18 @@ protected:
 };
 
 
+// The following classes are deprecated, but they internally reference
+// themselves. To reduce unnecessary warnings, we disable deprecation warnings
+// for the definition of these classes.
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
+
 /**
  * The ResidualNormReduction class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
@@ -332,7 +344,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class ResidualNormReduction : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::initial_resnorm")]] ResidualNormReduction
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -385,7 +401,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class RelativeResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::rhs_norm")]] RelativeResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
@@ -436,7 +456,11 @@ protected:
  * @ingroup stop
  */
 template <typename ValueType = default_precision>
-class AbsoluteResidualNorm : public ResidualNormBase<ValueType> {
+class [[deprecated(
+    "Please use the class ResidualNorm with the factory parameter baseline = "
+    "mode::absolute")]] AbsoluteResidualNorm
+    : public ResidualNormBase<ValueType>
+{
 public:
     using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
@@ -466,6 +490,13 @@ protected:
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_BUILD) || defined(__INTEL_LLVM_COMPILER)
+#pragma warning(pop)
+#endif
 
 
 }  // namespace stop
