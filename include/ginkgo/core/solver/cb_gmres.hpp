@@ -141,6 +141,8 @@ public:
          * Krylov dimension factory.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
+
+        double GKO_FACTORY_PARAMETER_SCALAR(frsz_epsilon, 1e-2);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);

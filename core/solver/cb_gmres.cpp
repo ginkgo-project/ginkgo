@@ -199,7 +199,8 @@ template <typename ValueType, typename StorageType,
           bool all_double = std::is_same<ValueType, double>::value&&
               std::is_same<StorageType, double>::value>
 struct compression_helper {
-    compression_helper(bool use_sz, size_type num_rows, size_type num_vecs)
+    compression_helper(bool use_sz, size_type num_rows, size_type num_vecs,
+                       double frsz_epsilon)
         : use_sz_{use_sz && all_double},
           num_rows_{num_rows},
           plibrary_{},
@@ -211,13 +212,16 @@ struct compression_helper {
         if (use_sz_) {
             register_frsz();
             pc_ = plibrary_.get_compressor("frsz");
-            pc_->set_options({{"frsz:epsilon", 1e-3}});
+            pc_->set_options({{"frsz:epsilon", frsz_epsilon}});
+            const auto pressio_type = std::is_same<ValueType, float>::value
+                                          ? pressio_float_dtype
+                                          : pressio_double_dtype;
             for (size_type i = 0; i < p_data_vec_.size(); ++i) {
                 p_data_vec_[i] =
-                    pressio_data::owning(pressio_double_dtype, {num_rows_});
+                    pressio_data::owning(pressio_type, {num_rows_});
             }
-            in_temp_ = pressio_data::owning(pressio_double_dtype, {num_rows_});
-            out_temp_ = pressio_data::owning(pressio_double_dtype, {num_rows_});
+            in_temp_ = pressio_data::owning(pressio_type, {num_rows_});
+            out_temp_ = pressio_data::owning(pressio_type, {num_rows_});
         }
     }
 
@@ -251,6 +255,17 @@ private:
     std::vector<pressio_data> p_data_vec_;
 };
 
+// ADDED
+template <class T>
+char print_type()
+{
+    return std::is_same<T, double>::value
+               ? 'd'
+               : std::is_same<T, float>::value
+                     ? 'f'
+                     : std::is_same<T, gko::half>::value ? 'h' : '?';
+}
+
 
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
@@ -262,6 +277,10 @@ void CbGmres<ValueType>::apply_dense_impl(
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
         const bool use_sz = check_for_sz(value);
+
+        // ADDED
+        // std::cout << "CbGMRES run: " << print_type<ValueType>() << ", " <<
+        // print_type<storage_type>() << ";\n";
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
@@ -290,7 +309,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto krylov_bases_range = helper.get_range();
 
         compression_helper<ValueType, storage_type> comp_helper(
-            use_sz, num_rows, krylov_dim + 1);
+            use_sz, num_rows, krylov_dim + 1, parameters_.frsz_epsilon);
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =

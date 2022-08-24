@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <chrono>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
@@ -46,6 +47,8 @@ struct solver_settings {
     unsigned stop_iter;
     double stop_rel_res;
     gko::solver::cb_gmres::storage_precision storage_prec;
+    std::shared_ptr<const gko::LinOp> precond;
+    double frsz_epsilon;
 };
 
 struct solver_result {
@@ -88,10 +91,11 @@ solver_result benchmark_solver(
 
     auto iter_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(s_s.stop_iter).on(exec));
-    auto tol_stop = gko::share(gko::stop::ResidualNorm<ValueType>::build()
-                                   .with_reduction_factor(s_s.stop_rel_res)
-                                   .with_baseline(gko::stop::mode::rhs_norm)
-                                   .on(exec));
+    auto tol_stop = gko::share(
+        gko::stop::ResidualNorm<ValueType>::build()
+            .with_reduction_factor(static_cast<RealValueType>(s_s.stop_rel_res))
+            .with_baseline(gko::stop::mode::rhs_norm)
+            .on(exec));
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     iter_stop->add_logger(logger);
@@ -102,6 +106,8 @@ solver_result benchmark_solver(
                           .with_criteria(iter_stop, tol_stop)
                           .with_krylov_dim(s_s.krylov_dim)
                           .with_storage_precision(s_s.storage_prec)
+                          .with_generated_preconditioner(s_s.precond)
+                          .with_frsz_epsilon(s_s.frsz_epsilon)
                           .on(exec);
 
     // Generate the actual solver from the factory and the matrix.
@@ -162,7 +168,7 @@ int main(int argc, char* argv[])
     using cb_gmres = gko::solver::CbGmres<ValueType>;
 
     // Print the ginkgo version information.
-    std::cout << gko::version_info::get() << std::endl;
+    // std::cout << gko::version_info::get() << std::endl;
 
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0] << " [executor] " << std::endl;
@@ -171,7 +177,7 @@ int main(int argc, char* argv[])
 
     // Map which generates the appropriate executor
     const auto executor_string = "omp";  // argc >= 2 ? argv[1] : "omp";
-    const auto matrix_string = argc >= 2 ? argv[1] : "data/A.mtx";
+    const std::string matrix_string = argc >= 2 ? argv[1] : "data/A.mtx";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -204,12 +210,21 @@ int main(int argc, char* argv[])
     // (to make sure it also works for GPUs)
     const auto A_size = A->get_size();
 
-    std::cout << "Matrix size: " << A_size[0] << " x " << A_size[1] << '\n';
+    std::cout << "Matrix: "
+              << matrix_string.substr(matrix_string.find_last_of('/') + 1)
+              << "; size: " << A_size[0] << " x " << A_size[1] << '\n';
 
     auto b_host = vec::create(exec->get_master(), gko::dim<2>{A_size[0], 1});
-    for (gko::size_type i = 0; i < A_size[0]; ++i) {
-        b_host->at(i, 0) =
-            ValueType{1} / std::sqrt(static_cast<ValueType>(A_size[0]));
+    ValueType tmp_norm{};
+    for (gko::size_type i = 0; i < b_host->get_size()[0]; ++i) {
+        const auto val = std::sin(static_cast<ValueType>(i));
+        b_host->at(i, 0) = val;
+        //    ValueType{1} / std::sqrt(static_cast<ValueType>(A_size[0]));
+        tmp_norm += val * val;
+    }
+    tmp_norm = std::sqrt(tmp_norm);
+    for (gko::size_type i = 0; i < b_host->get_size()[0]; ++i) {
+        b_host->at(i, 0) /= tmp_norm;
     }
     auto b_norm = gko::initialize<real_vec>({0.0}, exec);
     b_host->compute_norm2(b_norm);
@@ -224,51 +239,99 @@ int main(int argc, char* argv[])
     }
     auto x = clone(exec, x_host);
 
+    using precond_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     // Default_settings
     solver_settings default_ss{};
     default_ss.stop_iter = 2000u;
-    default_ss.stop_rel_res = 1e-6;
+    default_ss.stop_rel_res = 1e-9;
     default_ss.krylov_dim = 100u;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
+    default_ss.precond = precond_type::build()
+                             .with_max_block_size(1u)
+                             .with_skip_sorting(true)
+                             .on(exec)
+                             ->generate(A);
+    default_ss.frsz_epsilon = 1e-2;
 
+    std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
+              << default_ss.stop_rel_res << " res norm\n";
+    std::cout << "Jacobi BS: "
+              << dynamic_cast<const precond_type*>(default_ss.precond.get())
+                     ->get_storage_scheme()
+                     .block_offset
+              << '\n';
     struct bench_type {
         std::string name;
         solver_settings settings;
         solver_result result;
     };
 
-    std::array<bench_type, 3> benchmarks = {
-        bench_type{"keep",
-                   {default_ss.krylov_dim, default_ss.stop_iter,
-                    default_ss.stop_rel_res,
-                    gko::solver::cb_gmres::storage_precision::keep},
-                   {}},
-        bench_type{"reduce1",
-                   {default_ss.krylov_dim, default_ss.stop_iter,
-                    default_ss.stop_rel_res,
-                    gko::solver::cb_gmres::storage_precision::reduce1},
-                   {}},
-        bench_type{"use_sz",
-                   {default_ss.krylov_dim, default_ss.stop_iter,
-                    default_ss.stop_rel_res,
-                    gko::solver::cb_gmres::storage_precision::use_sz},
-                   {}},
+    const auto tt_str = [](int reduction) {
+        const std::array<char, 4> types{'d', 'f', 'h', '?'};
+        const int base = std::is_same<ValueType, double>::value      ? 0
+                         : std::is_same<ValueType, float>::value     ? 1
+                         : std::is_same<ValueType, gko::half>::value ? 2
+                                                                     : 3;
+        if (base == 3) {
+            return types[base];
+        }
+        const int idx = base + reduction;
+        return types[idx < types.size() - 1 ? idx : types.size() - 2];
     };
+    const std::string str_pre = std::string{"CbGmres<"} + tt_str(0) + ",";
+    const std::string str_post{">"};
+    const auto get_name = [&str_pre, &str_post, &tt_str](int reduction) {
+        return str_pre + tt_str(reduction) + str_post;
+    };
+    std::array<bench_type, 6> benchmarks = {
+        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
+        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
+        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
+    };
+    benchmarks[0].name = get_name(0);
+    benchmarks[0].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::keep;
+    benchmarks[1].name = get_name(1);
+    benchmarks[1].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::reduce1;
+    benchmarks[2].name = get_name(2);
+    benchmarks[2].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::reduce2;
+    benchmarks[3].name = str_pre + "sz" + str_post;
+    benchmarks[3].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::use_sz;
+    benchmarks[3].settings.frsz_epsilon = 1e-1;
+    benchmarks[4].name = str_pre + "sz" + str_post;
+    benchmarks[4].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::use_sz;
+    benchmarks[4].settings.frsz_epsilon = 1e-2;
+    benchmarks[5].name = str_pre + "sz" + str_post;
+    benchmarks[5].settings.storage_prec =
+        gko::solver::cb_gmres::storage_precision::use_sz;
+    benchmarks[5].settings.frsz_epsilon = 1e-3;
 
     // Make sure the output is in scientific notation for easier comparison
-    std::cout << std::scientific;
+    std::cout << std::scientific << std::setprecision(4);
 
     // Note: The time might not be significantly different since the matrix is
     //       quite small
+    const std::array<int, 7> widths{15, 12, 11, 17, 16, 15, 15};
+    const char delim = ';';
+    std::cout << std::setw(widths[0]) << "Name" << delim << std::setw(widths[1])
+              << "Time [s]" << delim << std::setw(widths[2]) << "Iterations"
+              << delim << std::setw(widths[3]) << "res norm before" << delim
+              << std::setw(widths[4]) << "res norm after" << delim
+              << std::setw(widths[5]) << "rel res norm" << delim
+              << std::setw(widths[6]) << "frsz_epsilon" << '\n';
     for (auto&& val : benchmarks) {
         val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
-        std::cout << val.name << " time: " << val.result.time_s << " s" << '\n'
-                  << val.name << " iters: " << val.result.iters << '\n'
-                  << val.name
-                  << " res norm before: " << val.result.init_res_norm << '\n'
-                  << val.name << " res norm after: " << val.result.res_norm
-                  << '\n'
-                  << val.name << " rel_res_norm: "
-                  << val.result.res_norm / val.result.init_res_norm << '\n';
+        std::cout << std::setw(widths[0]) << val.name << delim
+                  << std::setw(widths[1]) << val.result.time_s << delim
+                  << std::setw(widths[2]) << val.result.iters << delim
+                  << std::setw(widths[3]) << val.result.init_res_norm << delim
+                  << std::setw(widths[4]) << val.result.res_norm << delim
+                  << std::setw(widths[5])
+                  << val.result.res_norm / val.result.init_res_norm << delim
+                  << std::setw(widths[6]) << val.settings.frsz_epsilon << '\n';
     }
 }
