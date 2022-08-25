@@ -57,8 +57,19 @@ namespace async_richardson {
 
 constexpr int default_block_size = 4 * config::warp_size;
 
+// Choose for different configuration
+#define USE_DYNAMIC 1
+#define DYNAMIC_OSCB 4
+#define STATIC_SUBWARP_SIZE 1
 
+
+#if USE_DYNAMIC
+// This is for dynamic implementation
 #include "common/cuda_hip/solver/async_richardson_kernels.hpp.inc"
+#else
+// This is for static implementation
+#include "common/cuda_hip/solver/async_richardson_kernels_static.hpp.inc"
+#endif
 
 
 template <typename ValueType, typename IndexType>
@@ -69,13 +80,19 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
+#if USE_DYNAMIC
+    int oscb = DYNAMIC_OSCB;
     constexpr int subwarp_size = 1;
-    int v100 = 80 * 16;  // V100 contains 80 SM
+    int v100 = 80 * oscb;  // V100 contains 80 SM
     auto num_subwarp = v100 * default_block_size / subwarp_size;
     int gridx = v100;
     if (num_subwarp > a->get_size()[0]) {
         gridx = a->get_size()[0] * subwarp_size / default_block_size;
     }
+#else
+    constexpr int subwarp_size = STATIC_SUBWARP_SIZE;
+    int gridx = ceildiv(a->get_size()[0], default_block_size / subwarp_size);
+#endif
     dim3 grid(gridx, b->get_size()[1]);
     if (check == "time") {
         subwarp_apply_time<subwarp_size><<<grid, default_block_size>>>(
