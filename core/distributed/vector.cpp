@@ -56,10 +56,11 @@ GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 }  // namespace vector
 
 
-dim<2> compute_global_size(mpi::communicator comm, dim<2> local_size)
+dim<2> compute_global_size(std::shared_ptr<const Executor> exec,
+                           mpi::communicator comm, dim<2> local_size)
 {
     size_type num_global_rows = local_size[0];
-    comm.all_reduce(&num_global_rows, 1, MPI_SUM);
+    comm.all_reduce(std::move(exec), &num_global_rows, 1, MPI_SUM);
     return {num_global_rows, local_size[1]};
 }
 
@@ -117,7 +118,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
       DistributedBase{comm},
       local_{exec}
 {
-    this->set_size(compute_global_size(comm, local_vector->get_size()));
+    this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
 }
 
@@ -328,11 +329,12 @@ void Vector<ValueType>::compute_dot(const LinOp* b, LinOp* result,
     if (use_host_buffer) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_reduction_buffer_->get_values(),
+        comm.all_reduce(exec->get_master(),
+                        host_reduction_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
-        comm.all_reduce(dense_res->get_values(),
+        comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
 }
@@ -363,11 +365,12 @@ void Vector<ValueType>::compute_conj_dot(const LinOp* b, LinOp* result,
     if (use_host_buffer) {
         host_reduction_buffer_.init(exec->get_master(), dense_res->get_size());
         host_reduction_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_reduction_buffer_->get_values(),
+        comm.all_reduce(exec->get_master(),
+                        host_reduction_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
         dense_res->copy_from(host_reduction_buffer_.get());
     } else {
-        comm.all_reduce(dense_res->get_values(),
+        comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
 }
@@ -397,11 +400,11 @@ void Vector<ValueType>::compute_norm2(LinOp* result, array<char>& tmp) const
     if (use_host_buffer) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_norm_buffer_->get_values(),
+        comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
-        comm.all_reduce(dense_res->get_values(),
+        comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
     exec->run(vector::make_compute_sqrt(dense_res.get()));
@@ -431,11 +434,11 @@ void Vector<ValueType>::compute_norm1(LinOp* result, array<char>& tmp) const
     if (use_host_buffer) {
         host_norm_buffer_.init(exec->get_master(), dense_res->get_size());
         host_norm_buffer_->copy_from(dense_res.get());
-        comm.all_reduce(host_norm_buffer_->get_values(),
+        comm.all_reduce(exec->get_master(), host_norm_buffer_->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
         dense_res->copy_from(host_norm_buffer_.get());
     } else {
-        comm.all_reduce(dense_res->get_values(),
+        comm.all_reduce(exec, dense_res->get_values(),
                         static_cast<int>(this->get_size()[1]), MPI_SUM);
     }
 }
@@ -448,8 +451,8 @@ ValueType& Vector<ValueType>::at_local(size_type row, size_type col) noexcept
 }
 
 template <typename ValueType>
-ValueType Vector<ValueType>::at_local(size_type row, size_type col) const
-    noexcept
+ValueType Vector<ValueType>::at_local(size_type row,
+                                      size_type col) const noexcept
 {
     return local_.at(row, col);
 }
