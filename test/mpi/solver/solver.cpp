@@ -195,12 +195,13 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           comm(MPI_COMM_WORLD),
           rand_engine(15)
-    {}
+    {
+        init_executor(ref, exec);
+    }
 
     void SetUp()
     {
         ASSERT_EQ(comm.size(), 3);
-        init_executor(ref, exec, comm);
     }
 
     void TearDown()

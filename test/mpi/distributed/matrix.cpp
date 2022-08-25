@@ -76,6 +76,7 @@ protected:
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using Partition =
         gko::distributed::Partition<local_index_type, global_index_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
@@ -101,7 +102,7 @@ protected:
                       {size, {{4, 0, 9}, {4, 4, 10}}}}},
           engine(42)
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
 
 
         row_part = Partition::build_from_contiguous(
@@ -141,7 +142,7 @@ TYPED_TEST_SUITE(MatrixCreation, gko::test::ValueLocalGlobalIndexTypes,
 TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
 {
     using value_type = typename TestFixture::value_type;
-    using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
+    using csr = typename TestFixture::local_matrix_type;
     I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
     I<I<value_type>> res_non_local[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
@@ -159,7 +160,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
 TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
-    using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
+    using csr = typename TestFixture::local_matrix_type;
     I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
     I<I<value_type>> res_non_local[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
@@ -178,7 +179,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 {
     using value_type = typename TestFixture::value_type;
-    using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
+    using csr = typename TestFixture::local_matrix_type;
     I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
     I<I<value_type>> res_non_local[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
@@ -209,6 +210,7 @@ public:
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using dense_vec_type = gko::matrix::Dense<value_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
 
@@ -218,7 +220,7 @@ public:
           size{5, 5},
           engine()
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
 
         row_part = part_type::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -459,7 +461,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToMultipleVectorsLarge)
 TYPED_TEST(Matrix, CanConvertToNextPrecision)
 {
     using T = typename TestFixture::value_type;
-    using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
+    using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
     using OtherT = typename gko::next_precision<T>;
@@ -486,7 +488,7 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
 TYPED_TEST(Matrix, CanMoveToNextPrecision)
 {
     using T = typename TestFixture::value_type;
-    using csr = typename TestFixture::dist_mtx_type::local_matrix_type;
+    using csr = typename TestFixture::local_matrix_type;
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
     using OtherT = typename gko::next_precision<T>;
@@ -566,7 +568,7 @@ public:
           logger(gko::share(HostToDeviceLogger::create())),
           engine()
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
         exec->add_logger(logger);
 
         mat = dist_mtx_type::create(exec, comm);
