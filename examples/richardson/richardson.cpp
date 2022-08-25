@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
     if (argc < 6 || (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
                   << " [executor] [type] [normal/flow/halfflow/time] "
-                     "[problem_size] [iteration]"
+                     "[problem_size] [iteration] [folder(optional)]"
                   << std::endl;
         std::exit(-1);
     }
@@ -201,6 +201,10 @@ int main(int argc, char* argv[])
     std::string check_string(argv[3]);
     int problem_size = std::stoi(argv[4]);
     int iteration = std::stoi(argv[5]);
+    std::string folder_string;
+    if (argc >= 7) {
+        folder_string = argv[6];
+    }
 
     std::cout << "Perform " << type_string << " richardson on "
               << executor_string << std::endl;
@@ -208,6 +212,10 @@ int main(int argc, char* argv[])
               << problem_size * problem_size << std::endl;
     std::cout << "update " << iteration << " times" << std::endl;
     std::cout << "check " << check_string << std::endl;
+    if (folder_string != "" && check_string != "normal") {
+        std::cout << "write the detail to folder - " << folder_string
+                  << std::endl;
+    }
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -307,11 +315,11 @@ int main(int argc, char* argv[])
             b_clone->compute_norm2(residual_norm.get());
             norm.at(i) = exec->copy_val_to_host(residual_norm->get_values()) /
                          initial_norm;
-        } else {
+        } else if (folder_string != "") {
             auto host_x = x_clone->clone(exec->get_master());
             std::stringstream output_file;
-            output_file << "grid" << problem_size << "_2/" << check_string
-                        << "_update" << iteration << "_re" << i << ".csv";
+            output_file << folder_string << "/" << check_string << "_update"
+                        << iteration << "_re" << i << ".csv";
             std::ofstream output(output_file.str());
             for (int i = 0; i < host_x->get_size()[0]; i++) {
                 std::uint64_t n = 0;
