@@ -69,9 +69,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* a,
            const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 {
-    constexpr int subwarp_size = 2;
-    dim3 grid(ceildiv(a->get_size()[0], default_block_size / subwarp_size),
-              b->get_size()[1]);
+    constexpr int subwarp_size = 1;
+    int v100 = 80 * 16;  // V100 contains 80 SM
+    auto num_subwarp = v100 * default_block_size / subwarp_size;
+    int gridx = v100;
+    if (num_subwarp > a->get_size()[0]) {
+        gridx = a->get_size()[0] * subwarp_size / default_block_size;
+    }
+    dim3 grid(gridx, b->get_size()[1]);
     if (check == "time") {
         subwarp_apply_time<subwarp_size><<<grid, default_block_size>>>(
             max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
