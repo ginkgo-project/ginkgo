@@ -44,23 +44,27 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply(
     const auto column_id = blockIdx.y;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     const auto alpha_val = alpha[0];
-    if (row < num_rows) {
+    auto num_subwarp = blockDim.x / subwarp_size * gridDim.x;
+    int i = 0;
+    while (i < iteration) {
         const auto rhs = b[row * b_stride + column_id];
-        for (int i = 0; i < iteration; i++) {
-            const auto ind_end = row_ptrs[row + 1];
-            ValueType temp_val = zero<ValueType>();
-            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-                 ind += subwarp_size) {
-                temp_val += val[ind] * c[col_idxs[ind] * c_stride + column_id];
-            }
-            auto subwarp_result = reduce(
-                subwarp_tile, temp_val,
-                [](const ValueType& a, const ValueType& b) { return a + b; });
-            if (subid == 0) {
-                c[row * c_stride + column_id] +=
-                    alpha_val * (rhs - subwarp_result);
-            }
-            __threadfence();
+        const auto ind_end = row_ptrs[row + 1];
+        ValueType temp_val = zero<ValueType>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val += val[ind] * c[col_idxs[ind] * c_stride + column_id];
+        }
+        auto subwarp_result = reduce(
+            subwarp_tile, temp_val,
+            [](const ValueType& a, const ValueType& b) { return a + b; });
+        if (subid == 0) {
+            c[row * c_stride + column_id] += alpha_val * (rhs - subwarp_result);
+        }
+        __threadfence();
+        row += num_subwarp;
+        if (row >= num_rows) {
+            row -= num_rows;
+            i++;
         }
     }
 }
@@ -90,35 +94,43 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
     const auto column_id = blockIdx.y;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     const int alpha_val = real(alpha[0]);
-    if (row < num_rows) {
+    // num_subwarp < num_rows
+    auto num_subwarp = blockDim.x / subwarp_size * gridDim.x;
+    int i = 0;
+    while (i < iteration) {
         const auto rhs = b[row * b_stride + column_id];
-        for (int i = 0; i < iteration; i++) {
-            const auto ind_end = row_ptrs[row + 1];
-            unsigned long long temp_val = 0;
-            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-                 ind += subwarp_size) {
-                temp_val +=
-                    (((reinterpret<unsigned long long>(static_cast<double>(
-                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
-                       (2 * 12)) &
-                      0xFFF)
-                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
-            }
+        const auto ind_end = row_ptrs[row + 1];
+        unsigned long long temp_val = 0;
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val +=
+                (((reinterpret<unsigned long long>(static_cast<double>(
+                       real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                   (2 * 12)) &
+                  0xFFF)
+                 << (static_cast<unsigned long long>(real(val[ind])) * 12));
+        }
 
-            auto subwarp_result =
-                reduce(subwarp_tile, temp_val,
-                       [](const unsigned long long& a,
-                          const unsigned long long& b) { return a + b; }) +
-                (1 << (2 * 12));
-            if (subid == 0) {
-                // c[row * c_stride + column_id] +=
-                //     alpha_val * (rhs - subwarp_result);
-                c[row * c_stride + column_id] =
-                    static_cast<ValueType>(
-                        reinterpret<double>(alpha_val * subwarp_result)) +
-                    (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
-            }
-            __threadfence();
+        auto subwarp_result =
+            reduce(subwarp_tile, temp_val,
+                   [](const unsigned long long& a,
+                      const unsigned long long& b) { return a + b; }) +
+            (1 << (2 * 12));
+        if (subid == 0) {
+            // c[row * c_stride + column_id] +=
+            //     alpha_val * (rhs - subwarp_result);
+            c[row * c_stride + column_id] =
+                static_cast<ValueType>(reinterpret<double>(
+                    alpha_val *
+                    (subwarp_result - (subwarp_result & (0xFFFull << 24)) +
+                     (static_cast<unsigned long long>(i + 1) << 24)))) +
+                (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+        }
+        __threadfence();
+        row += num_subwarp;
+        if (row >= num_rows) {
+            row -= num_rows;
+            i++;
         }
     }
 }
@@ -137,45 +149,54 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
     const auto column_id = blockIdx.y;
     auto row = thread::get_subwarp_id_flat<subwarp_size>();
     const int alpha_val = real(alpha[0]);
-    if (row < num_rows) {
+    auto num_subwarp = blockDim.x / subwarp_size * gridDim.x;
+    int i = 0;
+    while (i < iteration) {
         const auto rhs = b[row * b_stride + column_id];
-        for (int i = 0; i < iteration; i++) {
-            const auto ind_end = row_ptrs[row + 1];
-            unsigned long long temp_val = 0;
-            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-                 ind += subwarp_size) {
-                temp_val +=
-                    (((reinterpret<unsigned long long>(static_cast<double>(
-                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
-                       (2 * 12)) &
-                      0xFFF)
-                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
-            }
+        const auto ind_end = row_ptrs[row + 1];
+        unsigned long long temp_val = 0;
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val +=
+                (((reinterpret<unsigned long long>(static_cast<double>(
+                       real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                   (2 * 12)) &
+                  0xFFF)
+                 << (static_cast<unsigned long long>(real(val[ind])) * 12));
+        }
 
-            auto subwarp_result =
-                reduce(subwarp_tile, temp_val,
-                       [](const unsigned long long& a,
-                          const unsigned long long& b) { return a + b; }) +
-                (1 << (2 * 12));
-            if (subid == 0) {
-                // c[row * c_stride + column_id] +=
-                //     alpha_val * (rhs - subwarp_result);
-                if (i < iteration / 2) {
-                    c[row * c_stride + column_id] =
-                        static_cast<ValueType>(
-                            reinterpret<double>(alpha_val * subwarp_result)) +
-                        (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
-                } else {
-                    c[row * c_stride + column_id] =
-                        static_cast<ValueType>(reinterpret<double>(
-                            (1 - alpha_val) * subwarp_result +
-                            reinterpret<unsigned long long>(static_cast<double>(
-                                real(c[row * c_stride + column_id]))) +
-                            (1 << (2 * 12)))) +
-                        (1 - alpha_val) * rhs;
-                }
+        auto subwarp_result =
+            reduce(subwarp_tile, temp_val,
+                   [](const unsigned long long& a,
+                      const unsigned long long& b) { return a + b; }) +
+            (1 << (2 * 12));
+        if (subid == 0) {
+            // c[row * c_stride + column_id] +=
+            //     alpha_val * (rhs - subwarp_result);
+
+            if (i < iteration / 2) {
+                c[row * c_stride + column_id] =
+                    static_cast<ValueType>(reinterpret<double>(
+                        alpha_val *
+                        (subwarp_result - (subwarp_result & (0xFFFull << 24)) +
+                         (static_cast<unsigned long long>(i + 1) << 24)))) +
+                    (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+            } else {
+                const auto t = reinterpret<unsigned long long>(
+                    static_cast<double>(real(c[row * c_stride + column_id])));
+                c[row * c_stride + column_id] =
+                    static_cast<ValueType>(reinterpret<double>(
+                        (1 - alpha_val) * subwarp_result + t -
+                        (t & (0xFFFull << 24)) +
+                        (static_cast<unsigned long long>(i + 1) << 24))) +
+                    (1 - alpha_val) * rhs;
             }
-            __threadfence();
+        }
+        __threadfence();
+        row += num_subwarp;
+        if (row >= num_rows) {
+            row -= num_rows;
+            i++;
         }
     }
 }
@@ -198,38 +219,42 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_time(
     unsigned int time = 0;
     unsigned int start = 0;
     asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(start));
-    if (row < num_rows) {
+    auto num_subwarp = blockDim.x / subwarp_size * gridDim.x;
+    int i = 0;
+    while (i < iteration) {
         const auto rhs = b[row * b_stride + column_id];
-        for (int i = 0; i < iteration; i++) {
-            const auto ind_end = row_ptrs[row + 1];
-            unsigned long long temp_val = 0;
-            for (auto ind = row_ptrs[row] + subid; ind < ind_end;
-                 ind += subwarp_size) {
-                temp_val +=
-                    (((reinterpret<unsigned long long>(static_cast<double>(
-                           real(c[col_idxs[ind] * c_stride + column_id]))) >>
-                       (2 * 12)) &
-                      0xFFF)
-                     << (static_cast<unsigned long long>(real(val[ind])) * 12));
-            }
+        const auto ind_end = row_ptrs[row + 1];
+        unsigned long long temp_val = 0;
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val +=
+                (((reinterpret<unsigned long long>(static_cast<double>(
+                       real(c[col_idxs[ind] * c_stride + column_id]))) >>
+                   (2 * 12)) &
+                  0xFFF)
+                 << (static_cast<unsigned long long>(real(val[ind])) * 12));
+        }
 
-            auto subwarp_result =
-                reduce(subwarp_tile, temp_val,
-                       [](const unsigned long long& a,
-                          const unsigned long long& b) { return a + b; });
+        auto subwarp_result =
+            reduce(subwarp_tile, temp_val,
+                   [](const unsigned long long& a,
+                      const unsigned long long& b) { return a + b; });
 
-            if (subid == 0) {
-                // c[row * c_stride + column_id] +=
-                //     alpha_val * (rhs - subwarp_result);
-                asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(time));
-                c[row * c_stride + column_id] =
-                    static_cast<ValueType>(reinterpret<double>(
-                        (1 - alpha_val) * subwarp_result +
-                        ((static_cast<unsigned long long>(start) << 32) +
-                         time))) +
-                    (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
-            }
-            __threadfence();
+        if (subid == 0) {
+            // c[row * c_stride + column_id] +=
+            //     alpha_val * (rhs - subwarp_result);
+            asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(time));
+            c[row * c_stride + column_id] =
+                static_cast<ValueType>(reinterpret<double>(
+                    (1 - alpha_val) * subwarp_result +
+                    ((static_cast<unsigned long long>(start) << 32) + time))) +
+                (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
+        }
+        __threadfence();
+        row += num_subwarp;
+        if (row >= num_rows) {
+            row -= num_rows;
+            i++;
         }
     }
 }
