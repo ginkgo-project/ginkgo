@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
 
@@ -77,55 +78,23 @@ template <typename ValueType, typename LinOp, typename... Rest>
 bool any_is_complex(const LinOp* in, Rest&&... rest)
 {
 #if GINKGO_BUILD_MPI
-    bool is_complex_distributed =
-        dynamic_cast<const ConvertibleTo<distributed::Vector<>>*>(in);
+    bool is_complex_distributed = dynamic_cast<
+        const ConvertibleTo<distributed::Vector<std::complex<double>>>*>(in);
 #else
     bool is_complex_distributed = false;
 #endif
 
-    return !(is_complex<ValueType>() || is_complex_distributed ||
-             dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) ||
+    return is_complex<ValueType>() || is_complex_distributed ||
+           dynamic_cast<
+               const ConvertibleTo<matrix::Dense<std::complex<double>>>*>(in) ||
            any_is_complex<ValueType>(std::forward<Rest>(rest)...);
 }
-
-
-#if GINKGO_BUILD_MPI
-
-
-template <typename Arg>
-bool is_distributed(Arg* linop)
-{
-    return dynamic_cast<const distributed::DistributedBase*>(linop);
-}
-
-
-template <typename Arg, typename... Rest>
-bool is_distributed(Arg* linop, Rest*... rest)
-{
-    bool is_distributed_value =
-        dynamic_cast<const distributed::DistributedBase*>(linop);
-    GKO_ASSERT(is_distributed_value == is_distributed(rest...));
-    return is_distributed_value;
-}
-
-
-#endif
 
 
 template <typename ValueType, typename Function, typename... LinOps>
 void norm_dispatch(Function&& fn, LinOps*... linops)
 {
-    auto dispatch_sequential = [](Function&& fn, LinOps*... linops) {
-        if (any_is_complex<ValueType>(linops...)) {
-            precision_dispatch<to_complex<ValueType>>(
-                std::forward<Function>(fn), linops...);
-        } else {
-            precision_dispatch<ValueType>(std::forward<Function>(fn),
-                                          linops...);
-        }
-    };
-#if GINKGO_BUILD_MPI
-    if (is_distributed(linops...)) {
+    if (gko::detail::is_distributed(linops...)) {
         if (any_is_complex<ValueType>(linops...)) {
             distributed::precision_dispatch<to_complex<ValueType>>(
                 std::forward<Function>(fn), linops...);
@@ -134,11 +103,14 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
                 std::forward<Function>(fn), linops...);
         }
     } else {
-        dispatch_sequential(std::forward<Function>(fn), linops...);
+        if (any_is_complex<ValueType>(linops...)) {
+            precision_dispatch<to_complex<ValueType>>(
+                std::forward<Function>(fn), linops...);
+        } else {
+            precision_dispatch<ValueType>(std::forward<Function>(fn),
+                                          linops...);
+        }
     }
-#else
-    dispatch_sequential(std::forward<Function>(fn), linops...);
-#endif
 }
 
 
