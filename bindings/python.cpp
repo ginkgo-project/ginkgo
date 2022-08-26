@@ -71,22 +71,24 @@ PYBIND11_MODULE(pygko, m)
 
     py::class_<gko::LinOp, std::shared_ptr<gko::LinOp>> LinOp(m, "LinOp");
 
-    py::class_<
-        gko::EnableCreateMethod<gko::matrix::Dense<double>>,
-        std::shared_ptr<gko::EnableCreateMethod<gko::matrix::Dense<double>>>>
-        EnableCreateMethod(m, "EnableCreateMethod");
+    py::class_<gko::matrix::Dense<double>,
+               std::shared_ptr<gko::matrix::Dense<double>>, gko::LinOp>(m,
+                                                                        "Dense")
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::buffer b) {
+            /* Request a buffer descriptor from Python */
+            py::buffer_info info = b.request();
+            auto ref = gko::ReferenceExecutor::create();
 
-    py::class_<
-        gko::ConvertibleTo<gko::matrix::Dense<gko::next_precision<double>>>,
-        std::shared_ptr<gko::ConvertibleTo<
-            gko::matrix::Dense<gko::next_precision<double>>>>>
-        ConvertibleTo(m, "ConvertibleTo");
+            /* create a view into numpy data */
+            auto elems = (info.ndim == 1) ? info.shape[0]
+                                          : info.shape[0] * info.shape[1];
 
-    py::class_<
-        gko::matrix::Dense<double>, std::shared_ptr<gko::matrix::Dense<double>>,
-        gko::LinOp,
-        gko::ConvertibleTo<gko::matrix::Dense<gko::next_precision<double>>>,
-        gko::EnableCreateMethod<gko::matrix::Dense<double>>>(m, "Dense")
+            auto view = gko::array<double>(ref, elems, (double*)info.ptr);
+
+            // TODO fix dim<2>
+            return gko::matrix::Dense<double>::create(
+                exec, gko::dim<2>{info.shape[0], 1}, view, 1);
+        }))
         // .def(py::init<std::shared_ptr<gko::Executor>, gko::dim<2>>(
         //     &gko::matrix::Dense<double>::create))
         .def("scale", &gko::matrix::Dense<double>::scale,
@@ -98,8 +100,6 @@ PYBIND11_MODULE(pygko, m)
         .def(
             "sub_scaled", &gko::matrix::Dense<double>::sub_scaled,
             "Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).")
-        // .def("compute_dot", &gko::matrix::Dense<double>::compute_dot,
-        //      "Computes the column-wise dot product of this matrix and `b`.")
         .def("at",
              static_cast<double& (gko::matrix::Dense<double>::*)(size_t)>(
                  &gko::matrix::Dense<double>::at),
