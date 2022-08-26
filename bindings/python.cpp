@@ -35,6 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace py = pybind11;
 
+std::shared_ptr<gko::matrix::Dense<double>> createDense(
+    std::shared_ptr<gko::Executor> exec, gko::dim<2> dim)
+{
+    return gko::matrix::Dense<double>::create(exec, dim);
+}
+
 
 PYBIND11_MODULE(pygko, m)
 {
@@ -42,6 +48,9 @@ PYBIND11_MODULE(pygko, m)
 
     py::class_<gko::Executor, std::shared_ptr<gko::Executor>> Executor(
         m, "Executor");
+
+    m.def("createDense", &createDense, "A function that adds two numbers");
+
 
     py::class_<gko::OmpExecutor, std::shared_ptr<gko::OmpExecutor>>(
         m, "OmpExecutor", Executor)
@@ -57,4 +66,51 @@ PYBIND11_MODULE(pygko, m)
         .def("fill", &gko::array<double>::fill,
              "Fill the array with the given value.")
         .def("get_num_elems", &gko::array<double>::get_num_elems);
+
+    py::class_<gko::dim<2>>(m, "dim2").def(py::init<int, int>());
+
+    py::class_<gko::LinOp, std::shared_ptr<gko::LinOp>> LinOp(m, "LinOp");
+
+    py::class_<
+        gko::EnableCreateMethod<gko::matrix::Dense<double>>,
+        std::shared_ptr<gko::EnableCreateMethod<gko::matrix::Dense<double>>>>
+        EnableCreateMethod(m, "EnableCreateMethod");
+
+    py::class_<
+        gko::ConvertibleTo<gko::matrix::Dense<gko::next_precision<double>>>,
+        std::shared_ptr<gko::ConvertibleTo<
+            gko::matrix::Dense<gko::next_precision<double>>>>>
+        ConvertibleTo(m, "ConvertibleTo");
+
+    py::class_<
+        gko::matrix::Dense<double>, std::shared_ptr<gko::matrix::Dense<double>>,
+        gko::LinOp,
+        gko::ConvertibleTo<gko::matrix::Dense<gko::next_precision<double>>>,
+        gko::EnableCreateMethod<gko::matrix::Dense<double>>>(m, "Dense")
+        // .def(py::init<std::shared_ptr<gko::Executor>, gko::dim<2>>(
+        //     &gko::matrix::Dense<double>::create))
+        .def("scale", &gko::matrix::Dense<double>::scale,
+             "Scales the matrix with a scalar (aka: BLAS scal).")
+        .def("inv_scale", &gko::matrix::Dense<double>::inv_scale,
+             "Scales the matrix with the inverse of a scalar.")
+        .def("add_scaled", &gko::matrix::Dense<double>::add_scaled,
+             "Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).")
+        .def(
+            "sub_scaled", &gko::matrix::Dense<double>::sub_scaled,
+            "Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).")
+        // .def("compute_dot", &gko::matrix::Dense<double>::compute_dot,
+        //      "Computes the column-wise dot product of this matrix and `b`.")
+        .def("at",
+             static_cast<double& (gko::matrix::Dense<double>::*)(size_t)>(
+                 &gko::matrix::Dense<double>::at),
+             "Returns an element using linearized index.")
+        .def("at",
+             static_cast<double& (gko::matrix::Dense<double>::*)(size_t,
+                                                                 size_t)>(
+                 &gko::matrix::Dense<double>::at),
+             "Returns an element at row, column index.")
+        .def("get_num_stored_elements",
+             &gko::matrix::Dense<double>::get_num_stored_elements,
+             "Returns the number of elements explicitly stored in the "
+             "matrix.");
 }
