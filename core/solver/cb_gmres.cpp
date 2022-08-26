@@ -5,12 +5,15 @@
 #include <ginkgo/core/solver/cb_gmres.hpp>
 
 
+#include <string>
 #include <type_traits>
 #include <vector>
 
 
-#include <frsz.h>
+// #include <frsz.h>
+// #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_ext/cpp/libpressio.h>
+#include <libpressio_meta.h>  //provides frsz
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -190,6 +193,7 @@ bool check_for_sz(T value)
 }
 
 
+// ADDED
 template <typename RangeHelper>
 void compress_data(RangeHelper&& helper, std::vector<pressio_data>& p_data_vec,
                    pressio_data& temp)
@@ -199,20 +203,50 @@ template <typename ValueType, typename StorageType,
           bool all_double = std::is_same<ValueType, double>::value&&
               std::is_same<StorageType, double>::value>
 struct compression_helper {
-    compression_helper(bool use_sz, size_type num_rows, size_type num_vecs,
+    compression_helper(bool use_compr, std::string compressor,
+                       size_type num_rows, size_type num_vecs,
                        double frsz_epsilon)
-        : use_sz_{use_sz && all_double},
+        : use_compr_{use_compr && all_double},
+          compressor_(compressor),
           num_rows_{num_rows},
           plibrary_{},
           pc_{},
           in_temp_{},
           out_temp_{},
-          p_data_vec_(use_sz_ ? num_vecs : 0)
+          p_data_vec_(use_compr_ ? num_vecs : 0),
+          metrics_plugins_{"time", "size", "error_stat", "clipping", "data_gap"}
     {
-        if (use_sz_) {
-            register_frsz();
-            pc_ = plibrary_.get_compressor("frsz");
-            pc_->set_options({{"frsz:epsilon", frsz_epsilon}});
+        using namespace std::string_literals;
+        if (use_compr_) {
+            // register_frsz();
+            libpressio_register_all();
+            if (compressor_ == "frsz"s) {
+                pc_ = plibrary_.get_compressor("frsz");
+                pc_->set_options({
+                    {"frsz:epsilon", frsz_epsilon},
+                    {"clipping:abs", 1e-4},
+                    // pressio:metric registers call backs to compute metrics
+                    // while various operations are preformed, composite says we
+                    // want to run a set of these.  Defining these is as simple
+                    // as writing a short C++ class and creating a registration
+                    // object
+                    {"pressio:metric", "composite"s},
+                    // here is the set of metrics ids we want to run
+                    {"composite:plugins", metrics_plugins_},
+                });
+            } else {
+                pc_ = plibrary_.get_compressor(compressor_.c_str());
+                pc_->set_options({
+                    // clipping:abs not needed here, because it can also be set
+                    // via pressio:abs
+                    // pressio:abs defines a point-wise absolute error bound
+                    // since sz, sz3, and zfp all understand pressio:abs, this
+                    // just works™
+                    {"pressio:abs", 1e-3},
+                    {"pressio:metric", "composite"s},
+                    {"composite:plugins", metrics_plugins_},
+                });
+            }
             const auto pressio_type = std::is_same<ValueType, float>::value
                                           ? pressio_float_dtype
                                           : pressio_double_dtype;
@@ -228,7 +262,7 @@ struct compression_helper {
     void compress(size_type krylov_idx,
                   gko::cb_gmres::Range3dHelper<ValueType, StorageType>& rhelper)
     {
-        if (!use_sz_) {
+        if (!use_compr_) {
             return;
         }
         GKO_ASSERT(rhelper.get_range().length(2) == 1);
@@ -244,26 +278,34 @@ struct compression_helper {
                     num_rows_ * sizeof(ValueType));
     }
 
+    void print_metrics() const
+    {
+        if (use_compr_) {
+            std::cout << pc_->get_metrics_results() << '\n';
+        }
+    }
+
 
 private:
-    bool use_sz_;
+    std::string compressor_;
+    bool use_compr_;
     size_type num_rows_;
     pressio plibrary_;
     pressio_compressor pc_;
     pressio_data in_temp_;
     pressio_data out_temp_;
     std::vector<pressio_data> p_data_vec_;
+    std::vector<std::string> metrics_plugins_;
 };
 
 // ADDED
 template <class T>
 char print_type()
 {
-    return std::is_same<T, double>::value
-               ? 'd'
-               : std::is_same<T, float>::value
-                     ? 'f'
-                     : std::is_same<T, gko::half>::value ? 'h' : '?';
+    return std::is_same<T, double>::value      ? 'd'
+           : std::is_same<T, float>::value     ? 'f'
+           : std::is_same<T, gko::half>::value ? 'h'
+                                               : '?';
 }
 
 
@@ -308,8 +350,9 @@ void CbGmres<ValueType>::apply_dense_impl(
         Range3dHelper helper(exec, krylov_bases_dim);
         auto krylov_bases_range = helper.get_range();
 
+        // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
-            use_sz, num_rows, krylov_dim + 1, parameters_.frsz_epsilon);
+            use_sz, "frsz", num_rows, krylov_dim + 1, parameters_.frsz_epsilon);
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
@@ -564,7 +607,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         dense_x->add_scaled(one_op, after_preconditioner);
         // Solve x
         // x = x + get_preconditioner() * krylov_bases * y
-    };  // End of apply_lambda
+        comp_helper.print_metrics();  // ADDED
+    };                                // End of apply_lambda
 
     // Look which precision to use as the storage type
     helper<ValueType>::call(apply_templated, this->get_storage_precision());
