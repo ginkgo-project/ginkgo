@@ -97,5 +97,30 @@ const matrix::Dense<ValueType>* get_local(
 #endif
 
 
+template <typename Arg>
+bool is_distributed(Arg* linop)
+{
+#if GINKGO_BUILD_MPI
+    return dynamic_cast<const distributed::DistributedBase*>(linop);
+#else
+    return false;
+#endif
+}
+
+
+template <typename Arg, typename... Rest>
+bool is_distributed(Arg* linop, Rest*... rest)
+{
+#if GINKGO_BUILD_MPI
+    bool is_distributed_value =
+        dynamic_cast<const distributed::DistributedBase*>(linop);
+    GKO_ASSERT(is_distributed_value == is_distributed(rest...));
+    return is_distributed_value;
+#else
+    return false;
+#endif
+}
+
+
 }  // namespace detail
 }  // namespace gko

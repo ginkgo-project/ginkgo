@@ -86,11 +86,11 @@ struct SimpleSolverTest {
     using partition_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
 
-    static double tolerance() { return 10 * reduction_factor(); }
+    static constexpr double tolerance() { return 10 * reduction_factor(); }
 
-    static gko::size_type iteration_count() { return 200u; }
+    static constexpr gko::size_type iteration_count() { return 200u; }
 
-    static value_type reduction_factor() { return 1e-4; }
+    static constexpr value_type reduction_factor() { return 1e-4; }
 
     static void preprocess(
         gko::matrix_data<value_type, global_index_type>& data)
@@ -144,7 +144,7 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 
 
 struct Bicgstab : SimpleSolverTest<gko::solver::Bicgstab<solver_value_type>> {
-    static double tolerance() { return 300 * reduction_factor(); }
+    static constexpr double tolerance() { return 300 * reduction_factor(); }
 };
 
 
