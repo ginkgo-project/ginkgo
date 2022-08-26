@@ -121,6 +121,7 @@ private:
     bool need_reset_;
 };
 
+
 }  // namespace detail
 
 
