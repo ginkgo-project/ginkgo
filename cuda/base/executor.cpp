@@ -207,6 +207,7 @@ scoped_device_id CudaExecutor::get_scoped_device_id() const
     return {this, this->get_device_id()};
 }
 
+
 void CudaExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
