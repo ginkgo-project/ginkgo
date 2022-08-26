@@ -50,34 +50,34 @@ class ScopedDeviceId : public ::testing::Test {
 protected:
     ScopedDeviceId()
         : ref(gko::ReferenceExecutor::create()),
-          hip(gko::CudaExecutor::create(0, ref))
+          cuda(gko::CudaExecutor::create(0, ref))
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> hip;
+    std::shared_ptr<gko::CudaExecutor> cuda;
 };
 
 
 TEST_F(ScopedDeviceId, SetsId)
 {
-    auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
+    auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
 
     gko::detail::cuda_scoped_device_id g{new_device_id};
 
-    ASSERT_EQ(hip->get_device_id(), new_device_id);
+    ASSERT_EQ(cuda->get_device_id(), new_device_id);
 }
 
 
 TEST_F(ScopedDeviceId, ResetsId)
 {
-    auto old_device_id = hip->get_device_id();
+    auto old_device_id = cuda->get_device_id();
 
     {
-        auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
+        auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
         gko::detail::cuda_scoped_device_id g{new_device_id};
     }
 
-    ASSERT_EQ(hip->get_device_id(), old_device_id);
+    ASSERT_EQ(cuda->get_device_id(), old_device_id);
 }
 
 
