@@ -60,7 +60,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply(
         if (subid == 0) {
             c[row * c_stride + column_id] += alpha_val * (rhs - subwarp_result);
         }
+#if USE_THREADFENCE
         __threadfence();
+#endif
         row += num_subwarp;
         if (row >= num_rows) {
             row -= num_rows;
@@ -126,7 +128,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
                      (static_cast<unsigned long long>(i + 1) << 24)))) +
                 (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
         }
+#if USE_THREADFENCE
         __threadfence();
+#endif
         row += num_subwarp;
         if (row >= num_rows) {
             row -= num_rows;
@@ -189,7 +193,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
                     (1 - alpha_val) * rhs;
             }
         }
+#if USE_THREADFENCE
         __threadfence();
+#endif
         row += num_subwarp;
         if (row >= num_rows) {
             row -= num_rows;
@@ -245,7 +251,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_time(
                     ((static_cast<unsigned long long>(start) << 32) + time))) +
                 (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
         }
+#if USE_THREADFENCE
         __threadfence();
+#endif
         row += num_subwarp;
         if (row >= num_rows) {
             row -= num_rows;

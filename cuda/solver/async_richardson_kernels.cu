@@ -61,6 +61,7 @@ constexpr int default_block_size = 4 * config::warp_size;
 #define USE_DYNAMIC 1
 #define DYNAMIC_OSCB 4
 #define STATIC_SUBWARP_SIZE 1
+#define USE_THREADFENCE 1
 
 
 #if USE_DYNAMIC

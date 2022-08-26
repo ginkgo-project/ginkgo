@@ -60,7 +60,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply(
                 c[row * c_stride + column_id] +=
                     alpha_val * (rhs - subwarp_result);
             }
+#if USE_THREADFENCE
             __threadfence();
+#endif
         }
     }
 }
@@ -120,7 +122,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_flow(
                          (static_cast<unsigned long long>(i + 1) << 24)))) +
                     (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
             }
+#if USE_THREADFENCE
             __threadfence();
+#endif
         }
     }
 }
@@ -180,7 +184,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_halfflow(
                         (1 - alpha_val) * rhs;
                 }
             }
+#if USE_THREADFENCE
             __threadfence();
+#endif
         }
     }
 }
@@ -232,7 +238,9 @@ __global__ __launch_bounds__(default_block_size) void subwarp_apply_time(
                          time))) +
                     (1 - alpha_val) * (rhs + c[row * c_stride + column_id]);
             }
+#if USE_THREADFENCE
             __threadfence();
+#endif
         }
     }
 }
