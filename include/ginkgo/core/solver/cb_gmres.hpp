@@ -142,7 +142,7 @@ public:
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
 
-        double GKO_FACTORY_PARAMETER_SCALAR(frsz_epsilon, 1e-2);
+        std::string GKO_FACTORY_PARAMETER_SCALAR(lp_config, "");
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);

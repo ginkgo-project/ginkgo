@@ -10,10 +10,12 @@
 #include <vector>
 
 
-#include <frsz.h>
+// #include <libpressio_ext/cpp/libpressio.h>
+#include <libpressio_ext/cpp/json.h>
 #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_meta.h>  //provides frsz
-
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -203,7 +205,7 @@ template <typename ValueType, typename StorageType>
 struct compression_helper {
     compression_helper(bool use_compr, std::string compressor,
                        size_type num_rows, size_type num_vecs,
-                       double frsz_epsilon)
+                       std::string lp_config)
         : use_compr_{use_compr},
           compressor_(compressor),
           num_rows_{num_rows},
@@ -212,39 +214,27 @@ struct compression_helper {
           in_temp_{},
           out_temp_{},
           p_data_vec_(use_compr_ ? num_vecs : 0),
-          metrics_plugins_{"time", "size", "error_stat", "clipping", "data_gap"}
+          metrics_plugins_{"time",     "size",     "error_stat",
+                           "clipping", "data_gap", "write_debug_inputs"}
     {
         using namespace std::string_literals;
         if (use_compr_) {
-            register_frsz();
             libpressio_register_all();
-            if (compressor_ == "frsz"s) {
-                pc_ = plibrary_.get_compressor("frsz");
-                pc_->set_options({
-                    {"frsz:epsilon", frsz_epsilon},
-                    {"clipping:abs", frsz_epsilon},
-                    // pressio:metric registers call backs to compute metrics
-                    // while various operations are preformed, composite says we
-                    // want to run a set of these.  Defining these is as simple
-                    // as writing a short C++ class and creating a registration
-                    // object
-                    {"pressio:metric", "composite"s},
-                    // here is the set of metrics ids we want to run
-                    {"composite:plugins", metrics_plugins_}
-                });
-            } else {
-                pc_ = plibrary_.get_compressor(compressor_.c_str());
-                pc_->set_options({
-                    // clipping:abs not needed here, because it can also be set
-                    // via pressio:abs
-                    // pressio:abs defines a point-wise absolute error bound
-                    // since sz, sz3, and zfp all understand pressio:abs, this
-                    // just works™
-                    {"pressio:abs", 1e-3},
-                    {"pressio:metric", "composite"s},
-                    {"composite:plugins", metrics_plugins_},
-                });
-            }
+            std::ifstream pressio_input_file(lp_config);
+            nlohmann::json j;
+            pressio_input_file >> j;
+            pressio_options options_from_file(static_cast<pressio_options>(j));
+            pressio library;
+            pc_ = library.get_compressor("pressio");
+            pc_->set_options({
+                {"pressio:metric", "composite"s},
+                {"composite:plugins", metrics_plugins_},
+                {"write_debug_inputs:write_input", true},
+                {"write_debug_inputs:display_paths", true},
+                {"write_debug_inputs:io", "posix"},
+            });
+            pc_->set_name("pressio");
+            pc_->set_options(options_from_file);
             const auto pressio_type = std::is_same<ValueType, float>::value
                                           ? pressio_float_dtype
                                           : pressio_double_dtype;
@@ -350,7 +340,8 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         // ADDED
         compression_helper<ValueType, storage_type> comp_helper(
-            use_sz, "frsz", num_rows, krylov_dim + 1, parameters_.frsz_epsilon);
+            use_sz, "lp_config", num_rows, krylov_dim + 1,
+            parameters_.lp_config);
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
         std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =

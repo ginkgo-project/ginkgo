@@ -35,12 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
-
 
 struct solver_settings {
     unsigned krylov_dim;
@@ -48,7 +48,7 @@ struct solver_settings {
     double stop_rel_res;
     gko::solver::cb_gmres::storage_precision storage_prec;
     std::shared_ptr<const gko::LinOp> precond;
-    double frsz_epsilon;
+    std::string lp_config;
 };
 
 struct solver_result {
@@ -107,7 +107,7 @@ solver_result benchmark_solver(
                           .with_krylov_dim(s_s.krylov_dim)
                           .with_storage_precision(s_s.storage_prec)
                           .with_generated_preconditioner(s_s.precond)
-                          .with_frsz_epsilon(s_s.frsz_epsilon)
+                          .with_lp_config(s_s.lp_config)
                           .on(exec);
 
     // Generate the actual solver from the factory and the matrix.
@@ -206,7 +206,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                              .on(exec)
                              ->generate(A);
     */
-    default_ss.frsz_epsilon = -1;
+    default_ss.lp_config = -1;
 
     std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
               << default_ss.stop_rel_res << " res norm; ";
@@ -241,28 +241,28 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     const auto get_name = [&str_pre, &str_post, &tt_str](int reduction) {
         return str_pre + tt_str(reduction) + str_post;
     };
-    std::array<bench_type, 8> benchmarks = {
-        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
-        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
-        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
-        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
-    };
+    std::vector<bench_type> benchmarks;
+    benchmarks.emplace_back();
     benchmarks[0].name = get_name(0);
     benchmarks[0].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::keep;
+
+    benchmarks.emplace_back();
     benchmarks[1].name = get_name(1);
     benchmarks[1].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce1;
+
+    benchmarks.emplace_back();
     benchmarks[2].name = get_name(2);
     benchmarks[2].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce2;
-    for (int i = 0; i < benchmarks.size() - 3; ++i) {
-        int curr_idx = 3 + i;
-        benchmarks[curr_idx].name =
-            str_pre + "sz" + std::to_string(i + 1) + str_post;
-        benchmarks[curr_idx].settings.storage_prec =
+
+    for (auto config_path : std::filesystem::directory_iterator("lp_configs")) {
+        benchmarks.emplace_back();
+        benchmarks.back().name = str_pre + "lp" + str_post;
+        benchmarks.back().settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_sz;
-        benchmarks[curr_idx].settings.frsz_epsilon = pow(10., -(i + 1));
+        benchmarks.back().settings.lp_config = config_path.path().string();
     }
 
     // Make sure the output is in scientific notation for easier comparison
@@ -288,7 +288,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                   << std::setw(widths[4]) << val.result.res_norm << delim
                   << std::setw(widths[5])
                   << val.result.res_norm / val.result.init_res_norm << delim
-                  << std::setw(widths[6]) << val.settings.frsz_epsilon << '\n';
+                  << std::setw(widths[6]) << val.settings.lp_config << '\n';
     }
 }
 
