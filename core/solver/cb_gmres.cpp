@@ -222,15 +222,15 @@ struct compression_helper {
                 pc_ = plibrary_.get_compressor("frsz");
                 pc_->set_options({
                     {"frsz:epsilon", frsz_epsilon},
-                    //{"clipping:abs", frsz_epsilon},
+                    {"clipping:abs", frsz_epsilon},
                     // pressio:metric registers call backs to compute metrics
                     // while various operations are preformed, composite says we
                     // want to run a set of these.  Defining these is as simple
                     // as writing a short C++ class and creating a registration
                     // object
-                    //{"pressio:metric", "composite"s},
+                    {"pressio:metric", "composite"s},
                     // here is the set of metrics ids we want to run
-                    //{"composite:plugins", metrics_plugins_}
+                    {"composite:plugins", metrics_plugins_}
                 });
             } else {
                 pc_ = plibrary_.get_compressor(compressor_.c_str());
@@ -279,7 +279,7 @@ struct compression_helper {
     void print_metrics() const
     {
         if (use_compr_) {
-            // std::cout << pc_->get_metrics_results() << '\n';
+            std::cout << pc_->get_metrics_results() << '\n';
         }
     }
 
