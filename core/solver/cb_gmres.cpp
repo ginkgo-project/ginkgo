@@ -10,8 +10,7 @@
 #include <vector>
 
 
-// #include <frsz.h>
-// #include <libpressio_ext/cpp/libpressio.h>
+#include <frsz.h>
 #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_meta.h>  //provides frsz
 
@@ -185,6 +184,7 @@ void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 bool check_for_sz(double value) { return value == 1.0; }
+bool check_for_sz(float value) { return value == 1.0; }
 
 template <typename T>
 bool check_for_sz(T value)
@@ -199,14 +199,12 @@ void compress_data(RangeHelper&& helper, std::vector<pressio_data>& p_data_vec,
                    pressio_data& temp)
 {}
 
-template <typename ValueType, typename StorageType,
-          bool all_double = std::is_same<ValueType, double>::value&&
-              std::is_same<StorageType, double>::value>
+template <typename ValueType, typename StorageType>
 struct compression_helper {
     compression_helper(bool use_compr, std::string compressor,
                        size_type num_rows, size_type num_vecs,
                        double frsz_epsilon)
-        : use_compr_{use_compr && all_double},
+        : use_compr_{use_compr},
           compressor_(compressor),
           num_rows_{num_rows},
           plibrary_{},
@@ -218,21 +216,21 @@ struct compression_helper {
     {
         using namespace std::string_literals;
         if (use_compr_) {
-            // register_frsz();
+            register_frsz();
             libpressio_register_all();
             if (compressor_ == "frsz"s) {
                 pc_ = plibrary_.get_compressor("frsz");
                 pc_->set_options({
                     {"frsz:epsilon", frsz_epsilon},
-                    {"clipping:abs", 1e-4},
+                    //{"clipping:abs", frsz_epsilon},
                     // pressio:metric registers call backs to compute metrics
                     // while various operations are preformed, composite says we
                     // want to run a set of these.  Defining these is as simple
                     // as writing a short C++ class and creating a registration
                     // object
-                    {"pressio:metric", "composite"s},
+                    //{"pressio:metric", "composite"s},
                     // here is the set of metrics ids we want to run
-                    {"composite:plugins", metrics_plugins_},
+                    //{"composite:plugins", metrics_plugins_}
                 });
             } else {
                 pc_ = plibrary_.get_compressor(compressor_.c_str());
@@ -281,7 +279,7 @@ struct compression_helper {
     void print_metrics() const
     {
         if (use_compr_) {
-            std::cout << pc_->get_metrics_results() << '\n';
+            // std::cout << pc_->get_metrics_results() << '\n';
         }
     }
 
@@ -322,7 +320,7 @@ void CbGmres<ValueType>::apply_dense_impl(
 
         // ADDED
         // std::cout << "CbGMRES run: " << print_type<ValueType>() << ", " <<
-        // print_type<storage_type>() << ";\n";
+        // print_type<storage_type>() << ' ' << use_sz << ";\n";
 
         using Vector = matrix::Dense<ValueType>;
         using VectorNorms = matrix::Dense<remove_complex<ValueType>>;

@@ -241,7 +241,8 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     const auto get_name = [&str_pre, &str_post, &tt_str](int reduction) {
         return str_pre + tt_str(reduction) + str_post;
     };
-    std::array<bench_type, 6> benchmarks = {
+    std::array<bench_type, 8> benchmarks = {
+        bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
         bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
         bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
         bench_type{{}, default_ss, {}}, bench_type{{}, default_ss, {}},
@@ -255,18 +256,14 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     benchmarks[2].name = get_name(2);
     benchmarks[2].settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce2;
-    benchmarks[3].name = str_pre + "sz1" + str_post;
-    benchmarks[3].settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::use_sz;
-    benchmarks[3].settings.frsz_epsilon = 1e-1;
-    benchmarks[4].name = str_pre + "sz2" + str_post;
-    benchmarks[4].settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::use_sz;
-    benchmarks[4].settings.frsz_epsilon = 1e-2;
-    benchmarks[5].name = str_pre + "sz3" + str_post;
-    benchmarks[5].settings.storage_prec =
-        gko::solver::cb_gmres::storage_precision::use_sz;
-    benchmarks[5].settings.frsz_epsilon = 1e-3;
+    for (int i = 0; i < benchmarks.size() - 3; ++i) {
+        int curr_idx = 3 + i;
+        benchmarks[curr_idx].name =
+            str_pre + "sz" + std::to_string(i + 1) + str_post;
+        benchmarks[curr_idx].settings.storage_prec =
+            gko::solver::cb_gmres::storage_precision::use_sz;
+        benchmarks[curr_idx].settings.frsz_epsilon = pow(10., -(i + 1));
+    }
 
     // Make sure the output is in scientific notation for easier comparison
     std::cout << std::scientific << std::setprecision(4);
@@ -282,6 +279,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
               << std::setw(widths[5]) << "rel res norm" << delim
               << std::setw(widths[6]) << "frsz_epsilon" << '\n';
     for (auto&& val : benchmarks) {
+        // if (val.name.find("sz2") != std::string::npos) { break; }
         val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
         std::cout << std::setw(widths[0]) << val.name << delim
                   << std::setw(widths[1]) << val.result.time_s << delim
