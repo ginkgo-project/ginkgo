@@ -206,7 +206,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                              .on(exec)
                              ->generate(A);
     */
-    default_ss.frsz_epsilon = 1e-2;
+    default_ss.frsz_epsilon = -1;
 
     std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
               << default_ss.stop_rel_res << " res norm; ";
@@ -279,7 +279,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
               << std::setw(widths[5]) << "rel res norm" << delim
               << std::setw(widths[6]) << "frsz_epsilon" << '\n';
     for (auto&& val : benchmarks) {
-        // if (val.name.find("sz2") != std::string::npos) { break; }
+        // if (val.name.find("sz4") == std::string::npos) { continue; }
         val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
         std::cout << std::setw(widths[0]) << val.name << delim
                   << std::setw(widths[1]) << val.result.time_s << delim
