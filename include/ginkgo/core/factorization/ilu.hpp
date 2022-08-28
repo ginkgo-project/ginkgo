@@ -74,19 +74,9 @@ public:
     using index_type = IndexType;
     using matrix_type = matrix::Csr<ValueType, IndexType>;
 
-    std::shared_ptr<const matrix_type> get_l_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[0]);
-    }
+    std::shared_ptr<const matrix_type> get_l_factor() const;
 
-    std::shared_ptr<const matrix_type> get_u_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[1]);
-    }
+    std::shared_ptr<const matrix_type> get_u_factor() const;
 
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
@@ -126,20 +116,8 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    Ilu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{factory->get_executor()},
-          parameters_{factory->get_parameters()}
-    {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
-    }
+    Ilu(const Factory* factory,
+        std::shared_ptr<const gko::LinOp> system_matrix);
 
     /**
      * Generates the incomplete LU factors, which will be returned as a

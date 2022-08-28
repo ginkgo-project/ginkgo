@@ -139,7 +139,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept;
 
     /**
      * @copydoc Ell::get_values()
@@ -148,17 +148,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const value_type* get_const_values() const noexcept;
 
     /**
      * Returns the column indexes of the matrix.
      *
      * @return the column indexes of the matrix.
      */
-    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept;
 
     /**
      * @copydoc Ell::get_col_idxs()
@@ -167,37 +164,28 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs() const noexcept
-    {
-        return col_idxs_.get_const_data();
-    }
+    const index_type* get_const_col_idxs() const noexcept;
 
     /**
      * Returns the number of stored elements per row.
      *
      * @return the number of stored elements per row.
      */
-    size_type get_num_stored_elements_per_row() const noexcept
-    {
-        return num_stored_elements_per_row_;
-    }
+    size_type get_num_stored_elements_per_row() const noexcept;
 
     /**
      * Returns the stride of the matrix.
      *
      * @return the stride of the matrix.
      */
-    size_type get_stride() const noexcept { return stride_; }
+    size_type get_stride() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return values_.get_num_elems();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     /**
      * Returns the `idx`-th non-zero element of the `row`-th row .
@@ -262,15 +250,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
-        size_type num_stored_elements_per_row, size_type stride)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Ell>(new Ell{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            num_stored_elements_per_row, stride});
-    }
+        size_type num_stored_elements_per_row, size_type stride);
 
     /**
      * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
@@ -308,9 +288,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Ell(std::move(exec), size, size[1])
-    {}
+    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{});
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -322,9 +300,7 @@ protected:
      *                                      row
      */
     Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row)
-        : Ell(std::move(exec), size, num_stored_elements_per_row, size[0])
-    {}
+        size_type num_stored_elements_per_row);
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -336,13 +312,7 @@ protected:
      * @param stride                stride of the rows
      */
     Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride)
-        : EnableLinOp<Ell>(exec, size),
-          values_(exec, stride * num_stored_elements_per_row),
-          col_idxs_(exec, stride * num_stored_elements_per_row),
-          num_stored_elements_per_row_(num_stored_elements_per_row),
-          stride_(stride)
-    {}
+        size_type num_stored_elements_per_row, size_type stride);
 
 
     /**

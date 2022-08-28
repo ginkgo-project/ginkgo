@@ -77,30 +77,21 @@ public:
      *
      * @return the basis of the perturbation
      */
-    const std::shared_ptr<const LinOp> get_basis() const noexcept
-    {
-        return basis_;
-    }
+    const std::shared_ptr<const LinOp> get_basis() const noexcept;
 
     /**
      * Returns the projector of the perturbation.
      *
      * @return the projector of the perturbation
      */
-    const std::shared_ptr<const LinOp> get_projector() const noexcept
-    {
-        return projector_;
-    }
+    const std::shared_ptr<const LinOp> get_projector() const noexcept;
 
     /**
      * Returns the scalar of the perturbation.
      *
      * @return the scalar of the perturbation
      */
-    const std::shared_ptr<const LinOp> get_scalar() const noexcept
-    {
-        return scalar_;
-    }
+    const std::shared_ptr<const LinOp> get_scalar() const noexcept;
 
     Perturbation& operator=(const Perturbation& other);
 
@@ -116,9 +107,7 @@ protected:
      *
      * @param exec  Executor associated to the perturbation
      */
-    explicit Perturbation(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Perturbation>(std::move(exec))
-    {}
+    explicit Perturbation(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates a perturbation with scalar and basis by setting projector to the
@@ -129,14 +118,7 @@ protected:
      * @param basis  the direction basis
      */
     explicit Perturbation(std::shared_ptr<const LinOp> scalar,
-                          std::shared_ptr<const LinOp> basis)
-        : Perturbation(
-              std::move(scalar),
-              // basis can not be std::move(basis). Otherwise, Program deletes
-              // basis before applying conjugate transpose
-              basis,
-              std::move((as<gko::Transposable>(lend(basis)))->conj_transpose()))
-    {}
+                          std::shared_ptr<const LinOp> basis);
 
     /**
      * Creates a perturbation of scalar, basis and projector.
@@ -147,32 +129,12 @@ protected:
      */
     explicit Perturbation(std::shared_ptr<const LinOp> scalar,
                           std::shared_ptr<const LinOp> basis,
-                          std::shared_ptr<const LinOp> projector)
-        : EnableLinOp<Perturbation>(basis->get_executor(),
-                                    gko::dim<2>{basis->get_size()[0]}),
-          scalar_{std::move(scalar)},
-          basis_{std::move(basis)},
-          projector_{std::move(projector)}
-    {
-        this->validate_perturbation();
-    }
+                          std::shared_ptr<const LinOp> projector);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
-
-    /**
-     * Validates the dimensions of the `scalar`, `basis` and `projector`
-     * parameters for the `apply`. scalar must be 1 by 1. The dimension of basis
-     * should be same as the dimension of conjugate transpose of projector.
-     */
-    void validate_perturbation()
-    {
-        GKO_ASSERT_CONFORMANT(basis_, projector_);
-        GKO_ASSERT_CONFORMANT(projector_, basis_);
-        GKO_ASSERT_EQUAL_DIMENSIONS(scalar_, dim<2>(1, 1));
-    }
 
 private:
     std::shared_ptr<const LinOp> basis_;
@@ -189,19 +151,7 @@ private:
         // allocate linops of cache. The dimenstion of `intermediate` is
         // (the number of rows of projector, the number of columns of b). Others
         // are 1x1 scalar.
-        void allocate(std::shared_ptr<const Executor> exec, dim<2> size)
-        {
-            using vec = gko::matrix::Dense<ValueType>;
-            if (one == nullptr) {
-                one = initialize<vec>({gko::one<ValueType>()}, exec);
-            }
-            if (alpha_scalar == nullptr) {
-                alpha_scalar = vec::create(exec, gko::dim<2>(1));
-            }
-            if (intermediate == nullptr || intermediate->get_size() != size) {
-                intermediate = vec::create(exec, size);
-            }
-        }
+        void allocate(std::shared_ptr<const Executor> exec, dim<2> size);
 
         std::unique_ptr<LinOp> intermediate;
         std::unique_ptr<LinOp> one;

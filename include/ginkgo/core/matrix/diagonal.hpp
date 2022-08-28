@@ -122,7 +122,7 @@ public:
      *
      * @return the pointer to the array of values
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept;
 
     /**
      * @copydoc get_values()
@@ -131,10 +131,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const value_type* get_const_values() const noexcept;
 
     /**
      * Applies the diagonal matrix from the right side to a matrix b,
@@ -143,14 +140,7 @@ public:
      * @param b  the input vector(s) on which the diagonal matrix is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void rapply(const LinOp* b, LinOp* x) const
-    {
-        GKO_ASSERT_REVERSE_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(b, x);
-        GKO_ASSERT_EQUAL_COLS(this, x);
-
-        this->rapply_impl(b, x);
-    }
+    void rapply(const LinOp* b, LinOp* x) const;
 
     void read(const mat_data& data) override;
 
@@ -180,13 +170,7 @@ public:
      */
     static std::unique_ptr<const Diagonal> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
-        gko::detail::const_array_view<ValueType>&& values)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Diagonal>(new Diagonal{
-            exec, size, gko::detail::array_const_cast(std::move(values))});
-    }
+        gko::detail::const_array_view<ValueType>&& values);
 
 protected:
     /**
@@ -194,9 +178,7 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Diagonal(std::shared_ptr<const Executor> exec)
-        : Diagonal(std::move(exec), size_type{})
-    {}
+    explicit Diagonal(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Diagonal matrix of the specified size.
@@ -204,9 +186,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
-    {}
+    Diagonal(std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates a Diagonal matrix from an already allocated (and initialized)
@@ -228,7 +208,9 @@ protected:
         : EnableLinOp<Diagonal>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
-        GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
+        if (size != 0) {
+            GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
+        }
     }
 
     void apply_impl(const LinOp* b, LinOp* x) const override;

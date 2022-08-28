@@ -100,73 +100,61 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override;
 
     /**
      * Gets the subspace dimension of the solver.
      *
      * @return the subspace Dimension*/
-    size_type get_subspace_dim() const { return parameters_.subspace_dim; }
+    size_type get_subspace_dim() const;
 
     /**
      * Sets the subspace dimension of the solver.
      *
      * @param other  the new subspace Dimension*/
-    void set_subspace_dim(const size_type other)
-    {
-        parameters_.subspace_dim = other;
-    }
+    void set_subspace_dim(const size_type other);
 
     /**
      * Gets the kappa parameter of the solver.
      *
      * @return the kappa parameter
      */
-    remove_complex<ValueType> get_kappa() const { return parameters_.kappa; }
+    remove_complex<ValueType> get_kappa() const;
 
     /**
      * Sets the kappa parameter of the solver.
      *
      * @param other  the new kappa parameter
      */
-    void set_kappa(const remove_complex<ValueType> other)
-    {
-        parameters_.kappa = other;
-    }
+    void set_kappa(const remove_complex<ValueType> other);
 
     /**
      * Gets the deterministic parameter of the solver.
      *
      * @return the deterministic parameter
      */
-    bool get_deterministic() const { return parameters_.deterministic; }
+    bool get_deterministic() const;
 
     /**
      * Sets the deterministic parameter of the solver.
      *
      * @param other  the new deterministic parameter
      */
-    void set_deterministic(const bool other)
-    {
-        parameters_.deterministic = other;
-    }
+    void set_deterministic(const bool other);
 
     /**
      * Gets the complex_subspace parameter of the solver.
      *
      * @return the complex_subspace parameter
      */
-    bool get_complex_subspace() const { return parameters_.complex_subspace; }
+    bool get_complex_subspace() const;
 
     /**
      * Sets the complex_subspace parameter of the solver.
      *
      * @param other  the new complex_subspace parameter
      */
-    void set_complex_subpsace(const bool other)
-    {
-        parameters_.complex_subspace = other;
-    }
+    void set_complex_subpsace(const bool other);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -236,18 +224,10 @@ protected:
     void iterate(const matrix::Dense<SubspaceType>* dense_b,
                  matrix::Dense<SubspaceType>* dense_x) const;
 
-    explicit Idr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Idr>(std::move(exec))
-    {}
+    explicit Idr(std::shared_ptr<const Executor> exec);
 
     explicit Idr(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Idr>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {}
+                 std::shared_ptr<const LinOp> system_matrix);
 };
 
 

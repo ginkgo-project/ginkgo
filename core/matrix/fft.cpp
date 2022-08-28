@@ -138,6 +138,54 @@ void write_impl_3d(int64 size1, int64 size2, int64 size3, bool inverse,
 }  // namespace fft
 
 
+Fft::Fft(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Fft>(exec), buffer_{exec}, inverse_{}
+{}
+
+
+Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
+    : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
+{}
+
+
+Fft2::Fft2(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Fft2>(exec), buffer_{exec}, fft_size_{}, inverse_{}
+{}
+
+
+Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size)
+    : Fft2{exec, size, size}
+{}
+
+
+Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, bool inverse)
+    : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
+      buffer_{exec},
+      fft_size_{size1, size2},
+      inverse_{inverse}
+{}
+
+
+Fft3::Fft3(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Fft3>(exec), buffer_{exec}, fft_size_{}, inverse_{}
+{}
+
+
+Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size)
+    : Fft3{exec, size, size, size}
+{}
+
+
+Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size1,
+           size_type size2, size_type size3, bool inverse)
+    : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
+      buffer_{exec},
+      fft_size_{size1, size2, size3},
+      inverse_{inverse}
+{}
+
+
 std::unique_ptr<LinOp> Fft::transpose() const
 {
     return Fft::create(this->get_executor(), this->get_size()[0], inverse_);

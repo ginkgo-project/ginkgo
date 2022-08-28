@@ -496,7 +496,7 @@ TEST(Record, CatchesCriterionCheckStarted)
     ASSERT_NE(data->criterion, nullptr);
     ASSERT_EQ(data->stopping_id, RelativeStoppingId);
     ASSERT_EQ(data->set_finalized, true);
-    ASSERT_EQ(data->oneChanged, false);
+    ASSERT_EQ(data->one_changed, false);
     ASSERT_EQ(data->converged, false);
 }
 
@@ -526,7 +526,7 @@ TEST(Record, CatchesCriterionCheckCompletedOld)
     ASSERT_EQ(data->status->get_const_data()->get_id(),
               stop_status.get_const_data()->get_id());
     ASSERT_EQ(data->status->get_const_data()->is_finalized(), true);
-    ASSERT_EQ(data->oneChanged, true);
+    ASSERT_EQ(data->one_changed, true);
     ASSERT_EQ(data->converged, true);
 }
 
@@ -556,7 +556,7 @@ TEST(Record, CatchesCriterionCheckCompleted)
     ASSERT_EQ(data->status->get_const_data()->get_id(),
               stop_status.get_const_data()->get_id());
     ASSERT_EQ(data->status->get_const_data()->is_finalized(), true);
-    ASSERT_EQ(data->oneChanged, true);
+    ASSERT_EQ(data->one_changed, true);
     ASSERT_EQ(data->converged, true);
 }
 

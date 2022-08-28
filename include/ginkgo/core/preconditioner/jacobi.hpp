@@ -531,15 +531,7 @@ protected:
      *
      * @param exec  the executor this object is assigned to
      */
-    explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Jacobi>(exec),
-          num_blocks_{},
-          blocks_(exec),
-          conditioning_(exec)
-    {
-        parameters_.block_pointers.set_executor(exec);
-        parameters_.storage_optimization.block_wise.set_executor(exec);
-    }
+    explicit Jacobi(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates a Jacobi preconditioner from a matrix using a Jacobi::Factory.
@@ -549,23 +541,7 @@ protected:
      *                       from
      */
     explicit Jacobi(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Jacobi>(factory->get_executor(),
-                              gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          storage_scheme_{this->compute_storage_scheme(
-              parameters_.max_block_size, parameters_.max_block_stride)},
-          num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
-          blocks_(factory->get_executor(),
-                  storage_scheme_.compute_storage_space(
-                      parameters_.block_pointers.get_num_elems() - 1)),
-          conditioning_(factory->get_executor())
-    {
-        parameters_.block_pointers.set_executor(this->get_executor());
-        parameters_.storage_optimization.block_wise.set_executor(
-            this->get_executor());
-        this->generate(lend(system_matrix), parameters_.skip_sorting);
-    }
+                    std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * Computes the storage scheme suitable for storing blocks of a given
@@ -576,38 +552,7 @@ protected:
      * @return a suitable storage scheme
      */
     block_interleaved_storage_scheme<index_type> compute_storage_scheme(
-        uint32 max_block_size, uint32 param_max_block_stride)
-    {
-        uint32 default_block_stride = 32;
-        // If the executor is hip, the warp size is 32 or 64
-        if (auto hip_exec = std::dynamic_pointer_cast<const gko::HipExecutor>(
-                this->get_executor())) {
-            default_block_stride = hip_exec->get_warp_size();
-        }
-        uint32 max_block_stride = default_block_stride;
-        if (param_max_block_stride != 0) {
-            // if parameter max_block_stride is not zero, set max_block_stride =
-            // param_max_block_stride
-            max_block_stride = param_max_block_stride;
-            if (this->get_executor() != this->get_executor()->get_master() &&
-                max_block_stride != default_block_stride) {
-                // only support the default value on the gpu devive
-                GKO_NOT_SUPPORTED(this);
-            }
-        }
-        if (parameters_.max_block_size > max_block_stride ||
-            parameters_.max_block_size < 1) {
-            GKO_NOT_SUPPORTED(this);
-        }
-        const auto group_size = static_cast<uint32>(
-            max_block_stride / get_superior_power(uint32{2}, max_block_size));
-        const auto block_offset = max_block_size;
-        const auto block_stride = group_size * block_offset;
-        const auto group_offset = max_block_size * block_stride;
-        return {static_cast<index_type>(block_offset),
-                static_cast<index_type>(group_offset),
-                get_significant_bit(group_size)};
-    }
+        uint32 max_block_size, uint32 param_max_block_stride) const;
 
     /**
      * Generates the preconditoner.

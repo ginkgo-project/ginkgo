@@ -104,19 +104,9 @@ public:
     using l_matrix_type = matrix_type;
     using u_matrix_type = matrix_type;
 
-    std::shared_ptr<const matrix_type> get_l_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[0]);
-    }
+    std::shared_ptr<const matrix_type> get_l_factor() const;
 
-    std::shared_ptr<const matrix_type> get_u_factor() const
-    {
-        // Can be `static_cast` since the type is guaranteed in this class
-        return std::static_pointer_cast<const matrix_type>(
-            this->get_operators()[1]);
-    }
+    std::shared_ptr<const matrix_type> get_u_factor() const;
 
     // Remove the possibility of calling `create`, which was enabled by
     // `Composition`
@@ -220,20 +210,7 @@ public:
 
 protected:
     explicit ParIlut(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
-        : Composition<ValueType>(factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        generate_l_u(std::move(system_matrix))->move_to(this);
-    }
+                     std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * Generates the incomplete LU factors, which will be returned as a

@@ -88,7 +88,7 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -123,18 +123,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cgs>(std::move(exec))
-    {}
+    explicit Cgs(std::shared_ptr<const Executor> exec);
 
     explicit Cgs(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cgs>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {}
+                 std::shared_ptr<const LinOp> system_matrix);
 };
 
 

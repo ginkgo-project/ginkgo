@@ -198,10 +198,7 @@ public:
      */
     [[deprecated("use single-parameter create")]] static std::shared_ptr<Papi>
     create(std::shared_ptr<const gko::Executor>,
-           const Logger::mask_type& enabled_events = Logger::all_events_mask)
-    {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
-    }
+           const Logger::mask_type& enabled_events = Logger::all_events_mask);
 
     /**
      * Creates a Papi Logger.
@@ -209,10 +206,7 @@ public:
      * @param enabled_events  the events enabled for this Logger
      */
     static std::shared_ptr<Papi> create(
-        const Logger::mask_type& enabled_events = Logger::all_events_mask)
-    {
-        return std::shared_ptr<Papi>(new Papi(enabled_events));
-    }
+        const Logger::mask_type& enabled_events = Logger::all_events_mask);
 
     /**
      * Returns the unique name of this logger, which can be used in the
@@ -220,64 +214,25 @@ public:
      *
      * @return the unique name of this logger
      */
-    const std::string get_handle_name() const { return name; }
+    const std::string get_handle_name() const;
 
 protected:
     [[deprecated("use single-parameter constructor")]] explicit Papi(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type& enabled_events = Logger::all_events_mask)
-        : Papi(enabled_events)
-    {}
+        const Logger::mask_type& enabled_events = Logger::all_events_mask);
 
     explicit Papi(
-        const Logger::mask_type& enabled_events = Logger::all_events_mask)
-        : Logger(enabled_events)
-    {
-        std::ostringstream os;
-
-        std::lock_guard<std::mutex> guard(papi_count_mutex);
-        os << "ginkgo" << papi_logger_count;
-        name = os.str();
-        papi_handle = papi_sde_init(name.c_str());
-        papi_logger_count++;
-    }
+        const Logger::mask_type& enabled_events = Logger::all_events_mask);
 
 private:
     template <typename PointerType>
     class papi_queue {
     public:
-        papi_queue(papi_handle_t* handle, const char* counter_name)
-            : handle{handle}, counter_name{counter_name}
-        {}
+        papi_queue(papi_handle_t* handle, const char* counter_name);
 
-        ~papi_queue()
-        {
-            if (PAPI_is_initialized()) {
-                for (auto e : data) {
-                    std::ostringstream oss;
-                    oss << counter_name << "::" << e.first;
-                    papi_sde_unregister_counter(*handle, oss.str().c_str());
-                }
-            }
-            data.clear();
-        }
+        ~papi_queue();
 
-        size_type& get_counter(const PointerType* ptr)
-        {
-            const auto tmp = reinterpret_cast<uintptr>(ptr);
-            if (data.find(tmp) == data.end()) {
-                data[tmp] = 0;
-            }
-            auto& value = data[tmp];
-            if (!value) {
-                std::ostringstream oss;
-                oss << counter_name << "::" << tmp;
-                papi_sde_register_counter(*handle, oss.str().c_str(),
-                                          PAPI_SDE_RO | PAPI_SDE_INSTANT,
-                                          PAPI_SDE_long_long, &value);
-            }
-            return data[tmp];
-        }
+        size_type& get_counter(const PointerType* ptr);
 
     private:
         papi_handle_t* handle;

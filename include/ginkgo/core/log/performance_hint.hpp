@@ -89,22 +89,12 @@ public:
      */
     static std::unique_ptr<PerformanceHint> create(
         std::ostream& os = std::cerr, size_type allocation_size_limit = 16,
-        size_type copy_size_limit = 16, size_type histogram_max_size = 1024)
-    {
-        return std::unique_ptr<PerformanceHint>(new PerformanceHint(
-            os, allocation_size_limit, copy_size_limit, histogram_max_size));
-    }
+        size_type copy_size_limit = 16, size_type histogram_max_size = 1024);
 
 protected:
     explicit PerformanceHint(std::ostream& os, size_type allocation_size_limit,
                              size_type copy_size_limit,
-                             size_type histogram_max_size)
-        : Logger(mask_),
-          os_(&os),
-          allocation_size_limit_{allocation_size_limit},
-          copy_size_limit_{copy_size_limit},
-          histogram_max_size_{histogram_max_size}
-    {}
+                             size_type histogram_max_size);
 
 private:
     // set a breakpoint here if you want to see where the output comes from!

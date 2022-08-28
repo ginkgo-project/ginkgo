@@ -130,10 +130,7 @@ public:
      *
      * @return bool  it is related to parameters variable zero_guess
      */
-    bool apply_uses_initial_guess() const override
-    {
-        return !parameters_.zero_guess;
-    }
+    bool apply_uses_initial_guess() const override;
 
     /**
      * Gets the stopping criterion factory of the solver.
@@ -141,10 +138,7 @@ public:
      * @return the stopping criterion factory
      */
     std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
-        const
-    {
-        return stop_criterion_factory_;
-    }
+        const;
 
     /**
      * Sets the stopping criterion of the solver.
@@ -152,20 +146,14 @@ public:
      * @param other  the new stopping criterion factory
      */
     void set_stop_criterion_factory(
-        std::shared_ptr<const stop::CriterionFactory> other)
-    {
-        stop_criterion_factory_ = std::move(other);
-    }
+        std::shared_ptr<const stop::CriterionFactory> other);
 
     /**
      * Gets the system operator of the linear system.
      *
      * @return the system operator
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
+    std::shared_ptr<const LinOp> get_system_matrix() const;
 
     /**
      * Gets the list of MultigridLevel operators.
@@ -173,64 +161,49 @@ public:
      * @return the list of MultigridLevel operators
      */
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
-    get_mg_level_list() const
-    {
-        return mg_level_list_;
-    }
+    get_mg_level_list() const;
 
     /**
      * Gets the list of pre-smoother operators.
      *
      * @return the list of pre-smoother operators
      */
-    std::vector<std::shared_ptr<const LinOp>> get_pre_smoother_list() const
-    {
-        return pre_smoother_list_;
-    }
+    std::vector<std::shared_ptr<const LinOp>> get_pre_smoother_list() const;
 
     /**
      * Gets the list of mid-smoother operators.
      *
      * @return the list of mid-smoother operators
      */
-    std::vector<std::shared_ptr<const LinOp>> get_mid_smoother_list() const
-    {
-        return mid_smoother_list_;
-    }
+    std::vector<std::shared_ptr<const LinOp>> get_mid_smoother_list() const;
 
     /**
      * Gets the list of post-smoother operators.
      *
      * @return the list of post-smoother operators
      */
-    std::vector<std::shared_ptr<const LinOp>> get_post_smoother_list() const
-    {
-        return post_smoother_list_;
-    }
+    std::vector<std::shared_ptr<const LinOp>> get_post_smoother_list() const;
 
     /**
      * Gets the operator at the coarsest level.
      *
      * @return the coarsest operator
      */
-    std::shared_ptr<const LinOp> get_coarsest_solver() const
-    {
-        return coarsest_solver_;
-    }
+    std::shared_ptr<const LinOp> get_coarsest_solver() const;
 
     /**
      * Get the cycle of multigrid
      *
      * @return the multigrid::cycle
      */
-    multigrid::cycle get_cycle() const { return parameters_.cycle; }
+    multigrid::cycle get_cycle() const;
 
     /**
      * Set the cycle of multigrid
      *
      * @param multigrid::cycle the new cycle
      */
-    void set_cycle(multigrid::cycle cycle) { parameters_.cycle = cycle; }
+    void set_cycle(multigrid::cycle cycle);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -430,80 +403,15 @@ protected:
      */
     void generate();
 
-    explicit Multigrid(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Multigrid>(exec)
-    {}
+    explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Multigrid>(factory->get_executor(),
-                                 transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
-    {
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
-        stop_criterion_factory_ =
-            stop::combine(std::move(parameters_.criteria));
-        if (!parameters_.level_selector) {
-            if (parameters_.mg_level.size() == 1) {
-                level_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            } else if (parameters_.mg_level.size() > 1) {
-                level_selector_ = [](const size_type level, const LinOp*) {
-                    return level;
-                };
-            }
-        } else {
-            level_selector_ = parameters_.level_selector;
-        }
-        if (!parameters_.solver_selector) {
-            if (parameters_.coarsest_solver.size() >= 1) {
-                solver_selector_ = [](const size_type, const LinOp*) {
-                    return size_type{0};
-                };
-            }
-        } else {
-            solver_selector_ = parameters_.solver_selector;
-        }
-
-        this->validate();
-
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
-    }
+                       std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * validate checks the given parameters are valid or not.
      */
-    void validate()
-    {
-        const auto mg_level_len = parameters_.mg_level.size();
-        if (mg_level_len == 0) {
-            GKO_NOT_SUPPORTED(mg_level_len);
-        } else {
-            // each mg_level can not be nullptr
-            for (size_type i = 0; i < mg_level_len; i++) {
-                if (parameters_.mg_level.at(i) == nullptr) {
-                    GKO_NOT_SUPPORTED(parameters_.mg_level.at(i));
-                }
-            }
-        }
-        // verify pre-related parameters
-        this->verify_legal_length(true, parameters_.pre_smoother.size(),
-                                  mg_level_len);
-        // verify post-related parameters when post does not use pre
-        this->verify_legal_length(!parameters_.post_uses_pre,
-                                  parameters_.post_smoother.size(),
-                                  mg_level_len);
-        // verify mid-related parameters when mid is standalone smoother.
-        this->verify_legal_length(
-            parameters_.mid_case == multigrid::mid_smooth_type::standalone,
-            parameters_.mid_smoother.size(), mg_level_len);
-    }
+    void validate();
 
     /**
      * verify_legal_length is to check whether the given len is legal for
@@ -514,17 +422,7 @@ protected:
      * @param len  the length of input
      * @param ref_len  the length of reference
      */
-    void verify_legal_length(bool checked, size_type len, size_type ref_len)
-    {
-        if (checked) {
-            // len = 0 uses default behaviour
-            // len = 1 uses the first one
-            // len > 1 : must contain the same len as ref(mg_level)
-            if (len > 1 && len != ref_len) {
-                GKO_NOT_SUPPORTED(this);
-            }
-        }
-    }
+    void verify_legal_length(bool checked, size_type len, size_type ref_len);
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};

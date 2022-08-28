@@ -70,6 +70,46 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+ParIlu<ValueType, IndexType>::get_l_factor() const
+{
+    // Can be `static_cast` since the type is guaranteed in this class
+    return std::static_pointer_cast<const matrix_type>(
+        this->get_operators()[0]);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+ParIlu<ValueType, IndexType>::get_u_factor() const
+{
+    // Can be `static_cast` since the type is guaranteed in this class
+    return std::static_pointer_cast<const matrix_type>(
+        this->get_operators()[1]);
+}
+
+
+template <typename ValueType, typename IndexType>
+ParIlu<ValueType, IndexType>::ParIlu(const Factory* factory,
+                                     std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_{factory->get_parameters()}
+{
+    if (parameters_.l_strategy == nullptr) {
+        parameters_.l_strategy =
+            std::make_shared<typename matrix_type::classical>();
+    }
+    if (parameters_.u_strategy == nullptr) {
+        parameters_.u_strategy =
+            std::make_shared<typename matrix_type::classical>();
+    }
+    generate_l_u(system_matrix, parameters_.skip_sorting,
+                 parameters_.l_strategy, parameters_.u_strategy)
+        ->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,

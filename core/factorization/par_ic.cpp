@@ -73,6 +73,46 @@ GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+ParIc<ValueType, IndexType>::get_l_factor() const
+{
+    // Can be `static_cast` since the type is guaranteed in this class
+    return std::static_pointer_cast<const matrix_type>(
+        this->get_operators()[0]);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+ParIc<ValueType, IndexType>::get_lt_factor() const
+{
+    if (this->get_operators().size() == 2) {
+        // Can be `static_cast` since the type is guaranteed in this class
+        return std::static_pointer_cast<const matrix_type>(
+            this->get_operators()[1]);
+    } else {
+        return std::static_pointer_cast<const matrix_type>(
+            share(get_l_factor()->conj_transpose()));
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+ParIc<ValueType, IndexType>::ParIc(const Factory* factory,
+                                   std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_{factory->get_parameters()}
+{
+    if (parameters_.l_strategy == nullptr) {
+        parameters_.l_strategy =
+            std::make_shared<typename matrix_type::classical>();
+    }
+    generate(system_matrix, parameters_.skip_sorting, parameters_.both_factors)
+        ->move_to(this);
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
     bool both_factors) const

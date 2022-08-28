@@ -60,6 +60,177 @@ GKO_REGISTER_OPERATION(local_to_global, idx_set::local_to_global);
 
 
 template <typename IndexType>
+index_set<IndexType>::index_set(std::shared_ptr<const Executor> exec)
+    : exec_(std::move(exec)),
+      index_space_size_{0},
+      num_stored_indices_{0},
+      subsets_begin_{array<index_type>(exec_)},
+      subsets_end_{array<index_type>(exec_)},
+      superset_cumulative_indices_{array<index_type>(exec_)}
+{}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(std::shared_ptr<const gko::Executor> exec,
+                                std::initializer_list<IndexType> init_list,
+                                const bool is_sorted)
+    : exec_(std::move(exec)),
+      index_space_size_(init_list.size() > 0
+                            ? *(std::max_element(std::begin(init_list),
+                                                 std::end(init_list))) +
+                                  1
+                            : 0),
+      num_stored_indices_{static_cast<IndexType>(init_list.size())}
+{
+    GKO_ASSERT(index_space_size_ > 0);
+    this->populate_subsets(array<IndexType>(this->get_executor(), init_list),
+                           is_sorted);
+}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(std::shared_ptr<const Executor> exec,
+                                const index_set& other)
+    : index_set(exec)
+{
+    *this = other;
+}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(std::shared_ptr<const gko::Executor> exec,
+                                const index_type size,
+                                const gko::array<index_type>& indices,
+                                const bool is_sorted)
+    : exec_(std::move(exec)), index_space_size_(size)
+{
+    GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
+    this->populate_subsets(indices, is_sorted);
+}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(const index_set& other)
+    : index_set(other.get_executor(), other)
+{}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(std::shared_ptr<const Executor> exec,
+                                index_set&& other)
+    : index_set(exec)
+{
+    *this = std::move(other);
+}
+
+
+template <typename IndexType>
+index_set<IndexType>::index_set(index_set&& other)
+    : index_set(other.get_executor(), std::move(other))
+{}
+
+
+template <typename IndexType>
+index_set<IndexType>& index_set<IndexType>::operator=(const index_set& other)
+{
+    if (&other == this) {
+        return *this;
+    }
+    this->index_space_size_ = other.index_space_size_;
+    this->num_stored_indices_ = other.num_stored_indices_;
+    this->subsets_begin_ = other.subsets_begin_;
+    this->subsets_end_ = other.subsets_end_;
+    this->superset_cumulative_indices_ = other.superset_cumulative_indices_;
+
+    return *this;
+}
+
+
+template <typename IndexType>
+index_set<IndexType>& index_set<IndexType>::operator=(index_set&& other)
+{
+    if (&other == this) {
+        return *this;
+    }
+    this->index_space_size_ = std::exchange(other.index_space_size_, 0);
+    this->num_stored_indices_ = std::exchange(other.num_stored_indices_, 0);
+    this->subsets_begin_ = std::move(other.subsets_begin_);
+    this->subsets_end_ = std::move(other.subsets_end_);
+    this->superset_cumulative_indices_ =
+        std::move(other.superset_cumulative_indices_);
+
+    return *this;
+}
+
+
+template <typename IndexType>
+void index_set<IndexType>::clear()
+{
+    this->index_space_size_ = 0;
+    this->num_stored_indices_ = 0;
+    this->subsets_begin_.clear();
+    this->subsets_end_.clear();
+    this->superset_cumulative_indices_.clear();
+}
+
+
+template <typename IndexType>
+std::shared_ptr<const Executor> index_set<IndexType>::get_executor() const
+{
+    return this->exec_;
+}
+
+
+template <typename IndexType>
+IndexType index_set<IndexType>::get_size() const
+{
+    return this->index_space_size_;
+}
+
+
+template <typename IndexType>
+bool index_set<IndexType>::is_contiguous() const
+{
+    return (this->get_num_subsets() <= 1);
+}
+
+
+template <typename IndexType>
+IndexType index_set<IndexType>::get_num_elems() const
+{
+    return this->num_stored_indices_;
+}
+
+
+template <typename IndexType>
+IndexType index_set<IndexType>::get_num_subsets() const
+{
+    return this->subsets_begin_.get_num_elems();
+}
+
+
+template <typename IndexType>
+const IndexType* index_set<IndexType>::get_subsets_begin() const
+{
+    return this->subsets_begin_.get_const_data();
+}
+
+
+template <typename IndexType>
+const IndexType* index_set<IndexType>::get_subsets_end() const
+{
+    return this->subsets_end_.get_const_data();
+}
+
+
+template <typename IndexType>
+const IndexType* index_set<IndexType>::get_superset_indices() const
+{
+    return this->superset_cumulative_indices_.get_const_data();
+}
+
+
+template <typename IndexType>
 void index_set<IndexType>::populate_subsets(
     const gko::array<IndexType>& indices, const bool is_sorted)
 {

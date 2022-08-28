@@ -34,16 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_PUBLIC_CORE_BASE_NAME_DEMANGLING_HPP_
 
 
-#include <ginkgo/config.hpp>
-
-
-#ifdef GKO_HAVE_CXXABI_H
-#include <cxxabi.h>
-#endif  // GKO_HAVE_CXXABI_H
-
-
 #include <memory>
 #include <string>
+
+
+#include <ginkgo/config.hpp>
 
 
 namespace gko {
@@ -56,21 +51,7 @@ namespace gko {
 namespace name_demangling {
 
 
-inline std::string get_type_name(const std::type_info& tinfo)
-{
-#ifdef GKO_HAVE_CXXABI_H
-    int status{};
-    const std::string name(
-        std::unique_ptr<char[], void (*)(void*)>(
-            abi::__cxa_demangle(tinfo.name(), nullptr, nullptr, &status),
-            std::free)
-            .get());
-    if (!status)
-        return name;
-    else
-#endif  // GKO_HAVE_CXXABI_H
-        return std::string(tinfo.name());
-}
+std::string get_type_name(const std::type_info& tinfo);
 
 
 /**

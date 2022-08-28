@@ -89,7 +89,7 @@ public:
      *
      * @return the pointer to the row permutation array.
      */
-    index_type* get_permutation() noexcept { return permutation_.get_data(); }
+    index_type* get_permutation() noexcept;
 
     /**
      * @copydoc get_permutation()
@@ -98,10 +98,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_permutation() const noexcept
-    {
-        return permutation_.get_const_data();
-    }
+    const index_type* get_const_permutation() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the permutation
@@ -110,27 +107,21 @@ public:
      * @return the number of elements explicitly stored in the permutation
      * array.
      */
-    size_type get_permutation_size() const noexcept
-    {
-        return permutation_.get_num_elems();
-    }
+    size_type get_permutation_size() const noexcept;
 
     /**
      * Get the permute masks
      *
      * @return  permute_mask the permute masks
      */
-    mask_type get_permute_mask() const { return enabled_permute_; }
+    mask_type get_permute_mask() const;
 
     /**
      * Set the permute masks
      *
      * @param permute_mask the permute masks
      */
-    void set_permute_mask(mask_type permute_mask)
-    {
-        enabled_permute_ = permute_mask;
-    }
+    void set_permute_mask(mask_type permute_mask);
 
     /**
      * Creates a constant (immutable) Permutation matrix from a constant array.
@@ -146,14 +137,7 @@ public:
     static std::unique_ptr<const Permutation> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
         gko::detail::const_array_view<IndexType>&& perm_idxs,
-        mask_type enabled_permute = row_permute)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Permutation>(new Permutation{
-            exec, size, gko::detail::array_const_cast(std::move(perm_idxs)),
-            enabled_permute});
-    }
+        mask_type enabled_permute = row_permute);
 
 protected:
     /**
@@ -161,9 +145,7 @@ protected:
      *
      * @param exec  Executor associated to the LinOp
      */
-    Permutation(std::shared_ptr<const Executor> exec)
-        : Permutation(std::move(exec), dim<2>{})
-    {}
+    Permutation(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates uninitialized Permutation arrays of the specified size.
@@ -173,13 +155,7 @@ protected:
      * @param enabled_permute  mask for the type of permutation to apply.
      */
     Permutation(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                const mask_type& enabled_permute = row_permute)
-        : EnableLinOp<Permutation>(exec, size),
-          permutation_(exec, size[0]),
-          row_size_(size[0]),
-          col_size_(size[1]),
-          enabled_permute_(enabled_permute)
-    {}
+                const mask_type& enabled_permute = row_permute);
 
     /**
      * Creates a Permutation matrix from an already allocated (and initialized)
@@ -214,47 +190,10 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* in, LinOp* out) const
-    {
-        auto perm = as<Permutable<index_type>>(in);
-        std::unique_ptr<gko::LinOp> tmp{};
-        if (enabled_permute_ & inverse_permute) {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->inverse_row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())
-                              ->inverse_column_permute(&permutation_);
-                } else {
-                    tmp = perm->inverse_column_permute(&permutation_);
-                }
-            }
-        } else {
-            if (enabled_permute_ & row_permute) {
-                tmp = perm->row_permute(&permutation_);
-            }
-            if (enabled_permute_ & column_permute) {
-                if (enabled_permute_ & row_permute) {
-                    tmp = as<Permutable<index_type>>(tmp.get())->column_permute(
-                        &permutation_);
-                } else {
-                    tmp = perm->column_permute(&permutation_);
-                }
-            }
-        }
-        out->copy_from(std::move(tmp));
-    }
-
+    void apply_impl(const LinOp* in, LinOp* out) const override;
 
     void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const
-    {
-        // Ignores alpha and beta and just performs a normal permutation as an
-        // advanced apply does not really make sense here.
-        this->apply_impl(in, out);
-    }
-
+                    LinOp* out) const override;
 
 private:
     array<index_type> permutation_;

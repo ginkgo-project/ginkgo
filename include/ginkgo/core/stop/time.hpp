@@ -71,19 +71,9 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Updater&) override;
 
-    explicit Time(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Time, Criterion>(std::move(exec)),
-          time_limit_{},
-          start_{}
-    {}
+    explicit Time(std::shared_ptr<const gko::Executor> exec);
 
-    explicit Time(const Factory* factory, const CriterionArgs args)
-        : EnablePolymorphicObject<Time, Criterion>(factory->get_executor()),
-          parameters_{factory->get_parameters()},
-          time_limit_{std::chrono::duration<double>(
-              factory->get_parameters().time_limit)},
-          start_{clock::now()}
-    {}
+    explicit Time(const Factory* factory, const CriterionArgs args);
 
 private:
     /**

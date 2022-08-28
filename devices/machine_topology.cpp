@@ -258,4 +258,79 @@ void machine_topology::load_objects(
 }
 
 
+machine_topology* machine_topology::get_instance()
+{
+    static machine_topology instance;
+    return &instance;
+}
+
+
+void machine_topology::bind_to_cores(const std::vector<int>& ids,
+                                     const bool singlify) const
+{
+    hwloc_binding_helper(this->cores_, ids, singlify);
+}
+
+
+void machine_topology::bind_to_core(const int& id) const
+{
+    machine_topology::get_instance()->bind_to_cores(std::vector<int>{id});
+}
+
+
+void machine_topology::bind_to_pus(const std::vector<int>& ids,
+                                   const bool singlify) const
+{
+    hwloc_binding_helper(this->pus_, ids, singlify);
+}
+
+
+void machine_topology::bind_to_pu(const int& id) const
+{
+    machine_topology::get_instance()->bind_to_pus(std::vector<int>{id});
+}
+
+
+const machine_topology::normal_obj_info* machine_topology::get_pu(
+    size_type id) const
+{
+    GKO_ENSURE_IN_BOUNDS(id, this->pus_.size());
+    return &this->pus_[id];
+}
+
+
+const machine_topology::normal_obj_info* machine_topology::get_core(
+    size_type id) const
+{
+    GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
+    return &this->cores_[id];
+}
+
+
+const machine_topology::io_obj_info* machine_topology::get_pci_device(
+    size_type id) const
+{
+    GKO_ENSURE_IN_BOUNDS(id, this->pci_devices_.size());
+    return &this->pci_devices_[id];
+}
+
+
+size_type machine_topology::get_num_pus() const { return this->pus_.size(); }
+
+
+size_type machine_topology::get_num_cores() const
+{
+    return this->cores_.size();
+}
+
+
+size_type machine_topology::get_num_pci_devices() const
+{
+    return this->pci_devices_.size();
+}
+
+
+size_type machine_topology::get_num_numas() const { return this->num_numas_; }
+
+
 }  // namespace gko

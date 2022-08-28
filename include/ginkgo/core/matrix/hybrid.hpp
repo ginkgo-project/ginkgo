@@ -114,10 +114,7 @@ public:
         /**
          * Creates a strategy_type.
          */
-        strategy_type()
-            : ell_num_stored_elements_per_row_(zero<size_type>()),
-              coo_nnz_(zero<size_type>())
-        {}
+        strategy_type();
 
         /**
          * Computes the config of the Hybrid matrix
@@ -133,34 +130,21 @@ public:
          */
         void compute_hybrid_config(const array<size_type>& row_nnz,
                                    size_type* ell_num_stored_elements_per_row,
-                                   size_type* coo_nnz)
-        {
-            array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
-                                         row_nnz.get_num_elems());
-            ref_row_nnz = row_nnz;
-            ell_num_stored_elements_per_row_ =
-                this->compute_ell_num_stored_elements_per_row(&ref_row_nnz);
-            coo_nnz_ = this->compute_coo_nnz(ref_row_nnz);
-            *ell_num_stored_elements_per_row = ell_num_stored_elements_per_row_;
-            *coo_nnz = coo_nnz_;
-        }
+                                   size_type* coo_nnz);
 
         /**
          * Returns the number of stored elements per row of the ell part.
          *
          * @return the number of stored elements per row of the ell part
          */
-        size_type get_ell_num_stored_elements_per_row() const noexcept
-        {
-            return ell_num_stored_elements_per_row_;
-        }
+        size_type get_ell_num_stored_elements_per_row() const noexcept;
 
         /**
          * Returns the number of nonzeros of the coo part.
          *
          * @return the number of nonzeros of the coo part
          */
-        size_type get_coo_nnz() const noexcept { return coo_nnz_; }
+        size_type get_coo_nnz() const noexcept;
 
         /**
          * Computes the number of stored elements per row of the ell part.
@@ -181,18 +165,7 @@ public:
          *
          * @return the number of nonzeros of the coo part
          */
-        size_type compute_coo_nnz(const array<size_type>& row_nnz) const
-        {
-            size_type coo_nnz = 0;
-            auto row_nnz_val = row_nnz.get_const_data();
-            for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
-                if (row_nnz_val[i] > ell_num_stored_elements_per_row_) {
-                    coo_nnz +=
-                        row_nnz_val[i] - ell_num_stored_elements_per_row_;
-                }
-            }
-            return coo_nnz;
-        }
+        size_type compute_coo_nnz(const array<size_type>& row_nnz) const;
 
     private:
         size_type ell_num_stored_elements_per_row_;
@@ -210,22 +183,17 @@ public:
          *
          * @param num_column  the specified number of columns of the ell part
          */
-        explicit column_limit(size_type num_column = 0)
-            : num_columns_(num_column)
-        {}
+        explicit column_limit(size_type num_column = 0);
 
         size_type compute_ell_num_stored_elements_per_row(
-            array<size_type>* row_nnz) const override
-        {
-            return num_columns_;
-        }
+            array<size_type>* row_nnz) const override;
 
         /**
          * Get the number of columns limit
          *
          * @return the number of columns limit
          */
-        auto get_num_columns() const { return num_columns_; }
+        size_type get_num_columns() const;
 
     private:
         size_type num_columns_;
@@ -246,35 +214,17 @@ public:
          * @param percent  the row_nnz[floor(num_rows*percent)] is the number of
          *                 stored elements per row of the ell part
          */
-        explicit imbalance_limit(double percent = 0.8) : percent_(percent)
-        {
-            percent_ = std::min(percent_, 1.0);
-            percent_ = std::max(percent_, 0.0);
-        }
+        explicit imbalance_limit(double percent = 0.8);
 
         size_type compute_ell_num_stored_elements_per_row(
-            array<size_type>* row_nnz) const override
-        {
-            auto row_nnz_val = row_nnz->get_data();
-            auto num_rows = row_nnz->get_num_elems();
-            if (num_rows == 0) {
-                return 0;
-            }
-            std::sort(row_nnz_val, row_nnz_val + num_rows);
-            if (percent_ < 1) {
-                auto percent_pos = static_cast<size_type>(num_rows * percent_);
-                return row_nnz_val[percent_pos];
-            } else {
-                return row_nnz_val[num_rows - 1];
-            }
-        }
+            array<size_type>* row_nnz) const override;
 
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
-        auto get_percentage() const { return percent_; }
+        double get_percentage() const;
 
     private:
         double percent_;
@@ -290,33 +240,24 @@ public:
         /**
          * Creates a imbalance_bounded_limit strategy.
          */
-        imbalance_bounded_limit(double percent = 0.8, double ratio = 0.0001)
-            : strategy_(imbalance_limit(percent)), ratio_(ratio)
-        {}
+        imbalance_bounded_limit(double percent = 0.8, double ratio = 0.0001);
 
         size_type compute_ell_num_stored_elements_per_row(
-            array<size_type>* row_nnz) const override
-        {
-            auto num_rows = row_nnz->get_num_elems();
-            auto ell_cols =
-                strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
-            return std::min(ell_cols,
-                            static_cast<size_type>(num_rows * ratio_));
-        }
+            array<size_type>* row_nnz) const override;
 
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
-        auto get_percentage() const { return strategy_.get_percentage(); }
+        double get_percentage() const;
 
         /**
          * Get the ratio setting
          *
-         * @retrun ratio
+         * @return ratio
          */
-        auto get_ratio() const { return ratio_; }
+        double get_ratio() const;
 
     private:
         imbalance_limit strategy_;
@@ -334,24 +275,17 @@ public:
         /**
          * Creates a minimal_storage_limit strategy.
          */
-        minimal_storage_limit()
-            : strategy_(
-                  imbalance_limit(static_cast<double>(sizeof(IndexType)) /
-                                  (sizeof(ValueType) + 2 * sizeof(IndexType))))
-        {}
+        minimal_storage_limit();
 
         size_type compute_ell_num_stored_elements_per_row(
-            array<size_type>* row_nnz) const override
-        {
-            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
-        }
+            array<size_type>* row_nnz) const override;
 
         /**
          * Get the percent setting
          *
-         * @retrun percent
+         * @return percent
          */
-        auto get_percentage() const { return strategy_.get_percentage(); }
+        double get_percentage() const;
 
     private:
         imbalance_limit strategy_;
@@ -367,13 +301,10 @@ public:
         /**
          * Creates an automatic strategy.
          */
-        automatic() : strategy_(imbalance_bounded_limit(1.0 / 3.0, 0.001)) {}
+        automatic();
 
         size_type compute_ell_num_stored_elements_per_row(
-            array<size_type>* row_nnz) const override
-        {
-            return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
-        }
+            array<size_type>* row_nnz) const override;
 
     private:
         imbalance_bounded_limit strategy_;
@@ -413,7 +344,7 @@ public:
      *
      * @return the values of the ell part
      */
-    value_type* get_ell_values() noexcept { return ell_->get_values(); }
+    value_type* get_ell_values() noexcept;
 
     /**
      * @copydoc Hybrid::get_ell_values()
@@ -422,17 +353,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_ell_values() const noexcept
-    {
-        return ell_->get_const_values();
-    }
+    const value_type* get_const_ell_values() const noexcept;
 
     /**
      * Returns the column indexes of the ell part.
      *
      * @return the column indexes of the ell part
      */
-    index_type* get_ell_col_idxs() noexcept { return ell_->get_col_idxs(); }
+    index_type* get_ell_col_idxs() noexcept;
 
     /**
      * @copydoc Hybrid::get_ell_col_idxs()
@@ -441,37 +369,28 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_ell_col_idxs() const noexcept
-    {
-        return ell_->get_const_col_idxs();
-    }
+    const index_type* get_const_ell_col_idxs() const noexcept;
 
     /**
      * Returns the number of stored elements per row of ell part.
      *
      * @return the number of stored elements per row of ell part
      */
-    size_type get_ell_num_stored_elements_per_row() const noexcept
-    {
-        return ell_->get_num_stored_elements_per_row();
-    }
+    size_type get_ell_num_stored_elements_per_row() const noexcept;
 
     /**
      * Returns the stride of the ell part.
      *
      * @return the stride of the ell part
      */
-    size_type get_ell_stride() const noexcept { return ell_->get_stride(); }
+    size_type get_ell_stride() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the ell part.
      *
      * @return the number of elements explicitly stored in the ell part
      */
-    size_type get_ell_num_stored_elements() const noexcept
-    {
-        return ell_->get_num_stored_elements();
-    }
+    size_type get_ell_num_stored_elements() const noexcept;
 
     /**
      * Returns the `idx`-th non-zero element of the `row`-th row in the ell
@@ -525,14 +444,14 @@ public:
      *
      * @return the matrix of the ell part
      */
-    const ell_type* get_ell() const noexcept { return ell_.get(); }
+    const ell_type* get_ell() const noexcept;
 
     /**
      * Returns the values of the coo part.
      *
      * @return the values of the coo part.
      */
-    value_type* get_coo_values() noexcept { return coo_->get_values(); }
+    value_type* get_coo_values() noexcept;
 
     /**
      * @copydoc Hybrid::get_coo_values()
@@ -541,17 +460,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_coo_values() const noexcept
-    {
-        return coo_->get_const_values();
-    }
+    const value_type* get_const_coo_values() const noexcept;
 
     /**
      * Returns the column indexes of the coo part.
      *
      * @return the column indexes of the coo part.
      */
-    index_type* get_coo_col_idxs() noexcept { return coo_->get_col_idxs(); }
+    index_type* get_coo_col_idxs() noexcept;
 
     /**
      * @copydoc Hybrid::get_coo_col_idxs()
@@ -560,17 +476,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_coo_col_idxs() const noexcept
-    {
-        return coo_->get_const_col_idxs();
-    }
+    const index_type* get_const_coo_col_idxs() const noexcept;
 
     /**
      * Returns the row indexes of the coo part.
      *
      * @return the row indexes of the coo part.
      */
-    index_type* get_coo_row_idxs() noexcept { return coo_->get_row_idxs(); }
+    index_type* get_coo_row_idxs() noexcept;
 
     /**
      * @copydoc Hybrid::get_coo_row_idxs()
@@ -579,48 +492,35 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_coo_row_idxs() const noexcept
-    {
-        return coo_->get_const_row_idxs();
-    }
+    const index_type* get_const_coo_row_idxs() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the coo part.
      *
      * @return the number of elements explicitly stored in the coo part
      */
-    size_type get_coo_num_stored_elements() const noexcept
-    {
-        return coo_->get_num_stored_elements();
-    }
+    size_type get_coo_num_stored_elements() const noexcept;
 
     /**
      * Returns the matrix of the coo part
      *
      * @return the matrix of the coo part
      */
-    const coo_type* get_coo() const noexcept { return coo_.get(); }
+    const coo_type* get_coo() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return coo_->get_num_stored_elements() +
-               ell_->get_num_stored_elements();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     /**
      * Returns the strategy
      *
      * @return the strategy
      */
-    std::shared_ptr<strategy_type> get_strategy() const noexcept
-    {
-        return strategy_;
-    }
+    std::shared_ptr<strategy_type> get_strategy() const noexcept;
 
     /**
      * Returns the current strategy allowed in given hybrid format
@@ -667,11 +567,9 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -682,11 +580,9 @@ protected:
      * @param size  size of the matrix
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, size[1], std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -698,13 +594,10 @@ protected:
      *                                      row
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0],
-                 {}, std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           size_type num_stored_elements_per_row,
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -718,10 +611,7 @@ protected:
      */
     Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
            size_type num_stored_elements_per_row, size_type stride,
-           std::shared_ptr<strategy_type> strategy)
-        : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
-                 std::move(strategy))
-    {}
+           std::shared_ptr<strategy_type> strategy);
 
     /**
      * Creates an uninitialized Hybrid matrix of the specified size and method.
@@ -734,17 +624,11 @@ protected:
      * @param num_nonzeros  number of nonzeros
      * @param strategy  strategy of deciding the Hybrid config
      */
-    Hybrid(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type num_stored_elements_per_row, size_type stride,
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<automatic>())
-        : EnableLinOp<Hybrid>(exec, size),
-          ell_(ell_type::create(exec, size, num_stored_elements_per_row,
-                                stride)),
-          coo_(coo_type::create(exec, size, num_nonzeros)),
-          strategy_(std::move(strategy))
-    {}
+    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           size_type num_stored_elements_per_row, size_type stride,
+           size_type num_nonzeros = {},
+           std::shared_ptr<strategy_type> strategy =
+               std::make_shared<automatic>());
 
     /**
      * Resizes the matrix to the given dimensions and storage sizes.

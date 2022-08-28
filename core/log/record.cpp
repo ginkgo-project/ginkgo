@@ -40,14 +40,158 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace log {
+namespace {
+
+
+template <typename T>
+void append_deque(std::deque<T>& deque, T object, std::size_t max_storage)
+{
+    if (max_storage && deque.size() == max_storage) {
+        deque.pop_front();
+    }
+    deque.push_back(std::move(object));
+}
+
+
+}  // namespace
+
+
+iteration_complete_data::iteration_complete_data(
+    const LinOp* solver, const size_type num_iterations, const LinOp* residual,
+    const LinOp* solution, const LinOp* residual_norm,
+    const LinOp* implicit_sq_residual_norm)
+    : solver{nullptr},
+      num_iterations{num_iterations},
+      residual{nullptr},
+      solution{nullptr},
+      residual_norm{nullptr},
+      implicit_sq_residual_norm{nullptr}
+{
+    this->solver = solver->clone();
+    if (residual != nullptr) {
+        this->residual = residual->clone();
+    }
+    if (solution != nullptr) {
+        this->solution = solution->clone();
+    }
+    if (residual_norm != nullptr) {
+        this->residual_norm = residual_norm->clone();
+    }
+    if (implicit_sq_residual_norm != nullptr) {
+        this->implicit_sq_residual_norm = implicit_sq_residual_norm->clone();
+    }
+}
+
+
+polymorphic_object_data::polymorphic_object_data(
+    const Executor* exec, const PolymorphicObject* input,
+    const PolymorphicObject* output)
+    : exec{exec}
+{
+    this->input = input->clone();
+    if (output != nullptr) {
+        this->output = output->clone();
+    }
+}
+
+
+linop_data::linop_data(const LinOp* A, const LinOp* alpha, const LinOp* b,
+                       const LinOp* beta, const LinOp* x)
+{
+    this->A = A->clone();
+    if (alpha != nullptr) {
+        this->alpha = alpha->clone();
+    }
+    this->b = b->clone();
+    if (beta != nullptr) {
+        this->beta = beta->clone();
+    }
+    this->x = x->clone();
+}
+
+
+linop_factory_data::linop_factory_data(const LinOpFactory* factory,
+                                       const LinOp* input, const LinOp* output)
+    : factory{factory}
+{
+    this->input = input->clone();
+    if (output != nullptr) {
+        this->output = output->clone();
+    }
+}
+
+
+criterion_data::criterion_data(const stop::Criterion* criterion,
+                               const size_type& num_iterations,
+                               const LinOp* residual,
+                               const LinOp* residual_norm,
+                               const LinOp* solution, const uint8 stopping_id,
+                               const bool set_finalized,
+                               const array<stopping_status>* status,
+                               const bool one_changed, const bool converged)
+    : criterion{criterion},
+      num_iterations{num_iterations},
+      residual{nullptr},
+      residual_norm{nullptr},
+      solution{nullptr},
+      stopping_id{stopping_id},
+      set_finalized{set_finalized},
+      status{status},
+      one_changed{one_changed},
+      converged{converged}
+{
+    if (residual != nullptr) {
+        this->residual = std::unique_ptr<const LinOp>(residual->clone());
+    }
+    if (residual_norm != nullptr) {
+        this->residual_norm =
+            std::unique_ptr<const LinOp>(residual_norm->clone());
+    }
+    if (solution != nullptr) {
+        this->solution = std::unique_ptr<const LinOp>(solution->clone());
+    }
+}
+
+
+std::unique_ptr<Record> Record::create(std::shared_ptr<const Executor> exec,
+                                       const mask_type& enabled_events,
+                                       size_type max_storage)
+{
+    return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
+}
+
+
+std::unique_ptr<Record> Record::create(const mask_type& enabled_events,
+                                       size_type max_storage)
+{
+    return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
+}
+
+
+const Record::logged_data& Record::get() const noexcept { return data_; }
+
+
+Record::logged_data& Record::get() noexcept { return data_; }
+
+
+Record::Record(std::shared_ptr<const gko::Executor> exec,
+               const mask_type& enabled_events, size_type max_storage)
+    : Record(enabled_events, max_storage)
+{}
+
+
+Record::Record(const mask_type& enabled_events, size_type max_storage)
+    : Logger(enabled_events), max_storage_{max_storage}
+{}
 
 
 void Record::on_allocation_started(const Executor* exec,
                                    const size_type& num_bytes) const
 {
-    append_deque(data_.allocation_started,
-                 (std::unique_ptr<executor_data>(
-                     new executor_data{exec, num_bytes, 0})));
+    append_deque(
+        data_.allocation_started,
+        (std::unique_ptr<executor_data>(new executor_data{exec, num_bytes, 0})),
+        this->max_storage_);
 }
 
 
@@ -57,7 +201,8 @@ void Record::on_allocation_completed(const Executor* exec,
 {
     append_deque(data_.allocation_completed,
                  (std::unique_ptr<executor_data>(
-                     new executor_data{exec, num_bytes, location})));
+                     new executor_data{exec, num_bytes, location})),
+                 this->max_storage_);
 }
 
 
@@ -66,7 +211,8 @@ void Record::on_free_started(const Executor* exec,
 {
     append_deque(
         data_.free_started,
-        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
+        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})),
+        this->max_storage_);
 }
 
 
@@ -75,7 +221,8 @@ void Record::on_free_completed(const Executor* exec,
 {
     append_deque(
         data_.free_completed,
-        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
+        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})),
+        this->max_storage_);
 }
 
 
@@ -88,7 +235,8 @@ void Record::on_copy_started(const Executor* from, const Executor* to,
     append_deque(
         data_.copy_started,
         (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},
-                                          {to, num_bytes, location_to}})));
+                                          {to, num_bytes, location_to}})),
+        this->max_storage_);
 }
 
 
@@ -101,7 +249,8 @@ void Record::on_copy_completed(const Executor* from, const Executor* to,
     append_deque(
         data_.copy_completed,
         (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},
-                                          {to, num_bytes, location_to}})));
+                                          {to, num_bytes, location_to}})),
+        this->max_storage_);
 }
 
 
@@ -110,7 +259,8 @@ void Record::on_operation_launched(const Executor* exec,
 {
     append_deque(
         data_.operation_launched,
-        (std::unique_ptr<operation_data>(new operation_data{exec, operation})));
+        (std::unique_ptr<operation_data>(new operation_data{exec, operation})),
+        this->max_storage_);
 }
 
 
@@ -119,7 +269,8 @@ void Record::on_operation_completed(const Executor* exec,
 {
     append_deque(
         data_.operation_completed,
-        (std::unique_ptr<operation_data>(new operation_data{exec, operation})));
+        (std::unique_ptr<operation_data>(new operation_data{exec, operation})),
+        this->max_storage_);
 }
 
 
@@ -128,7 +279,8 @@ void Record::on_polymorphic_object_create_started(
 {
     append_deque(data_.polymorphic_object_create_started,
                  (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, po})));
+                     new polymorphic_object_data{exec, po})),
+                 this->max_storage_);
 }
 
 
@@ -138,7 +290,8 @@ void Record::on_polymorphic_object_create_completed(
 {
     append_deque(data_.polymorphic_object_create_completed,
                  (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, input, output})));
+                     new polymorphic_object_data{exec, input, output})),
+                 this->max_storage_);
 }
 
 
@@ -148,7 +301,8 @@ void Record::on_polymorphic_object_copy_started(
 {
     append_deque(data_.polymorphic_object_copy_started,
                  (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, from, to})));
+                     new polymorphic_object_data{exec, from, to})),
+                 this->max_storage_);
 }
 
 
@@ -158,7 +312,8 @@ void Record::on_polymorphic_object_copy_completed(
 {
     append_deque(data_.polymorphic_object_copy_completed,
                  (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, from, to})));
+                     new polymorphic_object_data{exec, from, to})),
+                 this->max_storage_);
 }
 
 
@@ -167,7 +322,8 @@ void Record::on_polymorphic_object_move_started(
     const PolymorphicObject* to) const
 {
     append_deque(data_.polymorphic_object_move_started,
-                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)),
+                 this->max_storage_);
 }
 
 
@@ -176,7 +332,8 @@ void Record::on_polymorphic_object_move_completed(
     const PolymorphicObject* to) const
 {
     append_deque(data_.polymorphic_object_move_completed,
-                 (std::make_unique<polymorphic_object_data>(exec, from, to)));
+                 (std::make_unique<polymorphic_object_data>(exec, from, to)),
+                 this->max_storage_);
 }
 
 
@@ -185,7 +342,8 @@ void Record::on_polymorphic_object_deleted(const Executor* exec,
 {
     append_deque(data_.polymorphic_object_deleted,
                  (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, po})));
+                     new polymorphic_object_data{exec, po})),
+                 this->max_storage_);
 }
 
 
@@ -194,7 +352,8 @@ void Record::on_linop_apply_started(const LinOp* A, const LinOp* b,
 {
     append_deque(data_.linop_apply_started,
                  (std::unique_ptr<linop_data>(
-                     new linop_data{A, nullptr, b, nullptr, x})));
+                     new linop_data{A, nullptr, b, nullptr, x})),
+                 this->max_storage_);
 }
 
 
@@ -203,7 +362,8 @@ void Record::on_linop_apply_completed(const LinOp* A, const LinOp* b,
 {
     append_deque(data_.linop_apply_completed,
                  (std::unique_ptr<linop_data>(
-                     new linop_data{A, nullptr, b, nullptr, x})));
+                     new linop_data{A, nullptr, b, nullptr, x})),
+                 this->max_storage_);
 }
 
 
@@ -213,7 +373,8 @@ void Record::on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
 {
     append_deque(
         data_.linop_advanced_apply_started,
-        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})));
+        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})),
+        this->max_storage_);
 }
 
 
@@ -225,7 +386,8 @@ void Record::on_linop_advanced_apply_completed(const LinOp* A,
 {
     append_deque(
         data_.linop_advanced_apply_completed,
-        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})));
+        (std::unique_ptr<linop_data>(new linop_data{A, alpha, b, beta, x})),
+        this->max_storage_);
 }
 
 
@@ -234,7 +396,8 @@ void Record::on_linop_factory_generate_started(const LinOpFactory* factory,
 {
     append_deque(data_.linop_factory_generate_started,
                  (std::unique_ptr<linop_factory_data>(
-                     new linop_factory_data{factory, input, nullptr})));
+                     new linop_factory_data{factory, input, nullptr})),
+                 this->max_storage_);
 }
 
 
@@ -244,7 +407,8 @@ void Record::on_linop_factory_generate_completed(const LinOpFactory* factory,
 {
     append_deque(data_.linop_factory_generate_completed,
                  (std::unique_ptr<linop_factory_data>(
-                     new linop_factory_data{factory, input, output})));
+                     new linop_factory_data{factory, input, output})),
+                 this->max_storage_);
 }
 
 
@@ -256,7 +420,8 @@ void Record::on_criterion_check_started(
     append_deque(data_.criterion_check_started,
                  (std::unique_ptr<criterion_data>(new criterion_data{
                      criterion, num_iterations, residual, residual_norm,
-                     solution, stopping_id, set_finalized})));
+                     solution, stopping_id, set_finalized})),
+                 this->max_storage_);
 }
 
 
@@ -265,14 +430,15 @@ void Record::on_criterion_check_completed(
     const LinOp* residual, const LinOp* residual_norm,
     const LinOp* implicit_residual_norm_sq, const LinOp* solution,
     const uint8& stopping_id, const bool& set_finalized,
-    const array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& one_changed,
     const bool& converged) const
 {
     append_deque(
         data_.criterion_check_completed,
         (std::unique_ptr<criterion_data>(new criterion_data{
             criterion, num_iterations, residual, residual_norm, solution,
-            stopping_id, set_finalized, status, oneChanged, converged})));
+            stopping_id, set_finalized, status, one_changed, converged})),
+        this->max_storage_);
 }
 
 
@@ -280,12 +446,12 @@ void Record::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stopping_id, const bool& set_finalized,
-    const array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& one_changed,
     const bool& converged) const
 {
     this->on_criterion_check_completed(
         criterion, num_iterations, residual, residual_norm, nullptr, solution,
-        stopping_id, set_finalized, status, oneChanged, converged);
+        stopping_id, set_finalized, status, one_changed, converged);
 }
 
 
@@ -309,7 +475,8 @@ void Record::on_iteration_complete(const LinOp* solver,
         data_.iteration_completed,
         (std::unique_ptr<iteration_complete_data>(new iteration_complete_data{
             solver, num_iterations, residual, solution, residual_norm,
-            implicit_sq_residual_norm})));
+            implicit_sq_residual_norm})),
+        this->max_storage_);
 }
 
 

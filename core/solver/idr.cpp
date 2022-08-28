@@ -64,6 +64,86 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 
 
 template <typename ValueType>
+bool Idr<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+size_type Idr<ValueType>::get_subspace_dim() const
+{
+    return parameters_.subspace_dim;
+}
+
+
+template <typename ValueType>
+void Idr<ValueType>::set_subspace_dim(const size_type other)
+{
+    parameters_.subspace_dim = other;
+}
+
+
+template <typename ValueType>
+remove_complex<ValueType> Idr<ValueType>::get_kappa() const
+{
+    return parameters_.kappa;
+}
+
+
+template <typename ValueType>
+void Idr<ValueType>::set_kappa(const remove_complex<ValueType> other)
+{
+    parameters_.kappa = other;
+}
+
+
+template <typename ValueType>
+bool Idr<ValueType>::get_deterministic() const
+{
+    return parameters_.deterministic;
+}
+
+
+template <typename ValueType>
+void Idr<ValueType>::set_deterministic(const bool other)
+{
+    parameters_.deterministic = other;
+}
+
+
+template <typename ValueType>
+bool Idr<ValueType>::get_complex_subspace() const
+{
+    return parameters_.complex_subspace;
+}
+
+
+template <typename ValueType>
+void Idr<ValueType>::set_complex_subpsace(const bool other)
+{
+    parameters_.complex_subspace = other;
+}
+
+
+template <typename ValueType>
+Idr<ValueType>::Idr(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Idr>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Idr<ValueType>::Idr(const Factory* factory,
+                    std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Idr>(factory->get_executor(),
+                       gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Idr<ValueType>::transpose() const
 {
     return build()

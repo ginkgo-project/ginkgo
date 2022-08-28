@@ -84,29 +84,21 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Identity(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Identity>(exec)
-    {}
+    explicit Identity(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param size  size of the matrix (must be square)
      */
-    Identity(std::shared_ptr<const Executor> exec, dim<2> size)
-        : EnableLinOp<Identity>(exec, size)
-    {
-        GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    }
+    Identity(std::shared_ptr<const Executor> exec, dim<2> size);
 
     /**
      * Creates an Identity matrix of the specified size.
      *
      * @param size  size of the matrix
      */
-    Identity(std::shared_ptr<const Executor> exec, size_type size)
-        : EnableLinOp<Identity>(exec, dim<2>{size})
-    {}
+    Identity(std::shared_ptr<const Executor> exec, size_type size);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -143,19 +135,13 @@ public:
      * @return a unique pointer to the newly created factory
      */
     static std::unique_ptr<IdentityFactory> create(
-        std::shared_ptr<const Executor> exec)
-    {
-        return std::unique_ptr<IdentityFactory>(
-            new IdentityFactory(std::move(exec)));
-    }
+        std::shared_ptr<const Executor> exec);
 
 protected:
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-    IdentityFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
-    {}
+    IdentityFactory(std::shared_ptr<const Executor> exec);
 };
 
 

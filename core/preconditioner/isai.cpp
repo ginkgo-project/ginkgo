@@ -318,6 +318,60 @@ Isai<IsaiType, ValueType, IndexType>::Isai(Isai&& other)
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Isai>(std::move(exec))
+{}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
+      parameters_{factory->get_parameters()}
+{
+    const auto skip_sorting = parameters_.skip_sorting;
+    const auto power = parameters_.sparsity_power;
+    const auto excess_limit = parameters_.excess_limit;
+    generate_inverse(system_matrix, skip_sorting, power, excess_limit);
+    if (IsaiType == isai_type::spd) {
+        auto inv = share(as<Csr>(approximate_inverse_));
+        auto inv_transp = share(inv->conj_transpose());
+        approximate_inverse_ = Composition<ValueType>::create(inv_transp, inv);
+    }
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+std::shared_ptr<const typename std::conditional<
+    IsaiType == isai_type::spd, Composition<ValueType>,
+    matrix::Csr<ValueType, IndexType>>::type>
+Isai<IsaiType, ValueType, IndexType>::get_approximate_inverse() const
+{
+    return as<typename std::conditional<
+        IsaiType == isai_type::spd, Composition<ValueType>,
+        matrix::Csr<ValueType, IndexType>>::type>(approximate_inverse_);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                      LinOp* x) const
+{
+    approximate_inverse_->apply(b, x);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                      const LinOp* b,
+                                                      const LinOp* beta,
+                                                      LinOp* x) const
+{
+    approximate_inverse_->apply(alpha, b, beta, x);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;

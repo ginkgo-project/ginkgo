@@ -62,6 +62,26 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<UpperTrs>(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<UpperTrs>(factory->get_executor(),
+                            gko::transpose(system_matrix->get_size())),
+      EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
+          copy_and_convert_to<CsrMatrix>(factory->get_executor(),
+                                         system_matrix)},
+      parameters_{factory->get_parameters()}
+{
+    this->generate();
+}
+
+
+template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
     : EnableLinOp<UpperTrs>(other.get_executor())
 {

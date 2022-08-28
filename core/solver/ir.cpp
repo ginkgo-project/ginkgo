@@ -56,6 +56,20 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 
 template <typename ValueType>
+bool Ir<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+std::shared_ptr<const LinOp> Ir<ValueType>::get_solver() const
+{
+    return solver_;
+}
+
+
+template <typename ValueType>
 void Ir<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
 {
     auto exec = this->get_executor();
@@ -79,6 +93,36 @@ void Ir<ValueType>::set_relaxation_factor(
         new_factor = gko::clone(exec, new_factor);
     }
     relaxation_factor_ = new_factor;
+}
+
+
+template <typename ValueType>
+Ir<ValueType>::Ir(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Ir>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Ir<ValueType>::Ir(const Factory* factory,
+                  std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Ir>(factory->get_executor(),
+                      gko::transpose(system_matrix->get_size())),
+      EnableSolverBase<Ir>{std::move(system_matrix)},
+      EnableIterativeBase<Ir>{
+          stop::combine(factory->get_parameters().criteria)},
+      parameters_{factory->get_parameters()}
+{
+    if (parameters_.generated_solver) {
+        this->set_solver(parameters_.generated_solver);
+    } else if (parameters_.solver) {
+        this->set_solver(
+            parameters_.solver->generate(this->get_system_matrix()));
+    } else {
+        this->set_solver(matrix::Identity<ValueType>::create(
+            this->get_executor(), this->get_size()));
+    }
+    relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+        {parameters_.relaxation_factor}, this->get_executor());
 }
 
 
@@ -310,10 +354,48 @@ std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 }
 
 
+template <typename ValueType>
+std::unique_ptr<typename Ir<ValueType>::Factory> build_smoother(
+    std::shared_ptr<const LinOpFactory> factory, size_type iteration,
+    ValueType relaxation_factor)
+{
+    auto exec = factory->get_executor();
+    return Ir<ValueType>::build()
+        .with_solver(factory)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename Ir<ValueType>::Factory> build_smoother(
+    std::shared_ptr<const LinOp> solver, size_type iteration,
+    ValueType relaxation_factor)
+{
+    auto exec = solver->get_executor();
+    return Ir<ValueType>::build()
+        .with_generated_solver(solver)
+        .with_relaxation_factor(relaxation_factor)
+        .with_criteria(
+            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
+        .on(exec);
+}
+
+
 #define GKO_DECLARE_IR(_type) class Ir<_type>
 #define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
+#define GKO_DECLARE_SMOOTHER(_type)                              \
+    std::unique_ptr<typename Ir<_type>::Factory> build_smoother( \
+        std::shared_ptr<const LinOpFactory>, size_type, _type)
+#define GKO_DECLARE_SMOOTHER2(_type)                             \
+    std::unique_ptr<typename Ir<_type>::Factory> build_smoother( \
+        std::shared_ptr<const LinOp> solver, size_type, _type)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SMOOTHER);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SMOOTHER2);
 
 
 }  // namespace solver

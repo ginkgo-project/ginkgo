@@ -120,6 +120,767 @@ GKO_REGISTER_OPERATION(check_diagonal_entries,
 
 
 template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::strategy_type::strategy_type(std::string name)
+    : name_(name)
+{}
+
+
+template <typename ValueType, typename IndexType>
+std::string Csr<ValueType, IndexType>::strategy_type::get_name()
+{
+    return name_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::strategy_type::set_name(std::string name)
+{
+    name_ = name;
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::classical::classical()
+    : strategy_type("classical"), max_length_per_row_(0)
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::classical::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{
+    auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+    array<index_type> row_ptrs_host(host_mtx_exec);
+    const bool is_mtx_on_host{host_mtx_exec == mtx_row_ptrs.get_executor()};
+    const index_type* row_ptrs{};
+    if (is_mtx_on_host) {
+        row_ptrs = mtx_row_ptrs.get_const_data();
+    } else {
+        row_ptrs_host = mtx_row_ptrs;
+        row_ptrs = row_ptrs_host.get_const_data();
+    }
+    auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+    max_length_per_row_ = 0;
+    for (size_type i = 0; i < num_rows; i++) {
+        max_length_per_row_ =
+            std::max(max_length_per_row_, row_ptrs[i + 1] - row_ptrs[i]);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::classical::clac_size(const int64_t nnz)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType Csr<ValueType, IndexType>::classical::get_max_length_per_row() const
+    noexcept
+{
+    return max_length_per_row_;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::classical::copy()
+{
+    return std::make_shared<classical>();
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::merge_path::merge_path()
+    : strategy_type("merge_path")
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::merge_path::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::merge_path::clac_size(const int64_t nnz)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::merge_path::copy()
+{
+    return std::make_shared<merge_path>();
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::cusparse::cusparse() : strategy_type("cusparse")
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::cusparse::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::cusparse::clac_size(const int64_t nnz)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::cusparse::copy()
+{
+    return std::make_shared<cusparse>();
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::sparselib::sparselib() : strategy_type("sparselib")
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::sparselib::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::sparselib::clac_size(const int64_t nnz)
+{
+    return 0;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::sparselib::copy()
+{
+    return std::make_shared<sparselib>();
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::load_balance::load_balance()
+    : load_balance(
+          std::move(gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::load_balance::load_balance(
+    std::shared_ptr<const CudaExecutor> exec)
+    : load_balance(exec->get_num_warps(), exec->get_warp_size())
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::load_balance::load_balance(
+    std::shared_ptr<const HipExecutor> exec)
+    : load_balance(exec->get_num_warps(), exec->get_warp_size(), false)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::load_balance::load_balance(
+    std::shared_ptr<const DpcppExecutor> exec)
+    : load_balance(exec->get_num_computing_units() * 7, 32, false, "intel")
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::load_balance::load_balance(int64_t nwarps,
+                                                      int warp_size,
+                                                      bool cuda_strategy,
+                                                      std::string strategy_name)
+    : strategy_type("load_balance"),
+      nwarps_(nwarps),
+      warp_size_(warp_size),
+      cuda_strategy_(cuda_strategy),
+      strategy_name_(strategy_name)
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::load_balance::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{
+    auto nwarps = mtx_srow->get_num_elems();
+
+    if (nwarps > 0) {
+        auto host_srow_exec = mtx_srow->get_executor()->get_master();
+        auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+        const bool is_srow_on_host{host_srow_exec == mtx_srow->get_executor()};
+        const bool is_mtx_on_host{host_mtx_exec == mtx_row_ptrs.get_executor()};
+        array<index_type> row_ptrs_host(host_mtx_exec);
+        array<index_type> srow_host(host_srow_exec);
+        const index_type* row_ptrs{};
+        index_type* srow{};
+        if (is_srow_on_host) {
+            srow = mtx_srow->get_data();
+        } else {
+            srow_host = *mtx_srow;
+            srow = srow_host.get_data();
+        }
+        if (is_mtx_on_host) {
+            row_ptrs = mtx_row_ptrs.get_const_data();
+        } else {
+            row_ptrs_host = mtx_row_ptrs;
+            row_ptrs = row_ptrs_host.get_const_data();
+        }
+        for (size_type i = 0; i < nwarps; i++) {
+            srow[i] = 0;
+        }
+        const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+        const auto num_elems = row_ptrs[num_rows];
+        const auto bucket_divider =
+            num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
+        for (size_type i = 0; i < num_rows; i++) {
+            auto bucket =
+                ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
+                        bucket_divider);
+            if (bucket < nwarps) {
+                srow[bucket]++;
+            }
+        }
+        // find starting row for thread i
+        for (size_type i = 1; i < nwarps; i++) {
+            srow[i] += srow[i - 1];
+        }
+        if (!is_srow_on_host) {
+            *mtx_srow = srow_host;
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::load_balance::clac_size(const int64_t nnz)
+{
+    if (warp_size_ > 0) {
+        int multiple = 8;
+        if (nnz >= static_cast<int64_t>(2e8)) {
+            multiple = 2048;
+        } else if (nnz >= static_cast<int64_t>(2e7)) {
+            multiple = 512;
+        } else if (nnz >= static_cast<int64_t>(2e6)) {
+            multiple = 128;
+        } else if (nnz >= static_cast<int64_t>(2e5)) {
+            multiple = 32;
+        }
+        if (strategy_name_ == "intel") {
+            multiple = 8;
+            if (nnz >= static_cast<int64_t>(2e8)) {
+                multiple = 256;
+            } else if (nnz >= static_cast<int64_t>(2e7)) {
+                multiple = 32;
+            }
+        }
+#if GINKGO_HIP_PLATFORM_HCC
+        if (!cuda_strategy_) {
+            multiple = 8;
+            if (nnz >= static_cast<int64_t>(1e7)) {
+                multiple = 64;
+            } else if (nnz >= static_cast<int64_t>(1e6)) {
+                multiple = 16;
+            }
+        }
+#endif  // GINKGO_HIP_PLATFORM_HCC
+
+        auto nwarps = nwarps_ * multiple;
+        return min(ceildiv(nnz, warp_size_), nwarps);
+    } else {
+        return 0;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::load_balance::copy()
+{
+    return std::make_shared<load_balance>(nwarps_, warp_size_, cuda_strategy_,
+                                          strategy_name_);
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::automatical::automatical()
+    : automatical(
+          std::move(gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::automatical::automatical(
+    std::shared_ptr<const CudaExecutor> exec)
+    : automatical(exec->get_num_warps(), exec->get_warp_size())
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::automatical::automatical(
+    std::shared_ptr<const HipExecutor> exec)
+    : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::automatical::automatical(
+    std::shared_ptr<const DpcppExecutor> exec)
+    : automatical(exec->get_num_computing_units() * 7, 32, false, "intel")
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::automatical::automatical(int64_t nwarps,
+                                                    int warp_size,
+                                                    bool cuda_strategy,
+                                                    std::string strategy_name)
+    : strategy_type("automatical"),
+      nwarps_(nwarps),
+      warp_size_(warp_size),
+      cuda_strategy_(cuda_strategy),
+      strategy_name_(strategy_name),
+      max_length_per_row_(0)
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::automatical::process(
+    const array<index_type>& mtx_row_ptrs, array<index_type>* mtx_srow)
+{
+    // if the number of stored elements is larger than <nnz_limit> or
+    // the maximum number of stored elements per row is larger than
+    // <row_len_limit>, use load_balance otherwise use classical
+    index_type nnz_limit = nvidia_nnz_limit;
+    index_type row_len_limit = nvidia_row_len_limit;
+    if (strategy_name_ == "intel") {
+        nnz_limit = intel_nnz_limit;
+        row_len_limit = intel_row_len_limit;
+    }
+#if GINKGO_HIP_PLATFORM_HCC
+    if (!cuda_strategy_) {
+        nnz_limit = amd_nnz_limit;
+        row_len_limit = amd_row_len_limit;
+    }
+#endif  // GINKGO_HIP_PLATFORM_HCC
+    auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+    const bool is_mtx_on_host{host_mtx_exec == mtx_row_ptrs.get_executor()};
+    array<index_type> row_ptrs_host(host_mtx_exec);
+    const index_type* row_ptrs{};
+    if (is_mtx_on_host) {
+        row_ptrs = mtx_row_ptrs.get_const_data();
+    } else {
+        row_ptrs_host = mtx_row_ptrs;
+        row_ptrs = row_ptrs_host.get_const_data();
+    }
+    const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+    if (row_ptrs[num_rows] > nnz_limit) {
+        load_balance actual_strategy(nwarps_, warp_size_, cuda_strategy_,
+                                     strategy_name_);
+        if (is_mtx_on_host) {
+            actual_strategy.process(mtx_row_ptrs, mtx_srow);
+        } else {
+            actual_strategy.process(row_ptrs_host, mtx_srow);
+        }
+        this->set_name(actual_strategy.get_name());
+    } else {
+        index_type maxnum = 0;
+        for (size_type i = 0; i < num_rows; i++) {
+            maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);
+        }
+        if (maxnum > row_len_limit) {
+            load_balance actual_strategy(nwarps_, warp_size_, cuda_strategy_,
+                                         strategy_name_);
+            if (is_mtx_on_host) {
+                actual_strategy.process(mtx_row_ptrs, mtx_srow);
+            } else {
+                actual_strategy.process(row_ptrs_host, mtx_srow);
+            }
+            this->set_name(actual_strategy.get_name());
+        } else {
+            classical actual_strategy;
+            if (is_mtx_on_host) {
+                actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                max_length_per_row_ = actual_strategy.get_max_length_per_row();
+            } else {
+                actual_strategy.process(row_ptrs_host, mtx_srow);
+                max_length_per_row_ = actual_strategy.get_max_length_per_row();
+            }
+            this->set_name(actual_strategy.get_name());
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+int64_t Csr<ValueType, IndexType>::automatical::clac_size(const int64_t nnz)
+{
+    return std::make_shared<load_balance>(nwarps_, warp_size_, cuda_strategy_,
+                                          strategy_name_)
+        ->clac_size(nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType Csr<ValueType, IndexType>::automatical::get_max_length_per_row() const
+    noexcept
+{
+    return max_length_per_row_;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::automatical::copy()
+{
+    return std::make_shared<automatical>(nwarps_, warp_size_, cuda_strategy_,
+                                         strategy_name_);
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* Csr<ValueType, IndexType>::get_values() noexcept
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* Csr<ValueType, IndexType>::get_const_values() const noexcept
+{
+    return values_.get_const_data();
+}
+
+template <typename ValueType, typename IndexType>
+IndexType* Csr<ValueType, IndexType>::get_col_idxs() noexcept
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Csr<ValueType, IndexType>::get_const_col_idxs() const noexcept
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Csr<ValueType, IndexType>::get_row_ptrs() noexcept
+{
+    return row_ptrs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Csr<ValueType, IndexType>::get_const_row_ptrs() const noexcept
+{
+    return row_ptrs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Csr<ValueType, IndexType>::get_srow() noexcept
+{
+    return srow_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Csr<ValueType, IndexType>::get_const_srow() const noexcept
+{
+    return srow_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Csr<ValueType, IndexType>::get_num_srow_elements() const noexcept
+{
+    return srow_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Csr<ValueType, IndexType>::get_num_stored_elements() const noexcept
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::get_strategy() const noexcept
+{
+    return strategy_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::set_strategy(
+    std::shared_ptr<strategy_type> strategy)
+{
+    strategy_ = std::move(strategy->copy());
+    this->make_srow();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::inv_scale(const LinOp* alpha)
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs,
+    std::shared_ptr<strategy_type> strategy)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Csr>(
+        new Csr{exec, size, gko::detail::array_const_cast(std::move(values)),
+                gko::detail::array_const_cast(std::move(col_idxs)),
+                gko::detail::array_const_cast(std::move(row_ptrs)), strategy});
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs)
+{
+    return Csr::create_const(exec, size, std::move(values), std::move(col_idxs),
+                             std::move(row_ptrs),
+                             Csr::make_default_strategy(exec));
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
+                               std::shared_ptr<strategy_type> strategy)
+    : Csr(std::move(exec), dim<2>{}, {}, std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, size_type num_nonzeros,
+                               std::shared_ptr<strategy_type> strategy)
+    : EnableLinOp<Csr>(exec, size),
+      values_(exec, num_nonzeros),
+      col_idxs_(exec, num_nonzeros),
+      row_ptrs_(exec, size[0] + 1),
+      srow_(exec, strategy->clac_size(num_nonzeros)),
+      strategy_(strategy->copy())
+{
+    row_ptrs_.fill(0);
+    this->make_srow();
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
+                               const dim<2>& size, size_type num_nonzeros)
+    : Csr{exec, size, num_nonzeros, Csr::make_default_strategy(exec)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+// TODO: This provides some more sane settings. Please fix this!
+std::shared_ptr<typename Csr<ValueType, IndexType>::strategy_type>
+Csr<ValueType, IndexType>::make_default_strategy(
+    std::shared_ptr<const Executor> exec)
+{
+    auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
+    auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+    auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(exec);
+    std::shared_ptr<strategy_type> new_strategy;
+    if (cuda_exec) {
+        new_strategy = std::make_shared<automatical>(cuda_exec);
+    } else if (hip_exec) {
+        new_strategy = std::make_shared<automatical>(hip_exec);
+    } else if (dpcpp_exec) {
+        new_strategy = std::make_shared<automatical>(dpcpp_exec);
+    } else {
+        new_strategy = std::make_shared<classical>();
+    }
+    return new_strategy;
+}
+
+
+// TODO clean this up as soon as we improve strategy_type
+template <typename ValueType, typename IndexType>
+template <typename CsrType>
+void Csr<ValueType, IndexType>::convert_strategy_helper(CsrType* result) const
+{
+    auto strat = this->get_strategy().get();
+    std::shared_ptr<typename CsrType::strategy_type> new_strat;
+    if (dynamic_cast<classical*>(strat)) {
+        new_strat = std::make_shared<typename CsrType::classical>();
+    } else if (dynamic_cast<merge_path*>(strat)) {
+        new_strat = std::make_shared<typename CsrType::merge_path>();
+    } else if (dynamic_cast<cusparse*>(strat)) {
+        new_strat = std::make_shared<typename CsrType::cusparse>();
+    } else if (dynamic_cast<sparselib*>(strat)) {
+        new_strat = std::make_shared<typename CsrType::sparselib>();
+    } else {
+        auto rexec = result->get_executor();
+        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(rexec);
+        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
+        auto lb = dynamic_cast<load_balance*>(strat);
+        if (cuda_exec) {
+            if (lb) {
+                new_strat =
+                    std::make_shared<typename CsrType::load_balance>(cuda_exec);
+            } else {
+                new_strat =
+                    std::make_shared<typename CsrType::automatical>(cuda_exec);
+            }
+        } else if (hip_exec) {
+            if (lb) {
+                new_strat =
+                    std::make_shared<typename CsrType::load_balance>(hip_exec);
+            } else {
+                new_strat =
+                    std::make_shared<typename CsrType::automatical>(hip_exec);
+            }
+        } else if (dpcpp_exec) {
+            if (lb) {
+                new_strat = std::make_shared<typename CsrType::load_balance>(
+                    dpcpp_exec);
+            } else {
+                new_strat =
+                    std::make_shared<typename CsrType::automatical>(dpcpp_exec);
+            }
+        } else {
+            // Try to preserve this executor's configuration
+            auto this_cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                this->get_executor());
+            auto this_hip_exec = std::dynamic_pointer_cast<const HipExecutor>(
+                this->get_executor());
+            auto this_dpcpp_exec =
+                std::dynamic_pointer_cast<const DpcppExecutor>(
+                    this->get_executor());
+            if (this_cuda_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            this_cuda_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        this_cuda_exec);
+                }
+            } else if (this_hip_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            this_hip_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        this_hip_exec);
+                }
+            } else if (this_dpcpp_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            this_dpcpp_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        this_dpcpp_exec);
+                }
+            } else {
+                // FIXME: this changes strategies.
+                // We had a load balance or automatical strategy from a non
+                // HIP or Cuda executor and are moving to a non HIP or Cuda
+                // executor.
+                new_strat = std::make_shared<typename CsrType::classical>();
+            }
+        }
+    }
+    result->set_strategy(new_strat);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::make_srow()
+{
+    srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
+    strategy_->process(row_ptrs_, &srow_);
+}
+
+
+namespace detail {
+
+
+/**
+ * When strategy is load_balance or automatical, rebuild the strategy
+ * according to executor's property.
+ *
+ * @param result  the csr matrix.
+ */
+template <typename ValueType, typename IndexType>
+void strategy_rebuild_helper(Csr<ValueType, IndexType>* result)
+{
+    using load_balance = typename Csr<ValueType, IndexType>::load_balance;
+    using automatical = typename Csr<ValueType, IndexType>::automatical;
+    auto strategy = result->get_strategy();
+    auto executor = result->get_executor();
+    if (std::dynamic_pointer_cast<load_balance>(strategy)) {
+        if (auto exec =
+                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
+            result->set_strategy(std::make_shared<load_balance>(exec));
+        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                       executor)) {
+            result->set_strategy(std::make_shared<load_balance>(exec));
+        }
+    } else if (std::dynamic_pointer_cast<automatical>(strategy)) {
+        if (auto exec =
+                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
+            result->set_strategy(std::make_shared<automatical>(exec));
+        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                       executor)) {
+            result->set_strategy(std::make_shared<automatical>(exec));
+        }
+    }
+}
+
+
+}  // namespace detail
+
+
+template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
     const Csr<ValueType, IndexType>& other)
 {

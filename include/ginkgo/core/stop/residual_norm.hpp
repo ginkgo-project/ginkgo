@@ -88,91 +88,12 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2}
-    {}
+    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec);
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
                               const CriterionArgs& args,
                               remove_complex<ValueType> reduction_factor,
-                              mode baseline)
-        : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          reduction_factor_{reduction_factor},
-          device_storage_{exec, 2},
-          baseline_{baseline},
-          system_matrix_{args.system_matrix},
-          b_{args.b},
-          one_{gko::initialize<Vector>({1}, exec)},
-          neg_one_{gko::initialize<Vector>({-1}, exec)}
-    {
-        switch (baseline_) {
-        case mode::initial_resnorm: {
-            if (args.initial_residual == nullptr) {
-                if (args.system_matrix == nullptr || args.b == nullptr ||
-                    args.x == nullptr) {
-                    GKO_NOT_SUPPORTED(nullptr);
-                } else {
-                    this->starting_tau_ = NormVector::create(
-                        exec, dim<2>{1, args.b->get_size()[1]});
-                    auto b_clone = share(args.b->clone());
-                    args.system_matrix->apply(neg_one_.get(), args.x,
-                                              one_.get(), b_clone.get());
-                    if (auto vec =
-                            std::dynamic_pointer_cast<const ComplexVector>(
-                                b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else if (auto vec =
-                                   std::dynamic_pointer_cast<const Vector>(
-                                       b_clone)) {
-                        vec->compute_norm2(this->starting_tau_.get());
-                    } else {
-                        GKO_NOT_SUPPORTED(nullptr);
-                    }
-                }
-            } else {
-                this->starting_tau_ = NormVector::create(
-                    exec, dim<2>{1, args.initial_residual->get_size()[1]});
-                if (dynamic_cast<const ComplexVector*>(args.initial_residual)) {
-                    auto dense_r = as<ComplexVector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                } else {
-                    auto dense_r = as<Vector>(args.initial_residual);
-                    dense_r->compute_norm2(this->starting_tau_.get());
-                }
-            }
-            break;
-        }
-        case mode::rhs_norm: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            if (dynamic_cast<const ComplexVector*>(args.b.get())) {
-                auto dense_rhs = as<ComplexVector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            } else {
-                auto dense_rhs = as<Vector>(args.b);
-                dense_rhs->compute_norm2(this->starting_tau_.get());
-            }
-            break;
-        }
-        case mode::absolute: {
-            if (args.b == nullptr) {
-                GKO_NOT_SUPPORTED(nullptr);
-            }
-            this->starting_tau_ =
-                NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-            this->starting_tau_->fill(gko::one<remove_complex<ValueType>>());
-            break;
-        }
-        default:
-            GKO_NOT_SUPPORTED(nullptr);
-        }
-        this->u_dense_tau_ =
-            NormVector::create_with_config_of(this->starting_tau_.get());
-    }
+                              mode baseline);
 
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
@@ -234,17 +155,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
-    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args);
 };
 
 
@@ -297,18 +210,10 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
     explicit ImplicitResidualNorm(const Factory* factory,
-                                  const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+                                  const CriterionArgs& args);
 };
 
 
@@ -367,18 +272,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit ResidualNormReduction(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ResidualNormReduction(std::shared_ptr<const gko::Executor> exec);
 
     explicit ResidualNormReduction(const Factory* factory,
-                                   const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              mode::initial_resnorm),
-          parameters_{factory->get_parameters()}
-    {}
+                                   const CriterionArgs& args);
 };
 
 
@@ -424,17 +321,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit RelativeResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
     explicit RelativeResidualNorm(const Factory* factory,
-                                  const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(factory->get_executor(), args,
-                                      factory->get_parameters().tolerance,
-                                      mode::rhs_norm),
-          parameters_{factory->get_parameters()}
-    {}
+                                  const CriterionArgs& args);
 };
 
 
@@ -478,17 +368,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit AbsoluteResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit AbsoluteResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
     explicit AbsoluteResidualNorm(const Factory* factory,
-                                  const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(factory->get_executor(), args,
-                                      factory->get_parameters().tolerance,
-                                      mode::absolute),
-          parameters_{factory->get_parameters()}
-    {}
+                                  const CriterionArgs& args);
 };
 
 

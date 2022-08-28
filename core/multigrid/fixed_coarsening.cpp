@@ -66,6 +66,55 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<const LinOp>
+FixedCoarsening<ValueType, IndexType>::get_system_matrix() const
+{
+    return system_matrix_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void FixedCoarsening<ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                       LinOp* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void FixedCoarsening<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                       const LinOp* b,
+                                                       const LinOp* beta,
+                                                       LinOp* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+FixedCoarsening<ValueType, IndexType>::FixedCoarsening(
+    std::shared_ptr<const Executor> exec)
+    : EnableLinOp<FixedCoarsening>(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+FixedCoarsening<ValueType, IndexType>::FixedCoarsening(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<FixedCoarsening>(factory->get_executor(),
+                                   system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(system_matrix),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix}
+{
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existing matrix
+        this->generate();
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void FixedCoarsening<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;

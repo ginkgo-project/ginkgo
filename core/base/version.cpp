@@ -33,7 +33,58 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 
+#include <tuple>
+
+
 namespace gko {
+
+
+bool operator==(const version& first, const version& second)
+{
+    return std::tie(first.major, first.minor, first.patch) ==
+           std::tie(second.major, second.minor, second.patch);
+}
+
+
+bool operator!=(const version& first, const version& second)
+{
+    return !(first == second);
+}
+
+
+bool operator<(const version& first, const version& second)
+{
+    return std::tie(first.major, first.minor, first.patch) <
+           std::tie(second.major, second.minor, second.patch);
+}
+
+
+bool operator<=(const version& first, const version& second)
+{
+    return !(second < first);
+}
+
+
+bool operator>(const version& first, const version& second)
+{
+    return second < first;
+}
+
+
+bool operator>=(const version& first, const version& second)
+{
+    return !(first < second);
+}
+
+
+std::ostream& operator<<(std::ostream& os, const version& ver)
+{
+    os << ver.major << "." << ver.minor << "." << ver.patch;
+    if (ver.tag) {
+        os << " (" << ver.tag << ")";
+    }
+    return os;
+}
 
 
 version version_info::get_core_version() noexcept
@@ -43,6 +94,24 @@ version version_info::get_core_version() noexcept
     // if using shared libraries from different versions of Ginkgo.
     return version_info::get_header_version();
 }
+
+
+const version_info& version_info::get()
+{
+    static version_info info{};
+    return info;
+}
+
+
+version_info::version_info()
+    : header_version{get_header_version()},
+      core_version{get_core_version()},
+      reference_version{get_reference_version()},
+      omp_version{get_omp_version()},
+      cuda_version{get_cuda_version()},
+      hip_version{get_hip_version()},
+      dpcpp_version{get_dpcpp_version()}
+{}
 
 
 std::ostream& operator<<(std::ostream& os, const version_info& ver_info)

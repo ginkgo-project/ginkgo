@@ -79,6 +79,127 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+ValueType* Sellp<ValueType, IndexType>::get_values() noexcept
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* Sellp<ValueType, IndexType>::get_const_values() const noexcept
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Sellp<ValueType, IndexType>::get_col_idxs() noexcept
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Sellp<ValueType, IndexType>::get_const_col_idxs() const
+    noexcept
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type* Sellp<ValueType, IndexType>::get_slice_lengths() noexcept
+{
+    return slice_lengths_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const size_type* Sellp<ValueType, IndexType>::get_const_slice_lengths() const
+    noexcept
+{
+    return slice_lengths_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type* Sellp<ValueType, IndexType>::get_slice_sets() noexcept
+{
+    return slice_sets_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const size_type* Sellp<ValueType, IndexType>::get_const_slice_sets() const
+    noexcept
+{
+    return slice_sets_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Sellp<ValueType, IndexType>::get_slice_size() const noexcept
+{
+    return slice_size_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Sellp<ValueType, IndexType>::get_stride_factor() const noexcept
+{
+    return stride_factor_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Sellp<ValueType, IndexType>::get_total_cols() const noexcept
+{
+    return values_.get_num_elems() / slice_size_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Sellp<ValueType, IndexType>::get_num_stored_elements() const noexcept
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size)
+    : Sellp(std::move(exec), size,
+            ceildiv(size[0], default_slice_size) * size[1])
+{}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type total_cols)
+    : Sellp(std::move(exec), size, default_slice_size, default_stride_factor,
+            total_cols)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type slice_size,
+                                   size_type stride_factor,
+                                   size_type total_cols)
+    : EnableLinOp<Sellp>(exec, size),
+      values_(exec, slice_size * total_cols),
+      col_idxs_(exec, slice_size * total_cols),
+      slice_lengths_(exec, ceildiv(size[0], slice_size)),
+      slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
+      slice_size_(slice_size),
+      stride_factor_(stride_factor)
+{
+    slice_sets_.fill(0);
+    slice_lengths_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
 Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
     const Sellp& other)
 {

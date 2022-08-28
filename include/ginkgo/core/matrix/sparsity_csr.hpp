@@ -150,7 +150,7 @@ public:
      *
      * @return the column indices of the matrix.
      */
-    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept;
 
     /**
      * @copydoc SparsityCsr::get_col_idxs()
@@ -159,17 +159,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs() const noexcept
-    {
-        return col_idxs_.get_const_data();
-    }
+    const index_type* get_const_col_idxs() const noexcept;
 
     /**
      * Returns the row pointers of the matrix.
      *
      * @return the row pointers of the matrix.
      */
-    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept;
 
     /**
      * @copydoc SparsityCsr::get_row_ptrs()
@@ -178,17 +175,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_ptrs() const noexcept
-    {
-        return row_ptrs_.get_const_data();
-    }
+    const index_type* get_const_row_ptrs() const noexcept;
 
     /**
      * Returns the value stored in the matrix.
      *
      * @return the value of the matrix.
      */
-    value_type* get_value() noexcept { return value_.get_data(); }
+    value_type* get_value() noexcept;
 
     /**
      * @copydoc SparsityCsr::get_value()
@@ -197,10 +191,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_value() const noexcept
-    {
-        return value_.get_const_data();
-    }
+    const value_type* get_const_value() const noexcept;
 
 
     /**
@@ -208,10 +199,7 @@ public:
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_nonzeros() const noexcept
-    {
-        return col_idxs_.get_num_elems();
-    }
+    size_type get_num_nonzeros() const noexcept;
 
     /**
      * Creates a constant (immutable) SparsityCsr matrix from constant arrays.
@@ -230,14 +218,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
-        ValueType value = one<ValueType>())
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const SparsityCsr>(new SparsityCsr{
-            exec, size, gko::detail::array_const_cast(std::move(col_idxs)),
-            gko::detail::array_const_cast(std::move(row_ptrs)), value});
-    }
+        ValueType value = one<ValueType>());
 
     /**
      * Copy-assigns a SparsityCsr matrix. Preserves executor, copies everything
@@ -274,14 +255,7 @@ protected:
      * @param num_nonzeros  number of nonzeros
      */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {})
-        : EnableLinOp<SparsityCsr>(exec, size),
-          col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1),
-          value_(exec, {one<ValueType>()})
-    {
-        row_ptrs_.fill(0);
-    }
+                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {});
 
     /**
      * Creates a SparsityCsr matrix from already allocated (and initialized) row
@@ -322,12 +296,7 @@ protected:
      * @param matrix The input matrix
      */
     SparsityCsr(std::shared_ptr<const Executor> exec,
-                std::shared_ptr<const LinOp> matrix)
-        : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
-    {
-        auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
-        this->copy_from(std::move(tmp_.get()));
-    }
+                std::shared_ptr<const LinOp> matrix);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

@@ -120,7 +120,7 @@ public:
      *
      * @return  number elements.
      */
-    size_type get_size() const { return size_; }
+    size_type get_size() const noexcept;
 
     /**
      * Returns the number of ranges stored by this partition.
@@ -128,27 +128,21 @@ public:
      *
      * @return number of ranges.
      */
-    size_type get_num_ranges() const noexcept
-    {
-        return offsets_.get_num_elems() - 1;
-    }
+    size_type get_num_ranges() const noexcept;
 
     /**
      * Returns the number of parts represented in this partition.
      *
      * @return number of parts.
      */
-    comm_index_type get_num_parts() const noexcept { return num_parts_; }
+    comm_index_type get_num_parts() const noexcept;
 
     /**
      * Returns the number of empty parts within this partition.
      *
      * @return number of empty parts.
      */
-    comm_index_type get_num_empty_parts() const noexcept
-    {
-        return num_empty_parts_;
-    }
+    comm_index_type get_num_empty_parts() const noexcept;
 
     /**
      * Returns the ranges boundary array stored by this partition.
@@ -157,10 +151,7 @@ public:
      *
      * @return  range boundaries array.
      */
-    const global_index_type* get_range_bounds() const noexcept
-    {
-        return offsets_.get_const_data();
-    }
+    const global_index_type* get_range_bounds() const noexcept;
 
     /**
      * Returns the part IDs of the ranges in this partition.
@@ -169,10 +160,7 @@ public:
      *
      * @return  part ID array.
      */
-    const comm_index_type* get_part_ids() const noexcept
-    {
-        return part_ids_.get_const_data();
-    }
+    const comm_index_type* get_part_ids() const noexcept;
 
     /**
      * Returns the part-local starting index for each range in this partition.
@@ -187,10 +175,7 @@ public:
      *
      * @return  part-local starting index array.
      */
-    const local_index_type* get_range_starting_indices() const noexcept
-    {
-        return starting_indices_.get_const_data();
-    }
+    const local_index_type* get_range_starting_indices() const noexcept;
 
     /**
      * Returns the part size array.
@@ -198,10 +183,7 @@ public:
      *
      * @return  part size array.
      */
-    const local_index_type* get_part_sizes() const noexcept
-    {
-        return part_sizes_.get_const_data();
-    }
+    const local_index_type* get_part_sizes() const noexcept;
 
     /**
      * Returns the size of a part given by its part ID.
@@ -211,11 +193,7 @@ public:
      *
      * @return  size of part.
      */
-    local_index_type get_part_size(comm_index_type part) const
-    {
-        return this->get_executor()->copy_val_to_host(
-            part_sizes_.get_const_data() + part);
-    }
+    local_index_type get_part_size(comm_index_type part) const;
 
     /**
      * Checks if each part has no more than one contiguous range.
@@ -282,21 +260,7 @@ private:
      * consecutive ranges and parts.
      */
     Partition(std::shared_ptr<const Executor> exec,
-              comm_index_type num_parts = 0, size_type num_ranges = 0)
-        : EnablePolymorphicObject<Partition>{exec},
-          num_parts_{num_parts},
-          num_empty_parts_{0},
-          size_{0},
-          offsets_{exec, num_ranges + 1},
-          starting_indices_{exec, num_ranges},
-          part_sizes_{exec, static_cast<size_type>(num_parts)},
-          part_ids_{exec, num_ranges}
-    {
-        offsets_.fill(0);
-        starting_indices_.fill(0);
-        part_sizes_.fill(0);
-        part_ids_.fill(0);
-    }
+              comm_index_type num_parts = 0, size_type num_ranges = 0);
 
     /**
      * Finalizes the construction in the create_* methods, by computing the

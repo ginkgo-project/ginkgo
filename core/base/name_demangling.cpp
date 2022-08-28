@@ -30,41 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/stop/time.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+
+
+#ifdef GKO_HAVE_CXXABI_H
+#include <cxxabi.h>
+#endif  // GKO_HAVE_CXXABI_H
 
 
 namespace gko {
-namespace stop {
+namespace name_demangling {
 
 
-Time::Time(std::shared_ptr<const gko::Executor> exec)
-    : EnablePolymorphicObject<Time, Criterion>(std::move(exec)),
-      time_limit_{},
-      start_{}
-{}
-
-
-Time::Time(const Factory* factory, const CriterionArgs args)
-    : EnablePolymorphicObject<Time, Criterion>(factory->get_executor()),
-      parameters_{factory->get_parameters()},
-      time_limit_{
-          std::chrono::duration<double>(factory->get_parameters().time_limit)},
-      start_{clock::now()}
-{}
-
-
-bool Time::check_impl(uint8 stoppingId, bool setFinalized,
-                      array<stopping_status>* stop_status, bool* one_changed,
-                      const Updater& updater)
+std::string get_type_name(const std::type_info& tinfo)
 {
-    bool result = clock::now() - start_ >= time_limit_;
-    if (result) {
-        this->set_all_statuses(stoppingId, setFinalized, stop_status);
-        *one_changed = true;
-    }
-    return result;
+#ifdef GKO_HAVE_CXXABI_H
+    int status{};
+    const std::string name(
+        std::unique_ptr<char[], void (*)(void*)>(
+            abi::__cxa_demangle(tinfo.name(), nullptr, nullptr, &status),
+            std::free)
+            .get());
+    if (!status)
+        return name;
+    else
+#endif  // GKO_HAVE_CXXABI_H
+        return std::string(tinfo.name());
 }
 
 
-}  // namespace stop
+}  // namespace name_demangling
 }  // namespace gko

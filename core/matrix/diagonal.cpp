@@ -67,6 +67,56 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType>
+ValueType* Diagonal<ValueType>::get_values() noexcept
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType>
+const ValueType* Diagonal<ValueType>::get_const_values() const noexcept
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::rapply(const LinOp* b, LinOp* x) const
+{
+    GKO_ASSERT_REVERSE_CONFORMANT(this, b);
+    GKO_ASSERT_EQUAL_ROWS(b, x);
+    GKO_ASSERT_EQUAL_COLS(this, x);
+
+    this->rapply_impl(b, x);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Diagonal<ValueType>> Diagonal<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, size_type size,
+    gko::detail::const_array_view<ValueType>&& values)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Diagonal>(new Diagonal{
+        exec, size, gko::detail::array_const_cast(std::move(values))});
+}
+
+
+template <typename ValueType>
+Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec)
+    : Diagonal(std::move(exec), size_type{})
+{}
+
+
+template <typename ValueType>
+Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
+                              size_type size)
+    : EnableLinOp<Diagonal>(exec, dim<2>{size}), values_(exec, size)
+{}
+
+
+template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();

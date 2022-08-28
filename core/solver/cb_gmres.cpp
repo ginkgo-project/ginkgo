@@ -187,6 +187,51 @@ struct helper<std::complex<T>> {
 
 
 template <typename ValueType>
+size_type CbGmres<ValueType>::get_krylov_dim() const
+{
+    return parameters_.krylov_dim;
+}
+
+
+template <typename ValueType>
+void CbGmres<ValueType>::set_krylov_dim(size_type other)
+{
+    parameters_.krylov_dim = other;
+}
+
+
+template <typename ValueType>
+cb_gmres::storage_precision CbGmres<ValueType>::get_storage_precision() const
+{
+    return parameters_.storage_precision;
+}
+
+
+template <typename ValueType>
+bool CbGmres<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+CbGmres<ValueType>::CbGmres(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<CbGmres>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+CbGmres<ValueType>::CbGmres(const Factory* factory,
+                            std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<CbGmres>(factory->get_executor(),
+                           transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (!this->get_system_matrix()) {

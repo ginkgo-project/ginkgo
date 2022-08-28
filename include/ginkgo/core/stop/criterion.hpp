@@ -104,24 +104,45 @@ public:
             return converged;
         }
 
-        /**
-         * Helper macro to add parameters and setters to updater
-         */
-#define GKO_UPDATER_REGISTER_PARAMETER(_type, _name) \
-    const Updater& _name(_type const& value) const   \
-    {                                                \
-        _name##_ = value;                            \
-        return *this;                                \
-    }                                                \
-    mutable _type _name##_ {}
+        size_type num_iterations_{};
 
-        GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, implicit_sq_residual_norm);
-        GKO_UPDATER_REGISTER_PARAMETER(const LinOp*, solution);
+        const LinOp* residual_{};
 
-#undef GKO_UPDATER_REGISTER_PARAMETER
+        const LinOp* residual_norm_{};
+
+        const LinOp* implicit_sq_residual_norm_{};
+
+        const LinOp* solution_{};
+
+        Updater& num_iterations(size_type const& value)
+        {
+            num_iterations_ = value;
+            return *this;
+        }
+
+        Updater& residual(const LinOp* const& value)
+        {
+            residual_ = value;
+            return *this;
+        }
+
+        Updater& residual_norm(const LinOp* const& value)
+        {
+            residual_norm_ = value;
+            return *this;
+        }
+
+        Updater& implicit_sq_residual_norm(const LinOp* const& value)
+        {
+            implicit_sq_residual_norm_ = value;
+            return *this;
+        }
+
+        Updater& solution(const LinOp* const& value)
+        {
+            solution_ = value;
+            return *this;
+        }
 
     private:
         Updater(Criterion* parent) : parent_{parent} {}
@@ -151,21 +172,7 @@ public:
      */
     bool check(uint8 stopping_id, bool set_finalized,
                array<stopping_status>* stop_status, bool* one_changed,
-               const Updater& updater)
-    {
-        this->template log<log::Logger::criterion_check_started>(
-            this, updater.num_iterations_, updater.residual_,
-            updater.residual_norm_, updater.solution_, stopping_id,
-            set_finalized);
-        auto all_converged = this->check_impl(
-            stopping_id, set_finalized, stop_status, one_changed, updater);
-        this->template log<log::Logger::criterion_check_completed>(
-            this, updater.num_iterations_, updater.residual_,
-            updater.residual_norm_, updater.implicit_sq_residual_norm_,
-            updater.solution_, stopping_id, set_finalized, stop_status,
-            *one_changed, all_converged);
-        return all_converged;
-    }
+               const Updater& updater);
 
 protected:
     /**
@@ -201,9 +208,7 @@ protected:
     void set_all_statuses(uint8 stopping_id, bool set_finalized,
                           array<stopping_status>* stop_status);
 
-    explicit Criterion(std::shared_ptr<const gko::Executor> exec)
-        : EnableAbstractPolymorphicObject<Criterion>(exec)
-    {}
+    explicit Criterion(std::shared_ptr<const gko::Executor> exec);
 };
 
 
@@ -223,15 +228,9 @@ struct CriterionArgs {
     const LinOp* x;
     const LinOp* initial_residual;
 
-
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
                   std::shared_ptr<const LinOp> b, const LinOp* x,
-                  const LinOp* initial_residual = nullptr)
-        : system_matrix{system_matrix},
-          b{b},
-          x{x},
-          initial_residual{initial_residual}
-    {}
+                  const LinOp* initial_residual = nullptr);
 };
 
 

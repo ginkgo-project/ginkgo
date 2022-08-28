@@ -138,7 +138,7 @@ public:
      *
      * @return the values of the matrix.
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept;
 
     /**
      * @copydoc Csr::get_values()
@@ -147,17 +147,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const value_type* get_const_values() const noexcept;
 
     /**
      * Returns the column indexes of the matrix.
      *
      * @return the column indexes of the matrix.
      */
-    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept;
 
     /**
      * @copydoc Csr::get_col_idxs()
@@ -166,17 +163,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs() const noexcept
-    {
-        return col_idxs_.get_const_data();
-    }
+    const index_type* get_const_col_idxs() const noexcept;
 
     /**
      * Returns the row indexes of the matrix.
      *
      * @return the row indexes of the matrix.
      */
-    index_type* get_row_idxs() noexcept { return row_idxs_.get_data(); }
+    index_type* get_row_idxs() noexcept;
 
     /**
      * @copydoc Csr::get_row_idxs()
@@ -185,20 +179,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_idxs() const noexcept
-    {
-        return row_idxs_.get_const_data();
-    }
+    const index_type* get_const_row_idxs() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return values_.get_num_elems();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     /**
      * Applies Coo matrix axpy to a vector (or a sequence of vectors).
@@ -210,26 +198,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(const LinOp* b, LinOp* x)
-    {
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    LinOp* apply2(const LinOp* b, LinOp* x);
 
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(const LinOp* b, LinOp* x) const
-    {
-        this->validate_application_parameters(b, x);
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    const LinOp* apply2(const LinOp* b, LinOp* x) const;
 
     /**
      * Performs the operation x = alpha * Coo * b + x.
@@ -240,30 +214,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x)
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x);
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        auto exec = this->get_executor();
-        this->apply2_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get(),
-                          make_temporary_clone(exec, x).get());
-        return this;
-    }
+    const LinOp* apply2(const LinOp* alpha, const LinOp* b, LinOp* x) const;
 
     /**
      * Creates a constant (immutable) Coo matrix from a set of constant arrays.
@@ -281,15 +237,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_idxs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Coo>(new Coo{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            gko::detail::array_const_cast(std::move(col_idxs)),
-            gko::detail::array_const_cast(std::move(row_idxs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
     /**
@@ -300,12 +248,7 @@ protected:
      * @param num_nonzeros  number of nonzeros
      */
     Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {})
-        : EnableLinOp<Coo>(exec, size),
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, num_nonzeros),
-          row_idxs_(exec, num_nonzeros)
-    {}
+        size_type num_nonzeros = {});
 
     /**
      * Creates a COO matrix from already allocated (and initialized) row

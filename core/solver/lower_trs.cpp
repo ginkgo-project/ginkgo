@@ -62,6 +62,26 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<LowerTrs>(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<LowerTrs>(factory->get_executor(),
+                            gko::transpose(system_matrix->get_size())),
+      EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+          copy_and_convert_to<CsrMatrix>(factory->get_executor(),
+                                         system_matrix)},
+      parameters_{factory->get_parameters()}
+{
+    this->generate();
+}
+
+
+template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
     : EnableLinOp<LowerTrs>(other.get_executor())
 {

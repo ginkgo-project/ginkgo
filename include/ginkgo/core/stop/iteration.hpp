@@ -68,15 +68,9 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Updater& updater) override;
 
-    explicit Iteration(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
-    {}
+    explicit Iteration(std::shared_ptr<const gko::Executor> exec);
 
-    explicit Iteration(const Factory* factory, const CriterionArgs& args)
-        : EnablePolymorphicObject<Iteration, Criterion>(
-              factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {}
+    explicit Iteration(const Factory* factory, const CriterionArgs& args);
 };
 
 

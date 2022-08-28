@@ -180,21 +180,10 @@ protected:
      */
     void generate();
 
-    explicit LowerTrs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<LowerTrs>(std::move(exec))
-    {}
+    explicit LowerTrs(std::shared_ptr<const Executor> exec);
 
     explicit LowerTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<LowerTrs>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
-              copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
-          parameters_{factory->get_parameters()}
-    {
-        this->generate();
-    }
+                      std::shared_ptr<const LinOp> system_matrix);
 
 private:
     std::shared_ptr<solver::SolveStruct> solve_struct_;
@@ -333,21 +322,10 @@ protected:
      */
     void generate();
 
-    explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<UpperTrs>(std::move(exec))
-    {}
+    explicit UpperTrs(std::shared_ptr<const Executor> exec);
 
     explicit UpperTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<UpperTrs>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
-              copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
-          parameters_{factory->get_parameters()}
-    {
-        this->generate();
-    }
+                      std::shared_ptr<const LinOp> system_matrix);
 
 private:
     std::shared_ptr<solver::SolveStruct> solve_struct_;

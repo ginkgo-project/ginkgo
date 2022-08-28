@@ -92,15 +92,13 @@ public:
      * @param line  The source code line number where the error occurred
      * @param what  The error message
      */
-    Error(const std::string& file, int line, const std::string& what)
-        : what_(file + ":" + std::to_string(line) + ": " + what)
-    {}
+    Error(const std::string& file, int line, const std::string& what);
 
     /**
      * Returns a human-readable string with a more detailed description of the
      * error.
      */
-    virtual const char* what() const noexcept override { return what_.c_str(); }
+    virtual const char* what() const noexcept override;
 
 private:
     const std::string what_;
@@ -120,9 +118,7 @@ public:
      * @param line  The source code line number where the error occurred
      * @param func  The name of the not-yet implemented function
      */
-    NotImplemented(const std::string& file, int line, const std::string& func)
-        : Error(file, line, func + " is not implemented")
-    {}
+    NotImplemented(const std::string& file, int line, const std::string& func);
 };
 
 
@@ -141,11 +137,7 @@ public:
      * @param module  The name of the module which contains the function
      */
     NotCompiled(const std::string& file, int line, const std::string& func,
-                const std::string& module)
-        : Error(file, line,
-                "feature " + func + " is part of the " + module +
-                    " module, which is not compiled on this system")
-    {}
+                const std::string& module);
 };
 
 
@@ -165,11 +157,7 @@ public:
                        cannot be performed.
      */
     NotSupported(const std::string& file, int line, const std::string& func,
-                 const std::string& obj_type)
-        : Error(file, line,
-                "Operation " + func + " does not support parameters of type " +
-                    obj_type)
-    {}
+                 const std::string& obj_type);
 };
 
 
@@ -186,9 +174,7 @@ public:
      * @param error_code The resulting MPI error code
      */
     MpiError(const std::string& file, int line, const std::string& func,
-             int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+             int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -209,9 +195,7 @@ public:
      * @param error_code  The resulting CUDA error code
      */
     CudaError(const std::string& file, int line, const std::string& func,
-              int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+              int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -232,9 +216,7 @@ public:
      * @param error_code  The resulting cuBLAS error code
      */
     CublasError(const std::string& file, int line, const std::string& func,
-                int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -255,9 +237,7 @@ public:
      * @param error_code  The resulting cuRAND error code
      */
     CurandError(const std::string& file, int line, const std::string& func,
-                int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -278,9 +258,7 @@ public:
      * @param error_code  The resulting cuSPARSE error code
      */
     CusparseError(const std::string& file, int line, const std::string& func,
-                  int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                  int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -301,9 +279,7 @@ public:
      * @param error_code  The resulting cuFFT error code
      */
     CufftError(const std::string& file, int line, const std::string& func,
-               int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+               int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -324,9 +300,7 @@ public:
      * @param error_code  The resulting HIP error code
      */
     HipError(const std::string& file, int line, const std::string& func,
-             int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+             int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -347,9 +321,7 @@ public:
      * @param error_code  The resulting hipBLAS error code
      */
     HipblasError(const std::string& file, int line, const std::string& func,
-                 int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                 int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -370,9 +342,7 @@ public:
      * @param error_code  The resulting hipRAND error code
      */
     HiprandError(const std::string& file, int line, const std::string& func,
-                 int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                 int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -394,9 +364,7 @@ public:
      * @param error_code  The resulting hipSPARSE error code
      */
     HipsparseError(const std::string& file, int line, const std::string& func,
-                   int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                   int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -417,9 +385,7 @@ public:
      * @param error_code  The resulting hipFFT error code
      */
     HipfftError(const std::string& file, int line, const std::string& func,
-                int64 error_code)
-        : Error(file, line, func + ": " + get_error(error_code))
-    {}
+                int64 error_code);
 
 private:
     static std::string get_error(int64 error_code);
@@ -450,14 +416,7 @@ public:
                       const std::string& func, const std::string& first_name,
                       size_type first_rows, size_type first_cols,
                       const std::string& second_name, size_type second_rows,
-                      size_type second_cols, const std::string& clarification)
-        : Error(file, line,
-                func + ": attempting to combine operators " + first_name +
-                    " [" + std::to_string(first_rows) + " x " +
-                    std::to_string(first_cols) + "] and " + second_name + " [" +
-                    std::to_string(second_rows) + " x " +
-                    std::to_string(second_cols) + "]: " + clarification)
-    {}
+                      size_type second_cols, const std::string& clarification);
 };
 
 
@@ -480,12 +439,7 @@ public:
      */
     BadDimension(const std::string& file, int line, const std::string& func,
                  const std::string& op_name, size_type op_num_rows,
-                 size_type op_num_cols, const std::string& clarification)
-        : Error(file, line,
-                func + ": Object " + op_name + " has dimensions [" +
-                    std::to_string(op_num_rows) + " x " +
-                    std::to_string(op_num_cols) + "]: " + clarification)
-    {}
+                 size_type op_num_cols, const std::string& clarification);
 };
 
 
@@ -530,11 +484,7 @@ public:
      */
     ValueMismatch(const std::string& file, int line, const std::string& func,
                   size_type val1, size_type val2,
-                  const std::string& clarification)
-        : Error(file, line,
-                func + ": Value mismatch : " + std::to_string(val1) + " and " +
-                    std::to_string(val2) + " : " + clarification)
-    {}
+                  const std::string& clarification);
 };
 
 
@@ -552,11 +502,7 @@ public:
      * @param bytes  The size of the memory block whose allocation failed.
      */
     AllocationError(const std::string& file, int line,
-                    const std::string& device, size_type bytes)
-        : Error(file, line,
-                device + ": failed to allocate memory block of " +
-                    std::to_string(bytes) + "B")
-    {}
+                    const std::string& device, size_type bytes);
 };
 
 
@@ -575,12 +521,7 @@ public:
      * @param bound  The first out-of-bound index
      */
     OutOfBoundsError(const std::string& file, int line, size_type index,
-                     size_type bound)
-        : Error(file, line,
-                "trying to access index " + std::to_string(index) +
-                    " in a memory block of " + std::to_string(bound) +
-                    " elements")
-    {}
+                     size_type bound);
 };
 
 
@@ -598,9 +539,7 @@ public:
      * @param message  The error message
      */
     StreamError(const std::string& file, int line, const std::string& func,
-                const std::string& message)
-        : Error(file, line, func + ": " + message)
-    {}
+                const std::string& message);
 };
 
 
@@ -617,9 +556,7 @@ public:
      * @param line  The source code line number where the error occurred
      * @param func  The name of the function where the error occurred
      */
-    KernelNotFound(const std::string& file, int line, const std::string& func)
-        : Error(file, line, func + ": unable to find an eligible kernel")
-    {}
+    KernelNotFound(const std::string& file, int line, const std::string& func);
 };
 
 
@@ -639,9 +576,7 @@ public:
      * @param msg  A message describing the property required.
      */
     UnsupportedMatrixProperty(const std::string& file, const int line,
-                              const std::string& msg)
-        : Error(file, line, msg)
-    {}
+                              const std::string& msg);
 };
 
 

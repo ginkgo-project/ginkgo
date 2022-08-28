@@ -39,6 +39,31 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+
+template <typename ValueType>
+const std::shared_ptr<const LinOp> Perturbation<ValueType>::get_basis() const
+    noexcept
+{
+    return basis_;
+}
+
+
+template <typename ValueType>
+const std::shared_ptr<const LinOp> Perturbation<ValueType>::get_projector()
+    const noexcept
+{
+    return projector_;
+}
+
+
+template <typename ValueType>
+const std::shared_ptr<const LinOp> Perturbation<ValueType>::get_scalar() const
+    noexcept
+{
+    return scalar_;
+}
+
+
 template <typename ValueType>
 Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     const Perturbation& other)
@@ -96,6 +121,40 @@ Perturbation<ValueType>::Perturbation(Perturbation&& other)
 
 
 template <typename ValueType>
+Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Perturbation>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
+                                      std::shared_ptr<const LinOp> basis)
+    : Perturbation(
+          std::move(scalar),
+          // basis can not be std::move(basis). Otherwise, Program deletes
+          // basis before applying conjugate transpose
+          basis,
+          std::move((as<gko::Transposable>(lend(basis)))->conj_transpose()))
+{}
+
+
+template <typename ValueType>
+Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
+                                      std::shared_ptr<const LinOp> basis,
+                                      std::shared_ptr<const LinOp> projector)
+    : EnableLinOp<Perturbation>(basis->get_executor(),
+                                gko::dim<2>{basis->get_size()[0]}),
+      scalar_{std::move(scalar)},
+      basis_{std::move(basis)},
+      projector_{std::move(projector)}
+{
+    GKO_ASSERT_CONFORMANT(basis_, projector_);
+    GKO_ASSERT_CONFORMANT(projector_, basis_);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scalar_, dim<2>(1, 1));
+}
+
+
+template <typename ValueType>
 void Perturbation<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     // x = (I + scalar * basis * projector) * b
@@ -142,6 +201,23 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                           lend(cache_.one), dense_x);
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType>
+void Perturbation<ValueType>::cache_struct::allocate(
+    std::shared_ptr<const Executor> exec, dim<2> size)
+{
+    using vec = gko::matrix::Dense<ValueType>;
+    if (one == nullptr) {
+        one = initialize<vec>({gko::one<ValueType>()}, exec);
+    }
+    if (alpha_scalar == nullptr) {
+        alpha_scalar = vec::create(exec, gko::dim<2>(1));
+    }
+    if (intermediate == nullptr || intermediate->get_size() != size) {
+        intermediate = vec::create(exec, size);
+    }
 }
 
 

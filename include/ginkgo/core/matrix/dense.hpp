@@ -163,14 +163,7 @@ public:
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
-    static std::unique_ptr<Dense> create_with_config_of(const Dense* other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
+    static std::unique_ptr<Dense> create_with_config_of(const Dense* other);
 
     /**
      * Creates a Dense matrix with the same type and executor as another Dense
@@ -185,11 +178,7 @@ public:
      */
     static std::unique_ptr<Dense> create_with_type_of(
         const Dense* other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size = dim<2>{})
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, size[1]);
-    }
+        const dim<2>& size = dim<2>{});
 
     /**
      * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
@@ -201,11 +190,7 @@ public:
      */
     static std::unique_ptr<Dense> create_with_type_of(
         const Dense* other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
+        const dim<2>& size, size_type stride);
 
     friend class Dense<next_precision<ValueType>>;
 
@@ -601,7 +586,7 @@ public:
      *
      * @return the pointer to the array of values
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept;
 
     /**
      * @copydoc get_values()
@@ -610,27 +595,21 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const value_type* get_const_values() const noexcept;
 
     /**
      * Returns the stride of the matrix.
      *
      * @return the stride of the matrix.
      */
-    size_type get_stride() const noexcept { return stride_; }
+    size_type get_stride() const noexcept;
 
     /**
      * Returns the number of elements explicitly stored in the matrix.
      *
      * @return the number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return values_.get_num_elems();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     /**
      * Returns a single element of the matrix.
@@ -829,10 +808,7 @@ public:
      */
     std::unique_ptr<Dense> create_submatrix(const span& rows,
                                             const span& columns,
-                                            const size_type stride)
-    {
-        return this->create_submatrix_impl(rows, columns, stride);
-    }
+                                            const size_type stride);
 
     /**
      * Create a submatrix from the original matrix.
@@ -841,10 +817,7 @@ public:
      * @param columns  column span
      */
     std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns)
-    {
-        return create_submatrix(rows, columns, this->get_stride());
-    }
+                                            const span& columns);
 
     /**
      * Create a real view of the (potentially) complex original matrix.
@@ -873,14 +846,7 @@ public:
      */
     static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<ValueType>&& values, size_type stride)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Dense>(new Dense{
-            exec, size, gko::detail::array_const_cast(std::move(values)),
-            stride});
-    }
+        gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
     /**
      * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
@@ -915,9 +881,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-        : Dense(std::move(exec), size, size[1])
-    {}
+    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{});
 
     /**
      * Creates an uninitialized Dense matrix of the specified size.
@@ -929,11 +893,7 @@ protected:
      *                  number of matrix elements)
      */
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type stride)
-        : EnableLinOp<Dense>(exec, size),
-          values_(exec, size[0] * stride),
-          stride_(stride)
-    {}
+          size_type stride);
 
     /**
      * Creates a Dense matrix from an already allocated (and initialized) array.
@@ -970,11 +930,7 @@ protected:
      *
      * @returns a Dense matrix with the same size and stride as the caller.
      */
-    virtual std::unique_ptr<Dense> create_with_same_config() const
-    {
-        return Dense::create(this->get_executor(), this->get_size(),
-                             this->get_stride());
-    }
+    virtual std::unique_ptr<Dense> create_with_same_config() const;
 
     /**
      * Creates a Dense matrix with the same type as the callers matrix.
@@ -985,10 +941,7 @@ protected:
      */
     virtual std::unique_ptr<Dense> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride) const
-    {
-        return Dense::create(exec, size, stride);
-    }
+        size_type stride) const;
 
     template <typename IndexType>
     void convert_impl(Coo<ValueType, IndexType>* result) const;

@@ -49,12 +49,45 @@ GKO_REGISTER_OPERATION(set_all_statuses, set_all_statuses::set_all_statuses);
 }  // namespace criterion
 
 
+Criterion::Criterion(std::shared_ptr<const gko::Executor> exec)
+    : EnableAbstractPolymorphicObject<Criterion>(exec)
+{}
+
+
+bool Criterion::check(uint8 stopping_id, bool set_finalized,
+                      array<stopping_status>* stop_status, bool* one_changed,
+                      const Updater& updater)
+{
+    this->template log<log::Logger::criterion_check_started>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.solution_, stopping_id, set_finalized);
+    auto all_converged = this->check_impl(stopping_id, set_finalized,
+                                          stop_status, one_changed, updater);
+    this->template log<log::Logger::criterion_check_completed>(
+        this, updater.num_iterations_, updater.residual_,
+        updater.residual_norm_, updater.implicit_sq_residual_norm_,
+        updater.solution_, stopping_id, set_finalized, stop_status,
+        *one_changed, all_converged);
+    return all_converged;
+}
+
+
 void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
                                  array<stopping_status>* stop_status)
 {
     this->get_executor()->run(criterion::make_set_all_statuses(
         stoppingId, setFinalized, stop_status));
 }
+
+
+CriterionArgs::CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
+                             std::shared_ptr<const LinOp> b, const LinOp* x,
+                             const LinOp* initial_residual)
+    : system_matrix{system_matrix},
+      b{b},
+      x{x},
+      initial_residual{initial_residual}
+{}
 
 
 }  // namespace stop

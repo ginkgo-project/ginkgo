@@ -237,7 +237,7 @@ public:
     /**
      * @return The values of the matrix.
      */
-    value_type* get_values() noexcept { return values_.get_data(); }
+    value_type* get_values() noexcept;
 
     /**
      * @copydoc Fbcsr::get_values()
@@ -246,15 +246,12 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_values() const noexcept
-    {
-        return values_.get_const_data();
-    }
+    const value_type* get_const_values() const noexcept;
 
     /**
      * @return The column indexes of the matrix.
      */
-    index_type* get_col_idxs() noexcept { return col_idxs_.get_data(); }
+    index_type* get_col_idxs() noexcept;
 
     /**
      * @copydoc Fbcsr::get_col_idxs()
@@ -263,15 +260,12 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_col_idxs() const noexcept
-    {
-        return col_idxs_.get_const_data();
-    }
+    const index_type* get_const_col_idxs() const noexcept;
 
     /**
      * @return The row pointers of the matrix.
      */
-    index_type* get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
+    index_type* get_row_ptrs() noexcept;
 
     /**
      * @copydoc Fbcsr::get_row_ptrs()
@@ -280,47 +274,32 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_ptrs() const noexcept
-    {
-        return row_ptrs_.get_const_data();
-    }
+    const index_type* get_const_row_ptrs() const noexcept;
 
     /**
      * @return  The number of elements explicitly stored in the matrix
      */
-    size_type get_num_stored_elements() const noexcept
-    {
-        return values_.get_num_elems();
-    }
+    size_type get_num_stored_elements() const noexcept;
 
     /**
      * @return  The number of non-zero blocks explicitly stored in the matrix
      */
-    size_type get_num_stored_blocks() const noexcept
-    {
-        return col_idxs_.get_num_elems();
-    }
+    size_type get_num_stored_blocks() const noexcept;
 
     /**
      * @return The fixed block size for this matrix
      */
-    int get_block_size() const noexcept { return bs_; }
+    int get_block_size() const noexcept;
 
     /**
      * @return The number of block-rows in the matrix
      */
-    index_type get_num_block_rows() const noexcept
-    {
-        return this->get_size()[0] / bs_;
-    }
+    index_type get_num_block_rows() const noexcept;
 
     /**
      * @return The number of block-columns in the matrix
      */
-    index_type get_num_block_cols() const noexcept
-    {
-        return this->get_size()[1] / bs_;
-    }
+    index_type get_num_block_cols() const noexcept;
 
     /**
      * Creates a constant (immutable) Fbcsr matrix from a constant array.
@@ -339,16 +318,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
-        gko::detail::const_array_view<IndexType>&& row_ptrs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const Fbcsr>(
-            new Fbcsr{exec, size, blocksize,
-                      gko::detail::array_const_cast(std::move(values)),
-                      gko::detail::array_const_cast(std::move(col_idxs)),
-                      gko::detail::array_const_cast(std::move(row_ptrs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_ptrs);
 
     /**
      * Copy-assigns an Fbcsr matrix. Preserves the executor, copies data and
@@ -383,9 +353,7 @@ protected:
      * @param block_size  The desired size of the dense square nonzero blocks;
      *                    defaults to 1.
      */
-    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1)
-        : Fbcsr(std::move(exec), dim<2>{}, {}, block_size)
-    {}
+    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1);
 
     /**
      * Creates an uninitialized FBCSR matrix of the specified size.
@@ -397,17 +365,7 @@ protected:
      * @param block_size  size of the small dense square blocks
      */
     Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type num_nonzeros, int block_size)
-        : EnableLinOp<Fbcsr>(exec, size),
-          bs_{block_size},
-          values_(exec, num_nonzeros),
-          col_idxs_(exec, detail::get_num_blocks(block_size * block_size,
-                                                 num_nonzeros)),
-          row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
-    {
-        GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
-        row_ptrs_.fill(0);
-    }
+          size_type num_nonzeros, int block_size);
 
     /**
      * Creates a FBCSR matrix from already allocated (and initialized) row

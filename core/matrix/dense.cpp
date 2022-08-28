@@ -119,6 +119,128 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 
 
 template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_config_of(
+    const Dense* other)
+{
+    // De-referencing `other` before calling the functions (instead of
+    // using operator `->`) is currently required to be compatible with
+    // CUDA 10.1.
+    // Otherwise, it results in a compile error.
+    return (*other).create_with_same_config();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of(
+    const Dense* other, std::shared_ptr<const Executor> exec,
+    const dim<2>& size)
+{
+    // See create_with_config_of()
+    return (*other).create_with_type_of_impl(exec, size, size[1]);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of(
+    const Dense* other, std::shared_ptr<const Executor> exec,
+    const dim<2>& size, size_type stride)
+{
+    // See create_with_config_of()
+    return (*other).create_with_type_of_impl(exec, size, stride);
+}
+
+
+template <typename ValueType>
+ValueType* Dense<ValueType>::get_values() noexcept
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType>
+const ValueType* Dense<ValueType>::get_const_values() const noexcept
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType>
+size_type Dense<ValueType>::get_stride() const noexcept
+{
+    return stride_;
+}
+
+
+template <typename ValueType>
+size_type Dense<ValueType>::get_num_stored_elements() const noexcept
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix(
+    const span& rows, const span& columns, const size_type stride)
+{
+    return this->create_submatrix_impl(rows, columns, stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix(
+    const span& rows, const span& columns)
+{
+    return create_submatrix(rows, columns, this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values, size_type stride)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Dense>(new Dense{
+        exec, size, gko::detail::array_const_cast(std::move(values)), stride});
+}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const dim<2>& size)
+    : Dense(std::move(exec), size, size[1])
+{}
+
+
+template <typename ValueType>
+Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
+                        const dim<2>& size, size_type stride)
+    : EnableLinOp<Dense>(exec, size),
+      values_(exec, size[0] * stride),
+      stride_(stride)
+{}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_same_config()
+    const
+{
+    return Dense::create(this->get_executor(), this->get_size(),
+                         this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type stride) const
+{
+    return Dense::create(exec, size, stride);
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(

@@ -82,7 +82,7 @@ public:
      *
      * @return the pointer to the row index array for gathering.
      */
-    index_type* get_row_idxs() noexcept { return row_idxs_.get_data(); }
+    index_type* get_row_idxs() noexcept;
 
     /**
      * @copydoc get_row_idxs()
@@ -91,10 +91,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type* get_const_row_idxs() const noexcept
-    {
-        return row_idxs_.get_const_data();
-    }
+    const index_type* get_const_row_idxs() const noexcept;
 
     /**
      * Creates a constant (immutable) RowGatherer matrix from a constant array.
@@ -108,13 +105,7 @@ public:
      */
     static std::unique_ptr<const RowGatherer> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        gko::detail::const_array_view<IndexType>&& row_idxs)
-    {
-        // cast const-ness away, but return a const object afterwards,
-        // so we can ensure that no modifications take place.
-        return std::unique_ptr<const RowGatherer>(new RowGatherer{
-            exec, size, gko::detail::array_const_cast(std::move(row_idxs))});
-    }
+        gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
     /**
@@ -122,9 +113,7 @@ protected:
      *
      * @param exec  Executor associated to the LinOp
      */
-    RowGatherer(std::shared_ptr<const Executor> exec)
-        : RowGatherer(std::move(exec), dim<2>{})
-    {}
+    RowGatherer(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates uninitialized RowGatherer arrays of the specified size.
@@ -132,9 +121,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the RowGatherable matrix
      */
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size)
-        : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
-    {}
+    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size);
 
     /**
      * Creates a RowGatherer matrix from an already allocated (and initialized)

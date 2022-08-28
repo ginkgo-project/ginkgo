@@ -125,14 +125,14 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override;
 
     /**
      * Returns the solver operator used as the inner solver.
      *
      * @return the solver operator used as the inner solver
      */
-    std::shared_ptr<const LinOp> get_solver() const { return solver_; }
+    std::shared_ptr<const LinOp> get_solver() const;
 
     /**
      * Sets the solver operator used as the inner solver.
@@ -213,31 +213,10 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ir>(std::move(exec))
-    {}
+    explicit Ir(std::shared_ptr<const Executor> exec);
 
     explicit Ir(const Factory* factory,
-                std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Ir>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(system_matrix)},
-          EnableIterativeBase<Ir>{
-              stop::combine(factory->get_parameters().criteria)},
-          parameters_{factory->get_parameters()}
-    {
-        if (parameters_.generated_solver) {
-            this->set_solver(parameters_.generated_solver);
-        } else if (parameters_.solver) {
-            this->set_solver(
-                parameters_.solver->generate(this->get_system_matrix()));
-        } else {
-            this->set_solver(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()));
-        }
-        relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
-            {parameters_.relaxation_factor}, this->get_executor());
-    }
+                std::shared_ptr<const LinOp> system_matrix);
 
 private:
     std::shared_ptr<const LinOp> solver_{};
@@ -290,17 +269,9 @@ struct workspace_traits<Ir<ValueType>> {
  * @return the pointer of Ir(Richardson)
  */
 template <typename ValueType>
-auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
-                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
-{
-    auto exec = factory->get_executor();
-    return Ir<ValueType>::build()
-        .with_solver(factory)
-        .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
-        .on(exec);
-}
+std::unique_ptr<typename Ir<ValueType>::Factory> build_smoother(
+    std::shared_ptr<const LinOpFactory> factory, size_type iteration = 1,
+    ValueType relaxation_factor = 0.9);
 
 /**
  * build_smoother gives a shortcut to build a smoother by IR(Richardson) with
@@ -315,17 +286,9 @@ auto build_smoother(std::shared_ptr<const LinOpFactory> factory,
  * @note this is the overload function for LinOp.
  */
 template <typename ValueType>
-auto build_smoother(std::shared_ptr<const LinOp> solver,
-                    size_type iteration = 1, ValueType relaxation_factor = 0.9)
-{
-    auto exec = solver->get_executor();
-    return Ir<ValueType>::build()
-        .with_generated_solver(solver)
-        .with_relaxation_factor(relaxation_factor)
-        .with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration).on(exec))
-        .on(exec);
-}
+std::unique_ptr<typename Ir<ValueType>::Factory> build_smoother(
+    std::shared_ptr<const LinOp> solver, size_type iteration = 1,
+    ValueType relaxation_factor = 0.9);
 
 
 }  // namespace solver

@@ -78,6 +78,73 @@ device_matrix_data<ValueType, IndexType>::device_matrix_data(
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<const Executor>
+device_matrix_data<ValueType, IndexType>::get_executor() const
+{
+    return values_.get_executor();
+}
+
+
+template <typename ValueType, typename IndexType>
+dim<2> device_matrix_data<ValueType, IndexType>::get_size() const
+{
+    return size_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type device_matrix_data<ValueType, IndexType>::get_num_elems() const
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* device_matrix_data<ValueType, IndexType>::get_row_idxs()
+{
+    return row_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* device_matrix_data<ValueType, IndexType>::get_const_row_idxs()
+    const
+{
+    return row_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* device_matrix_data<ValueType, IndexType>::get_col_idxs()
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* device_matrix_data<ValueType, IndexType>::get_const_col_idxs()
+    const
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* device_matrix_data<ValueType, IndexType>::get_values()
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* device_matrix_data<ValueType, IndexType>::get_const_values()
+    const
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
 matrix_data<ValueType, IndexType>
 device_matrix_data<ValueType, IndexType>::copy_to_host() const
 {

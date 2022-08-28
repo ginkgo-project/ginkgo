@@ -82,11 +82,7 @@ public:
      *
      * @return the system operator (matrix)
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
-
+    std::shared_ptr<const LinOp> get_system_matrix() const;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -112,34 +108,15 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+                    LinOp* x) const override;
 
-    explicit FixedCoarsening(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<FixedCoarsening>(std::move(exec))
-    {}
+    explicit FixedCoarsening(std::shared_ptr<const Executor> exec);
 
     explicit FixedCoarsening(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<FixedCoarsening>(factory->get_executor(),
-                                       system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
-    {
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existing matrix
-            this->generate();
-        }
-    }
+                             std::shared_ptr<const LinOp> system_matrix);
 
     void generate();
 

@@ -123,6 +123,38 @@ GKO_ENABLE_DEMANGLE_NAME(Operation);
 
 
 template <typename ValueType>
+std::unique_ptr<Stream<ValueType>> Stream<ValueType>::create(
+    std::shared_ptr<const Executor> exec,
+    const Logger::mask_type& enabled_events, std::ostream& os, bool verbose)
+{
+    return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Stream<ValueType>> Stream<ValueType>::create(
+    const Logger::mask_type& enabled_events, std::ostream& os, bool verbose)
+{
+    return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
+}
+
+
+template <typename ValueType>
+Stream<ValueType>::Stream(std::shared_ptr<const gko::Executor> exec,
+                          const Logger::mask_type& enabled_events,
+                          std::ostream& os, bool verbose)
+    : Stream(enabled_events, os, verbose)
+{}
+
+
+template <typename ValueType>
+Stream<ValueType>::Stream(const Logger::mask_type& enabled_events,
+                          std::ostream& os, bool verbose)
+    : Logger(enabled_events), os_(&os), verbose_(verbose)
+{}
+
+
+template <typename ValueType>
 void Stream<ValueType>::on_allocation_started(const Executor* exec,
                                               const size_type& num_bytes) const
 {
@@ -412,13 +444,13 @@ void Stream<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stoppingId, const bool& setFinalized,
-    const array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& one_changed,
     const bool& converged) const
 {
     *os_ << prefix_ << "check completed for " << demangle_name(criterion)
          << " at iteration " << num_iterations << " with ID "
          << static_cast<int>(stoppingId) << " and finalized set to "
-         << setFinalized << ". It changed one RHS " << oneChanged
+         << setFinalized << ". It changed one RHS " << one_changed
          << ", stopped the iteration process " << converged << std::endl;
 
     if (verbose_) {

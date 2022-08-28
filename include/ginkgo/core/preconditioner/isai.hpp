@@ -137,11 +137,7 @@ public:
      */
     std::shared_ptr<const typename std::conditional<IsaiType == isai_type::spd,
                                                     Comp, Csr>::type>
-    get_approximate_inverse() const
-    {
-        return as<typename std::conditional<IsaiType == isai_type::spd, Comp,
-                                            Csr>::type>(approximate_inverse_);
-    }
+    get_approximate_inverse() const;
 
     /**
      * Copy-assigns an ISAI preconditioner. Preserves the executor,
@@ -224,9 +220,7 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
-    explicit Isai(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Isai>(std::move(exec))
-    {}
+    explicit Isai(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Isai preconditioner from a matrix using an Isai::Factory.
@@ -235,32 +229,12 @@ protected:
      * @param system_matrix  the matrix for which an ISAI is to be computed
      */
     explicit Isai(const Factory* factory,
-                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
-          parameters_{factory->get_parameters()}
-    {
-        const auto skip_sorting = parameters_.skip_sorting;
-        const auto power = parameters_.sparsity_power;
-        const auto excess_limit = parameters_.excess_limit;
-        generate_inverse(system_matrix, skip_sorting, power, excess_limit);
-        if (IsaiType == isai_type::spd) {
-            auto inv = share(as<Csr>(approximate_inverse_));
-            auto inv_transp = share(inv->conj_transpose());
-            approximate_inverse_ =
-                Composition<ValueType>::create(inv_transp, inv);
-        }
-    }
+                  std::shared_ptr<const LinOp> system_matrix);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        approximate_inverse_->apply(b, x);
-    }
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        approximate_inverse_->apply(alpha, b, beta, x);
-    }
+                    LinOp* x) const override;
 
 private:
     /**

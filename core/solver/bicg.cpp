@@ -62,6 +62,30 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 
 
 template <typename ValueType>
+bool Bicg<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+Bicg<ValueType>::Bicg(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Bicg>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Bicg<ValueType>::Bicg(const Factory* factory,
+                      std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Bicg>(factory->get_executor(),
+                        gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Bicg<ValueType>::transpose() const
 {
     return build()

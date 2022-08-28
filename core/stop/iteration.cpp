@@ -37,6 +37,17 @@ namespace gko {
 namespace stop {
 
 
+Iteration::Iteration(std::shared_ptr<const gko::Executor> exec)
+    : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
+{}
+
+
+Iteration::Iteration(const Factory* factory, const CriterionArgs& args)
+    : EnablePolymorphicObject<Iteration, Criterion>(factory->get_executor()),
+      parameters_{factory->get_parameters()}
+{}
+
+
 bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
                            array<stopping_status>* stop_status,
                            bool* one_changed, const Updater& updater)

@@ -44,6 +44,27 @@ namespace matrix {
 
 
 template <typename ValueType>
+Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Identity>(exec)
+{}
+
+
+template <typename ValueType>
+Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec, dim<2> size)
+    : EnableLinOp<Identity>(exec, size)
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+}
+
+
+template <typename ValueType>
+Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
+                              size_type size)
+    : EnableLinOp<Identity>(exec, dim<2>{size})
+{}
+
+
+template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     x->copy_from(b);
@@ -64,16 +85,6 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
-    return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_size()[0]);
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
 {
     return this->clone();
@@ -84,6 +95,32 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
 {
     return this->clone();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<IdentityFactory<ValueType>> IdentityFactory<ValueType>::create(
+    std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<IdentityFactory>(
+        new IdentityFactory(std::move(exec)));
+}
+
+
+template <typename ValueType>
+IdentityFactory<ValueType>::IdentityFactory(
+    std::shared_ptr<const Executor> exec)
+    : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
+{}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
+    std::shared_ptr<const LinOp> base) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
+    return Identity<ValueType>::create(this->get_executor(),
+                                       base->get_size()[0]);
 }
 
 

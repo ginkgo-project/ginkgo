@@ -66,6 +66,48 @@ GKO_REGISTER_OPERATION(step_2, gmres::step_2);
 
 
 template <typename ValueType>
+bool Gmres<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+size_type Gmres<ValueType>::get_krylov_dim() const
+{
+    return parameters_.krylov_dim;
+}
+
+
+template <typename ValueType>
+void Gmres<ValueType>::set_krylov_dim(size_type other)
+{
+    parameters_.krylov_dim = other;
+}
+
+
+template <typename ValueType>
+Gmres<ValueType>::Gmres(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Gmres>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Gmres<ValueType>::Gmres(const Factory* factory,
+                        std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Gmres>(factory->get_executor(),
+                         gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.krylov_dim) {
+        parameters_.krylov_dim = default_krylov_dim;
+    }
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
 {
     return build()

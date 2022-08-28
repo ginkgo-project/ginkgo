@@ -94,14 +94,7 @@ public:
      *
      * @param exec  the Executor where the index_set data is allocated
      */
-    explicit index_set(std::shared_ptr<const Executor> exec) noexcept
-        : exec_(std::move(exec)),
-          index_space_size_{0},
-          num_stored_indices_{0},
-          subsets_begin_{array<index_type>(exec_)},
-          subsets_end_{array<index_type>(exec_)},
-          superset_cumulative_indices_{array<index_type>(exec_)}
-    {}
+    explicit index_set(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an index set on the specified executor from the initializer list.
@@ -114,19 +107,7 @@ public:
      */
     explicit index_set(std::shared_ptr<const gko::Executor> exec,
                        std::initializer_list<IndexType> init_list,
-                       const bool is_sorted = false)
-        : exec_(std::move(exec)),
-          index_space_size_(init_list.size() > 0
-                                ? *(std::max_element(std::begin(init_list),
-                                                     std::end(init_list))) +
-                                      1
-                                : 0),
-          num_stored_indices_{static_cast<IndexType>(init_list.size())}
-    {
-        GKO_ASSERT(index_space_size_ > 0);
-        this->populate_subsets(
-            array<IndexType>(this->get_executor(), init_list), is_sorted);
-    }
+                       const bool is_sorted = false);
 
     /**
      * Creates an index set on the specified executor and the given size
@@ -141,12 +122,7 @@ public:
     explicit index_set(std::shared_ptr<const gko::Executor> exec,
                        const index_type size,
                        const gko::array<index_type>& indices,
-                       const bool is_sorted = false)
-        : exec_(std::move(exec)), index_space_size_(size)
-    {
-        GKO_ASSERT(index_space_size_ >= indices.get_num_elems());
-        this->populate_subsets(indices, is_sorted);
-    }
+                       const bool is_sorted = false);
 
     /**
      * Creates a copy of the input index_set on a different executor.
@@ -154,19 +130,14 @@ public:
      * @param exec  the executor where the new index_set will be created
      * @param other  the index_set to copy from
      */
-    index_set(std::shared_ptr<const Executor> exec, const index_set& other)
-        : index_set(exec)
-    {
-        *this = other;
-    }
+    index_set(std::shared_ptr<const Executor> exec, const index_set& other);
 
     /**
      * Creates a copy of the input index_set.
      *
      * @param other the index_set to copy from
      */
-    index_set(const index_set& other) : index_set(other.get_executor(), other)
-    {}
+    index_set(const index_set& other);
 
     /**
      * Moves the input index_set to a different executor.
@@ -174,20 +145,14 @@ public:
      * @param exec  the executor where the new index_set will be moved to
      * @param other the index_set to move from
      */
-    index_set(std::shared_ptr<const Executor> exec, index_set&& other)
-        : index_set(exec)
-    {
-        *this = std::move(other);
-    }
+    index_set(std::shared_ptr<const Executor> exec, index_set&& other);
 
     /**
      * Moves the input index_set.
      *
      * @param other the index_set to move from
      */
-    index_set(index_set&& other)
-        : index_set(other.get_executor(), std::move(other))
-    {}
+    index_set(index_set&& other);
 
     /**
      * Copies data from another index_set
@@ -199,19 +164,7 @@ public:
      *
      * @return this
      */
-    index_set& operator=(const index_set& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        this->index_space_size_ = other.index_space_size_;
-        this->num_stored_indices_ = other.num_stored_indices_;
-        this->subsets_begin_ = other.subsets_begin_;
-        this->subsets_end_ = other.subsets_end_;
-        this->superset_cumulative_indices_ = other.superset_cumulative_indices_;
-
-        return *this;
-    }
+    index_set& operator=(const index_set& other);
 
     /**
      * Moves data from another index_set
@@ -223,20 +176,7 @@ public:
      *
      * @return this
      */
-    index_set& operator=(index_set&& other)
-    {
-        if (&other == this) {
-            return *this;
-        }
-        this->index_space_size_ = std::exchange(other.index_space_size_, 0);
-        this->num_stored_indices_ = std::exchange(other.num_stored_indices_, 0);
-        this->subsets_begin_ = std::move(other.subsets_begin_);
-        this->subsets_end_ = std::move(other.subsets_end_);
-        this->superset_cumulative_indices_ =
-            std::move(other.superset_cumulative_indices_);
-
-        return *this;
-    }
+    index_set& operator=(index_set&& other);
 
     /**
      * Deallocates all data used by the index_set.
@@ -245,42 +185,35 @@ public:
      * can be used to allocate new memory. Calls to
      * index_set::get_subsets_begin() will return a `nullptr`.
      */
-    void clear() noexcept
-    {
-        this->index_space_size_ = 0;
-        this->num_stored_indices_ = 0;
-        this->subsets_begin_.clear();
-        this->subsets_end_.clear();
-        this->superset_cumulative_indices_.clear();
-    }
+    void clear();
 
     /**
      * Returns the executor of the index_set
      *
      * @return  the executor.
      */
-    std::shared_ptr<const Executor> get_executor() const { return this->exec_; }
+    std::shared_ptr<const Executor> get_executor() const;
 
     /**
      * Returns the size of the index set space.
      *
      * @return  the size of the index set space.
      */
-    index_type get_size() const { return this->index_space_size_; }
+    index_type get_size() const;
 
     /**
      * Returns if the index set is contiguous
      *
      * @return  if the index set is contiguous.
      */
-    bool is_contiguous() const { return (this->get_num_subsets() <= 1); }
+    bool is_contiguous() const;
 
     /**
      * Return the actual number of indices stored in the index set
      *
      * @return  number of indices stored in the index set
      */
-    index_type get_num_elems() const { return this->num_stored_indices_; };
+    index_type get_num_elems() const;
 
     /**
      * Return the global index given a local index.
@@ -397,30 +330,21 @@ public:
      *
      * @return  the number of stored subsets.
      */
-    index_type get_num_subsets() const
-    {
-        return this->subsets_begin_.get_num_elems();
-    }
+    index_type get_num_subsets() const;
 
     /**
      * Returns a pointer to the beginning indices of the subsets.
      *
      * @return  a pointer to the beginning indices of the subsets.
      */
-    const index_type* get_subsets_begin() const
-    {
-        return this->subsets_begin_.get_const_data();
-    }
+    const index_type* get_subsets_begin() const;
 
     /**
      * Returns a pointer to the end indices of the subsets.
      *
      * @return  a pointer to the end indices of the subsets.
      */
-    const index_type* get_subsets_end() const
-    {
-        return this->subsets_end_.get_const_data();
-    }
+    const index_type* get_subsets_end() const;
 
     /**
      * Returns a pointer to the cumulative indices of the superset of
@@ -429,10 +353,7 @@ public:
      * @return  a pointer to the cumulative indices of the superset of the
      *          subsets.
      */
-    const index_type* get_superset_indices() const
-    {
-        return this->superset_cumulative_indices_.get_const_data();
-    }
+    const index_type* get_superset_indices() const;
 
 private:
     void populate_subsets(const gko::array<index_type>& indices,

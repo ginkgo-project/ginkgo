@@ -188,10 +188,7 @@ public:
     [[deprecated("use three-parameter create")]] static std::unique_ptr<Stream>
     create(std::shared_ptr<const Executor> exec,
            const Logger::mask_type& enabled_events = Logger::all_events_mask,
-           std::ostream& os = std::cout, bool verbose = false)
-    {
-        return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
-    }
+           std::ostream& os = std::cout, bool verbose = false);
 
     /**
      * Creates a Stream logger. This dynamically allocates the memory,
@@ -213,10 +210,7 @@ public:
      */
     static std::unique_ptr<Stream> create(
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cerr, bool verbose = false)
-    {
-        return std::unique_ptr<Stream>(new Stream(enabled_events, os, verbose));
-    }
+        std::ostream& os = std::cerr, bool verbose = false);
 
 protected:
     /**
@@ -232,28 +226,22 @@ protected:
      */
     [[deprecated("use three-parameter constructor")]] explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cerr, bool verbose = false)
-        : Stream(enabled_events, os, verbose)
-    {}
+        const Logger::mask_type& enabled_events, std::ostream& os,
+        bool verbose);
 
     /**
      * Creates a Stream logger.
      *
      * @param exec  the executor
-     * @param enabled_events  the events enabled for this logger. By default all
-     *                        events.
+     * @param enabled_events  the events enabled for this logger. By default
+     * all events.
      * @param os  the stream used for this logger
      * @param verbose  whether we want detailed information or not. This
-     *                 includes always printing residuals and other information
-     *                 which can give a large output.
+     *                 includes always printing residuals and other
+     * information which can give a large output.
      */
-    explicit Stream(
-        const Logger::mask_type& enabled_events = Logger::all_events_mask,
-        std::ostream& os = std::cerr, bool verbose = false)
-        : Logger(enabled_events), os_(&os), verbose_(verbose)
-    {}
-
+    explicit Stream(const Logger::mask_type& enabled_events, std::ostream& os,
+                    bool verbose);
 
 private:
     std::ostream* os_;

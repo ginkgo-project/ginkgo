@@ -483,6 +483,159 @@ struct MultigridState {
 }  // namespace
 
 
+bool Multigrid::apply_uses_initial_guess() const
+{
+    return !parameters_.zero_guess;
+}
+
+
+std::shared_ptr<const stop::CriterionFactory>
+Multigrid::get_stop_criterion_factory() const
+{
+    return stop_criterion_factory_;
+}
+
+
+void Multigrid::set_stop_criterion_factory(
+    std::shared_ptr<const stop::CriterionFactory> other)
+{
+    stop_criterion_factory_ = std::move(other);
+}
+
+
+std::shared_ptr<const LinOp> Multigrid::get_system_matrix() const
+{
+    return system_matrix_;
+}
+
+
+std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
+Multigrid::get_mg_level_list() const
+{
+    return mg_level_list_;
+}
+
+
+std::vector<std::shared_ptr<const LinOp>> Multigrid::get_pre_smoother_list()
+    const
+{
+    return pre_smoother_list_;
+}
+
+
+std::vector<std::shared_ptr<const LinOp>> Multigrid::get_mid_smoother_list()
+    const
+{
+    return mid_smoother_list_;
+}
+
+
+std::vector<std::shared_ptr<const LinOp>> Multigrid::get_post_smoother_list()
+    const
+{
+    return post_smoother_list_;
+}
+
+
+std::shared_ptr<const LinOp> Multigrid::get_coarsest_solver() const
+{
+    return coarsest_solver_;
+}
+
+
+multigrid::cycle Multigrid::get_cycle() const { return parameters_.cycle; }
+
+
+void Multigrid::set_cycle(multigrid::cycle cycle) { parameters_.cycle = cycle; }
+
+
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Multigrid>(exec)
+{}
+
+
+Multigrid::Multigrid(const Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Multigrid>(factory->get_executor(),
+                             transpose(system_matrix->get_size())),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix}
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+
+    stop_criterion_factory_ = stop::combine(std::move(parameters_.criteria));
+    if (!parameters_.level_selector) {
+        if (parameters_.mg_level.size() == 1) {
+            level_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        } else if (parameters_.mg_level.size() > 1) {
+            level_selector_ = [](const size_type level, const LinOp*) {
+                return level;
+            };
+        }
+    } else {
+        level_selector_ = parameters_.level_selector;
+    }
+    if (!parameters_.solver_selector) {
+        if (parameters_.coarsest_solver.size() >= 1) {
+            solver_selector_ = [](const size_type, const LinOp*) {
+                return size_type{0};
+            };
+        }
+    } else {
+        solver_selector_ = parameters_.solver_selector;
+    }
+
+    this->validate();
+
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate();
+    }
+}
+
+
+void Multigrid::validate()
+{
+    const auto mg_level_len = parameters_.mg_level.size();
+    if (mg_level_len == 0) {
+        GKO_NOT_SUPPORTED(mg_level_len);
+    } else {
+        // each mg_level can not be nullptr
+        for (size_type i = 0; i < mg_level_len; i++) {
+            if (parameters_.mg_level.at(i) == nullptr) {
+                GKO_NOT_SUPPORTED(parameters_.mg_level.at(i));
+            }
+        }
+    }
+    // verify pre-related parameters
+    this->verify_legal_length(true, parameters_.pre_smoother.size(),
+                              mg_level_len);
+    // verify post-related parameters when post does not use pre
+    this->verify_legal_length(!parameters_.post_uses_pre,
+                              parameters_.post_smoother.size(), mg_level_len);
+    // verify mid-related parameters when mid is standalone smoother.
+    this->verify_legal_length(
+        parameters_.mid_case == multigrid::mid_smooth_type::standalone,
+        parameters_.mid_smoother.size(), mg_level_len);
+}
+
+
+void Multigrid::verify_legal_length(bool checked, size_type len,
+                                    size_type ref_len)
+{
+    if (checked) {
+        // len = 0 uses default behaviour
+        // len = 1 uses the first one
+        // len > 1 : must contain the same len as ref(mg_level)
+        if (len > 1 && len != ref_len) {
+            GKO_NOT_SUPPORTED(this);
+        }
+    }
+}
+
+
 void Multigrid::generate()
 {
     // generate coarse matrix until reaching max_level or min_coarse_rows

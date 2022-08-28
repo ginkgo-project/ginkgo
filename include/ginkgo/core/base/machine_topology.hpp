@@ -208,11 +208,7 @@ public:
      *
      * @return  the machine_topology instance
      */
-    static machine_topology* get_instance()
-    {
-        static machine_topology instance;
-        return &instance;
-    }
+    static machine_topology* get_instance();
 
     /**
      * Bind the calling process to the CPU cores associated with
@@ -227,20 +223,14 @@ public:
      *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
     void bind_to_cores(const std::vector<int>& ids,
-                       const bool singlify = true) const
-    {
-        hwloc_binding_helper(this->cores_, ids, singlify);
-    }
+                       const bool singlify = true) const;
 
     /**
      * Bind to a single core
      *
      * @param ids  The ids of the core to be bound to the calling process.
      */
-    void bind_to_core(const int& id) const
-    {
-        machine_topology::get_instance()->bind_to_cores(std::vector<int>{id});
-    }
+    void bind_to_core(const int& id) const;
 
     /**
      * Bind the calling process to PUs associated with
@@ -255,20 +245,14 @@ public:
      *                  [singlify](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00175.php#gaa611a77c092e679246afdf9a60d5db8b)
      */
     void bind_to_pus(const std::vector<int>& ids,
-                     const bool singlify = true) const
-    {
-        hwloc_binding_helper(this->pus_, ids, singlify);
-    }
+                     const bool singlify = true) const;
 
     /**
      * Bind to a Processing unit (PU)
      *
      * @param ids  The ids of PUs to be bound to the calling process.
      */
-    void bind_to_pu(const int& id) const
-    {
-        machine_topology::get_instance()->bind_to_pus(std::vector<int>{id});
-    }
+    void bind_to_pu(const int& id) const;
 
     /**
      * Get the object of type PU associated with the id.
@@ -276,11 +260,7 @@ public:
      * @param id  The id of the PU
      * @return  the PU object struct.
      */
-    const normal_obj_info* get_pu(size_type id) const
-    {
-        GKO_ENSURE_IN_BOUNDS(id, this->pus_.size());
-        return &this->pus_[id];
-    }
+    const normal_obj_info* get_pu(size_type id) const;
 
     /**
      * Get the object of type core associated with the id.
@@ -288,11 +268,7 @@ public:
      * @param id  The id of the core
      * @return  the core object struct.
      */
-    const normal_obj_info* get_core(size_type id) const
-    {
-        GKO_ENSURE_IN_BOUNDS(id, this->cores_.size());
-        return &this->cores_[id];
-    }
+    const normal_obj_info* get_core(size_type id) const;
 
     /**
      * Get the object of type pci device associated with the id.
@@ -300,11 +276,7 @@ public:
      * @param id  The id of the pci device
      * @return  the PCI object struct.
      */
-    const io_obj_info* get_pci_device(size_type id) const
-    {
-        GKO_ENSURE_IN_BOUNDS(id, this->pci_devices_.size());
-        return &this->pci_devices_[id];
-    }
+    const io_obj_info* get_pci_device(size_type id) const;
 
     /**
      * Get the object of type pci device associated with the PCI bus id.
@@ -319,28 +291,28 @@ public:
      *
      * @return  the number of PUs.
      */
-    size_type get_num_pus() const { return this->pus_.size(); }
+    size_type get_num_pus() const;
 
     /**
      * Get the number of core objects stored in this Topology tree.
      *
      * @return  the number of cores.
      */
-    size_type get_num_cores() const { return this->cores_.size(); }
+    size_type get_num_cores() const;
 
     /**
      * Get the number of PCI device objects stored in this Topology tree.
      *
      * @return  the number of PCI devices.
      */
-    size_type get_num_pci_devices() const { return this->pci_devices_.size(); }
+    size_type get_num_pci_devices() const;
 
     /**
      * Get the number of NUMA objects stored in this Topology tree.
      *
      * @return  the number of NUMA objects.
      */
-    size_type get_num_numas() const { return this->num_numas_; }
+    size_type get_num_numas() const;
 
     /**
      * @internal

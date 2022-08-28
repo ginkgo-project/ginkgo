@@ -61,6 +61,30 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 
 template <typename ValueType>
+bool Fcg<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
+Fcg<ValueType>::Fcg(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Fcg>(std::move(exec))
+{}
+
+
+template <typename ValueType>
+Fcg<ValueType>::Fcg(const Factory* factory,
+                    std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Fcg>(factory->get_executor(),
+                       gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
     return build()

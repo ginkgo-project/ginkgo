@@ -7,10 +7,14 @@ target_sources(ginkgo
     base/combination.cpp
     base/composition.cpp
     base/device_matrix_data.cpp
+    base/exception.cpp
     base/executor.cpp
     base/index_set.cpp
+    base/lin_op.cpp
+    base/name_demangling.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
+    base/polymorphic_object.cpp
     base/version.cpp
     distributed/partition.cpp
     factorization/elimination_forest.cpp
@@ -68,6 +72,9 @@ endif()
 if (GINKGO_BUILD_MPI)
     target_sources(ginkgo
         PRIVATE mpi/exception.cpp)
+else()
+    target_sources(ginkgo
+        PRIVATE mpi/exception_stub.cpp)
 endif()
 
 ginkgo_compile_features(ginkgo)

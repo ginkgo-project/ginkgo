@@ -73,6 +73,96 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
 
 
 template <typename ValueType, typename IndexType>
+IndexType* SparsityCsr<ValueType, IndexType>::get_col_idxs() noexcept
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* SparsityCsr<ValueType, IndexType>::get_const_col_idxs() const
+    noexcept
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* SparsityCsr<ValueType, IndexType>::get_row_ptrs() noexcept
+{
+    return row_ptrs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* SparsityCsr<ValueType, IndexType>::get_const_row_ptrs() const
+    noexcept
+{
+    return row_ptrs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* SparsityCsr<ValueType, IndexType>::get_value() noexcept
+{
+    return value_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* SparsityCsr<ValueType, IndexType>::get_const_value() const
+    noexcept
+{
+    return value_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type SparsityCsr<ValueType, IndexType>::get_num_nonzeros() const noexcept
+{
+    return col_idxs_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const SparsityCsr<ValueType, IndexType>>
+SparsityCsr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs, ValueType value)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const SparsityCsr>(new SparsityCsr{
+        exec, size, gko::detail::array_const_cast(std::move(col_idxs)),
+        gko::detail::array_const_cast(std::move(row_ptrs)), value});
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    size_type num_nonzeros)
+    : EnableLinOp<SparsityCsr>(exec, size),
+      col_idxs_(exec, num_nonzeros),
+      row_ptrs_(exec, size[0] + 1),
+      value_(exec, {one<ValueType>()})
+{
+    row_ptrs_.fill(0);
+}
+
+
+template <typename ValueType, typename IndexType>
+SparsityCsr<ValueType, IndexType>::SparsityCsr(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
+    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+{
+    auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
+    this->copy_from(std::move(tmp_.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* b,
                                                    LinOp* x) const
 {

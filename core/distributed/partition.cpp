@@ -55,6 +55,99 @@ GKO_REGISTER_OPERATION(has_ordered_parts, partition::has_ordered_parts);
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
+size_type Partition<LocalIndexType, GlobalIndexType>::get_size() const noexcept
+{
+    return size_;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+size_type Partition<LocalIndexType, GlobalIndexType>::get_num_ranges() const
+    noexcept
+{
+    return offsets_.get_num_elems() - 1;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+comm_index_type Partition<LocalIndexType, GlobalIndexType>::get_num_parts()
+    const noexcept
+{
+    return num_parts_;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+comm_index_type
+Partition<LocalIndexType, GlobalIndexType>::get_num_empty_parts() const noexcept
+{
+    return num_empty_parts_;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+const GlobalIndexType*
+Partition<LocalIndexType, GlobalIndexType>::get_range_bounds() const noexcept
+{
+    return offsets_.get_const_data();
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+const comm_index_type*
+Partition<LocalIndexType, GlobalIndexType>::get_part_ids() const noexcept
+{
+    return part_ids_.get_const_data();
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+const LocalIndexType*
+Partition<LocalIndexType, GlobalIndexType>::get_range_starting_indices() const
+    noexcept
+{
+    return starting_indices_.get_const_data();
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+const LocalIndexType*
+Partition<LocalIndexType, GlobalIndexType>::get_part_sizes() const noexcept
+{
+    return part_sizes_.get_const_data();
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+LocalIndexType Partition<LocalIndexType, GlobalIndexType>::get_part_size(
+    comm_index_type part) const
+{
+    return this->get_executor()->copy_val_to_host(part_sizes_.get_const_data() +
+                                                  part);
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+Partition<LocalIndexType, GlobalIndexType>::Partition(
+    std::shared_ptr<const Executor> exec, comm_index_type num_parts,
+    size_type num_ranges)
+    : EnablePolymorphicObject<Partition>{exec},
+      num_parts_{num_parts},
+      num_empty_parts_{0},
+      size_{0},
+      offsets_{exec, num_ranges + 1},
+      starting_indices_{exec, num_ranges},
+      part_sizes_{exec, static_cast<size_type>(num_parts)},
+      part_ids_{exec, num_ranges}
+{
+    offsets_.fill(0);
+    starting_indices_.fill(0);
+    part_sizes_.fill(0);
+    part_ids_.fill(0);
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Partition<LocalIndexType, GlobalIndexType>>
 Partition<LocalIndexType, GlobalIndexType>::build_from_mapping(
     std::shared_ptr<const Executor> exec, const array<comm_index_type>& mapping,

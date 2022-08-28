@@ -86,10 +86,7 @@ public:
      *
      * @return the system operator (matrix)
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
-    {
-        return system_matrix_;
-    }
+    std::shared_ptr<const LinOp> get_system_matrix() const;
 
     /**
      * Returns the aggregate group.
@@ -100,7 +97,7 @@ public:
      *
      * @return the aggregate group.
      */
-    IndexType* get_agg() noexcept { return agg_.get_data(); }
+    IndexType* get_agg() noexcept;
 
     /**
      * @copydoc AmgxPgm::get_agg()
@@ -109,10 +106,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const IndexType* get_const_agg() const noexcept
-    {
-        return agg_.get_const_data();
-    }
+    const IndexType* get_const_agg() const noexcept;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -156,37 +150,15 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+                    LinOp* x) const override;
 
-    explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AmgxPgm>(std::move(exec))
-    {}
+    explicit AmgxPgm(std::shared_ptr<const Executor> exec);
 
     explicit AmgxPgm(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<AmgxPgm>(factory->get_executor(),
-                               system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          agg_(factory->get_executor(), system_matrix_->get_size()[0])
-    {
-        GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
-        GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
-    }
+                     std::shared_ptr<const LinOp> system_matrix);
 
     void generate();
 

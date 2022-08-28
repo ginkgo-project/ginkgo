@@ -42,6 +42,96 @@ namespace log {
 
 
 template <typename ValueType>
+std::shared_ptr<Papi<ValueType>> Papi<ValueType>::create(
+    std::shared_ptr<const gko::Executor>,
+    const Logger::mask_type& enabled_events)
+{
+    return std::shared_ptr<Papi>(new Papi(enabled_events));
+}
+
+
+template <typename ValueType>
+std::shared_ptr<Papi<ValueType>> Papi<ValueType>::create(
+    const Logger::mask_type& enabled_events)
+{
+    return std::shared_ptr<Papi>(new Papi(enabled_events));
+}
+
+
+template <typename ValueType>
+const std::string Papi<ValueType>::get_handle_name() const
+{
+    return name;
+}
+
+
+template <typename ValueType>
+Papi<ValueType>::Papi(
+    std::shared_ptr<const gko::Executor> exec,
+    const Logger::mask_type& enabled_events = Logger::all_events_mask)
+    : Papi(enabled_events)
+{}
+
+template <typename ValueType>
+Papi<ValueType>::Papi(
+    const Logger::mask_type& enabled_events = Logger::all_events_mask)
+    : Logger(enabled_events)
+{
+    std::ostringstream os;
+
+    std::lock_guard<std::mutex> guard(papi_count_mutex);
+    os << "ginkgo" << papi_logger_count;
+    name = os.str();
+    papi_handle = papi_sde_init(name.c_str());
+    papi_logger_count++;
+}
+
+
+template <typename ValueType>
+template <typename PointerType>
+Papi<ValueType>::papi_queue<PointerType>::papi_queue(
+    Papi<ValueType>::papi_handle_t* handle, const char* counter_name)
+    : handle{handle}, counter_name{counter_name}
+{}
+
+
+template <typename ValueType>
+template <typename PointerType>
+Papi<ValueType>::papi_queue<PointerType>::~papi_queue()
+{
+    if (PAPI_is_initialized()) {
+        for (auto e : data) {
+            std::ostringstream oss;
+            oss << counter_name << "::" << e.first;
+            papi_sde_unregister_counter(*handle, oss.str().c_str());
+        }
+    }
+    data.clear();
+}
+
+
+template <typename ValueType>
+template <typename PointerType>
+size_type& Papi<ValueType>::papi_queue<PointerType>::get_counter(
+    const PointerType* ptr)
+{
+    const auto tmp = reinterpret_cast<uintptr>(ptr);
+    if (data.find(tmp) == data.end()) {
+        data[tmp] = 0;
+    }
+    auto& value = data[tmp];
+    if (!value) {
+        std::ostringstream oss;
+        oss << counter_name << "::" << tmp;
+        papi_sde_register_counter(*handle, oss.str().c_str(),
+                                  PAPI_SDE_RO | PAPI_SDE_INSTANT,
+                                  PAPI_SDE_long_long, &value);
+    }
+    return data[tmp];
+}
+
+
+template <typename ValueType>
 void Papi<ValueType>::on_allocation_started(const Executor* exec,
                                             const size_type& num_bytes) const
 {
@@ -233,7 +323,7 @@ void Papi<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
     const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
     const uint8& stoppingId, const bool& setFinalized,
-    const array<stopping_status>* status, const bool& oneChanged,
+    const array<stopping_status>* status, const bool& one_changed,
     const bool& converged) const
 {
     using Vector = matrix::Dense<ValueType>;

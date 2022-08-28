@@ -78,45 +78,19 @@ struct version {
      * It does not participate in comparisons.
      */
     const char* const tag;
+
+    friend bool operator==(const version& first, const version& second);
+
+    friend bool operator!=(const version& first, const version& second);
+
+    friend bool operator<(const version& first, const version& second);
+
+    friend bool operator<=(const version& first, const version& second);
+
+    friend bool operator>(const version& first, const version& second);
+
+    friend bool operator>=(const version& first, const version& second);
 };
-
-inline bool operator==(const version& first, const version& second)
-{
-    return first.major == second.major && first.minor == second.minor &&
-           first.patch == second.patch;
-}
-
-inline bool operator!=(const version& first, const version& second)
-{
-    return !(first == second);
-}
-
-inline bool operator<(const version& first, const version& second)
-{
-    if (first.major < second.major) return true;
-    if (first.major == second.major && first.minor < second.minor) return true;
-    if (first.major == second.major && first.minor == second.minor &&
-        first.patch < second.patch)
-        return true;
-    return false;
-}
-
-inline bool operator<=(const version& first, const version& second)
-{
-    return !(second < first);
-}
-
-inline bool operator>(const version& first, const version& second)
-{
-    return second < first;
-}
-
-inline bool operator>=(const version& first, const version& second)
-{
-    return !(first < second);
-}
-
-#undef GKO_ENABLE_VERSION_COMPARISON
 
 
 /**
@@ -127,14 +101,7 @@ inline bool operator>=(const version& first, const version& second)
  *
  * @return os
  */
-inline std::ostream& operator<<(std::ostream& os, const version& ver)
-{
-    os << ver.major << "." << ver.minor << "." << ver.patch;
-    if (ver.tag) {
-        os << " (" << ver.tag << ")";
-    }
-    return os;
-}
+std::ostream& operator<<(std::ostream& os, const version& ver);
 
 
 /**
@@ -165,11 +132,7 @@ public:
      *
      * @return an instance of version info
      */
-    static const version_info& get()
-    {
-        static version_info info{};
-        return info;
-    }
+    static const version_info& get();
 
     /**
      * Contains version information of the header files.
@@ -238,15 +201,7 @@ private:
 
     static version get_dpcpp_version() noexcept;
 
-    version_info()
-        : header_version{get_header_version()},
-          core_version{get_core_version()},
-          reference_version{get_reference_version()},
-          omp_version{get_omp_version()},
-          cuda_version{get_cuda_version()},
-          hip_version{get_hip_version()},
-          dpcpp_version{get_dpcpp_version()}
-    {}
+    version_info();
 };
 
 

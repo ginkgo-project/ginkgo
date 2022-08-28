@@ -105,6 +105,27 @@ void print_copy_to_message(std::ostream& stream, gko::uintptr ptr, int count)
 }  // namespace
 
 
+std::unique_ptr<PerformanceHint> PerformanceHint::create(
+    std::ostream& os, size_type allocation_size_limit,
+    size_type copy_size_limit, size_type histogram_max_size)
+{
+    return std::unique_ptr<PerformanceHint>(new PerformanceHint(
+        os, allocation_size_limit, copy_size_limit, histogram_max_size));
+}
+
+
+PerformanceHint::PerformanceHint(std::ostream& os,
+                                 size_type allocation_size_limit,
+                                 size_type copy_size_limit,
+                                 size_type histogram_max_size)
+    : Logger(mask_),
+      os_(&os),
+      allocation_size_limit_{allocation_size_limit},
+      copy_size_limit_{copy_size_limit},
+      histogram_max_size_{histogram_max_size}
+{}
+
+
 void PerformanceHint::on_allocation_completed(const Executor* exec,
                                               const size_type& num_bytes,
                                               const uintptr& location) const

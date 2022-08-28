@@ -60,8 +60,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
-namespace fbcsr {
 namespace {
+namespace fbcsr {
 
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
@@ -82,8 +82,127 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
 
 
-}  // anonymous namespace
 }  // namespace fbcsr
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+ValueType* Fbcsr<ValueType, IndexType>::get_values() noexcept
+{
+    return values_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* Fbcsr<ValueType, IndexType>::get_const_values() const noexcept
+{
+    return values_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Fbcsr<ValueType, IndexType>::get_col_idxs() noexcept
+{
+    return col_idxs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Fbcsr<ValueType, IndexType>::get_const_col_idxs() const
+    noexcept
+{
+    return col_idxs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Fbcsr<ValueType, IndexType>::get_row_ptrs() noexcept
+{
+    return row_ptrs_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Fbcsr<ValueType, IndexType>::get_const_row_ptrs() const
+    noexcept
+{
+    return row_ptrs_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Fbcsr<ValueType, IndexType>::get_num_stored_elements() const noexcept
+{
+    return values_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Fbcsr<ValueType, IndexType>::get_num_stored_blocks() const noexcept
+{
+    return col_idxs_.get_num_elems();
+}
+
+
+template <typename ValueType, typename IndexType>
+int Fbcsr<ValueType, IndexType>::get_block_size() const noexcept
+{
+    return bs_;
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType Fbcsr<ValueType, IndexType>::get_num_block_rows() const noexcept
+{
+    return this->get_size()[0] / bs_;
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType Fbcsr<ValueType, IndexType>::get_num_block_cols() const noexcept
+{
+    return this->get_size()[1] / bs_;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Fbcsr<ValueType, IndexType>>
+Fbcsr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const Fbcsr>(new Fbcsr{
+        exec, size, blocksize, gko::detail::array_const_cast(std::move(values)),
+        gko::detail::array_const_cast(std::move(col_idxs)),
+        gko::detail::array_const_cast(std::move(row_ptrs))});
+}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
+                                   int block_size)
+    : Fbcsr(std::move(exec), dim<2>{}, {}, block_size)
+{}
+
+
+template <typename ValueType, typename IndexType>
+Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
+                                   const dim<2>& size, size_type num_nonzeros,
+                                   int block_size)
+    : EnableLinOp<Fbcsr>(exec, size),
+      bs_{block_size},
+      values_(exec, num_nonzeros),
+      col_idxs_(exec,
+                detail::get_num_blocks(block_size * block_size, num_nonzeros)),
+      row_ptrs_(exec, detail::get_num_blocks(block_size, size[0]) + 1)
+{
+    GKO_ASSERT_BLOCK_SIZE_CONFORMANT(size[1], bs_);
+    row_ptrs_.fill(0);
+}
 
 
 template <typename ValueType, typename IndexType>

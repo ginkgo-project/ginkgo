@@ -44,6 +44,46 @@ namespace matrix {
 
 
 template <typename IndexType>
+IndexType* RowGatherer<IndexType>::get_row_idxs() noexcept
+{
+    return row_idxs_.get_data();
+}
+
+
+template <typename IndexType>
+const IndexType* RowGatherer<IndexType>::get_const_row_idxs() const noexcept
+{
+    return row_idxs_.get_const_data();
+}
+
+
+template <typename IndexType>
+std::unique_ptr<const RowGatherer<IndexType>>
+RowGatherer<IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<IndexType>&& row_idxs)
+{
+    // cast const-ness away, but return a const object afterwards,
+    // so we can ensure that no modifications take place.
+    return std::unique_ptr<const RowGatherer>(new RowGatherer{
+        exec, size, gko::detail::array_const_cast(std::move(row_idxs))});
+}
+
+
+template <typename IndexType>
+RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec)
+    : RowGatherer(std::move(exec), dim<2>{})
+{}
+
+
+template <typename IndexType>
+RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size)
+    : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
+{}
+
+
+template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
     run<const Dense<float>*, const Dense<double>*,

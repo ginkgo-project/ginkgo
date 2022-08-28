@@ -110,9 +110,7 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Fft(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft>(exec), buffer_{exec}, inverse_{}
-    {}
+    explicit Fft(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -121,9 +119,7 @@ protected:
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft(std::shared_ptr<const Executor> exec, size_type size,
-        bool inverse = false)
-        : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
-    {}
+        bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -206,18 +202,14 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Fft2(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft2>(exec), buffer_{exec}, fft_size_{}, inverse_{}
-    {}
+    explicit Fft2(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of both FFT dimensions
      */
-    Fft2(std::shared_ptr<const Executor> exec, size_type size)
-        : Fft2{exec, size, size}
-    {}
+    Fft2(std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -227,12 +219,7 @@ protected:
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft2(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         bool inverse = false)
-        : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
-          buffer_{exec},
-          fft_size_{size1, size2},
-          inverse_{inverse}
-    {}
+         bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -318,18 +305,14 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      */
-    explicit Fft3(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fft3>(exec), buffer_{exec}, fft_size_{}, inverse_{}
-    {}
+    explicit Fft3(std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
      * @param size  size of all FFT dimensions
      */
-    Fft3(std::shared_ptr<const Executor> exec, size_type size)
-        : Fft3{exec, size, size, size}
-    {}
+    Fft3(std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -340,12 +323,7 @@ protected:
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      */
     Fft3(std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
-         size_type size3, bool inverse = false)
-        : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
-          buffer_{exec},
-          fft_size_{size1, size2, size3},
-          inverse_{inverse}
-    {}
+         size_type size3, bool inverse = false);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

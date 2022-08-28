@@ -84,6 +84,367 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::strategy_type::strategy_type()
+    : ell_num_stored_elements_per_row_(zero<size_type>()),
+      coo_nnz_(zero<size_type>())
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::strategy_type::compute_hybrid_config(
+    const array<size_type>& row_nnz, size_type* ell_num_stored_elements_per_row,
+    size_type* coo_nnz)
+{
+    array<size_type> ref_row_nnz(row_nnz.get_executor()->get_master(),
+                                 row_nnz.get_num_elems());
+    ref_row_nnz = row_nnz;
+    ell_num_stored_elements_per_row_ =
+        this->compute_ell_num_stored_elements_per_row(&ref_row_nnz);
+    coo_nnz_ = this->compute_coo_nnz(ref_row_nnz);
+    *ell_num_stored_elements_per_row = ell_num_stored_elements_per_row_;
+    *coo_nnz = coo_nnz_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type
+Hybrid<ValueType,
+       IndexType>::strategy_type::get_ell_num_stored_elements_per_row() const
+    noexcept
+{
+    return ell_num_stored_elements_per_row_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::strategy_type::get_coo_nnz() const
+    noexcept
+{
+    return coo_nnz_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::strategy_type::compute_coo_nnz(
+    const array<size_type>& row_nnz) const
+{
+    size_type coo_nnz = 0;
+    auto row_nnz_val = row_nnz.get_const_data();
+    for (size_type i = 0; i < row_nnz.get_num_elems(); i++) {
+        if (row_nnz_val[i] > ell_num_stored_elements_per_row_) {
+            coo_nnz += row_nnz_val[i] - ell_num_stored_elements_per_row_;
+        }
+    }
+    return coo_nnz;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::column_limit::column_limit(size_type num_column)
+    : num_columns_(num_column)
+{}
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::column_limit::
+    compute_ell_num_stored_elements_per_row(array<size_type>* row_nnz) const
+{
+    return num_columns_;
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::column_limit::get_num_columns() const
+{
+    return num_columns_;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::imbalance_limit::imbalance_limit(double percent)
+    : percent_(percent)
+{
+    percent_ = std::min(percent_, 1.0);
+    percent_ = std::max(percent_, 0.0);
+}
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::imbalance_limit::
+    compute_ell_num_stored_elements_per_row(array<size_type>* row_nnz) const
+{
+    auto row_nnz_val = row_nnz->get_data();
+    auto num_rows = row_nnz->get_num_elems();
+    if (num_rows == 0) {
+        return 0;
+    }
+    std::sort(row_nnz_val, row_nnz_val + num_rows);
+    if (percent_ < 1) {
+        auto percent_pos = static_cast<size_type>(num_rows * percent_);
+        return row_nnz_val[percent_pos];
+    } else {
+        return row_nnz_val[num_rows - 1];
+    }
+}
+
+template <typename ValueType, typename IndexType>
+double Hybrid<ValueType, IndexType>::imbalance_limit::get_percentage() const
+{
+    return percent_;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::imbalance_bounded_limit::imbalance_bounded_limit(
+    double percent, double ratio)
+    : strategy_(imbalance_limit(percent)), ratio_(ratio)
+{}
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::imbalance_bounded_limit::
+    compute_ell_num_stored_elements_per_row(array<size_type>* row_nnz) const
+{
+    auto num_rows = row_nnz->get_num_elems();
+    auto ell_cols = strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+    return std::min(ell_cols, static_cast<size_type>(num_rows * ratio_));
+}
+
+
+template <typename ValueType, typename IndexType>
+double Hybrid<ValueType, IndexType>::imbalance_bounded_limit::get_percentage()
+    const
+{
+    return strategy_.get_percentage();
+}
+
+
+template <typename ValueType, typename IndexType>
+double Hybrid<ValueType, IndexType>::imbalance_bounded_limit::get_ratio() const
+{
+    return ratio_;
+}
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::minimal_storage_limit::minimal_storage_limit()
+    : strategy_(imbalance_limit(static_cast<double>(sizeof(IndexType)) /
+                                (sizeof(ValueType) + 2 * sizeof(IndexType))))
+{}
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::minimal_storage_limit::
+    compute_ell_num_stored_elements_per_row(array<size_type>* row_nnz) const
+{
+    return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
+double Hybrid<ValueType, IndexType>::minimal_storage_limit::get_percentage()
+    const
+{
+    return strategy_.get_percentage();
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::automatic::automatic()
+    : strategy_(imbalance_bounded_limit(1.0 / 3.0, 0.001))
+{}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::automatic::
+    compute_ell_num_stored_elements_per_row(array<size_type>* row_nnz) const
+{
+    return strategy_.compute_ell_num_stored_elements_per_row(row_nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* Hybrid<ValueType, IndexType>::get_ell_values() noexcept
+{
+    return ell_->get_values();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* Hybrid<ValueType, IndexType>::get_const_ell_values() const
+    noexcept
+{
+    return ell_->get_const_values();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Hybrid<ValueType, IndexType>::get_ell_col_idxs() noexcept
+{
+    return ell_->get_col_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Hybrid<ValueType, IndexType>::get_const_ell_col_idxs() const
+    noexcept
+{
+    return ell_->get_const_col_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::get_ell_num_stored_elements_per_row()
+    const noexcept
+{
+    return ell_->get_num_stored_elements_per_row();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::get_ell_stride() const noexcept
+{
+    return ell_->get_stride();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::get_ell_num_stored_elements() const
+    noexcept
+{
+    return ell_->get_num_stored_elements();
+}
+
+
+template <typename ValueType, typename IndexType>
+const Ell<ValueType, IndexType>* Hybrid<ValueType, IndexType>::get_ell() const
+    noexcept
+{
+    return ell_.get();
+}
+
+
+template <typename ValueType, typename IndexType>
+ValueType* Hybrid<ValueType, IndexType>::get_coo_values() noexcept
+{
+    return coo_->get_values();
+}
+
+
+template <typename ValueType, typename IndexType>
+const ValueType* Hybrid<ValueType, IndexType>::get_const_coo_values() const
+    noexcept
+{
+    return coo_->get_const_values();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Hybrid<ValueType, IndexType>::get_coo_col_idxs() noexcept
+{
+    return coo_->get_col_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Hybrid<ValueType, IndexType>::get_const_coo_col_idxs() const
+    noexcept
+{
+    return coo_->get_const_col_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* Hybrid<ValueType, IndexType>::get_coo_row_idxs() noexcept
+{
+    return coo_->get_row_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* Hybrid<ValueType, IndexType>::get_const_coo_row_idxs() const
+    noexcept
+{
+    return coo_->get_const_row_idxs();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::get_coo_num_stored_elements() const
+    noexcept
+{
+    return coo_->get_num_stored_elements();
+}
+
+
+template <typename ValueType, typename IndexType>
+const Coo<ValueType, IndexType>* Hybrid<ValueType, IndexType>::get_coo() const
+    noexcept
+{
+    return coo_.get();
+}
+
+
+template <typename ValueType, typename IndexType>
+size_type Hybrid<ValueType, IndexType>::get_num_stored_elements() const noexcept
+{
+    return coo_->get_num_stored_elements() + ell_->get_num_stored_elements();
+}
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<typename Hybrid<ValueType, IndexType>::strategy_type>
+Hybrid<ValueType, IndexType>::get_strategy() const noexcept
+{
+    return strategy_;
+}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), dim<2>{}, std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, size[1], std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, num_stored_elements_per_row, size[0], {},
+             std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride,
+                                     std::shared_ptr<strategy_type> strategy)
+    : Hybrid(std::move(exec), size, num_stored_elements_per_row, stride, {},
+             std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& size,
+                                     size_type num_stored_elements_per_row,
+                                     size_type stride, size_type num_nonzeros,
+                                     std::shared_ptr<strategy_type> strategy)
+    : EnableLinOp<Hybrid>(exec, size),
+      ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
+      coo_(coo_type::create(exec, size, num_nonzeros)),
+      strategy_(std::move(strategy))
+{}
+
+
+template <typename ValueType, typename IndexType>
 Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     const Hybrid& other)
 {

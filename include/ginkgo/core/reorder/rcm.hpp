@@ -109,10 +109,7 @@ public:
      *
      * @return the permutation (permutation matrix)
      */
-    std::shared_ptr<const PermutationMatrix> get_permutation() const
-    {
-        return permutation_;
-    }
+    std::shared_ptr<const PermutationMatrix> get_permutation() const;
 
     /**
      * Gets the inverse permutation (permutation matrix, output of the
@@ -120,10 +117,7 @@ public:
      *
      * @return the inverse permutation (permutation matrix)
      */
-    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
-    {
-        return inv_permutation_;
-    }
+    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -151,60 +145,9 @@ protected:
     void generate(std::shared_ptr<const Executor>& exec,
                   std::unique_ptr<SparsityMatrix> adjacency_matrix) const;
 
-    explicit Rcm(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(std::move(exec))
-    {}
+    explicit Rcm(std::shared_ptr<const Executor> exec);
 
-    explicit Rcm(const Factory* factory, const ReorderingBaseArgs& args)
-        : EnablePolymorphicObject<Rcm, ReorderingBase>(factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {
-        // Always execute the reordering on the cpu.
-        const auto is_gpu_executor =
-            this->get_executor() != this->get_executor()->get_master();
-        auto cpu_exec = is_gpu_executor ? this->get_executor()->get_master()
-                                        : this->get_executor();
-
-        auto adjacency_matrix = SparsityMatrix::create(cpu_exec);
-        array<IndexType> degrees;
-
-        // The adjacency matrix has to be square.
-        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
-        // This is needed because it does not make sense to call the copy and
-        // convert if the existing matrix is empty.
-        if (args.system_matrix->get_size()) {
-            auto tmp = copy_and_convert_to<SparsityMatrix>(cpu_exec,
-                                                           args.system_matrix);
-            // This function provided within the Sparsity matrix format removes
-            // the diagonal elements and outputs an adjacency matrix.
-            adjacency_matrix = tmp->to_adjacency_matrix();
-        }
-
-        auto const dim = adjacency_matrix->get_size();
-        permutation_ = PermutationMatrix::create(cpu_exec, dim);
-
-        // To make it explicit.
-        inv_permutation_ = nullptr;
-        if (parameters_.construct_inverse_permutation) {
-            inv_permutation_ = PermutationMatrix::create(cpu_exec, dim);
-        }
-
-        this->generate(cpu_exec, std::move(adjacency_matrix));
-
-        // Copy back results to gpu if necessary.
-        if (is_gpu_executor) {
-            const auto gpu_exec = this->get_executor();
-            auto gpu_perm = share(PermutationMatrix::create(gpu_exec, dim));
-            gpu_perm->copy_from(permutation_.get());
-            permutation_ = gpu_perm;
-            if (inv_permutation_) {
-                auto gpu_inv_perm =
-                    share(PermutationMatrix::create(gpu_exec, dim));
-                gpu_inv_perm->copy_from(inv_permutation_.get());
-                inv_permutation_ = gpu_inv_perm;
-            }
-        }
-    }
+    explicit Rcm(const Factory* factory, const ReorderingBaseArgs& args);
 
 private:
     std::shared_ptr<PermutationMatrix> permutation_;

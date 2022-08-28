@@ -148,6 +148,69 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
 
 template <typename ValueType, typename IndexType>
+std::shared_ptr<const LinOp> AmgxPgm<ValueType, IndexType>::get_system_matrix()
+    const
+{
+    return system_matrix_;
+}
+
+
+template <typename ValueType, typename IndexType>
+IndexType* AmgxPgm<ValueType, IndexType>::get_agg() noexcept
+{
+    return agg_.get_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+const IndexType* AmgxPgm<ValueType, IndexType>::get_const_agg() const noexcept
+{
+    return agg_.get_const_data();
+}
+
+
+template <typename ValueType, typename IndexType>
+void AmgxPgm<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void AmgxPgm<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                               const LinOp* b,
+                                               const LinOp* beta,
+                                               LinOp* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+AmgxPgm<ValueType, IndexType>::AmgxPgm(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<AmgxPgm>(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+AmgxPgm<ValueType, IndexType>::AmgxPgm(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<AmgxPgm>(factory->get_executor(), system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(system_matrix),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix},
+      agg_(factory->get_executor(), system_matrix_->get_size()[0])
+{
+    GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
+    GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate();
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void AmgxPgm<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
