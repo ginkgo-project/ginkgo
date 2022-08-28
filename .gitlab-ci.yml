@@ -496,6 +496,7 @@ build/amd/mvapich2/gcc/rocm45/release/shared:
     - .quick_test_condition
     - .use_gko-rocm45-mvapich2-gnu8-llvm8
   variables:
+    BUILD_MPI: "ON"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
@@ -510,6 +511,7 @@ build/amd/mvapich2/clang/rocm45/debug/shared:
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
+    BUILD_MPI: "ON"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
@@ -523,6 +525,7 @@ build/amd/openmpi/gcc/rocm502/debug/static:
     - .full_test_condition
     - .use_gko-rocm502-openmpi-gnu11-llvm11
   variables:
+    BUILD_MPI: "ON"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
@@ -538,6 +541,7 @@ build/amd/openmpi/clang/rocm502/release/shared:
   variables:
     C_COMPILER: "clang"
     CXX_COMPILER: "clang++"
+    BUILD_MPI: "ON"
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     RUN_EXAMPLES: "ON"
