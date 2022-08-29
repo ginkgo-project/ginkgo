@@ -10,6 +10,8 @@ function(filter_generator_expressions INPUT OUTPUT)
     string(REGEX REPLACE "[$<A-Z_:]*SHELL:(.+)>*" "\\1" TMP "${TMP}")
     string(REGEX REPLACE ".+INTERFACE:.+>" "" TMP "${TMP}")
     string(REGEX REPLACE "\$<COMMA>" "," TMP "${TMP}")
+    # Remove the left : or > 
+    string(REGEX REPLACE ":|>" "" TMP "${TMP}")
     # Ignore hwloc include if it is the internal one
     string(REGEX REPLACE "${PROJECT_BINARY_DIR}.*hwloc/src/include.*" "" TMP "${TMP}")
     set(${OUTPUT} "${TMP}" PARENT_SCOPE)
@@ -72,6 +74,29 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
                 endif()
             endif()
+        else()
+        # Still add the existed lib into the list such that keep the track of the dependency
+            if (TARGET ${_libs})
+                if (upper_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND "${_libs}" MATCHES "ginkgo.*")
+                    set(GINKGO_INTERFACE_LIB_NAME "-l${_libs}${CMAKE_DEBUG_POSTFIX}")
+                elseif("${_libs}" MATCHES "ginkgo.*") # Ginkgo libs are appended in the form -l
+                    set(GINKGO_INTERFACE_LIB_NAME "-l${_libs}")
+                endif()
+                # Get the link flags and treat them
+                get_target_property(GINKGO_INTERFACE_LIBS_LINK_FLAGS "${_libs}"
+                    INTERFACE_LINK_OPTIONS)
+                if (GINKGO_INTERFACE_LIBS_LINK_FLAGS)
+                    filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
+                        GINKGO_INTERFACE_LIB_NAME)
+                endif()
+                list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIB_NAME}")
+            elseif(EXISTS "${_libs}")
+                if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
+                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}/libhwloc.so")
+                else()
+                    list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
+                endif()
+            endif()
         endif()
     endforeach()
 endmacro()
@@ -96,7 +121,10 @@ macro(ginkgo_interface_information)
     ginkgo_interface_libraries_recursively("${GINKGO_INTERFACE_LINK_LIBRARIES}")
 
     # Format and store the interface libraries found
+    # remove duplicates on the reversed list to keep the dependecy in the end of list.
+    list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_DUPLICATES GINKGO_INTERFACE_LIBS_FOUND)
+    list(REVERSE GINKGO_INTERFACE_LIBS_FOUND)
     list(REMOVE_ITEM GINKGO_INTERFACE_LIBS_FOUND "")
     string(REPLACE ";" " "
         GINKGO_FORMATTED_INTERFACE_LIBS_FOUND "${GINKGO_INTERFACE_LIBS_FOUND}")
