@@ -30,13 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <pybind11/pybind11.h>
-#include "ginkgo/ginkgo.hpp"
-
-namespace py = pybind11;
-
-// TODO wrap this for other data types like float, int ...
-using ValueType = double;
+#include "python.hpp"
 
 void init_dense(py::module_& module_matrix)
 {

@@ -30,54 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "python.hpp"
+#include <pybind11/pybind11.h>
+#include "ginkgo/ginkgo.hpp"
 
 namespace py = pybind11;
 
-void init_dense(py::module_&);
-
 using ValueType = double;
-
-
-PYBIND11_MODULE(pygko, m)
-{
-    m.doc() = "Python bindings for the Ginkgo framework";
-    py::class_<gko::Executor, std::shared_ptr<gko::Executor>> Executor(
-        m, "Executor");
-
-    py::class_<gko::OmpExecutor, std::shared_ptr<gko::OmpExecutor>>(
-        m, "OmpExecutor", Executor)
-        .def(py::init(&gko::OmpExecutor::create));
-
-    py::class_<gko::ReferenceExecutor, std::shared_ptr<gko::ReferenceExecutor>>(
-        m, "ReferenceExecutor", Executor)
-        .def(py::init(&gko::ReferenceExecutor::create));
-
-    py::class_<gko::CudaExecutor, std::shared_ptr<gko::CudaExecutor>>(
-        m, "CudaExecutor", Executor)
-        .def(py::init(&gko::CudaExecutor::create));
-
-    py::class_<gko::HipExecutor, std::shared_ptr<gko::HipExecutor>>(
-        m, "HipExecutor", Executor)
-        .def(py::init(&gko::HipExecutor::create));
-
-    py::class_<gko::DpcppExecutor, std::shared_ptr<gko::DpcppExecutor>>(
-        m, "DpcppExecutor", Executor)
-        .def(py::init(&gko::DpcppExecutor::create));
-
-    py::class_<gko::array<double>>(m, "array")
-        .def(py::init<std::shared_ptr<const gko::Executor>, int>())
-        .def("fill", &gko::array<double>::fill,
-             "Fill the array with the given value.")
-        .def("get_num_elems", &gko::array<double>::get_num_elems);
-
-    py::class_<gko::dim<2>>(m, "dim2").def(py::init<int, int>());
-
-    py::class_<gko::LinOp, std::shared_ptr<gko::LinOp>> LinOp(m, "LinOp");
-
-    py::module_ module_matrix = m.def_submodule(
-        "matrix", "Submodule for Ginkgos matrix format bindings");
-
-
-    init_dense(module_matrix);
-}
