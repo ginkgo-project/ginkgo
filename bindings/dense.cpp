@@ -35,12 +35,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace py = pybind11;
 
+// TODO wrap this for other data types like float, int ...
+using ValueType = double;
 
 void init_dense(py::module_& module_matrix)
 {
-    // TODO wrap this for other data types like float, int ...
-    py::class_<gko::matrix::Dense<double>,
-               std::shared_ptr<gko::matrix::Dense<double>>, gko::LinOp>(
+    py::class_<gko::matrix::Dense<ValueType>,
+               std::shared_ptr<gko::matrix::Dense<ValueType>>, gko::LinOp>(
         module_matrix, "Dense", py::buffer_protocol())
         .def(py::init([](std::shared_ptr<gko::Executor> exec, py::buffer b) {
             /* Request a buffer descriptor from Python */
@@ -51,7 +52,7 @@ void init_dense(py::module_& module_matrix)
             auto elems = (info.ndim == 1) ? info.shape[0]
                                           : info.shape[0] * info.shape[1];
 
-            auto view = gko::array<double>(ref, elems, (double*)info.ptr);
+            auto view = gko::array<ValueType>(ref, elems, (ValueType*)info.ptr);
 
             auto rows = info.shape[0];
             auto cols = (info.ndim == 1) ? 1 : info.shape[1];
@@ -59,19 +60,31 @@ void init_dense(py::module_& module_matrix)
             // TODO fix dim<2>
             // TODO fix stride since the stride is given in bytes on the numpy
             // side
-            return gko::matrix::Dense<double>::create(
+            return gko::matrix::Dense<ValueType>::create(
                 exec, gko::dim<2>{rows, cols}, view, cols);
         }))
         .def(py::init([](std::shared_ptr<gko::Executor> exec) {
-            return gko::matrix::Dense<double>::create(exec);
+            return gko::matrix::Dense<ValueType>::create(exec);
+        }))
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim) {
+            return gko::matrix::Dense<ValueType>::create(exec, dim);
+        }))
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim,
+                         size_t stride) {
+            return gko::matrix::Dense<ValueType>::create(exec, dim, stride);
+        }))
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim,
+                         gko::array<ValueType> view, size_t stride) {
+            return gko::matrix::Dense<ValueType>::create(exec, dim, view,
+                                                         stride);
         }))
         .def("__repr__",
-             [](const gko::matrix::Dense<double>& o) {
+             [](const gko::matrix::Dense<ValueType>& o) {
                  auto str = std::string("pygko.matrix.Dense object of size ");
                  str += std::to_string(o.get_num_stored_elements());
                  return str;
              })
-        .def_buffer([](gko::matrix::Dense<double>& m) -> py::buffer_info {
+        .def_buffer([](gko::matrix::Dense<ValueType>& m) -> py::buffer_info {
             size_t rows = m.get_num_stored_elements() / m.get_stride();
             size_t cols = m.get_stride();
             size_t dim = (m.get_stride() == 1) ? 1 : 2;
@@ -79,51 +92,70 @@ void init_dense(py::module_& module_matrix)
             // TODO implement for 2D matrix
             if (dim == 1) {
                 return py::buffer_info(
-                    m.get_values(), /* Pointer to buffer */
-                    sizeof(double), /* Size of one scalar */
-                    py::format_descriptor<
-                        double>::format(), /* Python struct-style
-                                              format descriptor */
-                    dim,                   /* Number of dimensions */
-                    {rows},                /* Buffer dimensions */
-                    {sizeof(double)} /* Strides (in bytes) for each index */
+                    m.get_values(),    /* Pointer to buffer */
+                    sizeof(ValueType), /* Size of one scalar */
+                    py::format_descriptor<ValueType>::format(), /* Python
+                                                                struct-style
+                                                                format
+                                                                descriptor */
+                    dim,                /* Number of dimensions */
+                    {rows},             /* Buffer dimensions */
+                    {sizeof(ValueType)} /* Strides (in bytes) for each index */
                 );
             } else {
                 return py::buffer_info(
-                    m.get_values(), /* Pointer to buffer */
-                    sizeof(double), /* Size of one scalar */
-                    py::format_descriptor<
-                        double>::format(), /* Python struct-style
-                                              format descriptor */
-                    dim,                   /* Number of dimensions */
-                    {rows, cols},          /* Buffer dimensions */
-                    {sizeof(double), sizeof(double) * rows}
+                    m.get_values(),    /* Pointer to buffer */
+                    sizeof(ValueType), /* Size of one scalar */
+                    py::format_descriptor<ValueType>::format(), /* Python
+                                                                struct-style
+                                                                format
+                                                                descriptor */
+                    dim,          /* Number of dimensions */
+                    {rows, cols}, /* Buffer dimensions */
+                    {sizeof(ValueType), sizeof(ValueType) * rows}
                     /* Strides (in bytes) for each index */
                 );
             }
         })
-        .def("get_stride", &gko::matrix::Dense<double>::get_stride,
+        .def("get_stride", &gko::matrix::Dense<ValueType>::get_stride,
              "Returns the stride of the matrix.")
-        .def("scale", &gko::matrix::Dense<double>::scale,
+        .def("scale", &gko::matrix::Dense<ValueType>::scale,
              "Scales the matrix with a scalar (aka: BLAS scal).")
-        .def("inv_scale", &gko::matrix::Dense<double>::inv_scale,
+        .def("inv_scale", &gko::matrix::Dense<ValueType>::inv_scale,
              "Scales the matrix with the inverse of a scalar.")
-        .def("add_scaled", &gko::matrix::Dense<double>::add_scaled,
+        .def("add_scaled", &gko::matrix::Dense<ValueType>::add_scaled,
              "Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).")
         .def(
-            "sub_scaled", &gko::matrix::Dense<double>::sub_scaled,
+            "sub_scaled", &gko::matrix::Dense<ValueType>::sub_scaled,
             "Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).")
+        .def("compute_dot",
+             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+                 &gko::matrix::Dense<ValueType>::compute_dot, py::const_),
+             "Computes the column-wise dot product of this matrix and `b`")
+        .def("compute_conj_dot",
+             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+                 &gko::matrix::Dense<ValueType>::compute_conj_dot, py::const_),
+             "Computes the column-wise dot product of `conj(this matrix)` and "
+             "`b`.")
+        .def("compute_norm2",
+             py::overload_cast<gko::LinOp*>(
+                 &gko::matrix::Dense<ValueType>::compute_norm2, py::const_),
+             "Computes the column-wise Euclidian (L^2) norm of this matrix.")
+        .def("compute_norm1",
+             py::overload_cast<gko::LinOp*>(
+                 &gko::matrix::Dense<ValueType>::compute_norm1, py::const_),
+             "Computes the column-wise (L^1) norm of this matrix.")
         .def("at",
-             static_cast<double& (gko::matrix::Dense<double>::*)(size_t)>(
-                 &gko::matrix::Dense<double>::at),
+             static_cast<ValueType& (gko::matrix::Dense<ValueType>::*)(size_t)>(
+                 &gko::matrix::Dense<ValueType>::at),
              "Returns an element using linearized index.")
         .def("at",
-             static_cast<double& (gko::matrix::Dense<double>::*)(size_t,
-                                                                 size_t)>(
-                 &gko::matrix::Dense<double>::at),
+             static_cast<ValueType& (gko::matrix::Dense<ValueType>::*)(size_t,
+                                                                       size_t)>(
+                 &gko::matrix::Dense<ValueType>::at),
              "Returns an element at row, column index.")
         .def("get_num_stored_elements",
-             &gko::matrix::Dense<double>::get_num_stored_elements,
+             &gko::matrix::Dense<ValueType>::get_num_stored_elements,
              "Returns the number of elements explicitly stored in the "
              "matrix.");
 }
