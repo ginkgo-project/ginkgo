@@ -35,10 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace py = pybind11;
 
+void init_dense(py::module_&);
+
+
 PYBIND11_MODULE(pygko, m)
 {
     m.doc() = "Python bindings for the Ginkgo framework";
-
     py::class_<gko::Executor, std::shared_ptr<gko::Executor>> Executor(
         m, "Executor");
 
@@ -60,74 +62,8 @@ PYBIND11_MODULE(pygko, m)
 
     py::class_<gko::LinOp, std::shared_ptr<gko::LinOp>> LinOp(m, "LinOp");
 
-    // TODO wrap this for other data types like float, int ...
-    py::class_<gko::matrix::Dense<double>,
-               std::shared_ptr<gko::matrix::Dense<double>>, gko::LinOp>(
-        m, "Dense", py::buffer_protocol())
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::buffer b) {
-            /* Request a buffer descriptor from Python */
-            py::buffer_info info = b.request();
-            auto ref = gko::ReferenceExecutor::create();
+    py::module_ module_matrix = m.def_submodule(
+        "matrix", "Submodule for Ginkgos matrix format bindings");
 
-            /* create a view into numpy data */
-            auto elems = (info.ndim == 1) ? info.shape[0]
-                                          : info.shape[0] * info.shape[1];
-
-            auto view = gko::array<double>(ref, elems, (double*)info.ptr);
-
-            // TODO fix dim<2>
-            // TODO fix stride since the stride is given in bytes on the numpy
-            // side
-            return gko::matrix::Dense<double>::create(
-                exec, gko::dim<2>{info.shape[0], 1}, view, 1);
-        }))
-        .def(py::init([](std::shared_ptr<gko::Executor> exec) {
-            return gko::matrix::Dense<double>::create(exec);
-        }))
-        .def("__repr__",
-             [](const gko::matrix::Dense<double>& o) {
-                 auto str = std::string("pygko.matrix.Dense object of size ");
-                 str += std::to_string(o.get_num_stored_elements());
-                 return str;
-             })
-        .def_buffer([](gko::matrix::Dense<double>& m) -> py::buffer_info {
-            size_t rows = m.get_num_stored_elements() / m.get_stride();
-            size_t cols = m.get_stride();
-            size_t dim = (m.get_stride() == 1) ? 1 : 2;
-
-            // TODO implement for 2D matrix
-            return py::buffer_info(
-                m.get_values(), /* Pointer to buffer */
-                sizeof(double), /* Size of one scalar */
-                py::format_descriptor<double>::format(), /* Python struct-style
-                                                            format descriptor */
-                dim,             /* Number of dimensions */
-                {rows},          /* Buffer dimensions */
-                {sizeof(double)} /* Strides (in bytes) for each index */
-            );
-        })
-        .def("get_stride", &gko::matrix::Dense<double>::get_stride,
-             "Returns the stride of the matrix.")
-        .def("scale", &gko::matrix::Dense<double>::scale,
-             "Scales the matrix with a scalar (aka: BLAS scal).")
-        .def("inv_scale", &gko::matrix::Dense<double>::inv_scale,
-             "Scales the matrix with the inverse of a scalar.")
-        .def("add_scaled", &gko::matrix::Dense<double>::add_scaled,
-             "Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).")
-        .def(
-            "sub_scaled", &gko::matrix::Dense<double>::sub_scaled,
-            "Subtracts `b` scaled by `alpha` fron the matrix (aka: BLAS axpy).")
-        .def("at",
-             static_cast<double& (gko::matrix::Dense<double>::*)(size_t)>(
-                 &gko::matrix::Dense<double>::at),
-             "Returns an element using linearized index.")
-        .def("at",
-             static_cast<double& (gko::matrix::Dense<double>::*)(size_t,
-                                                                 size_t)>(
-                 &gko::matrix::Dense<double>::at),
-             "Returns an element at row, column index.")
-        .def("get_num_stored_elements",
-             &gko::matrix::Dense<double>::get_num_stored_elements,
-             "Returns the number of elements explicitly stored in the "
-             "matrix.");
+    init_dense(module_matrix);
 }
