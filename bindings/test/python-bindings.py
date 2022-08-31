@@ -42,13 +42,13 @@ class DenseTest(unittest.TestCase):
 
     def test_can_create_dense_from_array(self):
         arr = pygko.array(self.ref, 9, np.array([self.values]))
-        dense = pygko.Dense(self.ref, (3, 2), arr, 3)
+        dense = pygko.matrix.Dense(self.ref, (3, 2), arr, 3)
 
         self.assertIs(dense[2], 5)
         self.assertIs(dense[2, 1], 6)
 
     def test_can_create_dense_from_list(self):
-        dense = pygko.Dense(self.ref, (3, 2), self.values, 3)
+        dense = pygko.matrix.Dense(self.ref, (3, 2), self.values, 3)
 
         self.assertIs(dense.at(2, 1), 6)
 
@@ -59,9 +59,9 @@ class DenseTest(unittest.TestCase):
 
     def test_dense_support_basic_functionality(self):
         np_array = np.array(self.values)
-        dense = pygko.Dense(self.ref, (9, 1), np_array, 1)
+        dense = pygko.matrix.Dense(self.ref, (9, 1), np_array, 1)
 
-        result = pygko.Dense(self.ref, (1, 1))
+        result = pygko.matrix.Dense(self.ref, (1, 1))
 
         dense.compute_norm1(result)
         self.assertIs(result[0, 0], np.linalg.norm(np_array), 1)
@@ -75,6 +75,24 @@ class DenseTest(unittest.TestCase):
         dense.add_scale(result)
         dense.sub_scale(result)
         dense.compute_dot(dense, result)
+
+
+class CsrTest(unittest.TestCase):
+    values = [1, 2, 3, 4]
+    cols = [0, 1, 1, 0]
+    rows = [0, 2, 3, 4]
+    array_length = 4
+    ref = pygko.ReferenceExecutor()
+
+    def test_can_create_from_arrays(self):
+
+        mtx = pygko.csr(
+            self.ref,
+            (3, 2),
+            pygko.array(self.ref, 4, self.values),
+            pygko.array(self.ref, 4, self.cols),
+            pygko.array(self.ref, 4, self.rows),
+        )
 
 
 if __name__ == "__main__":
