@@ -52,6 +52,18 @@ PYBIND11_MODULE(pygko, m)
         m, "ReferenceExecutor", Executor)
         .def(py::init(&gko::ReferenceExecutor::create));
 
+    py::class_<gko::CudaExecutor, std::shared_ptr<gko::CudaExecutor>>(
+        m, "CudaExecutor", Executor)
+        .def(py::init(&gko::CudaExecutor::create));
+
+    py::class_<gko::HipExecutor, std::shared_ptr<gko::HipExecutor>>(
+        m, "HipExecutor", Executor)
+        .def(py::init(&gko::HipExecutor::create));
+
+    py::class_<gko::DpcppExecutor, std::shared_ptr<gko::DpcppExecutor>>(
+        m, "DpcppExecutor", Executor)
+        .def(py::init(&gko::DpcppExecutor::create));
+
     py::class_<gko::array<double>>(m, "array")
         .def(py::init<std::shared_ptr<const gko::Executor>, int>())
         .def("fill", &gko::array<double>::fill,
