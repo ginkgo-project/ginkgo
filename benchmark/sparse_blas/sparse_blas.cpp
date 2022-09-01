@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
                          "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
 
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;

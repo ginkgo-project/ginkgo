@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
                                     std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 

@@ -290,30 +290,35 @@ void backup_results(rapidjson::Document& results)
 
 
 // executor mapping
-const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(bool)>>
     executor_factory{
-        {"reference", [] { return gko::ReferenceExecutor::create(); }},
-        {"omp", [] { return gko::OmpExecutor::create(); }},
+        {"reference", [](bool) { return gko::ReferenceExecutor::create(); }},
+        {"omp", [](bool) { return gko::OmpExecutor::create(); }},
         {"cuda",
-         [] {
+         [](bool) {
              return gko::CudaExecutor::create(FLAGS_device_id,
                                               gko::OmpExecutor::create(), true);
          }},
         {"hip",
-         [] {
+         [](bool) {
              return gko::HipExecutor::create(FLAGS_device_id,
                                              gko::OmpExecutor::create(), true);
          }},
-        {"dpcpp", [] {
-             return gko::DpcppExecutor::create(FLAGS_device_id,
-                                               gko::OmpExecutor::create());
+        {"dpcpp", [](bool use_gpu_timer) {
+             auto property = dpcpp_queue_property::in_order;
+             if (use_gpu_timer) {
+                 property = dpcpp_queue_property::in_order |
+                            dpcpp_queue_property::enable_profiling;
+             }
+             return gko::DpcppExecutor::create(
+                 FLAGS_device_id, gko::OmpExecutor::create(), "all", property);
          }}};
 
 
 // returns the appropriate executor, as set by the executor flag
-std::shared_ptr<gko::Executor> get_executor()
+std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 {
-    static auto exec = executor_factory.at(FLAGS_executor)();
+    static auto exec = executor_factory.at(FLAGS_executor)(use_gpu_timer);
     return exec;
 }
 

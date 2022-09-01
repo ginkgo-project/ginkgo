@@ -64,6 +64,12 @@ std::shared_ptr<Timer> get_hip_timer(
 #endif  // HAS_HIP
 
 
+#ifdef HAS_DPCPP
+std::shared_ptr<Timer> get_dpcpp_timer(
+    std::shared_ptr<const gko::DpcppExecutor> exec);
+#endif  // HAS_DPCPP
+
+
 /**
  * Get the timer. If the executor does not support gpu timer, still return the
  * cpu timer.
@@ -88,8 +94,15 @@ std::shared_ptr<Timer> get_timer(std::shared_ptr<const gko::Executor> exec,
             return get_hip_timer(hip);
         }
 #endif  // HAS_HIP
+
+#ifdef HAS_DPCPP
+        if (auto dpcpp =
+                std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+            return get_dpcpp_timer(dpcpp);
+        }
+#endif  // HAS_DPCPP
     }
-    // No cuda/hip executor available or no gpu_timer used
+    // No cuda/hip/dpcpp executor available or no gpu_timer used
     return std::make_shared<CpuTimer>(exec);
 }
 
