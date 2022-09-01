@@ -150,8 +150,9 @@ solver_result benchmark_solver(
 
 template <typename ValueType, typename IndexType>
 void run_benchmarks(std::shared_ptr<gko::Executor> exec,
-                    const std::string matrix_path, const unsigned max_iters,
-                    const double rel_res_norm)
+                    const std::string matrix_path,
+                    const std::string compression_json_folder,
+                    const unsigned max_iters, const double rel_res_norm)
 {
     using RealValueType = gko::remove_complex<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
@@ -162,6 +163,9 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
 
     const auto A_size = A->get_size();
+
+    // Make sure the output is in scientific notation for easier comparison
+    std::cout << std::scientific << std::setprecision(4);
 
     std::cout << "Matrix: "
               << matrix_path.substr(matrix_path.find_last_of('/') + 1)
@@ -179,7 +183,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     for (gko::size_type i = 0; i < b_host->get_size()[0]; ++i) {
         b_host->at(i, 0) /= tmp_norm;
     }
-    auto b_norm = gko::initialize<real_vec>({0.0}, exec);
+    auto b_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
     b_host->compute_norm2(b_norm);
     auto b = clone(exec, b_host);
 
@@ -206,7 +210,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                              .on(exec)
                              ->generate(A);
     */
-    default_ss.lp_config = -1;
+    default_ss.lp_config = "ieee";
 
     std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
               << default_ss.stop_rel_res << " res norm; ";
@@ -243,30 +247,37 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     };
     std::vector<bench_type> benchmarks;
     benchmarks.emplace_back();
-    benchmarks[0].name = get_name(0);
-    benchmarks[0].settings.storage_prec =
+    benchmarks.back().name = get_name(0);
+    benchmarks.back().settings = default_ss;
+    benchmarks.back().settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::keep;
 
     benchmarks.emplace_back();
-    benchmarks[1].name = get_name(1);
-    benchmarks[1].settings.storage_prec =
+    benchmarks.back().name = get_name(1);
+    benchmarks.back().settings = default_ss;
+    benchmarks.back().settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce1;
 
     benchmarks.emplace_back();
-    benchmarks[2].name = get_name(2);
-    benchmarks[2].settings.storage_prec =
+    benchmarks.back().name = get_name(2);
+    benchmarks.back().settings = default_ss;
+    benchmarks.back().settings.storage_prec =
         gko::solver::cb_gmres::storage_precision::reduce2;
 
-    for (auto config_path : std::filesystem::directory_iterator("lp_configs")) {
+    std::vector<std::string> compression_json_files;
+    for (auto config_path :
+         std::filesystem::directory_iterator(compression_json_folder)) {
+        compression_json_files.emplace_back(config_path.path().string());
+    }
+    std::sort(compression_json_files.begin(), compression_json_files.end());
+    for (auto config_file : compression_json_files) {
         benchmarks.emplace_back();
         benchmarks.back().name = str_pre + "lp" + str_post;
+        benchmarks.back().settings = default_ss;
         benchmarks.back().settings.storage_prec =
             gko::solver::cb_gmres::storage_precision::use_sz;
-        benchmarks.back().settings.lp_config = config_path.path().string();
+        benchmarks.back().settings.lp_config = config_file;
     }
-
-    // Make sure the output is in scientific notation for easier comparison
-    std::cout << std::scientific << std::setprecision(4);
 
     // Note: The time might not be significantly different since the matrix is
     //       quite small
@@ -277,10 +288,16 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
               << delim << std::setw(widths[3]) << "res norm before" << delim
               << std::setw(widths[4]) << "res norm after" << delim
               << std::setw(widths[5]) << "rel res norm" << delim
-              << std::setw(widths[6]) << "frsz_epsilon" << '\n';
+              << std::setw(widths[6]) << "compression" << '\n';
     for (auto&& val : benchmarks) {
         // if (val.name.find("sz4") == std::string::npos) { continue; }
         val.result = benchmark_solver(exec, val.settings, A, b.get(), x.get());
+        const auto file_path = val.settings.lp_config;
+        auto begin_file_name = file_path.rfind('/');
+        begin_file_name =
+            begin_file_name == std::string::npos ? 0 : begin_file_name + 1;
+        const auto file_name = file_path.substr(
+            begin_file_name, file_path.size() - begin_file_name - 5);
         std::cout << std::setw(widths[0]) << val.name << delim
                   << std::setw(widths[1]) << val.result.time_s << delim
                   << std::setw(widths[2]) << val.result.iters << delim
@@ -288,7 +305,7 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
                   << std::setw(widths[4]) << val.result.res_norm << delim
                   << std::setw(widths[5])
                   << val.result.res_norm / val.result.init_res_norm << delim
-                  << std::setw(widths[6]) << val.settings.lp_config << '\n';
+                  << std::setw(widths[6]) << file_name << '\n';
     }
 }
 
@@ -297,18 +314,26 @@ int main(int argc, char* argv[])
 {
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [path/to/matrix.mtx] [max_iters] [rel_res_norm] "
-                     "[{double,float}]"
+                  << " [path/to/matrix.mtx] [path/to/compresson/json/folder]"
+                     " [max_iters] [rel_res_norm] [{double,float}] "
+                     "[{cuda,omp,hip,dpcpp,reference}]"
                   << std::endl;
         std::exit(-1);
     }
 
+    int c_param = 1;  // stores the current parameter index
+    const std::string matrix_path =
+        argc >= c_param + 1 ? argv[c_param] : "data/A.mtx";
+    const std::string compression_json_folder =
+        argc >= ++c_param + 1 ? argv[c_param] : "lp_configs";
+    const unsigned max_iters =
+        argc >= ++c_param + 1 ? std::stoi(argv[c_param]) : 2000;
+    const double rel_res_norm =
+        argc >= ++c_param + 1 ? std::stof(argv[c_param]) : 1e-6;
+    const std::string precision =
+        argc >= ++c_param + 1 ? argv[c_param] : "double";
+    const auto executor_string = argc >= ++c_param + 1 ? argv[c_param] : "omp";
     // Map which generates the appropriate executor
-    const auto executor_string = "omp";  // argc >= 2 ? argv[1] : "omp";
-    const std::string matrix_path = argc >= 2 ? argv[1] : "data/A.mtx";
-    const unsigned max_iters = argc >= 3 ? std::stoi(argv[2]) : 2000;
-    const unsigned rel_res_norm = argc >= 4 ? std::stof(argv[3]) : 1e-6;
-    const std::string precision = argc >= 5 ? argv[4] : "double";
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         exec_map{
             {"omp", [] { return gko::OmpExecutor::create(); }},
@@ -333,9 +358,11 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     if (precision == std::string("double")) {
-        run_benchmarks<double, int>(exec, matrix_path, max_iters, rel_res_norm);
+        run_benchmarks<double, int>(exec, matrix_path, compression_json_folder,
+                                    max_iters, rel_res_norm);
     } else if (precision == std::string("float")) {
-        run_benchmarks<float, int>(exec, matrix_path, max_iters, rel_res_norm);
+        run_benchmarks<float, int>(exec, matrix_path, compression_json_folder,
+                                   max_iters, rel_res_norm);
     } else {
         std::cerr << "Unknown precision string \"" << argv[4]
                   << "\". Supported values: \"double\", \"float\"\n";

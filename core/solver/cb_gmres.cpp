@@ -10,7 +10,6 @@
 #include <vector>
 
 
-// #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_ext/cpp/json.h>
 #include <libpressio_ext/cpp/libpressio.h>
 #include <libpressio_meta.h>  //provides frsz
@@ -213,7 +212,7 @@ struct compression_helper {
           pc_{},
           in_temp_{},
           out_temp_{},
-          p_data_vec_(use_compr_ ? num_vecs : 0),
+          p_data_vec_(use_compr_ ? 1 : 0),
           metrics_plugins_{"time",     "size",     "error_stat",
                            "clipping", "data_gap", "write_debug_inputs"}
     {
@@ -254,21 +253,25 @@ struct compression_helper {
             return;
         }
         GKO_ASSERT(rhelper.get_range().length(2) == 1);
-        GKO_ASSERT(krylov_idx < p_data_vec_.size());
 
-        auto raw_krylov_base =
-            rhelper.get_bases().get_data() + krylov_idx * num_rows_;
-        std::memcpy(in_temp_.data(), raw_krylov_base,
-                    num_rows_ * sizeof(ValueType));
-        pc_->compress(&in_temp_, &p_data_vec_[krylov_idx]);
-        pc_->decompress(&p_data_vec_[krylov_idx], &out_temp_);
-        std::memcpy(raw_krylov_base, out_temp_.data(),
-                    num_rows_ * sizeof(ValueType));
+        const auto exec = rhelper.get_bases().get_executor().get();
+        const auto host_exec = exec->get_master().get();
+
+        // Reinterpret_cast necessary for type check if no compressor is used
+        auto raw_krylov_base = reinterpret_cast<ValueType*>(
+            rhelper.get_bases().get_data() + krylov_idx * num_rows_);
+        host_exec->copy_from(exec, num_rows_, raw_krylov_base,
+                             reinterpret_cast<ValueType*>(in_temp_.data()));
+        pc_->compress(&in_temp_, &p_data_vec_[0]);
+        pc_->decompress(&p_data_vec_[0], &out_temp_);
+        exec->copy_from(host_exec, num_rows_,
+                        reinterpret_cast<const ValueType*>(out_temp_.data()),
+                        raw_krylov_base);
     }
 
     void print_metrics() const
     {
-        if (use_compr_) {
+        if (false && use_compr_) {
             std::cout << pc_->get_metrics_results() << '\n';
         }
     }

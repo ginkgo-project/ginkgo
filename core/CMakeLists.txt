@@ -116,24 +116,32 @@ endif()
 
 ginkgo_compile_features(ginkgo)
 
-# add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
-# regardless of whether it is installed or added as a subdirectory
-add_library(Ginkgo::ginkgo ALIAS ginkgo)
-target_link_libraries(ginkgo
-    PUBLIC ginkgo_device ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip ginkgo_dpcpp)
-
-# Added through SZ
+# Added for additional CB-GMRES compression
 find_package(LibPressio REQUIRED)
 find_package(LibPressioTools REQUIRED)
 find_package(std_compat REQUIRED)
 find_package(frsz REQUIRED)
-target_link_libraries(ginkgo 
-        PRIVATE 
-            frsz::frsz
-            LibPressio::libpressio
-            LibPressioTools::libpressio_meta
-            OpenMP::OpenMP_CXX
-            )
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
+# add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
+# regardless of whether it is installed or added as a subdirectory
+add_library(Ginkgo::ginkgo ALIAS ginkgo)
+target_link_libraries(ginkgo
+    PUBLIC
+      ginkgo_device
+      ginkgo_omp
+      ginkgo_cuda
+      ginkgo_reference
+      ginkgo_hip
+      ginkgo_dpcpp
+
+      # Added for additional compression in CB-GMRES
+      nlohmann_json::nlohmann_json
+      frsz::frsz
+      LibPressio::libpressio
+      LibPressioTools::libpressio_meta
+      OpenMP::OpenMP_CXX
+    )
 
 if(GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI_SDE)
