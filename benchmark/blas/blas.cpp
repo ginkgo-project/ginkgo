@@ -506,8 +506,7 @@ int main(int argc, char* argv[])
 
     std::string extra_information = "The operations are " + FLAGS_operations;
     print_general_information(extra_information);
-
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto engine = get_engine();
     auto operations = split(FLAGS_operations, ',');
 
