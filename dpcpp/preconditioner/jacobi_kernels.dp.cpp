@@ -71,7 +71,6 @@ constexpr int default_num_warps = 8;
 constexpr int default_grid_size = 32 * 32 * 128;
 
 
-template <int warps_per_block>
 void duplicate_array(const precision_reduction* __restrict__ source,
                      size_type source_size,
                      precision_reduction* __restrict__ dest,
@@ -86,17 +85,15 @@ void duplicate_array(const precision_reduction* __restrict__ source,
     }
 }
 
-template <int warps_per_block>
 void duplicate_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      sycl::queue* queue, const precision_reduction* source,
                      size_type source_size, precision_reduction* dest,
                      size_type dest_size)
 {
-    queue->parallel_for(sycl_nd_range(grid, block),
-                        [=](sycl::nd_item<3> item_ct1) {
-                            duplicate_array<warps_per_block>(
-                                source, source_size, dest, dest_size, item_ct1);
-                        });
+    queue->parallel_for(
+        sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+            duplicate_array(source, source_size, dest, dest_size, item_ct1);
+        });
 }
 
 
@@ -404,10 +401,11 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    duplicate_array<default_num_warps>(
-        grid_size, block_size, 0, exec->get_queue(), source.get_const_data(),
-        source.get_num_elems(), precisions.get_data(),
-        precisions.get_num_elems());
+    if (grid_size > 0) {
+        duplicate_array(grid_size, block_size, 0, exec->get_queue(),
+                        source.get_const_data(), source.get_num_elems(),
+                        precisions.get_data(), precisions.get_num_elems());
+    }
 }
 
 
