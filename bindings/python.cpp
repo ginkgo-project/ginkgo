@@ -51,9 +51,17 @@ PYBIND11_MODULE(pygko, m)
         .def(py::init(&gko::ReferenceExecutor::create));
 
     py::enum_<gko::allocation_mode>(m, "allocation_mode")
-        .value("device", gko::allocation_mode::device)
-        .value("unified_global", gko::allocation_mode::unified_global)
-        .value("unified_host", gko::allocation_mode::unified_host)
+        .value("device", gko::allocation_mode::device,
+               "Allocates memory on the device and Unified Memory model is not "
+               "used.")
+        .value("unified_global", gko::allocation_mode::unified_global,
+               "allocates memory on the device, but is accessible by the host "
+               "through the Unified memory model.")
+        .value("unified_host", gko::allocation_mode::unified_host,
+               " host and it is not available on devices which do not have "
+               "concurrent acesses"
+               " switched on, but this access can be explictly switched on, "
+               "when necessary.")
         .export_values();
 
     py::class_<gko::CudaExecutor, std::shared_ptr<gko::CudaExecutor>>(
