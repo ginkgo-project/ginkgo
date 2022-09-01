@@ -52,7 +52,7 @@ namespace solver {
 
 
 /**
- * give the hint of input to apply
+ * Give a hint about the input of the apply method.
  */
 enum class input_hint {
     /**
@@ -69,7 +69,9 @@ enum class input_hint {
     given
 };
 
+
 namespace {
+
 
 inline void fill_zero(LinOp* input)
 {
@@ -88,7 +90,10 @@ inline void fill_zero(LinOp* input)
     }
 }
 
+
 }  // namespace
+
+
 class ApplyHint {
 public:
     ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
@@ -140,7 +145,7 @@ protected:
         this->apply_impl(b, x);
     }
 
-    // override at the same time when overrided
+    // override at the same time when overriden
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
     virtual void apply_impl(const LinOp* alpha, const LinOp* b,
                             const LinOp* beta, LinOp* x) const = 0;
@@ -590,7 +595,7 @@ private:
 
 /**
  * A LinOp deriving from this CRTP class stores a stopping criterion factory and
- * allow apply with hint.
+ * allows applying with a hint.
  *
  * @tparam DerivedType  the CRTP type that derives from this
  *
