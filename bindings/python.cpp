@@ -36,9 +36,6 @@ namespace py = pybind11;
 
 void init_dense(py::module_&);
 
-using ValueType = double;
-
-
 PYBIND11_MODULE(pygko, m)
 {
     m.doc() = "Python bindings for the Ginkgo framework";
@@ -52,6 +49,12 @@ PYBIND11_MODULE(pygko, m)
     py::class_<gko::ReferenceExecutor, std::shared_ptr<gko::ReferenceExecutor>>(
         m, "ReferenceExecutor", Executor)
         .def(py::init(&gko::ReferenceExecutor::create));
+
+    py::enum_<gko::allocation_mode>(m, "allocation_mode")
+        .value("device", gko::allocation_mode::device)
+        .value("unified_global", gko::allocation_mode::unified_global)
+        .value("unified_host", gko::allocation_mode::unified_host)
+        .export_values();
 
     py::class_<gko::CudaExecutor, std::shared_ptr<gko::CudaExecutor>>(
         m, "CudaExecutor", Executor)
