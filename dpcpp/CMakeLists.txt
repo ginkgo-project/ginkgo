@@ -57,14 +57,8 @@ target_sources(ginkgo_dpcpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     )
 
-# if(GINKGO_JACOBI_FULL_OPTIMIZATIONS)
-#     set(GKO_DPCPP_JACOBI_BLOCK_SIZES)
-#     foreach(blocksize RANGE 1 32)
-#         list(APPEND GKO_DPCPP_JACOBI_BLOCK_SIZES ${blocksize})
-#     endforeach()
-# else()
-    set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)
-# endif()
+# TODO: adjust it when dpcpp jacobi supports more block size
+set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)
 set(GKO_DPCPP_JACOBI_SOURCES)
 foreach(GKO_JACOBI_BLOCK_SIZE IN LISTS GKO_DPCPP_JACOBI_BLOCK_SIZES)
     configure_file(
