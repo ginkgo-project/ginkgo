@@ -228,12 +228,13 @@ struct compression_helper {
             pc_->set_options({
                 {"pressio:metric", "composite"s},
                 {"composite:plugins", metrics_plugins_},
-                {"write_debug_inputs:write_input", true},
-                {"write_debug_inputs:display_paths", true},
-                {"write_debug_inputs:io", "posix"},
+                //                {"write_debug_inputs:write_input", true},
+                //                {"write_debug_inputs:display_paths", true},
+                //                {"write_debug_inputs:io", "posix"},
             });
             pc_->set_name("pressio");
             pc_->set_options(options_from_file);
+            std::cerr << pc_->get_options() << std::endl;
             const auto pressio_type = std::is_same<ValueType, float>::value
                                           ? pressio_float_dtype
                                           : pressio_double_dtype;
