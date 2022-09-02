@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace py = pybind11;
 
 void init_dense(py::module_&);
+void init_coo(py::module_&);
+
 
 PYBIND11_MODULE(pygko, m)
 {
@@ -89,6 +91,17 @@ PYBIND11_MODULE(pygko, m)
     py::module_ module_matrix = m.def_submodule(
         "matrix", "Submodule for Ginkgos matrix format bindings");
 
+    m.def("read_dense",
+          [](std::string fn, std::shared_ptr<gko::Executor> exec) {
+              return gko::read<gko::matrix::Dense<ValueType>>(std::ifstream(fn),
+                                                              exec);
+          });
+
+    m.def("read_coo", [](std::string fn, std::shared_ptr<gko::Executor> exec) {
+        return gko::share(
+            gko::read<gko::matrix::Coo<ValueType>>(std::ifstream(fn), exec));
+    });
 
     init_dense(module_matrix);
+    init_coo(module_matrix);
 }

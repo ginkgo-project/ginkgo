@@ -36,3 +36,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace py = pybind11;
 
 using ValueType = double;
+using IndexType = int;

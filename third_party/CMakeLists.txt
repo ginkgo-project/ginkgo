@@ -19,6 +19,7 @@ if(GINKGO_BUILD_PYTHON_BINDINGS)
     pybind11_add_module(pygko
       ${PROJECT_SOURCE_DIR}/bindings/python.cpp
       ${PROJECT_SOURCE_DIR}/bindings/dense.cpp
+      ${PROJECT_SOURCE_DIR}/bindings/coo.cpp
     )
 
     target_include_directories(pygko PRIVATE ${Ginkgo_BINARY_DIR}/include)
