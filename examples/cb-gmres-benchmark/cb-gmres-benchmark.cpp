@@ -163,6 +163,8 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     auto A = share(gko::read<mtx>(std::ifstream(matrix_path), exec));
 
     const auto A_size = A->get_size();
+    auto b = vec::create(exec, gko::dim<2>{A_size[0], 1});
+    auto x = vec::create(exec, gko::dim<2>{A_size[1], 1});
 
     // Make sure the output is in scientific notation for easier comparison
     std::cout << std::scientific << std::setprecision(4);
@@ -171,30 +173,33 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
               << matrix_path.substr(matrix_path.find_last_of('/') + 1)
               << "; size: " << A_size[0] << " x " << A_size[1] << '\n';
 
-    auto b_host = vec::create(exec->get_master(), gko::dim<2>{A_size[0], 1});
-    ValueType tmp_norm{};
-    for (gko::size_type i = 0; i < b_host->get_size()[0]; ++i) {
-        const auto val = std::sin(static_cast<ValueType>(i));
-        b_host->at(i, 0) = val;
-        //    ValueType{1} / std::sqrt(static_cast<ValueType>(A_size[0]));
-        tmp_norm += val * val;
-    }
-    tmp_norm = std::sqrt(tmp_norm);
-    for (gko::size_type i = 0; i < b_host->get_size()[0]; ++i) {
-        b_host->at(i, 0) /= tmp_norm;
-    }
-    auto b_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
-    b_host->compute_norm2(b_norm);
-    auto b = clone(exec, b_host);
+    {  // Prepare values and delete all temporaries afterwards
+        auto res_host =
+            vec::create(exec->get_master(), gko::dim<2>{A_size[1], 1});
+        ValueType tmp_norm{};
+        for (gko::size_type i = 0; i < res_host->get_size()[0]; ++i) {
+            const auto val = std::sin(static_cast<ValueType>(i));
+            res_host->at(i, 0) = val;
+            tmp_norm += val * val;
+        }
+        tmp_norm = std::sqrt(tmp_norm);
+        for (gko::size_type i = 0; i < res_host->get_size()[0]; ++i) {
+            res_host->at(i, 0) /= tmp_norm;
+        }
+        // Write out the actual RHS b
+        A->apply(res_host, b);
+        auto b_host_norm = gko::initialize<real_vec>({0.0}, exec->get_master());
+        b->compute_norm2(b_host_norm);
 
-    std::cout << "b-norm: " << b_norm->at(0, 0) << '\n';
+        std::cout << "b-norm: " << b_host_norm->at(0, 0) << '\n';
 
-    // As an initial guess, use the right-hand side
-    auto x_host = clone(b_host);
-    for (gko::size_type i = 0; i < A_size[0]; ++i) {
-        x_host->at(i, 0) = 0;
+        // As an initial guess, use the right-hand side
+        auto x_host = clone(exec->get_master(), x);
+        for (gko::size_type i = 0; i < x_host->get_size()[0]; ++i) {
+            x_host->at(i, 0) = 0;
+        }
+        x->copy_from(x_host);
     }
-    auto x = clone(exec, x_host);
 
     using precond_type = gko::preconditioner::Jacobi<ValueType, IndexType>;
     // Default_settings
@@ -203,13 +208,13 @@ void run_benchmarks(std::shared_ptr<gko::Executor> exec,
     default_ss.stop_rel_res = rel_res_norm;
     default_ss.krylov_dim = 100u;
     default_ss.storage_prec = gko::solver::cb_gmres::storage_precision::keep;
-    /*
+    //*
     default_ss.precond = precond_type::build()
-                             .with_max_block_size(1u)
+                             .with_max_block_size(32u)
                              .with_skip_sorting(true)
                              .on(exec)
                              ->generate(A);
-    */
+    //*/
     default_ss.lp_config = "ieee";
 
     std::cout << "Stopping criteria: " << default_ss.stop_iter << " iters; "
