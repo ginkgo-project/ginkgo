@@ -79,11 +79,13 @@ void init_dense(py::module_& module_matrix)
                  return str;
              })
         .def_buffer([](gko::matrix::Dense<ValueType>& m) -> py::buffer_info {
+            // buffer info needs data on host, thus if data is on device it
+            // should be copied to host first
             size_t rows = m.get_num_stored_elements() / m.get_stride();
             size_t cols = m.get_stride();
             size_t dim = (m.get_stride() == 1) ? 1 : 2;
 
-            // TODO implement for 2D matrix
+            // TODO move to host if on device
             if (dim == 1) {
                 return py::buffer_info(
                     m.get_values(),    /* Pointer to buffer */
