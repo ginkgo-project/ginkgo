@@ -90,7 +90,6 @@ public:
 
     bool is_distributed() const { return this->is_distributed_; }
 
-protected:
     /**
      * Creates an empty Schwarz preconditioner.
      *
@@ -138,6 +137,7 @@ protected:
         }
     }
 
+protected:
     /**
      * Generates the preconditoner.
      *

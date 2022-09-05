@@ -129,8 +129,7 @@ void Schwarz<ValueType, IndexType, GlobalIndexType>::generate(
 
         if (parameters_.inner_solver) {
             this->inner_solvers_.emplace_back(
-                parameters_.inner_solver->generate(
-                    mat->get_const_local_diag()));
+                parameters_.inner_solver->generate(mat->get_local_matrix()));
         }
         if (this->inner_solvers_.size() < 1) {
             GKO_NOT_IMPLEMENTED;

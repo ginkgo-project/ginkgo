@@ -136,7 +136,8 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     auto world_size = comm.size();
     auto color = world_rank / 4;
 
-    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank);
+    auto row_comm = gko::mpi::communicator(comm.get(), color, world_rank,
+                                           gko::ReferenceExecutor::create());
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }
