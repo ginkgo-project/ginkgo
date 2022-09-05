@@ -63,7 +63,8 @@ class Matrix;
 
 
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class repartitioner : public EnableCreateMethod<repartitioner<LocalIndexType>> {
+class repartitioner : public EnableCreateMethod<
+                          repartitioner<LocalIndexType, GlobalIndexType>> {
     friend class EnableCreateMethod<repartitioner>;
 
 public:
