@@ -9,6 +9,7 @@ set(GINKGO_DPL_ROOT "${DPL_ROOT}" PARENT_SCOPE)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(ginkgo_dpcpp
     PRIVATE
+    ${GKO_UNIFIED_COMMON_SOURCES}
     base/device_matrix_data_kernels.dp.cpp
     base/executor.dp.cpp
     base/helper.dp.cpp
@@ -20,6 +21,7 @@ target_sources(ginkgo_dpcpp
     distributed/partition_kernels.dp.cpp
     distributed/vector_kernels.dp.cpp
     factorization/cholesky_kernels.dp.cpp
+    factorization/factorization_kernels.dp.cpp
     factorization/ic_kernels.dp.cpp
     factorization/ilu_kernels.dp.cpp
     factorization/factorization_kernels.dp.cpp
@@ -33,22 +35,22 @@ target_sources(ginkgo_dpcpp
     factorization/par_ilut_select_kernel.dp.cpp
     factorization/par_ilut_spgeam_kernel.dp.cpp
     factorization/par_ilut_sweep_kernel.dp.cpp
-    matrix/batch_dense_kernels.dp.cpp
     matrix/batch_csr_kernels.dp.cpp
-    matrix/batch_diagonal_kernels.dp.cpp
     matrix/batch_dense_kernels.dp.cpp
+    matrix/batch_dense_kernels.dp.cpp
+    matrix/batch_diagonal_kernels.dp.cpp
     matrix/batch_ell_kernels.dp.cpp
     matrix/coo_kernels.dp.cpp
     matrix/csr_kernels.dp.cpp
-    matrix/fbcsr_kernels.dp.cpp
     matrix/dense_kernels.dp.cpp
     matrix/diagonal_kernels.dp.cpp
     matrix/ell_kernels.dp.cpp
+    matrix/fbcsr_kernels.dp.cpp
     matrix/fft_kernels.dp.cpp
     matrix/sellp_kernels.dp.cpp
     matrix/sparsity_csr_kernels.dp.cpp
     multigrid/pgm_kernels.dp.cpp
-    preconditioner/batch_jacobi_kernels.dp.cpp
+    preconditioner/batch_exact_ilu_kernels.dp.cpp
     preconditioner/batch_identity_kernels.dp.cpp
     preconditioner/batch_ilu_kernels.dp.cpp
     preconditioner/batch_jacobi_kernels.dp.cpp
@@ -71,9 +73,7 @@ target_sources(ginkgo_dpcpp
     solver/multigrid_kernels.dp.cpp
     solver/upper_trs_kernels.dp.cpp
     stop/criterion_kernels.dp.cpp
-    stop/residual_norm_kernels.dp.cpp
-    ${GKO_UNIFIED_COMMON_SOURCES}
-    )
+    stop/residual_norm_kernels.dp.cpp)
 
 # TODO: adjust it when dpcpp jacobi supports more block size
 set(GKO_DPCPP_JACOBI_BLOCK_SIZES 32)
