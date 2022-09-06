@@ -1,6 +1,7 @@
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
+    ${GKO_UNIFIED_COMMON_SOURCES}
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     base/version.cpp
@@ -15,8 +16,8 @@ target_sources(ginkgo_omp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
     matrix/batch_csr_kernels.cpp
-    matrix/batch_diagonal_kernels.cpp
     matrix/batch_dense_kernels.cpp
+    matrix/batch_diagonal_kernels.cpp
     matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
@@ -28,6 +29,7 @@ target_sources(ginkgo_omp
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/amgx_pgm_kernels.cpp
+    preconditioner/batch_exact_ilu_kernels.cpp
     preconditioner/batch_identity_kernels.cpp
     preconditioner/batch_ilu_kernels.cpp
     preconditioner/batch_jacobi_kernels.cpp
@@ -47,9 +49,7 @@ target_sources(ginkgo_omp
     solver/multigrid_kernels.cpp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
-    stop/residual_norm_kernels.cpp
-    ${GKO_UNIFIED_COMMON_SOURCES}
-    )
+    stop/residual_norm_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
 target_compile_definitions(ginkgo_omp PRIVATE GKO_COMPILING_OMP)
