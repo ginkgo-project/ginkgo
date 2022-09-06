@@ -40,11 +40,12 @@ target_sources(ginkgo
     matrix/hybrid.cpp
     matrix/identity.cpp
     matrix/permutation.cpp
+    matrix/row_gatherer.cpp
     matrix/sellp.cpp
     matrix/sparsity_csr.cpp
-    matrix/row_gatherer.cpp
     multigrid/amgx_pgm.cpp
     multigrid/fixed_coarsening.cpp
+    preconditioner/batch_exact_ilu.cpp
     preconditioner/batch_ilu.cpp
     preconditioner/batch_isai.cpp
     preconditioner/isai.cpp
