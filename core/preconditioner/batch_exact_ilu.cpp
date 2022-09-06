@@ -94,6 +94,9 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
         // batch csr mat object
     }
 
+    Array<IndexType> diag_locs(exec, nrows);
+    // TODO: find diag locs
+
     // Now assuming the matrix is in csr form, sorted with all diagonal entries,
     // the following algo. computes exact ILU0 factorization
 
@@ -107,7 +110,8 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
     exec->copy(nnz * nbatch, sys_csr->get_const_values(),
                mat_factored_->get_values());
 
-    exec->run(batch_exact_ilu::make_compute_factorization(mat_factored_.get()));
+    exec->run(batch_exact_ilu::make_compute_factorization(
+        diag_locs.get_const_data(), mat_factored_.get()));
 }
 
 

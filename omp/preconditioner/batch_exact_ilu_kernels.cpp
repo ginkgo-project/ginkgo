@@ -53,6 +53,7 @@ namespace batch_exact_ilu {
 template <typename ValueType, typename IndexType>
 void compute_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
+    const IndexType* const diag_locs,
     matrix::BatchCsr<ValueType, IndexType>* const mat_fact) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
