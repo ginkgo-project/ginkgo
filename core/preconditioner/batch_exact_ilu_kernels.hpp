@@ -62,6 +62,7 @@ namespace kernels {
                                                                  IndexType) \
     void compute_factorization(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                        \
+        const IndexType* const diag_locs,                                   \
         matrix::BatchCsr<ValueType, IndexType>* mat_fact)
 
 

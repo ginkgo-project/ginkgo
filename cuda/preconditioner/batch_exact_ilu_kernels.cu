@@ -37,7 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "cuda/base/exception.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/matrix/batch_struct.hpp"
 
 
@@ -51,7 +53,7 @@ namespace {
 constexpr size_type default_block_size = 256;
 
 
-//#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_exact_ilu_kernels.hpp.inc"
 //#include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
 
 
@@ -61,7 +63,23 @@ constexpr size_type default_block_size = 256;
 template <typename ValueType, typename IndexType>
 void compute_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
-    matrix::BatchCsr<ValueType, IndexType>* const mat_fact) GKO_NOT_IMPLEMENTED;
+    const IndexType* const diag_locs,
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact)
+{
+    const auto num_rows = static_cast<int>(mat_fact->get_size().at(0)[0]);
+    const auto nbatch = mat_fact->get_num_batch_entries();
+    const auto nnz =
+        static_cast<int>(mat_fact->get_num_stored_elements() / nbatch);
+
+    const int dynamic_shared_mem_bytes = 2 * num_rows * sizeof(ValueType);
+
+    generate_exact_ilu0_kernel<<<nbatch, default_block_size,
+                                 dynamic_shared_mem_bytes>>>(
+        nbatch, num_rows, nnz, diag_locs, mat_fact->get_const_row_ptrs(),
+        mat_fact->get_const_col_idxs(), as_cuda_type(mat_fact->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
