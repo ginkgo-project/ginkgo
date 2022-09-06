@@ -70,6 +70,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/preconditioner/batch_exact_ilu_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
@@ -1238,6 +1239,17 @@ GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_ILU_SPLIT_APPLY_KERNEL);
 
 
 }  // namespace batch_ilu
+
+
+namespace batch_exact_ilu {
+
+
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
+
+
+}  // namespace batch_exact_ilu
 
 
 namespace batch_identity {
