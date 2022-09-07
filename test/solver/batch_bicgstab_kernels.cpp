@@ -118,8 +118,8 @@ protected:
         std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
-            .with_max_iterations(opts.max_its)
-            .with_residual_tol(opts.residual_tol)
+            .with_default_max_iterations(opts.max_its)
+            .with_default_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
             .with_left_scaling_op(left_scale)
@@ -193,8 +193,8 @@ TEST_F(BatchBicgstab, CoreSolvesSystemJacobi)
     auto dexec = this->d_exec;
     std::unique_ptr<typename solver_type::Factory> batchbicgstab_factory =
         solver_type::build()
-            .with_max_iterations(100)
-            .with_residual_tol(1e-6f)
+            .with_default_max_iterations(100)
+            .with_default_residual_tol(1e-6f)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<value_type>::build().on(dexec))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
@@ -273,14 +273,14 @@ TEST_F(BatchBicgstab, GoodScalingImprovesConvergence)
     auto d_right = gko::share(gko::clone(d_exec, right_scale));
     auto factory =
         solver_type::build()
-            .with_max_iterations(10)
-            .with_residual_tol(10 * eps)
+            .with_default_max_iterations(10)
+            .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(d_exec);
     auto factory_s =
         solver_type::build()
-            .with_max_iterations(10)
-            .with_residual_tol(10 * eps)
+            .with_default_max_iterations(10)
+            .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_left_scaling_op(d_left)
             .with_right_scaling_op(d_right)
@@ -305,8 +305,8 @@ TEST(BatchBicgstabCsr, CanSolveWithoutScaling)
     const int maxits = 5000;
     auto batchbicgstab_factory =
         Solver::build()
-            .with_max_iterations(maxits)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(maxits)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(d_exec))
@@ -339,15 +339,15 @@ TEST(BatchBicgstabCsr, SolvesLargeSystemEquivalentToReference)
         gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
     auto r_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
             .on(refexec);
     auto d_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
             .on(d_exec);
@@ -380,15 +380,15 @@ TEST(BatchBicgstabDense, SolvesLargeSystemEquivalentToReference)
         gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
     auto r_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
             .on(refexec);
     auto d_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
             .on(d_exec);
@@ -421,15 +421,15 @@ TEST(BatchBicgstabEll, SolvesLargeSystemEquivalentToReference)
         gko::preconditioner::BatchJacobi<value_type>::build().on(d_exec));
     auto r_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(r_jac_factory)
             .on(refexec);
     auto d_factory =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(solver_restol)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(solver_restol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(d_jac_factory)
             .on(d_exec);
