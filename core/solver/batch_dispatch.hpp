@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_identity.hpp>
+#include <ginkgo/core/preconditioner/batch_exact_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
@@ -101,6 +102,7 @@ using DeviceValueType = ValueType;
 
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
+#include "reference/preconditioner/batch_exact_ilu.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
@@ -235,6 +237,18 @@ public:
             //  like cuda/preconditioner/batch_preconditioners.cuh, and add a
             //  dispatch.
             GKO_NOT_IMPLEMENTED;
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchExactIlu<value_type>*>(
+                       precon_)) {
+            const auto factorized_mat =
+                device::get_batch_struct(prec->get_const_factorized_matrix());
+            const auto diag_locs = prec->get_const_diag_locations();
+
+            dispatch_on_stop(logger, amat,
+                             device::batch_exact_ilu<device_value_type>(
+                                 factorized_mat, diag_locs),
+                             b_b, x_b);
+
         } else {
             GKO_NOT_IMPLEMENTED;
         }
