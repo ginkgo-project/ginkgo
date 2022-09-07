@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
-//#include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 #include "core/preconditioner/batch_exact_ilu_kernels.hpp"
 
 
@@ -46,9 +46,8 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(check_diag_entries_exist,
-                       batch_csr::check_diagonal_entries_exist);
-// GKO_REGISTER_OPERATION(find_diag_entries_locs,
-// csr::find_diagonal_entries_locations);
+                       csr::check_diagonal_entries_exist);
+GKO_REGISTER_OPERATION(find_diag_locs, csr::find_diagonal_entries_locations);
 GKO_REGISTER_OPERATION(compute_factorization,
                        batch_exact_ilu::compute_factorization);
 
@@ -82,21 +81,10 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
         mat_factored_->sort_by_column_index();
     }
 
-    bool all_diags{false};
-    exec->run(batch_exact_ilu::make_check_diag_entries_exist(
-        mat_factored_.get(), all_diags));
-    if (!all_diags) {
-        // TODO: Add exception and macro for this.
-        throw std::runtime_error("Matrix does not have all diagonal entries!");
-        // TODO: Add a diagonal addition kernel for this.
-    }
-
-    // TODO: find diag locs of csr matrix
 
     const auto num_batch = mat_factored_->get_num_batch_entries();
     const auto num_rows = mat_factored_->get_size().at(0)[0];
     const auto num_nz = mat_factored_->get_num_stored_elements() / num_batch;
-    array<IndexType> diag_locs(exec, num_rows);
 
     // extract the first matrix, as a view, into a regular Csr matrix.
     const auto unbatch_size =
@@ -111,12 +99,22 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
         exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
         std::move(sys_rows_view));
 
-    // call find diagonal entries locations kernel
-    // TODO: add this kernel to csr matrix kernels
 
+    bool all_diags{false};
+    exec->run(batch_exact_ilu::make_check_diag_entries_exist(first_csr.get(),
+                                                             all_diags));
+    if (!all_diags) {
+        // TODO: Add exception and macro for this.
+        throw std::runtime_error("Matrix does not have all diagonal entries!");
+        // TODO: Add a diagonal addition kernel for this.
+    }
 
-    // Now assuming the matrix is in csr form, sorted with all diagonal entries,
-    // the following algo. computes exact ILU0 factorization
+    array<IndexType> diag_locs(exec, num_rows);
+    exec->run(batch_exact_ilu::make_find_diag_locs(first_csr.get(),
+                                                   diag_locs.get_data()));
+
+    // Now given that the matrix is in csr form, sorted with all diagonal
+    // entries, the following algo. computes exact ILU0 factorization
     exec->run(batch_exact_ilu::make_compute_factorization(
         diag_locs.get_const_data(), mat_factored_.get()));
 }
