@@ -44,6 +44,7 @@ namespace kernels {
 namespace hip {
 
 
+#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
