@@ -205,14 +205,14 @@ public:
         /**
          * Maximum number iterations allowed.
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
+        int GKO_FACTORY_PARAMETER_SCALAR(default_max_iterations, 100);
 
         /**
          * Residual tolerance.
          *
          * @sa tolerance_type
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-8);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(default_residual_tol, 1e-8);
 
         /**
          * Subspace Dimension

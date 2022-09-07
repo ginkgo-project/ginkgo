@@ -114,15 +114,21 @@ public:
             right_scaling_op, nullptr);
 
         /**
-         * Maximum number iterations allowed.
+         * Default maximum number iterations allowed.
+         *
+         * Generated solvers are initialized with this value for their maximum
+         * iterations.
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(max_iterations, 100);
+        int GKO_FACTORY_PARAMETER_SCALAR(default_max_iterations, 100);
 
 
         /**
-         * Residual tolerance.
+         * Default residual tolerance.
+         *
+         * Generated solvers are initialized with this value for their residual
+         * tolerance.
          */
-        real_type GKO_FACTORY_PARAMETER_SCALAR(residual_tol, 1e-11);
+        real_type GKO_FACTORY_PARAMETER_SCALAR(default_residual_tol, 1e-11);
 
 
         /**
