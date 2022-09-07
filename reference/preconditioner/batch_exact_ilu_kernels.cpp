@@ -51,14 +51,24 @@ namespace reference {
 namespace batch_exact_ilu {
 
 
-//#include "reference/preconditioner/batch_exact_ilu_kernels.hpp.inc"
+#include "reference/preconditioner/batch_exact_ilu_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
 void compute_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* const diag_locs,
-    matrix::BatchCsr<ValueType, IndexType>* const mat_fact) GKO_NOT_IMPLEMENTED;
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact)
+{
+    const auto mat_factorized_batch = host::get_batch_struct(mat_fact);
+    for (size_type batch_id = 0; batch_id < mat_fact->get_num_batch_entries();
+         ++batch_id) {
+        const auto mat_factorized_entry =
+            gko::batch::batch_entry(mat_factorized_batch, batch_id);
+
+        batch_entry_factorize_impl(diag_locs, mat_factorized_entry);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
