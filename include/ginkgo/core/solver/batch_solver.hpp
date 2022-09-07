@@ -94,8 +94,19 @@ public:
      */
     void set_residual_tolerance(double res_tol) { residual_tol_ = res_tol; }
 
+    /**
+     * Get the maximum number of iterations set on the solver.
+     *
+     * @return  Maximum number of iterations.
+     */
     int get_max_iterations() const { return max_iterations_; }
 
+    /**
+     * Set the maximum number of iterations for the solver to use,
+     * independent of the factory that created it.
+     *
+     * @param max_iterations  The maximum number of iterations for the solver.
+     */
     void set_max_iterations(int max_iterations)
     {
         max_iterations_ = max_iterations;
