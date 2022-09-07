@@ -109,14 +109,14 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
         // TODO: Add a diagonal addition kernel for this.
     }
 
-    array<IndexType> diag_locs(exec, num_rows);
+    diag_locations_ = array<IndexType>(exec, num_rows);
     exec->run(batch_exact_ilu::make_find_diag_locs(first_csr.get(),
-                                                   diag_locs.get_data()));
+                                                   diag_locations_.get_data()));
 
     // Now given that the matrix is in csr form, sorted with all diagonal
     // entries, the following algo. computes exact ILU0 factorization
     exec->run(batch_exact_ilu::make_compute_factorization(
-        diag_locs.get_const_data(), mat_factored_.get()));
+        diag_locations_.get_const_data(), mat_factored_.get()));
 }
 
 
