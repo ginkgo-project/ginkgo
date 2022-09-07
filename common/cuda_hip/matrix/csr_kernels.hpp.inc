@@ -1130,3 +1130,33 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
     components::convert_idxs_to_ptrs(exec, out_row_idxs.get_data(), nnz,
                                      out_num_rows, out_row_ptrs);
 }
+namespace kernel {
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void find_diagonal_locations(
+    const IndexType num_min_rows_cols,
+    const IndexType* const __restrict__ row_ptrs,
+    const IndexType* const __restrict__ col_idxs,
+    IndexType* const __restrict__ diag_locs)
+{
+    constexpr int warp_size = config::warp_size;
+    auto tile_grp =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto row = thread::get_subwarp_id_flat<warp_size, IndexType>();
+
+    if (row < num_min_rows_cols) {
+        const auto tid_in_warp = tile_grp.thread_rank();
+        const IndexType row_start = row_ptrs[row];
+        const IndexType num_nz = row_ptrs[row + 1] - row_start;
+
+        for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
+            if (col_idxs[iz + row_start] == row) {
+                diag_locs[row] = iz + row_start;
+                break;
+            }
+        }
+    }
+}
+
+}  // namespace kernel

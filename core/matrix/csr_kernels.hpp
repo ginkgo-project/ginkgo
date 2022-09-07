@@ -240,6 +240,11 @@ namespace kernels {
                       int32* storage)
 
 
+#define GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS(ValueType, IndexType) \
+    void find_diagonal_entries_locations(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const matrix::Csr<ValueType, IndexType>* mtx, IndexType* diag_locs)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                     \
@@ -302,7 +307,9 @@ namespace kernels {
     template <typename IndexType>                                          \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                \
     template <typename IndexType>                                          \
-    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType)
+    GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL(IndexType);                        \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(csr, GKO_DECLARE_ALL_AS_TEMPLATES);
