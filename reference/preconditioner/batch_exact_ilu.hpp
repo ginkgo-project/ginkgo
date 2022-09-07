@@ -104,9 +104,44 @@ public:
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
-        // TODO: Implement special trsv for combined form (this uses the work
-        // array)
-        GKO_NOT_IMPLEMENTED;
+    {
+        // special trsv for the combined form
+        /*
+            z = prec * r
+            L * U * z = r
+            L * y = r (find y by lower trsv), then U * z = y (find z by upper
+           trsv)
+        */
+        const auto nrows = mat_factorized_entry_.num_rows;
+        const auto row_ptrs = mat_factorized_entry_.row_ptrs;
+        const auto col_idxs = mat_factorized_entry_.col_idxs;
+        const auto values = mat_factorized_entry_.values;
+
+        // Lower Trsv  L * work = r
+        for (int row_idx = 0; row_idx < nrows; row_idx++) {
+            ValueType sum = zero<ValueType>();
+            for (int i = row_ptrs[row_idx]; i < csr_diag_locs_[row_idx]; i++) {
+                const int col_idx = col_idxs[i];
+                sum += values[i] * work_[col_idx];
+            }
+
+            work_[row_idx] = (r.values[row_idx] - sum) / one<ValueType>();
+        }
+
+        // Upper Trsv U * z = work
+        for (int row_idx = nrows - 1; row_idx >= 0; row_idx--) {
+            ValueType sum = zero<ValueType>();
+
+            for (int i = row_ptrs[row_idx + 1] - 1; i > csr_diag_locs_[row_idx];
+                 i--) {
+                const int col_idx = col_idxs[i];
+                sum += values[i] * z.values[col_idx];
+            }
+
+            ValueType diag_ele = values[csr_diag_locs_[row_idx]];
+            z.values[row_idx] = (work_[row_idx] - sum) / diag_ele;
+        }
+    }
 
 private:
     gko::batch_csr::UniformBatch<const value_type> mat_factorized_batch_;
