@@ -97,6 +97,11 @@ public:
         return mat_factored_.get();
     }
 
+    const IndexType* get_const_diag_locations() const
+    {
+        return diag_locations_.get_const_data();
+    }
+
 protected:
     /**
      * Creates an empty Ilu preconditioner.
@@ -139,6 +144,7 @@ protected:
 
 private:
     std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> mat_factored_;
+    array<IndexType> diag_locations_;
 };
 
 
