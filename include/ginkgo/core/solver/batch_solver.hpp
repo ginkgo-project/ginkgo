@@ -39,39 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace solver {
-namespace detail {
 
 
-struct common_batch_params {
-    std::shared_ptr<const BatchLinOpFactory> prec_factory;
-    std::shared_ptr<const BatchLinOp> generated_prec;
-    std::shared_ptr<const BatchLinOp> left_scaling_op;
-    std::shared_ptr<const BatchLinOp> right_scaling_op;
-    double residual_tolerance;
-};
-
-
-template <typename ParamsType>
-common_batch_params extract_common_batch_params(ParamsType& params)
-{
-    return {params.preconditioner, params.generated_preconditioner,
-            params.left_scaling_op, params.right_scaling_op,
-            params.residual_tol};
-}
-
-
-}  // namespace detail
-
-
-struct BatchInfo;
-
-
-/**
- * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
- */
-template <typename ConcreteSolver, typename PolymorphicBase = BatchLinOp>
-class EnableBatchSolver
-    : public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
+class BatchSolver {
 public:
     /**
      * Returns the system operator (matrix) of the linear system.
@@ -124,6 +94,73 @@ public:
      */
     void set_residual_tolerance(double res_tol) { residual_tol_ = res_tol; }
 
+    int get_max_iterations() const { return max_iterations_; }
+
+    void set_max_iterations(int max_iterations)
+    {
+        max_iterations_ = max_iterations;
+    }
+
+protected:
+    BatchSolver() {}
+
+    BatchSolver(std::shared_ptr<const BatchLinOp> system_matrix,
+                std::shared_ptr<const BatchLinOp> gen_preconditioner,
+                std::shared_ptr<const BatchLinOp> left_scaling,
+                std::shared_ptr<const BatchLinOp> right_scaling,
+                const double res_tol, const int max_iterations)
+        : system_matrix_{std::move(system_matrix)},
+          preconditioner_{std::move(gen_preconditioner)},
+          left_scaling_{std::move(left_scaling)},
+          right_scaling_{std::move(right_scaling)},
+          residual_tol_{res_tol},
+          max_iterations_{max_iterations}
+    {}
+
+    std::shared_ptr<const BatchLinOp> system_matrix_{};
+    std::shared_ptr<const BatchLinOp> preconditioner_{};
+    std::shared_ptr<const BatchLinOp> left_scaling_{};
+    std::shared_ptr<const BatchLinOp> right_scaling_{};
+    double residual_tol_{};
+    int max_iterations_{};
+};
+
+
+namespace detail {
+
+
+struct common_batch_params {
+    std::shared_ptr<const BatchLinOpFactory> prec_factory;
+    std::shared_ptr<const BatchLinOp> generated_prec;
+    std::shared_ptr<const BatchLinOp> left_scaling_op;
+    std::shared_ptr<const BatchLinOp> right_scaling_op;
+    double residual_tolerance;
+    int max_iterations;
+};
+
+
+template <typename ParamsType>
+common_batch_params extract_common_batch_params(ParamsType& params)
+{
+    return {params.preconditioner,       params.generated_preconditioner,
+            params.left_scaling_op,      params.right_scaling_op,
+            params.default_residual_tol, params.default_max_iterations};
+}
+
+
+}  // namespace detail
+
+
+struct BatchInfo;
+
+
+/**
+ * @tparam PolymorphicBase  The base class; must be a subclass of BatchLinOp.
+ */
+template <typename ConcreteSolver, typename PolymorphicBase = BatchLinOp>
+class EnableBatchSolver
+    : public BatchSolver,
+      public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
 protected:
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
         : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
@@ -137,12 +174,6 @@ protected:
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override;
-
-    std::shared_ptr<const BatchLinOp> system_matrix_{};
-    std::shared_ptr<const BatchLinOp> preconditioner_{};
-    std::shared_ptr<const BatchLinOp> left_scaling_{};
-    std::shared_ptr<const BatchLinOp> right_scaling_{};
-    double residual_tol_;
 
 private:
     /**

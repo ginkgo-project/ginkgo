@@ -58,12 +58,12 @@ EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const BatchLinOp> system_matrix,
     detail::common_batch_params common_params)
-    : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
-        exec, gko::transpose(system_matrix->get_size())),
-      system_matrix_{std::move(system_matrix)},
-      left_scaling_{common_params.left_scaling_op},
-      right_scaling_{common_params.right_scaling_op},
-      residual_tol_{common_params.residual_tolerance}
+    : BatchSolver(system_matrix, nullptr,
+                  common_params.left_scaling_op, common_params.right_scaling_op,
+                  common_params.residual_tolerance,
+                  common_params.max_iterations),
+      EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
+          exec, gko::transpose(system_matrix->get_size()))
 {
     GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix_);
 
