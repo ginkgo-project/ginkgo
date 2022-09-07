@@ -52,7 +52,6 @@ constexpr size_type default_block_size = 256;
 
 
 //#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
-//#include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
 
 
 }  // namespace
