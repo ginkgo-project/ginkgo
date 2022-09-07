@@ -1358,6 +1358,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void find_diagonal_entries_locations(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx, IndexType* diag_locs)
+{
+    const size_type num_warps = mtx->get_size()[0];
+    if (num_warps == 0) {
+        return;
+    }
+
+    const size_type num_blocks =
+        ceildiv(num_warps, ceildiv(default_block_size, config::warp_size));
+
+    kernel::find_diagonal_locations<<<num_blocks, default_block_size>>>(
+        static_cast<IndexType>(
+            std::min(mtx->get_size()[0], mtx->get_size()[1])),
+        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), diag_locs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS);
+
+
 }  // namespace csr
 }  // namespace cuda
 }  // namespace kernels
