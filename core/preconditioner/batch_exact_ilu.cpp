@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
+//#include "core/matrix/csr_kernels.hpp"
 #include "core/preconditioner/batch_exact_ilu_kernels.hpp"
 
 
@@ -46,8 +47,11 @@ namespace {
 
 GKO_REGISTER_OPERATION(check_diag_entries_exist,
                        batch_csr::check_diagonal_entries_exist);
+// GKO_REGISTER_OPERATION(find_diag_entries_locs,
+// csr::find_diagonal_entries_locations);
 GKO_REGISTER_OPERATION(compute_factorization,
                        batch_exact_ilu::compute_factorization);
+
 
 }  // namespace
 }  // namespace batch_exact_ilu
@@ -63,53 +67,56 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
         GKO_NOT_IMPLEMENTED;
     }
     auto exec = this->get_executor();
-    const matrix_type* sys_csr{};
-    auto a_matrix = matrix_type::create(exec);
+
     if (auto temp_csr = dynamic_cast<const matrix_type*>(system_matrix)) {
-        sys_csr = temp_csr;
+        mat_factored_ = gko::share(gko::clone(exec, temp_csr));
     } else {
+        mat_factored_ = gko::share(matrix_type::create(exec));
         as<ConvertibleTo<matrix_type>>(system_matrix)
-            ->convert_to(a_matrix.get());
-        sys_csr = a_matrix.get();
+            ->convert_to(mat_factored_.get());
+    }
+
+    // TODO: If it is easy to check diag locations given that the matrix is
+    // sorted, sort it first and then check for diag locations
+    if (parameters_.skip_sorting != true) {
+        mat_factored_->sort_by_column_index();
     }
 
     bool all_diags{false};
-    exec->run(
-        batch_exact_ilu::make_check_diag_entries_exist(sys_csr, all_diags));
+    exec->run(batch_exact_ilu::make_check_diag_entries_exist(
+        mat_factored_.get(), all_diags));
     if (!all_diags) {
         // TODO: Add exception and macro for this.
         throw std::runtime_error("Matrix does not have all diagonal entries!");
         // TODO: Add a diagonal addition kernel for this.
     }
 
-    const auto nbatch = sys_csr->get_num_batch_entries();
-    const auto nrows = sys_csr->get_size().at(0)[0];
-    const auto ncols = sys_csr->get_size().at(0)[1];
-    const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+    // TODO: find diag locs of csr matrix
 
-    // TODO: If it is easy to check diag locations given that the matrix is
-    // sorted, sort it first and then check for diag locations
-    if (parameters_.skip_sorting != true) {
-        // use sort_by_column_index() of batch csr class but on a non-const
-        // batch csr mat object
-    }
+    const auto num_batch = mat_factored_->get_num_batch_entries();
+    const auto num_rows = mat_factored_->get_size().at(0)[0];
+    const auto num_nz = mat_factored_->get_num_stored_elements() / num_batch;
+    array<IndexType> diag_locs(exec, num_rows);
 
-    Array<IndexType> diag_locs(exec, nrows);
-    // TODO: find diag locs
+    // extract the first matrix, as a view, into a regular Csr matrix.
+    const auto unbatch_size =
+        gko::dim<2>{num_rows, mat_factored_->get_size().at(0)[1]};
+    auto sys_rows_view = array<IndexType>::const_view(
+        exec, num_rows + 1, mat_factored_->get_const_row_ptrs());
+    auto sys_cols_view = array<IndexType>::const_view(
+        exec, num_nz, mat_factored_->get_const_col_idxs());
+    auto sys_vals_view = array<ValueType>::const_view(
+        exec, num_nz, mat_factored_->get_const_values());
+    auto first_csr = unbatch_type::create_const(
+        exec, unbatch_size, std::move(sys_vals_view), std::move(sys_cols_view),
+        std::move(sys_rows_view));
+
+    // call find diagonal entries locations kernel
+    // TODO: add this kernel to csr matrix kernels
+
 
     // Now assuming the matrix is in csr form, sorted with all diagonal entries,
     // the following algo. computes exact ILU0 factorization
-
-    // Using gko::clone()???
-    mat_factored_ = gko::share(
-        matrix_type::create(exec, nbatch, dim<2>(nrows, ncols), nnz));
-    exec->copy(nnz, sys_csr->get_const_col_idxs(),
-               mat_factored_->get_col_idxs());
-    exec->copy(nrows + 1, sys_csr->get_const_row_ptrs(),
-               mat_factored_->get_row_ptrs());
-    exec->copy(nnz * nbatch, sys_csr->get_const_values(),
-               mat_factored_->get_values());
-
     exec->run(batch_exact_ilu::make_compute_factorization(
         diag_locs.get_const_data(), mat_factored_.get()));
 }
