@@ -295,8 +295,8 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     if (description == "richardson") {
         using Solver = gko::solver::BatchRichardson<etype>;
         return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
+            .with_default_max_iterations(static_cast<int>(FLAGS_max_iters))
+            .with_default_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_fact)
             .with_relaxation_factor(static_cast<gko::remove_complex<etype>>(
@@ -308,8 +308,8 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     } else if (description == "bicgstab") {
         using Solver = gko::solver::BatchBicgstab<etype>;
         return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
+            .with_default_max_iterations(static_cast<int>(FLAGS_max_iters))
+            .with_default_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_fact)
             .with_tolerance_type(toltype)
@@ -319,8 +319,8 @@ std::unique_ptr<gko::BatchLinOpFactory> generate_solver(
     } else if (description == "gmres") {
         using Solver = gko::solver::BatchGmres<etype>;
         return Solver::build()
-            .with_max_iterations(static_cast<int>(FLAGS_max_iters))
-            .with_residual_tol(
+            .with_default_max_iterations(static_cast<int>(FLAGS_max_iters))
+            .with_default_residual_tol(
                 static_cast<gko::remove_complex<etype>>(FLAGS_rel_res_goal))
             .with_preconditioner(prec_fact)
             .with_tolerance_type(toltype)

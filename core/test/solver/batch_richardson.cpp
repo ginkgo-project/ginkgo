@@ -81,12 +81,13 @@ protected:
 
     std::unique_ptr<Solver> generate_solver()
     {
-        auto batchrich_factory = Solver::build()
-                                     .with_max_iterations(this->def_max_iters)
-                                     .with_residual_tol(this->def_rel_res_tol)
-                                     .with_preconditioner(prec_factory)
-                                     .with_relaxation_factor(this->def_relax)
-                                     .on(this->exec);
+        auto batchrich_factory =
+            Solver::build()
+                .with_default_max_iterations(this->def_max_iters)
+                .with_default_residual_tol(this->def_rel_res_tol)
+                .with_preconditioner(prec_factory)
+                .with_relaxation_factor(this->def_relax)
+                .on(this->exec);
         auto solver = batchrich_factory->generate(this->mtx);
         return std::unique_ptr<Solver>(static_cast<Solver*>(solver.release()));
     }
@@ -101,10 +102,10 @@ protected:
     // Checks equality of the matrix and parameters with defaults
     void assert_solver_params(const Solver* const a)
     {
-        ASSERT_EQ(a->get_parameters().max_iterations, def_max_iters);
+        ASSERT_EQ(a->get_parameters().default_max_iterations, def_max_iters);
         ASSERT_EQ(a->get_parameters().preconditioner, prec_factory);
         ASSERT_EQ(a->get_parameters().relaxation_factor, def_relax);
-        ASSERT_EQ(a->get_parameters().residual_tol, def_rel_res_tol);
+        ASSERT_EQ(a->get_parameters().default_residual_tol, def_rel_res_tol);
         ASSERT_EQ(a->get_parameters().tolerance_type, def_tol_type);
     }
 
@@ -213,18 +214,19 @@ TYPED_TEST(BatchRich, CanSetCriteriaInFactory)
     using Solver = typename TestFixture::Solver;
     using RT = typename TestFixture::real_type;
 
-    auto batchrich_factory = Solver::build()
-                                 .with_max_iterations(22)
-                                 .with_residual_tol(static_cast<RT>(0.25))
-                                 .with_relaxation_factor(static_cast<RT>(0.28))
-                                 .on(this->exec);
+    auto batchrich_factory =
+        Solver::build()
+            .with_default_max_iterations(22)
+            .with_default_residual_tol(static_cast<RT>(0.25))
+            .with_relaxation_factor(static_cast<RT>(0.28))
+            .on(this->exec);
     auto solver = batchrich_factory->generate(this->mtx);
 
-    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
     ASSERT_EQ(solver->get_parameters().relaxation_factor,
               static_cast<RT>(0.28));
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
+    ASSERT_NEAR(solver->get_parameters().default_residual_tol, 0.25, tol);
 }
 
 
@@ -234,15 +236,15 @@ TYPED_TEST(BatchRich, CanSetResidualTol)
     using RT = typename TestFixture::real_type;
     auto factory =
         Solver::build()
-            .with_max_iterations(22)
-            .with_residual_tol(static_cast<RT>(0.25))
+            .with_default_max_iterations(22)
+            .with_default_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(this->exec);
     auto solver = factory->generate(this->mtx);
 
     solver->set_residual_tolerance(0.5);
 
-    ASSERT_EQ(solver->get_parameters().residual_tol, 0.25);
+    ASSERT_EQ(solver->get_parameters().default_residual_tol, 0.25);
     ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
 }
 
@@ -304,15 +306,15 @@ TYPED_TEST(BatchRich, CanSetScalingOps)
 //     using Solver = typename TestFixture::Solver;
 
 //     auto batchrich_factory =
-//         Solver::build().with_max_iterations(3).with_residual_tol(0.25f)
+//         Solver::build().with_default_max_iterations(3).with_default_residual_tol(0.25f)
 // 		.with_relaxation_factor(2.0f).with_preconditioner(gpb::none).on(this->exec);
 //     auto solver = batchrich_factory->generate(this->mtx);
 // 	auto solver_trans = gko::as<Solver>(solver->transpose());
 // 	auto params = solver_trans->get_parameters();
 
 // 	ASSERT_EQ(params.preconditioner, gpb::none);
-// 	ASSERT_EQ(params.max_iterations, 3);
-// 	ASSERT_EQ(params.residual_tol, 0.25);
+// 	ASSERT_EQ(params.default_max_iterations, 3);
+// 	ASSERT_EQ(params.default_residual_tol, 0.25);
 // 	ASSERT_EQ(params.relaxation_factor, 2.0);
 // }
 

@@ -165,8 +165,8 @@ int main(int argc, char* argv[])
     // Create a batched solver factory with relevant parameters.
     auto solver_gen =
         solver_type::build()
-            .with_max_iterations(500)
-            .with_residual_tol(reduction_factor)
+            .with_default_max_iterations(500)
+            .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             // .with_preconditioner(gko::preconditioner::batch::type::jacobi)
             .on(exec);

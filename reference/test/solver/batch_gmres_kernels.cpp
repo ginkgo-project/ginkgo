@@ -98,8 +98,8 @@ protected:
         std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
-            .with_max_iterations(opts.max_its)
-            .with_residual_tol(opts.residual_tol)
+            .with_default_max_iterations(opts.max_its)
+            .with_default_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
             .with_restart(opts.restart_num)
@@ -212,14 +212,14 @@ TEST(BatchGmres, GoodScalingImprovesConvergence)
     auto factory =
         Solver::build()
             .with_restart(15)
-            .with_max_iterations(30)
-            .with_residual_tol(10 * eps)
+            .with_default_max_iterations(30)
+            .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(exec);
     auto factory_s =
         Solver::build()
-            .with_max_iterations(10)
-            .with_residual_tol(10 * eps)
+            .with_default_max_iterations(10)
+            .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_left_scaling_op(left_scale)
             .with_right_scaling_op(right_scale)
@@ -248,8 +248,8 @@ TEST(BatchGmres, CanSolveDenseWithScaling)
         gko::batch_initialize<BDiag>(nbatch, {1.0, 1.5, 1.05}, exec));
     auto factory_s =
         Solver::build()
-            .with_max_iterations(10)
-            .with_residual_tol(10 * eps)
+            .with_default_max_iterations(10)
+            .with_default_residual_tol(10 * eps)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_left_scaling_op(left_scale)
             .with_right_scaling_op(right_scale)
@@ -298,8 +298,8 @@ TEST(BatchGmres, CanSolveWithoutScaling)
     }
     auto factory =
         Solver::build()
-            .with_max_iterations(1000)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(1000)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(exec))
@@ -307,8 +307,8 @@ TEST(BatchGmres, CanSolveWithoutScaling)
             .on(exec);
     auto factory_s =
         Solver::build()
-            .with_max_iterations(1000)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(1000)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(exec))

@@ -102,8 +102,8 @@ protected:
         std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
-            .with_max_iterations(opts.max_its)
-            .with_residual_tol(opts.residual_tol)
+            .with_default_max_iterations(opts.max_its)
+            .with_default_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
             .with_left_scaling_op(left_scale)
@@ -261,8 +261,8 @@ TEST(BatchRich, CoreCanSolveWithoutScaling)
     const int maxits = 10000;
     auto batchrich_factory =
         Solver::build()
-            .with_max_iterations(maxits)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(maxits)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_relaxation_factor(RT{0.98})
             .with_preconditioner(
@@ -288,8 +288,8 @@ TEST(BatchRich, CoreCanSolveWithScaling)
         gko::ReferenceExecutor::create();
     auto batchrich_factory =
         Solver::build()
-            .with_max_iterations(maxits)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(maxits)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(exec))

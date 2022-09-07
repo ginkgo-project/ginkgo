@@ -103,8 +103,8 @@ protected:
         std::shared_ptr<const BDiag> right_scale = nullptr)
     {
         return solver_type::build()
-            .with_max_iterations(opts.max_its)
-            .with_residual_tol(opts.residual_tol)
+            .with_default_max_iterations(opts.max_its)
+            .with_default_residual_tol(opts.residual_tol)
             .with_tolerance_type(opts.tol_type)
             .with_preconditioner(prec_factory)
             .with_subspace_dim(opts.subspace_dim_val)
@@ -210,8 +210,8 @@ TEST(BatchIdr, CanSolveWithoutScaling)
         gko::ReferenceExecutor::create();
     auto batchidr_factory =
         Solver::build()
-            .with_max_iterations(maxits)
-            .with_residual_tol(tol)
+            .with_default_max_iterations(maxits)
+            .with_default_residual_tol(tol)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .with_preconditioner(
                 gko::preconditioner::BatchJacobi<T>::build().on(exec))
