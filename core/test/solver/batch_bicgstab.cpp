@@ -65,8 +65,8 @@ protected:
                   this->exec),
               nrows, nbatch)),
           batchbicgstab_factory(Solver::build()
-                                    .with_max_iterations(def_max_iters)
-                                    .with_residual_tol(def_abs_res_tol)
+                                    .with_default_max_iterations(def_max_iters)
+                                    .with_default_residual_tol(def_abs_res_tol)
                                     .with_tolerance_type(def_tol_type)
                                     .on(exec)),
           solver(batchbicgstab_factory->generate(mtx))
@@ -186,15 +186,15 @@ TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
 
     auto batchbicgstab_factory =
         Solver::build()
-            .with_max_iterations(22)
-            .with_residual_tol(static_cast<RT>(0.25))
+            .with_default_max_iterations(22)
+            .with_default_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
 
-    ASSERT_EQ(solver->get_parameters().max_iterations, 22);
+    ASSERT_EQ(solver->get_parameters().default_max_iterations, 22);
     const RT tol = std::numeric_limits<RT>::epsilon();
-    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, tol);
+    ASSERT_NEAR(solver->get_parameters().default_residual_tol, 0.25, tol);
     ASSERT_EQ(solver->get_parameters().tolerance_type,
               gko::stop::batch::ToleranceType::relative);
 }
@@ -206,16 +206,35 @@ TYPED_TEST(BatchBicgstab, CanSetResidualTol)
     using RT = typename TestFixture::real_type;
     auto batchbicgstab_factory =
         Solver::build()
-            .with_max_iterations(22)
-            .with_residual_tol(static_cast<RT>(0.25))
+            .with_default_max_iterations(22)
+            .with_default_residual_tol(static_cast<RT>(0.25))
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
             .on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
 
     solver->set_residual_tolerance(0.5);
 
-    ASSERT_NEAR(solver->get_parameters().residual_tol, 0.25, 0.0);
+    ASSERT_NEAR(solver->get_parameters().default_residual_tol, 0.25, 0.0);
     ASSERT_EQ(solver->get_residual_tolerance(), 0.5);
+}
+
+
+TYPED_TEST(BatchBicgstab, CanSetMaxIterations)
+{
+    using Solver = typename TestFixture::Solver;
+    using RT = typename TestFixture::real_type;
+    auto batchbicgstab_factory =
+        Solver::build()
+            .with_default_max_iterations(22)
+            .with_default_residual_tol(static_cast<RT>(0.25))
+            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .on(this->exec);
+    auto solver = batchbicgstab_factory->generate(this->mtx);
+
+    solver->set_max_iterations(10);
+
+    ASSERT_NEAR(solver->get_parameters().default_max_iterations, 22, 0.0);
+    ASSERT_EQ(solver->get_max_iterations(), 10);
 }
 
 
@@ -227,7 +246,7 @@ TYPED_TEST(BatchBicgstab, CanSetPreconditionerFactory)
         gko::preconditioner::BatchJacobi<value_type>::build().on(this->exec));
 
     auto batchbicgstab_factory = Solver::build()
-                                     .with_max_iterations(3)
+                                     .with_default_max_iterations(3)
                                      .with_preconditioner(prec_factory)
                                      .on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
