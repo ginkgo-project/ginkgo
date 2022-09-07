@@ -56,45 +56,57 @@ GKO_REGISTER_OPERATION(apply, batch_gmres::apply);
 template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::transpose() const
 {
-    return build()
-        .with_preconditioner(parameters_.preconditioner)
-        .with_generated_preconditioner(share(
-            as<BatchTransposable>(this->get_preconditioner())->transpose()))
-        .with_left_scaling_op(share(
-            as<BatchTransposable>(this->get_left_scaling_op())->transpose()))
-        .with_right_scaling_op(share(
-            as<BatchTransposable>(this->get_right_scaling_op())->transpose()))
-        .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
-        .with_restart(parameters_.restart)
-        .with_tolerance_type(parameters_.tolerance_type)
-        .on(this->get_executor())
-        ->generate(share(
-            as<BatchTransposable>(this->get_system_matrix())->transpose()));
+    auto tsolver =
+        build()
+            .with_preconditioner(parameters_.preconditioner)
+            .with_generated_preconditioner(share(
+                as<BatchTransposable>(this->get_preconditioner())->transpose()))
+            .with_left_scaling_op(
+                share(as<BatchTransposable>(this->get_left_scaling_op())
+                          ->transpose()))
+            .with_right_scaling_op(
+                share(as<BatchTransposable>(this->get_right_scaling_op())
+                          ->transpose()))
+            .with_default_max_iterations(parameters_.default_max_iterations)
+            .with_default_residual_tol(
+                static_cast<real_type>(parameters_.default_residual_tol))
+            .with_restart(parameters_.restart)
+            .with_tolerance_type(parameters_.tolerance_type)
+            .on(this->get_executor())
+            ->generate(share(
+                as<BatchTransposable>(this->get_system_matrix())->transpose()));
+    tsolver->set_residual_tolerance(this->residual_tol_);
+    tsolver->set_max_iterations(this->max_iterations_);
+    return tsolver;
 }
 
 
 template <typename ValueType>
 std::unique_ptr<BatchLinOp> BatchGmres<ValueType>::conj_transpose() const
 {
-    return build()
-        .with_preconditioner(parameters_.preconditioner)
-        .with_generated_preconditioner(
-            share(as<BatchTransposable>(this->get_preconditioner())
-                      ->conj_transpose()))
-        .with_left_scaling_op(
-            share(as<BatchTransposable>(this->get_left_scaling_op())
-                      ->conj_transpose()))
-        .with_right_scaling_op(
-            share(as<BatchTransposable>(this->get_right_scaling_op())
-                      ->conj_transpose()))
-        .with_max_iterations(parameters_.max_iterations)
-        .with_residual_tol(static_cast<real_type>(this->residual_tol_))
-        .with_restart(parameters_.restart)
-        .with_tolerance_type(parameters_.tolerance_type)
-        .on(this->get_executor())
-        ->generate(share(as<BatchTransposable>(this->get_system_matrix())
-                             ->conj_transpose()));
+    auto ctsolver =
+        build()
+            .with_preconditioner(parameters_.preconditioner)
+            .with_generated_preconditioner(
+                share(as<BatchTransposable>(this->get_preconditioner())
+                          ->conj_transpose()))
+            .with_left_scaling_op(
+                share(as<BatchTransposable>(this->get_left_scaling_op())
+                          ->conj_transpose()))
+            .with_right_scaling_op(
+                share(as<BatchTransposable>(this->get_right_scaling_op())
+                          ->conj_transpose()))
+            .with_default_max_iterations(parameters_.default_max_iterations)
+            .with_default_residual_tol(
+                static_cast<real_type>(parameters_.default_residual_tol))
+            .with_restart(parameters_.restart)
+            .with_tolerance_type(parameters_.tolerance_type)
+            .on(this->get_executor())
+            ->generate(share(as<BatchTransposable>(this->get_system_matrix())
+                                 ->conj_transpose()));
+    ctsolver->set_residual_tolerance(this->residual_tol_);
+    ctsolver->set_max_iterations(this->max_iterations_);
+    return ctsolver;
 }
 
 
@@ -105,9 +117,8 @@ void BatchGmres<ValueType>::solver_apply(const BatchLinOp* const b,
 {
     using Dense = matrix::BatchDense<ValueType>;
     const kernels::batch_gmres::BatchGmresOptions<remove_complex<ValueType>>
-        opts{parameters_.max_iterations,
-             static_cast<real_type>(this->residual_tol_), parameters_.restart,
-             parameters_.tolerance_type};
+        opts{this->max_iterations_, static_cast<real_type>(this->residual_tol_),
+             parameters_.restart, parameters_.tolerance_type};
     auto exec = this->get_executor();
     exec->run(batch_gmres::make_apply(
         opts, this->system_matrix_.get(), this->preconditioner_.get(),
