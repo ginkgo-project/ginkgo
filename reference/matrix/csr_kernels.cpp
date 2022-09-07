@@ -1290,6 +1290,14 @@ void build_lookup(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void find_diagonal_entries_locations(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* const mtx,
+    IndexType* diag_locs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS);
 
 template <typename IndexType>
 void benchmark_lookup(std::shared_ptr<const DefaultExecutor> exec,
