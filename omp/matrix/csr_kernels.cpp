@@ -1268,8 +1268,24 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
 template <typename ValueType, typename IndexType>
 void find_diagonal_entries_locations(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* const mtx,
-    IndexType* diag_locs) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType>* const mtx, IndexType* diag_locs)
+{
+    const auto nrows = mtx->get_size()[0];
+    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    const auto vals = mtx->get_const_values();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < nrows; row++) {
+        for (IndexType i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
+            const size_type col = col_idxs[i];
+            if (row == col) {
+                diag_locs[row] = i;
+                break;
+            }
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_FIND_DIAGONAL_ENTRIES_LOCATIONS);
