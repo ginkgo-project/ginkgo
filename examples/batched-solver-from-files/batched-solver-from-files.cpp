@@ -168,7 +168,13 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(gko::preconditioner::batch::type::jacobi)
+            .with_preconditioner(
+                gko::preconditioner::BatchExactIlu<value_type,
+                                                   index_type>::build()
+                    .with_skip_sorting(true)
+                    .on(exec))
+            //.with_preconditioner(gko::preconditioner::BatchJacobi<value_type,
+            // index_type>::build().on(exec))
             .on(exec);
 
     // @sect3{Batch logger}
