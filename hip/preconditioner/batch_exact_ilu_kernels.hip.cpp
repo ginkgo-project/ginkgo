@@ -71,6 +71,7 @@ template <typename ValueType, typename IndexType>
 void apply_exact_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
+    const IndexType* const diag_locs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
 
