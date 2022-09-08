@@ -45,11 +45,11 @@ inline void batch_entry_factorize_impl(
     for (int curr_row_index = 0; curr_row_index < nrows; curr_row_index++) {
         for (int row_below_index = curr_row_index + 1; row_below_index < nrows;
              row_below_index++) {
+            ValueType row_ele = zero<ValueType>();
+
             for (int i = row_ptrs[row_below_index];
                  i < row_ptrs[row_below_index + 1]; i++) {
                 const int col_index = col_idxs[i];
-
-                ValueType row_ele = zero<ValueType>();
 
                 if (col_index == curr_row_index) {
                     ValueType diag_ele = values[diag_locs[curr_row_index]];
@@ -64,6 +64,7 @@ inline void batch_entry_factorize_impl(
                          t < row_ptrs[curr_row_index + 1]; t++) {
                         if (col_idxs[t] == col_index) {
                             col_ele = values[t];
+                            break;
                         }
                     }
 
