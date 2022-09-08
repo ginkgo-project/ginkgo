@@ -161,13 +161,13 @@ int main(int argc, char* argv[])
     x->copy_from(host_x.get());
 
     // @sect3{Create the batch solver factory}
-    const real_type reduction_factor{1e-6};
+    const real_type reduction_factor{1e-08};
     // Create a batched solver factory with relevant parameters.
     auto solver_gen =
         solver_type::build()
             .with_max_iterations(500)
             .with_residual_tol(reduction_factor)
-            .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
+            .with_tolerance_type(gko::stop::batch::ToleranceType::absolute)
             .with_preconditioner(
                 gko::preconditioner::BatchExactIlu<value_type,
                                                    index_type>::build()
