@@ -66,11 +66,11 @@ namespace kernels {
         matrix::BatchCsr<ValueType, IndexType>* mat_fact)
 
 
-#define GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL(ValueType, IndexType) \
-    void apply_exact_ilu(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::BatchCsr<ValueType, IndexType>* factored_matrix, \
-        const matrix::BatchDense<ValueType>* r,                        \
+#define GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL(ValueType, IndexType)      \
+    void apply_exact_ilu(                                                   \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::BatchCsr<ValueType, IndexType>* factored_matrix,      \
+        const IndexType* diag_locs, const matrix::BatchDense<ValueType>* r, \
         matrix::BatchDense<ValueType>* z)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
