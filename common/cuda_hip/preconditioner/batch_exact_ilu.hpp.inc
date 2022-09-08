@@ -31,6 +31,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
+namespace {
+
+
+// load and store functions by written by Tobias to deal with volatile pointer
+// compilation errors taken from file: (cuda/solver/common_trs_kernels.cuh)
+// TODO: Put these in an appropriate file
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
+    load(const ValueType* values, IndexType index)
+{
+    const volatile ValueType* val = values + index;
+    return *val;
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ std::enable_if_t<
+    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
+load(const thrust::complex<ValueType>* values, IndexType index)
+{
+    auto real = reinterpret_cast<const ValueType*>(values);
+    auto imag = real + 1;
+    return {load(real, 2 * index), load(imag, 2 * index)};
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(
+    ValueType* values, IndexType index,
+    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
+{
+    volatile ValueType* val = values + index;
+    *val = value;
+}
+
+template <typename ValueType, typename IndexType>
+__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
+                                      IndexType index,
+                                      thrust::complex<ValueType> value)
+{
+    auto real = reinterpret_cast<ValueType*>(values);
+    auto imag = real + 1;
+    store(real, 2 * index, value.real());
+    store(imag, 2 * index, value.imag());
+}
+
+}  // namespace
+
+
 /**
  * Batch exact ilu0 preconditioner.
  */
@@ -94,12 +142,106 @@ public:
         work_ = work;
     }
 
-    __device__ __forceinline__ void apply(int,
+    __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const __restrict__ r,
                                           ValueType* const __restrict__ z) const
     {
-        printf("\n To be done, line: %d, file: %s\n", __LINE__, __FILE__);
-        // Triangular solve
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+        // z = precond * r  ==> find z: L * U * z = r
+        /*
+        if (threadIdx.x == 0) {
+            // L * work_ = r
+            for (int row_idx = 0; row_idx < num_rows; row_idx++) {
+                ValueType sum{0};
+                for (int i = row_ptrs[row_idx]; i < diag_ptrs_csr_[row_idx];
+                     i++) {
+                    sum += factored_values_entry[i] * work_[col_idxs[i]];
+                }
+                work_[row_idx] = r[row_idx] - sum;
+            }
+            // U * z = work_
+            for (int row_idx = num_rows - 1; row_idx >= 0; row_idx--) {
+                ValueType sum{0};
+                for (int i = row_ptrs[row_idx + 1] - 1;
+                     i > diag_ptrs_csr_[row_idx]; i--) {
+                    sum += factored_values_entry[i] * z[col_idxs[i]];
+                }
+                z[row_idx] = (work_[row_idx] - sum) /
+                             factored_values_entry[diag_ptrs_csr_[row_idx]];
+            }
+        }*/
+
+        // TODO: Add kernels for volta architecture and its successors (which
+        // make use of independent thread scheduling)
+
+        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
+            work_[i] =
+                nan<ValueType>();  // TODO: find a better way to deal with this!
+            z[i] = nan<ValueType>();
+        }
+
+        // L * work_ = r
+        int row_index = threadIdx.x;
+        if (row_index < num_rows) {
+            ValueType sum = 0;
+
+            const int start = row_ptrs[row_index];
+            const int end = csr_diag_locs_[row_index];
+
+            int i = start;
+            bool completed = false;
+
+            while (!completed) {
+                const int col_index = col_idxs[i];
+
+                if (i < end && is_finite(load(work_, col_index))) {
+                    sum += factored_values_entry[i] * load(work_, col_index);
+                    i++;
+                }
+
+                if (i == end) {
+                    ValueType val =
+                        (r[row_index] - sum) /
+                        1;  // 1 in place of factored_values_entry[end]
+                    store(work_, row_index, val);
+                    completed = true;
+                }
+            }
+        }
+
+        __syncthreads();
+
+        // U * z = work_
+        row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+        if (row_index >= 0) {
+            ValueType sum = 0;
+
+            const int start = csr_diag_locs_[row_index];
+            const int end = row_ptrs[row_index + 1] - 1;
+            int i = end;
+
+            bool completed = false;
+
+            while (!completed) {
+                const int col_index = col_idxs[i];
+
+                if (i > start && is_finite(load(z, col_index))) {
+                    sum += factored_values_entry[i] * load(z, col_index);
+                    i--;
+                }
+
+                if (i == start) {
+                    ValueType val =
+                        (work_[row_index] - sum) / factored_values_entry[start];
+                    store(z, row_index, val);
+                    completed = true;
+                }
+            }
+        }
     }
 
 private:
