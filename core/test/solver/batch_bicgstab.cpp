@@ -286,31 +286,31 @@ TYPED_TEST(BatchBicgstab, CanSetScalingVectors)
                                      .on(this->exec);
     auto solver = batchbicgstab_factory->generate(this->mtx);
 
-    // solver->batch_scale(left_scale.get(), right_scale.get());
-    // auto s_solver = gko::as<gko::EnableBatchScaling>(solver.get());
-
-    // ASSERT_TRUE(s_solver);
     ASSERT_EQ(solver->get_left_scaling_op(), left_scale);
     ASSERT_EQ(solver->get_right_scaling_op(), right_scale);
 }
 
 
-// TYPED_TEST(BatchBicgstab, SolverTransposeRetainsFactoryParameters)
+// TYPED_TEST(BatchBicgstab, SolverTransposeRetainsParameters)
 // {
 //     using Solver = typename TestFixture::Solver;
-
 //     auto batchbicgstab_factory =
-// Solver::build().with_max_iterations(3).with_residual_tol(0.25f)
-// .with_tolerance_type(gko::stop::batch::ToleranceType::relative).with_preconditioner(gko::preconditioner::batch::type::none).on(this->exec);
+//         Solver::build().with_default_max_iterations(3).with_default_residual_tol(0.25f)
+//         .with_tolerance_type(gko::stop::batch::ToleranceType::relative).on(this->exec);
 //     auto solver = batchbicgstab_factory->generate(this->mtx);
-// 	auto solver_trans = gko::as<Solver>(solver->transpose());
-// 	auto params = solver_trans->get_parameters();
 
-// 	ASSERT_EQ(params.preconditioner,
-// gko::preconditioner::batch::type::none); ASSERT_EQ(params.max_iterations, 3);
-// 	ASSERT_EQ(params.residual_tol, 0.25);
+//     solver->set_residual_tolerance(0.5f);
+//     solver->set_max_iterations(5);
+// 	auto solver_trans = gko::as<Solver>(solver->transpose());
+
+// 	auto params = solver_trans->get_parameters();
+//     ASSERT_EQ(params.preconditioner, nullptr);
+//     ASSERT_EQ(params.default_max_iterations, 3);
+// 	ASSERT_EQ(params.default_residual_tol, 0.25);
 // 	ASSERT_EQ(params.tolerance_type,
 // gko::stop::batch::ToleranceType::relative);
+//     ASSERT_EQ(solver_trans->get_max_iterations(), 5);
+//     ASSERT_EQ(solver_trans->get_residual_tolerance(), 0.5f);
 // }
 
 
