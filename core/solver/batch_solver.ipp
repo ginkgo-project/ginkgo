@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/log/batch_convergence.hpp>
 #include <ginkgo/core/matrix/batch_diagonal.hpp>
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/solver/batch_solver.hpp>
 
 
@@ -70,9 +71,11 @@ EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
     using value_type = typename ConcreteSolver::value_type;
     using Csr = matrix::BatchCsr<value_type>;
     using Diag = matrix::BatchDiagonal<value_type>;
+    using Identity = matrix::BatchIdentity<value_type>;
     using real_type = remove_complex<value_type>;
 
-    const bool to_scale = left_scaling_ && right_scaling_;
+    const bool to_scale = std::dynamic_pointer_cast<const Diag>(left_scaling_)
+        && std::dynamic_pointer_cast<const Diag>(right_scaling_);
     if (to_scale) {
         auto a_scaled_smart = gko::share(gko::clone(system_matrix_.get()));
         matrix::two_sided_batch_transform(exec,
@@ -81,11 +84,28 @@ EnableBatchSolver<ConcreteSolver, PolymorphicBase>::EnableBatchSolver(
         system_matrix_ = a_scaled_smart;
     }
 
+    if(!to_scale && left_scaling_ && right_scaling_) {
+        GKO_NOT_SUPPORTED(left_scaling_);
+    }
+    if(!to_scale && (left_scaling_ || right_scaling_)) {
+        throw std::runtime_error("One-sided scaling is not supported!");
+    }
+
+    if(!to_scale) {
+        // this enables transpose for non-scaled solvers
+        left_scaling_ = gko::share(Identity::create(exec, system_matrix->get_size()));
+        right_scaling_ = gko::share(Identity::create(exec, system_matrix->get_size()));
+    }
+
     if (common_params.generated_prec) {
         GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(common_params.generated_prec, this);
         preconditioner_ = std::move(common_params.generated_prec);
     } else if (common_params.prec_factory) {
         preconditioner_ = common_params.prec_factory->generate(system_matrix_);
+    } else {
+        auto id = gko::matrix::BatchIdentity<value_type>::create(exec,
+            system_matrix->get_size());
+        preconditioner_ = std::move(id);
     }
 }
 
@@ -102,7 +122,8 @@ void EnableBatchSolver<ConcreteSolver, PolymorphicBase>::apply_impl(const BatchL
     auto exec = this->get_executor();
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    const bool to_scale = left_scaling_ && right_scaling_;
+    const bool to_scale = std::dynamic_pointer_cast<const Diag>(left_scaling_)
+        && std::dynamic_pointer_cast<const Diag>(right_scaling_);
     auto b_scaled = Vector::create(exec);
     const Vector* b_scaled_ptr{};
 
