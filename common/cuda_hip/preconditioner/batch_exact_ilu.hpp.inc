@@ -250,3 +250,23 @@ private:
     gko::batch_csr::BatchEntry<const value_type> mat_factorized_entry_;
     value_type* __restrict__ work_;
 };
+
+
+template <typename ValueType>
+__global__ void batch_exact_ilu_apply(batch_exact_ilu<ValueType> prec,
+                                      const size_type nbatch, const int nrows,
+                                      const ValueType* const b_values,
+                                      ValueType* const x_values)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < nbatch;
+         batch_id += gridDim.x) {
+        extern __shared__ char sh_mem[];
+        ValueType* work = reinterpret_cast<ValueType*>(sh_mem);
+
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      work);
+        __syncthreads();
+        prec.apply(nrows, b_values + batch_id * nrows,
+                   x_values + batch_id * nrows);
+    }
+}
