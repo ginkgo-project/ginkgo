@@ -60,17 +60,22 @@ void init_dense(py::module_& module_matrix)
         .def(py::init([](std::shared_ptr<gko::Executor> exec) {
             return gko::matrix::Dense<ValueType>::create(exec);
         }))
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim) {
-            return gko::matrix::Dense<ValueType>::create(exec, dim);
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::tuple dim) {
+            return gko::matrix::Dense<ValueType>::create(
+                exec,
+                gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()});
         }))
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim,
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::tuple dim,
                          size_t stride) {
-            return gko::matrix::Dense<ValueType>::create(exec, dim, stride);
+            return gko::matrix::Dense<ValueType>::create(
+                exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
+                stride);
         }))
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim,
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::tuple dim,
                          gko::array<ValueType> view, size_t stride) {
-            return gko::matrix::Dense<ValueType>::create(exec, dim, view,
-                                                         stride);
+            return gko::matrix::Dense<ValueType>::create(
+                exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
+                view, stride);
         }))
         .def("__repr__",
              [](const gko::matrix::Dense<ValueType>& o) {

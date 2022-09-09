@@ -66,12 +66,13 @@ void init_coo(py::module_& module_matrix)
         .def(py::init([](std::shared_ptr<gko::Executor> exec) {
             return gko::matrix::Coo<ValueType>::create(exec);
         }))
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2> dim,
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::tuple dim,
                          gko::array<ValueType>& vals,
                          gko::array<IndexType>& cols,
                          gko::array<IndexType>& rows) {
             return gko::share(gko::matrix::Coo<ValueType>::create(
-                exec, dim, vals, cols, rows));
+                exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
+                vals, cols, rows));
         }))
         // .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2>
         // dim,
