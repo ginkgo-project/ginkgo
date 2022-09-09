@@ -66,157 +66,6 @@ namespace reference {
 namespace mc64 {
 
 
-namespace {
-
-
-float fastexp2(float x)
-{
-    bool positive = x >= 0;
-    float xi = floor(x);
-    float xf = x - xi;
-
-    union {
-        float f;
-        unsigned int i;
-    } frac;
-
-    frac.f = xf ? 1. +
-                      (((xf * 1.36779598e-02 + 5.16742848e-02) * xf +
-                        2.41696769e-01) *
-                           xf +
-                       6.92937406e-01) *
-                          xf +
-                      6.58721338e-06
-                : 1.;
-
-    unsigned int exp = (frac.i & 0x7F800000) + ((unsigned int)(abs(xi)) << 23);
-
-    if (!positive) {
-        exp = (254 - (exp >> 23)) << 23;
-    }
-
-    frac.i = (frac.i & 0x007FFFFF) | (exp & 0x7F800000);
-    return frac.f;
-}
-
-
-double fastexp2(double x)
-{
-    bool positive = x >= 0;
-    double xi = floor(x);
-    double xf = x - xi;
-
-    union {
-        double f;
-        long int i;
-    } frac;
-
-    frac.f = xf ? 1. +
-                      (((xf * 1.36779598e-02 + 5.16742848e-02) * xf +
-                        2.41696769e-01) *
-                           xf +
-                       6.92937406e-01) *
-                          xf +
-                      6.58721338e-06
-                : 1.;
-
-    long int exp = (frac.i & 0x7FF0000000000000) + ((long int)(abs(xi)) << 52);
-
-    if (!positive) {
-        exp = (2046 - (exp >> 52)) << 52;
-    }
-
-    frac.i = (frac.i & 0x000FFFFFFFFFFFFF) | (exp & 0x7FF0000000000000);
-
-    return frac.f;
-}
-
-
-float fastlog2(float x)
-{
-    float signif, fexp;
-    int exp;
-    float lg2;
-    union {
-        float f;
-        unsigned int i;
-    } ux1, ux2;
-    int greater;
-
-#define FN                                                                  \
-    fexp + (((((-.149902 * signif + .293811) * signif - .369586) * signif + \
-              .481330) *                                                    \
-                 signif -                                                   \
-             .721171) *                                                     \
-                signif +                                                    \
-            1.442691) *                                                     \
-               signif
-
-    ux1.f = x;
-    exp = (ux1.i & 0x7F800000) >> 23;
-
-    greater = ux1.i & 0x00400000;  // true if signif > 1.5
-    if (greater) {
-        ux2.i = (ux1.i & 0x007FFFFF) | 0x3f000000;
-        signif = ux2.f;
-        fexp = exp - 126;
-        signif = signif - 1.0;
-        lg2 = FN;
-    } else {
-        ux2.i = (ux1.i & 0x007FFFFF) | 0x3f800000;
-        signif = ux2.f;
-        fexp = exp - 127;
-        signif = signif - 1.0;
-        lg2 = FN;
-    }
-    return lg2;
-}
-
-
-double fastlog2(double x)
-{
-    double signif, fexp;
-    long int exp;
-    double lg2;
-    union {
-        double f;
-        long int i;
-    } ux1, ux2;
-    long int greater;
-
-#define FN                                                                  \
-    fexp + (((((-.149902 * signif + .293811) * signif - .369586) * signif + \
-              .481330) *                                                    \
-                 signif -                                                   \
-             .721171) *                                                     \
-                signif +                                                    \
-            1.442691) *                                                     \
-               signif
-
-    ux1.f = x;
-    exp = (ux1.i & 0x7FF0000000000000) >> 52;
-
-    greater = ux1.i & 0x0008000000000000;  // true if signif > 1.5
-    if (greater) {
-        ux2.i = (ux1.i & 0x000FFFFFFFFFFFFF) | 0x3fe0000000000000;
-        signif = ux2.f;
-        fexp = exp - 1022;
-        signif = signif - 1.0;
-        lg2 = FN;
-    } else {
-        ux2.i = (ux1.i & 0x000FFFFFFFFFFFFF) | 0x3ff0000000000000;
-        signif = ux2.f;
-        fexp = exp - 1023;
-        signif = signif - 1.0;
-        lg2 = FN;
-    }
-    return lg2;
-}
-
-
-}  // namespace
-
-
 template <typename ValueType, typename IndexType>
 void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* mtx,
@@ -233,17 +82,14 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
     auto weight =
         strategy == gko::reorder::reordering_strategy::max_diagonal_sum
             ? [](ValueType a) { return abs(a); }
-            //: [](ValueType a) { return fastlog2(abs(a)); };
             : [](ValueType a) { return std::log2(abs(a)); };
-    //: strategy == gko::reorder::reordering_strategy::max_diagonal_product_fast
-    //? [](ValueType a) { return fastlog2(abs(a)); }
-    //: [](ValueType a) { return std::log2(abs(a)); };
-    // workspace.resize_and_reset(nnz + 4 * num_rows);
     auto weights = workspace.get_data();
     auto u = weights + nnz;
-    auto m = u + 2 * num_rows;
+    auto distance = u + num_rows;
+    auto m = distance + num_rows;
     for (IndexType col = 0; col < num_rows; col++) {
         u[col] = inf;
+        distance[col] = inf;
     }
 
     for (IndexType row = 0; row < num_rows; row++) {
@@ -286,60 +132,10 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
     const auto u = c + nnz;
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
-    auto parents_ = parents.get_data();
-    auto prev_rows = parents_ + num_rows;
-    auto generation = prev_rows + num_rows;
-    auto idxs = parents_ + 4 * num_rows;
-    auto unmatched = parents_ + 5 * num_rows;
+    auto idxs = parents.get_data() + 4 * num_rows;
+    auto unmatched = idxs + num_rows;
     auto um_cnt = 0;
 
-    /*for (IndexType root = 0; root < num_rows; root++) {
-        IndexType row = root;
-        IndexType jap = -1;
-        while (true) {
-            const auto row_begin = row_ptrs[row];
-            const auto row_end = row_ptrs[row + 1];
-            for (IndexType idx = row_begin; idx < row_end; idx++) {
-                const auto col = col_idxs[idx];
-                if (c[idx] - u[col] == zero<ValueType>() && ip[col] == -1) {
-                    jap = col;
-                    parents_[col] = row;
-                    break;
-                }
-            }
-            if (jap != -1) break;
-            IndexType idx = row_begin;
-            for (; idx < row_end; idx++) {
-                const auto col = col_idxs[idx];
-                if (c[idx] - u[col] == zero<ValueType>()
-                        && generation[col] != num_rows + root) {
-                    generation[col] = num_rows + root;
-                    parents_[col] = row;
-                    auto next_row = ip[col];
-                    prev_rows[next_row] = row;
-                    row = next_row;
-                    break;
-                }
-            }
-            if (idx == row_end) {
-                if (row == root) break;
-                row = prev_rows[row];
-            }
-        }
-        if (jap == -1) {
-            unmatched[um_cnt++] = root;
-        } else {
-            IndexType col = jap;
-            do {
-                row = parents_[col];
-                ip[col] = row;
-                auto idx = row_ptrs[row];
-                while (col_idxs[idx] != col) idx++;
-                idxs[row] = idx;
-                std::swap(col, p[row]);
-            } while (row != root);
-        }
-    }*/
     // For each row, look for an unmatched column col for which weight(row, col)
     // = 0. If one is found, add the edge (row, col) to the matching and move on
     // to the next row.
@@ -349,7 +145,7 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
         bool matched = false;
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
-            if (c[idx] - u[col] == zero<ValueType>() && ip[col] == -1) {
+            if (abs(c[idx] - u[col]) < 1e-14 && ip[col] == -1) {
                 p[row] = col;
                 ip[col] = row;
                 idxs[row] = idx;
@@ -375,15 +171,14 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
         bool found = false;
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
-            if (c[idx] - u[col] == zero<ValueType>()) {
+            if (abs(c[idx] - u[col]) < 1e-14) {
                 const auto row_1 = ip[col];
                 const auto row_1_begin = row_ptrs[row_1];
                 const auto row_1_end = row_ptrs[row_1 + 1];
                 for (IndexType idx_1 = row_1_begin; idx_1 < row_1_end;
                      idx_1++) {
                     const auto col_1 = col_idxs[idx_1];
-                    if (c[idx_1] - u[col_1] == zero<ValueType>() &&
-                        ip[col_1] == -1) {
+                    if (abs(c[idx_1] - u[col_1]) < 1e-14 && ip[col_1] == -1) {
                         p[row] = col;
                         ip[col] = row;
                         idxs[row] = idx;
@@ -471,10 +266,11 @@ void shortest_augmenting_path(
         const auto dist = distance[col];
         const auto gen = generation[col];
         if (dist < lsap && gen == num_rows + root) {
-            generation[col] = root;
-            if (dist == lsp) {
+            if (abs(dist - lsp) < 1e-14) {
+                generation[col] = 2 * num_rows + root;
                 q_j.push_back(col);
             } else {
+                generation[col] = root;
                 handles[col] = Q.insert(dist, col);
             }
         }
@@ -501,15 +297,16 @@ void shortest_augmenting_path(
             generation[col] = -root;
             marked_cols[marked_counter++] = col;
             Q.pop_min();
-            while (Q.min_key() == lsp && !Q.empty()) {
-                q_j.push_back(Q.min_val());
-                Q.pop_min();
-            }
+            // while (Q.min_key() == lsp && !Q.empty()) {
+            //     q_j.push_back(Q.min_val());
+            //     Q.pop_min();
+            // }
             row = ip[col];
         }
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
-        const auto vi = c[idxs[row]] - u[p[row]];  // v[row];
+        const auto vi = p[row] == -1 ? zero<ValueType>()
+                                     : c[idxs[row]] - u[p[row]];  // v[row];
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
             const auto gen = generation[col];
@@ -517,27 +314,35 @@ void shortest_augmenting_path(
             if (gen == -root) continue;
 
             const ValueType dnew = lsp + c[idx] - u[col] - vi;
-
+            // if (col == 392960) std::cout << distance[col] << ", " << lsp <<
+            // ", " << dnew << std::endl; if (dnew < lsp && abs(lsp - dnew) >
+            // 1e-10){
+            //     std::cout << root + num_rows << ", " << gen << ", " << jsap
+            //     << ", " << col << std::endl; exit(1);
+            // }
             if (dnew < lsap) {
                 if (ip[col] == -1) {
                     lsap = dnew;
                     jsap = col;
                     parents_[col] = row;
                 } else {
-                    if (gen != root || dnew < distance[col]) {
+                    if ((gen != root || dnew < distance[col]) &&
+                        gen != 2 * num_rows + root) {
                         distance[col] = dnew;
                         parents_[col] = row;
-                        generation[col] = root;  // num_rows + gen;
-                        if (dnew == lsp) {
+                        if (abs(dnew - lsp) < 1e-14) {
+                            generation[col] = 2 * num_rows + root;
                             q_j.push_back(col);
-                            /*if (gen == root) {
-                                Q.update_key(handles[col], -inf);
-                                Q.pop_min();
-                            }*/
+                            // if (gen == root) {
+                            //     Q.update_key(handles[col], -inf);
+                            //     Q.pop_min();
+                            // }
                         } else if (gen != root) {
                             // if (gen != root) {
+                            generation[col] = root;  // num_rows + gen;
                             handles[col] = Q.insert(dnew, col);
                         } else {
+                            generation[col] = root;  // num_rows + gen;
                             Q.update_key(handles[col], dnew);
                         }
                     }
