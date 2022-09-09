@@ -52,7 +52,7 @@ namespace {
 
 constexpr size_type default_block_size = 256;
 
-
+#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_exact_ilu_kernels.hpp.inc"
 
 }  // namespace
@@ -83,13 +83,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
 
 
+// Only for testing purpose
 template <typename ValueType, typename IndexType>
 void apply_exact_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto num_rows =
+        static_cast<int>(factored_matrix->get_size().at(0)[0]);
+    const auto nbatch = factored_matrix->get_num_batch_entries();
+    const auto factored_matrix_batch = get_batch_struct(factored_matrix);
+    using d_value_type = cuda_type<ValueType>;
+    using prec_type = batch_exact_ilu<d_value_type>;
+    prec_type prec(factored_matrix_batch, diag_locs);
+
+    batch_exact_ilu_apply<<<nbatch, default_block_size,
+                            prec_type::dynamic_work_size(num_rows, 0) *
+                                sizeof(ValueType)>>>(
+        prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
+        as_cuda_type(z->get_values()));
+}
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
