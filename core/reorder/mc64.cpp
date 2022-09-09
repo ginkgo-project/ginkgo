@@ -85,24 +85,15 @@ void Mc64<ValueType, IndexType>::generate(std::shared_ptr<const Executor>& exec,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
 
-    // auto tic = std::chrono::high_resolution_clock::now();
     exec->run(mc64::make_initialize_weights(mtx.get(), workspace,
                                             parameters_.strategy));
-    // auto toc = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double> duration = toc - tic;
-    // std::cout << "INIT: " << duration.count() << std::endl;
 
-    // tic = std::chrono::high_resolution_clock::now();
     array<IndexType> parents{exec, 6 * num_rows};
     parents.fill(0);
     exec->run(mc64::make_initial_matching(num_rows, row_ptrs, col_idxs,
                                           workspace, permutation,
                                           inv_permutation, parents));
-    // toc = std::chrono::high_resolution_clock::now();
-    // duration = toc - tic;
-    // std::cout << "INITIAL MATCHING: " << duration.count() << std::endl;
 
-    // tic = std::chrono::high_resolution_clock::now();
     addressable_priority_queue<remove_complex<ValueType>, IndexType, 2> Q{};
     std::vector<IndexType> q_j{};
     const auto unmatched = parents.get_data() + 5 * num_rows;
@@ -115,9 +106,6 @@ void Mc64<ValueType, IndexType>::generate(std::shared_ptr<const Executor>& exec,
                 inv_permutation, root, parents, Q, q_j));
         root = unmatched[++um];
     }
-    // toc = std::chrono::high_resolution_clock::now();
-    // duration = toc - tic;
-    // std::cout << "SAP: " << duration.count() << std::endl;
 
     permutation_ = std::move(share(PermutationMatrix::create(
         exec, system_matrix->get_size(), permutation,
@@ -127,13 +115,9 @@ void Mc64<ValueType, IndexType>::generate(std::shared_ptr<const Executor>& exec,
                                   inv_permutation, matrix::column_permute)));
     row_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
     col_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
-    // tic = std::chrono::high_resolution_clock::now();
     exec->run(mc64::make_compute_scaling(
         mtx.get(), workspace, permutation, parents, parameters_.strategy,
         row_scaling_.get(), col_scaling_.get()));
-    // toc = std::chrono::high_resolution_clock::now();
-    // duration = toc - tic;
-    // std::cout << "SCALING: " << duration.count() << std::endl;
 }
 
 
