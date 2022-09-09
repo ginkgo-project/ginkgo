@@ -63,28 +63,65 @@ def is_specialization_of(x, template_name):
         expr = '^std::{}<.*>$'.format(template_name)
     return re.match(expr, x) is not None
 
+def get_template_arg_list(type_obj):
+    "Return a type's template arguments as a list"
+    n = 0
+    template_args = []
+    while True:
+        try:
+            template_args.append(type_obj.template_argument(n))
+        except:
+            return template_args
+        n += 1
+
+def _tuple_impl_get(val):
+    "Return the tuple element stored in a _Tuple_impl<N, T> base class."
+    bases = val.type.fields()
+    if not bases[-1].is_base_class:
+        raise ValueError("Unsupported implementation for std::tuple: %s" % str(val.type))
+    # Get the _Head_base<N, T> base class:
+    head_base = val.cast(bases[-1].type)
+    fields = head_base.type.fields()
+    if len(fields) == 0:
+        raise ValueError("Unsupported implementation for std::tuple: %s" % str(val.type))
+    if fields[0].name == '_M_head_impl':
+        # The tuple element is the _Head_base::_M_head_impl data member.
+        return head_base['_M_head_impl']
+    elif fields[0].is_base_class:
+        # The tuple element is an empty base class of _Head_base.
+        # Cast to that empty base class.
+        return head_base.cast(fields[0].type)
+    else:
+        raise ValueError("Unsupported implementation for std::tuple: %s" % str(val.type))
+
+def tuple_get(n, val):
+    "Return the result of std::get<n>(val) on a std::tuple"
+    tuple_size = len(get_template_arg_list(val.type))
+    if n > tuple_size:
+        raise ValueError("Out of range index for std::get<N> on std::tuple")
+    # Get the first _Tuple_impl<0, T...> base class:
+    node = val.cast(val.type.fields()[0].type)
+    while n > 0:
+        # Descend through the base classes until the Nth one.
+        node = node.cast(node.type.fields()[0].type)
+        n -= 1
+    return _tuple_impl_get(node)
 
 def get_unique_ptr_data_ptr(val):
-    impl_type = val.type.fields()[0].type.tag
+    "Return the result of val.get() on a std::unique_ptr"
+    # std::unique_ptr<T, D> contains a std::tuple<D::pointer, D>,
+    # either as a direct data member _M_t (the old implementation)
+    # or within a data member of type __uniq_ptr_data.
+    impl_type = val.type.fields()[0].type.strip_typedefs()
     # Check for new implementations first:
     if is_specialization_of(impl_type, '__uniq_ptr_data') \
-            or is_specialization_of(impl_type, '__uniq_ptr_impl'):
+        or is_specialization_of(impl_type, '__uniq_ptr_impl'):
         tuple_member = val['_M_t']['_M_t']
     elif is_specialization_of(impl_type, 'tuple'):
         tuple_member = val['_M_t']
     else:
-        raise ValueError(
-            "Unsupported unique_ptr impl: {}".format(impl_type))
-    tuple_impl_type = tuple_member.type.fields()[0].type  # _Tuple_impl
-    tuple_head_type = tuple_impl_type.fields()[1].type    # _Head_base
-    head_field = tuple_head_type.fields()[0]
-    if head_field.name == '_M_head_impl':
-        return tuple_member['_M_head_impl']
-    elif head_field.is_base_class:
-        return tuple_member.cast(head_field.type)
-    else:
-        raise ValueError(
-            "Unsupported tuple impl in unique_ptr: {}".format(impl_type))
+        raise ValueError("Unsupported implementation for unique_ptr: %s" % str(impl_type))
+    return tuple_get(0, tuple_member)
 
 
 class GkoArrayPrinter:
