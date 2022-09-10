@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-class UpperTrs : public ::testing::Test {
+class UpperTrs : public CommonTestFixture {
 protected:
     using value_type = double;
     using index_type = int;
@@ -58,19 +58,6 @@ protected:
     using solver_type = gko::solver::UpperTrs<value_type, index_type>;
 
     UpperTrs() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<vec_type> gen_vec(int num_rows, int num_cols)
     {
@@ -119,8 +106,6 @@ protected:
     std::shared_ptr<vec_type> dx;
     std::shared_ptr<mtx_type> dmtx;
     std::shared_ptr<mtx_type> dmtx_u;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine rand_engine;
 };
 

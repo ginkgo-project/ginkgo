@@ -48,35 +48,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 template <typename T>
-class FillArray : public ::testing::Test {
+class FillArray : public CommonTestFixture {
 protected:
     using value_type = T;
-    FillArray() : total_size(63531) {}
-
-    void SetUp()
+    FillArray()
+        : total_size(63531),
+          vals{ref, total_size},
+          dvals{exec, total_size},
+          seqs{ref, total_size}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        vals = gko::array<value_type>{ref, total_size};
-        dvals = gko::array<value_type>{exec, total_size};
-        seqs = gko::array<value_type>{ref, total_size};
         std::fill_n(vals.get_data(), total_size, T(1523));
         std::iota(seqs.get_data(), seqs.get_data() + total_size, 0);
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
     gko::array<value_type> vals;
     gko::array<value_type> dvals;
@@ -105,6 +90,3 @@ TYPED_TEST(FillArray, FillSeqEqualsReference)
 
     GKO_ASSERT_ARRAY_EQ(this->seqs, this->dvals);
 }
-
-
-}  // namespace

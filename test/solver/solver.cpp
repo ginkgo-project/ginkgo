@@ -513,7 +513,7 @@ public:
 
 
 template <typename T>
-class Solver : public ::testing::Test {
+class Solver : public CommonTestFixture {
 protected:
     using Config = T;
     using SolverType = typename T::solver_type;
@@ -525,20 +525,10 @@ protected:
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
-    Solver() { reset_rand(); }
-
-    void SetUp()
+    Solver()
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
+        reset_rand();
         logger = std::make_shared<DummyLogger>();
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     void reset_rand() { rand_engine.seed(15); }
@@ -795,8 +785,6 @@ protected:
         ASSERT_EQ(Config::get_preconditioner(solver), nullptr);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::shared_ptr<DummyLogger> logger;
 
     std::default_random_engine rand_engine;

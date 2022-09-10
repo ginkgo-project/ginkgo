@@ -46,28 +46,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
-namespace {
-
 
 #if !(GINKGO_COMMON_SINGLE_MODE)
 
 
-class PrecisionConversion : public ::testing::Test {
+class PrecisionConversion : public CommonTestFixture {
 protected:
-    PrecisionConversion() : rand(293), total_size(42793) {}
-
-    void SetUp()
+    PrecisionConversion()
+        : rand(293),
+          total_size(42793),
+          vals{ref, total_size},
+          cvals{ref, total_size},
+          vals2{ref, 1},
+          expected_float{ref, 1},
+          expected_double{ref, 1},
+          dvals{exec},
+          dcvals{exec},
+          dvals2{exec}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        vals = gko::array<float>{ref, total_size};
-        cvals = gko::array<std::complex<float>>{ref, total_size};
-        vals2 = gko::array<double>{ref, 1};
-        expected_float = gko::array<float>{ref, 1};
-        expected_double = gko::array<double>{ref, 1};
-        dvals = gko::array<float>{exec};
-        dcvals = gko::array<std::complex<float>>{exec};
-        dvals2 = gko::array<double>{exec};
         auto maxval = 1e10f;
         std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
@@ -85,15 +81,6 @@ protected:
         dvals2 = vals2;
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine rand;
     gko::size_type total_size;
     gko::array<float> vals;
@@ -181,6 +168,3 @@ TEST_F(PrecisionConversion, ConvertsComplexFromRef)
 
 
 #endif
-
-
-}  // namespace

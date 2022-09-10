@@ -55,48 +55,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class ParIc : public ::testing::Test {
+template <typename ValueIndexType>
+class ParIc : public CommonTestFixture {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    ParIc()
-        : mtx_size(624, 624),
-          rand_engine(43456),
-          ref(gko::ReferenceExecutor::create()),
-          dpcpp(gko::DpcppExecutor::create(0, gko::ReferenceExecutor::create()))
+    ParIc() : mtx_size(624, 624), rand_engine(43456)
     {
         mtx_l = gko::test::generate_random_lower_triangular_matrix<Csr>(
             mtx_size[0], false,
             std::uniform_int_distribution<index_type>(10, mtx_size[0]),
             std::normal_distribution<gko::remove_complex<value_type>>(0, 10.0),
             rand_engine, ref);
-
-        dmtx_ani = Csr::create(dpcpp);
-        dmtx_l_ani = Csr::create(dpcpp);
-        dmtx_l_ani_init = Csr::create(dpcpp);
-        dmtx_l = gko::clone(dpcpp, mtx_l);
-    }
-
-    void SetUp()
-    {
+        dmtx_ani = Csr::create(exec);
+        dmtx_l_ani = Csr::create(exec);
+        dmtx_l_ani_init = Csr::create(exec);
+        dmtx_l = gko::clone(exec, mtx_l);
         std::string file_name(gko::matrices::location_ani4_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
         mtx_ani = gko::read<Csr>(input_file, ref);
         mtx_ani->sort_by_column_index();
 
@@ -121,10 +105,7 @@ protected:
         dmtx_l_ani_init->copy_from(lend(mtx_l_ani_init));
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::DpcppExecutor> dpcpp;
-
-    const gko::dim<2> mtx_size;
+    gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
 
     std::unique_ptr<Csr> mtx_l;
@@ -138,31 +119,35 @@ protected:
     std::unique_ptr<Csr> dmtx_l_ani_init;
 };
 
+TYPED_TEST_SUITE(ParIc, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
-TEST_F(ParIc, KernelInitFactorIsEquivalentToRef)
+
+TYPED_TEST(ParIc, KernelInitFactorIsEquivalentToRef)
 {
-    gko::kernels::reference::par_ic_factorization::init_factor(ref,
-                                                               lend(mtx_l));
-    gko::kernels::dpcpp::par_ic_factorization::init_factor(dpcpp, lend(dmtx_l));
+    using value_type = typename TestFixture::value_type;
 
-    GKO_ASSERT_MTX_NEAR(mtx_l, dmtx_l, r<value_type>::value);
+    gko::kernels::reference::par_ic_factorization::init_factor(
+        this->ref, this->mtx_l.get());
+    gko::kernels::EXEC_NAMESPACE::par_ic_factorization::init_factor(
+        this->exec, this->dmtx_l.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx_l, this->dmtx_l, r<value_type>::value);
 }
 
 
-TEST_F(ParIc, KernelComputeFactorIsEquivalentToRef)
+TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
 {
-    auto square_size = mtx_ani->get_size();
-    auto mtx_l_coo = Coo::create(ref, square_size);
-    mtx_l_ani->convert_to(lend(mtx_l_coo));
-    auto dmtx_l_coo = gko::clone(dpcpp, mtx_l_coo);
+    using Csr = typename TestFixture::Csr;
+    using Coo = typename TestFixture::Coo;
+    auto square_size = this->mtx_ani->get_size();
+    auto mtx_l_coo = Coo::create(this->ref, square_size);
+    this->mtx_l_ani->convert_to(lend(mtx_l_coo));
+    auto dmtx_l_coo = gko::clone(this->exec, mtx_l_coo);
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
-        ref, 1, lend(mtx_l_coo), lend(mtx_l_ani_init));
-    gko::kernels::dpcpp::par_ic_factorization::compute_factor(
-        dpcpp, 100, lend(dmtx_l_coo), lend(dmtx_l_ani_init));
+        this->ref, 1, mtx_l_coo.get(), this->mtx_l_ani_init.get());
+    gko::kernels::EXEC_NAMESPACE::par_ic_factorization::compute_factor(
+        this->exec, 100, dmtx_l_coo.get(), this->dmtx_l_ani_init.get());
 
-    GKO_ASSERT_MTX_NEAR(mtx_l_ani_init, dmtx_l_ani_init, 1e-4);
+    GKO_ASSERT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, 1e-4);
 }
-
-
-}  // namespace

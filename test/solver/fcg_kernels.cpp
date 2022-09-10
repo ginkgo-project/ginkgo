@@ -53,10 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Fcg : public ::testing::Test {
+class Fcg : public CommonTestFixture {
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -68,19 +65,6 @@ protected:
     using Solver = gko::solver::Fcg<value_type>;
 
     Fcg() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride)
@@ -134,9 +118,6 @@ protected:
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -259,6 +240,3 @@ TEST_F(Fcg, ApplyIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
 }
-
-
-}  // namespace
