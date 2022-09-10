@@ -61,7 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 template <typename ValueIndexType>
-class Lu : public ::testing::Test {
+class Lu : public CommonTestFixture {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -69,24 +69,14 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = typename gko::matrix::Csr<value_type, index_type>;
 
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        storage_offsets.set_executor(ref);
-        dstorage_offsets.set_executor(exec);
-        storage.set_executor(ref);
-        dstorage.set_executor(exec);
-        row_descs.set_executor(ref);
-        drow_descs.set_executor(exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
+    Lu()
+        : storage_offsets{ref},
+          dstorage_offsets{exec},
+          storage{ref},
+          dstorage{exec},
+          row_descs{ref},
+          drow_descs{exec}
+    {}
 
     void initialize_data(const char* mtx_filename)
     {
@@ -121,8 +111,6 @@ protected:
         dmtx_lu = gko::clone(exec, mtx_lu);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type num_rows;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> mtx_lu;

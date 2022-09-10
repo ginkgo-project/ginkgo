@@ -46,86 +46,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 
+#include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
-#include "hip/test/utils.hip.hpp"
 #include "matrices/config.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Ilu : public ::testing::Test {
+class Ilu : public CommonTestFixture {
 protected:
     using value_type = gko::default_precision;
     using index_type = gko::int32;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> hip;
-    std::default_random_engine rand_engine;
-    std::shared_ptr<Csr> csr_ref;
-    std::shared_ptr<Csr> csr_hip;
-
-    Ilu()
-        : ref(gko::ReferenceExecutor::create()),
-          hip(gko::HipExecutor::create(0, ref)),
-          rand_engine(1337)
-    {}
-
-    void SetUp() override
+    Ilu() : rand_engine(1337)
     {
         std::string file_name(gko::matrices::location_ani4_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
-        csr_ref = gko::read<Csr>(input_file, ref);
-        csr_hip = gko::clone(hip, csr_ref);
+        mtx = gko::read<Csr>(input_file, ref);
+        dmtx = gko::clone(exec, mtx);
     }
+
+    std::default_random_engine rand_engine;
+    std::shared_ptr<Csr> mtx;
+    std::shared_ptr<Csr> dmtx;
 };
 
 
 TEST_F(Ilu, ComputeILUIsEquivalentToRefSorted)
 {
-    auto ref_fact = gko::factorization::ParIlu<>::build()
-                        .with_skip_sorting(true)
-                        .on(ref)
-                        ->generate(csr_ref);
-    auto hip_fact = gko::factorization::Ilu<>::build()
-                        .with_skip_sorting(true)
-                        .on(hip)
-                        ->generate(csr_hip);
+    auto fact = gko::factorization::Ilu<>::build()
+                    .with_skip_sorting(true)
+                    .on(ref)
+                    ->generate(mtx);
+    auto dfact = gko::factorization::Ilu<>::build()
+                     .with_skip_sorting(true)
+                     .on(exec)
+                     ->generate(dmtx);
 
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), hip_fact->get_l_factor(),
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), hip_fact->get_u_factor(),
-                        1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
-                               hip_fact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
-                               hip_fact->get_u_factor());
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
 }
 
 
 TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
 {
-    gko::test::unsort_matrix(gko::lend(csr_ref), rand_engine);
-    csr_hip->copy_from(gko::lend(csr_ref));
+    gko::test::unsort_matrix(gko::lend(mtx), rand_engine);
+    dmtx->copy_from(gko::lend(mtx));
 
-    auto ref_fact =
-        gko::factorization::ParIlu<>::build().on(ref)->generate(csr_ref);
-    auto hip_fact =
-        gko::factorization::Ilu<>::build().on(hip)->generate(csr_hip);
+    auto fact = gko::factorization::Ilu<>::build().on(ref)->generate(mtx);
+    auto dfact = gko::factorization::Ilu<>::build().on(exec)->generate(dmtx);
 
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_l_factor(), hip_fact->get_l_factor(),
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(ref_fact->get_u_factor(), hip_fact->get_u_factor(),
-                        1e-14);
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_l_factor(),
-                               hip_fact->get_l_factor());
-    GKO_ASSERT_MTX_EQ_SPARSITY(ref_fact->get_u_factor(),
-                               hip_fact->get_u_factor());
+    GKO_ASSERT_MTX_NEAR(fact->get_l_factor(), dfact->get_l_factor(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(fact->get_u_factor(), dfact->get_u_factor(), 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_l_factor(), dfact->get_l_factor());
+    GKO_ASSERT_MTX_EQ_SPARSITY(fact->get_u_factor(), dfact->get_u_factor());
 }
 
 
@@ -134,15 +110,12 @@ TEST_F(Ilu, SetsCorrectStrategy)
     auto hip_fact =
         gko::factorization::Ilu<>::build()
             .with_l_strategy(std::make_shared<Csr::merge_path>())
-            .with_u_strategy(std::make_shared<Csr::load_balance>(hip))
-            .on(hip)
-            ->generate(csr_hip);
+            .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
+            .on(exec)
+            ->generate(dmtx);
 
     ASSERT_EQ(hip_fact->get_l_factor()->get_strategy()->get_name(),
               "merge_path");
     ASSERT_EQ(hip_fact->get_u_factor()->get_strategy()->get_name(),
               "load_balance");
 }
-
-
-}  // namespace

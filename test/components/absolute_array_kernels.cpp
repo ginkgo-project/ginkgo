@@ -48,10 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class AbsoluteArray : public ::testing::Test {
+class AbsoluteArray : public CommonTestFixture {
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -59,32 +56,19 @@ protected:
     using value_type = double;
 #endif
     using complex_type = std::complex<value_type>;
-    AbsoluteArray() : total_size(6344) {}
-
-    void SetUp()
+    AbsoluteArray()
+        : total_size(6344),
+          vals{ref, total_size},
+          dvals{exec, total_size},
+          complex_vals{ref, total_size},
+          dcomplex_vals{exec, total_size}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        vals = gko::array<value_type>{ref, total_size};
-        dvals = gko::array<value_type>{exec, total_size};
-        complex_vals = gko::array<complex_type>{ref, total_size};
-        dcomplex_vals = gko::array<complex_type>{exec, total_size};
-
         std::fill_n(vals.get_data(), total_size, -1234.0);
         dvals = vals;
         std::fill_n(complex_vals.get_data(), total_size, complex_type{3, 4});
         dcomplex_vals = complex_vals;
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
     gko::array<value_type> vals;
     gko::array<value_type> dvals;
@@ -141,6 +125,3 @@ TEST_F(AbsoluteArray, OutplaceComplexEqualsReference)
 
     GKO_ASSERT_ARRAY_EQ(abs_vals, dabs_vals);
 }
-
-
-}  // namespace

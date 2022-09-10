@@ -60,10 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class AmgxPgm : public ::testing::Test {
+class AmgxPgm : public CommonTestFixture {
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -78,19 +75,6 @@ protected:
     using Diag = gko::matrix::Diagonal<value_type>;
 
     AmgxPgm() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -174,9 +158,6 @@ protected:
         d_weight_diag = gko::clone(exec, weight_diag);
         d_system_mtx = gko::clone(exec, system_mtx);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -362,6 +343,3 @@ TEST_F(AmgxPgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
-
-
-}  // namespace

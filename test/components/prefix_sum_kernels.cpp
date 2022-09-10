@@ -44,22 +44,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "hip/test/utils.hip.hpp"
+#include "cuda/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class PrefixSum : public ::testing::Test {
+template <typename T>
+class PrefixSum : public CommonTestFixture {
 protected:
-    using index_type = gko::int32;
+    using index_type = T;
+
     PrefixSum()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::HipExecutor::create(0, ref)),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
+        : rand(293), total_size(42793), vals(ref, total_size), dvals(exec)
     {
         std::uniform_int_distribution<index_type> dist(0, 1000);
         for (gko::size_type i = 0; i < total_size; ++i) {
@@ -72,24 +67,32 @@ protected:
     {
         gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
                                                         size);
-        gko::kernels::hip::components::prefix_sum(exec, dvals.get_data(), size);
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+            exec, dvals.get_data(), size);
 
         GKO_ASSERT_ARRAY_EQ(vals, dvals);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> exec;
     std::default_random_engine rand;
     gko::size_type total_size;
     gko::array<index_type> vals;
     gko::array<index_type> dvals;
 };
 
-
-TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
-
-
-TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+TYPED_TEST_SUITE(PrefixSum, gko::test::IndexTypes, TypenameNameGenerator);
 
 
-}  // namespace
+TYPED_TEST(PrefixSum, EqualsReference)
+{
+    using gko::size_type;
+    for (auto size :
+         {size_type{0}, size_type{1}, size_type{100}, this->total_size}) {
+        SCOPED_TRACE(size);
+        gko::kernels::reference::components::prefix_sum(
+            this->ref, this->vals.get_data(), size);
+        gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
+            this->exec, this->dvals.get_data(), size);
+
+        GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
+    }
+}

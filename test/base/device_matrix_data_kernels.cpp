@@ -51,11 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
-class DeviceMatrixData : public ::testing::Test {
+class DeviceMatrixData : public CommonTestFixture {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -63,11 +60,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using nonzero_type = gko::matrix_data_entry<value_type, index_type>;
 
-    DeviceMatrixData() : rand{82754} {}
-
-    void SetUp()
+    DeviceMatrixData() : rand{82754}
     {
-        init_executor(gko::ReferenceExecutor::create(), exec);
         host_data.size = {100, 200};
         std::uniform_int_distribution<index_type> row_distr(
             0, host_data.size[0] - 1);
@@ -115,14 +109,6 @@ protected:
         deduplicated_data.sum_duplicates();
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine rand;
     gko::matrix_data<value_type, index_type> host_data;
     gko::matrix_data<value_type, index_type> sorted_host_data;
@@ -394,6 +380,3 @@ TYPED_TEST(DeviceMatrixData, DoesntSumDuplicatesIfThereAreNone)
     ASSERT_EQ(device_data.copy_to_host().nonzeros,
               this->sorted_host_data.nonzeros);
 }
-
-
-}  // namespace

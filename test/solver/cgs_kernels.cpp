@@ -53,10 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Cgs : public ::testing::Test {
+class Cgs : public CommonTestFixture {
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -67,13 +64,8 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
-    Cgs() : rand_engine(30) {}
-
-    void SetUp()
+    Cgs() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-
         auto data = gko::matrix_data<value_type, index_type>(
             gko::dim<2>{123, 123},
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
@@ -97,13 +89,6 @@ protected:
                         .with_reduction_factor(::r<value_type>::value)
                         .on(ref))
                 .on(ref);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
@@ -166,9 +151,6 @@ protected:
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -330,5 +312,3 @@ TEST_F(Cgs, CgsApplyMultipleRHSIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_b, b, ::r<value_type>::value * 5e3);
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 5e3);
 }
-
-}  // namespace

@@ -581,7 +581,7 @@ struct test_pair {
 
 
 template <typename T>
-class Matrix : public ::testing::Test {
+class Matrix : public CommonTestFixture {
 protected:
     using Config = T;
     using Mtx = typename T::matrix_type;
@@ -592,19 +592,6 @@ protected:
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
     Matrix() : rand_engine(15) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     template <typename DistType>
     gko::matrix_data<value_type, index_type> gen_mtx_data(int num_rows,
@@ -864,9 +851,6 @@ protected:
             run_strided(mtx, 40, 43, 45, guarded_fn);
         }
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 };

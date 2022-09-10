@@ -59,10 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Dense : public ::testing::Test {
+class Dense : public CommonTestFixture {
 protected:
     using itype = int;
 #if GINKGO_COMMON_SINGLE_MODE
@@ -81,19 +78,6 @@ protected:
     using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
 
     Dense() : rand_engine(15) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
@@ -177,9 +161,6 @@ protected:
         input->convert_to(result.get());
         return result;
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -1330,6 +1311,3 @@ TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
 
     GKO_ASSERT_MTX_NEAR(x, dx, r<vtype>::value);
 }
-
-
-}  // namespace

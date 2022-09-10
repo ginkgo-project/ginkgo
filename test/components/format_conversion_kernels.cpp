@@ -44,24 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
-namespace {
-
 
 template <typename IndexType>
-class FormatConversion : public ::testing::Test {
+class FormatConversion : public CommonTestFixture {
 protected:
-    FormatConversion() : rand(293), size(42793) {}
-
-    void SetUp()
+    FormatConversion()
+        : rand(293),
+          size(42793),
+          sizes{ref, size},
+          ptrs{ref, size + 1},
+          idxs{ref}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        sizes.set_executor(ref);
-        ptrs.set_executor(ref);
-        idxs.set_executor(ref);
         std::uniform_int_distribution<int> row_dist{0, 10};
-        sizes.resize_and_reset(size);
-        ptrs.resize_and_reset(size + 1);
         ptrs.get_data()[0] = 0;
         for (gko::size_type i = 0; i < size; i++) {
             sizes.get_data()[i] = row_dist(rand);
@@ -80,15 +74,6 @@ protected:
         idxs.set_executor(exec);
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type size;
     std::default_random_engine rand;
     gko::array<gko::size_type> sizes;
@@ -164,6 +149,3 @@ TYPED_TEST(FormatConversion, ConvertPtrsToSizesIsEquivalentToRef)
 
     GKO_ASSERT_ARRAY_EQ(this->sizes, ref_sizes);
 }
-
-
-}  // namespace

@@ -52,10 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Csr : public ::testing::Test {
+class Csr : public CommonTestFixture {
 protected:
     using itype = int;
 #if GINKGO_COMMON_SINGLE_MODE
@@ -67,19 +64,6 @@ protected:
     using Vec = gko::matrix::Dense<vtype>;
 
     Csr() : rand_engine(15) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
@@ -99,9 +83,6 @@ protected:
         dalpha = Vec::create(exec);
         dalpha->copy_from(alpha.get());
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -135,18 +116,14 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
 
 
 template <typename IndexType>
-class CsrLookup : public ::testing::Test {
+class CsrLookup : public CommonTestFixture {
 public:
     using value_type = float;
     using index_type = IndexType;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 
-    CsrLookup() : rand_engine(15) {}
-
-    void SetUp()
+    CsrLookup() : rand_engine(15)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
         auto data =
             gko::test::generate_random_matrix_data<value_type, index_type>(
                 628, 923, std::uniform_int_distribution<index_type>(10, 300),
@@ -178,16 +155,7 @@ public:
         dstorage_array.set_executor(exec);
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
     std::default_random_engine rand_engine;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> dmtx;
     gko::array<gko::int64> row_desc_array;
@@ -318,6 +286,3 @@ TYPED_TEST(CsrLookup, BuildLookupWorks)
         }
     }
 }
-
-
-}  //  namespace

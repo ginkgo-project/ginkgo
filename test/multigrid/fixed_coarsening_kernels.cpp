@@ -60,10 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class FixedCoarsening : public ::testing::Test {
+class FixedCoarsening : public CommonTestFixture {
 protected:
 #if GINKGO_COMMON_SINGLE_MODE
     using value_type = float;
@@ -74,21 +71,7 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    FixedCoarsening() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        m = 597;
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
+    FixedCoarsening() : rand_engine(30), m{597} {}
 
     gko::array<index_type> gen_coarse_array(gko::size_type num,
                                             gko::size_type num_rows)
@@ -130,9 +113,6 @@ protected:
 
         d_system_mtx = gko::clone(exec, system_mtx);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -204,6 +184,3 @@ TEST_F(FixedCoarsening, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
 }
-
-
-}  // namespace

@@ -37,52 +37,78 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <stdexcept>
 
 
 #include <gtest/gtest.h>
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::ReferenceExecutor>& exec)
+inline std::shared_ptr<gko::ReferenceExecutor> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor>, gko::ReferenceExecutor*)
 {
-    exec = gko::ReferenceExecutor::create();
+    return gko::ReferenceExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::OmpExecutor>& exec)
+inline std::shared_ptr<gko::OmpExecutor> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor>, gko::OmpExecutor*)
 {
-    exec = gko::OmpExecutor::create();
+    return gko::OmpExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::CudaExecutor>& exec)
+inline std::shared_ptr<gko::CudaExecutor> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor> ref, gko::CudaExecutor*)
 {
-    ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    exec = gko::CudaExecutor::create(0, ref);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::HipExecutor>& exec)
-{
-    ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    exec = gko::HipExecutor::create(0, ref);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::DpcppExecutor>& exec)
-{
-    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "gpu");
-    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "cpu");
-    } else {
-        FAIL() << "No suitable DPC++ devices";
+    {
+        if (gko::CudaExecutor::get_num_devices() == 0) {
+            throw std::runtime_error{"No suitable HIP devices"};
+        }
+        return gko::CudaExecutor::create(0, ref);
     }
 }
+
+
+inline std::shared_ptr<gko::HipExecutor> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor> ref, gko::HipExecutor*)
+{
+    if (gko::HipExecutor::get_num_devices() == 0) {
+        throw std::runtime_error{"No suitable HIP devices"};
+    }
+    return gko::HipExecutor::create(0, ref);
+}
+
+
+inline std::shared_ptr<gko::DpcppExecutor> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor> ref, gko::DpcppExecutor*)
+{
+    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
+        return gko::DpcppExecutor::create(0, ref, "gpu");
+    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+        return gko::DpcppExecutor::create(0, ref, "cpu");
+    } else {
+        throw std::runtime_error{"No suitable DPC++ devices"};
+    }
+}
+
+
+class CommonTestFixture : public ::testing::Test {
+public:
+    CommonTestFixture()
+        : ref{gko::ReferenceExecutor::create()},
+          exec{init_executor(ref, static_cast<gko::EXEC_TYPE*>(nullptr))}
+    {}
+
+    void TearDown() final
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
+};
 
 
 #endif  // GKO_TEST_UTILS_EXECUTOR_HPP_

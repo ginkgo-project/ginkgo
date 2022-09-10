@@ -56,7 +56,7 @@ namespace {
 
 
 template <typename ValueIndexType>
-class Cholesky : public ::testing::Test {
+class Cholesky : public CommonTestFixture {
 protected:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
@@ -64,12 +64,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
 
-    void SetUp()
+    Cholesky() : tmp{ref}, dtmp{exec}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        dtmp.set_executor(ref);
-        dtmp.set_executor(exec);
         matrices.emplace_back("example", gko::initialize<matrix_type>(
                                              {{1, 0, 1, 0, 0, 0, 0, 1, 0, 0},
                                               {0, 1, 0, 1, 0, 0, 0, 0, 0, 1},
@@ -101,15 +97,6 @@ protected:
                               gko::read<matrix_type>(ani1_amd_stream, ref));
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::vector<std::pair<std::string, std::unique_ptr<const matrix_type>>>
         matrices;
     gko::array<index_type> tmp;
