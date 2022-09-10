@@ -57,6 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
+#include "common/cuda_hip/components/load_store.hpp.inc"
+
 
 namespace gko {
 namespace solver {
@@ -330,46 +332,6 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 constexpr int default_block_size = 512;
 constexpr int fallback_block_size = 32;
-
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
-    load(const ValueType* values, IndexType index)
-{
-    const volatile ValueType* val = values + index;
-    return *val;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ std::enable_if_t<
-    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
-load(const thrust::complex<ValueType>* values, IndexType index)
-{
-    auto real = reinterpret_cast<const ValueType*>(values);
-    auto imag = real + 1;
-    return {load(real, 2 * index), load(imag, 2 * index)};
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(
-    ValueType* values, IndexType index,
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
-{
-    volatile ValueType* val = values + index;
-    *val = value;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
-                                      IndexType index,
-                                      thrust::complex<ValueType> value)
-{
-    auto real = reinterpret_cast<ValueType*>(values);
-    auto imag = real + 1;
-    store(real, 2 * index, value.real());
-    store(imag, 2 * index, value.imag());
-}
 
 
 template <bool is_upper, typename ValueType, typename IndexType>
