@@ -33,48 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
-
-// load and store functions by written by Tobias to deal with volatile pointer
-// compilation errors taken from file: (cuda/solver/common_trs_kernels.cuh)
-// TODO: Put these in an appropriate file
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
-    load(const ValueType* values, IndexType index)
-{
-    const volatile ValueType* val = values + index;
-    return *val;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ std::enable_if_t<
-    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
-load(const thrust::complex<ValueType>* values, IndexType index)
-{
-    auto real = reinterpret_cast<const ValueType*>(values);
-    auto imag = real + 1;
-    return {load(real, 2 * index), load(imag, 2 * index)};
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(
-    ValueType* values, IndexType index,
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
-{
-    volatile ValueType* val = values + index;
-    *val = value;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
-                                      IndexType index,
-                                      thrust::complex<ValueType> value)
-{
-    auto real = reinterpret_cast<ValueType*>(values);
-    auto imag = real + 1;
-    store(real, 2 * index, value.real());
-    store(imag, 2 * index, value.imag());
-}
+#include "common/cuda_hip/components/load_store.hpp.inc"
 
 }  // namespace
 
