@@ -40,6 +40,10 @@ void init_dense(py::module_& module_matrix)
         .def(py::init([](std::shared_ptr<gko::Executor> exec, py::buffer b) {
             /* Request a buffer descriptor from Python */
             py::buffer_info info = b.request();
+
+            if (info.format != py::format_descriptor<ValueType>::format())
+                throw std::runtime_error("Incompatible dtype");
+
             auto ref = gko::ReferenceExecutor::create();
 
             /* create a view into numpy data */
@@ -83,6 +87,22 @@ void init_dense(py::module_& module_matrix)
                  str += std::to_string(o.get_num_stored_elements());
                  return str;
              })
+        .def(
+            "copy_to_host",
+            [](gko::matrix::Dense<ValueType>& m) {
+                if (m.get_executor() != m.get_executor()->get_master()) {
+                    auto host_dense_temp = gko::make_temporary_clone<
+                        gko::matrix::Dense<ValueType>>(
+                        m.get_executor()->get_master(), &m);
+
+                    auto host_dense =
+                        gko::share(gko::matrix::Dense<ValueType>::create(
+                            *host_dense_temp.get()));
+                    return host_dense;
+                } else {
+                    return gko::share(gko::matrix::Dense<ValueType>::create(m));
+                }
+            })
         .def_buffer([](gko::matrix::Dense<ValueType>& m) -> py::buffer_info {
             // buffer info needs data on host, thus if data is on device it
             // should be copied to host first
@@ -90,10 +110,15 @@ void init_dense(py::module_& module_matrix)
             size_t cols = m.get_stride();
             size_t dim = (m.get_stride() == 1) ? 1 : 2;
 
-            // TODO move to host if on device
+            ValueType* buffer_ptr = nullptr;
+            if (m.get_executor() != m.get_executor()->get_master()) {
+                GKO_NOT_IMPLEMENTED;
+            }
+            buffer_ptr = m.get_values();
+
             if (dim == 1) {
                 return py::buffer_info(
-                    m.get_values(),    /* Pointer to buffer */
+                    buffer_ptr,        /* Pointer to buffer */
                     sizeof(ValueType), /* Size of one scalar */
                     py::format_descriptor<ValueType>::format(), /* Python
                                                                 struct-style
@@ -105,7 +130,7 @@ void init_dense(py::module_& module_matrix)
                 );
             } else {
                 return py::buffer_info(
-                    m.get_values(),    /* Pointer to buffer */
+                    buffer_ptr,        /* Pointer to buffer */
                     sizeof(ValueType), /* Size of one scalar */
                     py::format_descriptor<ValueType>::format(), /* Python
                                                                 struct-style
