@@ -59,7 +59,7 @@ public:
      */
     batch_exact_ilu(
         const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
-        const int* const csr_diag_locs)
+        const int* const csr_diag_locs, const bool dummy = true)
         : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
     {}
 

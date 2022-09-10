@@ -98,7 +98,8 @@ void apply_exact_ilu(
     const auto factored_matrix_batch = get_batch_struct(factored_matrix);
     using d_value_type = cuda_type<ValueType>;
     using prec_type = batch_exact_ilu<d_value_type>;
-    prec_type prec(factored_matrix_batch, diag_locs);
+    bool is_fallback_required = true;
+    prec_type prec(factored_matrix_batch, diag_locs, is_fallback_required);
 
     batch_exact_ilu_apply<<<nbatch, default_block_size,
                             prec_type::dynamic_work_size(num_rows, 0) *
