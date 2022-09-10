@@ -244,10 +244,13 @@ public:
                 device::get_batch_struct(prec->get_const_factorized_matrix());
             const auto diag_locs = prec->get_const_diag_locations();
 
-            dispatch_on_stop(logger, amat,
-                             device::batch_exact_ilu<device_value_type>(
-                                 factorized_mat, diag_locs),
-                             b_b, x_b);
+            bool is_fallback_required = true;
+
+            dispatch_on_stop(
+                logger, amat,
+                device::batch_exact_ilu<device_value_type>(
+                    factorized_mat, diag_locs, is_fallback_required),
+                b_b, x_b);
 
         } else {
             GKO_NOT_IMPLEMENTED;
