@@ -105,6 +105,7 @@ public:
         work_ = work;
     }
 
+
     __device__ __forceinline__ void apply(const int num_rows,
                                           const ValueType* const __restrict__ r,
                                           ValueType* const __restrict__ z) const
@@ -138,9 +139,6 @@ public:
             }
         }*/
 
-        // TODO: Add kernels for volta architecture and its successors (which
-        // make use of independent thread scheduling)
-
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
             work_[i] =
                 nan<ValueType>();  // TODO: find a better way to deal with this!
@@ -148,60 +146,103 @@ public:
         }
 
         // L * work_ = r
-        int row_index = threadIdx.x;
-        if (row_index < num_rows) {
-            ValueType sum = 0;
+        // U * z = work_
+        if (!is_fallback_required_) {
+            //  Kernels for volta architecture and its successors
+            //  (make use of independent thread scheduling)
+            int row_index = threadIdx.x;
+            if (row_index < num_rows) {
+                ValueType sum = 0;
+                const int start = row_ptrs[row_index];
+                const int end = csr_diag_locs_[row_index];
 
-            const int start = row_ptrs[row_index];
-            const int end = csr_diag_locs_[row_index];
-
-            int i = start;
-            bool completed = false;
-
-            while (!completed) {
-                const int col_index = col_idxs[i];
-
-                if (i < end && is_finite(load(work_, col_index))) {
+                for (int i = start; i < end; i++) {
+                    const int col_index = col_idxs[i];
+                    while (!is_finite(load(work_, col_index))) {
+                    }
                     sum += factored_values_entry[i] * load(work_, col_index);
-                    i++;
+                }
+                ValueType val = r[row_index] - sum;
+                store(work_, row_index, val);
+            }
+
+            __syncthreads();
+
+            row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+
+            if (row_index >= 0) {
+                ValueType sum = 0;
+                const int start = csr_diag_locs_[row_index];
+                const int end = row_ptrs[row_index + 1] - 1;
+
+                for (int i = end; i > start; i--) {
+                    const int col_index = col_idxs[i];
+                    while (!is_finite(load(z, col_index))) {
+                    }
+                    sum += factored_values_entry[i] * load(z, col_index);
                 }
 
-                if (i == end) {
-                    ValueType val =
-                        (r[row_index] - sum) /
-                        1;  // 1 in place of factored_values_entry[end]
-                    store(work_, row_index, val);
-                    completed = true;
+                ValueType val =
+                    (work_[row_index] - sum) / factored_values_entry[start];
+                store(z, row_index, val);
+            }
+
+        } else {
+            int row_index = threadIdx.x;
+            if (row_index < num_rows) {
+                ValueType sum = 0;
+
+                const int start = row_ptrs[row_index];
+                const int end = csr_diag_locs_[row_index];
+
+                int i = start;
+                bool completed = false;
+
+                while (!completed) {
+                    const int col_index = col_idxs[i];
+
+                    if (i < end && is_finite(load(work_, col_index))) {
+                        sum +=
+                            factored_values_entry[i] * load(work_, col_index);
+                        i++;
+                    }
+
+                    if (i == end) {
+                        ValueType val =
+                            (r[row_index] - sum) /
+                            1;  // 1 in place of factored_values_entry[end]
+                        store(work_, row_index, val);
+                        completed = true;
+                    }
                 }
             }
-        }
 
-        __syncthreads();
+            __syncthreads();
 
-        // U * z = work_
-        row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-        if (row_index >= 0) {
-            ValueType sum = 0;
+            row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+            if (row_index >= 0) {
+                ValueType sum = 0;
 
-            const int start = csr_diag_locs_[row_index];
-            const int end = row_ptrs[row_index + 1] - 1;
-            int i = end;
+                const int start = csr_diag_locs_[row_index];
+                const int end = row_ptrs[row_index + 1] - 1;
+                int i = end;
 
-            bool completed = false;
+                bool completed = false;
 
-            while (!completed) {
-                const int col_index = col_idxs[i];
+                while (!completed) {
+                    const int col_index = col_idxs[i];
 
-                if (i > start && is_finite(load(z, col_index))) {
-                    sum += factored_values_entry[i] * load(z, col_index);
-                    i--;
-                }
+                    if (i > start && is_finite(load(z, col_index))) {
+                        sum += factored_values_entry[i] * load(z, col_index);
+                        i--;
+                    }
 
-                if (i == start) {
-                    ValueType val =
-                        (work_[row_index] - sum) / factored_values_entry[start];
-                    store(z, row_index, val);
-                    completed = true;
+                    if (i == start) {
+                        ValueType val = (work_[row_index] - sum) /
+                                        factored_values_entry[start];
+                        store(z, row_index, val);
+                        completed = true;
+                    }
                 }
             }
         }
