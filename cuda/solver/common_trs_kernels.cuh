@@ -59,6 +59,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/volatile.cuh"
 
+#include "common/cuda_hip/components/load_store.hpp.inc"
+
 
 namespace gko {
 namespace solver {
