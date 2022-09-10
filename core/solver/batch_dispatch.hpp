@@ -246,6 +246,19 @@ public:
 
             bool is_fallback_required = true;
 
+#if defined GKO_COMPILING_CUDA
+
+            const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
+                lend(precon_->get_executor()));
+            // const auto exec = as<const
+            // gko::CudaExecutor>(precon_->get_executor());
+            if (exec->get_major_version() >= 7) {
+                is_fallback_required = false;
+            }
+
+#endif
+
+
             dispatch_on_stop(
                 logger, amat,
                 device::batch_exact_ilu<device_value_type>(
