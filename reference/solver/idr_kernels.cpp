@@ -153,12 +153,14 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_rows = subspace_vectors->get_size()[0];
     const auto num_cols = subspace_vectors->get_size()[1];
     auto dist = std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0);
-    auto seed = deterministic ? 15 : time(NULL);
+    auto seed = std::random_device{}();
     auto gen = std::default_random_engine(seed);
     for (size_type row = 0; row < num_rows; row++) {
-        for (size_type col = 0; col < num_cols; col++) {
-            subspace_vectors->at(row, col) =
-                get_rand_value<ValueType>(dist, gen);
+        if (!deterministic) {
+            for (size_type col = 0; col < num_cols; col++) {
+                subspace_vectors->at(row, col) =
+                    get_rand_value<ValueType>(dist, gen);
+            }
         }
 
         for (size_type i = 0; i < row; i++) {

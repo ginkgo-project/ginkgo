@@ -93,14 +93,9 @@ template <typename ValueType>
 void initialize_subspace_vectors(matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
-    if (deterministic) {
-        auto subspace_vectors_data = matrix_data<ValueType>(
-            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
-            std::default_random_engine(15));
-        subspace_vectors->read(subspace_vectors_data);
-    } else {
-        auto gen =
-            curand::rand_generator(time(NULL), CURAND_RNG_PSEUDO_DEFAULT);
+    if (!deterministic) {
+        auto gen = curand::rand_generator(std::random_device{}(),
+                                          CURAND_RNG_PSEUDO_DEFAULT);
         curand::rand_vector(
             gen,
             subspace_vectors->get_size()[0] * subspace_vectors->get_stride(),

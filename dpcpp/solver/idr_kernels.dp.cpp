@@ -624,14 +624,8 @@ void initialize_subspace_vectors(std::shared_ptr<const DpcppExecutor> exec,
                                  matrix::Dense<ValueType>* subspace_vectors,
                                  bool deterministic)
 {
-    if (deterministic) {
-        auto subspace_vectors_data = matrix_data<ValueType>(
-            subspace_vectors->get_size(),
-            std::normal_distribution<remove_complex<ValueType>>(0.0, 1.0),
-            std::default_random_engine(15));
-        subspace_vectors->read(subspace_vectors_data);
-    } else {
-        auto seed = time(NULL);
+    if (!deterministic) {
+        auto seed = std::random_device{}();
         auto work = reinterpret_cast<remove_complex<ValueType>*>(
             subspace_vectors->get_values());
         auto n =
