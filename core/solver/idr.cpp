@@ -155,6 +155,12 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     // Initialization
     // m = identity
+    if (is_deterministic) {
+        auto subspace_vectors_data = matrix_data<SubspaceType>(
+            subspace_vectors->get_size(), std::normal_distribution<>(0.0, 1.0),
+            std::default_random_engine(15));
+        subspace_vectors->read(subspace_vectors_data);
+    }
     exec->run(idr::make_initialize(nrhs, m, subspace_vectors, is_deterministic,
                                    &stop_status));
 
