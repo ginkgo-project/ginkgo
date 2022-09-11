@@ -46,14 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/matrix/fbcsr_sample.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/fb_matrix_generator.hpp"
-#include "cuda/test/utils.hpp"
-
-
-namespace {
+#include "test/utils/executor.hpp"
 
 
 template <typename T>
-class Fbcsr : public ::testing::Test {
+class Fbcsr : public CommonTestFixture {
 protected:
     using value_type = T;
     using index_type = int;
@@ -61,32 +58,17 @@ protected:
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
 
-    Fbcsr() : distb(), engine(42) {}
-
-    void SetUp()
+    Fbcsr() : distb(), engine(42)
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
         const index_type rand_brows = 100;
         const index_type rand_bcols = 70;
         const int block_size = 3;
-        rsorted_ref = gko::test::generate_random_fbcsr<value_type, index_type>(
+        rsorted = gko::test::generate_random_fbcsr<value_type, index_type>(
             ref, rand_brows, rand_bcols, block_size, false, false,
             std::default_random_engine(43));
     }
 
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
-
-    std::unique_ptr<const Mtx> rsorted_ref;
+    std::unique_ptr<const Mtx> rsorted;
 
     std::normal_distribution<gko::remove_complex<T>> distb;
     std::default_random_engine engine;
@@ -117,13 +99,13 @@ TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
     using index_type = typename Mtx::index_type;
     using MatData = gko::matrix_data<value_type, index_type>;
     gko::testing::FbcsrSample<value_type, index_type> sample(this->ref);
-    auto refmat = sample.generate_fbcsr();
-    auto cudamat = gko::clone(this->cuda, refmat);
+    auto mat = sample.generate_fbcsr();
+    auto dmat = gko::clone(this->exec, mat);
     MatData refdata;
     MatData cudadata;
 
-    refmat->write(refdata);
-    cudamat->write(cudadata);
+    mat->write(refdata);
+    dmat->write(cudadata);
 
     ASSERT_TRUE(refdata.nonzeros == cudadata.nonzeros);
 }
@@ -134,13 +116,13 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS3)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto trans_ref_linop = this->rsorted_ref->transpose();
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto trans_ref_linop = this->rsorted->transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
 
-    auto trans_cuda_linop = rand_cuda->transpose();
+    auto trans_cuda_linop = drand->transpose();
     std::unique_ptr<const Mtx> trans_cuda =
         gko::as<const Mtx>(std::move(trans_cuda_linop));
 
@@ -154,20 +136,19 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_cuda = Mtx::create(this->cuda);
+    auto drand = Mtx::create(this->exec);
     const index_type rand_brows = 50;
     const index_type rand_bcols = 40;
     const int block_size = 7;
-    auto rsorted_ref2 =
-        gko::test::generate_random_fbcsr<value_type, index_type>(
-            this->ref, rand_brows, rand_bcols, block_size, false, false,
-            std::default_random_engine(43));
-    rand_cuda->copy_from(gko::lend(rsorted_ref2));
+    auto rsorted2 = gko::test::generate_random_fbcsr<value_type, index_type>(
+        this->ref, rand_brows, rand_bcols, block_size, false, false,
+        std::default_random_engine(43));
+    drand->copy_from(gko::lend(rsorted2));
 
-    auto trans_ref_linop = rsorted_ref2->transpose();
+    auto trans_ref_linop = rsorted2->transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
-    auto trans_cuda_linop = rand_cuda->transpose();
+    auto trans_cuda_linop = drand->transpose();
     std::unique_ptr<const Mtx> trans_cuda =
         gko::as<const Mtx>(std::move(trans_cuda_linop));
 
@@ -181,19 +162,19 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto x_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto x_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
     this->generate_sin(x_ref.get());
-    auto x_cuda = Dense::create(this->cuda);
+    auto x_cuda = Dense::create(this->exec);
     x_cuda->copy_from(x_ref.get());
-    auto prod_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
-    auto prod_cuda = Dense::create(this->cuda, prod_ref->get_size());
+    auto prod_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 1));
+    auto prod_cuda = Dense::create(this->exec, prod_ref->get_size());
 
-    rand_cuda->apply(x_cuda.get(), prod_cuda.get());
-    this->rsorted_ref->apply(x_ref.get(), prod_ref.get());
+    drand->apply(x_cuda.get(), prod_cuda.get());
+    this->rsorted->apply(x_ref.get(), prod_ref.get());
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
@@ -205,19 +186,19 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
     using value_type = typename Mtx::value_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto x_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto x_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
     this->generate_sin(x_ref.get());
-    auto x_cuda = Dense::create(this->cuda);
+    auto x_cuda = Dense::create(this->exec);
     x_cuda->copy_from(x_ref.get());
-    auto prod_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
-    auto prod_cuda = Dense::create(this->cuda, prod_ref->get_size());
+    auto prod_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 3));
+    auto prod_cuda = Dense::create(this->exec, prod_ref->get_size());
 
-    rand_cuda->apply(x_cuda.get(), prod_cuda.get());
-    this->rsorted_ref->apply(x_ref.get(), prod_ref.get());
+    drand->apply(x_cuda.get(), prod_cuda.get());
+    this->rsorted->apply(x_ref.get(), prod_ref.get());
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
@@ -230,31 +211,31 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto x_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto x_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 1));
     this->generate_sin(x_ref.get());
-    auto x_cuda = Dense::create(this->cuda);
+    auto x_cuda = Dense::create(this->exec);
     x_cuda->copy_from(x_ref.get());
-    auto prod_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
+    auto prod_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 1));
     this->generate_sin(prod_ref.get());
-    auto prod_cuda = Dense::create(this->cuda);
+    auto prod_cuda = Dense::create(this->exec);
     prod_cuda->copy_from(prod_ref.get());
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->cuda);
+    auto alpha = Dense::create(this->exec);
     alpha->copy_from(alpha_ref.get());
-    auto beta = Dense::create(this->cuda);
+    auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref.get());
 
-    rand_cuda->apply(alpha.get(), x_cuda.get(), beta.get(), prod_cuda.get());
-    this->rsorted_ref->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
-                             prod_ref.get());
+    drand->apply(alpha.get(), x_cuda.get(), beta.get(), prod_cuda.get());
+    this->rsorted->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
+                         prod_ref.get());
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
@@ -267,31 +248,31 @@ TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
     using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto x_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto x_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[1], 3));
     this->generate_sin(x_ref.get());
-    auto x_cuda = Dense::create(this->cuda);
+    auto x_cuda = Dense::create(this->exec);
     x_cuda->copy_from(x_ref.get());
-    auto prod_ref = Dense::create(
-        this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
+    auto prod_ref =
+        Dense::create(this->ref, gko::dim<2>(this->rsorted->get_size()[0], 3));
     this->generate_sin(prod_ref.get());
-    auto prod_cuda = Dense::create(this->cuda);
+    auto prod_cuda = Dense::create(this->exec);
     prod_cuda->copy_from(prod_ref.get());
     auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
     auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->cuda);
+    auto alpha = Dense::create(this->exec);
     alpha->copy_from(alpha_ref.get());
-    auto beta = Dense::create(this->cuda);
+    auto beta = Dense::create(this->exec);
     beta->copy_from(beta_ref.get());
 
-    rand_cuda->apply(alpha.get(), x_cuda.get(), beta.get(), prod_cuda.get());
-    this->rsorted_ref->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
-                             prod_ref.get());
+    drand->apply(alpha.get(), x_cuda.get(), beta.get(), prod_cuda.get());
+    this->rsorted->apply(alpha_ref.get(), x_ref.get(), beta_ref.get(),
+                         prod_ref.get());
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(prod_ref, prod_cuda, 5 * tol);
@@ -303,13 +284,13 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
-    auto trans_ref_linop = this->rsorted_ref->conj_transpose();
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
+    auto trans_ref_linop = this->rsorted->conj_transpose();
     std::unique_ptr<const Mtx> trans_ref =
         gko::as<const Mtx>(std::move(trans_ref_linop));
 
-    auto trans_cuda_linop = rand_cuda->conj_transpose();
+    auto trans_cuda_linop = drand->conj_transpose();
     std::unique_ptr<const Mtx> trans_cuda =
         gko::as<const Mtx>(std::move(trans_cuda_linop));
 
@@ -321,10 +302,10 @@ TYPED_TEST(Fbcsr, ConjTransposeIsEquivalentToRefSortedBS3)
 TYPED_TEST(Fbcsr, RecognizeSortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
 
-    ASSERT_TRUE(rand_cuda->is_sorted_by_column_index());
+    ASSERT_TRUE(drand->is_sorted_by_column_index());
 }
 
 
@@ -332,10 +313,10 @@ TYPED_TEST(Fbcsr, RecognizeUnsortedMatrix)
 {
     using Mtx = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
-    auto mat = this->rsorted_ref->clone();
+    auto mat = this->rsorted->clone();
     index_type* const colinds = mat->get_col_idxs();
     std::swap(colinds[0], colinds[1]);
-    auto unsrt_cuda = Mtx::create(this->cuda);
+    auto unsrt_cuda = Mtx::create(this->exec);
     unsrt_cuda->copy_from(gko::lend(mat));
 
     ASSERT_FALSE(unsrt_cuda->is_sorted_by_column_index());
@@ -347,15 +328,15 @@ TYPED_TEST(Fbcsr, InplaceAbsoluteMatrixIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
     auto rand_ref = Mtx::create(this->ref);
-    rand_ref->copy_from(this->rsorted_ref.get());
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+    rand_ref->copy_from(this->rsorted.get());
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
 
     rand_ref->compute_absolute_inplace();
-    rand_cuda->compute_absolute_inplace();
+    drand->compute_absolute_inplace();
 
     const double tol = r<value_type>::value;
-    GKO_ASSERT_MTX_NEAR(rand_ref, rand_cuda, tol);
+    GKO_ASSERT_MTX_NEAR(rand_ref, drand, tol);
 }
 
 
@@ -363,15 +344,12 @@ TYPED_TEST(Fbcsr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename Mtx::value_type;
-    auto rand_cuda = Mtx::create(this->cuda);
-    rand_cuda->copy_from(gko::lend(this->rsorted_ref));
+    auto drand = Mtx::create(this->exec);
+    drand->copy_from(gko::lend(this->rsorted));
 
-    auto abs_mtx = this->rsorted_ref->compute_absolute();
-    auto dabs_mtx = rand_cuda->compute_absolute();
+    auto abs_mtx = this->rsorted->compute_absolute();
+    auto dabs_mtx = drand->compute_absolute();
 
     const double tol = r<value_type>::value;
     GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, tol);
 }
-
-
-}  // namespace
