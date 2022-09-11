@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/idr.hpp>
 
 
+#include <fstream>
 #include <random>
 
 
@@ -42,7 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -50,29 +55,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/idr_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
+// use another alias to avoid conflict name in the Idr
+template <typename Precision, typename OutputType = Precision>
+using rr = typename gko::test::reduction_factor<Precision, OutputType>;
 
 
-class Idr : public ::testing::Test {
+class Idr : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Idr<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Idr<value_type>;
 
-    Idr() : rand_engine(30) {}
-
-    void SetUp()
+    Idr() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-
-        hip_idr_factory =
+        exec_idr_factory =
             Solver::build()
                 .with_deterministic(true)
                 .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(1u).on(hip))
-                .on(hip);
+                    gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+                .on(exec);
 
         ref_idr_factory =
             Solver::build()
@@ -82,19 +90,13 @@ protected:
                 .on(ref);
     }
 
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
-
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+            rand_engine, ref);
     }
 
     void initialize_data(int size = 597, int input_nrhs = 17)
@@ -122,33 +124,30 @@ protected:
             stop_status->get_data()[i].reset();
         }
 
-        d_mtx = gko::clone(hip, mtx);
-        d_x = gko::clone(hip, x);
-        d_b = gko::clone(hip, b);
-        d_r = gko::clone(hip, r);
-        d_m = gko::clone(hip, m);
-        d_f = gko::clone(hip, f);
-        d_g = gko::clone(hip, g);
-        d_u = gko::clone(hip, u);
-        d_c = gko::clone(hip, c);
-        d_v = gko::clone(hip, v);
-        d_p = gko::clone(hip, p);
-        d_alpha = gko::clone(hip, alpha);
-        d_omega = gko::clone(hip, omega);
-        d_tht = gko::clone(hip, tht);
-        d_residual_norm = gko::clone(hip, residual_norm);
+        d_mtx = gko::clone(exec, mtx);
+        d_x = gko::clone(exec, x);
+        d_b = gko::clone(exec, b);
+        d_r = gko::clone(exec, r);
+        d_m = gko::clone(exec, m);
+        d_f = gko::clone(exec, f);
+        d_g = gko::clone(exec, g);
+        d_u = gko::clone(exec, u);
+        d_c = gko::clone(exec, c);
+        d_v = gko::clone(exec, v);
+        d_p = gko::clone(exec, p);
+        d_alpha = gko::clone(exec, alpha);
+        d_omega = gko::clone(exec, omega);
+        d_tht = gko::clone(exec, tht);
+        d_residual_norm = gko::clone(exec, residual_norm);
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
-            hip, *stop_status);
+            exec, *stop_status);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::default_random_engine rand_engine;
 
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> d_mtx;
-    std::unique_ptr<Solver::Factory> hip_idr_factory;
+    std::unique_ptr<Solver::Factory> exec_idr_factory;
     std::unique_ptr<Solver::Factory> ref_idr_factory;
 
     gko::size_type nrhs;
@@ -193,11 +192,11 @@ TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 
     gko::kernels::reference::idr::initialize(ref, nrhs, m.get(), p.get(), true,
                                              stop_status.get());
-    gko::kernels::hip::idr::initialize(hip, nrhs, d_m.get(), d_p.get(), true,
-                                       d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::idr::initialize(
+        exec, nrhs, d_m.get(), d_p.get(), true, d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(m, d_m, 1e-14);
-    GKO_ASSERT_MTX_NEAR(p, d_p, 1e-14);
+    GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(p, d_p, rr<value_type>::value);
 }
 
 
@@ -209,12 +208,12 @@ TEST_F(Idr, IdrStep1IsEquivalentToRef)
     gko::kernels::reference::idr::step_1(ref, nrhs, k, m.get(), f.get(),
                                          r.get(), g.get(), c.get(), v.get(),
                                          stop_status.get());
-    gko::kernels::hip::idr::step_1(hip, nrhs, k, d_m.get(), d_f.get(),
-                                   d_r.get(), d_g.get(), d_c.get(), d_v.get(),
-                                   d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::idr::step_1(
+        exec, nrhs, k, d_m.get(), d_f.get(), d_r.get(), d_g.get(), d_c.get(),
+        d_v.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(c, d_c, 1e-14);
-    GKO_ASSERT_MTX_NEAR(v, d_v, 1e-14);
+    GKO_ASSERT_MTX_NEAR(c, d_c, rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
 }
 
 
@@ -225,10 +224,11 @@ TEST_F(Idr, IdrStep2IsEquivalentToRef)
     gko::size_type k = 2;
     gko::kernels::reference::idr::step_2(ref, nrhs, k, omega.get(), v.get(),
                                          c.get(), u.get(), stop_status.get());
-    gko::kernels::hip::idr::step_2(hip, nrhs, k, d_omega.get(), d_v.get(),
-                                   d_c.get(), d_u.get(), d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::idr::step_2(exec, nrhs, k, d_omega.get(),
+                                              d_v.get(), d_c.get(), d_u.get(),
+                                              d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(u, d_u, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
 }
 
 
@@ -240,17 +240,17 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
     gko::kernels::reference::idr::step_3(
         ref, nrhs, k, p.get(), g.get(), v.get(), u.get(), m.get(), f.get(),
         alpha.get(), r.get(), x.get(), stop_status.get());
-    gko::kernels::hip::idr::step_3(
-        hip, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
+    gko::kernels::EXEC_NAMESPACE::idr::step_3(
+        exec, nrhs, k, d_p.get(), d_g.get(), d_v.get(), d_u.get(), d_m.get(),
         d_f.get(), d_alpha.get(), d_r.get(), d_x.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(g, d_g, 2 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(v, d_v, 2 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(u, d_u, 2 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(m, d_m, 2 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(f, d_f, 150 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(r, d_r, 50 * 1e-14);
-    GKO_ASSERT_MTX_NEAR(x, d_x, 50 * 1e-14);
+    GKO_ASSERT_MTX_NEAR(g, d_g, 10 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v, d_v, 10 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u, d_u, 10 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(m, d_m, 10 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(f, d_f, 400 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(r, d_r, 150 * rr<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(x, d_x, 150 * rr<value_type>::value);
 }
 
 
@@ -262,11 +262,11 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
     gko::kernels::reference::idr::compute_omega(ref, nrhs, kappa, tht.get(),
                                                 residual_norm.get(),
                                                 omega.get(), stop_status.get());
-    gko::kernels::hip::idr::compute_omega(hip, nrhs, kappa, d_tht.get(),
-                                          d_residual_norm.get(), d_omega.get(),
-                                          d_stop_status.get());
+    gko::kernels::EXEC_NAMESPACE::idr::compute_omega(
+        exec, nrhs, kappa, d_tht.get(), d_residual_norm.get(), d_omega.get(),
+        d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(omega, d_omega, 1e-14);
+    GKO_ASSERT_MTX_NEAR(omega, d_omega, rr<value_type>::value);
 }
 
 
@@ -274,26 +274,26 @@ TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
     initialize_data(123, 1);
     auto ref_solver = ref_idr_factory->generate(mtx);
-    auto hip_solver = hip_idr_factory->generate(d_mtx);
+    auto exec_solver = exec_idr_factory->generate(d_mtx);
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
 }
 
 
 TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
 {
     initialize_data(123, 1);
-    hip_idr_factory =
+    exec_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(hip))
-            .on(hip);
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec);
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -302,40 +302,40 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceOneRHSIsEquivalentToRef)
                 gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
     auto ref_solver = ref_idr_factory->generate(mtx);
-    auto hip_solver = hip_idr_factory->generate(d_mtx);
+    auto exec_solver = exec_idr_factory->generate(d_mtx);
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 100);
 }
 
 
 TEST_F(Idr, IdrIterationMultipleRHSIsEquivalentToRef)
 {
     initialize_data(123, 16);
-    auto hip_solver = hip_idr_factory->generate(d_mtx);
+    auto exec_solver = exec_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-12);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 500);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 500);
 }
 
 
 TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
 {
     initialize_data(123, 16);
-    hip_idr_factory =
+    exec_idr_factory =
         Solver::build()
             .with_deterministic(true)
             .with_complex_subspace(true)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(hip))
-            .on(hip);
+                gko::stop::Iteration::build().with_max_iters(1u).on(exec))
+            .on(exec);
     ref_idr_factory =
         Solver::build()
             .with_deterministic(true)
@@ -343,15 +343,12 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(ref))
             .on(ref);
-    auto hip_solver = hip_idr_factory->generate(d_mtx);
+    auto exec_solver = exec_idr_factory->generate(d_mtx);
     auto ref_solver = ref_idr_factory->generate(mtx);
 
     ref_solver->apply(b.get(), x.get());
-    hip_solver->apply(d_b.get(), d_x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, 1e-13);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
 }
-
-
-}  // namespace
