@@ -45,14 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "cuda/test/utils.hpp"
-
-
-namespace {
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
 template <typename ValueType>
-class Fft : public ::testing::Test {
+class Fft : public CommonTestFixture {
 protected:
     using value_type = ValueType;
     using Vec = gko::matrix::Dense<value_type>;
@@ -69,48 +67,32 @@ protected:
           cols{3},
           subcols{2},
           out_stride{6}
-    {}
-
-    void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-
         data = gko::test::generate_random_matrix<Vec>(
             n, cols, std::uniform_int_distribution<>(1, cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-        ddata = Vec::create(cuda);
+        ddata = Vec::create(exec);
         ddata->copy_from(this->data.get());
         data_strided = data->create_submatrix({0, n}, {0, subcols});
         ddata_strided = ddata->create_submatrix({0, n}, {0, subcols});
         out = data->clone();
         dout = data->clone();
         out_strided = Vec::create(ref, data_strided->get_size(), out_stride);
-        dout_strided = Vec::create(cuda, data_strided->get_size(), out_stride);
+        dout_strided = Vec::create(exec, data_strided->get_size(), out_stride);
         fft = Mtx::create(ref, n);
-        dfft = Mtx::create(cuda, n);
+        dfft = Mtx::create(exec, n);
         ifft = Mtx::create(ref, n, true);
-        difft = Mtx::create(cuda, n, true);
+        difft = Mtx::create(exec, n, true);
         fft2 = Mtx2::create(ref, n1 * n2, n3);
-        dfft2 = Mtx2::create(cuda, n1 * n2, n3);
+        dfft2 = Mtx2::create(exec, n1 * n2, n3);
         ifft2 = Mtx2::create(ref, n1 * n2, n3, true);
-        difft2 = Mtx2::create(cuda, n1 * n2, n3, true);
+        difft2 = Mtx2::create(exec, n1 * n2, n3, true);
         fft3 = Mtx3::create(ref, n1, n2, n3);
-        dfft3 = Mtx3::create(cuda, n1, n2, n3);
+        dfft3 = Mtx3::create(exec, n1, n2, n3);
         ifft3 = Mtx3::create(ref, n1, n2, n3, true);
-        difft3 = Mtx3::create(cuda, n1, n2, n3, true);
+        difft3 = Mtx3::create(exec, n1, n2, n3, true);
     }
 
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
     std::default_random_engine rand_engine;
     size_t n1;
     size_t n2;
@@ -275,6 +257,3 @@ TYPED_TEST(Fft, ApplyStrided3DInverseIsEqualToReference)
 
     GKO_ASSERT_MTX_NEAR(this->out_strided, this->dout_strided, r<T>::value);
 }
-
-
-}  // namespace
