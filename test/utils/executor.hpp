@@ -43,6 +43,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#if GINKGO_COMMON_SINGLE_MODE
+#define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
+#else
+#define SKIP_IF_SINGLE_MODE                                                  \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
+
+
 inline std::shared_ptr<gko::ReferenceExecutor> init_executor(
     std::shared_ptr<gko::ReferenceExecutor>, gko::ReferenceExecutor*)
 {
