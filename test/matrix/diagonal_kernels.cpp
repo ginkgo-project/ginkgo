@@ -45,18 +45,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/diagonal_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Diagonal : public ::testing::Test {
+class Diagonal : public CommonTestFixture {
 protected:
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
     using vtype = float;
 #else
     using vtype = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif
     using ValueType = vtype;
     using ComplexValueType = std::complex<vtype>;
     using Csr = gko::matrix::Csr<ValueType>;
@@ -72,20 +70,6 @@ protected:
 #endif
           rand_engine(42)
     {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::DpcppExecutor::get_num_devices("all"), 0);
-        ref = gko::ReferenceExecutor::create();
-        dpcpp = gko::DpcppExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (dpcpp != nullptr) {
-            ASSERT_NO_THROW(dpcpp->synchronize());
-        }
-    }
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
@@ -125,33 +109,30 @@ protected:
     void set_up_apply_data()
     {
         diag = gen_diag(mtx_size[0]);
-        ddiag = gko::clone(dpcpp, diag);
+        ddiag = gko::clone(exec, diag);
         dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
         dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
         denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
         denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
-        ddense1 = gko::clone(dpcpp, dense1);
-        ddense2 = gko::clone(dpcpp, dense2);
-        denseresult1 = gko::clone(dpcpp, denseexpected1);
-        denseresult2 = gko::clone(dpcpp, denseexpected2);
+        ddense1 = gko::clone(exec, dense1);
+        ddense2 = gko::clone(exec, dense2);
+        denseresult1 = gko::clone(exec, denseexpected1);
+        denseresult2 = gko::clone(exec, denseexpected2);
         csr1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csr2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
         csrexpected1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
         csrexpected2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
-        dcsr1 = gko::clone(dpcpp, csr1);
-        dcsr2 = gko::clone(dpcpp, csr2);
-        csrresult1 = gko::clone(dpcpp, csrexpected1);
-        csrresult2 = gko::clone(dpcpp, csrexpected2);
+        dcsr1 = gko::clone(exec, csr1);
+        dcsr2 = gko::clone(exec, csr2);
+        csrresult1 = gko::clone(exec, csrexpected1);
+        csrresult2 = gko::clone(exec, csrexpected2);
     }
 
     void set_up_complex_data()
     {
         cdiag = gen_cdiag(mtx_size[0]);
-        dcdiag = gko::clone(dpcpp, cdiag);
+        dcdiag = gko::clone(exec, cdiag);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::DpcppExecutor> dpcpp;
 
     const gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
@@ -268,6 +249,3 @@ TEST_F(Diagonal, OutplaceAbsoluteMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(abs_diag, dabs_diag, r<vtype>::value);
 }
-
-
-}  // namespace
