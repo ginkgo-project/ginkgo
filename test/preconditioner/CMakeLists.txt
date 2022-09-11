@@ -1,0 +1,2 @@
+ginkgo_create_common_test(jacobi_kernels)
+ginkgo_create_common_test(isai_kernels)

@@ -40,20 +40,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
+template <typename Mtx>
+void write(std::unique_ptr<Mtx>& mtx, gko::size_type row, gko::size_type col,
+           typename Mtx::value_type val)
+{
+    mtx->get_executor()->copy_from(
+        mtx->get_executor()->get_master().get(), 1, &val,
+        mtx->get_values() + col + mtx->get_stride() * row);
+}
+
+
+template <typename Mtx>
+typename Mtx::value_type read(std::unique_ptr<Mtx>& mtx, gko::size_type row,
+                              gko::size_type col)
+{
+    return mtx->get_executor()->copy_val_to_host(mtx->get_values() + col +
+                                                 mtx->get_stride() * row);
+}
 
 
 template <typename T>
-class ResidualNorm : public ::testing::Test {
+class ResidualNorm : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ResidualNorm()
     {
-        exec = gko::OmpExecutor::create();
         factory = gko::stop::ResidualNorm<T>::build()
                       .with_reduction_factor(r<T>::value)
                       .on(exec);
@@ -70,7 +86,6 @@ protected:
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> rel_factory;
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> abs_factory;
-    std::shared_ptr<const gko::Executor> exec;
 };
 
 TYPED_TEST_SUITE(ResidualNorm, gko::test::ValueTypes, TypenameNameGenerator);
@@ -94,85 +109,100 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
         gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::array<gko::stopping_status> stop_status(this->exec, 1);
+        gko::array<gko::stopping_status> stop_status(this->ref, 1);
         stop_status.get_data()[0].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 1.1 * read(res_norm, 0, 0));
         ASSERT_FALSE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_FALSE(stop_status.get_data()[0].has_converged());
         ASSERT_FALSE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(res_norm, 0, 0));
         ASSERT_TRUE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
     {
         auto res_norm = gko::initialize<NormVector>({100.0}, this->exec);
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::array<gko::stopping_status> stop_status(this->exec, 1);
+        gko::array<gko::stopping_status> stop_status(this->ref, 1);
         stop_status.get_data()[0].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 1.1 * read(res_norm, 0, 0));
         ASSERT_FALSE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_FALSE(stop_status.get_data()[0].has_converged());
         ASSERT_FALSE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(res_norm, 0, 0));
         ASSERT_TRUE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
     {
         auto res_norm = gko::initialize<NormVector>({100.0}, this->exec);
         constexpr gko::uint8 RelativeStoppingId{1};
         bool one_changed{};
-        gko::array<gko::stopping_status> stop_status(this->exec, 1);
+        gko::array<gko::stopping_status> stop_status(this->ref, 1);
         stop_status.get_data()[0].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0) = r<TypeParam>::value * 1.1;
+        write(res_norm, 0, 0, r<TypeParam>::value * 1.1);
         ASSERT_FALSE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_FALSE(stop_status.get_data()[0].has_converged());
         ASSERT_FALSE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0) = r<TypeParam>::value * 0.9;
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9);
         ASSERT_TRUE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
 }
 
@@ -199,103 +229,117 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
         gko::as<Mtx>(rhs)->compute_norm2(rhs_norm.get());
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::array<gko::stopping_status> stop_status(this->exec, 2);
+        gko::array<gko::stopping_status> stop_status(this->ref, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 0));
         ASSERT_FALSE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 1);
+        write(res_norm, 0, 1, r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 1));
         ASSERT_TRUE(
             criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[1].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
     {
         auto res_norm =
             gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec);
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::array<gko::stopping_status> stop_status(this->exec, 2);
+        gko::array<gko::stopping_status> stop_status(this->ref, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * res_norm->at(0, 0);
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(res_norm, 0, 0));
         ASSERT_FALSE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * res_norm->at(0, 1);
+        write(res_norm, 0, 1, r<TypeParam>::value * 0.9 * read(res_norm, 0, 1));
         ASSERT_TRUE(
             rel_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[1].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
     {
         auto res_norm =
             gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec);
         bool one_changed{};
         constexpr gko::uint8 RelativeStoppingId{1};
-        gko::array<gko::stopping_status> stop_status(this->exec, 2);
+        gko::array<gko::stopping_status> stop_status(this->ref, 2);
         stop_status.get_data()[0].reset();
         stop_status.get_data()[1].reset();
+        stop_status.set_executor(this->exec);
 
         ASSERT_FALSE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-        res_norm->at(0, 0) = r<TypeParam>::value * 0.9;
+        write(res_norm, 0, 0, r<TypeParam>::value * 0.9);
         ASSERT_FALSE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[0].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
 
-        res_norm->at(0, 1) = r<TypeParam>::value * 0.9;
+        write(res_norm, 0, 1, r<TypeParam>::value * 0.9);
         ASSERT_TRUE(
             abs_criterion->update()
                 .residual_norm(res_norm.get())
                 .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        stop_status.set_executor(this->ref);
         ASSERT_TRUE(stop_status.get_data()[1].has_converged());
         ASSERT_TRUE(one_changed);
+        stop_status.set_executor(this->exec);
     }
 }
 
 
 template <typename T>
-class ResidualNormWithInitialResnorm : public ::testing::Test {
+class ResidualNormWithInitialResnorm : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ResidualNormWithInitialResnorm()
     {
-        exec = gko::OmpExecutor::create();
         factory = gko::stop::ResidualNorm<T>::build()
                       .with_baseline(gko::stop::mode::initial_resnorm)
                       .with_reduction_factor(r<T>::value)
@@ -303,7 +347,6 @@ protected:
     }
 
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
-    std::shared_ptr<const gko::OmpExecutor> exec;
 };
 
 TYPED_TEST_SUITE(ResidualNormWithInitialResnorm, gko::test::ValueTypes,
@@ -321,29 +364,34 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoal)
         this->factory->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 1);
+    gko::array<gko::stopping_status> stop_status(this->ref, 1);
     stop_status.get_data()[0].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1 * res_norm->at(0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 1.1 * read(res_norm, 0, 0));
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     ASSERT_FALSE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9 * res_norm->at(0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(res_norm, 0, 0));
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
@@ -361,42 +409,46 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 2);
+    gko::array<gko::stopping_status> stop_status(this->ref, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * res_norm->at(0, 0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(res_norm, 0, 0));
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * res_norm->at(0, 1);
+    write(res_norm, 0, 1, r<TypeParam>::value * 0.9 * read(res_norm, 0, 1));
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
 template <typename T>
-class ResidualNormWithRhsNorm : public ::testing::Test {
+class ResidualNormWithRhsNorm : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ResidualNormWithRhsNorm()
     {
-        exec = gko::OmpExecutor::create();
         factory = gko::stop::ResidualNorm<T>::build()
                       .with_baseline(gko::stop::mode::rhs_norm)
                       .with_reduction_factor(r<T>::value)
@@ -404,7 +456,6 @@ protected:
     }
 
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
-    std::shared_ptr<const gko::OmpExecutor> exec;
 };
 
 TYPED_TEST_SUITE(ResidualNormWithRhsNorm, gko::test::ValueTypes,
@@ -426,29 +477,34 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoal)
         this->factory->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 1);
+    gko::array<gko::stopping_status> stop_status(this->ref, 1);
     stop_status.get_data()[0].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1 * rhs_norm->at(0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 1.1 * read(rhs_norm, 0, 0));
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     ASSERT_FALSE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 0));
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
@@ -469,42 +525,46 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 2);
+    gko::array<gko::stopping_status> stop_status(this->ref, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 0);
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 0));
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0, 1) = r<TypeParam>::value * 0.9 * rhs_norm->at(0, 1);
+    write(res_norm, 0, 1, r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 1));
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
 template <typename T>
-class ImplicitResidualNorm : public ::testing::Test {
+class ImplicitResidualNorm : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ImplicitResidualNorm()
     {
-        exec = gko::OmpExecutor::create();
         factory = gko::stop::ImplicitResidualNorm<T>::build()
                       .with_reduction_factor(r<T>::value)
                       .on(exec);
@@ -512,7 +572,6 @@ protected:
 
     std::unique_ptr<typename gko::stop::ImplicitResidualNorm<T>::Factory>
         factory;
-    std::shared_ptr<const gko::Executor> exec;
 };
 
 TYPED_TEST_SUITE(ImplicitResidualNorm, gko::test::ValueTypes,
@@ -534,29 +593,36 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
         this->factory->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 1);
+    gko::array<gko::stopping_status> stop_status(this->ref, 1);
     stop_status.get_data()[0].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = std::pow(r<TypeParam>::value * 1.1 * rhs_norm->at(0), 2);
+    write(res_norm, 0, 0,
+          std::pow(r<TypeParam>::value * 1.1 * read(rhs_norm, 0, 0), 2));
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     ASSERT_FALSE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0) = std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0), 2);
+    write(res_norm, 0, 0,
+          std::pow(r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 0), 2));
     ASSERT_TRUE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
@@ -576,44 +642,48 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 2);
+    gko::array<gko::stopping_status> stop_status(this->ref, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) =
-        std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0, 0), 2);
+    write(res_norm, 0, 0,
+          std::pow(r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 0), 2));
     ASSERT_FALSE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0, 1) =
-        std::pow(r<TypeParam>::value * 0.9 * rhs_norm->at(0, 1), 2);
+    write(res_norm, 0, 1,
+          std::pow(r<TypeParam>::value * 0.9 * read(rhs_norm, 0, 1), 2));
     ASSERT_TRUE(
         criterion->update()
             .implicit_sq_residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
 template <typename T>
-class ResidualNormWithAbsolute : public ::testing::Test {
+class ResidualNormWithAbsolute : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ResidualNormWithAbsolute()
     {
-        exec = gko::OmpExecutor::create();
         factory = gko::stop::ResidualNorm<T>::build()
                       .with_baseline(gko::stop::mode::absolute)
                       .with_reduction_factor(r<T>::value)
@@ -621,7 +691,6 @@ protected:
     }
 
     std::unique_ptr<typename gko::stop::ResidualNorm<T>::Factory> factory;
-    std::shared_ptr<const gko::OmpExecutor> exec;
 };
 
 TYPED_TEST_SUITE(ResidualNormWithAbsolute, gko::test::ValueTypes,
@@ -639,29 +708,34 @@ TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoal)
         this->factory->generate(nullptr, rhs, nullptr, initial_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 1);
+    gko::array<gko::stopping_status> stop_status(this->ref, 1);
     stop_status.get_data()[0].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.1;
+    write(res_norm, 0, 0, r<TypeParam>::value * 1.1);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     ASSERT_FALSE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0) = r<TypeParam>::value * 0.9;
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
 
 
@@ -679,31 +753,33 @@ TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoalMultipleRHS)
     auto criterion = this->factory->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::array<gko::stopping_status> stop_status(this->exec, 2);
+    gko::array<gko::stopping_status> stop_status(this->ref, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
+    stop_status.set_executor(this->exec);
 
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0, 0) = r<TypeParam>::value * 0.9;
+    write(res_norm, 0, 0, r<TypeParam>::value * 0.9);
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 
-    res_norm->at(0, 1) = r<TypeParam>::value * 0.9;
+    write(res_norm, 0, 1, r<TypeParam>::value * 0.9);
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
+    stop_status.set_executor(this->ref);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
     ASSERT_TRUE(one_changed);
+    stop_status.set_executor(this->exec);
 }
-
-
-}  // namespace

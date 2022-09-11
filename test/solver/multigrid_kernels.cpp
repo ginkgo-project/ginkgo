@@ -48,30 +48,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/multigrid_kernels.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Multigrid : public ::testing::Test {
+class Multigrid : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<>;
     Multigrid() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -99,27 +83,27 @@ protected:
         this->modify_norm(old_norm, new_norm);
         this->modify_scalar(alpha, rho, beta, gamma, zeta);
 
-        d_v = Mtx::create(cuda);
+        d_v = Mtx::create(exec);
         d_v->copy_from(v.get());
-        d_d = Mtx::create(cuda);
+        d_d = Mtx::create(exec);
         d_d->copy_from(d.get());
-        d_g = Mtx::create(cuda);
+        d_g = Mtx::create(exec);
         d_g->copy_from(g.get());
-        d_e = Mtx::create(cuda);
+        d_e = Mtx::create(exec);
         d_e->copy_from(e.get());
-        d_alpha = Mtx::create(cuda);
+        d_alpha = Mtx::create(exec);
         d_alpha->copy_from(alpha.get());
-        d_rho = Mtx::create(cuda);
+        d_rho = Mtx::create(exec);
         d_rho->copy_from(rho.get());
-        d_beta = Mtx::create(cuda);
+        d_beta = Mtx::create(exec);
         d_beta->copy_from(beta.get());
-        d_gamma = Mtx::create(cuda);
+        d_gamma = Mtx::create(exec);
         d_gamma->copy_from(gamma.get());
-        d_zeta = Mtx::create(cuda);
+        d_zeta = Mtx::create(exec);
         d_zeta->copy_from(zeta.get());
-        d_old_norm = Mtx::create(cuda);
+        d_old_norm = Mtx::create(exec);
         d_old_norm->copy_from(old_norm.get());
-        d_new_norm = Mtx::create(cuda);
+        d_new_norm = Mtx::create(exec);
         d_new_norm->copy_from(new_norm.get());
     }
 
@@ -166,9 +150,6 @@ protected:
         zeta->at(0, 2) = 2.0;
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
-
     std::default_random_engine rand_engine;
 
     std::unique_ptr<Mtx> v;
@@ -197,16 +178,15 @@ protected:
 };
 
 
-TEST_F(Multigrid, CudaMultigridKCycleStep1IsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_1(
-        ref, gko::lend(alpha), gko::lend(rho), gko::lend(v), gko::lend(g),
-        gko::lend(d), gko::lend(e));
-    gko::kernels::cuda::multigrid::kcycle_step_1(
-        cuda, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_v),
-        gko::lend(d_g), gko::lend(d_d), gko::lend(d_e));
+        ref, alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get());
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_1(
+        exec, d_alpha.get(), d_rho.get(), d_v.get(), d_g.get(), d_d.get(),
+        d_e.get());
 
     GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_d, d, 1e-14);
@@ -214,22 +194,22 @@ TEST_F(Multigrid, CudaMultigridKCycleStep1IsEquivalentToRef)
 }
 
 
-TEST_F(Multigrid, CudaMultigridKCycleStep2IsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_2(
-        ref, gko::lend(alpha), gko::lend(rho), gko::lend(gamma),
-        gko::lend(beta), gko::lend(zeta), gko::lend(d), gko::lend(e));
-    gko::kernels::cuda::multigrid::kcycle_step_2(
-        cuda, gko::lend(d_alpha), gko::lend(d_rho), gko::lend(d_gamma),
-        gko::lend(d_beta), gko::lend(d_zeta), gko::lend(d_d), gko::lend(d_e));
+        ref, alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
+        d.get(), e.get());
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_step_2(
+        exec, d_alpha.get(), d_rho.get(), d_gamma.get(), d_beta.get(),
+        d_zeta.get(), d_d.get(), d_e.get());
 
     GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
 }
 
 
-TEST_F(Multigrid, CudaMultigridKCycleCheckStopIsEquivalentToRef)
+TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
 {
     initialize_data();
     bool is_stop_10;
@@ -238,19 +218,16 @@ TEST_F(Multigrid, CudaMultigridKCycleCheckStopIsEquivalentToRef)
     bool d_is_stop_5;
 
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, gko::lend(old_norm), gko::lend(new_norm), 1.0, is_stop_10);
-    gko::kernels::cuda::multigrid::kcycle_check_stop(
-        cuda, gko::lend(d_old_norm), gko::lend(d_new_norm), 1.0, d_is_stop_10);
+        ref, old_norm.get(), new_norm.get(), 1.0, is_stop_10);
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+        exec, d_old_norm.get(), d_new_norm.get(), 1.0, d_is_stop_10);
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, gko::lend(old_norm), gko::lend(new_norm), 0.5, is_stop_5);
-    gko::kernels::cuda::multigrid::kcycle_check_stop(
-        cuda, gko::lend(d_old_norm), gko::lend(d_new_norm), 0.5, d_is_stop_5);
+        ref, old_norm.get(), new_norm.get(), 0.5, is_stop_5);
+    gko::kernels::EXEC_NAMESPACE::multigrid::kcycle_check_stop(
+        exec, d_old_norm.get(), d_new_norm.get(), 0.5, d_is_stop_5);
 
     GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
     GKO_ASSERT_EQ(d_is_stop_10, true);
     GKO_ASSERT_EQ(d_is_stop_5, is_stop_5);
     GKO_ASSERT_EQ(d_is_stop_5, false);
 }
-
-
-}  // namespace

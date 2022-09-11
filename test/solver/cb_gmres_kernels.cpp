@@ -52,14 +52,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class CbGmres : public ::testing::Test {
+class CbGmres : public CommonTestFixture {
 protected:
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
     using value_type = double;
+#endif
     using storage_type = float;
     using index_type = int;
     using size_type = gko::size_type;
@@ -70,21 +72,7 @@ protected:
     using Mtx = Dense;
     static constexpr unsigned int default_krylov_dim_mixed{100};
 
-
     CbGmres() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
-    }
-
-    void TearDown()
-    {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
-        }
-    }
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
@@ -161,33 +149,33 @@ protected:
         }
         num_reorth = std::make_unique<gko::array<gko::size_type>>(ref, n);
         for (size_t i = 0; i < num_reorth->get_num_elems(); ++i) {
-            num_reorth->get_data()[i] = 0;
+            num_reorth->get_data()[i] = 5;
         }
 
-        d_x = gko::clone(omp, x);
+        d_x = gko::clone(exec, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = gko::clone(omp, y);
-        d_b = gko::clone(omp, b);
-        d_arnoldi_norm = gko::clone(omp, arnoldi_norm);
-        d_range_helper = Range3dHelper{omp, {}};
+        d_y = gko::clone(exec, y);
+        d_b = gko::clone(exec, b);
+        d_arnoldi_norm = gko::clone(exec, arnoldi_norm);
+        d_range_helper = Range3dHelper{exec, {}};
         d_range_helper = range_helper;
-        d_next_krylov_basis = gko::clone(omp, next_krylov_basis);
-        d_hessenberg = gko::clone(omp, hessenberg);
-        d_hessenberg_iter = gko::clone(omp, hessenberg_iter);
-        d_buffer_iter = Mtx::create(omp);
-        d_residual = gko::clone(omp, residual);
-        d_residual_norm = gko::clone(omp, residual_norm);
-        d_residual_norm_collection = gko::clone(omp, residual_norm_collection);
-        d_givens_sin = gko::clone(omp, givens_sin);
-        d_givens_cos = gko::clone(omp, givens_cos);
+        d_next_krylov_basis = gko::clone(exec, next_krylov_basis);
+        d_hessenberg = gko::clone(exec, hessenberg);
+        d_hessenberg_iter = gko::clone(exec, hessenberg_iter);
+        d_buffer_iter = Mtx::create(exec);
+        d_residual = gko::clone(exec, residual);
+        d_residual_norm = gko::clone(exec, residual_norm);
+        d_residual_norm_collection = gko::clone(exec, residual_norm_collection);
+        d_givens_sin = gko::clone(exec, givens_sin);
+        d_givens_cos = gko::clone(exec, givens_cos);
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
-            omp, *stop_status);
+            exec, *stop_status);
         d_reorth_status = std::make_unique<gko::array<gko::stopping_status>>(
-            omp, *reorth_status);
-        d_final_iter_nums =
-            std::make_unique<gko::array<gko::size_type>>(omp, *final_iter_nums);
+            exec, *reorth_status);
+        d_final_iter_nums = std::make_unique<gko::array<gko::size_type>>(
+            exec, *final_iter_nums);
         d_num_reorth =
-            std::make_unique<gko::array<gko::size_type>>(omp, *num_reorth);
+            std::make_unique<gko::array<gko::size_type>>(exec, *num_reorth);
     }
 
     void assert_krylov_bases_near()
@@ -203,9 +191,6 @@ protected:
             ASSERT_LE(abs(dev_value - ref_value), tolerance);
         }
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::default_random_engine rand_engine;
 
@@ -251,49 +236,49 @@ protected:
 };
 
 
-TEST_F(CbGmres, OmpCbGmresInitialize1IsEquivalentToRef)
+TEST_F(CbGmres, CbGmresInitialize1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::cb_gmres::initialize_1(
         ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
         stop_status.get(), default_krylov_dim_mixed);
-    gko::kernels::omp::cb_gmres::initialize_1(
-        omp, d_b.get(), d_residual.get(), d_givens_sin.get(),
+    gko::kernels::EXEC_NAMESPACE::cb_gmres::initialize_1(
+        exec, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(), default_krylov_dim_mixed);
 
-    GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
-TEST_F(CbGmres, OmpCbGmresInitialize2IsEquivalentToRef)
+TEST_F(CbGmres, CbGmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
     gko::array<char> tmp{ref};
-    gko::array<char> dtmp{omp};
+    gko::array<char> dtmp{exec};
 
     gko::kernels::reference::cb_gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), arnoldi_norm.get(),
         range_helper.get_range(), next_krylov_basis.get(),
         final_iter_nums.get(), tmp, default_krylov_dim_mixed);
-    gko::kernels::omp::cb_gmres::initialize_2(
-        omp, d_residual.get(), d_residual_norm.get(),
+    gko::kernels::EXEC_NAMESPACE::cb_gmres::initialize_2(
+        exec, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_arnoldi_norm.get(),
         d_range_helper.get_range(), d_next_krylov_basis.get(),
         d_final_iter_nums.get(), dtmp, default_krylov_dim_mixed);
 
-    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
+                        r<value_type>::value);
     assert_krylov_bases_near();
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
-TEST_F(CbGmres, OmpCbGmresStep1IsEquivalentToRef)
+TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
 {
     initialize_data();
     int iter = 5;
@@ -304,27 +289,29 @@ TEST_F(CbGmres, OmpCbGmresStep1IsEquivalentToRef)
         range_helper.get_range(), hessenberg_iter.get(), buffer_iter.get(),
         arnoldi_norm.get(), iter, final_iter_nums.get(), stop_status.get(),
         reorth_status.get(), num_reorth.get());
-    gko::kernels::omp::cb_gmres::step_1(
-        omp, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
+    gko::kernels::EXEC_NAMESPACE::cb_gmres::step_1(
+        exec, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_range_helper.get_range(), d_hessenberg_iter.get(),
         d_buffer_iter.get(), d_arnoldi_norm.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get(), d_reorth_status.get(),
         d_num_reorth.get());
 
-    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis,
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        r<value_type>::value);
     assert_krylov_bases_near();
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
-TEST_F(CbGmres, OmpCbGmresStep2IsEquivalentToRef)
+TEST_F(CbGmres, CbGmresStep2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -332,15 +319,12 @@ TEST_F(CbGmres, OmpCbGmresStep2IsEquivalentToRef)
         ref, residual_norm_collection.get(),
         range_helper.get_range().get_accessor().to_const(), hessenberg.get(),
         y.get(), before_preconditioner.get(), final_iter_nums.get());
-    gko::kernels::omp::cb_gmres::step_2(
-        omp, d_residual_norm_collection.get(),
+    gko::kernels::EXEC_NAMESPACE::cb_gmres::step_2(
+        exec, d_residual_norm_collection.get(),
         d_range_helper.get_range().get_accessor().to_const(),
         d_hessenberg.get(), d_y.get(), d_before_preconditioner.get(),
         d_final_iter_nums.get());
 
-    GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
-
-
-}  // namespace

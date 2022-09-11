@@ -49,36 +49,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/gmres_kernels.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Gmres : public ::testing::Test {
+class Gmres : public CommonTestFixture {
 protected:
-    using value_type = gko::default_precision;
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
     using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Gmres<value_type>;
     using norm_type = gko::remove_complex<value_type>;
     using NormVector = gko::matrix::Dense<norm_type>;
     template <typename T>
     using Dense = typename gko::matrix::Dense<T>;
 
-    Gmres() : rand_engine(30) {}
-
-    void SetUp()
+    Gmres() : rand_engine(30)
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
+        mtx = gen_mtx(123, 123);
+        d_mtx = gko::clone(exec, mtx);
+        exec_gmres_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(exec),
+                    gko::stop::ResidualNorm<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(exec))
+                .on(exec);
 
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
+        ref_gmres_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(246u).on(ref),
+                    gko::stop::ResidualNorm<>::build()
+                        .with_reduction_factor(1e-15)
+                        .on(ref))
+                .on(ref);
     }
 
     template <typename ValueType = value_type, typename IndexType = index_type>
@@ -122,28 +132,30 @@ protected:
             final_iter_nums->get_data()[i] = 5;
         }
 
-        d_x = gko::clone(cuda, x);
+        d_x = gko::clone(exec, x);
         d_before_preconditioner = Mtx::create_with_config_of(d_x.get());
-        d_y = gko::clone(cuda, y);
-        d_b = gko::clone(cuda, b);
-        d_krylov_bases = gko::clone(cuda, krylov_bases);
-        d_hessenberg = gko::clone(cuda, hessenberg);
-        d_hessenberg_iter = gko::clone(cuda, hessenberg_iter);
-        d_residual = gko::clone(cuda, residual);
-        d_residual_norm = gko::clone(cuda, residual_norm);
-        d_residual_norm_collection = gko::clone(cuda, residual_norm_collection);
-        d_givens_sin = gko::clone(cuda, givens_sin);
-        d_givens_cos = gko::clone(cuda, givens_cos);
+        d_y = gko::clone(exec, y);
+        d_b = gko::clone(exec, b);
+        d_krylov_bases = gko::clone(exec, krylov_bases);
+        d_hessenberg = gko::clone(exec, hessenberg);
+        d_hessenberg_iter = gko::clone(exec, hessenberg_iter);
+        d_residual = gko::clone(exec, residual);
+        d_residual_norm = gko::clone(exec, residual_norm);
+        d_residual_norm_collection = gko::clone(exec, residual_norm_collection);
+        d_givens_sin = gko::clone(exec, givens_sin);
+        d_givens_cos = gko::clone(exec, givens_cos);
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
-            cuda, *stop_status);
+            exec, *stop_status);
         d_final_iter_nums = std::make_unique<gko::array<gko::size_type>>(
-            cuda, *final_iter_nums);
+            exec, *final_iter_nums);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
-
     std::default_random_engine rand_engine;
+
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> d_mtx;
+    std::unique_ptr<Solver::Factory> exec_gmres_factory;
+    std::unique_ptr<Solver::Factory> ref_gmres_factory;
 
     std::unique_ptr<Mtx> before_preconditioner;
     std::unique_ptr<Mtx> x;
@@ -177,49 +189,49 @@ protected:
 };
 
 
-TEST_F(Gmres, CudaGmresInitialize1IsEquivalentToRef)
+TEST_F(Gmres, GmresInitialize1IsEquivalentToRef)
 {
     initialize_data();
 
     gko::kernels::reference::gmres::initialize_1(
         ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
         stop_status.get(), gko::solver::default_krylov_dim);
-    gko::kernels::cuda::gmres::initialize_1(
-        cuda, d_b.get(), d_residual.get(), d_givens_sin.get(),
+    gko::kernels::EXEC_NAMESPACE::gmres::initialize_1(
+        exec, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
         gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 
-TEST_F(Gmres, CudaGmresInitialize2IsEquivalentToRef)
+TEST_F(Gmres, GmresInitialize2IsEquivalentToRef)
 {
     initialize_data();
     gko::array<char> tmp{ref};
-    gko::array<char> dtmp{cuda};
+    gko::array<char> dtmp{exec};
 
     gko::kernels::reference::gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
         final_iter_nums.get(), tmp, gko::solver::default_krylov_dim);
-    gko::kernels::cuda::gmres::initialize_2(
-        cuda, d_residual.get(), d_residual_norm.get(),
+    gko::kernels::EXEC_NAMESPACE::gmres::initialize_2(
+        exec, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
         d_final_iter_nums.get(), dtmp, gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
 
-TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
+TEST_F(Gmres, GmresStep1IsEquivalentToRef)
 {
     initialize_data();
     int iter = 5;
@@ -228,24 +240,25 @@ TEST_F(Gmres, CudaGmresStep1IsEquivalentToRef)
         ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
-    gko::kernels::cuda::gmres::step_1(
-        cuda, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
+    gko::kernels::EXEC_NAMESPACE::gmres::step_1(
+        exec, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        2 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
 
-TEST_F(Gmres, CudaGmresStep1OnSingleRHSIsEquivalentToRef)
+TEST_F(Gmres, GmresStep1OnSingleRHSIsEquivalentToRef)
 {
     initialize_data(1);
     int iter = 5;
@@ -254,24 +267,25 @@ TEST_F(Gmres, CudaGmresStep1OnSingleRHSIsEquivalentToRef)
         ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
-    gko::kernels::cuda::gmres::step_1(
-        cuda, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
+    gko::kernels::EXEC_NAMESPACE::gmres::step_1(
+        exec, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
-                        1e-14);
-    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
+                        2 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
 
-TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
+TEST_F(Gmres, GmresStep2IsEquivalentToRef)
 {
     initialize_data();
 
@@ -279,14 +293,30 @@ TEST_F(Gmres, CudaGmresStep2IsEquivalentToRef)
                                            krylov_bases.get(), hessenberg.get(),
                                            y.get(), before_preconditioner.get(),
                                            final_iter_nums.get());
-    gko::kernels::cuda::gmres::step_2(cuda, d_residual_norm_collection.get(),
-                                      d_krylov_bases.get(), d_hessenberg.get(),
-                                      d_y.get(), d_before_preconditioner.get(),
-                                      d_final_iter_nums.get());
+    gko::kernels::EXEC_NAMESPACE::gmres::step_2(
+        exec, d_residual_norm_collection.get(), d_krylov_bases.get(),
+        d_hessenberg.get(), d_y.get(), d_before_preconditioner.get(),
+        d_final_iter_nums.get());
 
-    GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }
 
 
-}  // namespace
+TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
+{
+    int m = 123;
+    int n = 1;
+    auto ref_solver = ref_gmres_factory->generate(mtx);
+    auto exec_solver = exec_gmres_factory->generate(d_mtx);
+    auto b = gen_mtx(m, n);
+    auto x = gen_mtx(m, n);
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
+
+    ref_solver->apply(b.get(), x.get());
+    exec_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_b, b, r<value_type>::value * 50);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 50);
+}
