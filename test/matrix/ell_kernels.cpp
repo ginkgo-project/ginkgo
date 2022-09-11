@@ -48,36 +48,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/ell_kernels.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
+#include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Ell : public ::testing::Test {
+class Ell : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Ell<>;
-    using Vec = gko::matrix::Dense<>;
+#if GINKGO_COMMON_SINGLE_MODE
+    using vtype = float;
+#else
+    using vtype = double;
+#endif
+    using Mtx = gko::matrix::Ell<vtype>;
+    using Vec = gko::matrix::Dense<vtype>;
     using Vec2 = gko::matrix::Dense<float>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
+    using ComplexVec = gko::matrix::Dense<std::complex<vtype>>;
 
     Ell()
         : rand_engine(42), size{532, 231}, num_els_rowwise{300}, ell_stride{600}
     {}
-
-    void SetUp()
-    {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
 
     template <typename MtxType = Vec>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
@@ -104,19 +93,16 @@ protected:
         alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         beta2 = gko::initialize<Vec2>({-1.0}, ref);
-        dmtx = gko::clone(cuda, mtx);
-        dresult = gko::clone(cuda, expected);
-        dresult2 = gko::clone(cuda, expected2);
-        dy = gko::clone(cuda, y);
-        dy2 = gko::clone(cuda, y2);
-        dalpha = gko::clone(cuda, alpha);
-        dalpha2 = gko::clone(cuda, alpha2);
-        dbeta = gko::clone(cuda, beta);
-        dbeta2 = gko::clone(cuda, beta2);
+        dmtx = gko::clone(exec, mtx);
+        dresult = gko::clone(exec, expected);
+        dresult2 = gko::clone(exec, expected2);
+        dy = gko::clone(exec, y);
+        dy2 = gko::clone(exec, y2);
+        dalpha = gko::clone(exec, alpha);
+        dalpha2 = gko::clone(exec, alpha2);
+        dbeta = gko::clone(exec, beta);
+        dbeta2 = gko::clone(exec, beta2);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
 
     std::default_random_engine rand_engine;
     gko::dim<2> size;
@@ -152,12 +138,13 @@ TEST_F(Ell, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y2.get(), expected2.get());
@@ -169,6 +156,7 @@ TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y2.get(), expected.get());
@@ -180,6 +168,7 @@ TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(y.get(), expected2.get());
@@ -196,12 +185,13 @@ TEST_F(Ell, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
@@ -213,6 +203,7 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
@@ -224,6 +215,7 @@ TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data();
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
@@ -240,12 +232,13 @@ TEST_F(Ell, SimpleApplyWithStrideIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
@@ -257,6 +250,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
@@ -268,6 +262,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
@@ -283,12 +278,13 @@ TEST_F(Ell, AdvancedApplyWithStrideIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
@@ -300,6 +296,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
@@ -311,6 +308,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 {
+    SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 1, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
@@ -327,13 +325,14 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 4, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected2.get());
     dmtx->apply(dy2.get(), dresult2.get());
@@ -344,7 +343,8 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 5, num_els_rowwise, ell_stride);
 
     mtx->apply(y2.get(), expected.get());
     dmtx->apply(dy2.get(), dresult.get());
@@ -355,7 +355,8 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 6, num_els_rowwise, ell_stride);
 
     mtx->apply(y.get(), expected2.get());
     dmtx->apply(dy.get(), dresult2.get());
@@ -371,13 +372,14 @@ TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 4, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta2.get(), dresult2.get());
@@ -388,7 +390,8 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 5, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha2.get(), y2.get(), beta.get(), expected.get());
     dmtx->apply(dalpha2.get(), dy2.get(), dbeta.get(), dresult.get());
@@ -399,13 +402,17 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 
 TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 {
-    set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
+    SKIP_IF_SINGLE_MODE;
+    set_up_apply_data(size[0], size[1], 6, num_els_rowwise, ell_stride);
 
     mtx->apply(alpha.get(), y.get(), beta2.get(), expected2.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta2.get(), dresult2.get());
 
     GKO_ASSERT_MTX_NEAR(dresult2, expected2, 1e-6);
 }
+
+
+#ifndef GKO_COMPILING_OMP
 
 
 TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
@@ -415,7 +422,7 @@ TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -426,7 +433,7 @@ TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -437,7 +444,7 @@ TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -448,8 +455,11 @@ TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
+
+
+#endif  // !defined(GKO_COMPILING_OMP)
 
 
 TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
@@ -459,7 +469,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 5 * r<vtype>::value);
 }
 
 
@@ -470,7 +480,7 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -481,7 +491,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
 }
 
 
@@ -492,7 +502,7 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 5);
 }
 
 
@@ -500,14 +510,14 @@ TEST_F(Ell, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
-    auto dcomplex_b = gko::clone(cuda, complex_b);
+    auto dcomplex_b = gko::clone(exec, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
-    auto dcomplex_x = gko::clone(cuda, complex_x);
+    auto dcomplex_x = gko::clone(exec, complex_x);
 
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -515,14 +525,14 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexVec>(size[1], 3);
-    auto dcomplex_b = gko::clone(cuda, complex_b);
+    auto dcomplex_b = gko::clone(exec, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(size[0], 3);
-    auto dcomplex_x = gko::clone(cuda, complex_x);
+    auto dcomplex_x = gko::clone(exec, complex_x);
 
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
 }
 
 
@@ -530,8 +540,8 @@ TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+    auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<vtype>::create(exec);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
@@ -544,8 +554,8 @@ TEST_F(Ell, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
 
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
@@ -558,12 +568,12 @@ TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
     gko::array<int> nnz_per_row{ref, mtx->get_size()[0]};
-    gko::array<int> dnnz_per_row{cuda, dmtx->get_size()[0]};
+    gko::array<int> dnnz_per_row{exec, dmtx->get_size()[0]};
 
     gko::kernels::reference::ell::count_nonzeros_per_row(
         ref, mtx.get(), nnz_per_row.get_data());
-    gko::kernels::cuda::ell::count_nonzeros_per_row(cuda, dmtx.get(),
-                                                    dnnz_per_row.get_data());
+    gko::kernels::EXEC_NAMESPACE::ell::count_nonzeros_per_row(
+        exec, dmtx.get(), dnnz_per_row.get_data());
 
     GKO_ASSERT_ARRAY_EQ(nnz_per_row, dnnz_per_row);
 }
@@ -587,7 +597,7 @@ TEST_F(Ell, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
 
 
@@ -598,8 +608,5 @@ TEST_F(Ell, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
 }
-
-
-}  // namespace
