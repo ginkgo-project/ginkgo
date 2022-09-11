@@ -1,5 +1,4 @@
 ginkgo_create_hip_test(csr_kernels)
-ginkgo_create_hip_test(dense_kernels)
 ginkgo_create_hip_test(fbcsr_kernels)
 if (hipfft_FOUND)
     ginkgo_create_hip_test(fft_kernels)
