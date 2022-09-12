@@ -48,6 +48,7 @@ target_sources(ginkgo_cuda
     preconditioner/batch_identity_kernels.cu
     preconditioner/batch_ilu_kernels.cu
     preconditioner/batch_exact_ilu_kernels.cu
+    preconditioner/batch_par_ilu_kernels.cu
     preconditioner/batch_jacobi_kernels.cu
     preconditioner/isai_kernels.cu
     preconditioner/jacobi_advanced_apply_kernel.cu

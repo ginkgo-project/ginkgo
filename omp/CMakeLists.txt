@@ -37,6 +37,7 @@ target_sources(ginkgo_omp
     preconditioner/batch_identity_kernels.cpp
     preconditioner/batch_ilu_kernels.cpp
     preconditioner/batch_jacobi_kernels.cpp
+    preconditioner/batch_par_ilu_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     reorder/rcm_kernels.cpp
