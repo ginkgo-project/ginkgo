@@ -72,6 +72,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/batch_identity_kernels.hpp"
 #include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
+#include "core/preconditioner/batch_par_ilu_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
@@ -1209,6 +1210,19 @@ GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
 
 
 }  // namespace batch_exact_ilu
+
+
+namespace batch_par_ilu {
+
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PAR_ILU_COMPUTE_PARILU0_KERNEL);
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_PAR_ILU_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PAR_ILU_GENERATE_COMMON_PATTERN_KERNEL);
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PAR_ILU_INITIALIZE_BATCH_L_AND_BATCH_U);
+
+}  // namespace batch_par_ilu
 
 
 namespace batch_identity {
