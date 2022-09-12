@@ -45,9 +45,10 @@ namespace batch_exact_ilu {
 namespace {
 
 
-GKO_REGISTER_OPERATION(check_diag_entries_exist,
+GKO_REGISTER_OPERATION(nonbatch_check_diag_entries_exist,
                        csr::check_diagonal_entries_exist);
-GKO_REGISTER_OPERATION(find_diag_locs, csr::find_diagonal_entries_locations);
+GKO_REGISTER_OPERATION(nonbatch_find_diag_locs,
+                       csr::find_diagonal_entries_locations);
 GKO_REGISTER_OPERATION(compute_factorization,
                        batch_exact_ilu::compute_factorization);
 
@@ -101,8 +102,8 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
 
 
     bool all_diags{false};
-    exec->run(batch_exact_ilu::make_check_diag_entries_exist(first_csr.get(),
-                                                             all_diags));
+    exec->run(batch_exact_ilu::make_nonbatch_check_diag_entries_exist(
+        first_csr.get(), all_diags));
     if (!all_diags) {
         // TODO: Add exception and macro for this.
         throw std::runtime_error("Matrix does not have all diagonal entries!");
@@ -110,8 +111,8 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
     }
 
     diag_locations_ = array<IndexType>(exec, num_rows);
-    exec->run(batch_exact_ilu::make_find_diag_locs(first_csr.get(),
-                                                   diag_locations_.get_data()));
+    exec->run(batch_exact_ilu::make_nonbatch_find_diag_locs(
+        first_csr.get(), diag_locations_.get_data()));
 
     // Now given that the matrix is in csr form, sorted with all diagonal
     // entries, the following algo. computes exact ILU0 factorization
