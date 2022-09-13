@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
-#define GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_PAR_ILU_HPP_
+#define GKO_REFERENCE_PRECONDITIONER_BATCH_PAR_ILU_HPP_
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -43,24 +43,20 @@ namespace kernels {
 namespace host {
 
 
-/**
- * Batch exact ilu0 preconditioner.
- */
 template <typename ValueType>
-class batch_exact_ilu final {
+class batch_parilu0 final {
 public:
     using value_type = ValueType;
 
+
     /**
-     *
-     * @param mat_factorized   Factorized matrix (that was factored externally).
-     * @param csr_diag_locs  pointers to the diagonal entries in factorized
-     * matrix
+     * @param l_batch  Lower triangular factor that was externally generated.
+     * @param u_batch  Upper triangular factor that was externally generated.
      */
-    batch_exact_ilu(
-        const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
-        const int* const csr_diag_locs, const bool dummy = true)
-        : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
+    batch_parilu0(const gko::batch_csr::UniformBatch<const ValueType>& l_batch,
+                  const gko::batch_csr::UniformBatch<const ValueType>& u_batch,
+                  const bool dummy = true)
+        : l_batch_{l_batch}, u_batch_{u_batch}
     {}
 
     /**
@@ -69,85 +65,50 @@ public:
      */
     static constexpr int dynamic_work_size(int nrows, int nnz) { return nrows; }
 
-
     /**
      * Complete the precond generation process.
      *
+     * @param mat  Matrix for which to build an ILU-type preconditioner.
      */
     void generate(size_type batch_id,
                   const gko::batch_csr::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const __restrict__ work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
+        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
     void generate(size_type batch_id,
                   const gko::batch_ell::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const __restrict__ work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
+        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
     void generate(size_type batch_id,
                   const gko::batch_dense::BatchEntry<const ValueType>&,
-                  ValueType* const work)
+                  ValueType* const __restrict__ work)
     {
-        mat_factorized_entry_ =
-            gko::batch::batch_entry(mat_factorized_batch_, batch_id);
+        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
-
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
-    {
-        // special trsv for the combined form
-        /*
-            z = prec * r
-            L * U * z = r
-            L * y = r (find y by lower trsv), then U * z = y (find z by upper
-           trsv)
-        */
-        const auto nrows = mat_factorized_entry_.num_rows;
-        const auto row_ptrs = mat_factorized_entry_.row_ptrs;
-        const auto col_idxs = mat_factorized_entry_.col_idxs;
-        const auto values = mat_factorized_entry_.values;
-
-        // Lower Trsv  L * work = r
-        for (int row_idx = 0; row_idx < nrows; row_idx++) {
-            ValueType sum = zero<ValueType>();
-            for (int i = row_ptrs[row_idx]; i < csr_diag_locs_[row_idx]; i++) {
-                const int col_idx = col_idxs[i];
-                sum += values[i] * work_[col_idx];
-            }
-
-            work_[row_idx] = (r.values[row_idx] - sum) / one<ValueType>();
-        }
-
-        // Upper Trsv U * z = work
-        for (int row_idx = nrows - 1; row_idx >= 0; row_idx--) {
-            ValueType sum = zero<ValueType>();
-
-            for (int i = row_ptrs[row_idx + 1] - 1; i > csr_diag_locs_[row_idx];
-                 i--) {
-                const int col_idx = col_idxs[i];
-                sum += values[i] * z.values[col_idx];
-            }
-
-            ValueType diag_ele = values[csr_diag_locs_[row_idx]];
-            z.values[row_idx] = (work_[row_idx] - sum) / diag_ele;
-        }
-    }
+        // TODO: Implement lower and upper trsv (this uses the work
+        // array)
+        GKO_NOT_IMPLEMENTED;
 
 private:
-    const gko::batch_csr::UniformBatch<const value_type> mat_factorized_batch_;
-    const int* const csr_diag_locs_;
-    gko::batch_csr::BatchEntry<const value_type> mat_factorized_entry_;
-    value_type* work_;
+    const gko::batch_csr::UniformBatch<const value_type> l_batch_;
+    const gko::batch_csr::UniformBatch<const value_type> u_batch_;
+    gko::batch_csr::BatchEntry<const value_type> l_entry_;
+    gko::batch_csr::BatchEntry<const value_type> u_entry_;
+    ValueType* __restrict__ work_;
 };
 
 
@@ -155,4 +116,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_PAR_ILU_HPP_

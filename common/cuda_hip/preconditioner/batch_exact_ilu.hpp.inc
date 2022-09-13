@@ -51,7 +51,7 @@ public:
      * @param mat_factorized   Factorized matrix (that was factored externally).
      * @param csr_diag_locs  pointers to the diagonal entries in factorized
      * @param is_fallback_required indicates what trsv is to be used
-     * matrix
+     *
      */
     batch_exact_ilu(
         const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
@@ -249,7 +249,7 @@ public:
     }
 
 private:
-    gko::batch_csr::UniformBatch<const value_type> mat_factorized_batch_;
+    const gko::batch_csr::UniformBatch<const value_type> mat_factorized_batch_;
     const int* __restrict__ const csr_diag_locs_;
     gko::batch_csr::BatchEntry<const value_type> mat_factorized_entry_;
     value_type* __restrict__ work_;
