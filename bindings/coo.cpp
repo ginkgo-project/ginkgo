@@ -74,6 +74,38 @@ void init_coo(py::module_& module_matrix)
                 exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
                 vals, cols, rows));
         }))
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, py::tuple dim,
+                         py::buffer data, py::buffer rows, py::buffer cols) {
+            /* Request a buffer descriptor from Python */
+            py::buffer_info data_info = data.request();
+            py::buffer_info rows_info = rows.request();
+            py::buffer_info cols_info = cols.request();
+
+            if (data_info.format != py::format_descriptor<ValueType>::format())
+                throw std::runtime_error("Incompatible dtype");
+
+            if (rows_info.format != py::format_descriptor<IndexType>::format())
+                throw std::runtime_error("Incompatible dtype");
+
+            if (cols_info.format != py::format_descriptor<IndexType>::format())
+                throw std::runtime_error("Incompatible dtype");
+
+            auto ref = gko::ReferenceExecutor::create();
+
+            /* create a view into numpy data */
+            auto nnz = data_info.shape[0];
+
+            auto data_view =
+                gko::array<ValueType>(ref, nnz, (ValueType*)data_info.ptr);
+            auto rows_view =
+                gko::array<IndexType>(ref, nnz, (IndexType*)rows_info.ptr);
+            auto cols_view =
+                gko::array<IndexType>(ref, nnz, (IndexType*)cols_info.ptr);
+
+            return gko::share(gko::matrix::Coo<ValueType>::create(
+                exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
+                data_view, cols_view, rows_view));
+        }))
         // .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2>
         // dim,
         //                  size_t stride) {
