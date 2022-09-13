@@ -37,10 +37,8 @@ namespace py = pybind11;
 void init_cg(py::module_& module_solver)
 {
     py::class_<gko::solver::Cg<ValueType>,
-               std::shared_ptr<gko::solver::Cg<ValueType>>,
-               gko::solver::EnablePreconditionedIterativeSolver<
-                   ValueType, gko::solver::Cg<ValueType>>,
-               gko::LinOp>(module_solver, "Cg")
+               std::shared_ptr<gko::solver::Cg<ValueType>>, gko::LinOp>(
+        module_solver, "Cg")
         .def(py::init([](std::shared_ptr<gko::Executor> exec,
                          std::shared_ptr<gko::LinOp> system_matrix,
                          py::list with) {
