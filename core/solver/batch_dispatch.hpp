@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
+#include <ginkgo/core/preconditioner/batch_par_ilu.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -106,6 +107,7 @@ using DeviceValueType = ValueType;
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
+#include "reference/preconditioner/batch_par_ilu.hpp"
 #include "reference/preconditioner/batch_trsv.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
@@ -264,6 +266,32 @@ public:
                 device::batch_exact_ilu<device_value_type>(
                     factorized_mat, diag_locs, is_fallback_required),
                 b_b, x_b);
+
+        } else if (auto prec = dynamic_cast<
+                       const preconditioner::BatchParIlu<value_type>*>(
+                       precon_)) {
+            const auto l_factor =
+                device::get_batch_struct(prec->get_const_l_factor());
+            const auto u_factor =
+                device::get_batch_struct(prec->get_const_u_factor());
+            bool is_fallback_required = true;
+
+#if defined GKO_COMPILING_CUDA
+
+            const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
+                lend(precon_->get_executor()));
+            // const auto exec = as<const
+            // gko::CudaExecutor>(precon_->get_executor());
+            if (exec->get_major_version() >= 7) {
+                is_fallback_required = false;
+            }
+
+#endif
+
+            dispatch_on_stop(logger, amat,
+                             device::batch_parilu0<device_value_type>(
+                                 l_factor, u_factor, is_fallback_required),
+                             b_b, x_b);
 
         } else {
             GKO_NOT_IMPLEMENTED;
