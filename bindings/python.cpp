@@ -36,6 +36,7 @@ namespace py = pybind11;
 
 void init_dense(py::module_&);
 void init_coo(py::module_&);
+void init_cg(py::module_&);
 
 
 PYBIND11_MODULE(pygko, m)
@@ -57,18 +58,21 @@ PYBIND11_MODULE(pygko, m)
                "Allocates memory on the device and Unified Memory model is not "
                "used.")
         .value("unified_global", gko::allocation_mode::unified_global,
-               "allocates memory on the device, but is accessible by the host "
+               "Allocates memory on the device, but is accessible by the host "
                "through the Unified memory model.")
         .value("unified_host", gko::allocation_mode::unified_host,
-               " host and it is not available on devices which do not have "
-               "concurrent acesses"
-               " switched on, but this access can be explictly switched on, "
+               "Allocates memory on the host and it is not available on "
+               "devices which do not have concurrent acesses switched on, but "
+               "this access can be explictly switched on, "
                "when necessary.")
         .export_values();
 
     py::class_<gko::CudaExecutor, std::shared_ptr<gko::CudaExecutor>>(
         m, "CudaExecutor", Executor)
-        .def(py::init(&gko::CudaExecutor::create));
+        .def(py::init(&gko::CudaExecutor::create), py::arg("device_id") = 0,
+             py::arg("master") = gko::OmpExecutor::create(),
+             py::arg("device_reset") = false,
+             py::arg("alloc_mode") = gko::allocation_mode::unified_global);
 
     py::class_<gko::HipExecutor, std::shared_ptr<gko::HipExecutor>>(
         m, "HipExecutor", Executor)
@@ -91,17 +95,22 @@ PYBIND11_MODULE(pygko, m)
     py::module_ module_matrix = m.def_submodule(
         "matrix", "Submodule for Ginkgos matrix format bindings");
 
+    py::module_ module_solver =
+        m.def_submodule("solver", "Submodule for Ginkgos solver bindings");
+
     m.def("read_dense",
-          [](std::string fn, std::shared_ptr<gko::Executor> exec) {
+          [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
               return gko::read<gko::matrix::Dense<ValueType>>(std::ifstream(fn),
                                                               exec);
           });
 
-    m.def("read_coo", [](std::string fn, std::shared_ptr<gko::Executor> exec) {
-        return gko::share(
-            gko::read<gko::matrix::Coo<ValueType>>(std::ifstream(fn), exec));
-    });
+    m.def("read_coo",
+          [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
+              return gko::share(gko::read<gko::matrix::Coo<ValueType>>(
+                  std::ifstream(fn), exec));
+          });
 
     init_dense(module_matrix);
     init_coo(module_matrix);
+    init_cg(module_solver);
 }
