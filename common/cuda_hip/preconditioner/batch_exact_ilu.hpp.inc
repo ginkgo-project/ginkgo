@@ -106,145 +106,218 @@ public:
     }
 
 
-    __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType* const __restrict__ r,
-                                          ValueType* const __restrict__ z) const
+    __device__ __forceinline__ void naive_combined_lower_trsv(
+        const ValueType* const __restrict__ r) const
     {
+        const int num_rows = mat_factorized_entry_.num_rows;
         const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
         const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
         const ValueType* const __restrict__ factored_values_entry =
             mat_factorized_entry_.values;
 
-        // z = precond * r  ==> find z: L * U * z = r
-        /*
         if (threadIdx.x == 0) {
             // L * work_ = r
             for (int row_idx = 0; row_idx < num_rows; row_idx++) {
                 ValueType sum{0};
-                for (int i = row_ptrs[row_idx]; i < diag_ptrs_csr_[row_idx];
+                for (int i = row_ptrs[row_idx]; i < csr_diag_locs_[row_idx];
                      i++) {
                     sum += factored_values_entry[i] * work_[col_idxs[i]];
                 }
                 work_[row_idx] = r[row_idx] - sum;
             }
+        }
+    }
+
+
+    __device__ __forceinline__ void naive_combined_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = mat_factorized_entry_.num_rows;
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+        if (threadIdx.x == 0) {
             // U * z = work_
             for (int row_idx = num_rows - 1; row_idx >= 0; row_idx--) {
                 ValueType sum{0};
                 for (int i = row_ptrs[row_idx + 1] - 1;
-                     i > diag_ptrs_csr_[row_idx]; i--) {
+                     i > csr_diag_locs_[row_idx]; i--) {
                     sum += factored_values_entry[i] * z[col_idxs[i]];
                 }
                 z[row_idx] = (work_[row_idx] - sum) /
-                             factored_values_entry[diag_ptrs_csr_[row_idx]];
+                             factored_values_entry[csr_diag_locs_[row_idx]];
             }
-        }*/
+        }
+    }
+
+    __device__ __forceinline__ void warp_synchronous_combined_lower_trsv(
+        const ValueType* const __restrict__ r) const
+    {
+        const int num_rows = mat_factorized_entry_.num_rows;
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+        const int row_index = threadIdx.x;
+        if (row_index < num_rows) {
+            ValueType sum = 0;
+
+            const int start = row_ptrs[row_index];
+            const int end = csr_diag_locs_[row_index];
+
+            int i = start;
+            bool completed = false;
+
+            while (!completed) {
+                const int col_index = col_idxs[i];
+
+                if (i < end && is_finite(load(work_, col_index))) {
+                    sum += factored_values_entry[i] * load(work_, col_index);
+                    i++;
+                }
+
+                if (i == end) {
+                    ValueType val =
+                        (r[row_index] - sum) /
+                        1;  // 1 in place of factored_values_entry[end]
+                    store(work_, row_index, val);
+                    completed = true;
+                }
+            }
+        }
+    }
+
+    __device__ __forceinline__ void warp_synchronous_combined_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = mat_factorized_entry_.num_rows;
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+        const int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+        if (row_index >= 0) {
+            ValueType sum = 0;
+
+            const int start = csr_diag_locs_[row_index];
+            const int end = row_ptrs[row_index + 1] - 1;
+            int i = end;
+
+            bool completed = false;
+
+            while (!completed) {
+                const int col_index = col_idxs[i];
+
+                if (i > start && is_finite(load(z, col_index))) {
+                    sum += factored_values_entry[i] * load(z, col_index);
+                    i--;
+                }
+
+                if (i == start) {
+                    ValueType val =
+                        (work_[row_index] - sum) / factored_values_entry[start];
+                    store(z, row_index, val);
+                    completed = true;
+                }
+            }
+        }
+    }
+
+    __device__ __forceinline__ void
+    independent_thread_scheduling_combined_lower_trsv(
+        const ValueType* const __restrict__ r) const
+    {
+        const int num_rows = mat_factorized_entry_.num_rows;
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+
+        const int row_index = threadIdx.x;
+        if (row_index < num_rows) {
+            ValueType sum = 0;
+            const int start = row_ptrs[row_index];
+            const int end = csr_diag_locs_[row_index];
+
+            for (int i = start; i < end; i++) {
+                const int col_index = col_idxs[i];
+                while (!is_finite(load(work_, col_index))) {
+                }
+                sum += factored_values_entry[i] * load(work_, col_index);
+            }
+            ValueType val = r[row_index] - sum;
+            store(work_, row_index, val);
+        }
+    }
+
+    __device__ __forceinline__ void
+    independent_thread_scheduling_combined_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = mat_factorized_entry_.num_rows;
+        const int* const __restrict__ row_ptrs = mat_factorized_entry_.row_ptrs;
+        const int* const __restrict__ col_idxs = mat_factorized_entry_.col_idxs;
+        const ValueType* const __restrict__ factored_values_entry =
+            mat_factorized_entry_.values;
+
+        const int row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
+
+        if (row_index >= 0) {
+            ValueType sum = 0;
+            const int start = csr_diag_locs_[row_index];
+            const int end = row_ptrs[row_index + 1] - 1;
+
+            for (int i = end; i > start; i--) {
+                const int col_index = col_idxs[i];
+                while (!is_finite(load(z, col_index))) {
+                }
+                sum += factored_values_entry[i] * load(z, col_index);
+            }
+
+            ValueType val =
+                (work_[row_index] - sum) / factored_values_entry[start];
+            store(z, row_index, val);
+        }
+    }
+
+
+    __device__ __forceinline__ void apply(const int num_rows,
+                                          const ValueType* const __restrict__ r,
+                                          ValueType* const __restrict__ z) const
+    {
+        // z = precond * r  ==> find z: L * U * z = r
+
+        // L * work_ = r
+        // naive_combined_lower_trsv(r);
+        // U * z = work_
+        // naive_combined_upper_trsv(z);
 
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
-            work_[i] =
-                nan<ValueType>();  // TODO: find a better way to deal with this!
+            work_[i] = nan<ValueType>();
             z[i] = nan<ValueType>();
         }
+        __syncthreads();
 
         // L * work_ = r
         // U * z = work_
+
+        // busy-waiting while loop approach
         if (!is_fallback_required_) {
             //  Kernels for volta architecture and its successors
             //  (make use of independent thread scheduling)
-            int row_index = threadIdx.x;
-            if (row_index < num_rows) {
-                ValueType sum = 0;
-                const int start = row_ptrs[row_index];
-                const int end = csr_diag_locs_[row_index];
-
-                for (int i = start; i < end; i++) {
-                    const int col_index = col_idxs[i];
-                    while (!is_finite(load(work_, col_index))) {
-                    }
-                    sum += factored_values_entry[i] * load(work_, col_index);
-                }
-                ValueType val = r[row_index] - sum;
-                store(work_, row_index, val);
-            }
-
+            independent_thread_scheduling_combined_lower_trsv(r);
             __syncthreads();
-
-            row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-
-            if (row_index >= 0) {
-                ValueType sum = 0;
-                const int start = csr_diag_locs_[row_index];
-                const int end = row_ptrs[row_index + 1] - 1;
-
-                for (int i = end; i > start; i--) {
-                    const int col_index = col_idxs[i];
-                    while (!is_finite(load(z, col_index))) {
-                    }
-                    sum += factored_values_entry[i] * load(z, col_index);
-                }
-
-                ValueType val =
-                    (work_[row_index] - sum) / factored_values_entry[start];
-                store(z, row_index, val);
-            }
+            independent_thread_scheduling_combined_upper_trsv(z);
 
         } else {
-            int row_index = threadIdx.x;
-            if (row_index < num_rows) {
-                ValueType sum = 0;
-
-                const int start = row_ptrs[row_index];
-                const int end = csr_diag_locs_[row_index];
-
-                int i = start;
-                bool completed = false;
-
-                while (!completed) {
-                    const int col_index = col_idxs[i];
-
-                    if (i < end && is_finite(load(work_, col_index))) {
-                        sum +=
-                            factored_values_entry[i] * load(work_, col_index);
-                        i++;
-                    }
-
-                    if (i == end) {
-                        ValueType val =
-                            (r[row_index] - sum) /
-                            1;  // 1 in place of factored_values_entry[end]
-                        store(work_, row_index, val);
-                        completed = true;
-                    }
-                }
-            }
-
+            warp_synchronous_combined_lower_trsv(r);
             __syncthreads();
-
-            row_index = num_rows - 1 - static_cast<int>(threadIdx.x);
-            if (row_index >= 0) {
-                ValueType sum = 0;
-
-                const int start = csr_diag_locs_[row_index];
-                const int end = row_ptrs[row_index + 1] - 1;
-                int i = end;
-
-                bool completed = false;
-
-                while (!completed) {
-                    const int col_index = col_idxs[i];
-
-                    if (i > start && is_finite(load(z, col_index))) {
-                        sum += factored_values_entry[i] * load(z, col_index);
-                        i--;
-                    }
-
-                    if (i == start) {
-                        ValueType val = (work_[row_index] - sum) /
-                                        factored_values_entry[start];
-                        store(z, row_index, val);
-                        completed = true;
-                    }
-                }
-            }
+            warp_synchronous_combined_upper_trsv(z);
         }
     }
 

@@ -97,56 +97,62 @@ public:
     }
 
 
-    __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType* const __restrict__ r,
-                                          ValueType* const __restrict__ z) const
+    // TODO: (later) Move trsv functions to a batch_trsv_kernels.hpp.inc file
+    // (in case we have a separate batched lower and upper traingular solver
+    // (with public, core stuff etc.))
+    __device__ __forceinline__ void naive_lower_trsv(
+        const ValueType* const __restrict__ r) const
     {
-        // z = precond * r i.e.  L * U * z = r
-        // sparse triangular solves
-        // L * work_ = r  (find work_) Note: L is in sorted order
-        // U * z = work_  (then find z)  Note: U is in sorted order
-
+        const int num_rows = l_entry_.num_rows;
         const int* const __restrict__ L_row_ptrs = l_entry_.row_ptrs;
         const int* const __restrict__ L_col_idxs = l_entry_.col_idxs;
         const ValueType* const __restrict__ L_values = l_entry_.values;
+
+        if (threadIdx.x == 0) {
+            for (int row_idx = 0; row_idx < num_rows; row_idx++) {
+                const int row_st = L_row_ptrs[row_idx];
+                const int row_end = L_row_ptrs[row_idx + 1];
+                ValueType sum{0};
+                for (int i = row_st; i < row_end - 1; i++) {
+                    const int col_idx = L_col_idxs[i];
+                    sum += L_values[i] * work_[col_idx];
+                }
+                work_[row_idx] = (r[row_idx] - sum) / L_values[row_end - 1];
+            }
+        }
+    }
+
+    __device__ __forceinline__ void naive_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = u_entry_.num_rows;
         const int* const __restrict__ U_row_ptrs = u_entry_.row_ptrs;
         const int* const __restrict__ U_col_idxs = u_entry_.col_idxs;
         const ValueType* const __restrict__ U_values = u_entry_.values;
 
-        // TODO: Add kernels for volta architecture and its successors (which
-        // make use of independent thread scheduling)
-
-        /*
-       if (threadIdx.x == 0) {
-          for (int row_idx = 0; row_idx < num_rows; row_idx++) {
-              const int row_st = L_row_ptrs[row_idx];
-              const int row_end = L_row_ptrs[row_idx + 1];
-              ValueType sum{0};
-              for (int i = row_st; i < row_end - 1; i++) {
-                  const int col_idx = L_col_idxs[i];
-                  sum += L_values[i] * work_[col_idx];
-              }
-              work_[row_idx] = (r[row_idx] - sum) / L_values[row_end - 1];
-          }
-          for (int row_idx = num_rows - 1; row_idx >= 0; row_idx--) {
-              const int row_st = U_row_ptrs[row_idx];
-              const int row_end = U_row_ptrs[row_idx + 1];
-              ValueType sum{0};
-              for (int i = row_end - 1; i > row_st; i--) {
-                  const int col_idx = U_col_idxs[i];
-                  sum += U_values[i] * z[col_idx];
-              }
-              z[row_idx] = (work_[row_idx] - sum) / U_values[row_st];
-          }
-       }*/
-
-        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
-            store(work_, i, nan<ValueType>());
-            store(z, i, nan<ValueType>());
+        if (threadIdx.x == 0) {
+            for (int row_idx = num_rows - 1; row_idx >= 0; row_idx--) {
+                const int row_st = U_row_ptrs[row_idx];
+                const int row_end = U_row_ptrs[row_idx + 1];
+                ValueType sum{0};
+                for (int i = row_end - 1; i > row_st; i--) {
+                    const int col_idx = U_col_idxs[i];
+                    sum += U_values[i] * z[col_idx];
+                }
+                z[row_idx] = (work_[row_idx] - sum) / U_values[row_st];
+            }
         }
-        __syncthreads();
+    }
 
-        int row_index = threadIdx.x;
+    __device__ __forceinline__ void warp_synchronous_lower_trsv(
+        const ValueType* const __restrict__ r) const
+    {
+        const int num_rows = l_entry_.num_rows;
+        const int* const __restrict__ L_row_ptrs = l_entry_.row_ptrs;
+        const int* const __restrict__ L_col_idxs = l_entry_.col_idxs;
+        const ValueType* const __restrict__ L_values = l_entry_.values;
+
+        const int row_index = threadIdx.x;
 
         if (row_index < num_rows) {
             ValueType sum = zero<ValueType>();
@@ -171,11 +177,17 @@ public:
                 }
             }
         }
+    }
 
-        __syncthreads();
+    __device__ __forceinline__ void warp_synchronous_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = u_entry_.num_rows;
+        const int* const __restrict__ U_row_ptrs = u_entry_.row_ptrs;
+        const int* const __restrict__ U_col_idxs = u_entry_.col_idxs;
+        const ValueType* const __restrict__ U_values = u_entry_.values;
 
-
-        row_index = num_rows - 1 - threadIdx.x;
+        const int row_index = num_rows - 1 - threadIdx.x;
 
         if (row_index >= 0) {
             ValueType sum = zero<ValueType>();
@@ -200,6 +212,95 @@ public:
                     completed = true;
                 }
             }
+        }
+    }
+
+    __device__ __forceinline__ void independent_thread_scheduling_lower_trsv(
+        const ValueType* const __restrict__ r) const
+    {
+        const int num_rows = l_entry_.num_rows;
+        const int* const __restrict__ L_row_ptrs = l_entry_.row_ptrs;
+        const int* const __restrict__ L_col_idxs = l_entry_.col_idxs;
+        const ValueType* const __restrict__ L_values = l_entry_.values;
+
+        const int row_index = threadIdx.x;
+
+        if (row_index < num_rows) {
+            ValueType sum = zero<ValueType>();
+
+            const int start = L_row_ptrs[row_index];
+            const int end = L_row_ptrs[row_index + 1] - 1;
+
+            for (int i = start; i < end; i++) {
+                const int col_index = L_col_idxs[i];
+                while (!is_finite(load(work_, col_index))) {
+                }
+                sum += L_values[i] * load(work_, col_index);
+            }
+
+            ValueType val = (r[row_index] - sum) / L_values[end];
+            store(work_, row_index, val);
+        }
+    }
+
+    __device__ __forceinline__ void independent_thread_scheduling_upper_trsv(
+        ValueType* const __restrict__ z) const
+    {
+        const int num_rows = u_entry_.num_rows;
+        const int* const __restrict__ U_row_ptrs = u_entry_.row_ptrs;
+        const int* const __restrict__ U_col_idxs = u_entry_.col_idxs;
+        const ValueType* const __restrict__ U_values = u_entry_.values;
+
+        const int row_index = num_rows - 1 - threadIdx.x;
+
+        if (row_index >= 0) {
+            ValueType sum = zero<ValueType>();
+            const int start = U_row_ptrs[row_index];
+            const int end = U_row_ptrs[row_index + 1] - 1;
+
+            for (int i = end; i > start; i--) {
+                const int col_index = U_col_idxs[i];
+                while (!is_finite(load(z, col_index))) {
+                }
+                sum += U_values[i] * load(z, col_index);
+            }
+
+            ValueType val = (work_[row_index] - sum) / U_values[start];
+            store(z, row_index, val);
+        }
+    }
+
+
+    __device__ __forceinline__ void apply(const int num_rows,
+                                          const ValueType* const __restrict__ r,
+                                          ValueType* const __restrict__ z) const
+    {
+        // z = precond * r i.e.  L * U * z = r
+        // sparse triangular solves
+        // L * work_ = r  (find work_) Note: L is in sorted order
+        // U * z = work_  (then find z)  Note: U is in sorted order
+
+        // naive_lower_trsv(r);
+        // naive_upper_trsv(z);
+
+        for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
+            store(work_, i, nan<ValueType>());
+            store(z, i, nan<ValueType>());
+        }
+        __syncthreads();
+
+        // busy-waiting while loop approach
+        if (is_fallback_required_) {
+            warp_synchronous_lower_trsv(r);
+            __syncthreads();
+            warp_synchronous_upper_trsv(z);
+        } else {
+            // kernels for volta architecture and its successors (which make use
+            // of independent thread scheduling (threads in a warp do not
+            // necessarily run synchronously))
+            independent_thread_scheduling_lower_trsv(r);
+            __syncthreads();
+            independent_thread_scheduling_upper_trsv(z);
         }
     }
 
