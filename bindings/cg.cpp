@@ -36,8 +36,8 @@ namespace py = pybind11;
 
 void init_cg(py::module_& module_solver)
 {
-    py::class_<gko::stop::Iteration::Factory,
-               std::shared_ptr<gko::stop::Iteration::Factory>>(module_solver,
+    py::class_<gko::stop::CriterionFactory,
+               std::shared_ptr<gko::stop::CriterionFactory>>(module_solver,
                                                                "Iteration")
         .def(py::init([](std::shared_ptr<gko::Executor> exec, size_t iters) {
             return gko::share(
