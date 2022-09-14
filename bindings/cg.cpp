@@ -83,7 +83,17 @@ void init_cg(py::module_& module_solver)
             }
             factory.with_criteria(stopping_criteria);
 
-            return factory.on(exec)->generate(system_matrix);
+            auto factory_ = factory.on(exec);
+
+            for (auto& l : with) {
+                try {
+                    factory_->add_logger(
+                        l.cast<std::shared_ptr<const gko::log::Logger>>());
+                } catch (...) {
+                }
+            }
+
+            return factory_->generate(system_matrix);
         }))
         .def("apply",
              py::overload_cast<const gko::LinOp*, gko::LinOp*>(
