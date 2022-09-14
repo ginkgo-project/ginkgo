@@ -36,26 +36,6 @@ namespace py = pybind11;
 
 void init_cg(py::module_& module_solver)
 {
-    py::class_<gko::stop::CriterionFactory,
-               std::shared_ptr<gko::stop::CriterionFactory>>(module_solver,
-                                                             "Iteration")
-        .def(py::init([](std::shared_ptr<gko::Executor> exec, size_t iters) {
-            return gko::share(
-                gko::stop::Iteration::build().with_max_iters(iters).on(exec));
-        }));
-
-
-    py::class_<gko::LinOpFactory, std::shared_ptr<gko::LinOpFactory>>(
-        module_solver, "Jacobi")
-        .def(py::init(
-            [](std::shared_ptr<gko::Executor> exec, uint max_block_size) {
-                return gko::share(
-                    gko::preconditioner::Jacobi<ValueType, IndexType>::build()
-                        .with_max_block_size(max_block_size)
-                        .on(exec));
-            }));
-
-
     py::class_<gko::solver::Cg<ValueType>,
                std::shared_ptr<gko::solver::Cg<ValueType>>, gko::LinOp>(
         module_solver, "Cg")

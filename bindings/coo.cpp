@@ -106,6 +106,19 @@ void init_coo(py::module_& module_matrix)
                 exec, gko::dim<2>{dim[0].cast<size_t>(), dim[1].cast<size_t>()},
                 data_view, cols_view, rows_view));
         }))
+        .def("apply",
+             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+                 &gko::matrix::Coo<ValueType, IndexType>::apply),
+             "")
+        .def("apply",
+             py::overload_cast<const gko::LinOp*, gko::LinOp*>(
+                 &gko::matrix::Coo<ValueType, IndexType>::apply, py::const_),
+             "")
+        .def("apply",
+             py::overload_cast<const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*, gko::LinOp*>(
+                 &gko::matrix::Coo<ValueType, IndexType>::apply, py::const_),
+             "")
         // .def(py::init([](std::shared_ptr<gko::Executor> exec, gko::dim<2>
         // dim,
         //                  size_t stride) {
