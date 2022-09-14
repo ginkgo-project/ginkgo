@@ -21,6 +21,8 @@ if(GINKGO_BUILD_PYTHON_BINDINGS)
       ${PROJECT_SOURCE_DIR}/bindings/dense.cpp
       ${PROJECT_SOURCE_DIR}/bindings/coo.cpp
       ${PROJECT_SOURCE_DIR}/bindings/cg.cpp
+      ${PROJECT_SOURCE_DIR}/bindings/preconditioner.cpp
+      ${PROJECT_SOURCE_DIR}/bindings/criteria.cpp
     )
 
     target_include_directories(pygko PRIVATE ${Ginkgo_BINARY_DIR}/include)

@@ -37,6 +37,8 @@ namespace py = pybind11;
 void init_dense(py::module_&);
 void init_coo(py::module_&);
 void init_cg(py::module_&);
+void init_stop(py::module_&);
+void init_preconditioner(py::module_&);
 
 
 PYBIND11_MODULE(pygko, m)
@@ -98,6 +100,12 @@ PYBIND11_MODULE(pygko, m)
     py::module_ module_solver =
         m.def_submodule("solver", "Submodule for Ginkgos solver bindings");
 
+    py::module_ module_preconditioner = m.def_submodule(
+        "preconditioner", "Submodule for Ginkgos preconditioner bindings");
+
+    py::module_ module_stop = m.def_submodule(
+        "stop", "Submodule for Ginkgos stopping criteria bindings");
+
     m.def("read_dense",
           [](const std::string& fn, std::shared_ptr<gko::Executor> exec) {
               return gko::read<gko::matrix::Dense<ValueType>>(std::ifstream(fn),
@@ -113,4 +121,6 @@ PYBIND11_MODULE(pygko, m)
     init_dense(module_matrix);
     init_coo(module_matrix);
     init_cg(module_solver);
+    init_preconditioner(module_preconditioner);
+    init_stop(module_stop);
 }
