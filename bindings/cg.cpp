@@ -38,7 +38,7 @@ void init_cg(py::module_& module_solver)
 {
     py::class_<gko::stop::CriterionFactory,
                std::shared_ptr<gko::stop::CriterionFactory>>(module_solver,
-                                                               "Iteration")
+                                                             "Iteration")
         .def(py::init([](std::shared_ptr<gko::Executor> exec, size_t iters) {
             return gko::share(
                 gko::stop::Iteration::build().with_max_iters(iters).on(exec));
@@ -55,9 +55,19 @@ void init_cg(py::module_& module_solver)
             std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
                 stopping_criteria{};
             for (auto& w : with) {
-                stopping_criteria.push_back(
-                    w.cast<
-                        std::shared_ptr<const gko::stop::CriterionFactory>>());
+                try {
+                    stopping_criteria.push_back(
+                        w.cast<std::shared_ptr<
+                            const gko::stop::CriterionFactory>>());
+                    continue;
+                } catch (...) {
+                }
+                try {
+                    factory.with_preconditioner(
+                        w.cast<std::shared_ptr<const gko::LinOpFactory>>());
+                    continue;
+                } catch (...) {
+                }
             }
             factory.with_criteria(stopping_criteria);
 
