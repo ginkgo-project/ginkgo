@@ -36,6 +36,14 @@ namespace py = pybind11;
 
 void init_cg(py::module_& module_solver)
 {
+    py::class_<gko::stop::Iteration::Factory,
+               std::shared_ptr<gko::stop::Iteration::Factory>>(module_solver,
+                                                               "Iteration")
+        .def(py::init([](std::shared_ptr<gko::Executor> exec, size_t iters) {
+            return gko::share(
+                gko::stop::Iteration::build().with_max_iters(iters).on(exec));
+        }));
+
     py::class_<gko::solver::Cg<ValueType>,
                std::shared_ptr<gko::solver::Cg<ValueType>>, gko::LinOp>(
         module_solver, "Cg")
@@ -44,12 +52,15 @@ void init_cg(py::module_& module_solver)
                          py::list with) {
             auto factory = gko::solver::Cg<ValueType>::build();
 
-            // test if can be dynamically casted into criteria
-            // EnablePolymorphicObject<Iteration, Criterion>
-            // EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion>
-            // test if list entry::PolymorphicBasse == Criterion
-            factory.with_criteria(
-                gko::stop::Iteration::build().with_max_iters(20u).on(exec));
+            std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
+                stopping_criteria{};
+            for (auto& w : with) {
+                stopping_criteria.push_back(
+                    w.cast<
+                        std::shared_ptr<const gko::stop::CriterionFactory>>());
+            }
+            factory.with_criteria(stopping_criteria);
+
             return factory.on(exec)->generate(system_matrix);
         }))
         .def("apply",
