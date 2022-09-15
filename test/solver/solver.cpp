@@ -597,23 +597,15 @@ protected:
     template <typename VecType>
     double tol(const test_pair<VecType>& x)
     {
-        return Config::tolerance() *
-               std::sqrt(x.ref->get_size()[1] *
-                         (gko::is_complex<typename VecType::value_type>()
-                              ? 2.0
-                              : 1.0));
+        return Config::tolerance() * std::sqrt(x.ref->get_size()[1]);
     }
 
     template <typename VecType>
     double mixed_tol(const test_pair<VecType>& x)
     {
-        return std::max(
-            r_mixed<value_type, mixed_value_type>() *
-                std::sqrt(x.ref->get_size()[1] *
-                          (gko::is_complex<typename VecType::value_type>()
-                               ? 2.0
-                               : 1.0)),
-            tol(x));
+        return std::max(r_mixed<value_type, mixed_value_type>() *
+                            std::sqrt(x.ref->get_size()[1]),
+                        tol(x));
     }
 
     template <typename TestFunction>
