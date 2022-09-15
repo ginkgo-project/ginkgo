@@ -85,7 +85,8 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<gko::remove_complex<vtype>>(0.0, 1.0),
+            rand_engine, ref);
     }
 
     template <typename MtxType>
@@ -95,7 +96,8 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<gko::remove_complex<vtype>>(-1.0, 1.0),
+            rand_engine, ref);
     }
 
     void set_up_vector_data(gko::size_type num_vecs,
@@ -411,8 +413,8 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto coo_mtx = gko::matrix::Coo<>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<>::create(exec);
+    auto coo_mtx = gko::matrix::Coo<vtype>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<vtype>::create(exec);
 
     x->convert_to(coo_mtx.get());
     dx->convert_to(dcoo_mtx.get());
@@ -426,8 +428,8 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 TEST_F(Dense, MoveToCooIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto coo_mtx = gko::matrix::Coo<>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<>::create(exec);
+    auto coo_mtx = gko::matrix::Coo<vtype>::create(ref);
+    auto dcoo_mtx = gko::matrix::Coo<vtype>::create(exec);
 
     x->move_to(coo_mtx.get());
     dx->move_to(dcoo_mtx.get());
@@ -441,8 +443,8 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
 TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
 
     x->convert_to(csr_mtx.get());
     dx->convert_to(dcsr_mtx.get());
@@ -454,8 +456,8 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
 
     x->move_to(csr_mtx.get());
     dx->move_to(dcsr_mtx.get());
@@ -467,8 +469,8 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(exec);
+    auto sparsity_mtx = gko::matrix::SparsityCsr<vtype>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<vtype>::create(exec);
 
     x->convert_to(sparsity_mtx.get());
     dx->convert_to(d_sparsity_mtx.get());
@@ -480,8 +482,8 @@ TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
 TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(exec);
+    auto sparsity_mtx = gko::matrix::SparsityCsr<vtype>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<vtype>::create(exec);
 
     x->move_to(sparsity_mtx.get());
     dx->move_to(d_sparsity_mtx.get());
@@ -493,8 +495,8 @@ TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
 TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto ell_mtx = gko::matrix::Ell<>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<>::create(exec);
+    auto ell_mtx = gko::matrix::Ell<vtype>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<vtype>::create(exec);
 
     x->convert_to(ell_mtx.get());
     dx->convert_to(dell_mtx.get());
@@ -506,8 +508,8 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 TEST_F(Dense, MoveToEllIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto ell_mtx = gko::matrix::Ell<>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<>::create(exec);
+    auto ell_mtx = gko::matrix::Ell<vtype>::create(ref);
+    auto dell_mtx = gko::matrix::Ell<vtype>::create(exec);
 
     x->move_to(ell_mtx.get());
     dx->move_to(dell_mtx.get());
@@ -520,8 +522,8 @@ TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = gko::clone(exec, rmtx);
-    auto srmtx = gko::matrix::Hybrid<>::create(ref);
-    auto somtx = gko::matrix::Hybrid<>::create(exec);
+    auto srmtx = gko::matrix::Hybrid<vtype>::create(ref);
+    auto somtx = gko::matrix::Hybrid<vtype>::create(exec);
     auto drmtx = Mtx::create(ref);
     auto domtx = Mtx::create(exec);
 
@@ -540,8 +542,8 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = gko::clone(exec, rmtx);
-    auto srmtx = gko::matrix::Hybrid<>::create(ref);
-    auto somtx = gko::matrix::Hybrid<>::create(exec);
+    auto srmtx = gko::matrix::Hybrid<vtype>::create(ref);
+    auto somtx = gko::matrix::Hybrid<vtype>::create(exec);
     auto drmtx = Mtx::create(ref);
     auto domtx = Mtx::create(exec);
 
@@ -559,8 +561,8 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(exec);
+    auto sellp_mtx = gko::matrix::Sellp<vtype>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<vtype>::create(exec);
 
     x->convert_to(sellp_mtx.get());
     dx->convert_to(dsellp_mtx.get());
@@ -572,8 +574,8 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(exec);
+    auto sellp_mtx = gko::matrix::Sellp<vtype>::create(ref);
+    auto dsellp_mtx = gko::matrix::Sellp<vtype>::create(exec);
 
     x->move_to(sellp_mtx.get());
     dx->move_to(dsellp_mtx.get());
@@ -585,7 +587,7 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 TEST_F(Dense, ConvertsEmptyToSellp)
 {
     auto dempty_mtx = Mtx::create(exec);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(exec);
+    auto dsellp_mtx = gko::matrix::Sellp<vtype>::create(exec);
 
     dempty_mtx->convert_to(dsellp_mtx.get());
 

@@ -126,7 +126,6 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
 {
     auto size = orig->get_size();
     constexpr auto sg_size = DeviceConfig::subgroup_size;
-    std::cout << sg_size << std::endl;
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
 

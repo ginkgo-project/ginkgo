@@ -349,6 +349,6 @@ TEST_F(Idr, IdrIterationWithComplexSubspaceMultipleRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 10);
-    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 10);
+    GKO_ASSERT_MTX_NEAR(d_b, b, rr<value_type>::value * 100);
+    GKO_ASSERT_MTX_NEAR(d_x, x, rr<value_type>::value * 100);
 }
