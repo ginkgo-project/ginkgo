@@ -110,7 +110,6 @@ void initialize_batch_l_and_batch_u(
     matrix::BatchCsr<ValueType, IndexType>* const u_factor,
     const IndexType* const l_col_holders, const IndexType* const u_col_holders)
 {
-    const int nrows = static_cast<int>(sys_mat->get_size().at(0)[0]);
     const size_type nbatch = sys_mat->get_num_batch_entries();
     const int nnz =
         static_cast<int>(sys_mat->get_num_stored_elements() / nbatch);
@@ -126,39 +125,10 @@ void initialize_batch_l_and_batch_u(
     IndexType* u_col_idxs = u_factor->get_col_idxs();
     ValueType* u_vals = u_factor->get_values();
 
-    IndexType col;
-    ValueType val;
-
     for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
-        for (int i = 0; i < l_nnz; i++) {
-            const int l_A_index = l_col_holders[i];
-            if (l_A_index >= 0) {
-                col = col_idxs[l_A_index];
-                val = vals[l_A_index + batch_id * nnz];
-            } else {
-                col = -1 * (l_A_index + 1);
-                val = one<ValueType>();
-            }
-
-            if (batch_id == 0) {
-                l_col_idxs[i] = col;
-            }
-
-            l_vals[i + batch_id * l_nnz] = val;
-        }
-
-        for (int i = 0; i < u_nnz; i++) {
-            const int u_A_index = u_col_holders[i];
-
-            col = col_idxs[u_A_index];
-            val = vals[u_A_index + batch_id * nnz];
-
-            if (batch_id == 0) {
-                u_col_idxs[i] = col;
-            }
-
-            u_vals[i + batch_id * u_nnz] = val;
-        }
+        initialize_batch_l_and_batch_u_individual_entry_impl(
+            batch_id, nnz, col_idxs, vals, l_nnz, l_col_holders, l_col_idxs,
+            l_vals, u_nnz, u_col_holders, u_col_idxs, u_vals);
     }
 }
 
