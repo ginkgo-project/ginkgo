@@ -67,7 +67,8 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
                       const array<ValueType>& workspace,
                       array<IndexType>& permutation,
                       array<IndexType>& inv_permutation,
-                      array<IndexType>& parents) GKO_NOT_IMPLEMENTED;
+                      array<IndexType>& parents,
+                      ValueType tolerance) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_MC64_INITIAL_MATCHING_KERNEL);
@@ -80,8 +81,8 @@ void shortest_augmenting_path(
     array<ValueType>& workspace, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
     array<IndexType>& parents,
-    addressable_priority_queue<ValueType, IndexType, 2>& Q,
-    std::vector<IndexType>& q_j) GKO_NOT_IMPLEMENTED;
+    addressable_priority_queue<ValueType, IndexType>& Q,
+    std::vector<IndexType>& q_j, ValueType tolerance) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL);
