@@ -74,8 +74,8 @@ public:
                   const gko::batch_csr::BatchEntry<const ValueType>&,
                   ValueType* const __restrict__ work)
     {
-        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
-        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
+        l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
@@ -83,8 +83,8 @@ public:
                   const gko::batch_ell::BatchEntry<const ValueType>&,
                   ValueType* const __restrict__ work)
     {
-        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
-        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
+        l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
@@ -92,16 +92,45 @@ public:
                   const gko::batch_dense::BatchEntry<const ValueType>&,
                   ValueType* const __restrict__ work)
     {
-        auto l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
-        auto u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
+        l_entry_ = gko::batch::batch_entry(l_batch_, batch_id);
+        u_entry_ = gko::batch::batch_entry(u_batch_, batch_id);
         work_ = work;
     }
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
-        // TODO: Implement lower and upper trsv (this uses the work
-        // array)
-        GKO_NOT_IMPLEMENTED;
+    // TODO: Implement lower and upper trsv (this uses the work
+    // array)
+    {
+        const int num_rows = r.num_rows;
+        // z = precond * r
+        // L * U * z = r
+        // L * work = r, U * z = work
+        for (int row_index = 0; row_index < num_rows; row_index++) {
+            ValueType sum = zero<ValueType>();
+            for (int i = l_entry_.row_ptrs[row_index];
+                 i < l_entry_.row_ptrs[row_index + 1] - 1; i++) {
+                const int col_index = l_entry_.col_idxs[i];
+                sum += l_entry_.values[i] * work_[col_index];
+            }
+
+            const ValueType diag_val =
+                l_entry_.values[l_entry_.row_ptrs[row_index + 1] - 1];
+            work_[row_index] = (r.values[row_index] - sum) / diag_val;
+        }
+
+        for (int row_index = num_rows - 1; row_index >= 0; row_index--) {
+            ValueType sum = zero<ValueType>();
+            for (int i = u_entry_.row_ptrs[row_index + 1] - 1;
+                 i > u_entry_.row_ptrs[row_index]; i--) {
+                const int col_index = u_entry_.col_idxs[i];
+                sum += u_entry_.values[i] * z.values[col_index];
+            }
+            const ValueType diag_val =
+                u_entry_.values[u_entry_.row_ptrs[row_index]];
+            z.values[row_index] = (work_[row_index] - sum) / diag_val;
+        }
+    }
 
 private:
     const gko::batch_csr::UniformBatch<const value_type> l_batch_;
