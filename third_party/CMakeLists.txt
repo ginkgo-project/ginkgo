@@ -19,7 +19,7 @@ if(GINKGO_BUILD_PYTHON_BINDINGS)
     pybind11_add_module(pygko
       ${PROJECT_SOURCE_DIR}/bindings/python.cpp
       ${PROJECT_SOURCE_DIR}/bindings/dense.cpp
-      ${PROJECT_SOURCE_DIR}/bindings/coo.cpp
+      ${PROJECT_SOURCE_DIR}/bindings/matrix.cpp
       ${PROJECT_SOURCE_DIR}/bindings/cg.cpp
       ${PROJECT_SOURCE_DIR}/bindings/preconditioner.cpp
       ${PROJECT_SOURCE_DIR}/bindings/criteria.cpp
