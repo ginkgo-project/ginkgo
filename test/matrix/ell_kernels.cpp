@@ -422,7 +422,7 @@ TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 10);
 }
 
 
@@ -433,7 +433,7 @@ TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 10);
 }
 
 
@@ -444,7 +444,7 @@ TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 10);
 }
 
 
@@ -455,7 +455,7 @@ TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 10);
 }
 
 
