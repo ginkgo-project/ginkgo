@@ -52,10 +52,10 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType)  \
-    void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,  \
-                            const matrix::Csr<ValueType, IndexType>* mtx, \
-                            array<remove_complex<ValueType>>& workspace,  \
+#define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS_KERNEL(ValueType, IndexType)       \
+    void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,       \
+                            const matrix::Csr<ValueType, IndexType>* mtx,      \
+                            array<remove_complex<ValueType>>& value_workspace, \
                             gko::reorder::reordering_strategy strategy)
 
 
@@ -63,30 +63,32 @@ namespace kernels {
     void initial_matching(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,  \
         const IndexType* row_ptrs, const IndexType* col_idxs,             \
-        const array<ValueType>& workspace, array<IndexType>& permutation, \
-        array<IndexType>& inv_permutation, array<IndexType>& parents)
+        const array<ValueType>& value_workspace,                          \
+        array<IndexType>& permutation, array<IndexType>& inv_permutation, \
+        array<IndexType>& index_workspace, ValueType tolerance)
 
 
 #define GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH_KERNEL(ValueType, IndexType) \
     void shortest_augmenting_path(                                             \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,       \
         const IndexType* row_ptrs, const IndexType* col_idxs,                  \
-        array<ValueType>& workspace, array<IndexType>& permutation,            \
+        array<ValueType>& value_workspace, array<IndexType>& permutation,      \
         array<IndexType>& inv_permutation, IndexType root,                     \
-        array<IndexType>& parents,                                             \
-        addressable_priority_queue<ValueType, IndexType, 2>& Q,                \
-        std::vector<IndexType>& q_j)
+        array<IndexType>& index_workspace,                                     \
+        addressable_priority_queue<ValueType, IndexType>& Q,                   \
+        std::vector<IndexType>& q_j, ValueType tolerance)
 
 
-#define GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType)       \
-    void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,       \
-                         const matrix::Csr<ValueType, IndexType>* mtx,      \
-                         const array<remove_complex<ValueType>>& workspace, \
-                         const array<IndexType>& permutation,               \
-                         const array<IndexType>& parents,                   \
-                         gko::reorder::reordering_strategy strategy,        \
-                         gko::matrix::Diagonal<ValueType>* row_scaling,     \
-                         gko::matrix::Diagonal<ValueType>* col_scaling)
+#define GKO_DECLARE_MC64_COMPUTE_SCALING_KERNEL(ValueType, IndexType) \
+    void compute_scaling(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Csr<ValueType, IndexType>* mtx,                 \
+        const array<remove_complex<ValueType>>& value_workspace,      \
+        const array<IndexType>& permutation,                          \
+        const array<IndexType>& index_workspace,                      \
+        gko::reorder::reordering_strategy strategy,                   \
+        gko::matrix::Diagonal<ValueType>* row_scaling,                \
+        gko::matrix::Diagonal<ValueType>* col_scaling)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
