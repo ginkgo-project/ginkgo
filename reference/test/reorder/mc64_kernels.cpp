@@ -65,6 +65,7 @@ protected:
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
     using permutation_type = gko::matrix::Permutation<index_type>;
     static constexpr auto inf = std::numeric_limits<real_type>::infinity();
+    static constexpr real_type tol = 1e-14;
 
     Mc64()
         : ref(gko::ReferenceExecutor::create()),
@@ -76,56 +77,12 @@ protected:
                                             {0., 0., 0., 4., 2., 0.},
                                             {0., 5., 8., 0., 0., 0.}},
                                            ref)),
-          expected_workspace_sum{
-              ref,
-              I<real_type>({2.,  1.,  0.,  0., 4., 0., 2., 0., 1.,  0.,  2.,
-                            3.,  0.,  0.,  1., 0., 0., 0., 1., inf, inf, inf,
-                            inf, inf, inf, 3., 5., 6., 4., 4., 8.})},
-          expected_workspace_product{
-              ref,
-              I<real_type>({real_type{std::log2(3.)},
-                            real_type{std::log2(3.)} - real_type{std::log2(2.)},
-                            0.,
-                            0.,
-                            real_type{std::log2(5.)},
-                            0.,
-                            real_type{std::log2(6.)} - real_type{std::log2(4.)},
-                            0.,
-                            real_type{std::log2(4.)} - real_type{std::log2(3.)},
-                            0.,
-                            real_type{std::log2(4.)} - real_type{std::log2(2.)},
-                            real_type{std::log2(8.)} - real_type{std::log2(5.)},
-                            0.,
-                            0.,
-                            real_type{std::log2(3.)} - real_type{std::log2(2.)},
-                            0.,
-                            0.,
-                            0.,
-                            real_type{std::log2(4.)} - real_type{std::log2(3.)},
-                            inf,
-                            inf,
-                            inf,
-                            inf,
-                            inf,
-                            inf,
-                            real_type{std::log2(3.)},
-                            real_type{std::log2(5.)},
-                            real_type{std::log2(6.)},
-                            real_type{std::log2(4.)},
-                            real_type{std::log2(4.)},
-                            real_type{std::log2(8.)}})},
-          expected_perm{ref, I<index_type>({1, 0, 3, 5, -1, 2})},
-          expected_inv_perm{ref, I<index_type>({1, 0, 5, 2, -1, 3})},
           tolerance{10 * std::numeric_limits<real_type>::epsilon()}
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<real_type> tmp;
     std::shared_ptr<matrix_type> mtx;
-    gko::array<real_type> expected_workspace_sum;
-    gko::array<real_type> expected_workspace_product;
-    gko::array<index_type> expected_perm;
-    gko::array<index_type> expected_inv_perm;
     const real_type tolerance;
 };
 
@@ -139,13 +96,22 @@ TYPED_TEST(Mc64, InitializeWeightsSum)
 
     const auto num_rows = this->mtx->get_size()[0];
     const auto nnz = this->mtx->get_num_stored_elements();
-    gko::array<real_type> workspace{this->ref, nnz + 3 * num_rows};
+    gko::array<real_type> value_workspace{this->ref, nnz + 3 * num_rows};
+    gko::array<real_type> expected_value_workspace{
+        this->ref,
+        I<real_type>{2.,        1.,        0.,        0.,        4.,
+                     0.,        2.,        0.,        1.,        0.,
+                     2.,        3.,        0.,        0.,        1.,
+                     0.,        0.,        0.,        1.,        this->inf,
+                     this->inf, this->inf, this->inf, this->inf, this->inf,
+                     3.,        5.,        6.,        4.,        4.,
+                     8.}};
 
     gko::kernels::reference::mc64::initialize_weights(
-        this->ref, this->mtx.get(), workspace,
+        this->ref, this->mtx.get(), value_workspace,
         gko::reorder::reordering_strategy::max_diagonal_sum);
 
-    GKO_ASSERT_ARRAY_EQ(workspace, this->expected_workspace_sum);
+    GKO_ASSERT_ARRAY_EQ(value_workspace, expected_value_workspace);
 }
 
 
@@ -156,39 +122,88 @@ TYPED_TEST(Mc64, InitializeWeightsProduct)
 
     const auto num_rows = this->mtx->get_size()[0];
     const auto nnz = this->mtx->get_num_stored_elements();
-    gko::array<real_type> workspace{this->ref, nnz + 3 * num_rows};
+    gko::array<real_type> value_workspace{this->ref, nnz + 3 * num_rows};
+    // This is really ugly, but the logarithms screw up the result if they are
+    // merged
+    gko::array<real_type> expected_value_workspace{
+        this->ref,
+        I<real_type>{real_type{std::log2(3.)},
+                     real_type{std::log2(3.)} - real_type{std::log2(2.)},
+                     0.,
+                     0.,
+                     real_type{std::log2(5.)},
+                     0.,
+                     real_type{std::log2(6.)} - real_type{std::log2(4.)},
+                     0.,
+                     real_type{std::log2(4.)} - real_type{std::log2(3.)},
+                     0.,
+                     real_type{std::log2(4.)} - real_type{std::log2(2.)},
+                     real_type{std::log2(8.)} - real_type{std::log2(5.)},
+                     0.,
+                     0.,
+                     real_type{std::log2(3.)} - real_type{std::log2(2.)},
+                     0.,
+                     0.,
+                     0.,
+                     real_type{std::log2(4.)} - real_type{std::log2(3.)},
+                     this->inf,
+                     this->inf,
+                     this->inf,
+                     this->inf,
+                     this->inf,
+                     this->inf,
+                     real_type{std::log2(3.)},
+                     real_type{std::log2(5.)},
+                     real_type{std::log2(6.)},
+                     real_type{std::log2(4.)},
+                     real_type{std::log2(4.)},
+                     real_type{std::log2(8.)}}};
 
     gko::kernels::reference::mc64::initialize_weights(
-        this->ref, this->mtx.get(), workspace,
+        this->ref, this->mtx.get(), value_workspace,
         gko::reorder::reordering_strategy::max_diagonal_product);
 
-    GKO_ASSERT_ARRAY_EQ(workspace, this->expected_workspace_product);
+    GKO_ASSERT_ARRAY_EQ(value_workspace, expected_value_workspace);
 }
 
 
 TYPED_TEST(Mc64, InitialMatching)
 {
     using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
     gko::array<index_type> p{this->ref,
                              I<index_type>({-1, -1, -1, -1, -1, -1})};
     gko::array<index_type> ip{this->ref,
                               I<index_type>({-1, -1, -1, -1, -1, -1})};
     const auto num_rows = this->mtx->get_size()[0];
-    gko::array<index_type> parents{this->ref, 6 * num_rows};
-    parents.fill(gko::zero<index_type>());
-    gko::array<index_type> expected_parents{
+    gko::array<real_type> value_workspace{
+        this->ref,
+        I<real_type>{2.,        1.,        0.,        0.,        4.,
+                     0.,        2.,        0.,        1.,        0.,
+                     2.,        3.,        0.,        0.,        1.,
+                     0.,        0.,        0.,        1.,        this->inf,
+                     this->inf, this->inf, this->inf, this->inf, this->inf,
+                     3.,        5.,        6.,        4.,        4.,
+                     8.}};
+    gko::array<index_type> index_workspace{this->ref, 6 * num_rows};
+    index_workspace.fill(gko::zero<index_type>());
+    gko::array<index_type> expected_index_workspace{
         this->ref,
         I<index_type>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0, 1, 3, 5, 8, 0, 12, 4, -1, 0, 0, 0, 0}};
+    gko::array<index_type> expected_perm{this->ref,
+                                         I<index_type>({1, 0, 3, 5, -1, 2})};
+    gko::array<index_type> expected_inv_perm{
+        this->ref, I<index_type>({1, 0, 5, 2, -1, 3})};
 
     gko::kernels::reference::mc64::initial_matching(
         this->ref, num_rows, this->mtx->get_const_row_ptrs(),
-        this->mtx->get_const_col_idxs(), this->expected_workspace_sum, p, ip,
-        parents);
+        this->mtx->get_const_col_idxs(), value_workspace, p, ip,
+        index_workspace, this->tol);
 
-    GKO_ASSERT_ARRAY_EQ(p, this->expected_perm);
-    GKO_ASSERT_ARRAY_EQ(ip, this->expected_inv_perm);
-    GKO_ASSERT_ARRAY_EQ(parents, expected_parents);
+    GKO_ASSERT_ARRAY_EQ(p, expected_perm);
+    GKO_ASSERT_ARRAY_EQ(ip, expected_inv_perm);
+    GKO_ASSERT_ARRAY_EQ(index_workspace, expected_index_workspace);
 }
 
 
@@ -196,37 +211,48 @@ TYPED_TEST(Mc64, ShortestAugmentingPathExample)
 {
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
+    gko::array<index_type> perm{this->ref, I<index_type>({1, 0, 3, 5, -1, 2})};
+    gko::array<index_type> inv_perm{this->ref,
+                                    I<index_type>({1, 0, 5, 2, -1, 3})};
     gko::array<index_type> expected_perm{this->ref,
                                          I<index_type>{1, 0, 3, 5, 4, 2}};
     gko::array<index_type> expected_inv_perm{this->ref,
                                              I<index_type>{1, 0, 5, 2, 4, 3}};
-    gko::array<index_type> parents{
+    gko::array<index_type> index_workspace{
         this->ref,
         I<index_type>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0, 1, 3, 5, 8, 0, 12, 4, -1, 0, 0, 0, 0}};
-    gko::array<index_type> expected_parents{
+    gko::array<index_type> expected_index_workspace{
         this->ref, I<index_type>{0, 0, 3,  4,  4,  2,  0, 0,  0, 0, 0, 0,
                                  0, 0, -4, -4, 0,  -4, 3, 5,  2, 0, 0, 0,
                                  1, 3, 5,  8,  10, 12, 4, -1, 0, 0, 0, 0}};
-    gko::array<real_type> expected_workspace{
+    gko::array<real_type> value_workspace{
+        this->ref,
+        I<real_type>{2.,        1.,        0.,        0.,        4.,
+                     0.,        2.,        0.,        1.,        0.,
+                     2.,        3.,        0.,        0.,        1.,
+                     0.,        0.,        0.,        1.,        this->inf,
+                     this->inf, this->inf, this->inf, this->inf, this->inf,
+                     3.,        5.,        6.,        4.,        4.,
+                     8.}};
+    gko::array<real_type> expected_value_workspace{
         this->ref,
         I<real_type>{2.,  1., 0., 0.,        4.,        0., 2., 0.,
                      1.,  0., 2., 3.,        0.,        0., 1., -1.,
                      -2., 0., 0., this->inf, this->inf, 1., 0., this->inf,
                      1.,  3., 5., 6.,        4.,        4., 8.}};
-    gko::addressable_priority_queue<real_type, index_type, 2> Q{};
+    gko::addressable_priority_queue<real_type, index_type> Q{4};
     std::vector<index_type> q_j{};
 
     gko::kernels::reference::mc64::shortest_augmenting_path(
         this->ref, this->mtx->get_size()[0], this->mtx->get_const_row_ptrs(),
-        this->mtx->get_const_col_idxs(), this->expected_workspace_sum,
-        this->expected_perm, this->expected_inv_perm,
-        4 * gko::one<index_type>(), parents, Q, q_j);
+        this->mtx->get_const_col_idxs(), value_workspace, perm, inv_perm,
+        4 * gko::one<index_type>(), index_workspace, Q, q_j, this->tol);
 
-    GKO_ASSERT_ARRAY_EQ(expected_perm, this->expected_perm);
-    GKO_ASSERT_ARRAY_EQ(expected_inv_perm, this->expected_inv_perm);
-    GKO_ASSERT_ARRAY_EQ(parents, expected_parents);
-    GKO_ASSERT_ARRAY_EQ(this->expected_workspace_sum, expected_workspace);
+    GKO_ASSERT_ARRAY_EQ(perm, expected_perm);
+    GKO_ASSERT_ARRAY_EQ(inv_perm, expected_inv_perm);
+    GKO_ASSERT_ARRAY_EQ(index_workspace, expected_index_workspace);
+    GKO_ASSERT_ARRAY_EQ(value_workspace, expected_value_workspace);
 }
 
 
@@ -249,16 +275,16 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
                         ->get_const_permutation();
     GKO_ASSERT_EQ(perm[0], 1);
     GKO_ASSERT_EQ(perm[1], 0);
-    GKO_ASSERT_EQ(perm[2], 3);
-    GKO_ASSERT_EQ(perm[3], 5);
+    GKO_ASSERT_EQ(perm[2], 5);
+    GKO_ASSERT_EQ(perm[3], 2);
     GKO_ASSERT_EQ(perm[4], 4);
-    GKO_ASSERT_EQ(perm[5], 2);
+    GKO_ASSERT_EQ(perm[5], 3);
     GKO_ASSERT_EQ(inv_perm[0], 1);
     GKO_ASSERT_EQ(inv_perm[1], 0);
-    GKO_ASSERT_EQ(inv_perm[2], 5);
-    GKO_ASSERT_EQ(inv_perm[3], 2);
+    GKO_ASSERT_EQ(inv_perm[2], 3);
+    GKO_ASSERT_EQ(inv_perm[3], 5);
     GKO_ASSERT_EQ(inv_perm[4], 4);
-    GKO_ASSERT_EQ(inv_perm[5], 3);
+    GKO_ASSERT_EQ(inv_perm[5], 2);
 }
 
 
@@ -284,18 +310,18 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
     auto row_scaling = mc64->get_row_scaling()->get_const_values();
     auto col_scaling = mc64->get_col_scaling()->get_const_values();
 
-    GKO_ASSERT_EQ(perm[0], 4);
-    GKO_ASSERT_EQ(perm[1], 0);
-    GKO_ASSERT_EQ(perm[2], 5);
-    GKO_ASSERT_EQ(perm[3], 2);
-    GKO_ASSERT_EQ(perm[4], 3);
-    GKO_ASSERT_EQ(perm[5], 1);
-    GKO_ASSERT_EQ(inv_perm[0], 1);
-    GKO_ASSERT_EQ(inv_perm[1], 5);
-    GKO_ASSERT_EQ(inv_perm[2], 3);
-    GKO_ASSERT_EQ(inv_perm[3], 4);
-    GKO_ASSERT_EQ(inv_perm[4], 0);
-    GKO_ASSERT_EQ(inv_perm[5], 2);
+    GKO_ASSERT_EQ(perm[0], 1);
+    GKO_ASSERT_EQ(perm[1], 5);
+    GKO_ASSERT_EQ(perm[2], 3);
+    GKO_ASSERT_EQ(perm[3], 4);
+    GKO_ASSERT_EQ(perm[4], 0);
+    GKO_ASSERT_EQ(perm[5], 2);
+    GKO_ASSERT_EQ(inv_perm[0], 4);
+    GKO_ASSERT_EQ(inv_perm[1], 0);
+    GKO_ASSERT_EQ(inv_perm[2], 5);
+    GKO_ASSERT_EQ(inv_perm[3], 2);
+    GKO_ASSERT_EQ(inv_perm[4], 3);
+    GKO_ASSERT_EQ(inv_perm[5], 1);
     GKO_ASSERT_NEAR(row_scaling[0], value_type{1. / 3.}, this->tolerance);
     GKO_ASSERT_NEAR(row_scaling[1], value_type{0.2}, this->tolerance);
     GKO_ASSERT_NEAR(row_scaling[2], value_type{0.2}, this->tolerance);
