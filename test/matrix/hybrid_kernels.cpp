@@ -229,8 +229,8 @@ TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
     // now convert them to hybrid matrices
     auto balanced_mtx = gko::clone(ref, dense_mtx);
     auto dbalanced_mtx = gko::clone(exec, balanced_mtx);
-    auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
 
     balanced_mtx->convert_to(csr_mtx.get());
     dbalanced_mtx->convert_to(dcsr_mtx.get());
