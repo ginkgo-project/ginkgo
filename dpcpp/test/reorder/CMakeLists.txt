@@ -1,2 +1,1 @@
 ginkgo_create_test(mc64_kernels)
-ginkgo_create_test(rcm_kernels)

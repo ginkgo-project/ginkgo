@@ -34,7 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_COMPONENTS_ADRESSABLE_PQ_HPP_
 
 
+#include <algorithm>
 #include <vector>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -46,11 +50,13 @@ namespace gko {
  * It allows inserting key-value pairs, modifying their key as well as accessing
  * and removing the key-value pair with the minimum key.
  *
- * @tparam Degree_Log2 the binary logarithm of the heap arity, i.e.,
- *         `k = 1 << Degree_Log2`
+ * @tparam KeyType    The type of the keys
+ * @tparam ValueType  The type of the values
  */
-template <typename KeyType, typename ValueType, int Degree_Log2>
+template <typename KeyType, typename ValueType>
 struct addressable_priority_queue {
+    explicit addressable_priority_queue(int deg_log2) : degree{1 << deg_log2} {}
+
     /**
      * Inserts the given key-value pair into the PQ.
      * Duplicate keys are allowed, they may be returned in an arbitrary order.
@@ -70,12 +76,14 @@ struct addressable_priority_queue {
         return handle;
     }
 
-    /** Updates the key of the pair with the given handle. */
+    /**
+     * Updates the key of the pair with the given handle.
+     */
     void update_key(std::size_t handle, KeyType new_key)
     {
         auto pos = m_handle_pos[handle];
-        assert(pos < size());
-        assert(m_handles[pos] == handle);
+        GKO_ASSERT(pos < size());
+        GKO_ASSERT(m_handles[pos] == handle);
         auto old_key = m_keys[pos];
         m_keys[pos] = new_key;
         if (old_key < new_key) {
@@ -85,16 +93,24 @@ struct addressable_priority_queue {
         }
     }
 
-    /** Returns the minimum key from the queue. */
+    /**
+     * Returns the minimum key from the queue.
+     */
     KeyType min_key() const { return m_keys[0]; }
 
-    /** Returns the value belonging to the minimum key from the queue. */
+    /**
+     * Returns the value belonging to the minimum key from the queue.
+     */
     ValueType min_val() const { return m_values[0]; }
 
-    /** Returns the key-value pair with the minimum key from the queue. */
+    /**
+     * Returns the key-value pair with the minimum key from the queue.
+     */
     std::pair<KeyType, ValueType> min() const { return {min_key(), min_val()}; }
 
-    /** Removes the key-value pair with the minimum key from the queue. */
+    /**
+     * Removes the key-value pair with the minimum key from the queue.
+     */
     void pop_min()
     {
         swap(0, size() - 1);
@@ -105,10 +121,14 @@ struct addressable_priority_queue {
         sift_down(0);
     }
 
-    /** Returns the number of key-value pairs in the queue. */
+    /**
+     * Returns the number of key-value pairs in the queue.
+     */
     std::size_t size() const { return m_keys.size(); }
 
-    /** Returns true if and only if the queue has size 0. */
+    /**
+     * Returns true if and only if the queue has size 0.
+     */
     bool empty() const { return size() == 0; }
 
     void reset()
@@ -120,8 +140,7 @@ struct addressable_priority_queue {
     }
 
 private:
-    constexpr static int degree = 1 << 4;       // Degree_Log2;
-    constexpr static auto invalid_handle = -1;  //((std::size_t)-1);
+    // constexpr static int degree = 1 << Degree_Log2;
 
     std::size_t parent(std::size_t i) const { return (i - 1) / degree; }
 
@@ -166,6 +185,7 @@ private:
 
     std::size_t next_handle() const { return m_handle_pos.size(); }
 
+    const int degree;
     std::vector<KeyType> m_keys;
     std::vector<ValueType> m_values;
     std::vector<std::size_t> m_handles;

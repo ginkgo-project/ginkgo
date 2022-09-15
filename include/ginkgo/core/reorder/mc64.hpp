@@ -63,20 +63,45 @@ namespace reorder {
 
 /**
  * Strategy defining the goal of the MC64 reordering.
- * max_diagonal_product and max_diagonal_product_fast aim at
- * maximizing the product of absolute diagonal entries using
- * the standard library or faster, approximate implementations
- * for logarithm and exponential function computations.
+ * max_diagonal_product aims at maximizing the product of
+ * absolute diagonal entries.
  * max_diag_sum aims at maximizing the sum of absolute values
  * for the diagonal entries.
  */
-enum class reordering_strategy {
-    max_diagonal_product,
-    max_diagonal_product_fast,
-    max_diagonal_sum
-};
+enum class reordering_strategy { max_diagonal_product, max_diagonal_sum };
 
 
+/**
+ * MC64 is an algorithm for permuting large entries to the diagonal of a
+ * sparse matrix. This approach can increase numerical stability of e.g.
+ * an LU factorization without pivoting. Under the assumption of working
+ * on a nonsingular square matrix, the algorithm computes a minimum weight
+ * extreme matching on a weighted edge bipartite graph of the matrix. It is
+ * described in detail in "On Algorithms for Permuting Large Entries to the
+ * Diagonal of a Sparse Matrix" (Duff, Koster, 2001). There are two strategies
+ * for choosing the weights supported:
+ *  - Maximizing the product of the absolute values on the diagonal.
+ *    For this strategy, the weights are computed as
+ *      c(i, j) = log2(a_i) - log2(abs(a(i, j))) if a(i, j) is nonzero and
+ * infinity otherwise Here, a_i is the maximum absolute value in row i of the
+ * matrix A. In this case, the implementation computes a row permutation P and
+ * row and column scaling coefficients L and R such that the matrix P*L*A*R has
+ * values with unity absolute value on the diagonal and smaller or equal entries
+ * everywhere else.
+ *  - Maximizing the sum of the absolute values on the diagonal.
+ *    For this strategy, the weights are computed as
+ *      c(i, j) = a_i - abs(a(i, j)) if a(i, j) is nonzero and infinity
+ * otherwise In this case, no scaling coefficients are computed.
+ *
+ * @note  This class is derived from polymorphic object but is not a LinOp as it
+ * does not make sense for this class to implement the apply methods. The
+ * objective of this class is to generate a reordering/permutation vector (in
+ * the form of the Permutation matrix), which can be used to apply to reorder a
+ * matrix as required.
+ *
+ * @tparam ValueType  Type of the values of all matrices used in this class
+ * @tparam IndexType  Type of the indices of all matrices used in this class
+ */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Mc64 : public EnablePolymorphicObject<Mc64<ValueType, IndexType>,
                                             ReorderingBase>,
@@ -113,11 +138,23 @@ public:
         return inv_permutation_;
     }
 
+    /**
+     * Gets the row scaling coefficients. If the strategy is max_diagonal_sum,
+     * these are all 1.
+     *
+     * @return the row scaling coefficients (diagonal matrix)
+     */
     std::shared_ptr<const DiagonalMatrix> get_row_scaling() const
     {
         return row_scaling_;
     }
 
+    /**
+     * Gets the column sclaing coefficients. If the strategy is
+     * max_diagonal_sum, these are all 1.
+     *
+     * @return the column scaling coefficients (diagonal matrix)
+     */
     std::shared_ptr<const DiagonalMatrix> get_col_scaling() const
     {
         return col_scaling_;
@@ -129,7 +166,21 @@ public:
          * This parameter controls the goal of the permutation.
          */
         reordering_strategy GKO_FACTORY_PARAMETER_SCALAR(
-            strategy, reordering_strategy::max_diagonal_product_fast);
+            strategy, reordering_strategy::max_diagonal_product);
+
+        /**
+         * This parameter controls the tolerance below which a weight is
+         * considered to be zero.
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(tolerance,
+                                                               1e-14);
+
+        /**
+         * This parameter controls the binary logarithm of the heap arity
+         * for the addressable priority queue used in generating the
+         * minimum weight perfect matching.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(log2_degree, 4);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Mc64, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -151,40 +202,42 @@ protected:
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        // Always execute the reordering on the cpu.
-        const auto is_gpu_executor =
-            this->get_executor() != this->get_executor()->get_master();
-        auto cpu_exec = is_gpu_executor ? this->get_executor()->get_master()
-                                        : this->get_executor();
+        auto exec = this->get_executor();
+        // Always execute the reordering on a reference executor as the
+        // algorithm is only implemented sequentially.
+        const auto is_gpu_executor = exec != exec->get_master();
+        const auto host_is_ref =
+            dynamic_cast<const ReferenceExecutor*>(exec->get_master().get());
+        auto ref =
+            host_is_ref ? exec->get_master() : ReferenceExecutor::create();
+
+        auto system_matrix = share(matrix_type::create(ref));
 
         // The system matrix has to be square.
         GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
+        if (args.system_matrix->get_size()) {
+            system_matrix =
+                copy_and_convert_to<matrix_type>(ref, args.system_matrix);
+        }
 
-        auto const dim = args.system_matrix->get_size();
-        // permutation_ = PermutationMatrix::create(cpu_exec, dim);
-        // inv_permutation_ = PermutationMatrix::create(cpu_exec, dim);
-        // row_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
-        // col_scaling_ = DiagonalMatrix::create(cpu_exec, dim[0]);
+        auto const dim = system_matrix->get_size();
 
-        this->generate(cpu_exec, args.system_matrix);
+        this->generate(ref, system_matrix);
 
-        // Copy back results to gpu if necessary.
-        if (is_gpu_executor) {
-            const auto gpu_exec = this->get_executor();
-            auto gpu_perm = share(PermutationMatrix::create(gpu_exec, dim));
-            gpu_perm->copy_from(permutation_.get());
-            permutation_ = gpu_perm;
-            auto gpu_inv_perm = share(PermutationMatrix::create(gpu_exec, dim));
-            gpu_inv_perm->copy_from(inv_permutation_.get());
-            inv_permutation_ = gpu_inv_perm;
-            auto gpu_row_scaling =
-                share(DiagonalMatrix::create(gpu_exec, dim[0]));
-            gpu_row_scaling->copy_from(row_scaling_.get());
-            row_scaling_ = gpu_row_scaling;
-            auto gpu_col_scaling =
-                share(DiagonalMatrix::create(gpu_exec, dim[0]));
-            gpu_col_scaling->copy_from(col_scaling_.get());
-            col_scaling_ = gpu_col_scaling;
+        // Copy back results to original executor if necessary.
+        if (ref != exec) {
+            auto perm = share(PermutationMatrix::create(exec, dim));
+            perm->copy_from(permutation_.get());
+            permutation_ = perm;
+            auto inv_perm = share(PermutationMatrix::create(exec, dim));
+            inv_perm->copy_from(inv_permutation_.get());
+            inv_permutation_ = inv_perm;
+            auto row_scaling = share(DiagonalMatrix::create(exec, dim[0]));
+            row_scaling->copy_from(row_scaling_.get());
+            row_scaling_ = row_scaling;
+            auto col_scaling = share(DiagonalMatrix::create(exec, dim[0]));
+            col_scaling->copy_from(col_scaling_.get());
+            col_scaling_ = col_scaling;
         }
     }
 

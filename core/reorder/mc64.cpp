@@ -77,47 +77,66 @@ void Mc64<ValueType, IndexType>::generate(std::shared_ptr<const Executor>& exec,
     size_type num_rows = mtx->get_size()[0];
     size_type nnz = mtx->get_num_stored_elements();
 
-    array<remove_complex<ValueType>> workspace{exec, nnz + 3 * num_rows};
+    // A real valued array with space for:
+    //     - nnz entries for weights
+    //     - num_rows entries each for the dual vector u, distance information
+    //       and the max weight per row
+    array<remove_complex<ValueType>> value_workspace{exec, nnz + 3 * num_rows};
+    // A zero initialized index array with space for n entries each for parent
+    // information, priority queue handles, generation information, marked
+    // columns, indices corresponding to matched columns in the according row
+    // and still unmatched rows
+    array<IndexType> index_workspace{exec, 6 * num_rows};
+    index_workspace.fill(0);
+
     array<IndexType> permutation{exec, num_rows};
     array<IndexType> inv_permutation{exec, num_rows};
     permutation.fill(-one<IndexType>());
     inv_permutation.fill(-one<IndexType>());
+
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
 
-    exec->run(mc64::make_initialize_weights(mtx.get(), workspace,
+    exec->run(mc64::make_initialize_weights(mtx.get(), value_workspace,
                                             parameters_.strategy));
 
-    array<IndexType> parents{exec, 6 * num_rows};
-    parents.fill(0);
-    exec->run(mc64::make_initial_matching(num_rows, row_ptrs, col_idxs,
-                                          workspace, permutation,
-                                          inv_permutation, parents));
+    // Compute an initial extreme matching from the nonzero entries for which
+    // the reduced weight (W(i, j) - u(j) - v(i)) is zero. Here, W is the
+    // weight matrix and u and v are the dual vectors. Note that v initially
+    // only contains zeros and hence can still be ignored here.
+    exec->run(mc64::make_initial_matching(
+        num_rows, row_ptrs, col_idxs, value_workspace, permutation,
+        inv_permutation, index_workspace, parameters_.tolerance));
 
-    addressable_priority_queue<remove_complex<ValueType>, IndexType, 2> Q{};
+    // For each row that is not contained in the initial matching, search for
+    // an augmenting path, update the matching and compute the new entries
+    // of the dual vectors.
+    addressable_priority_queue<remove_complex<ValueType>, IndexType> Q{
+        parameters_.log2_degree};
     std::vector<IndexType> q_j{};
-    const auto unmatched = parents.get_data() + 5 * num_rows;
+    const auto unmatched = index_workspace.get_data() + 5 * num_rows;
     auto um = 0;
     auto root = unmatched[um];
     while (root != 0 && um < num_rows) {
         if (root != -1)
             exec->run(mc64::make_shortest_augmenting_path(
-                num_rows, row_ptrs, col_idxs, workspace, permutation,
-                inv_permutation, root, parents, Q, q_j));
+                num_rows, row_ptrs, col_idxs, value_workspace, permutation,
+                inv_permutation, root, index_workspace, Q, q_j,
+                parameters_.tolerance));
         root = unmatched[++um];
     }
 
-    permutation_ = std::move(share(PermutationMatrix::create(
-        exec, system_matrix->get_size(), permutation,
-        gko::matrix::row_permute | matrix::inverse_permute)));
-    inv_permutation_ = std::move(share(
+    permutation_ = std::move(share(
         PermutationMatrix::create(exec, system_matrix->get_size(),
-                                  inv_permutation, matrix::column_permute)));
+                                  inv_permutation, gko::matrix::row_permute)));
+    inv_permutation_ = std::move(share(PermutationMatrix::create(
+        exec, system_matrix->get_size(), permutation, matrix::row_permute)));
     row_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
     col_scaling_ = std::move(DiagonalMatrix::create(exec, num_rows));
+
     exec->run(mc64::make_compute_scaling(
-        mtx.get(), workspace, permutation, parents, parameters_.strategy,
-        row_scaling_.get(), col_scaling_.get()));
+        mtx.get(), value_workspace, permutation, index_workspace,
+        parameters_.strategy, row_scaling_.get(), col_scaling_.get()));
 }
 
 

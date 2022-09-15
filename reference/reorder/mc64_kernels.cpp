@@ -32,27 +32,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/reorder/mc64_kernels.hpp"
 
-#include <algorithm>
+
 #include <cmath>
-#include <iterator>
-#include <memory>
-#include <queue>
-#include <set>
-#include <utility>
-#include <vector>
 
 
-#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
-
-
-#include "core/base/allocator.hpp"
 
 
 namespace gko {
@@ -69,7 +57,7 @@ namespace mc64 {
 template <typename ValueType, typename IndexType>
 void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* mtx,
-                        array<remove_complex<ValueType>>& workspace,
+                        array<remove_complex<ValueType>>& value_workspace,
                         gko::reorder::reordering_strategy strategy)
 {
     constexpr auto inf =
@@ -79,16 +67,16 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto values = mtx->get_const_values();
-    auto weight =
+    auto calculate_weight =
         strategy == gko::reorder::reordering_strategy::max_diagonal_sum
             ? [](ValueType a) { return abs(a); }
             : [](ValueType a) { return std::log2(abs(a)); };
-    auto weights = workspace.get_data();
-    auto u = weights + nnz;
-    auto distance = u + num_rows;
-    auto m = distance + num_rows;
+    auto weights = value_workspace.get_data();
+    auto dual_u = weights + nnz;
+    auto distance = dual_u + num_rows;
+    auto row_maxima = distance + num_rows;
     for (IndexType col = 0; col < num_rows; col++) {
-        u[col] = inf;
+        dual_u[col] = inf;
         distance[col] = inf;
     }
 
@@ -97,18 +85,18 @@ void initialize_weights(std::shared_ptr<const DefaultExecutor> exec,
         const auto row_end = row_ptrs[row + 1];
         auto row_max = -inf;
         for (IndexType idx = row_begin; idx < row_end; idx++) {
-            const auto w = weight(values[idx]);
-            weights[idx] = w;
-            if (w > row_max) row_max = w;
+            const auto weight = calculate_weight(values[idx]);
+            weights[idx] = weight;
+            if (weight > row_max) row_max = weight;
         }
 
-        m[row] = row_max;
+        row_maxima[row] = row_max;
 
         for (IndexType idx = row_begin; idx < row_end; idx++) {
-            const auto c = row_max - weights[idx];
-            weights[idx] = c;
+            const auto weight = row_max - weights[idx];
+            weights[idx] = weight;
             const auto col = col_idxs[idx];
-            if (c < u[col]) u[col] = c;
+            if (weight < dual_u[col]) dual_u[col] = weight;
         }
     }
 }
@@ -122,17 +110,17 @@ template <typename ValueType, typename IndexType>
 void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
                       size_type num_rows, const IndexType* row_ptrs,
                       const IndexType* col_idxs,
-                      const array<ValueType>& workspace,
+                      const array<ValueType>& value_workspace,
                       array<IndexType>& permutation,
                       array<IndexType>& inv_permutation,
-                      array<IndexType>& parents)
+                      array<IndexType>& index_workspace, ValueType tolerance)
 {
     const auto nnz = row_ptrs[num_rows];
-    const auto c = workspace.get_const_data();
-    const auto u = c + nnz;
+    const auto weights = value_workspace.get_const_data();
+    const auto dual_u = weights + nnz;
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
-    auto idxs = parents.get_data() + 4 * num_rows;
+    auto idxs = index_workspace.get_data() + 4 * num_rows;
     auto unmatched = idxs + num_rows;
     auto um_cnt = 0;
 
@@ -145,7 +133,7 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
         bool matched = false;
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
-            if (abs(c[idx] - u[col]) < 1e-14 && ip[col] == -1) {
+            if (abs(weights[idx] - dual_u[col]) < tolerance && ip[col] == -1) {
                 p[row] = col;
                 ip[col] = row;
                 idxs[row] = idx;
@@ -154,6 +142,7 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         if (!matched) {
+            // Mark unmatched rows for later.
             unmatched[um_cnt++] = row;
         }
     }
@@ -165,20 +154,24 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
     // (row, col) and (row_1, col_1).
     auto um = 0;
     auto row = unmatched[um];
+    // If row == 0 we passed the last unmatched row and reached the
+    // zero-initialized part of the array. Row 0 is always matched as the matrix
+    // is assumed to be nonsingular and the previous loop starts with row 0.
     while (row != 0 && um < num_rows) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
         bool found = false;
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
-            if (abs(c[idx] - u[col]) < 1e-14) {
+            if (abs(weights[idx] - dual_u[col]) < tolerance) {
                 const auto row_1 = ip[col];
                 const auto row_1_begin = row_ptrs[row_1];
                 const auto row_1_end = row_ptrs[row_1 + 1];
                 for (IndexType idx_1 = row_1_begin; idx_1 < row_1_end;
                      idx_1++) {
                     const auto col_1 = col_idxs[idx_1];
-                    if (abs(c[idx_1] - u[col_1]) < 1e-14 && ip[col_1] == -1) {
+                    if (abs(weights[idx_1] - dual_u[col_1]) < tolerance &&
+                        ip[col_1] == -1) {
                         p[row] = col;
                         ip[col] = row;
                         idxs[row] = idx;
@@ -193,6 +186,7 @@ void initial_matching(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
         if (found) {
+            // Mark previously unmatched row as matched.
             unmatched[um] = -1;
         }
         row = unmatched[++um];
@@ -207,32 +201,43 @@ template <typename ValueType, typename IndexType>
 void shortest_augmenting_path(
     std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
     const IndexType* row_ptrs, const IndexType* col_idxs,
-    array<ValueType>& workspace, array<IndexType>& permutation,
+    array<ValueType>& value_workspace, array<IndexType>& permutation,
     array<IndexType>& inv_permutation, IndexType root,
-    array<IndexType>& parents,
-    addressable_priority_queue<ValueType, IndexType, 2>& Q,
-    std::vector<IndexType>& q_j)
+    array<IndexType>& index_workspace,
+    addressable_priority_queue<ValueType, IndexType>& Q,
+    std::vector<IndexType>& q_j, ValueType tolerance)
 {
     constexpr auto inf = std::numeric_limits<ValueType>::infinity();
     const auto nnz = row_ptrs[num_rows];
-    auto c = workspace.get_data();
-    auto u = c + nnz;
-    auto distance = u + num_rows;
+    auto weights = value_workspace.get_data();
+    auto dual_u = weights + nnz;
+    auto distance = dual_u + num_rows;
 
     auto p = permutation.get_data();
     auto ip = inv_permutation.get_data();
 
-    auto parents_ = parents.get_data();
-    auto handles = parents_ + num_rows;
+    auto parents = index_workspace.get_data();
+    // Handles to access and update entries in the addressable priority queue.
+    auto handles = parents + num_rows;
+    // Generation array to mark visited nodes.
     auto generation = handles + num_rows;
+    // Set of marked columns whos shortest alternating paths and distances to
+    // the root are known.
     auto marked_cols = generation + num_rows;
+    // Indices of the nonzero entries corresponding to the matched column in
+    // each matched row. So, if row i is matched to column j, W(i,j) is found
+    // at weights[idxs[i]] where W is the weight matrix.
     auto idxs = marked_cols + num_rows;
 
     Q.reset();
     q_j.clear();
 
-    ValueType lsp = inf;  // zero<ValueType>();
+    // The length of the current path.
+    ValueType lsp = inf;
+    // The length of the currently shortest found augmenting path starting from
+    // root.
     ValueType lsap = inf;
+    // The column at the end of the currently shortest found augmenting path.
     IndexType jsap = -1;
 
     auto row = root;
@@ -241,18 +246,22 @@ void shortest_augmenting_path(
     const auto begin = row_ptrs[row];
     const auto end = row_ptrs[row + 1];
 
+    // Look for matching candidates in the row corresponding to root.
+    // As root is not yet matched, the corresponding entry in the dual
+    // vector v is 0 so we do not have to compute it.
     for (IndexType idx = begin; idx < end; idx++) {
         const auto col = col_idxs[idx];
-        const ValueType dnew = c[idx] - u[col];
+        const ValueType dnew = weights[idx] - dual_u[col];
 
         if (dnew < lsap) {
             if (ip[col] == -1) {
+                // col is unmatched so we found an augmenting path.
                 lsap = dnew;
                 jsap = col;
-                parents_[col] = row;
+                parents[col] = row;
             } else {
                 distance[col] = dnew;
-                parents_[col] = row;
+                parents[col] = row;
                 generation[col] = num_rows + root;
                 if (dnew < lsp) {
                     lsp = dnew;
@@ -261,13 +270,16 @@ void shortest_augmenting_path(
         }
     }
 
+    // Write the columns in the row corresponding to root with the
+    // smallest distance into q_j, other columns with distance
+    // smaller than lsap into the priority queue Q.
     for (IndexType idx = begin; idx < end; idx++) {
         const auto col = col_idxs[idx];
         const auto dist = distance[col];
         const auto gen = generation[col];
         if (dist < lsap && gen == num_rows + root) {
-            if (abs(dist - lsp) < 1e-14) {
-                generation[col] = 2 * num_rows + root;
+            if (abs(dist - lsp) < tolerance) {
+                generation[col] = -num_rows - root;
                 q_j.push_back(col);
             } else {
                 generation[col] = root;
@@ -277,7 +289,14 @@ void shortest_augmenting_path(
     }
 
     while (true) {
+        // Mark the column with the shortest known distance to the root
+        // and proceed in its matched row. If both q_j and Q are empty
+        // or if the current path becomes longer than the currently
+        // shortest augmenting path, we are done.
         if (q_j.size() > 0) {
+            // q_j is known to contain only entries with shortest known
+            // distance to the root, so if it is not empty we do not
+            // have to operate on the priority queue.
             if (lsap <= lsp) break;
             const auto col = q_j.back();
             q_j.pop_back();
@@ -288,6 +307,8 @@ void shortest_augmenting_path(
             if (Q.empty()) break;
             auto col = Q.min_val();
             while (generation[col] == -root && !Q.empty()) {
+                // If col is already marked because it previously was in q_j
+                // we have to disregard it.
                 Q.pop_min();
                 col = Q.min_val();
             }
@@ -297,83 +318,70 @@ void shortest_augmenting_path(
             generation[col] = -root;
             marked_cols[marked_counter++] = col;
             Q.pop_min();
-            // while (Q.min_key() == lsp && !Q.empty()) {
-            //     q_j.push_back(Q.min_val());
-            //     Q.pop_min();
-            // }
             row = ip[col];
         }
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
-        const auto vi = p[row] == -1 ? zero<ValueType>()
-                                     : c[idxs[row]] - u[p[row]];  // v[row];
+        // Compute the entry of the dual vector v corresponding to row.
+        const auto dual_vi = p[row] == -1 ? zero<ValueType>()
+                                          : weights[idxs[row]] - dual_u[p[row]];
         for (IndexType idx = row_begin; idx < row_end; idx++) {
             const auto col = col_idxs[idx];
             const auto gen = generation[col];
 
+            // col is already marked. Note that root will never be 0 as this row
+            // is guaranteed to already be part of the initial matching.
             if (gen == -root) continue;
 
-            const ValueType dnew = lsp + c[idx] - u[col] - vi;
-            // if (col == 392960) std::cout << distance[col] << ", " << lsp <<
-            // ", " << dnew << std::endl; if (dnew < lsp && abs(lsp - dnew) >
-            // 1e-10){
-            //     std::cout << root + num_rows << ", " << gen << ", " << jsap
-            //     << ", " << col << std::endl; exit(1);
-            // }
+            const ValueType dnew = lsp + weights[idx] - dual_u[col] - dual_vi;
+
             if (dnew < lsap) {
                 if (ip[col] == -1) {
+                    // col is unmatched so we found an augmenting path.
                     lsap = dnew;
                     jsap = col;
-                    parents_[col] = row;
+                    parents[col] = row;
                 } else {
                     if ((gen != root || dnew < distance[col]) &&
-                        gen != 2 * num_rows + root) {
+                        gen != -num_rows - root) {
                         distance[col] = dnew;
-                        parents_[col] = row;
-                        if (abs(dnew - lsp) < 1e-14) {
-                            generation[col] = 2 * num_rows + root;
+                        parents[col] = row;
+                        if (abs(dnew - lsp) < tolerance) {
+                            // dnew is the shortest currently possible distance,
+                            // so col can be put into q_j and be marked
+                            // accordingly.
+                            generation[col] = -num_rows - root;
                             q_j.push_back(col);
-                            // if (gen == root) {
-                            //     Q.update_key(handles[col], -inf);
-                            //     Q.pop_min();
-                            // }
                         } else if (gen != root) {
-                            // if (gen != root) {
-                            generation[col] = root;  // num_rows + gen;
+                            // col was not encountered before.
+                            generation[col] = root;
                             handles[col] = Q.insert(dnew, col);
                         } else {
-                            generation[col] = root;  // num_rows + gen;
+                            // col was already encountered but with larger
+                            // distance on a different path.
+                            generation[col] = root;
                             Q.update_key(handles[col], dnew);
                         }
                     }
                 }
             }
         }
-        /*for (IndexType idx = row_begin; idx < row_end; idx++) {
-            const auto col = col_idxs[idx];
-            const auto gen = generation[col];
-            const auto dist = distance[col];
-            if (dist < lsap) {
-                generation[col] = root;
-                if (dist == lsp) {
-                    q_j.push_back(col);
-                } else if ()
-            }
-        }*/
     }
     if (lsap != inf) {
         IndexType col = jsap;
+        // Update the matching along the shortest augmenting path.
         do {
-            row = parents_[col];
+            row = parents[col];
             ip[col] = row;
             auto idx = row_ptrs[row];
             while (col_idxs[idx] != col) idx++;
             idxs[row] = idx;
             std::swap(col, p[row]);
         } while (row != root);
+        // Update the dual vector u.
         for (size_type i = 0; i < marked_counter; i++) {
             const auto col = marked_cols[i];
-            u[col] += distance[col] - lsap;
+            dual_u[col] += distance[col] - lsap;
         }
     }
 }
@@ -385,9 +393,9 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* mtx,
-                     const array<remove_complex<ValueType>>& workspace,
+                     const array<remove_complex<ValueType>>& value_workspace,
                      const array<IndexType>& permutation,
-                     const array<IndexType>& parents,
+                     const array<IndexType>& index_workspace,
                      gko::reorder::reordering_strategy strategy,
                      gko::matrix::Diagonal<ValueType>* row_scaling,
                      gko::matrix::Diagonal<ValueType>* col_scaling)
@@ -399,27 +407,21 @@ void compute_scaling(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto col_idxs = mtx->get_const_col_idxs();
     const auto values = mtx->get_const_values();
-    const auto weights = workspace.get_const_data();
-    const auto u = weights + nnz;
-    const auto m = u + 2 * num_rows;
+    const auto weights = value_workspace.get_const_data();
+    const auto dual_u = weights + nnz;
+    const auto row_maxima = dual_u + 2 * num_rows;
     const auto p = permutation.get_const_data();
-    const auto idxs = parents.get_const_data() + 4 * num_rows;
+    const auto idxs = index_workspace.get_const_data() + 4 * num_rows;
     auto rv = row_scaling->get_values();
     auto cv = col_scaling->get_values();
 
-    if (strategy == gko::reorder::reordering_strategy::max_diagonal_product ||
-        strategy ==
-            gko::reorder::reordering_strategy::max_diagonal_product_fast) {
-        // auto exp2_ = strategy ==
-        // gko::reorder::reordering_strategy::max_diagonal_product_fast
-        //     ? [](remove_complex<ValueType> a) { return fastexp2(a); }
-        //     : [](remove_complex<ValueType> a) { return std::exp2(a); };
+    if (strategy == gko::reorder::reordering_strategy::max_diagonal_product) {
         for (size_type i = 0; i < num_rows; i++) {
-            const remove_complex<ValueType> u_val = std::exp2(u[i]);
+            const remove_complex<ValueType> u_val = std::exp2(dual_u[i]);
             const remove_complex<ValueType> v_val =
-                weights[idxs[i]] - u[p[i]] - m[i];
+                std::exp2(weights[idxs[i]] - dual_u[p[i]] - row_maxima[i]);
             cv[i] = ValueType{u_val};
-            rv[i] = ValueType{std::exp2(v_val)};
+            rv[i] = ValueType{v_val};
         }
     } else {
         for (size_type i = 0; i < num_rows; i++) {
