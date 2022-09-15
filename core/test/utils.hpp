@@ -189,7 +189,8 @@ struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
     using nc_precision = remove_complex<Precision>;
     static constexpr nc_output value{
-        std::numeric_limits<nc_precision>::epsilon() * nc_output{10}};
+        std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
+        (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>())};
 };
 
 
