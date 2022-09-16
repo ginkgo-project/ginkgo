@@ -500,12 +500,40 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, Transpose64IsEquivalentToRef)
+{
+    using Mtx64 = gko::matrix::Csr<double, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(cuda, mtx);
+
+    auto trans = gko::as<Mtx64>(mtx->transpose());
+    auto d_trans = gko::as<Mtx64>(dmtx->transpose());
+
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
+}
+
+
 TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
     set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
 
     auto trans = gko::as<ComplexMtx>(complex_mtx->conj_transpose());
     auto d_trans = gko::as<ComplexMtx>(complex_dmtx->conj_transpose());
+
+    GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
+    ASSERT_TRUE(d_trans->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, ConjugateTranspose64IsEquivalentToRef)
+{
+    using Mtx64 = gko::matrix::Csr<double, gko::int64>;
+    auto mtx = gen_mtx<Mtx64>(123, 234, 0);
+    auto dmtx = gko::clone(cuda, mtx);
+
+    auto trans = gko::as<Mtx64>(mtx->transpose());
+    auto d_trans = gko::as<Mtx64>(dmtx->transpose());
 
     GKO_ASSERT_MTX_NEAR(d_trans, trans, 0.0);
     ASSERT_TRUE(d_trans->is_sorted_by_column_index());

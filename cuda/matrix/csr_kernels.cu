@@ -952,7 +952,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             idxBase, alg, buffer);
 #endif
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_transpose(exec, orig, trans);
     }
 }
 
@@ -967,11 +967,10 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     if (orig->get_size()[0] == 0) {
         return;
     }
+    const auto block_size = default_block_size;
+    const auto grid_size =
+        ceildiv(trans->get_num_stored_elements(), block_size);
     if (cusparse::is_supported<ValueType, IndexType>::value) {
-        const auto block_size = default_block_size;
-        const auto grid_size =
-            ceildiv(trans->get_num_stored_elements(), block_size);
-
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
@@ -1006,13 +1005,13 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, buffer);
 #endif
-        if (grid_size > 0) {
-            kernel::conjugate<<<grid_size, block_size, 0, 0>>>(
-                trans->get_num_stored_elements(),
-                as_cuda_type(trans->get_values()));
-        }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_transpose(exec, orig, trans);
+    }
+    if (grid_size > 0) {
+        kernel::conjugate<<<grid_size, block_size, 0, 0>>>(
+            trans->get_num_stored_elements(),
+            as_cuda_type(trans->get_values()));
     }
 }
 
