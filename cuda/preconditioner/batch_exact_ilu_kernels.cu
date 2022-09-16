@@ -100,6 +100,9 @@ void apply_exact_ilu(
     using d_value_type = cuda_type<ValueType>;
     using prec_type = batch_exact_ilu<d_value_type>;
     bool is_fallback_required = true;
+    if (exec->get_major_version() >= 7) {
+        is_fallback_required = false;
+    }
     prec_type prec(factored_matrix_batch, diag_locs, is_fallback_required);
 
     batch_exact_ilu_apply<<<nbatch, default_block_size,
