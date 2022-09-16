@@ -122,7 +122,7 @@ public:
      *
      * @return the permutation (permutation matrix)
      */
-    std::shared_ptr<const LinOp> get_permutation() const override
+    std::shared_ptr<const PermutationMatrix> get_permutation() const
     {
         return permutation_;
     }
@@ -133,7 +133,7 @@ public:
      *
      * @return the inverse permutation (permutation matrix)
      */
-    std::shared_ptr<const LinOp> get_inverse_permutation() const override
+    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
     {
         return inv_permutation_;
     }
