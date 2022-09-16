@@ -76,7 +76,7 @@ enum class reordering_strategy { max_diagonal_product, max_diagonal_sum };
  * sparse matrix. This approach can increase numerical stability of e.g.
  * an LU factorization without pivoting. Under the assumption of working
  * on a nonsingular square matrix, the algorithm computes a minimum weight
- * extreme matching on a weighted edge bipartite graph of the matrix. It is
+ * perfect matching on a weighted edge bipartite graph of the matrix. It is
  * described in detail in "On Algorithms for Permuting Large Entries to the
  * Diagonal of a Sparse Matrix" (Duff, Koster, 2001). There are two strategies
  * for choosing the weights supported:
