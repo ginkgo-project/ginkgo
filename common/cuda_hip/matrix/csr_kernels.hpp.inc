@@ -1124,7 +1124,7 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
                            thrust::device_pointer_cast(out_col_idxs),
                            thrust::device_pointer_cast(out_vals)));
     using tuple_type =
-        thrust::tuple<IndexType, IndexType, cuda_type<ValueType>>;
+        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
     thrust::sort(thrust::device, zip_it, zip_it + nnz,
                  [] __device__(const tuple_type& a, const tuple_type& b) {
                      return thrust::tie(thrust::get<0>(a), thrust::get<1>(a)) <
