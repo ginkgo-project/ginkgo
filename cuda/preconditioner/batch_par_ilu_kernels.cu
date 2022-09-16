@@ -39,9 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/batch_struct.hpp"
 #include "cuda/base/exception.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/load_store.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/matrix/batch_struct.hpp"
-
 
 namespace gko {
 namespace kernels {
@@ -52,9 +52,10 @@ namespace {
 
 constexpr size_type default_block_size = 256;
 
+
 #include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_par_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_par_ilu_kernels.hpp.inc"
-//#include "common/cuda_hip/preconditioner/batch_par_ilu.hpp.inc"
 
 }  // namespace
 
@@ -159,7 +160,23 @@ void apply_par_ilu0(
     const matrix::BatchCsr<ValueType, IndexType>* const l_factor,
     const matrix::BatchCsr<ValueType, IndexType>* const u_factor,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto num_rows = static_cast<int>(l_factor->get_size().at(0)[0]);
+    const auto nbatch = l_factor->get_num_batch_entries();
+    const auto l_batch = get_batch_struct(l_factor);
+    const auto u_batch = get_batch_struct(u_factor);
+    using d_value_type = cuda_type<ValueType>;
+    using prec_type = batch_parilu0<d_value_type>;
+    bool is_fallback_required = true;
+    prec_type prec(l_batch, u_batch, is_fallback_required);
+
+    batch_parilu_apply<<<nbatch, default_block_size,
+                         prec_type::dynamic_work_size(num_rows, 0) *
+                             sizeof(ValueType)>>>(
+        prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
+        as_cuda_type(z->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_PAR_ILU_APPLY_KERNEL);
