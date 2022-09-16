@@ -1098,3 +1098,38 @@ void build_lookup(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_LOOKUP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* input,
+                        matrix::Csr<ValueType, IndexType>* output)
+{
+    const auto in_num_rows = input->get_size()[0];
+    const auto out_num_rows = output->get_size()[0];
+    const auto nnz = output->get_num_stored_elements();
+    const auto in_row_ptrs = input->get_const_row_ptrs();
+    const auto in_col_idxs = input->get_const_col_idxs();
+    const auto in_vals = as_device_type(input->get_const_values());
+    const auto out_row_ptrs = output->get_row_ptrs();
+    const auto out_col_idxs = output->get_col_idxs();
+    const auto out_vals = as_device_type(output->get_values());
+    array<IndexType> out_row_idxs{exec, nnz};
+    components::convert_ptrs_to_idxs(exec, in_row_ptrs, in_num_rows,
+                                     out_col_idxs);
+    exec->copy(nnz, in_vals, out_vals);
+    exec->copy(nnz, in_col_idxs, out_row_idxs.get_data());
+    auto zip_it = thrust::make_zip_iterator(
+        thrust::make_tuple(thrust::device_pointer_cast(out_row_idxs.get_data()),
+                           thrust::device_pointer_cast(out_col_idxs),
+                           thrust::device_pointer_cast(out_vals)));
+    using tuple_type =
+        thrust::tuple<IndexType, IndexType, cuda_type<ValueType>>;
+    thrust::sort(thrust::device, zip_it, zip_it + nnz,
+                 [] __device__(const tuple_type& a, const tuple_type& b) {
+                     return thrust::tie(thrust::get<0>(a), thrust::get<1>(a)) <
+                            thrust::tie(thrust::get<0>(b), thrust::get<1>(b));
+                 });
+    components::convert_idxs_to_ptrs(exec, out_row_idxs.get_data(), nnz,
+                                     out_num_rows, out_row_ptrs);
+}
