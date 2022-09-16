@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_REORDER_MC64_KERNELS_HPP_
 
 
+#include <ginkgo/core/reorder/mc64.hpp>
+
+
 #include <list>
 #include <memory>
 
@@ -41,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/reorder/mc64.hpp>
 
 
 #include "core/base/kernel_declaration.hpp"
