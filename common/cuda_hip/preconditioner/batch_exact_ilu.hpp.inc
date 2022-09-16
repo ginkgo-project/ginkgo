@@ -31,13 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-namespace {
-
-#include "common/cuda_hip/components/load_store.hpp.inc"
-
-}  // namespace
-
-
 /**
  * Batch exact ilu0 preconditioner.
  */
