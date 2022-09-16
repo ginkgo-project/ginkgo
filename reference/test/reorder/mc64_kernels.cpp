@@ -269,10 +269,8 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleSum)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
-    auto perm = gko::as<permutation_type>(mc64->get_permutation())
-                    ->get_const_permutation();
-    auto inv_perm = gko::as<permutation_type>(mc64->get_inverse_permutation())
-                        ->get_const_permutation();
+    auto perm = mc64->get_permutation()->get_const_permutation();
+    auto inv_perm = mc64->get_inverse_permutation()->get_const_permutation();
     GKO_ASSERT_EQ(perm[0], 1);
     GKO_ASSERT_EQ(perm[1], 0);
     GKO_ASSERT_EQ(perm[2], 5);
@@ -303,10 +301,8 @@ TYPED_TEST(Mc64, CreatesCorrectPermutationAndScalingExampleProduct)
             .on(this->ref);
     auto mc64 = mc64_factory->generate(this->mtx);
 
-    auto perm = gko::as<permutation_type>(mc64->get_permutation())
-                    ->get_const_permutation();
-    auto inv_perm = gko::as<permutation_type>(mc64->get_inverse_permutation())
-                        ->get_const_permutation();
+    auto perm = mc64->get_permutation()->get_const_permutation();
+    auto inv_perm = mc64->get_inverse_permutation()->get_const_permutation();
     auto row_scaling = mc64->get_row_scaling()->get_const_values();
     auto col_scaling = mc64->get_col_scaling()->get_const_values();
 
