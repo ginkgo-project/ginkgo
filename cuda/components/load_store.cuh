@@ -30,31 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
-#define GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
 
-
-#include "core/matrix/batch_struct.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/load_store.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-
+#ifndef GKO_CUDA_COMPONENTS_LOAD_STORE_CUH_
+#define GKO_CUDA_COMPONENTS_LOAD_STORE_CUH_
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 
+#include "common/cuda_hip/components/load_store.hpp.inc"
 
-#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_identity.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_jacobi.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_par_ilu.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_trsv.hpp.inc"
-
-
-}  // namespace hip
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_HIP_PRECONDITIONER_BATCH_PRECONDITIONERS_HIP_HPP_
+
+#endif  // GKO_CUDA_COMPONENTS_LOAD_STORE_CUH_
