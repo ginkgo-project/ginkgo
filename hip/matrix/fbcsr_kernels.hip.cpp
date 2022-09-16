@@ -288,10 +288,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void transpose(const std::shared_ptr<const HipExecutor> exec,
-               const matrix::Fbcsr<ValueType, IndexType>* const orig,
-               matrix::Fbcsr<ValueType, IndexType>* const trans)
-    GKO_NOT_IMPLEMENTED;
+void transpose(const std::shared_ptr<const DefaultExecutor> exec,
+               const matrix::Fbcsr<ValueType, IndexType>* const input,
+               matrix::Fbcsr<ValueType, IndexType>* const output)
+{
+    fallback_transpose(exec, input, output);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL);
@@ -301,7 +303,16 @@ template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* orig,
                     matrix::Fbcsr<ValueType, IndexType>* trans)
-    GKO_NOT_IMPLEMENTED;
+{
+    const int grid_size =
+        ceildiv(trans->get_num_stored_elements(), default_block_size);
+    transpose(exec, orig, trans);
+    if (grid_size > 0 && is_complex<ValueType>()) {
+        kernel::conjugate<<<grid_size, default_block_size>>>(
+            trans->get_num_stored_elements(),
+            as_device_type(trans->get_values()));
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL);

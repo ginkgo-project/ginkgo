@@ -340,7 +340,7 @@ void transpose(const std::shared_ptr<const CudaExecutor> exec,
             [bs](int compiled_block_size) { return bs == compiled_block_size; },
             syn::value_list<int>(), syn::type_list<>(), trans);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_transpose(exec, orig, trans);
     }
 }
 
@@ -356,7 +356,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     const int grid_size =
         ceildiv(trans->get_num_stored_elements(), default_block_size);
     transpose(exec, orig, trans);
-    if (grid_size > 0) {
+    if (grid_size > 0 && is_complex<ValueType>()) {
         kernel::conjugate<<<grid_size, default_block_size>>>(
             trans->get_num_stored_elements(),
             as_cuda_type(trans->get_values()));
