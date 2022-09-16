@@ -169,6 +169,9 @@ void apply_par_ilu0(
     using d_value_type = cuda_type<ValueType>;
     using prec_type = batch_parilu0<d_value_type>;
     bool is_fallback_required = true;
+    if (exec->get_major_version() >= 7) {
+        is_fallback_required = false;
+    }
     prec_type prec(l_batch, u_batch, is_fallback_required);
 
     batch_parilu_apply<<<nbatch, default_block_size,
