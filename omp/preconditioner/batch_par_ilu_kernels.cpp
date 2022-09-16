@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-//#include "reference/preconditioner/batch_par_ilu.hpp"
+#include "reference/preconditioner/batch_par_ilu.hpp"
 
 
 namespace gko {
@@ -172,7 +172,33 @@ void apply_par_ilu0(
     const matrix::BatchCsr<ValueType, IndexType>* const l_factor,
     const matrix::BatchCsr<ValueType, IndexType>* const u_factor,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const batch_csr::UniformBatch<const ValueType> l_batch =
+        gko::kernels::host::get_batch_struct(l_factor);
+    const batch_csr::UniformBatch<const ValueType> u_batch =
+        gko::kernels::host::get_batch_struct(u_factor);
+    const auto rub = gko::kernels::host::get_batch_struct(r);
+    const auto zub = gko::kernels::host::get_batch_struct(z);
+
+    using prec_type = gko::kernels::host::batch_parilu0<ValueType>;
+    prec_type prec(l_batch, u_batch);
+
+    const auto work_arr_size =
+        prec_type::dynamic_work_size(l_batch.num_rows, -1);
+
+#pragma omp parallel for firstprivate(prec)
+    for (size_type batch_id = 0; batch_id < l_factor->get_num_batch_entries();
+         batch_id++) {
+        std::vector<ValueType> work(work_arr_size);
+
+        const auto r_b = gko::batch::batch_entry(rub, batch_id);
+        const auto z_b = gko::batch::batch_entry(zub, batch_id);
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      work.data());
+        prec.apply(r_b, z_b);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_PAR_ILU_APPLY_KERNEL);
