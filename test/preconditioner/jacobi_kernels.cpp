@@ -578,13 +578,8 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = gko::clone(ref, d_bj_factory->generate(mtx));
 
-    auto bj_prec =
-        bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    auto d_bj_prec =
-        d_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
-        EXPECT_EQ(bj_prec[i], d_bj_prec[i]);
-    }
+    GKO_ASSERT_ARRAY_EQ(bj->get_parameters().storage_optimization.block_wise,
+                        d_bj->get_parameters().storage_optimization.block_wise);
 }
 
 
