@@ -76,7 +76,7 @@ protected:
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(exec),
-                    gko::stop::ResidualNorm<>::build()
+                    gko::stop::ResidualNorm<value_type>::build()
                         .with_reduction_factor(1e-15)
                         .on(exec))
                 .on(exec);
@@ -85,7 +85,7 @@ protected:
             Solver::build()
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(ref),
-                    gko::stop::ResidualNorm<>::build()
+                    gko::stop::ResidualNorm<value_type>::build()
                         .with_reduction_factor(1e-15)
                         .on(ref))
                 .on(ref);
