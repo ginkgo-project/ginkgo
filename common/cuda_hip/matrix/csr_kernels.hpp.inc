@@ -1110,10 +1110,13 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = output->get_num_stored_elements();
     const auto in_row_ptrs = input->get_const_row_ptrs();
     const auto in_col_idxs = input->get_const_col_idxs();
-    const auto in_vals = as_device_type(input->get_const_values());
+    // workaround for CUDA 9.2 Thrust unconstrained constructor issues
+    const auto in_vals = reinterpret_cast<const device_member_type<ValueType>*>(
+        input->get_const_values());
     const auto out_row_ptrs = output->get_row_ptrs();
     const auto out_col_idxs = output->get_col_idxs();
-    const auto out_vals = as_device_type(output->get_values());
+    const auto out_vals =
+        reinterpret_cast<device_member_type<ValueType>*>(output->get_values());
     array<IndexType> out_row_idxs{exec, nnz};
     components::convert_ptrs_to_idxs(exec, in_row_ptrs, in_num_rows,
                                      out_col_idxs);
@@ -1124,7 +1127,7 @@ void fallback_transpose(std::shared_ptr<const DefaultExecutor> exec,
                            thrust::device_pointer_cast(out_col_idxs),
                            thrust::device_pointer_cast(out_vals)));
     using tuple_type =
-        thrust::tuple<IndexType, IndexType, device_type<ValueType>>;
+        thrust::tuple<IndexType, IndexType, device_member_type<ValueType>>;
     thrust::sort(thrust::device, zip_it, zip_it + nnz,
                  [] __device__(const tuple_type& a, const tuple_type& b) {
                      return thrust::tie(thrust::get<0>(a), thrust::get<1>(a)) <
