@@ -389,7 +389,7 @@ TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
     complex_b->compute_dot(complex_x.get(), result.get());
     dcomplex_b->compute_dot(dcomplex_x.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(result, dresult, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(result, dresult, r<vtype>::value * 2);
 }
 
 
@@ -406,7 +406,7 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
     complex_b->compute_conj_dot(complex_x.get(), result.get());
     dcomplex_b->compute_conj_dot(dcomplex_x.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(result, dresult, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(result, dresult, r<vtype>::value * 2);
 }
 
 
