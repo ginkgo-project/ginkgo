@@ -301,9 +301,12 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize32Unsorted)
 }
 
 
-#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+#ifdef GKO_COMPILING_HIP
 TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize64)
 {
+    if (exec->get_warp_size() == 32) {
+        GTEST_SKIP();
+    }
     initialize_data({0, 64, 128, 192, 256}, {}, {}, 64, 100, 110);
 
     auto bj = bj_factory->generate(mtx);
@@ -311,7 +314,7 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize64)
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
-#endif  // defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+#endif  // GKO_COMPILING_HIP
 
 
 TEST_F(Jacobi, PreconditionerEquivalentToRefWithDifferentBlockSize)
@@ -379,9 +382,12 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize32)
 }
 
 
-#if defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+#ifdef GKO_COMPILING_HIP
 TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize64)
 {
+    if (exec->get_warp_size() == 32) {
+        GTEST_SKIP();
+    }
     initialize_data({0, 64, 128, 192, 256}, {}, {}, 64, 100, 111);
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
@@ -391,7 +397,7 @@ TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize64)
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
-#endif  // defined(GKO_COMPILING_HIP) && GINKGO_HIP_PLATFORM_HCC
+#endif  // GKO_COMPILING_HIP
 
 
 TEST_F(Jacobi, ApplyEquivalentToRefWithDifferentBlockSize)
