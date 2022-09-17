@@ -1,4 +1,5 @@
 ginkgo_create_common_device_test(csr_kernels)
+ginkgo_create_common_device_test(csr_kernels2)
 ginkgo_create_common_test(coo_kernels)
 ginkgo_create_common_test(dense_kernels)
 ginkgo_create_common_test(diagonal_kernels)
