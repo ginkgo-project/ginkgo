@@ -109,6 +109,32 @@ void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
+template <typename ValueType, typename = void>
+struct help_compute_norm {
+    static void compute_next_krylov_norm_into_hessenberg(
+        const matrix::Dense<ValueType>* next_krylov,
+        matrix::Dense<ValueType>* hessenberg_norm_entry,
+        matrix::Dense<remove_complex<ValueType>>*, array<char>& reduction_tmp)
+    {
+        next_krylov->compute_norm2(hessenberg_norm_entry, reduction_tmp);
+    };
+};
+
+template <typename ValueType>
+struct help_compute_norm<ValueType,
+                         std::enable_if_t<is_complex_s<ValueType>::value>> {
+    static void compute_next_krylov_norm_into_hessenberg(
+        const matrix::Dense<ValueType>* next_krylov,
+        matrix::Dense<ValueType>* hessenberg_norm_entry,
+        matrix::Dense<remove_complex<ValueType>>* next_krylov_norm_tmp,
+        array<char>& reduction_tmp)
+    {
+        next_krylov->compute_norm2(next_krylov_norm_tmp, reduction_tmp);
+        next_krylov_norm_tmp->make_complex(hessenberg_norm_entry);
+    };
+};
+
+
 template <typename ValueType>
 void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                         matrix::Dense<ValueType>* dense_x) const
@@ -144,6 +170,11 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         ws::residual_norm, dim<2>{1, num_rhs});
     auto y = this->template create_workspace_op<Vector>(
         ws::y, dim<2>{krylov_dim, num_rhs});
+    // next_krylov_norm_tmp is only required for complex types to move real
+    // values into a complex matrix
+    auto next_krylov_norm_tmp = this->template create_workspace_op<NormVector>(
+        ws::next_krylov_norm_tmp,
+        dim<2>{1, is_complex_s<ValueType>::value ? num_rhs : 0});
 
     GKO_SOLVER_VECTOR(before_preconditioner, dense_x);
     GKO_SOLVER_VECTOR(after_preconditioner, dense_x);
@@ -165,7 +196,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
 
     // residual_norm = norm(residual)
-    residual->compute_norm2(residual_norm);
+    residual->compute_norm2(residual_norm, reduction_tmp);
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
@@ -235,7 +266,7 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
                                              residual);
             // residual_norm = norm(residual)
-            residual->compute_norm2(residual_norm);
+            residual->compute_norm2(residual_norm, reduction_tmp);
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
@@ -274,8 +305,8 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                 span{i, i + 1}, span{0, num_rhs});
             auto krylov_basis = krylov_bases->create_submatrix(
                 span{num_rows * i, num_rows * (i + 1)}, span{0, num_rhs});
-            next_krylov->compute_conj_dot(krylov_basis.get(),
-                                          hessenberg_entry.get());
+            next_krylov->compute_conj_dot(
+                krylov_basis.get(), hessenberg_entry.get(), reduction_tmp);
             next_krylov->sub_scaled(hessenberg_entry.get(), krylov_basis.get());
         }
         // normalize next_krylov:
@@ -283,7 +314,9 @@ void Gmres<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // next_krylov /= hessenberg(restart_iter+1, restart_iter)
         auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
             span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
-        next_krylov->compute_norm2(hessenberg_norm_entry.get());
+        help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
+            next_krylov.get(), hessenberg_norm_entry.get(),
+            next_krylov_norm_tmp, reduction_tmp);
         next_krylov->inv_scale(hessenberg_norm_entry.get());
         // End of Arnoldi
 
@@ -367,7 +400,7 @@ int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_vectors(const Solver&)
 {
-    return 13;
+    return 14;
 }
 
 
@@ -375,21 +408,20 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Gmres<ValueType>>::op_names(
     const Solver&)
 {
-    return {
-        "residual",
-        "preconditioned_vector",
-        "krylov_bases",
-        "hessenberg",
-        "givens_sin",
-        "givens_cos",
-        "residual_norm_collection",
-        "residual_norm",
-        "y",
-        "before_preconditioner",
-        "after_preconditioner",
-        "one",
-        "minus_one",
-    };
+    return {"residual",
+            "preconditioned_vector",
+            "krylov_bases",
+            "hessenberg",
+            "givens_sin",
+            "givens_cos",
+            "residual_norm_collection",
+            "residual_norm",
+            "y",
+            "before_preconditioner",
+            "after_preconditioner",
+            "one",
+            "minus_one",
+            "next_krylov_norm_tmp"};
 }
 
 
@@ -404,8 +436,10 @@ std::vector<std::string> workspace_traits<Gmres<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Gmres<ValueType>>::scalars(const Solver&)
 {
-    return {hessenberg,    givens_sin, givens_cos, residual_norm_collection,
-            residual_norm, y};
+    return {hessenberg,          givens_sin,
+            givens_cos,          residual_norm_collection,
+            residual_norm,       y,
+            next_krylov_norm_tmp};
 }
 
 

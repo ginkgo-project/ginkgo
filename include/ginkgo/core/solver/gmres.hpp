@@ -206,6 +206,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int one = 11;
     // constant -1.0 scalar
     constexpr static int minus_one = 12;
+    // temporary norm vector of next_krylov to copy into hessenberg matrix
+    constexpr static int next_krylov_norm_tmp = 13;
 
     // stopping status array
     constexpr static int stop = 0;
