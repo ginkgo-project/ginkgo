@@ -64,6 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/exception.cuh"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
@@ -77,7 +78,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
-
 
 namespace gko {
 namespace kernels {
@@ -1298,7 +1298,7 @@ void check_diagonal_entries_exist(
     const size_type num_warps = mtx->get_size()[0];
     if (num_warps > 0) {
         const size_type num_blocks =
-            num_warps / (default_block_size / config::warp_size);
+            ceildiv(num_warps, ceildiv(default_block_size, config::warp_size));
         array<bool> has_diags(exec, {true});
         kernel::check_diagonal_entries<<<num_blocks, default_block_size>>>(
             static_cast<IndexType>(
@@ -1309,6 +1309,7 @@ void check_diagonal_entries_exist(
     } else {
         has_all_diags = true;
     }
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1355,6 +1356,8 @@ void find_diagonal_entries_locations(
         static_cast<IndexType>(
             std::min(mtx->get_size()[0], mtx->get_size()[1])),
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), diag_locs);
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
