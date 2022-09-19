@@ -79,7 +79,7 @@ protected:
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
-    const index_type nrows = 33;
+    const index_type nrows = 15;
     const int min_nnz_row = 5;
     std::shared_ptr<const Mtx> mtx;
 };
@@ -96,7 +96,7 @@ TEST_F(BatchExactIlu, GenerateIsEquivalentToReference)
 
     const auto factorized_mat = prec->get_const_factorized_matrix();
     const auto d_factorized_mat = d_prec->get_const_factorized_matrix();
-    const auto tol = 1000 * r<value_type>::value;
+    const auto tol = 5000 * r<value_type>::value;
     GKO_ASSERT_BATCH_MTX_NEAR(factorized_mat, d_factorized_mat, tol);
 }
 
