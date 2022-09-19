@@ -39,9 +39,6 @@ __global__
         int* const __restrict__ L_col_holders,
         int* const __restrict__ U_col_holders)
 {
-    if (threadIdx.x == 0) {
-        printf("\n gridDim.x: %d, blockDim.x: %d \n", gridDim.x, blockDim.x);
-    }
     constexpr int warp_size = config::warp_size;
     auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
@@ -95,10 +92,6 @@ __global__ __launch_bounds__(default_block_size) void fill_L_and_U(
     int* const __restrict__ U_col_idxs, ValueType* const __restrict__ U_vals,
     const int* const __restrict__ U_col_holders)
 {
-    if (threadIdx.x == 0) {
-        printf("\n gridDim.x: %d, blockDim.x: %d \n", gridDim.x, blockDim.x);
-    }
-
     const size_type gid = threadIdx.x + blockIdx.x * blockDim.x;
     const int greater_nnz = L_nnz > U_nnz ? L_nnz : U_nnz;
 
