@@ -178,8 +178,6 @@ void BatchParIlu<ValueType, IndexType>::generate_precond(
             ->convert_to(csr_mat.get());
     }
 
-    // TODO: If it is easy to check diag locations given that the matrix is
-    // sorted, sort it first and then check for diag locations
     if (parameters_.skip_sorting != true) {
         csr_mat->sort_by_column_index();
     }
