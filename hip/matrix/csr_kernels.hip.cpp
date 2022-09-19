@@ -786,7 +786,7 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
     } else {
         fallback_transpose(exec, orig, trans);
     }
-    if (grid_size > 0) {
+    if (grid_size > 0 && is_complex<ValueType>()) {
         hipLaunchKernelGGL(kernel::conjugate, grid_size, block_size, 0, 0,
                            trans->get_num_stored_elements(),
                            as_hip_type(trans->get_values()));
