@@ -68,7 +68,7 @@ namespace preconditioner {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Schwarz : public EnableLinOp<Schwarz<ValueType, IndexType>> {
     friend class EnableLinOp<Schwarz>;
-    friend class EnablePolymorphicObject<Schwarz, LinOp>;
+    friend class polymorphic_object_traits<Schwarz>;
 
 public:
     using EnableLinOp<Schwarz>::convert_to;
