@@ -47,17 +47,6 @@ namespace gko {
 namespace kernels {
 
 
-/**
- * @fn generate
- *
- * This kernel builds an ILU preconditioner for each matrix in
- * the input batch of matrices
- *
- * @param exec  The executor on which to run the kernel.
- * @param mat_fact  The batch of matrices for which to build the preconditioner.
- * The factorization is done in-place.
- */
-
 #define GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL(ValueType, \
                                                                  IndexType) \
     void compute_factorization(                                             \
