@@ -94,6 +94,7 @@ bool any_is_complex(const LinOp* in, Rest&&... rest)
 template <typename ValueType, typename Function, typename... LinOps>
 void norm_dispatch(Function&& fn, LinOps*... linops)
 {
+#if GINKGO_BUILD_MPI
     if (gko::detail::is_distributed(linops...)) {
         if (any_is_complex<ValueType>(linops...)) {
             distributed::precision_dispatch<to_complex<ValueType>>(
@@ -102,7 +103,9 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
             distributed::precision_dispatch<ValueType>(
                 std::forward<Function>(fn), linops...);
         }
-    } else {
+    } else
+#endif
+    {
         if (any_is_complex<ValueType>(linops...)) {
             precision_dispatch<to_complex<ValueType>>(
                 std::forward<Function>(fn), linops...);
