@@ -201,7 +201,6 @@ protected:
     {
         ASSERT_EQ(comm.size(), 3);
         init_executor(ref, exec, comm);
-        part = nullptr;
     }
 
     void TearDown()
@@ -211,16 +210,21 @@ protected:
         }
     }
 
-    std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols, int min_cols,
-                                 int max_cols)
+    std::unique_ptr<Part> gen_part(int size, int num_active_parts)
     {
         auto mapping =
             gko::test::generate_random_array<gko::distributed::comm_index_type>(
-                num_rows,
+                size,
                 std::uniform_int_distribution<
-                    gko::distributed::comm_index_type>(0, comm.size() - 1),
+                    gko::distributed::comm_index_type>(0, num_active_parts - 1),
                 rand_engine, ref);
-        part = Part::build_from_mapping(ref, mapping, comm.size());
+        return Part::build_from_mapping(ref, mapping, comm.size());
+    }
+
+
+    std::shared_ptr<Mtx> gen_mtx(const Part* part, int num_rows, int num_cols,
+                                 int min_cols, int max_cols)
+    {
         auto data = gko::test::generate_random_matrix_data<value_type,
                                                            global_index_type>(
             num_rows, num_cols,
@@ -228,7 +232,7 @@ protected:
             std::normal_distribution<>(0.0, 1.0), rand_engine);
         Config::preprocess(data);
         auto dist_mtx = Mtx::create(ref, comm);
-        dist_mtx->read_distributed(data, part.get());
+        dist_mtx->read_distributed(data, part);
         return gko::share(gko::clone(exec, dist_mtx));
     }
 
@@ -243,7 +247,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_in_vec(
-        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
+        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
+        int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[1],
                                        static_cast<gko::size_type>(nrhs)};
@@ -255,7 +260,7 @@ protected:
         dist_result->read_distributed(
             gen_dense_data<typename DistVecType::value_type, global_index_type>(
                 global_size),
-            part.get());
+            part);
         return gko::share(gko::clone(exec, dist_result));
     }
 
@@ -273,7 +278,8 @@ protected:
 
     template <typename DistVecType = Vec>
     std::shared_ptr<DistVecType> gen_out_vec(
-        const std::shared_ptr<SolverType>& solver, int nrhs, int stride)
+        const Part* part, const std::shared_ptr<SolverType>& solver, int nrhs,
+        int stride)
     {
         auto global_size = gko::dim<2>{solver->get_size()[0],
                                        static_cast<gko::size_type>(nrhs)};
@@ -285,7 +291,7 @@ protected:
         dist_result->read_distributed(
             gen_dense_data<typename DistVecType::value_type, global_index_type>(
                 global_size),
-            part.get());
+            part);
         return gko::share(gko::clone(exec, dist_result));
     }
 
@@ -304,7 +310,32 @@ protected:
     }
 
     template <typename TestFunction>
-    void forall_matrix_scenarios(TestFunction fn)
+    void forall_partition_scenarios(TestFunction fn)
+    {
+        auto guarded_fn = [&](auto prt) {
+            try {
+                comm.synchronize();
+                fn(std::move(prt));
+            } catch (std::exception& e) {
+                FAIL() << e.what();
+            }
+        };
+        {
+            SCOPED_TRACE("Empty partition");
+            guarded_fn(gen_part(0, comm.size()));
+        }
+        {
+            SCOPED_TRACE("Full partition");
+            guarded_fn(gen_part(50, comm.size()));
+        }
+        {
+            SCOPED_TRACE("Some empty partition");
+            guarded_fn(gen_part(50, comm.size() - 1));
+        }
+    }
+
+    template <typename TestFunction>
+    void forall_matrix_scenarios(const Part* part, TestFunction fn)
     {
         auto guarded_fn = [&](auto mtx) {
             try {
@@ -314,12 +345,12 @@ protected:
             }
         };
         {
-            SCOPED_TRACE("Empty matrix (0x0)");
-            guarded_fn(gen_mtx(0, 0, 0, 0));
-        }
-        {
-            SCOPED_TRACE("Sparse Matrix with variable row nnz (50x50)");
-            guarded_fn(gen_mtx(50, 50, 10, 50));
+            int num_rows = part->get_size();
+            SCOPED_TRACE("Sparse Matrix with variable row nnz (" +
+                         std::to_string(num_rows) + "x" +
+                         std::to_string(num_rows) + ")");
+            guarded_fn(gen_mtx(part, num_rows, num_rows, std::min(10, num_rows),
+                               num_rows));
         }
     }
 
@@ -344,11 +375,10 @@ protected:
 
     template <typename DistVecType = Vec, typename NonDistVecType = LocalVec,
               typename TestFunction>
-    void forall_vector_scenarios(const std::shared_ptr<SolverType>& solver,
+    void forall_vector_scenarios(const Part* part,
+                                 const std::shared_ptr<SolverType>& solver,
                                  TestFunction fn)
     {
-        ASSERT_TRUE(part);  // for some reason putting this in gen_[in|out]_vec
-                            // results in errors?
         auto guarded_fn = [&](auto b, auto x) {
             try {
                 fn(std::move(b), std::move(x));
@@ -358,45 +388,45 @@ protected:
         };
         {
             SCOPED_TRACE("Multivector with 0 columns");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 0, 0),
-                       gen_out_vec<DistVecType>(solver, 0, 0));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 0, 0),
+                       gen_out_vec<DistVecType>(part, solver, 0, 0));
         }
         {
             SCOPED_TRACE("Single vector");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 1, 1),
-                       gen_out_vec<DistVecType>(solver, 1, 1));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 1, 1),
+                       gen_out_vec<DistVecType>(part, solver, 1, 1));
         }
         {
             SCOPED_TRACE("Single vector with correct initial guess");
-            auto in = gen_in_vec<DistVecType>(solver, 1, 1);
-            auto out = gen_out_vec<DistVecType>(solver, 1, 1);
+            auto in = gen_in_vec<DistVecType>(part, solver, 1, 1);
+            auto out = gen_out_vec<DistVecType>(part, solver, 1, 1);
             solver->get_system_matrix()->apply(out.get(), in.get());
             guarded_fn(std::move(in), std::move(out));
         }
         {
             SCOPED_TRACE("Single strided vector");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 1, 2),
-                       gen_out_vec<DistVecType>(solver, 1, 3));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 1, 2),
+                       gen_out_vec<DistVecType>(part, solver, 1, 3));
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 2, 2),
-                       gen_out_vec<DistVecType>(solver, 2, 2));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 2, 2),
+                       gen_out_vec<DistVecType>(part, solver, 2, 2));
         }
         {
             SCOPED_TRACE("Strided multivector with 2 columns");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 2, 3),
-                       gen_out_vec<DistVecType>(solver, 2, 4));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 2, 3),
+                       gen_out_vec<DistVecType>(part, solver, 2, 4));
         }
         {
             SCOPED_TRACE("Multivector with 17 columns");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 17, 17),
-                       gen_out_vec<DistVecType>(solver, 17, 17));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 17, 17),
+                       gen_out_vec<DistVecType>(part, solver, 17, 17));
         }
         {
             SCOPED_TRACE("Strided multivector with 17 columns");
-            guarded_fn(gen_in_vec<DistVecType>(solver, 17, 21),
-                       gen_out_vec<DistVecType>(solver, 17, 21));
+            guarded_fn(gen_in_vec<DistVecType>(part, solver, 17, 21),
+                       gen_out_vec<DistVecType>(part, solver, 17, 21));
         }
         if (!gko::is_complex<value_type>()) {
             // check application of real matrix to complex vector
@@ -404,13 +434,13 @@ protected:
             using complex_vec = gko::to_complex<DistVecType>;
             {
                 SCOPED_TRACE("Single strided complex vector");
-                guarded_fn(gen_in_vec<complex_vec>(solver, 1, 2),
-                           gen_out_vec<complex_vec>(solver, 1, 3));
+                guarded_fn(gen_in_vec<complex_vec>(part, solver, 1, 2),
+                           gen_out_vec<complex_vec>(part, solver, 1, 3));
             }
             {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                guarded_fn(gen_in_vec<complex_vec>(solver, 2, 3),
-                           gen_out_vec<complex_vec>(solver, 2, 4));
+                guarded_fn(gen_in_vec<complex_vec>(part, solver, 2, 3),
+                           gen_out_vec<complex_vec>(part, solver, 2, 4));
             }
         }
     }
@@ -469,8 +499,6 @@ protected:
     std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::mpi::communicator comm;
 
-    std::unique_ptr<Part> part;
-
     std::default_random_engine rand_engine;
 };
 
@@ -481,12 +509,15 @@ TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 
 TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 {
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->forall_vector_scenarios(solver, [&](auto b, auto x) {
-                solver->apply(b.get(), x.get());
+    this->forall_partition_scenarios([&](auto part) {
+        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+            this->forall_solver_scenarios(mtx, [&](auto solver) {
+                this->forall_vector_scenarios(
+                    part.get(), solver, [&](auto b, auto x) {
+                        solver->apply(b.get(), x.get());
 
-                this->assert_residual_near(mtx, x, b, this->tol(x));
+                        this->assert_residual_near(mtx, x, b, this->tol(x));
+                    });
             });
         });
     });
@@ -495,17 +526,21 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
 
 TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 {
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->forall_vector_scenarios(solver, [&](auto b, auto x) {
-                auto alpha = this->gen_scalar();
-                auto beta = this->gen_scalar();
-                auto x_old = gko::share(gko::clone(x));
+    this->forall_partition_scenarios([&](auto part) {
+        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+            this->forall_solver_scenarios(mtx, [&](auto solver) {
+                this->forall_vector_scenarios(
+                    part.get(), solver, [&](auto b, auto x) {
+                        auto alpha = this->gen_scalar();
+                        auto beta = this->gen_scalar();
+                        auto x_old = gko::share(gko::clone(x));
 
-                solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+                        solver->apply(alpha.get(), b.get(), beta.get(),
+                                      x.get());
 
-                this->assert_residual_near(mtx, x, x_old, b, alpha, beta,
-                                           10 * this->tol(x));
+                        this->assert_residual_near(mtx, x, x_old, b, alpha,
+                                                   beta, 10 * this->tol(x));
+                    });
             });
         });
     });
@@ -515,14 +550,17 @@ TYPED_TEST(Solver, AdvancedApplyIsEquivalentToRef)
 TYPED_TEST(Solver, MixedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->template forall_vector_scenarios<MixedVec>(
-                solver, [&](auto b, auto x) {
-                    solver->apply(b.get(), x.get());
+    this->forall_partition_scenarios([&](auto part) {
+        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+            this->forall_solver_scenarios(mtx, [&](auto solver) {
+                this->template forall_vector_scenarios<MixedVec>(
+                    part.get(), solver, [&](auto b, auto x) {
+                        solver->apply(b.get(), x.get());
 
-                    this->assert_residual_near(mtx, x, b, this->mixed_tol(x));
-                });
+                        this->assert_residual_near(mtx, x, b,
+                                                   this->mixed_tol(x));
+                    });
+            });
         });
     });
 }
@@ -532,19 +570,23 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;
     using MixedLocalVec = typename TestFixture::MixedLocalVec;
-    this->forall_matrix_scenarios([&](auto mtx) {
-        this->forall_solver_scenarios(mtx, [&](auto solver) {
-            this->template forall_vector_scenarios<MixedVec>(
-                solver, [&](auto b, auto x) {
-                    auto alpha = this->template gen_scalar<MixedLocalVec>();
-                    auto beta = this->template gen_scalar<MixedLocalVec>();
-                    auto x_old = gko::share(gko::clone(x));
+    this->forall_partition_scenarios([&](auto part) {
+        this->forall_matrix_scenarios(part.get(), [&](auto mtx) {
+            this->forall_solver_scenarios(mtx, [&](auto solver) {
+                this->template forall_vector_scenarios<MixedVec>(
+                    part.get(), solver, [&](auto b, auto x) {
+                        auto alpha = this->template gen_scalar<MixedLocalVec>();
+                        auto beta = this->template gen_scalar<MixedLocalVec>();
+                        auto x_old = gko::share(gko::clone(x));
 
-                    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+                        solver->apply(alpha.get(), b.get(), beta.get(),
+                                      x.get());
 
-                    this->assert_residual_near(mtx, x, x_old, b, alpha, beta,
-                                               10 * this->mixed_tol(x));
-                });
+                        this->assert_residual_near(mtx, x, x_old, b, alpha,
+                                                   beta,
+                                                   10 * this->mixed_tol(x));
+                    });
+            });
         });
     });
 }
