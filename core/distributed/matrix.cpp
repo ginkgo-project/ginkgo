@@ -405,7 +405,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         recv_offsets_ = other.recv_offsets_;
         recv_sizes_ = other.recv_sizes_;
         send_sizes_ = other.send_sizes_;
-        recv_sizes_ = other.recv_sizes_;
         non_local_to_global_ = other.non_local_to_global_;
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
@@ -430,7 +429,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         recv_offsets_ = std::move(other.recv_offsets_);
         recv_sizes_ = std::move(other.recv_sizes_);
         send_sizes_ = std::move(other.send_sizes_);
-        recv_sizes_ = std::move(other.recv_sizes_);
         non_local_to_global_ = std::move(other.non_local_to_global_);
         one_scalar_.init(this->get_executor(), dim<2>{1, 1});
         one_scalar_->fill(one<value_type>());
