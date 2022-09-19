@@ -79,7 +79,7 @@ protected:
     std::ranlux48 rand_engine;
 
     const size_t nbatch = 9;
-    const index_type nrows = 33;
+    const index_type nrows = 10;
     const int min_nnz_row = 5;
     std::shared_ptr<const Mtx> mtx;
 };
