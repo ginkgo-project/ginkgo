@@ -76,8 +76,7 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
             ->convert_to(mat_factored_.get());
     }
 
-    // TODO: If it is easy to check diag locations given that the matrix is
-    // sorted, sort it first and then check for diag locations
+
     if (parameters_.skip_sorting != true) {
         mat_factored_->sort_by_column_index();
     }
