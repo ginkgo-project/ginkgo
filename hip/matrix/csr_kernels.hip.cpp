@@ -755,7 +755,7 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_transpose(exec, orig, trans);
     }
 }
 
@@ -770,11 +770,10 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
     if (orig->get_size()[0] == 0) {
         return;
     }
+    const auto block_size = default_block_size;
+    const auto grid_size =
+        ceildiv(trans->get_num_stored_elements(), block_size);
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        const auto block_size = default_block_size;
-        const auto grid_size =
-            ceildiv(trans->get_num_stored_elements(), block_size);
-
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
         hipsparseIndexBase_t idxBase = HIPSPARSE_INDEX_BASE_ZERO;
 
@@ -784,14 +783,13 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
-
-        if (grid_size > 0) {
-            hipLaunchKernelGGL(kernel::conjugate, grid_size, block_size, 0, 0,
-                               trans->get_num_stored_elements(),
-                               as_hip_type(trans->get_values()));
-        }
     } else {
-        GKO_NOT_IMPLEMENTED;
+        fallback_transpose(exec, orig, trans);
+    }
+    if (grid_size > 0 && is_complex<ValueType>()) {
+        hipLaunchKernelGGL(kernel::conjugate, grid_size, block_size, 0, 0,
+                           trans->get_num_stored_elements(),
+                           as_hip_type(trans->get_values()));
     }
 }
 
