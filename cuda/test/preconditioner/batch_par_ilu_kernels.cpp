@@ -78,9 +78,9 @@ protected:
     std::shared_ptr<const gko::CudaExecutor> d_exec;
     std::ranlux48 rand_engine;
 
-    const size_t nbatch = 9;
-    const index_type nrows = 20;
-    const int min_nnz_row = 5;
+    const size_t nbatch = 2;
+    const index_type nrows = 7;
+    const int min_nnz_row = 3;
     std::shared_ptr<const Mtx> mtx;
 };
 
