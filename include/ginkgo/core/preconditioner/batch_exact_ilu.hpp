@@ -78,7 +78,7 @@ public:
          * @brief Optimization parameter that skips the sorting of the input
          *        matrix (only skip if it is known that it is already sorted).
          *
-         * The algorithm to create the approximate inverses requires the
+         * The algorithm to generate excat ilu0 requires the
          * input matrix to be sorted. If it is, this parameter can be set to
          * `true` to skip the sorting for better performance.
          */

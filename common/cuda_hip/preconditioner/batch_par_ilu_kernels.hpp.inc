@@ -146,7 +146,8 @@ __device__ __forceinline__ void parilu0_sweep_for_batch_entry(
     const int* const __restrict__ nz_ptrs)
 {
     for (int el = threadIdx.x; el < nnz;
-         el += blockDim.x)  // non-coalesced accesses, but data locality
+         el += blockDim.x)  // non-coalesced accesses
+                            // but data locality for each thread
     {
         ValueType diag_val{one<ValueType>()};
 
