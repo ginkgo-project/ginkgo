@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <random>
+#include <stdexcept>
 
 
 #include <gtest/gtest.h>
@@ -49,7 +50,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <stdexcept>
 
 
 #include "core/components/prefix_sum_kernels.hpp"
@@ -1199,6 +1199,9 @@ TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 }
 
 
+#ifndef GKO_COMPILING_DPCPP
+
+
 TEST_F(Csr, CanDetectMissingDiagonalEntry)
 {
     using T = double;
@@ -1245,3 +1248,6 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
 }
+
+
+#endif  // GKO_COMPILING_DPCPP
