@@ -70,7 +70,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class CoarseGen : public EnableLinOp<CoarseGen<ValueType, IndexType>>,
                   public multigrid::EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<CoarseGen>;
-    friend class EnablePolymorphicObject<CoarseGen, LinOp>;
+    friend class polymorphic_object_traits<CoarseGen>;
 
 public:
     using value_type = ValueType;

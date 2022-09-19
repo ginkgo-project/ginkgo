@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
-    const gko::mpi::environment env(argc, argv);
     // @sect3{Type Definitiions}
     // Define the needed types. In a parallel program we need to differentiate
     // beweeen global and local indices, thus we have two index types.
@@ -76,14 +75,28 @@ int main(int argc, char* argv[])
         gko::distributed::preconditioner::Schwarz<ValueType, LocalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
 
+    const gko::mpi::environment env(argc, argv);
+
+    // Create a MPI communicator wrapper and get the rank.
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
+    const auto rank = comm.rank();
+
+    if (rank == 0) {
+        // Print the ginkgo version information.
+        std::cout << gko::version_info::get() << std::endl;
+    }
+
+
     // @sect3{Initialization and User Input Handling}
     // Since this is an MPI program, we need to initialize and finalize
     // MPI at the begin and end respectively of our program. This can be easily
     // done with the following helper construct that uses RAII to automize the
     // initialization and finalization.
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor] [num_grid_points] "
-                  << std::endl;
+        if (rank == 0) {
+            std::cerr << "Usage: " << argv[0]
+                      << " [executor] [num_grid_points] " << std::endl;
+        }
         std::exit(-1);
     }
 
@@ -96,47 +109,45 @@ int main(int argc, char* argv[])
     const auto grid_dim =
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
 
-    const std::map<std::string,
-                   std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
-        executor_factory_mpi{
-            {"reference",
-             [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
-            {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
+    // Pick requested executor.
+    std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
+        exec_map{
+            {"omp", [] { return gko::OmpExecutor::create(); }},
             {"cuda",
-             [](MPI_Comm comm) {
-                 int device_id = gko::mpi::map_rank_to_device_id(
-                     comm, gko::CudaExecutor::get_num_devices());
+             [&] {
                  return gko::CudaExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), false,
+                     comm.node_local_rank() %
+                         gko::CudaExecutor::get_num_devices(),
+                     gko::ReferenceExecutor::create(), false,
                      gko::allocation_mode::device);
              }},
             {"hip",
-             [](MPI_Comm comm) {
-                 int device_id = gko::mpi::map_rank_to_device_id(
-                     comm, gko::HipExecutor::get_num_devices());
+             [&] {
                  return gko::HipExecutor::create(
-                     device_id, gko::ReferenceExecutor::create(), true);
+                     comm.node_local_rank() %
+                         gko::HipExecutor::get_num_devices(),
+                     gko::ReferenceExecutor::create(), true);
              }},
-            {"dpcpp", [](MPI_Comm comm) {
-                 int device_id = 0;
-                 if (gko::DpcppExecutor::get_num_devices("gpu")) {
-                     device_id = gko::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
-                 } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
-                     device_id = gko::mpi::map_rank_to_device_id(
-                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+            {"dpcpp",
+             [&] {
+                 auto ref = gko::ReferenceExecutor::create();
+                 if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
+                     return gko::DpcppExecutor::create(
+                         comm.node_local_rank() %
+                             gko::DpcppExecutor::get_num_devices("gpu"),
+                         ref);
+                 } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+                     return gko::DpcppExecutor::create(
+                         comm.node_local_rank() %
+                             gko::DpcppExecutor::get_num_devices("cpu"),
+                         ref);
                  } else {
-                     GKO_NOT_IMPLEMENTED;
+                     throw std::runtime_error("No suitable DPC++ devices");
                  }
-                 return gko::DpcppExecutor::create(
-                     device_id, gko::ReferenceExecutor::create());
-             }}};
+             }},
+            {"reference", [] { return gko::ReferenceExecutor::create(); }}};
 
-    auto exec = executor_factory_mpi.at(executor_string)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
-    const auto rank = comm.rank();
-
+    const auto exec = exec_map.at(executor_string)();
     // @sect3{Creating the Distributed Matrix and Vectors}
     // As a first step, we create a partition of the rows. The partition
     // consists of ranges of consecutive rows which are assigned a part-id.
