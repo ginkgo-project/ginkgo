@@ -332,7 +332,8 @@ private:
 
 
 /**
- * The request class is a light wrapper around the MPI_Request handle class.
+ * The request class is a light, move-only wrapper around the MPI_Request
+ * handle.
  */
 class request {
 public:
@@ -341,6 +342,30 @@ public:
      * MPI_REQUEST_NULL type.
      */
     request() : req_(MPI_REQUEST_NULL) {}
+
+    request(const request&) = delete;
+
+    request& operator=(const request&) = delete;
+
+    request(request&& o) noexcept { *this = std::move(o); }
+
+    request& operator=(request&& o) noexcept
+    {
+        if (this != &o) {
+            this->req_ = std::exchange(o.req_, MPI_REQUEST_NULL);
+        }
+        return *this;
+    }
+
+    ~request()
+    {
+        if (req_ != MPI_REQUEST_NULL) {
+            if (MPI_Request_free(&req_) != MPI_SUCCESS) {
+                std::terminate();  // since we can't throw in destructors, we
+                                   // have to terminate the program
+            }
+        }
+    }
 
     /**
      * Get a pointer to the underlying MPI_Request handle.
