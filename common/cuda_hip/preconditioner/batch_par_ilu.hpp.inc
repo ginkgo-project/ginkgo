@@ -280,8 +280,14 @@ public:
         // L * work_ = r  (find work_) Note: L is in sorted order
         // U * z = work_  (then find z)  Note: U is in sorted order
 
-        // naive_lower_trsv(r);
-        // naive_upper_trsv(z);
+        // NOTE: alternative sequential trsv as  busy-waiting while loop trsv
+        // deadlock for hip
+#ifdef __HIPCC__
+        naive_lower_trsv(r);
+        naive_upper_trsv(z);
+        return;
+#endif
+
 
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
             store(work_, i, nan<ValueType>());
