@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/distributed/helpers.hpp"
+
+
 namespace gko {
 namespace log {
 
@@ -243,12 +246,13 @@ void Papi<ValueType>::on_criterion_check_completed(
         residual_norm_d =
             static_cast<double>(std::real(dense_r_norm->at(0, 0)));
     } else if (residual != nullptr) {
-        auto tmp_res_norm = Vector::create(residual->get_executor(),
-                                           dim<2>{1, residual->get_size()[1]});
-        auto dense_r = as<Vector>(residual);
-        dense_r->compute_norm2(tmp_res_norm.get());
-        residual_norm_d =
-            static_cast<double>(std::real(tmp_res_norm->at(0, 0)));
+        detail::run_vector<ValueType>(residual, [&](const auto* dense_r) {
+            auto tmp_res_norm = Vector::create(
+                residual->get_executor(), dim<2>{1, residual->get_size()[1]});
+            dense_r->compute_norm2(tmp_res_norm.get());
+            residual_norm_d =
+                static_cast<double>(std::real(tmp_res_norm->at(0, 0)));
+        });
     }
 
     const auto tmp = reinterpret_cast<uintptr>(criterion);

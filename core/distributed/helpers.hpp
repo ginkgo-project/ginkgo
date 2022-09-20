@@ -122,5 +122,25 @@ bool is_distributed(Arg* linop, Rest*... rest)
 }
 
 
+template <typename ValueType, typename T, typename F, typename... Args>
+void run_vector(T* linop, F&& f, Args... args)
+{
+#if GINKGO_BUILD_MPI
+    if (is_distributed(linop)) {
+        using type = std::conditional_t<std::is_const<T>::value,
+                                        const distributed::Vector<ValueType>,
+                                        distributed::Vector<ValueType>>;
+        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+    } else
+#endif
+    {
+        using type = std::conditional_t<std::is_const<T>::value,
+                                        const matrix::Dense<ValueType>,
+                                        matrix::Dense<ValueType>>;
+        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
+    }
+}
+
+
 }  // namespace detail
 }  // namespace gko
