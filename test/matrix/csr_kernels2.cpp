@@ -1360,5 +1360,27 @@ TEST_F(Csr, AddScaledIdentityToNonSquare)
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }
 
+TEST_F(Csr, CanFindDiagonalEntriesLocations)
+{
+    using T = double;
+    using Csr = Mtx;
+    const int num_rows = 80;
+    auto ref_mtx = gen_mtx<Csr>(num_rows, num_rows, 10);
+    gko::utils::ensure_all_diagonal_entries(ref_mtx.get());
+    Arr ref_diag_array(ref, num_rows);
+    auto mtx = gko::clone(cuda, ref_mtx);
+    Arr diag_array(cuda, num_rows);
+
+    gko::kernels::reference::csr::find_diagonal_entries_locations(
+        ref, ref_mtx.get(), ref_diag_array.get_data());
+    gko::kernels::cuda::csr::find_diagonal_entries_locations(
+        cuda, mtx.get(), diag_array.get_data());
+    diag_array.set_executor(ref);
+
+    for (int i = 0; i < num_rows; i++) {
+        ASSERT_EQ(ref_diag_array.get_const_data()[i],
+                  diag_array.get_const_data()[i]);
+    }
+}
 
 #endif  // GKO_COMPILING_DPCPP
