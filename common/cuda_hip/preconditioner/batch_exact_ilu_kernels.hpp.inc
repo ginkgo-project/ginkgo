@@ -97,7 +97,9 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
             }
 
             // TODO: compute mask on your own instead of using activemask
+#ifdef __CUDACC__
             __syncwarp(__activemask());  // else a warning
+#endif
 
             if (col_index > curr_row_index) {
                 ValueType col_ele =
@@ -111,12 +113,12 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
 
 template <typename ValueType>
 __global__
-    __launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
-        const size_type batch_size, const int nrows, const int nnz,
-        const int* const __restrict__ diag_ptrs,
-        const int* const __restrict__ mat_row_ptrs,
-        const int* const __restrict__ mat_col_idxs,
-        ValueType* const __restrict__ mat_values)
+__launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
+    const size_type batch_size, const int nrows, const int nnz,
+    const int* const __restrict__ diag_ptrs,
+    const int* const __restrict__ mat_row_ptrs,
+    const int* const __restrict__ mat_col_idxs,
+    ValueType* const __restrict__ mat_values)
 {
     for (size_type batch_id = blockIdx.x; batch_id < batch_size;
          batch_id += gridDim.x) {

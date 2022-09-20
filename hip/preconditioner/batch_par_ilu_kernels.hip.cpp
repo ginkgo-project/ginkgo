@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/exception.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 namespace gko {
@@ -51,7 +52,7 @@ namespace {
 
 constexpr size_type default_block_size = 256;
 
-
+#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_par_ilu.hpp.inc"
 #include "common/cuda_hip/preconditioner/batch_par_ilu_kernels.hpp.inc"
 
@@ -165,7 +166,7 @@ void apply_par_ilu0(
     const auto nbatch = l_factor->get_num_batch_entries();
     const auto l_batch = get_batch_struct(l_factor);
     const auto u_batch = get_batch_struct(u_factor);
-    using d_value_type = cuda_type<ValueType>;
+    using d_value_type = hip_type<ValueType>;
     using prec_type = batch_parilu0<d_value_type>;
     bool is_fallback_required = true;
 
