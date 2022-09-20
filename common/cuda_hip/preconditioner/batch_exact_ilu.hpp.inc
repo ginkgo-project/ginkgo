@@ -285,10 +285,15 @@ public:
     {
         // z = precond * r  ==> find z: L * U * z = r
 
+        // NOTE: alternative sequential trsv as  busy-waiting while loop trsv
+        // deadlock for hip
+#ifdef __HIPCC__
         // L * work_ = r
-        // naive_combined_lower_trsv(r);
+        naive_combined_lower_trsv(r);
         // U * z = work_
-        // naive_combined_upper_trsv(z);
+        naive_combined_upper_trsv(z);
+        return;
+#endif
 
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
             work_[i] = nan<ValueType>();
