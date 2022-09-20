@@ -308,21 +308,19 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_vector()->get_num_stored_elements(),
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
-            if (this->get_non_local_matrix()->get_size()) {
-                auto req = this->communicate(dense_b->get_local_vector());
-                local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
-                req.wait();
-                auto exec = this->get_executor();
-                auto use_host_buffer =
-                    exec->get_master() != exec && !gko::mpi::is_gpu_aware();
-                if (use_host_buffer) {
-                    recv_buffer_->copy_from(host_recv_buffer_.get());
-                }
-                non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
-                                      one_scalar_.get(), local_x.get());
-            } else {
-                local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+
+            auto req = this->communicate(dense_b->get_local_vector());
+            local_mtx_->apply(dense_b->get_local_vector(), local_x.get());
+            req.wait();
+
+            auto exec = this->get_executor();
+            auto use_host_buffer =
+                exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+            if (use_host_buffer) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
             }
+            non_local_mtx_->apply(one_scalar_.get(), recv_buffer_.get(),
+                                  one_scalar_.get(), local_x.get());
         },
         b, x);
 }
@@ -343,23 +341,20 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                     dense_x->get_local_vector()->get_num_stored_elements(),
                     dense_x->get_local_values()),
                 dense_x->get_local_vector()->get_stride());
-            if (this->get_non_local_matrix()->get_size()) {
-                auto req = this->communicate(dense_b->get_local_vector());
-                local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
-                                  local_beta, local_x.get());
-                req.wait();
-                auto exec = this->get_executor();
-                auto use_host_buffer =
-                    exec->get_master() != exec && !gko::mpi::is_gpu_aware();
-                if (use_host_buffer) {
-                    recv_buffer_->copy_from(host_recv_buffer_.get());
-                }
-                non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
-                                      one_scalar_.get(), local_x.get());
-            } else {
-                local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
-                                  local_beta, local_x.get());
+
+            auto req = this->communicate(dense_b->get_local_vector());
+            local_mtx_->apply(local_alpha, dense_b->get_local_vector(),
+                              local_beta, local_x.get());
+            req.wait();
+
+            auto exec = this->get_executor();
+            auto use_host_buffer =
+                exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+            if (use_host_buffer) {
+                recv_buffer_->copy_from(host_recv_buffer_.get());
             }
+            non_local_mtx_->apply(local_alpha, recv_buffer_.get(),
+                                  one_scalar_.get(), local_x.get());
         },
         alpha, b, beta, x);
 }
