@@ -1585,6 +1585,24 @@ TYPED_TEST(Csr, ScaleCsrAddIdentityThrowsOnZeroDiagonal)
                  gko::UnsupportedMatrixProperty);
 }
 
+TYPED_TEST(Csr, CanFindDiagonalEntriesLocations)
+{
+    using index = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    const auto csr_mat = gko::initialize<Csr>(
+        {I<T>{2.0, 0.0, 1.1}, I<T>{1.0, 3.0, 2.5}, I<T>{0.0, -4.0, 1.0}},
+        this->exec);
+    const auto mat_size = csr_mat->get_size()[0];
+    gko::array<index> diag_array(this->exec, mat_size);
+    gko::kernels::reference::csr::find_diagonal_entries_locations(
+        this->exec, csr_mat.get(), diag_array.get_data());
+
+    ASSERT_EQ(diag_array.get_const_data()[0], 0);
+    ASSERT_EQ(diag_array.get_const_data()[1], 3);
+    ASSERT_EQ(diag_array.get_const_data()[2], 6);
+}
+
 
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
