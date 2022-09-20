@@ -64,6 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
+#include "hip/base/exception.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
@@ -1071,7 +1072,7 @@ void check_diagonal_entries_exist(
     const size_type num_warps = mtx->get_size()[0];
     if (num_warps > 0) {
         const size_type num_blocks =
-            num_warps / (default_block_size / config::warp_size);
+            ceildiv(num_warps, ceildiv(default_block_size, config::warp_size));
         array<bool> has_diags(exec, {true});
         hipLaunchKernelGGL(kernel::check_diagonal_entries, num_blocks,
                            default_block_size, 0, 0,
@@ -1083,6 +1084,8 @@ void check_diagonal_entries_exist(
     } else {
         has_all_diags = true;
     }
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1130,6 +1133,8 @@ void find_diagonal_entries_locations(
         static_cast<IndexType>(
             std::min(mtx->get_size()[0], mtx->get_size()[1])),
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), diag_locs);
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
