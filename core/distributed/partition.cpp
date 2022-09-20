@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/distributed/partition.hpp>
 #include <numeric>
 
-
 #include "core/distributed/partition_kernels.hpp"
 
 
