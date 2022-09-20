@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/batch_struct.hpp"
+#include "hip/base/exception.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
@@ -51,8 +52,8 @@ namespace {
 constexpr size_type default_block_size = 256;
 
 
-//#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
-
+#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_exact_ilu_kernels.hpp.inc"
 
 }  // namespace
 
@@ -61,7 +62,23 @@ template <typename ValueType, typename IndexType>
 void compute_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* const diag_locs,
-    matrix::BatchCsr<ValueType, IndexType>* const mat_fact) GKO_NOT_IMPLEMENTED;
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact)
+{
+    const auto num_rows = static_cast<int>(mat_fact->get_size().at(0)[0]);
+    const auto nbatch = mat_fact->get_num_batch_entries();
+    const auto nnz =
+        static_cast<int>(mat_fact->get_num_stored_elements() / nbatch);
+
+    const int dynamic_shared_mem_bytes = 2 * num_rows * sizeof(ValueType);
+
+    hipLaunchKernelGGL(generate_exact_ilu0_kernel, nbatch, default_block_size,
+                       dynamic_shared_mem_bytes, 0, nbatch, num_rows, nnz,
+                       diag_locs, mat_fact->get_const_row_ptrs(),
+                       mat_fact->get_const_col_idxs(),
+                       as_hip_type(mat_fact->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
@@ -73,7 +90,26 @@ void apply_exact_ilu(
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
     const matrix::BatchDense<ValueType>* const r,
-    matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+    matrix::BatchDense<ValueType>* const z)
+{
+    const auto num_rows =
+        static_cast<int>(factored_matrix->get_size().at(0)[0]);
+    const auto nbatch = factored_matrix->get_num_batch_entries();
+    const auto factored_matrix_batch = get_batch_struct(factored_matrix);
+    using d_value_type = cuda_type<ValueType>;
+    using prec_type = batch_exact_ilu<d_value_type>;
+    bool is_fallback_required = true;
+
+    prec_type prec(factored_matrix_batch, diag_locs, is_fallback_required);
+
+    hipLaunchKernelGGL(
+        batch_exact_ilu_apply, nbatch, default_block_size,
+        prec_type::dynamic_work_size(num_rows, 0) * sizeof(ValueType), 0, prec,
+        nbatch, num_rows, as_hip_type(r->get_const_values()),
+        as_cuda_type(z->get_values()));
+
+    GKO_HIP_LAST_IF_ERROR_THROW;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
