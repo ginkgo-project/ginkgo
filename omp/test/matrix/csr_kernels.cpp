@@ -902,5 +902,28 @@ TEST_F(Csr, CreateSubMatrixFromindex_setIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
 
+TEST_F(Csr, CanFindDiagonalEntriesLocations)
+{
+    using T = double;
+    using Csr = Mtx;
+    const int num_rows = 80;
+    auto ref_mtx = gen_mtx<Csr>(num_rows, num_rows, 10);
+    gko::utils::ensure_all_diagonal_entries(ref_mtx.get());
+    Arr ref_diag_array(ref, num_rows);
+    auto mtx = gko::clone(omp, ref_mtx);
+    Arr diag_array(omp, num_rows);
+
+    gko::kernels::reference::csr::find_diagonal_entries_locations(
+        ref, ref_mtx.get(), ref_diag_array.get_data());
+    gko::kernels::omp::csr::find_diagonal_entries_locations(
+        omp, mtx.get(), diag_array.get_data());
+    diag_array.set_executor(ref);
+
+    for (int i = 0; i < num_rows; i++) {
+        ASSERT_EQ(ref_diag_array.get_const_data()[i],
+                  diag_array.get_const_data()[i]);
+    }
+}
+
 
 }  // namespace
