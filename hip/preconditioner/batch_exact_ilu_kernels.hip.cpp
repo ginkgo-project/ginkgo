@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/exception.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/load_store.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/matrix/batch_struct.hip.hpp"
 
 namespace gko {
@@ -96,7 +97,7 @@ void apply_exact_ilu(
         static_cast<int>(factored_matrix->get_size().at(0)[0]);
     const auto nbatch = factored_matrix->get_num_batch_entries();
     const auto factored_matrix_batch = get_batch_struct(factored_matrix);
-    using d_value_type = cuda_type<ValueType>;
+    using d_value_type = hip_type<ValueType>;
     using prec_type = batch_exact_ilu<d_value_type>;
     bool is_fallback_required = true;
 
@@ -106,7 +107,7 @@ void apply_exact_ilu(
         batch_exact_ilu_apply, nbatch, default_block_size,
         prec_type::dynamic_work_size(num_rows, 0) * sizeof(ValueType), 0, prec,
         nbatch, num_rows, as_hip_type(r->get_const_values()),
-        as_cuda_type(z->get_values()));
+        as_hip_type(z->get_values()));
 
     GKO_HIP_LAST_IF_ERROR_THROW;
 }
