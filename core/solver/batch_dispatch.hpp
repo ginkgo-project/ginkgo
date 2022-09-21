@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_exact_ilu.hpp>
-#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 #include <ginkgo/core/preconditioner/batch_par_ilu.hpp>
@@ -105,10 +104,8 @@ using DeviceValueType = ValueType;
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_exact_ilu.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
-#include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/preconditioner/batch_par_ilu.hpp"
-#include "reference/preconditioner/batch_trsv.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 namespace gko {
@@ -211,26 +208,6 @@ public:
             dispatch_on_stop<device::BatchJacobi<device_value_type>>(
                 logger, amat, device::BatchJacobi<device_value_type>(), b_b,
                 x_b);
-        } else if (auto prec = dynamic_cast<
-                       const preconditioner::BatchIlu<value_type>*>(precon_)) {
-            auto l_factor =
-                device::get_batch_struct(prec->get_const_lower_factor());
-            auto u_factor =
-                device::get_batch_struct(prec->get_const_upper_factor());
-            if (prec->get_parameters().trsv_type ==
-                gko::preconditioner::batch_trsv_type::exact) {
-                using trsv_type =
-                    device::batch_exact_trsv_split<device_value_type>;
-                // assuming split factors, or we need one more branch here
-                using ilu_type =
-                    device::batch_ilu_split<device_value_type, trsv_type>;
-                dispatch_on_stop(logger, amat,
-                                 ilu_type{l_factor, u_factor, trsv_type()}, b_b,
-                                 x_b);
-            } else {
-                // TODO: Implement other batch TRSV types
-                GKO_NOT_IMPLEMENTED;
-            }
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIsai<value_type>*>(precon_)) {
             auto approx_inv =
