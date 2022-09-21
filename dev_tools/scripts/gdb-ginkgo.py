@@ -10,7 +10,7 @@
 #
 # Based on the pretty-printers for libstdc++.
 
-# Copyright (C) 2008-2020 Free Software Foundation, Inc.
+# Copyright (C) 2008-2021 Free Software Foundation, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,7 +51,8 @@ else:
 
 _versioned_namespace = '__8::'
 
-
+# new version adapted from https://gcc.gnu.org/pipermail/gcc-cvs/2021-November/356230.html
+# necessary due to empty class optimization
 def is_specialization_of(x, template_name):
     "Test if a type is a given template instantiation."
     global _versioned_namespace
