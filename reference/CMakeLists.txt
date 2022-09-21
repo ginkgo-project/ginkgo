@@ -40,7 +40,6 @@ target_sources(ginkgo_reference
     multigrid/pgm_kernels.cpp
     preconditioner/batch_exact_ilu_kernels.cpp
     preconditioner/batch_identity_kernels.cpp
-    preconditioner/batch_ilu_kernels.cpp
     preconditioner/batch_jacobi_kernels.cpp
     preconditioner/batch_par_ilu_kernels.cpp
     preconditioner/isai_kernels.cpp

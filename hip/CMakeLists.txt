@@ -39,7 +39,6 @@ set(GINKGO_HIP_SOURCES
     multigrid/pgm_kernels.hip.cpp
     preconditioner/batch_exact_ilu_kernels.hip.cpp
     preconditioner/batch_identity_kernels.hip.cpp
-    preconditioner/batch_ilu_kernels.hip.cpp
     preconditioner/batch_jacobi_kernels.hip.cpp
     preconditioner/batch_par_ilu_kernels.hip.cpp
     preconditioner/isai_kernels.hip.cpp
