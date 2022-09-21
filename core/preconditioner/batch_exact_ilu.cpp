@@ -104,9 +104,7 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
     exec->run(batch_exact_ilu::make_nonbatch_check_diag_entries_exist(
         first_csr.get(), all_diags));
     if (!all_diags) {
-        // TODO: Add exception and macro for this.
         throw std::runtime_error("Matrix does not have all diagonal entries!");
-        // TODO: Add a diagonal addition kernel for this.
     }
 
     diag_locations_ = array<IndexType>(exec, num_rows);
