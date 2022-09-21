@@ -286,7 +286,7 @@ public:
         // z = precond * r  ==> find z: L * U * z = r
 
         // NOTE: alternative sequential trsv as  busy-waiting while loop trsv
-        // deadlock for hip
+        // deadlocks for hip
 #ifdef __HIPCC__
         // L * work_ = r
         naive_combined_lower_trsv(r);
