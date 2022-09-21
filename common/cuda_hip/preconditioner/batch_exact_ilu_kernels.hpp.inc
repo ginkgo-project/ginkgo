@@ -43,7 +43,7 @@ __device__ __forceinline__ void fill_partial_current_row_array(
     const int row_end_loc = row_ptrs[curr_row_index + 1];
 
     for (int i = threadIdx.x + curr_row_index; i < nrows; i += blockDim.x) {
-        current_row_elements_arr[i] = 0;
+        current_row_elements_arr[i] = zero<ValueType>();
     }
 
     __syncthreads();
@@ -74,7 +74,7 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
 
     // initilaize it with zeroes
     for (int i = threadIdx.x + curr_row_index + 1; i < nrows; i += blockDim.x) {
-        row_ele_arr[i] = 0;
+        row_ele_arr[i] = zero<ValueType>();
     }
     __syncthreads();
 
@@ -90,7 +90,7 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
             if (col_index == curr_row_index) {
                 ValueType diag_ele =
                     batch_entry_values[diag_ptrs[curr_row_index]];
-                assert(diag_ele != 0);
+                assert(diag_ele != zero<ValueType>());
                 ValueType row_ele = batch_entry_values[i] / diag_ele;
                 row_ele_arr[row_below_index] = row_ele;
                 batch_entry_values[i] = row_ele;
@@ -113,12 +113,12 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
 
 template <typename ValueType>
 __global__
-__launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
-    const size_type batch_size, const int nrows, const int nnz,
-    const int* const __restrict__ diag_ptrs,
-    const int* const __restrict__ mat_row_ptrs,
-    const int* const __restrict__ mat_col_idxs,
-    ValueType* const __restrict__ mat_values)
+    __launch_bounds__(default_block_size) void generate_exact_ilu0_kernel(
+        const size_type batch_size, const int nrows, const int nnz,
+        const int* const __restrict__ diag_ptrs,
+        const int* const __restrict__ mat_row_ptrs,
+        const int* const __restrict__ mat_col_idxs,
+        ValueType* const __restrict__ mat_values)
 {
     for (size_type batch_id = blockIdx.x; batch_id < batch_size;
          batch_id += gridDim.x) {
