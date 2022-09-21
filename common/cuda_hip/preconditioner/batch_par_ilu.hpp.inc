@@ -281,7 +281,7 @@ public:
         // U * z = work_  (then find z)  Note: U is in sorted order
 
         // NOTE: alternative sequential trsv as  busy-waiting while loop trsv
-        // deadlock for hip
+        // deadlocks for hip
 #ifdef __HIPCC__
         naive_lower_trsv(r);
         naive_upper_trsv(z);
