@@ -147,7 +147,7 @@ __device__ __forceinline__ void parilu0_sweep_for_batch_entry(
 {
     for (int el = threadIdx.x; el < nnz;
          el += blockDim.x)  // non-coalesced accesses
-                            // but data locality for each thread
+                            // but data locality
     {
         ValueType diag_val{one<ValueType>()};
 
