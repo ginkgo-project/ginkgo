@@ -96,17 +96,20 @@ public:
     bool to_has_data() const { return to_has_data_; }
 
 protected:
-    repartitioner(mpi::communicator from_comm,
-                  std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>>
-                      from_partition,
-                  std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>>
-                      to_partition);
+    repartitioner(
+        const mpi::communicator from_comm,
+        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+            from_partition,
+        std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+            to_partition);
 
 private:
-    std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> from_partition_;
-    std::shared_ptr<Partition<LocalIndexType, GlobalIndexType>> to_partition_;
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+        from_partition_;
+    std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+        to_partition_;
 
-    mpi::communicator from_comm_;
+    const mpi::communicator from_comm_;
     mpi::communicator to_comm_;
 
     std::shared_ptr<std::vector<comm_index_type>> default_send_sizes_;
