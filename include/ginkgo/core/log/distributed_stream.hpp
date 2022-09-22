@@ -30,19 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_LOG_STREAM_HPP_
-#define GKO_PUBLIC_CORE_LOG_STREAM_HPP_
+#ifndef GKO_PUBLIC_CORE_LOG_DISTRIBUTED_STREAM_HPP_
+#define GKO_PUBLIC_CORE_LOG_DISTRIBUTED_STREAM_HPP_
 
 
 #include <fstream>
 #include <iostream>
 
 
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
 
 namespace gko {
 namespace log {
+namespace detail {
+
+
+template <typename T, typename F>
+void mpi_sequential_region(const mpi::window<T>& window, F&& f)
+{
+    window.lock(0, mpi::window<T>::lock_type::exclusive);
+    f();
+    window.unlock(0);
+}
+
+
+}  // namespace detail
 
 
 /**
@@ -56,7 +71,7 @@ namespace log {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class Stream : public Logger {
+class DistributedStream : public Logger {
 public:
     /* Executor events */
     void on_allocation_started(const Executor* exec,
@@ -178,7 +193,9 @@ public:
      * @param verbose  whether we want detailed information or not. This
      *                 includes always printing residuals and other information
      *                 which can give a large output.
-     * @param prefix  string to prefix the log message with.
+     * @param uses_separate_streams  set to true, if each MPI rank uses its own,
+     *                               separate stream. This can be the case, if
+     *                               each rank uses different output files.
      *
      * @return an std::unique_ptr to the the constructed object
      *
@@ -186,42 +203,15 @@ public:
      * dependencies. At the same time, this method is short enough that it
      * shouldn't be a problem.
      */
-    [[deprecated("use three-parameter create")]] static std::unique_ptr<Stream>
-    create(std::shared_ptr<const Executor> exec,
-           const Logger::mask_type& enabled_events = Logger::all_events_mask,
-           std::ostream& os = std::cout, bool verbose = false,
-           std::string prefix = "[LOG] >>> ")
-    {
-        return std::unique_ptr<Stream>(
-            new Stream(enabled_events, os, verbose, std::move(prefix)));
-    }
-
-    /**
-     * Creates a Stream logger. This dynamically allocates the memory,
-     * constructs the object and returns an std::unique_ptr to this object.
-     *
-     * @param exec  the executor
-     * @param enabled_events  the events enabled for this logger. By default all
-     *                        events.
-     * @param os  the stream used for this logger
-     * @param verbose  whether we want detailed information or not. This
-     *                 includes always printing residuals and other information
-     *                 which can give a large output.
-     * @param prefix  string to prefix the log message with.
-     *
-     * @return an std::unique_ptr to the the constructed object
-     *
-     * @internal here I cannot use EnableCreateMethod due to complex circular
-     * dependencies. At the same time, this method is short enough that it
-     * shouldn't be a problem.
-     */
-    static std::unique_ptr<Stream> create(
+    static std::unique_ptr<DistributedStream> create(
+        mpi::communicator comm = mpi::communicator(MPI_COMM_WORLD),
         const Logger::mask_type& enabled_events = Logger::all_events_mask,
         std::ostream& os = std::cerr, bool verbose = false,
-        std::string prefix = "[LOG] >>> ")
+        bool uses_separate_streams = false)
     {
-        return std::unique_ptr<Stream>(
-            new Stream(enabled_events, os, verbose, std::move(prefix)));
+        return std::unique_ptr<DistributedStream>(
+            new DistributedStream(std::move(comm), enabled_events, os, verbose,
+                                  uses_separate_streams));
     }
 
 protected:
@@ -232,41 +222,34 @@ protected:
      * @param enabled_events  the events enabled for this logger. By default all
      *                        events.
      * @param os  the stream used for this logger
-     * @param verbose  whether we want detailed information or not. This
-     *                 includes always printing residuals and other information
-     *                 which can give a large output.
+     * @param uses_separate_streams  set to true, if each MPI rank uses its own,
+     *                               separate stream. This can be the case, if
+     *                               each rank uses different output files.
      */
-    [[deprecated("use three-parameter constructor")]] explicit Stream(
-        std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type& enabled_events, std::ostream& os, bool verbose,
-        std::string prefix)
-        : Stream(enabled_events, os, verbose, std::move(prefix))
-    {}
-
-    /**
-     * Creates a Stream logger.
-     *
-     * @param exec  the executor
-     * @param enabled_events  the events enabled for this logger. By default all
-     *                        events.
-     * @param os  the stream used for this logger
-     * @param verbose  whether we want detailed information or not. This
-     *                 includes always printing residuals and other information
-     *                 which can give a large output.
-     */
-    explicit Stream(const Logger::mask_type& enabled_events, std::ostream& os,
-                    bool verbose, std::string prefix)
+    explicit DistributedStream(const mpi::communicator& comm,
+                               const Logger::mask_type& enabled_events,
+                               std::ostream& os, bool verbose,
+                               bool uses_separate_streams)
         : Logger(enabled_events),
-          os_(&os),
-          verbose_(verbose),
-          prefix_(std::move(prefix))
-    {}
+          local_logger_(Stream<ValueType>::create(
+              enabled_events, os, verbose,
+              "[LOG][Rank " + std::to_string(comm.rank()) + "] >>> ")),
+          window_(ReferenceExecutor::create(), nullptr, 0, comm)
+    {
+        if (uses_separate_streams) {
+            region_wrapper_ = [&](auto&& f) { f(); };
+        } else {
+            region_wrapper_ = [&](auto&& f) {
+                detail::mpi_sequential_region(window_, f);
+            };
+        }
+    }
 
 
 private:
-    std::ostream* os_;
-    std::string prefix_;
-    bool verbose_;
+    std::unique_ptr<Stream<ValueType>> local_logger_;
+    mpi::window<int> window_;
+    std::function<void(std::function<void()>)> region_wrapper_;
 };
 
 
@@ -274,4 +257,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_LOG_STREAM_HPP_
+#endif  // GKO_PUBLIC_CORE_LOG_DISTRIBUTED_STREAM_HPP_
