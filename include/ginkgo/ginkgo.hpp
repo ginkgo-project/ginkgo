@@ -100,6 +100,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/factorization/par_ilut.hpp>
 
 #include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/log/distributed_stream.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/log/papi.hpp>
 #include <ginkgo/core/log/performance_hint.hpp>
