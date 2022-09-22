@@ -84,6 +84,19 @@ void run(T obj, Func f, Args... args)
     }
 }
 
+
+/**
+ * Helper struct to conditionally add const to Base, depending on the constness
+ * of T
+ */
+template <template <typename> class Base, typename T>
+struct maybe_add_const {
+    template <typename U>
+    using type =
+        std::conditional_t<std::is_const<T>::value, const Base<U>, Base<U>>;
+};
+
+
 /**
  * run uses template to go through the list and select the valid
  * template and run it.
@@ -101,6 +114,7 @@ void run(T, Func, Args...)
 {
     GKO_NOT_IMPLEMENTED;
 }
+
 
 /**
  * run uses template to go through the list and select the valid
@@ -121,9 +135,27 @@ void run(T, Func, Args...)
  */
 template <template <typename> class Base, typename K, typename... Types,
           typename T, typename func, typename... Args>
-void run(T obj, func f, Args... args)
+void run(std::shared_ptr<T> obj, func f, Args... args)
 {
-    if (auto dobj = std::dynamic_pointer_cast<const Base<K>>(obj)) {
+    if (auto dobj = std::dynamic_pointer_cast<
+            typename maybe_add_const<Base, T>::template type<K>>(obj)) {
+        f(dobj, args...);
+    } else {
+        run<Base, Types...>(obj, f, args...);
+    }
+}
+
+
+/**
+ * @copydoc run(std::shared_ptr<T>, func, Args...)
+ */
+template <template <typename> class Base, typename K, typename... Types,
+          typename T, typename func, typename... Args>
+void run(T* obj, func f, Args... args)
+{
+    if (auto dobj =
+            dynamic_cast<typename maybe_add_const<Base, T>::template type<K>*>(
+                obj)) {
         f(dobj, args...);
     } else {
         run<Base, Types...>(obj, f, args...);
