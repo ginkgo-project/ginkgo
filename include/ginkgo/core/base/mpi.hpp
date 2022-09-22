@@ -115,8 +115,8 @@ GKO_REGISTER_MPI_TYPE(long long, MPI_LONG_LONG_INT);
 GKO_REGISTER_MPI_TYPE(float, MPI_FLOAT);
 GKO_REGISTER_MPI_TYPE(double, MPI_DOUBLE);
 GKO_REGISTER_MPI_TYPE(long double, MPI_LONG_DOUBLE);
-GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_C_COMPLEX);
-GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_C_DOUBLE_COMPLEX);
+GKO_REGISTER_MPI_TYPE(std::complex<float>, MPI_CXX_FLOAT_COMPLEX);
+GKO_REGISTER_MPI_TYPE(std::complex<double>, MPI_CXX_DOUBLE_COMPLEX);
 
 
 /**
@@ -1577,7 +1577,7 @@ public:
      *
      * @param assert  the optimization level. 0 is always valid.
      */
-    void fence(int assert = 0)
+    void fence(int assert = 0) const
     {
         if (&this->window_) {
             GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_fence(assert, this->window_));
@@ -1592,7 +1592,8 @@ public:
      * @param lock_t  the type of the lock: shared or exclusive
      * @param assert  the optimization level. 0 is always valid.
      */
-    void lock(int rank, lock_type lock_t = lock_type::shared, int assert = 0)
+    void lock(int rank, lock_type lock_t = lock_type::shared,
+              int assert = 0) const
     {
         if (lock_t == lock_type::shared) {
             GKO_ASSERT_NO_MPI_ERRORS(
@@ -1611,7 +1612,7 @@ public:
      *
      * @param rank  the target rank.
      */
-    void unlock(int rank)
+    void unlock(int rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock(rank, this->window_));
     }
@@ -1622,7 +1623,7 @@ public:
      *
      * @param assert  the optimization level. 0 is always valid.
      */
-    void lock_all(int assert = 0)
+    void lock_all(int assert = 0) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_lock_all(assert, this->window_));
     }
@@ -1631,7 +1632,7 @@ public:
      * Close the epoch on all ranks using MPI_Win_unlock_all for the window
      * object.
      */
-    void unlock_all()
+    void unlock_all() const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_unlock_all(this->window_));
     }
@@ -1642,7 +1643,7 @@ public:
      *
      * @param rank  the target rank.
      */
-    void flush(int rank)
+    void flush(int rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush(rank, this->window_));
     }
@@ -1653,7 +1654,7 @@ public:
      *
      * @param rank  the target rank.
      */
-    void flush_local(int rank)
+    void flush_local(int rank) const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local(rank, this->window_));
     }
@@ -1662,7 +1663,7 @@ public:
      * Flush all the existing RDMA operations for the calling
      * process for the window object.
      */
-    void flush_all()
+    void flush_all() const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_all(this->window_));
     }
@@ -1671,7 +1672,7 @@ public:
      * Flush all the local existing RDMA operations on the calling rank for the
      * window object.
      */
-    void flush_all_local()
+    void flush_all_local() const
     {
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_flush_local_all(this->window_));
     }
@@ -1679,7 +1680,7 @@ public:
     /**
      * Synchronize the public and private buffers for the window object
      */
-    void sync() { GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_sync(this->window_)); }
+    void sync() const { GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_sync(this->window_)); }
 
     /**
      * The deleter which calls MPI_Win_free when the window leaves its scope.
