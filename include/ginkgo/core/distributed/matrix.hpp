@@ -406,7 +406,7 @@ public:
      *
      * @return  this.
      */
-    Matrix& operator=(Matrix&& other);
+    Matrix& operator=(Matrix&& other) noexcept(false);
 
 protected:
     /**
