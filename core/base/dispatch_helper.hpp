@@ -54,7 +54,7 @@ namespace gko {
  * @note this is the end case
  */
 template <typename T, typename Func, typename... Args>
-void run(T, Func, Args...)
+void run(T*, Func, Args...)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -75,9 +75,10 @@ void run(T, Func, Args...)
  */
 template <typename K, typename... Types, typename T, typename Func,
           typename... Args>
-void run(T obj, Func f, Args... args)
+void run(T* obj, Func f, Args... args)
 {
-    if (auto dobj = dynamic_cast<K>(obj)) {
+    if (auto dobj = dynamic_cast<
+            std::conditional_t<std::is_const<T>::value, const K, K>*>(obj)) {
         f(dobj, args...);
     } else {
         run<Types...>(obj, f, args...);
