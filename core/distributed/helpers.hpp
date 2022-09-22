@@ -42,6 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/dispatch_helper.hpp"
+
+
 namespace gko {
 namespace detail {
 
@@ -165,6 +168,33 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
             GKO_NOT_SUPPORTED(linop);
         }
     }
+}
+
+
+/**
+ * Returns the local vector as a LinOp
+ * @tparam LinOpType either LinOp or const LinOp
+ * @param op  the object from which the local vector is extracted
+ * @return  the local vector
+ */
+template <typename LinOpType, typename = std::enable_if_t<std::is_same<
+                                  LinOp, std::decay_t<LinOpType>>::value>>
+LinOpType* get_local(LinOpType* op)
+{
+    LinOpType* local = nullptr;
+#if GINKGO_BUILD_MPI
+    if (is_distributed(op)) {
+        run<gko::distributed::Vector, float, double, std::complex<float>,
+            std::complex<double>>(
+            op, [&](auto vector_op) { local = get_local(vector_op); });
+    } else
+#endif
+    {
+        run<gko::matrix::Dense, float, double, std::complex<float>,
+            std::complex<double>>(
+            op, [&](auto vector_op) { local = get_local(vector_op); });
+    }
+    return local;
 }
 
 
