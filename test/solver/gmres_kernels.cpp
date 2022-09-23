@@ -77,7 +77,7 @@ protected:
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(exec),
                     gko::stop::ResidualNorm<value_type>::build()
-                        .with_reduction_factor(1e-15)
+                        .with_reduction_factor(value_type{1e-15})
                         .on(exec))
                 .on(exec);
 
@@ -86,7 +86,7 @@ protected:
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(246u).on(ref),
                     gko::stop::ResidualNorm<value_type>::build()
-                        .with_reduction_factor(1e-15)
+                        .with_reduction_factor(value_type{1e-15})
                         .on(ref))
                 .on(ref);
     }
@@ -317,6 +317,5 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_b, b, r<value_type>::value * 50);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 50);
 }

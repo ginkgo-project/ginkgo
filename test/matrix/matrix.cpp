@@ -153,8 +153,9 @@ struct CsrWithDefaultStrategy : CsrBase {
     static void assert_empty_state(const matrix_type* mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_EQ(typeid(*mtx->create_default()->get_strategy()),
-                  typeid(*mtx->get_strategy()));
+        auto first_strategy = mtx->create_default()->get_strategy();
+        auto second_strategy = mtx->get_strategy();
+        ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
     }
 };
 

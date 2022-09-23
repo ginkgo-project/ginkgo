@@ -39,7 +39,7 @@
     - PathPrefix: "ginkgo/core"
     - PathIgnore: "0"
     - RemoveTest: "true"
-- "^test/matric/csr_kernels2.cpp"
+- "^test/matrix/csr_kernels2.cpp"
     - CoreSuffix: "_kernels2"
     - PathPrefix: "ginkgo/core"
     - PathIgnore: "0"

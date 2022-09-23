@@ -76,12 +76,10 @@ protected:
         std::string file_name(gko::matrices::location_ani4_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
         auto mtx_temp = gko::read<Csr>(input_file, ref);
-        auto dmtx_temp = gko::clone(exec, mtx_temp);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
             ref, mtx_temp.get(), false);
-        gko::kernels::EXEC_NAMESPACE::factorization::add_diagonal_elements(
-            exec, dmtx_temp.get(), false);
+        auto dmtx_temp = gko::clone(exec, mtx_temp);
         mtx = gko::give(mtx_temp);
         dmtx = gko::give(dmtx_temp);
     }
@@ -143,7 +141,7 @@ protected:
         initialize_row_ptrs(l_row_ptrs.get_data(), u_row_ptrs.get_data(),
                             dl_row_ptrs.get_data(), du_row_ptrs.get_data());
         // Since `initialize_row_ptrs` was already tested, it is expected that
-        // `*` and `*d` contain identical values
+        // `*` and `d*` contain identical values
         auto l_nnz = l_row_ptrs.get_const_data()[num_row_ptrs - 1];
         auto u_nnz = u_row_ptrs.get_const_data()[num_row_ptrs - 1];
 

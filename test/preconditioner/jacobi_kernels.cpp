@@ -84,24 +84,32 @@ protected:
         gko::array<gko::int32> block_ptrs(ref, block_pointers);
         gko::array<gko::precision_reduction> block_prec(ref, block_precisions);
         if (block_prec.get_num_elems() == 0) {
-            bj_factory = Bj::build()
-                             .with_max_block_size(max_block_size)
-                             .with_block_pointers(block_ptrs)
-                             .with_skip_sorting(skip_sorting)
-                             .on(ref);
+            bj_factory =
+                Bj::build()
+                    .with_max_block_size(max_block_size)
+                    .with_block_pointers(block_ptrs)
+#ifdef GKO_COMPILING_HIP
+                    .with_max_block_stride(gko::uint32(exec->get_warp_size()))
+#endif
+                    .with_skip_sorting(skip_sorting)
+                    .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .with_skip_sorting(skip_sorting)
                                .on(exec);
         } else {
-            bj_factory = Bj::build()
-                             .with_max_block_size(max_block_size)
-                             .with_block_pointers(block_ptrs)
-                             .with_storage_optimization(block_prec)
-                             .with_accuracy(accuracy)
-                             .with_skip_sorting(skip_sorting)
-                             .on(ref);
+            bj_factory =
+                Bj::build()
+                    .with_max_block_size(max_block_size)
+                    .with_block_pointers(block_ptrs)
+#ifdef GKO_COMPILING_HIP
+                    .with_max_block_stride(gko::uint32(exec->get_warp_size()))
+#endif
+                    .with_storage_optimization(block_prec)
+                    .with_accuracy(accuracy)
+                    .with_skip_sorting(skip_sorting)
+                    .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
@@ -703,7 +711,7 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
     d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-                        gko::as<Bj>(bj->transpose()), 1e-14);
+                        gko::as<Bj>(bj->transpose()), 0);
 }
 
 
@@ -718,7 +726,7 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
     d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
+                        gko::as<Bj>(bj->conj_transpose()), 0);
 }
 
 

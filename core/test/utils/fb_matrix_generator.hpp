@@ -160,7 +160,6 @@ std::unique_ptr<matrix::Fbcsr<ValueType, IndexType>> generate_fbcsr_from_csr(
 
     const IndexType* const row_ptrs = fmtx->get_const_row_ptrs();
     const IndexType* const col_idxs = fmtx->get_const_col_idxs();
-    const IndexType nnz = nbnz * bs2;
     ValueType* const vals = fmtx->get_values();
     std::uniform_real_distribution<gko::remove_complex<ValueType>>
         off_diag_dist(-1.0, 1.0);

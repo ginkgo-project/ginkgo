@@ -412,9 +412,6 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 }
 
 
-#ifndef GKO_COMPILING_OMP
-
-
 TEST_F(Ell, SimpleApplyByAtomicIsEquivalentToRef)
 {
     set_up_apply_data(10, 10000);
@@ -457,9 +454,6 @@ TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value * 10);
 }
-
-
-#endif  // !defined(GKO_COMPILING_OMP)
 
 
 TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)

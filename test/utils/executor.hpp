@@ -73,7 +73,7 @@ inline std::shared_ptr<gko::CudaExecutor> init_executor(
 {
     {
         if (gko::CudaExecutor::get_num_devices() == 0) {
-            throw std::runtime_error{"No suitable HIP devices"};
+            throw std::runtime_error{"No suitable CUDA devices"};
         }
         return gko::CudaExecutor::create(0, ref);
     }

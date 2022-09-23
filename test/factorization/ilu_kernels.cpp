@@ -105,15 +105,13 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRefUnsorted)
 
 TEST_F(Ilu, SetsCorrectStrategy)
 {
-    auto hip_fact =
-        gko::factorization::Ilu<>::build()
-            .with_l_strategy(std::make_shared<Csr::merge_path>())
-            .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
-            .on(exec)
-            ->generate(dmtx);
+    auto dfact = gko::factorization::Ilu<>::build()
+                     .with_l_strategy(std::make_shared<Csr::merge_path>())
+                     .with_u_strategy(std::make_shared<Csr::load_balance>(exec))
+                     .on(exec)
+                     ->generate(dmtx);
 
-    ASSERT_EQ(hip_fact->get_l_factor()->get_strategy()->get_name(),
-              "merge_path");
-    ASSERT_EQ(hip_fact->get_u_factor()->get_strategy()->get_name(),
+    ASSERT_EQ(dfact->get_l_factor()->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(dfact->get_u_factor()->get_strategy()->get_name(),
               "load_balance");
 }

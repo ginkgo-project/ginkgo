@@ -600,8 +600,9 @@ TYPED_TEST(Csr, ConvertsToPrecision)
     tmp->convert_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
-    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
-              typeid(*res->get_strategy()));
+    auto first_strategy = this->mtx2->get_strategy();
+    auto second_strategy = res->get_strategy();
+    ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
 }
 
 
@@ -624,8 +625,9 @@ TYPED_TEST(Csr, MovesToPrecision)
     tmp->move_to(res.get());
 
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
-    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
-              typeid(*res->get_strategy()));
+    auto first_strategy = this->mtx2->get_strategy();
+    auto second_strategy = res->get_strategy();
+    ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
 }
 
 
