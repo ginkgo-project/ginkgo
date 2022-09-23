@@ -96,7 +96,6 @@ __device__ __forceinline__ void modify_rows_below_curr_row(
                 batch_entry_values[i] = row_ele;
             }
 
-            // TODO: compute mask on your own instead of using activemask
 #ifdef __CUDACC__
             __syncwarp(__activemask());  // else a warning
 #endif
