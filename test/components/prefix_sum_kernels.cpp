@@ -86,7 +86,7 @@ TYPED_TEST(PrefixSum, EqualsReference)
 {
     using gko::size_type;
     for (auto size :
-         {size_type{0}, size_type{1}, size_type{100}, this->total_size}) {
+         {size_type{0}, size_type{1}, size_type{131}, this->total_size}) {
         SCOPED_TRACE(size);
         gko::kernels::reference::components::prefix_sum(
             this->ref, this->vals.get_data(), size);

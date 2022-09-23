@@ -556,6 +556,10 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
 }
 
 
+// TODO: broken in ROCm <= 4.5
+#ifndef GKO_COMPILING_HIP
+
+
 TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
@@ -571,6 +575,9 @@ TEST_F(Csr, SimpleApplyToEmptyCsrMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
+
+
+#endif
 
 
 TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
@@ -1223,7 +1230,6 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
 
 TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
 {
-    using T = double;
     using Csr = Mtx;
     auto ref_mtx = gen_mtx<Csr>(103, 98, 10);
     gko::utils::ensure_all_diagonal_entries(ref_mtx.get());

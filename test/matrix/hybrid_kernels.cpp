@@ -76,7 +76,7 @@ protected:
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
             std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
     }
 

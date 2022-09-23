@@ -258,7 +258,7 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 {
     initialize_data();
 
-    double kappa = 0.7;
+    value_type kappa = 0.7;
     gko::kernels::reference::idr::compute_omega(ref, nrhs, kappa, tht.get(),
                                                 residual_norm.get(),
                                                 omega.get(), stop_status.get());
@@ -272,6 +272,12 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
 
 TEST_F(Idr, IdrIterationOneRHSIsEquivalentToRef)
 {
+#ifdef GKO_COMPILING_DPCPP
+    if (exec->get_queue()->get_device().is_gpu()) {
+        GTEST_SKIP() << "skip the test because oneMKL GEMM on gpu may give NaN "
+                        "(under investigation)";
+    }
+#endif
     initialize_data(123, 1);
     auto ref_solver = ref_idr_factory->generate(mtx);
     auto exec_solver = exec_idr_factory->generate(d_mtx);

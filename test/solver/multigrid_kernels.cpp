@@ -83,28 +83,17 @@ protected:
         this->modify_norm(old_norm, new_norm);
         this->modify_scalar(alpha, rho, beta, gamma, zeta);
 
-        d_v = Mtx::create(exec);
-        d_v->copy_from(v.get());
-        d_d = Mtx::create(exec);
-        d_d->copy_from(d.get());
-        d_g = Mtx::create(exec);
-        d_g->copy_from(g.get());
-        d_e = Mtx::create(exec);
-        d_e->copy_from(e.get());
-        d_alpha = Mtx::create(exec);
-        d_alpha->copy_from(alpha.get());
-        d_rho = Mtx::create(exec);
-        d_rho->copy_from(rho.get());
-        d_beta = Mtx::create(exec);
-        d_beta->copy_from(beta.get());
-        d_gamma = Mtx::create(exec);
-        d_gamma->copy_from(gamma.get());
-        d_zeta = Mtx::create(exec);
-        d_zeta->copy_from(zeta.get());
-        d_old_norm = Mtx::create(exec);
-        d_old_norm->copy_from(old_norm.get());
-        d_new_norm = Mtx::create(exec);
-        d_new_norm->copy_from(new_norm.get());
+        d_v = gko::clone(exec, v);
+        d_d = gko::clone(exec, d);
+        d_g = gko::clone(exec, g);
+        d_e = gko::clone(exec, e);
+        d_alpha = gko::clone(exec, alpha);
+        d_rho = gko::clone(exec, rho);
+        d_beta = gko::clone(exec, beta);
+        d_gamma = gko::clone(exec, gamma);
+        d_zeta = gko::clone(exec, zeta);
+        d_old_norm = gko::clone(exec, old_norm);
+        d_new_norm = gko::clone(exec, new_norm);
     }
 
     void modify_norm(std::unique_ptr<Mtx>& old_norm,
