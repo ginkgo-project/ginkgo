@@ -87,17 +87,24 @@ public:
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchExactIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    // Since there is no guarantee that the complete generation of the
-    // preconditioner would occur outside the solver kernel, that is in the
-    // external generate step, there is no logic of implementing transpose and
-    // conjugate transpose for batched preconditioners
+
     std::unique_ptr<BatchLinOp> transpose() const override
-        GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support transpose");
+    {
+        return build()
+            .with_skip_sorting(this->parameters_.skip_sorting)
+            .on(this->get_executor())
+            ->generate(share(
+                as<BatchTransposable>(this->system_matrix_)->transpose()));
+    }
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override
-        GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support conjugate transpose");
+    {
+        return build()
+            .with_skip_sorting(this->parameters_.skip_sorting)
+            .on(this->get_executor())
+            ->generate(share(
+                as<BatchTransposable>(this->system_matrix_)->conj_transpose()));
+    }
 
     const matrix::BatchCsr<ValueType, IndexType>* get_const_factorized_matrix()
         const
@@ -132,8 +139,10 @@ protected:
         : EnableBatchLinOp<BatchExactIlu>(
               factory->get_executor(),
               gko::transpose(system_matrix->get_size())),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          system_matrix_{system_matrix}
     {
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
         this->generate_precond(lend(system_matrix));
     }
 
@@ -161,6 +170,7 @@ protected:
 
 
 private:
+    std::shared_ptr<const BatchLinOp> system_matrix_;
     std::shared_ptr<matrix::BatchCsr<ValueType, IndexType>> mat_factored_;
     array<IndexType> diag_locations_;
 };

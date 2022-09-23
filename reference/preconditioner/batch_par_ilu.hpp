@@ -99,8 +99,6 @@ public:
 
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
-    // TODO: Implement lower and upper trsv (this uses the work
-    // array)
     {
         const int num_rows = r.num_rows;
         // z = precond * r
@@ -137,7 +135,7 @@ private:
     const gko::batch_csr::UniformBatch<const value_type> u_batch_;
     gko::batch_csr::BatchEntry<const value_type> l_entry_;
     gko::batch_csr::BatchEntry<const value_type> u_entry_;
-    ValueType* __restrict__ work_;
+    ValueType* work_;
 };
 
 
