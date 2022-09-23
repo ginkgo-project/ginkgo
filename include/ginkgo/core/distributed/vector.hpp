@@ -427,6 +427,25 @@ public:
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
+    /**
+     * Copy assigns a Vector.
+     *
+     * @param other  Vector to copy from, has to have a communicator of the same
+     *               size as this.
+     *
+     * @return  this.
+     */
+    Vector& operator=(const Vector& other)
+    {
+        if (this != &other) {
+            GKO_ASSERT_EQ(other.get_communicator().size(),
+                          this->get_communicator().size());
+            this->set_size(other.get_size());
+            local_ = other.local_;
+        }
+        return *this;
+    }
+
 protected:
     /**
      * Creates an empty distributed vector with a specified size
