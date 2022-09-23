@@ -227,8 +227,6 @@ public:
 
             const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
                 lend(precon_->get_executor()));
-            // const auto exec = as<const
-            // gko::CudaExecutor>(precon_->get_executor());
             if (exec->get_major_version() >= 7) {
                 is_fallback_required = false;
             }
@@ -255,8 +253,6 @@ public:
 
             const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
                 lend(precon_->get_executor()));
-            // const auto exec = as<const
-            // gko::CudaExecutor>(precon_->get_executor());
             if (exec->get_major_version() >= 7) {
                 is_fallback_required = false;
             }
