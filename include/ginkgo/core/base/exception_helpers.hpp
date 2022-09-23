@@ -74,6 +74,22 @@ namespace gko {
 
 
 /**
+ * Marks a function as not supported by batched ginkgo.
+ *
+ * Attempts to call this function will result in a runtime error of type
+ * BatchedNotSupported.
+ */
+#define GKO_BATCHED_NOT_SUPPORTED(_error_descr)                              \
+    {                                                                        \
+        throw ::gko::BatchedNotSupported(__FILE__, __LINE__, __func__,       \
+                                         _error_descr);                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Marks a function as not compiled.
  *
  * Attempts to call this function will result in a runtime error of type

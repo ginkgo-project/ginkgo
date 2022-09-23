@@ -127,6 +127,30 @@ public:
 
 
 /**
+ * BatchedNotSupported is thrown in case an operation is not supported by the
+ * batched functionality such as transpose/conjugate transpose or apply in case
+ * of batched preconditioners
+ */
+class BatchedNotSupported : public Error {
+public:
+    /**
+     * Initializes a  BatchedNotSupported error.
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The name of the not-yet implemented function
+     * @param error_descr Optional error description
+     */
+    BatchedNotSupported(const std::string& file, int line,
+                        const std::string& func,
+                        const std::string& error_descr = std::string(""))
+        : Error(file, line,
+                func + " is not supported by batched functionality. " +
+                    error_descr)
+    {}
+};
+
+/**
  * NotCompiled is thrown when attempting to call an operation which is a part of
  * a module that was not compiled on the system.
  */
