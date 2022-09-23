@@ -118,16 +118,6 @@ void BatchExactIlu<ValueType, IndexType>::generate_precond(
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<BatchLinOp> BatchExactIlu<ValueType, IndexType>::transpose()
-    const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-std::unique_ptr<BatchLinOp>
-BatchExactIlu<ValueType, IndexType>::conj_transpose() const GKO_NOT_IMPLEMENTED;
-
-
 #define GKO_DECLARE_BATCH_EXACT_ILU(ValueType) \
     class BatchExactIlu<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_EXACT_ILU);
