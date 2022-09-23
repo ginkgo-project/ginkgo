@@ -171,7 +171,7 @@ __global__ void apply_kernel(const gko::kernels::batch_cg::StorageConfig sconf,
         } else {
             prec_work_sh = Ap_sh + sconf.padded_vec_len;
         }
-        if (sconf.n_shared == 5) {
+        if (sconf.n_shared == 4 && sconf.prec_shared) {
             x_sh = workspace + gmem_offset;
         } else {
             x_sh = prec_work_sh + PrecType::dynamic_work_size(nrows, a.num_nnz);
