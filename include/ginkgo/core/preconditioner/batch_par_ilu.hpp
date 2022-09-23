@@ -70,6 +70,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = matrix::BatchCsr<ValueType, IndexType>;
+    using transposed_type = BatchParIlu<value_type, index_type>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -92,17 +93,35 @@ public:
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    // Since there is no guarantee that the complete generation of the
-    // preconditioner would occur outside the solver kernel, that is in the
-    // external generate step, there is no logic of implementing transpose and
-    // conjugate transpose for batched preconditioners
     std::unique_ptr<BatchLinOp> transpose() const override
-        GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support transpose");
+    {
+        std::unique_ptr<transposed_type> transposed{
+            new transposed_type{this->get_executor()}};
+        transposed->set_size(this->get_size());
+        transposed->parameters_ = parameters_;
+        transposed->l_factor_ = as<const matrix_type>(share(
+            as<BatchTransposable>(this->get_const_u_factor())->transpose()));
+        transposed->u_factor_ = as<const matrix_type>(share(
+            as<BatchTransposable>(this->get_const_l_factor())->transpose()));
+
+        return std::move(transposed);
+    }
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override
-        GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support conjugate transpose");
+    {
+        std::unique_ptr<transposed_type> conj_transposed{
+            new transposed_type{this->get_executor()}};
+        conj_transposed->set_size(this->get_size());
+        conj_transposed->parameters_ = parameters_;
+        conj_transposed->l_factor_ = as<const matrix_type>(
+            share(as<BatchTransposable>(this->get_const_u_factor())
+                      ->conj_transpose()));
+        conj_transposed->u_factor_ = as<const matrix_type>(
+            share(as<BatchTransposable>(this->get_const_l_factor())
+                      ->conj_transpose()));
+
+        return std::move(conj_transposed);
+    }
 
     const matrix::BatchCsr<ValueType, IndexType>* get_const_l_factor() const
     {
@@ -138,6 +157,7 @@ protected:
               gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()}
     {
+        GKO_ASSERT_BATCH_HAS_SQUARE_MATRICES(system_matrix);
         this->generate_precond(lend(system_matrix));
     }
 
