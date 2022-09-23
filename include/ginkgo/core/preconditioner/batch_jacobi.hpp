@@ -75,18 +75,18 @@ public:
     GKO_ENABLE_BATCH_LIN_OP_FACTORY(BatchJacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    // Since there is no guarantee that the complete generation of the
+    // preconditioner would occur outside the solver kernel, that is in the
+    // external generate step, there is no logic of implementing transpose and
+    // conjugate transpose for batched preconditioners
     std::unique_ptr<BatchLinOp> transpose() const override
-    {
-        return this->clone();
-    }
+        GKO_BATCHED_NOT_SUPPORTED(
+            "batched preconditioners do not support transpose");
+
 
     std::unique_ptr<BatchLinOp> conj_transpose() const override
-    {
-        // Since this preconditioner does nothing in its genarate step,
-        //  conjugate transpose only depends on the matrix being
-        //  conjugate-transposed.
-        return this->clone();
-    }
+        GKO_BATCHED_NOT_SUPPORTED(
+            "batched preconditioners do not support conjugate transpose");
 
 protected:
     /**
@@ -123,10 +123,18 @@ protected:
      */
     void generate(const BatchLinOp* system_matrix) {}
 
-    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override{};
+    // Since there is no guarantee that the complete generation of the
+    // preconditioner would occur outside the solver kernel, that is in the
+    // external generate step, there is no logic of implementing "apply" for
+    // batched preconditioners
+    void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override
+        GKO_BATCHED_NOT_SUPPORTED(
+            "batched preconditioners do not support apply");
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
-                    const BatchLinOp* beta, BatchLinOp* x) const override{};
+                    const BatchLinOp* beta, BatchLinOp* x) const override
+        GKO_BATCHED_NOT_SUPPORTED(
+            "batched preconditioners do not support apply");
 };
 
 
