@@ -261,20 +261,18 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     auto cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(75u).on(ref),
+                gko::stop::Iteration::build().with_max_iters(75u).on(exec),
                 gko::stop::ResidualNorm<value_type>::build()
                     .with_reduction_factor(::r<value_type>::value)
-                    .on(ref))
-            .on(ref);
+                    .on(exec))
+            .on(exec);
     auto d_cg_factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(75u).on(exec)
-                // ,
-                // gko::stop::ResidualNorm<value_type>::build()
-                //     .with_reduction_factor(::r<value_type>::value)
-                // .on(exec)
-                )
+                gko::stop::Iteration::build().with_max_iters(75u).on(exec),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(::r<value_type>::value)
+                    .on(exec))
             .on(exec);
     auto solver = cg_factory->generate(mtx);
     auto d_solver = d_cg_factory->generate(std::move(d_mtx));
@@ -291,9 +289,9 @@ TEST_F(Cg, AsyncApplyIsEquivalentToRef)
     hand2->wait();
     hand3->wait();
     hand4->wait();
-    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 1000);
-    GKO_ASSERT_MTX_NEAR(d_x2, x, ::r<value_type>::value * 1000);
-    GKO_ASSERT_MTX_NEAR(d_x3, x, ::r<value_type>::value * 1000);
+    GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x2, x, ::r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x3, x, ::r<value_type>::value);
 }
 
 
