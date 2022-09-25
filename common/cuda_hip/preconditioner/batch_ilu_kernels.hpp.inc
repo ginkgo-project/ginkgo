@@ -145,3 +145,71 @@ __global__
         }
     }
 }
+
+
+template <typename ValueType>
+__device__ __forceinline__ void parilu0_sweep_for_batch_entry(
+    const int nnz, const ValueType* const __restrict__ A_vals,
+    ValueType* const __restrict__ fact_mat_vals,
+    const int* const __restrict__ dependencies,
+    const int* const __restrict__ nz_ptrs)
+{
+    for (int el = threadIdx.x; el < nnz;
+         el += blockDim.x)  // non-coalesced accesses
+                            // but atleast data locality
+    {
+        ValueType diag_val{one<ValueType>()};
+
+        const int st = nz_ptrs[el];
+        const int end = nz_ptrs[el + 1] - 1;
+
+        const bool has_diag_dependency = (end + 1 - st) % 2 == 0 ? false : true;
+
+        ValueType sum{zero<ValueType>()};
+
+        for (int idx = st; idx <= end - 1; idx += 2) {
+            sum += fact_mat_vals[dependencies[idx]] *
+                   fact_mat_vals[dependencies[idx + 1]];
+        }
+
+        if (has_diag_dependency == true) {
+            diag_val = fact_mat_vals[dependencies[end]];
+        }
+
+        ValueType to_write = (A_vals[el] - sum) / diag_val;
+
+        if (has_diag_dependency == true) {
+            fact_mat_vals[el] = to_write;
+        } else {
+            fact_mat_vals[el] = to_write;
+        }
+    }
+}
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void generate_parilu0_kernel(
+    const size_type nbatch, const int num_rows, const int nnz,
+    const int* const __restrict__ dependencies,
+    const int* const __restrict__ nz_ptrs, const int num_sweeps,
+    const ValueType* const __restrict__ A_values,
+    ValueType* const __restrict__ fact_mat_values)
+{
+    for (size_type batch_id = blockIdx.x; batch_id < nbatch;
+         batch_id += gridDim.x) {
+        extern __shared__ char local_mem_sh[];
+        ValueType* const __restrict__ fact_mat_values_sh =
+            reinterpret_cast<ValueType*>(local_mem_sh);
+
+        single_copy(nnz, fact_mat_values + batch_id * nnz, fact_mat_values_sh);
+        __syncthreads();
+
+        for (int sweep = 0; sweep < num_sweeps; sweep++) {
+            parilu0_sweep_for_batch_entry(nnz, A_values + batch_id * nnz,
+                                          fact_mat_values_sh, dependencies,
+                                          nz_ptrs);
+            __syncthreads();
+        }
+
+        single_copy(nnz, fact_mat_values_sh, fact_mat_values + batch_id * nnz);
+    }
+}
