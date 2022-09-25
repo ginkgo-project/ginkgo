@@ -168,18 +168,15 @@ int main(int argc, char* argv[])
             .with_default_max_iterations(500)
             .with_default_residual_tol(reduction_factor)
             .with_tolerance_type(gko::stop::batch::ToleranceType::relative)
-            // .with_preconditioner(
-            //     gko::preconditioner::BatchExactIlu<value_type,
-            //                                        index_type>::build()
-            //         .with_skip_sorting(true)
-            //         .on(exec))
             .with_preconditioner(
-                gko::preconditioner::BatchParIlu<value_type,
-                                                 index_type>::build()
-                    .with_num_sweeps(20)
+                gko::preconditioner::BatchIlu<value_type, index_type>::build()
                     .with_skip_sorting(true)
+                    // .with_ilu_type(
+                    //     gko::preconditioner::batch_ilu_type::exact_ilu)
+                    .with_ilu_type(gko::preconditioner::batch_ilu_type::parilu)
+                    .with_parilu_num_sweeps(10)
                     .on(exec))
-            //.with_preconditioner(gko::preconditioner::BatchJacobi<value_type,
+            // .with_preconditioner(gko::preconditioner::BatchJacobi<value_type,
             // index_type>::build().on(exec))
             .on(exec);
 
