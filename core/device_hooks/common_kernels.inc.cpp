@@ -72,8 +72,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/multigrid/pgm_kernels.hpp"
 #include "core/preconditioner/batch_exact_ilu_kernels.hpp"
 #include "core/preconditioner/batch_identity_kernels.hpp"
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
-#include "core/preconditioner/batch_par_ilu_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
@@ -1231,28 +1231,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI_KERNEL);
 }  // namespace batch_jacobi
 
 
-namespace batch_exact_ilu {
+namespace batch_ilu {
 
 
 GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
-GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
-
-
-}  // namespace batch_exact_ilu
-
-
-namespace batch_par_ilu {
-
+GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_ILU_APPLY_KERNEL);
 GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_PAR_ILU_COMPUTE_PARILU0_KERNEL);
-GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(GKO_DECLARE_BATCH_PAR_ILU_APPLY_KERNEL);
-GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_PAR_ILU_GENERATE_COMMON_PATTERN_KERNEL);
-GKO_STUB_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_PAR_ILU_INITIALIZE_BATCH_L_AND_BATCH_U);
+    GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL);
 
-}  // namespace batch_par_ilu
+
+}  // namespace batch_ilu
 
 
 namespace batch_identity {

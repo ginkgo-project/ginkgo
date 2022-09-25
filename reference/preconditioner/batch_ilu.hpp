@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
-#define GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#ifndef GKO_REFERENCE_PRECONDITIONER_BATCH_ILU_HPP_
+#define GKO_REFERENCE_PRECONDITIONER_BATCH_ILU_HPP_
 
 
 #include "core/matrix/batch_struct.hpp"
@@ -44,10 +44,10 @@ namespace host {
 
 
 /**
- * Batch exact ilu0 preconditioner.
+ * Batch ilu0 preconditioner.
  */
 template <typename ValueType>
-class batch_exact_ilu final {
+class batch_ilu final {
 public:
     using value_type = ValueType;
 
@@ -57,9 +57,9 @@ public:
      * @param csr_diag_locs  pointers to the diagonal entries in factorized
      * matrix
      */
-    batch_exact_ilu(
+    batch_ilu(
         const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
-        const int* const csr_diag_locs, const bool dummy = true)
+        const int* const csr_diag_locs)
         : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
     {}
 
@@ -155,4 +155,4 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#endif  // GKO_REFERENCE_PRECONDITIONER_BATCH_ILU_HPP_

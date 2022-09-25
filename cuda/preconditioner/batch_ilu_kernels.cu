@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/batch_exact_ilu_kernels.hpp"
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -47,20 +47,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
-namespace batch_exact_ilu {
+namespace batch_ilu {
 namespace {
 
 
 constexpr size_type default_block_size = 256;
 
-#include "common/cuda_hip/preconditioner/batch_exact_ilu.hpp.inc"
-#include "common/cuda_hip/preconditioner/batch_exact_ilu_kernels.hpp.inc"
+#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_ilu.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_ilu_kernels.hpp.inc"
 
 }  // namespace
 
 
 template <typename ValueType, typename IndexType>
-void compute_factorization(
+void compute_ilu0_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* const diag_locs,
     matrix::BatchCsr<ValueType, IndexType>* const mat_fact)
@@ -84,9 +85,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void compute_parilu0_factorization(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact,
+    const int parilu_num_sweeps, const IndexType* const dependencies,
+    const IndexType* const nz_ptrs)
+{
+    const auto num_rows = static_cast<int>(sys_mat->get_size().at(0)[0]);
+    const auto nbatch = sys_mat->get_num_batch_entries();
+    const auto nnz =
+        static_cast<int>(sys_mat->get_num_stored_elements() / nbatch);
+
+    const int dynamic_shared_mem_bytes = nnz * sizeof(ValueType);
+
+    generate_parilu0_kernel<<<nbatch, default_block_size,
+                              dynamic_shared_mem_bytes>>>(
+        nbatch, num_rows, nnz, dependencies, nz_ptrs, parilu_num_sweeps,
+        as_cuda_type(sys_mat->get_const_values()),
+        as_cuda_type(mat_fact->get_values()));
+
+    GKO_CUDA_LAST_IF_ERROR_THROW;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL);
+
+
 // Only for testing purpose
 template <typename ValueType, typename IndexType>
-void apply_exact_ilu(
+void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
@@ -98,25 +127,21 @@ void apply_exact_ilu(
     const auto nbatch = factored_matrix->get_num_batch_entries();
     const auto factored_matrix_batch = get_batch_struct(factored_matrix);
     using d_value_type = cuda_type<ValueType>;
-    using prec_type = batch_exact_ilu<d_value_type>;
-    bool is_fallback_required = true;
-    if (exec->get_major_version() >= 7) {
-        is_fallback_required = false;
-    }
-    prec_type prec(factored_matrix_batch, diag_locs, is_fallback_required);
+    using prec_type = batch_ilu<d_value_type>;
+    prec_type prec(factored_matrix_batch, diag_locs);
 
-    batch_exact_ilu_apply<<<nbatch, default_block_size,
-                            prec_type::dynamic_work_size(num_rows, 0) *
-                                sizeof(ValueType)>>>(
+    batch_ilu_apply<<<nbatch, default_block_size,
+                      prec_type::dynamic_work_size(num_rows, 0) *
+                          sizeof(ValueType)>>>(
         prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
         as_cuda_type(z->get_values()));
 }
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL);
 
-}  // namespace batch_exact_ilu
+}  // namespace batch_ilu
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
