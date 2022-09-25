@@ -30,11 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/batch_exact_ilu_kernels.hpp"
-
-
-#include <algorithm>
-#include <cassert>
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -42,25 +38,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_exact_ilu.hpp"
+#include "reference/preconditioner/batch_ilu.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace reference {
-namespace batch_exact_ilu {
+namespace omp {
+namespace batch_ilu {
 
 
-#include "reference/preconditioner/batch_exact_ilu_kernels.hpp.inc"
+#include "reference/preconditioner/batch_ilu_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
-void compute_factorization(
+void compute_ilu0_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* const diag_locs,
     matrix::BatchCsr<ValueType, IndexType>* const mat_fact)
 {
     const auto mat_factorized_batch = host::get_batch_struct(mat_fact);
+
+#pragma omp parallel for
     for (size_type batch_id = 0; batch_id < mat_fact->get_num_batch_entries();
          ++batch_id) {
         const auto mat_factorized_entry =
@@ -75,7 +73,37 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void apply_exact_ilu(
+void compute_parilu0_factorization(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact,
+    const int parilu_num_sweeps, const IndexType* const dependencies,
+    const IndexType* const nz_ptrs)
+{
+    const auto sys_mat_batch = host::get_batch_struct(sys_mat);
+    const auto mat_factorized_batch = host::get_batch_struct(mat_fact);
+
+#pragma omp parallel for
+    for (size_type batch_id = 0; batch_id < mat_fact->get_num_batch_entries();
+         ++batch_id) {
+        const auto sys_mat_entry =
+            gko::batch::batch_entry(sys_mat_batch, batch_id);
+        const auto mat_factorized_entry =
+            gko::batch::batch_entry(mat_factorized_batch, batch_id);
+
+        batch_entry_parilu0_factorize_impl(parilu_num_sweeps, dependencies,
+                                           nz_ptrs, sys_mat_entry,
+                                           mat_factorized_entry);
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
@@ -87,15 +115,17 @@ void apply_exact_ilu(
     const auto rub = gko::kernels::host::get_batch_struct(r);
     const auto zub = gko::kernels::host::get_batch_struct(z);
 
-    using prec_type = gko::kernels::host::batch_exact_ilu<ValueType>;
+    using prec_type = gko::kernels::host::batch_ilu<ValueType>;
     prec_type prec(factored_mat_batch, diag_locs);
 
-    const auto work_arr_size = prec_type::dynamic_work_size(
-        factored_mat_batch.num_rows, factored_mat_batch.num_nnz);
-    std::vector<ValueType> work(work_arr_size);
-
+#pragma omp parallel for firstprivate(prec)
     for (size_type batch_id = 0;
          batch_id < factored_matrix->get_num_batch_entries(); batch_id++) {
+        const auto work_arr_size = prec_type::dynamic_work_size(
+            factored_mat_batch.num_rows, factored_mat_batch.num_nnz);
+
+        std::vector<ValueType> work(work_arr_size);
+
         const auto r_b = gko::batch::batch_entry(rub, batch_id);
         const auto z_b = gko::batch::batch_entry(zub, batch_id);
         prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
@@ -104,12 +134,10 @@ void apply_exact_ilu(
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL);
 
-
-}  // namespace batch_exact_ilu
-}  // namespace reference
+}  // namespace batch_ilu
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

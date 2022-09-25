@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/batch_par_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 
 
 #include <memory>
@@ -46,53 +46,63 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class BatchParIluFactory : public ::testing::Test {
+class BatchIluFactory : public ::testing::Test {
 protected:
     using value_type = double;
     using index_type = gko::int32;
-    using batch_parilu_prec =
-        gko::preconditioner::BatchParIlu<value_type, index_type>;
+    using batch_ilu_prec =
+        gko::preconditioner::BatchIlu<value_type, index_type>;
 
-    BatchParIluFactory()
+    BatchIluFactory()
         : exec(gko::ReferenceExecutor::create()),
+          type(gko::preconditioner::batch_ilu_type::parilu),
           skip_sorting(true),
-          num_sweeps(5)
+          parilu_num_sweeps(20)
     {}
 
     std::shared_ptr<const gko::Executor> exec;
+    const enum gko::preconditioner::batch_ilu_type type;
     const bool skip_sorting;
-    const int num_sweeps;
+    const int parilu_num_sweeps;
 };
 
 
-TEST_F(BatchParIluFactory, KnowsItsExecutor)
+TEST_F(BatchIluFactory, KnowsItsExecutor)
 {
-    auto batch_parilu_factory = batch_parilu_prec::build().on(this->exec);
+    auto batch_ilu_factory = batch_ilu_prec::build().on(this->exec);
 
-    ASSERT_EQ(batch_parilu_factory->get_executor(), this->exec);
+    ASSERT_EQ(batch_ilu_factory->get_executor(), this->exec);
 }
 
 
-TEST_F(BatchParIluFactory, CanSetSorting)
+TEST_F(BatchIluFactory, CanSetIluType)
 {
-    auto batch_parilu_factory = batch_parilu_prec::build()
-                                    .with_skip_sorting(this->skip_sorting)
-                                    .on(this->exec);
+    auto batch_ilu_factory =
+        batch_ilu_prec::build().with_ilu_type(this->type).on(this->exec);
 
-    ASSERT_EQ(batch_parilu_factory->get_parameters().skip_sorting,
+    ASSERT_EQ(batch_ilu_factory->get_parameters().ilu_type, this->type);
+}
+
+TEST_F(BatchIluFactory, CanSetSorting)
+{
+    auto batch_ilu_factory = batch_ilu_prec::build()
+                                 .with_skip_sorting(this->skip_sorting)
+                                 .on(this->exec);
+
+    ASSERT_EQ(batch_ilu_factory->get_parameters().skip_sorting,
               this->skip_sorting);
 }
 
 
-TEST_F(BatchParIluFactory, CanSetNumSweeps)
+TEST_F(BatchIluFactory, CanSetNumSweeps)
 {
-    auto batch_parilu_factory = batch_parilu_prec::build()
-                                    .with_num_sweeps(this->num_sweeps)
-                                    .on(this->exec);
+    auto batch_ilu_factory =
+        batch_ilu_prec::build()
+            .with_parilu_num_sweeps(this->parilu_num_sweeps)
+            .on(this->exec);
 
-    ASSERT_EQ(batch_parilu_factory->get_parameters().num_sweeps,
-              this->num_sweeps);
+    ASSERT_EQ(batch_ilu_factory->get_parameters().parilu_num_sweeps,
+              this->parilu_num_sweeps);
 }
-
 
 }  // namespace
