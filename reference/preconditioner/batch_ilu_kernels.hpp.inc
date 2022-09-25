@@ -74,3 +74,51 @@ inline void batch_entry_factorize_impl(
         }
     }
 }
+
+
+template <typename ValueType>
+inline void batch_entry_parilu0_factorize_impl(
+    const int parilu_num_sweeps, const int* const dependencies,
+    const int* const nz_ptrs,
+    const batch_csr::BatchEntry<const ValueType>& sys_mat_entry,
+    const batch_csr::BatchEntry<ValueType>& mat_factorized_entry)
+{
+    const int nrows = mat_factorized_entry.num_rows;
+    const int nnz = mat_factorized_entry.num_nnz;
+    const ValueType* const A_vals = sys_mat_entry.values;
+    ValueType* const fact_mat_vals = mat_factorized_entry.values;
+
+    for (int iter = 0; iter < parilu_num_sweeps;
+         iter++)  // just 1 sweep is sufficient as this is eqvt. to exact ilu0
+                  // (with this order pf computing elements)
+    {
+        for (int el = 0; el < nnz; el++) {
+            ValueType diag_val{one<ValueType>()};
+
+            const int st = nz_ptrs[el];
+            const int end = nz_ptrs[el + 1] - 1;
+
+            const bool has_diag_dependency =
+                (end + 1 - st) % 2 == 0 ? false : true;
+
+            ValueType sum{zero<ValueType>()};
+
+            for (int idx = st; idx <= end - 1; idx += 2) {
+                sum += fact_mat_vals[dependencies[idx]] *
+                       fact_mat_vals[dependencies[idx + 1]];
+            }
+
+            if (has_diag_dependency == true) {
+                diag_val = fact_mat_vals[dependencies[end]];
+            }
+
+            ValueType to_write = (A_vals[el] - sum) / diag_val;
+
+            if (has_diag_dependency == true) {
+                fact_mat_vals[el] = to_write;
+            } else {
+                fact_mat_vals[el] = to_write;
+            }
+        }
+    }
+}
