@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/preconditioner/batch_exact_ilu_kernels.hpp"
+#include "core/preconditioner/batch_ilu_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -42,11 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace dpcpp {
-namespace batch_exact_ilu {
+namespace batch_ilu {
 
 
 template <typename ValueType, typename IndexType>
-void compute_factorization(
+void compute_ilu0_factorization(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* const diag_locs,
     matrix::BatchCsr<ValueType, IndexType>* const mat_fact) GKO_NOT_IMPLEMENTED;
@@ -56,7 +56,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 
 template <typename ValueType, typename IndexType>
-void apply_exact_ilu(
+void compute_parilu0_factorization(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
+    matrix::BatchCsr<ValueType, IndexType>* const mat_fact,
+    const int parilu_num_sweeps, const IndexType* const dependencies,
+    const IndexType* const nz_ptrs) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
+    GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
@@ -65,9 +77,9 @@ void apply_exact_ilu(
 
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
-    GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL);
+    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL);
 
-}  // namespace batch_exact_ilu
+}  // namespace batch_ilu
 }  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

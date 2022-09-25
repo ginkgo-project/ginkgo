@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_PRECONDITIONER_BATCH_EXACT_ILU_KERNELS_HPP_
-#define GKO_CORE_PRECONDITIONER_BATCH_EXACT_ILU_KERNELS_HPP_
+#ifndef GKO_CORE_PRECONDITIONER_BATCH_ILU_KERNELS_HPP_
+#define GKO_CORE_PRECONDITIONER_BATCH_ILU_KERNELS_HPP_
 
 
-#include <ginkgo/core/preconditioner/batch_exact_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 
 
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -49,28 +49,40 @@ namespace kernels {
 
 #define GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL(ValueType, \
                                                                  IndexType) \
-    void compute_factorization(                                             \
+    void compute_ilu0_factorization(                                        \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const IndexType* const diag_locs,                                   \
         matrix::BatchCsr<ValueType, IndexType>* mat_fact)
 
+#define GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL(ValueType, \
+                                                              IndexType) \
+    void compute_parilu0_factorization(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,           \
+        matrix::BatchCsr<ValueType, IndexType>* mat_fact,                \
+        const int parilu_num_sweeps, const IndexType* dependencies,      \
+        const IndexType* nz_ptrs)
 
-#define GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL(ValueType, IndexType)      \
-    void apply_exact_ilu(                                                   \
+#define GKO_DECLARE_BATCH_ILU_APPLY_KERNEL(ValueType, IndexType)            \
+    void apply_ilu(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const matrix::BatchCsr<ValueType, IndexType>* factored_matrix,      \
         const IndexType* diag_locs, const matrix::BatchDense<ValueType>* r, \
         matrix::BatchDense<ValueType>* z)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
     template <typename ValueType, typename IndexType>                    \
     GKO_DECLARE_BATCH_EXACT_ILU_COMPUTE_FACTORIZATION_KERNEL(ValueType,  \
                                                              IndexType); \
     template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_BATCH_EXACT_ILU_APPLY_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_BATCH_PARILU_COMPUTE_FACTORIZATION_KERNEL(ValueType,     \
+                                                          IndexType);    \
+    template <typename ValueType, typename IndexType>                    \
+    GKO_DECLARE_BATCH_ILU_APPLY_KERNEL(ValueType, IndexType)
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_exact_ilu,
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_ilu,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
@@ -81,4 +93,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_exact_ilu,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_PRECONDITIONER_BATCH_EXACT_ILU_KERNELS_HPP_
+#endif  // GKO_CORE_PRECONDITIONER_BATCH_ILU_KERNELS_HPP_
