@@ -35,10 +35,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/matrix/batch_identity.hpp>
-#include <ginkgo/core/preconditioner/batch_exact_ilu.hpp>
+#include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
-#include <ginkgo/core/preconditioner/batch_par_ilu.hpp>
 
 
 #include "core/log/batch_logging.hpp"
@@ -102,10 +101,9 @@ using DeviceValueType = ValueType;
 
 #include "reference/log/batch_logger.hpp"
 #include "reference/matrix/batch_struct.hpp"
-#include "reference/preconditioner/batch_exact_ilu.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
+#include "reference/preconditioner/batch_ilu.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
-#include "reference/preconditioner/batch_par_ilu.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
 namespace gko {
@@ -217,54 +215,15 @@ public:
             //  dispatch.
             GKO_NOT_IMPLEMENTED;
         } else if (auto prec = dynamic_cast<
-                       const preconditioner::BatchExactIlu<value_type>*>(
-                       precon_)) {
+                       const preconditioner::BatchIlu<value_type>*>(precon_)) {
             const auto factorized_mat =
                 device::get_batch_struct(prec->get_const_factorized_matrix());
             const auto diag_locs = prec->get_const_diag_locations();
 
-            bool is_fallback_required = true;
-
-#if defined GKO_COMPILING_CUDA
-
-            const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
-                lend(precon_->get_executor()));
-            if (exec->get_major_version() >= 7) {
-                is_fallback_required = false;
-            }
-
-#endif
-
-
             dispatch_on_stop(
                 logger, amat,
-                device::batch_exact_ilu<device_value_type>(
-                    factorized_mat, diag_locs, is_fallback_required),
+                device::batch_ilu<device_value_type>(factorized_mat, diag_locs),
                 b_b, x_b);
-
-        } else if (auto prec = dynamic_cast<
-                       const preconditioner::BatchParIlu<value_type>*>(
-                       precon_)) {
-            const auto l_factor =
-                device::get_batch_struct(prec->get_const_l_factor());
-            const auto u_factor =
-                device::get_batch_struct(prec->get_const_u_factor());
-            bool is_fallback_required = true;
-
-#if defined GKO_COMPILING_CUDA
-
-            const auto exec = reinterpret_cast<const gko::CudaExecutor*>(
-                lend(precon_->get_executor()));
-            if (exec->get_major_version() >= 7) {
-                is_fallback_required = false;
-            }
-
-#endif
-
-            dispatch_on_stop(logger, amat,
-                             device::batch_parilu0<device_value_type>(
-                                 l_factor, u_factor, is_fallback_required),
-                             b_b, x_b);
 
         } else {
             GKO_NOT_IMPLEMENTED;

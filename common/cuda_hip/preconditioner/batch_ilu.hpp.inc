@@ -32,10 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /**
- * Batch exact ilu0 preconditioner.
+ * Batch ilu0 preconditioner.
  */
 template <typename ValueType>
-class batch_exact_ilu final {
+class batch_ilu final {
 public:
     using value_type = ValueType;
 
@@ -43,16 +43,12 @@ public:
      *
      * @param mat_factorized   Factorized matrix (that was factored externally).
      * @param csr_diag_locs  pointers to the diagonal entries in factorized
-     * @param is_fallback_required indicates what trsv is to be used
      *
      */
-    batch_exact_ilu(
+    batch_ilu(
         const gko::batch_csr::UniformBatch<const value_type>& mat_factorized,
-        const int* __restrict__ const csr_diag_locs,
-        const bool is_fallback_required)
-        : mat_factorized_batch_{mat_factorized},
-          csr_diag_locs_{csr_diag_locs},
-          is_fallback_required_{is_fallback_required}
+        const int* __restrict__ const csr_diag_locs)
+        : mat_factorized_batch_{mat_factorized}, csr_diag_locs_{csr_diag_locs}
     {}
 
 
@@ -287,7 +283,7 @@ public:
 
         // NOTE: alternative sequential trsv as  busy-waiting while loop trsv
         // deadlocks for hip
-#ifdef __HIPCC__
+#if defined(__HIP_DEVICE_COMPILE__) && !defined(__CUDA_ARCH__)
         // L * work_ = r
         naive_combined_lower_trsv(r);
         // U * z = work_
@@ -301,22 +297,22 @@ public:
         }
         __syncthreads();
 
-        // L * work_ = r
-        // U * z = work_
+// L * work_ = r
+// U * z = work_
 
-        // busy-waiting while loop approach
-        if (!is_fallback_required_) {
-            //  Kernels for volta architecture and its successors
-            //  (make use of independent thread scheduling)
-            independent_thread_scheduling_combined_lower_trsv(r);
-            __syncthreads();
-            independent_thread_scheduling_combined_upper_trsv(z);
+// busy-waiting while loop approach
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 700)
+        //  Kernels for volta architecture and its successors
+        //  (make use of independent thread scheduling)
+        independent_thread_scheduling_combined_lower_trsv(r);
+        __syncthreads();
+        independent_thread_scheduling_combined_upper_trsv(z);
 
-        } else {
-            warp_synchronous_combined_lower_trsv(r);
-            __syncthreads();
-            warp_synchronous_combined_upper_trsv(z);
-        }
+#else
+        warp_synchronous_combined_lower_trsv(r);
+        __syncthreads();
+        warp_synchronous_combined_upper_trsv(z);
+#endif
     }
 
 private:
@@ -324,15 +320,14 @@ private:
     const int* __restrict__ const csr_diag_locs_;
     gko::batch_csr::BatchEntry<const value_type> mat_factorized_entry_;
     value_type* __restrict__ work_;
-    const bool is_fallback_required_;
 };
 
 
 template <typename ValueType>
-__global__ void batch_exact_ilu_apply(batch_exact_ilu<ValueType> prec,
-                                      const size_type nbatch, const int nrows,
-                                      const ValueType* const b_values,
-                                      ValueType* const x_values)
+__global__ void batch_ilu_apply(batch_ilu<ValueType> prec,
+                                const size_type nbatch, const int nrows,
+                                const ValueType* const b_values,
+                                ValueType* const x_values)
 {
     for (size_type batch_id = blockIdx.x; batch_id < nbatch;
          batch_id += gridDim.x) {
