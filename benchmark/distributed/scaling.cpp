@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
@@ -55,6 +56,9 @@ DEFINE_string(comm_pattern, "stencil",
 DEFINE_bool(
     strong_scaling, false,
     "If set to true will treat target_rows as the total number of rows.");
+DEFINE_string(format_non_local, "csr",
+              "The matrix format for the non-local matrix.");
+DEFINE_string(stragety, "automatical", "Strategy for Csr format");
 
 
 template <typename T>
@@ -336,6 +340,21 @@ build_part_from_local_size(
 }
 
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const gko::LinOp> map_string_to_format(
+    const std::string& fmt_name, std::shared_ptr<const gko::Executor> exec)
+{
+    if (fmt_name == "csr") {
+        using CSR = gko::matrix::Csr<ValueType, IndexType>;
+        return CSR::create(exec);
+    } else if (fmt_name == "coo") {
+        return gko::matrix::Coo<ValueType, IndexType>::create(exec);
+    } else {
+        throw std::runtime_error("Format >" + fmt_name + "< not available.");
+    }
+}
+
+
 int main(int argc, char* argv[])
 {
     gko::mpi::environment mpi_env{argc, argv};
@@ -420,11 +439,28 @@ int main(int argc, char* argv[])
         throw std::runtime_error("Communication pattern " + FLAGS_comm_pattern +
                                  " not implemented");
     }
-    auto A = dist_mtx::create(exec, comm);
+    auto A = dist_mtx::create(
+        exec, comm,
+        map_string_to_format<ValueType, LocalIndexType>("csr", exec).get(),
+        map_string_to_format<ValueType, LocalIndexType>(FLAGS_format_non_local,
+                                                        exec)
+            .get());
     A->copy_from(h_A.get());
     if (FLAGS_comm_pattern == "neighborhood") {
         A->use_neighbor_comm();
     }
+
+    comm.synchronize();
+    std::cout << "Rank [" << comm.rank() << "] : "
+              << gko::as<gko::matrix::Csr<ValueType, LocalIndexType>>(
+                     A->get_local_matrix())
+                     ->get_num_stored_elements()
+              << "|"
+              << gko::as<gko::matrix::Csr<ValueType, LocalIndexType>>(
+                     A->get_non_local_matrix())
+                     ->get_num_stored_elements()
+              << " " << A->get_non_local_matrix()->get_size() << std::endl;
+    comm.synchronize();
 
     // Set up global vectors for the distributed SpMV
     if (rank == 0) {
@@ -456,6 +492,7 @@ int main(int argc, char* argv[])
     if (rank == 0) {
         std::cout << "Running benchmark..." << std::endl;
     }
+
     comm.synchronize();
     for (auto _ : ic.run()) {
         A->apply(lend(x), lend(b));
