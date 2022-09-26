@@ -38,11 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
-#include "core/components/fill_array_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
