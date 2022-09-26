@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/async_handle.hpp>
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/distributed/block_approx.hpp>
 #include <ginkgo/core/matrix/block_approx.hpp>
@@ -143,8 +144,8 @@ public:
         /**
          * Generated Coarse solvers.
          */
-        std::vector<std::shared_ptr<const LinOp>> GKO_FACTORY_PARAMETER_VECTOR(
-            generated_coarse_solvers, nullptr);
+        std::vector<std::shared_ptr<const Composition<ValueType>>>
+            GKO_FACTORY_PARAMETER_VECTOR(generated_coarse_solvers, nullptr);
 
         /**
          * Generated Inner solvers.
@@ -191,8 +192,9 @@ protected:
             this->overlaps_ = parameters_.overlaps;
         }
         if (parameters_.generated_coarse_solvers[0]) {
-            this->coarse_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
-                parameters_.generated_coarse_solvers);
+            this->coarse_solvers_ =
+                std::vector<std::shared_ptr<const Composition<ValueType>>>(
+                    parameters_.generated_coarse_solvers);
         }
         if (parameters_.generated_inner_solvers[0]) {
             this->inner_solvers_ = std::vector<std::shared_ptr<const LinOp>>(
@@ -257,7 +259,8 @@ protected:
 private:
     bool is_distributed_;
     std::vector<std::shared_ptr<const LinOp>> inner_solvers_;
-    std::vector<std::shared_ptr<const LinOp>> coarse_solvers_;
+    std::vector<std::shared_ptr<const Composition<ValueType>>>
+        coarse_solvers_{};
     Overlap<size_type> overlaps_;
     std::vector<dim<2>> block_dims_;
     std::shared_ptr<const LinOp> block_system_matrix_;

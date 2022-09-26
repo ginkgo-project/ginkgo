@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
     x->compute_norm2(gko::lend(initial_resnorm));
     x->copy_from(x_host.get());
 
-    gko::remove_complex<ValueType> reduction_factor = 1e-8;
+    gko::remove_complex<ValueType> reduction_factor = 1e-14;
     std::shared_ptr<gko::stop::Iteration::Factory> iter_stop =
         gko::stop::Iteration::build()
             .with_max_iters(static_cast<gko::size_type>(num_iters))
@@ -185,6 +185,8 @@ int main(int argc, char* argv[])
             exec, exec->get_mem_space(),
             gko::log::Logger::criterion_check_completed_mask);
     combined_stop->add_logger(logger);
+    iter_stop->add_logger(logger);
+    tol_stop->add_logger(logger);
 
     auto block_sizes = gko::Array<gko::size_type>(exec, num_subdomains);
     auto block_overlaps =
@@ -206,17 +208,22 @@ int main(int argc, char* argv[])
     auto coarse_gen =
         amgx_pgm::build().with_deterministic(false).on(exec)->generate(A);
     auto coarse_mat = coarse_gen->get_coarse_op();
-    auto coarse_solver = cg::build()
-                             .with_criteria(gko::stop::Iteration::build()
-                                                .with_max_iters(c_max_iters)
-                                                .on(exec))
-                             .on(exec)
-                             ->generate(coarse_mat);
+    auto coarse_solver =
+        gko::share(cg::build()
+                       .with_criteria(gko::stop::Iteration::build()
+                                          .with_max_iters(c_max_iters)
+                                          .on(exec))
+                       .on(exec)
+                       ->generate(coarse_mat));
+    auto c_comp = gko::share(gko::Composition<ValueType>::create(
+        coarse_gen->get_prolong_op(), coarse_solver,
+        coarse_gen->get_restrict_op()));
+
     auto schwarz_precond = gko::share(
         schwarz::build()
             .with_block_dimensions(block_sizes)
             // .with_coarse_relaxation_factors(c_relax_fac)
-            .with_generated_coarse_solvers(gko::share(coarse_solver))
+            // .with_generated_coarse_solvers(c_comp)
             .with_inner_solver(
                 cg::build()
                     // .with_preconditioner(bj::build().on(exec))

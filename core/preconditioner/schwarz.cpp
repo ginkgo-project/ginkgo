@@ -133,18 +133,33 @@ std::shared_ptr<AsyncHandle> Schwarz<ValueType, IndexType>::apply_dense_impl(
     }
     if (this->coarse_solvers_.size() > 0) {
         auto corr = dense_x->clone();
+        auto exec = this->get_executor();
         auto res = dense_b->clone();
-        auto one = initialize<LocalVector>({1.0}, this->get_executor());
-        auto neg_one = initialize<LocalVector>({-1.0}, this->get_executor());
+        auto one = initialize<LocalVector>({1.0}, exec);
+        auto neg_one = initialize<LocalVector>({-1.0}, exec);
+        auto nrhs = dense_x->get_size()[1];
         for (size_type i = 0; i < this->coarse_solvers_.size(); ++i) {
             this->system_matrix_->apply(lend(neg_one), dense_x, lend(one),
                                         res.get());
+            auto c_rows =
+                this->coarse_solvers_[i]->get_operators()[1]->get_size()[0];
+            // auto c_corr = LocalVector::create(exec, dim<2>(c_rows, nrhs));
+            // auto c_res = LocalVector::create(exec, dim<2>(c_rows, nrhs));
             this->coarse_solvers_[i]->apply(res.get(), corr.get());
+
+            // this->coarse_solvers_[i]->get_restrict_op()->apply(corr.get(),
+            //                                                    c_corr.get());
+            // this->coarse_solvers_[i]->get_restrict_op()->apply(res.get(),
+            //                                                    c_res.get());
+            // this->coarse_solvers_[i]->get_coarse_op()->apply(c_res.get(),
+            //                                                  c_corr.get());
             auto rel_fac = parameters_.coarse_relaxation_factors[0];
             if (parameters_.coarse_relaxation_factors.size() > 1) {
                 rel_fac = parameters_.coarse_relaxation_factors[i];
             }
-            auto fac = initialize<LocalVector>({rel_fac}, this->get_executor());
+            auto fac = initialize<LocalVector>({rel_fac}, exec);
+            // this->coarse_solvers_[i]->get_prolong_op()->apply(
+            //     fac.get(), c_corr.get(), one.get(), dense_x);
             dense_x->add_scaled(fac.get(), corr.get());
         }
     }
@@ -226,11 +241,13 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix)
                     block_mtxs[i]->get_sub_matrix()));
         }
         if (parameters_.coarse_solvers[0]) {
-            for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i) {
-                this->coarse_solvers_.emplace_back(
-                    parameters_.coarse_solvers[i]->generate(
-                        this->system_matrix_));
-            }
+            GKO_NOT_IMPLEMENTED;
+            // for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i)
+            // {
+            //     this->coarse_solvers_.emplace_back(
+            //         parameters_.coarse_solvers[i]->generate(
+            //             this->system_matrix_));
+            // }
         }
         this->is_distributed_ = false;
     } else if (dynamic_cast<const block_t*>(system_matrix) != nullptr) {
@@ -268,11 +285,13 @@ void Schwarz<ValueType, IndexType>::generate(const LinOp* system_matrix)
             GKO_NOT_IMPLEMENTED;
         }
         if (parameters_.coarse_solvers[0]) {
-            for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i) {
-                this->coarse_solvers_.emplace_back(
-                    parameters_.coarse_solvers[i]->generate(
-                        this->system_matrix_));
-            }
+            GKO_NOT_IMPLEMENTED;
+            // for (size_type i = 0; i < parameters_.coarse_solvers.size(); ++i)
+            // {
+            //     this->coarse_solvers_.emplace_back(
+            //         parameters_.coarse_solvers[i]->generate(
+            //             this->system_matrix_));
+            // }
         }
         this->is_distributed_ = true;
     } else if (dynamic_cast<const dist_block_t*>(system_matrix) != nullptr) {
