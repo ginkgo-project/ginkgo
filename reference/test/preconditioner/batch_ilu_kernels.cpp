@@ -106,6 +106,47 @@ protected:
 TYPED_TEST_SUITE(BatchIlu, gko::test::ValueTypes);
 
 
+template <typename ValueType, typename IndexType>
+void check_fact_mat_is_eqvt_to_l_and_u(
+    std::shared_ptr<const gko::ReferenceExecutor> exec, const int batch_id,
+    const int nrows, const gko::dim<2>& unbatch_size,
+    const gko::matrix::BatchCsr<ValueType, IndexType>* const factorized_csr,
+    const std::vector<
+        std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>>>&
+        check_l_factors,
+    const std::vector<
+        std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>>>&
+        check_u_factors)
+{
+    using index_type = IndexType;
+    using value_type = ValueType;
+    using mtx_type = gko::matrix::BatchCsr<value_type, index_type>;
+    using unbatch_type = typename mtx_type::unbatch_type;
+
+    auto factorize_sys_csr_individual = factorized_csr->unbatch();
+
+    gko::array<index_type> l_factor_row_ptrs(exec, nrows + 1);
+    gko::array<index_type> u_factor_row_ptrs(exec, nrows + 1);
+    gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
+        exec, factorize_sys_csr_individual[batch_id].get(),
+        l_factor_row_ptrs.get_data(), u_factor_row_ptrs.get_data());
+    const auto l_factor_nnz = l_factor_row_ptrs.get_data()[nrows];
+    const auto u_factor_nnz = u_factor_row_ptrs.get_data()[nrows];
+    auto l_factor = unbatch_type::create(exec, unbatch_size, l_factor_nnz);
+    auto u_factor = unbatch_type::create(exec, unbatch_size, u_factor_nnz);
+    exec->copy(nrows + 1, l_factor_row_ptrs.get_const_data(),
+               l_factor->get_row_ptrs());
+    exec->copy(nrows + 1, u_factor_row_ptrs.get_const_data(),
+               u_factor->get_row_ptrs());
+    gko::kernels::reference::factorization::initialize_l_u(
+        exec, factorize_sys_csr_individual[batch_id].get(), l_factor.get(),
+        u_factor.get());
+
+    GKO_ASSERT_MTX_NEAR(l_factor, check_l_factors[batch_id], 0.0);
+    GKO_ASSERT_MTX_NEAR(u_factor, check_u_factors[batch_id], 0.0);
+}
+
+
 TYPED_TEST(BatchIlu, ExactIluGenerationIsEquivalentToUnbatched)
 {
     using value_type = typename TestFixture::value_type;
@@ -164,31 +205,12 @@ TYPED_TEST(BatchIlu, ExactIluGenerationIsEquivalentToUnbatched)
     gko::kernels::reference::batch_ilu::compute_ilu0_factorization(
         exec, this->diag_locs.get_const_data(), factorize_sys_csr.get());
 
-    auto factorize_sys_csr_individual = factorize_sys_csr->unbatch();
-
     for (size_t i = 0; i < mtxs.size(); i++) {
-        gko::array<index_type> l_factor_row_ptrs(exec, nrows + 1);
-        gko::array<index_type> u_factor_row_ptrs(exec, nrows + 1);
-        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-            exec, factorize_sys_csr_individual[i].get(),
-            l_factor_row_ptrs.get_data(), u_factor_row_ptrs.get_data());
-        const auto l_factor_nnz = l_factor_row_ptrs.get_data()[nrows];
-        const auto u_factor_nnz = u_factor_row_ptrs.get_data()[nrows];
-        auto l_factor = unbatch_type::create(exec, unbatch_size, l_factor_nnz);
-        auto u_factor = unbatch_type::create(exec, unbatch_size, u_factor_nnz);
-        exec->copy(nrows + 1, l_factor_row_ptrs.get_const_data(),
-                   l_factor->get_row_ptrs());
-        exec->copy(nrows + 1, u_factor_row_ptrs.get_const_data(),
-                   u_factor->get_row_ptrs());
-        gko::kernels::reference::factorization::initialize_l_u(
-            exec, factorize_sys_csr_individual[i].get(), l_factor.get(),
-            u_factor.get());
-
-        GKO_ASSERT_MTX_NEAR(l_factor, check_l_factors[i], 0.0);
-        GKO_ASSERT_MTX_NEAR(u_factor, check_u_factors[i], 0.0);
+        check_fact_mat_is_eqvt_to_l_and_u(exec, i, nrows, unbatch_size,
+                                          factorize_sys_csr.get(),
+                                          check_l_factors, check_u_factors);
     }
 }
-
 
 TYPED_TEST(BatchIlu, ExactIluGenerationFromCoreIsEquivalentToUnbatched)
 {
@@ -225,29 +247,10 @@ TYPED_TEST(BatchIlu, ExactIluGenerationFromCoreIsEquivalentToUnbatched)
             .on(exec);
     auto prec = prec_fact->generate(this->mtx);
 
-    auto factorize_sys_csr_individual =
-        prec->get_const_factorized_matrix()->unbatch();
-
     for (size_t i = 0; i < mtxs.size(); i++) {
-        gko::array<index_type> l_factor_row_ptrs(exec, nrows + 1);
-        gko::array<index_type> u_factor_row_ptrs(exec, nrows + 1);
-        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-            exec, factorize_sys_csr_individual[i].get(),
-            l_factor_row_ptrs.get_data(), u_factor_row_ptrs.get_data());
-        const auto l_factor_nnz = l_factor_row_ptrs.get_data()[nrows];
-        const auto u_factor_nnz = u_factor_row_ptrs.get_data()[nrows];
-        auto l_factor = unbatch_type::create(exec, unbatch_size, l_factor_nnz);
-        auto u_factor = unbatch_type::create(exec, unbatch_size, u_factor_nnz);
-        exec->copy(nrows + 1, l_factor_row_ptrs.get_const_data(),
-                   l_factor->get_row_ptrs());
-        exec->copy(nrows + 1, u_factor_row_ptrs.get_const_data(),
-                   u_factor->get_row_ptrs());
-        gko::kernels::reference::factorization::initialize_l_u(
-            exec, factorize_sys_csr_individual[i].get(), l_factor.get(),
-            u_factor.get());
-
-        GKO_ASSERT_MTX_NEAR(l_factor, check_l_factors[i], 0.0);
-        GKO_ASSERT_MTX_NEAR(u_factor, check_u_factors[i], 0.0);
+        check_fact_mat_is_eqvt_to_l_and_u(exec, i, nrows, unbatch_size,
+                                          prec->get_const_factorized_matrix(),
+                                          check_l_factors, check_u_factors);
     }
 }
 
@@ -339,29 +342,10 @@ TYPED_TEST(BatchIlu, ParIluGenerationFromCoreIsEquivalentToUnbatched)
             .on(exec);
     auto prec = prec_fact->generate(this->mtx);
 
-    auto factorize_sys_csr_individual =
-        prec->get_const_factorized_matrix()->unbatch();
-
     for (size_t i = 0; i < mtxs.size(); i++) {
-        gko::array<index_type> l_factor_row_ptrs(exec, nrows + 1);
-        gko::array<index_type> u_factor_row_ptrs(exec, nrows + 1);
-        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-            exec, factorize_sys_csr_individual[i].get(),
-            l_factor_row_ptrs.get_data(), u_factor_row_ptrs.get_data());
-        const auto l_factor_nnz = l_factor_row_ptrs.get_data()[nrows];
-        const auto u_factor_nnz = u_factor_row_ptrs.get_data()[nrows];
-        auto l_factor = unbatch_type::create(exec, unbatch_size, l_factor_nnz);
-        auto u_factor = unbatch_type::create(exec, unbatch_size, u_factor_nnz);
-        exec->copy(nrows + 1, l_factor_row_ptrs.get_const_data(),
-                   l_factor->get_row_ptrs());
-        exec->copy(nrows + 1, u_factor_row_ptrs.get_const_data(),
-                   u_factor->get_row_ptrs());
-        gko::kernels::reference::factorization::initialize_l_u(
-            exec, factorize_sys_csr_individual[i].get(), l_factor.get(),
-            u_factor.get());
-
-        GKO_ASSERT_MTX_NEAR(l_factor, check_l_factors[i], 0.0);
-        GKO_ASSERT_MTX_NEAR(u_factor, check_u_factors[i], 0.0);
+        check_fact_mat_is_eqvt_to_l_and_u(exec, i, nrows, unbatch_size,
+                                          prec->get_const_factorized_matrix(),
+                                          check_l_factors, check_u_factors);
     }
 }
 
