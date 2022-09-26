@@ -51,22 +51,49 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
-    std::shared_ptr<const gko::Executor> exec, int grid)
+    std::shared_ptr<const gko::Executor> exec, int grid, bool is_2d = true)
 {
-    int size = grid * grid;
-    int y[] = {0, -1, 0, 1, 0};
-    int x[] = {-1, 0, 0, 0, 1};
-    double coef[] = {-0.25, -0.25, 1, -0.25, -0.25};
+    int size = (is_2d ? grid * grid : grid * grid * grid);
     gko::matrix_data<> mtx_data{gko::dim<2>(size, size)};
-    for (int i = 0; i < grid; i++) {
-        for (int j = 0; j < grid; j++) {
-            auto c = i * grid + j;
-            for (int k = 0; k < 5; k++) {
-                auto ii = i + x[k];
-                auto jj = j + y[k];
-                auto cc = ii * grid + jj;
-                if (0 <= ii && ii < grid && 0 <= jj && jj < grid) {
-                    mtx_data.nonzeros.emplace_back(c, cc, coef[k]);
+    if (is_2d) {
+        int y[] = {0, -1, 0, 1, 0};
+        int x[] = {-1, 0, 0, 0, 1};
+        double coef[] = {-0.25, -0.25, 1, -0.25, -0.25};
+        for (int i = 0; i < grid; i++) {
+            for (int j = 0; j < grid; j++) {
+                auto c = i * grid + j;
+                for (int k = 0; k < 5; k++) {
+                    auto ii = i + x[k];
+                    auto jj = j + y[k];
+                    auto cc = ii * grid + jj;
+                    if (0 <= ii && ii < grid && 0 <= jj && jj < grid) {
+                        mtx_data.nonzeros.emplace_back(c, cc, coef[k]);
+                    }
+                }
+            }
+        }
+    } else {
+        // 3d
+        int z[] = {0, 0, -1, 0, 1, 0, 0};
+        int y[] = {0, -1, 0, 0, 0, 1, 0};
+        int x[] = {-1, 0, 0, 0, 0, 0, 1};
+        double coef_val = -1.0 / 7;
+        double coef[] = {coef_val, coef_val, coef_val, 1,
+                         coef_val, coef_val, coef_val};
+        for (int i = 0; i < grid; i++) {
+            for (int j = 0; j < grid; j++) {
+                for (int k = 0; k < grid; k++) {
+                    auto c = i * grid * grid + j * grid + k;
+                    for (int idx = 0; idx < 7; idx++) {
+                        auto ii = i + x[idx];
+                        auto jj = j + y[idx];
+                        auto kk = k + z[idx];
+                        auto cc = ii * grid * grid + jj * grid + kk;
+                        if (0 <= ii && ii < grid && 0 <= jj && jj < grid &&
+                            0 <= kk && kk < grid) {
+                            mtx_data.nonzeros.emplace_back(c, cc, coef[idx]);
+                        }
+                    }
                 }
             }
         }
@@ -190,7 +217,7 @@ int main(int argc, char* argv[])
     // Print help on how to execute this example.
     if (argc < 6 || (std::string(argv[1]) == "--help")) {
         std::cerr << "Usage: " << argv[0]
-                  << " [executor] [type] [normal/flow/halfflow/time] "
+                  << " [executor] [type] [normal/normal_3d/flow/halfflow/time] "
                      "[problem_size] [iteration] [folder(optional)]"
                   << std::endl;
         std::exit(-1);
@@ -199,6 +226,7 @@ int main(int argc, char* argv[])
     std::string executor_string(argv[1]);
     std::string type_string(argv[2]);
     std::string check_string(argv[3]);
+    bool is_2d = (check_string == "normal_3d");
     int problem_size = std::stoi(argv[4]);
     int iteration = std::stoi(argv[5]);
     std::string folder_string;
@@ -240,8 +268,8 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     std::shared_ptr<mtx> A = nullptr;
-    if (check_string == "normal") {
-        A = gko::share(gen_laplacian(exec, problem_size));
+    if (check_string == "normal" || check_string == "normal_3d") {
+        A = gko::share(gen_laplacian(exec, problem_size, is_2d));
     } else {
         A = gko::share(gen_mask(exec, problem_size));
     }
@@ -298,7 +326,7 @@ int main(int argc, char* argv[])
     std::chrono::time_point<std::chrono::steady_clock> start;
     std::chrono::time_point<std::chrono::steady_clock> stop;
     double initial_norm = 0;
-    if (check_string == "normal") {
+    if (check_string == "normal" || check_string == "normal_3d") {
         b->compute_norm2(residual_norm.get());
         initial_norm = exec->copy_val_to_host(residual_norm->get_values());
     }
@@ -309,7 +337,7 @@ int main(int argc, char* argv[])
         solver->apply(lend(b), lend(x_clone));
         exec->synchronize();
         stop = std::chrono::steady_clock::now();
-        if (check_string == "normal") {
+        if (check_string == "normal" || check_string == "normal_3d") {
             auto b_clone = b->clone();
             A->apply(lend(neg_one), lend(x_clone), lend(one), lend(b_clone));
             b_clone->compute_norm2(residual_norm.get());
@@ -342,7 +370,7 @@ int main(int argc, char* argv[])
     std::cout << "time, " << avg(time) << ", " << quartile(time, 0) << ", "
               << quartile(time, 1) << ", " << quartile(time, 2) << ", "
               << quartile(time, 3) << ", " << quartile(time, 4) << std::endl;
-    if (check_string == "normal") {
+    if (check_string == "normal" || check_string == "normal_3d") {
         std::sort(norm.begin(), norm.end());
         std::cout << "relative_norm, " << avg(norm) << ", " << quartile(norm, 0)
                   << ", " << quartile(norm, 1) << ", " << quartile(norm, 2)
