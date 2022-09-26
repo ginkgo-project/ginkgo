@@ -60,6 +60,8 @@ namespace gko {
  * inner operator is applied to the system matrix P*R*A*C*P^T instead of A,
  * so the instead of A*x = b the inner operator attempts to solve the equivalent
  * linear system P*R*A*C*P^T*y = P*R*b and retrieves the solution x = C*P^T*y.
+ * Note: The inner system matrix is computed from a clone of A, so the original
+ * system matrix is not changed.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrix used in this class
@@ -179,7 +181,7 @@ protected:
                     LinOp* x) const override;
 
     /**
-     * Prepares the intermediate right hand side, solution and intermediateb
+     * Prepares the intermediate right hand side, solution and intermediate
      * vectors for the inner operator by creating them and making sure they
      * have the same sizes as `b` and `x`.
      *
@@ -192,16 +194,18 @@ protected:
     void set_cache_to(const LinOp* b, const LinOp* x) const
     {
         if (cache_.inner_b == nullptr) {
+            const auto size = b->get_size();
             cache_.inner_b =
-                matrix::Dense<value_type>::create(this->get_executor());
+                matrix::Dense<value_type>::create(this->get_executor(), size);
             cache_.inner_x =
-                matrix::Dense<value_type>::create(this->get_executor());
+                matrix::Dense<value_type>::create(this->get_executor(), size);
             cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor());
+                matrix::Dense<value_type>::create(this->get_executor(), size);
         }
         cache_.inner_b->copy_from(b);
-        cache_.inner_x->copy_from(x);
-        cache_.intermediate->copy_from(b);
+        if (inner_operator_->apply_uses_initial_guess()) {
+            cache_.inner_x->copy_from(x);
+        }
     }
 
 private:
