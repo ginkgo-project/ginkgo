@@ -55,43 +55,42 @@ GKO_REGISTER_OPERATION(compute_parilu0_factorization,
                        batch_ilu::compute_parilu0_factorization);
 
 
-template <typename ValueType>
-void create_dependency_graph(std::shared_ptr<const Executor> exec,
-                             const int* const diag_locations,
-                             const matrix::BatchCsr<ValueType, int32>* sys_mat,
-                             std::vector<int>& dependencies,
-                             array<int>& nz_ptrs)
+template <typename ValueType, typename IndexType>
+void create_dependency_graph(
+    std::shared_ptr<const Executor> exec, const IndexType* const diag_locations,
+    const matrix::BatchCsr<ValueType, IndexType>* sys_mat,
+    std::vector<IndexType>& dependencies, array<IndexType>& nz_ptrs)
 {
     const auto nbatch = sys_mat->get_num_batch_entries();
     const auto nrows = sys_mat->get_size().at(0)[0];
     const auto nnz = sys_mat->get_num_stored_elements() / nbatch;
 
-    array<int> A_row_ptrs(exec->get_master(), nrows + 1);
+    array<IndexType> A_row_ptrs(exec->get_master(), nrows + 1);
     exec->get_master()->copy_from(exec.get(), nrows + 1,
                                   sys_mat->get_const_row_ptrs(),
                                   A_row_ptrs.get_data());
-    array<int> A_col_idxs(exec->get_master(), nnz);
+    array<IndexType> A_col_idxs(exec->get_master(), nnz);
     exec->get_master()->copy_from(
         exec.get(), nnz, sys_mat->get_const_col_idxs(), A_col_idxs.get_data());
 
-    array<int> diag_ptrs(exec->get_master(), nrows);
+    array<IndexType> diag_ptrs(exec->get_master(), nrows);
     exec->get_master()->copy_from(exec.get(), nrows, diag_locations,
                                   diag_ptrs.get_data());
 
     nz_ptrs.get_data()[0] = 0;
 
-    for (int row_index = 0; row_index < nrows; row_index++) {
-        const int row_start = A_row_ptrs.get_const_data()[row_index];
-        const int row_end = A_row_ptrs.get_const_data()[row_index + 1];
+    for (IndexType row_index = 0; row_index < nrows; row_index++) {
+        const auto row_start = A_row_ptrs.get_const_data()[row_index];
+        const auto row_end = A_row_ptrs.get_const_data()[row_index + 1];
 
-        for (int loc = row_start; loc < row_end; loc++) {
-            int num_dependencies = 0;
+        for (IndexType loc = row_start; loc < row_end; loc++) {
+            IndexType num_dependencies = 0;
 
-            const int col_index = A_col_idxs.get_const_data()[loc];
+            const auto col_index = A_col_idxs.get_const_data()[loc];
 
-            const int k_max = std::min(row_index, col_index) - 1;
+            const auto k_max = std::min(row_index, col_index) - 1;
 
-            for (int maybe_l_loc = row_start; maybe_l_loc < loc;
+            for (IndexType maybe_l_loc = row_start; maybe_l_loc < loc;
                  maybe_l_loc++)  // use loc instead of row_end as the matrix is
                                  // sorted
             {
@@ -103,7 +102,7 @@ void create_dependency_graph(std::shared_ptr<const Executor> exec,
 
                 // find corresponding u at position k,col_index
 
-                for (int maybe_u_loc = A_row_ptrs.get_const_data()[k];
+                for (IndexType maybe_u_loc = A_row_ptrs.get_const_data()[k];
                      maybe_u_loc < A_row_ptrs.get_const_data()[k + 1];
                      maybe_u_loc++) {
                     if (A_col_idxs.get_const_data()[maybe_u_loc] == col_index) {
@@ -115,7 +114,7 @@ void create_dependency_graph(std::shared_ptr<const Executor> exec,
             }
 
             if (row_index > col_index) {
-                const int diag_loc = diag_ptrs.get_const_data()[col_index];
+                const auto diag_loc = diag_ptrs.get_const_data()[col_index];
                 dependencies.push_back(diag_loc);
                 num_dependencies++;
             }
