@@ -107,6 +107,8 @@ public:
     {
         return build()
             .with_skip_sorting(this->parameters_.skip_sorting)
+            .with_ilu_type(this->parameters_.ilu_type)
+            .with_parilu_num_sweeps(this->parameters_.parilu_num_sweeps)
             .on(this->get_executor())
             ->generate(share(
                 as<BatchTransposable>(this->system_matrix_)->transpose()));
@@ -116,6 +118,8 @@ public:
     {
         return build()
             .with_skip_sorting(this->parameters_.skip_sorting)
+            .with_ilu_type(this->parameters_.ilu_type)
+            .with_parilu_num_sweeps(this->parameters_.parilu_num_sweeps)
             .on(this->get_executor())
             ->generate(share(
                 as<BatchTransposable>(this->system_matrix_)->conj_transpose()));
