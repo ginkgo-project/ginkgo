@@ -64,6 +64,7 @@ protected:
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using strategy = gko::reorder::starting_strategy;
     using perm_type = gko::matrix::Permutation<i_type>;
+
     Rcm()
         : ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),

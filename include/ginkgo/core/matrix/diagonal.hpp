@@ -249,7 +249,6 @@ protected:
 
     void inverse_apply_impl(const LinOp* b, LinOp* x) const;
 
-
 private:
     array<value_type> values_;
 };
