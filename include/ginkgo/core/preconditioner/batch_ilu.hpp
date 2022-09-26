@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
-#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#ifndef GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
+#define GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -170,17 +170,19 @@ protected:
 
     // Since there is no guarantee that the complete generation of the
     // preconditioner would occur outside the solver kernel, that is in the
-    // external generate step, there is no logic of implementing "apply" for
+    // external generate step, there is no logic in implementing "apply" for
     // batched preconditioners
     void apply_impl(const BatchLinOp* b, BatchLinOp* x) const override
         GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support apply");
+            "batched preconditioners do not support (user facing/public) "
+            "apply");
 
 
     void apply_impl(const BatchLinOp* alpha, const BatchLinOp* b,
                     const BatchLinOp* beta, BatchLinOp* x) const override
         GKO_BATCHED_NOT_SUPPORTED(
-            "batched preconditioners do not support apply");
+            "batched preconditioners do not support (user facing/public) "
+            "apply");
 
 
 private:
@@ -194,4 +196,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_EXACT_ILU_HPP_
+#endif  // GKO_PUBLIC_CORE_PRECONDITIONER_BATCH_ILU_HPP_
