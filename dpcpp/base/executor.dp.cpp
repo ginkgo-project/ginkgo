@@ -241,7 +241,6 @@ void delete_queue(sycl::queue* queue)
         return {sycl::property::queue::in_order{}};
     } else if (property == dpcpp_queue_property::enable_profiling) {
         GKO_NOT_SUPPORTED(property);
-        return {sycl::property::queue::enable_profiling{}};
     } else {
         return {sycl::property::queue::in_order{},
                 sycl::property::queue::enable_profiling{}};
