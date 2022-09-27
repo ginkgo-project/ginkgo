@@ -77,7 +77,7 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
         int z[] = {0, 0, -1, 0, 1, 0, 0};
         int y[] = {0, -1, 0, 0, 0, 1, 0};
         int x[] = {-1, 0, 0, 0, 0, 0, 1};
-        double coef_val = -1.0 / 7;
+        double coef_val = -1.0 / 6;
         double coef[] = {coef_val, coef_val, coef_val, 1,
                          coef_val, coef_val, coef_val};
         for (int i = 0; i < grid; i++) {
@@ -226,7 +226,7 @@ int main(int argc, char* argv[])
     std::string executor_string(argv[1]);
     std::string type_string(argv[2]);
     std::string check_string(argv[3]);
-    bool is_2d = (check_string == "normal_3d");
+    bool is_2d = (check_string == "normal");
     int problem_size = std::stoi(argv[4]);
     int iteration = std::stoi(argv[5]);
     std::string folder_string;
@@ -236,8 +236,13 @@ int main(int argc, char* argv[])
 
     std::cout << "Perform " << type_string << " richardson on "
               << executor_string << std::endl;
-    std::cout << "Problem size " << problem_size << " dim "
-              << problem_size * problem_size << std::endl;
+    if (check_string == "normal") {
+        std::cout << "Problem size " << problem_size << " dim "
+                  << problem_size * problem_size << std::endl;
+    } else if (check_string == "normal_3d") {
+        std::cout << "Problem size " << problem_size << " dim "
+                  << problem_size * problem_size * problem_size << std::endl;
+    }
     std::cout << "update " << iteration << " times" << std::endl;
     std::cout << "check " << check_string << std::endl;
     if (folder_string != "" && check_string != "normal") {
