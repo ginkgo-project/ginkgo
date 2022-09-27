@@ -64,7 +64,6 @@ public:
                      sycl::property::queue::enable_profiling>()) {
             GKO_NOT_SUPPORTED(exec);
         }
-        std::cout << "EEEE" << std::endl;
         exec_ = exec;
     }
 
