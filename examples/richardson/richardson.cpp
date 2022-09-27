@@ -55,19 +55,21 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
 {
     int size = (is_2d ? grid * grid : grid * grid * grid);
     gko::matrix_data<> mtx_data{gko::dim<2>(size, size)};
+    int npt = (is_2d ? 5 : 7);
+    double coef_val = -1.0 / (npt - 1);
     if (is_2d) {
         int y[] = {0, -1, 0, 1, 0};
         int x[] = {-1, 0, 0, 0, 1};
-        double coef[] = {-0.25, -0.25, 1, -0.25, -0.25};
+        double coef[] = {coef_val, coef_val, 1, coef_val, coef_val};
         for (int i = 0; i < grid; i++) {
             for (int j = 0; j < grid; j++) {
                 auto c = i * grid + j;
-                for (int k = 0; k < 5; k++) {
-                    auto ii = i + x[k];
-                    auto jj = j + y[k];
+                for (int idx = 0; idx < npt; idx++) {
+                    auto ii = i + x[idx];
+                    auto jj = j + y[idx];
                     auto cc = ii * grid + jj;
                     if (0 <= ii && ii < grid && 0 <= jj && jj < grid) {
-                        mtx_data.nonzeros.emplace_back(c, cc, coef[k]);
+                        mtx_data.nonzeros.emplace_back(c, cc, coef[idx]);
                     }
                 }
             }
@@ -77,14 +79,13 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
         int z[] = {0, 0, -1, 0, 1, 0, 0};
         int y[] = {0, -1, 0, 0, 0, 1, 0};
         int x[] = {-1, 0, 0, 0, 0, 0, 1};
-        double coef_val = -1.0 / 6;
         double coef[] = {coef_val, coef_val, coef_val, 1,
                          coef_val, coef_val, coef_val};
         for (int i = 0; i < grid; i++) {
             for (int j = 0; j < grid; j++) {
                 for (int k = 0; k < grid; k++) {
                     auto c = i * grid * grid + j * grid + k;
-                    for (int idx = 0; idx < 7; idx++) {
+                    for (int idx = 0; idx < npt; idx++) {
                         auto ii = i + x[idx];
                         auto jj = j + y[idx];
                         auto kk = k + z[idx];
@@ -226,7 +227,7 @@ int main(int argc, char* argv[])
     std::string executor_string(argv[1]);
     std::string type_string(argv[2]);
     std::string check_string(argv[3]);
-    bool is_2d = (check_string == "normal");
+    bool is_2d = (check_string != "normal_3d");
     int problem_size = std::stoi(argv[4]);
     int iteration = std::stoi(argv[5]);
     std::string folder_string;
@@ -236,10 +237,10 @@ int main(int argc, char* argv[])
 
     std::cout << "Perform " << type_string << " richardson on "
               << executor_string << std::endl;
-    if (check_string == "normal") {
+    if (check_string != "normal_3d") {
         std::cout << "Problem size " << problem_size << " dim "
                   << problem_size * problem_size << std::endl;
-    } else if (check_string == "normal_3d") {
+    } else {
         std::cout << "Problem size " << problem_size << " dim "
                   << problem_size * problem_size * problem_size << std::endl;
     }
