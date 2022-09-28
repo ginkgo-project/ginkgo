@@ -639,7 +639,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
 TEST_F(Csr, Transpose64IsEquivalentToRef)
 {
-    using Mtx64 = gko::matrix::Csr<double, gko::int64>;
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
     auto mtx = gen_mtx<Mtx64>(123, 234, 0);
     auto dmtx = gko::clone(exec, mtx);
 
@@ -665,7 +665,7 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 
 TEST_F(Csr, ConjugateTranspose64IsEquivalentToRef)
 {
-    using Mtx64 = gko::matrix::Csr<double, gko::int64>;
+    using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
     auto mtx = gen_mtx<Mtx64>(123, 234, 0);
     auto dmtx = gko::clone(exec, mtx);
 
@@ -1040,7 +1040,7 @@ TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
 
 TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
 {
-    using Mtx = gko::matrix::Csr<value_type, int>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
     set_up_mat_data();
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
@@ -1059,9 +1059,7 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
 
 TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 {
-    using Mtx = gko::matrix::Csr<value_type, int>;
-    using IndexType = int;
-    using ValueType = value_type;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
     set_up_mat_data();
     gko::span rspan{7, 51};
     gko::span cspan{22, 88};
@@ -1076,13 +1074,13 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
     auto smat1 =
         Mtx::create(this->ref, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::array<ValueType>(this->ref, num_nnz)),
-                    std::move(gko::array<IndexType>(this->ref, num_nnz)),
+                    std::move(gko::array<value_type>(this->ref, num_nnz)),
+                    std::move(gko::array<index_type>(this->ref, num_nnz)),
                     std::move(row_nnz));
     auto sdmat1 =
         Mtx::create(this->exec, gko::dim<2>(rspan.length(), cspan.length()),
-                    std::move(gko::array<ValueType>(this->exec, num_nnz)),
-                    std::move(gko::array<IndexType>(this->exec, num_nnz)),
+                    std::move(gko::array<value_type>(this->exec, num_nnz)),
+                    std::move(gko::array<index_type>(this->exec, num_nnz)),
                     std::move(drow_nnz));
 
 
@@ -1100,16 +1098,14 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
 
 TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
 {
-    using Mtx = gko::matrix::Csr<>;
-    using IndexType = int;
-    using ValueType = double;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
     set_up_mat_data();
-    gko::index_set<IndexType> rset{
+    gko::index_set<index_type> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::index_set<IndexType> cset{this->ref,
-                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::index_set<IndexType> drset(this->exec, rset);
-    gko::index_set<IndexType> dcset(this->exec, cset);
+    gko::index_set<index_type> cset{this->ref,
+                                    {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<index_type> drset(this->exec, rset);
+    gko::index_set<index_type> dcset(this->exec, cset);
     auto size = this->mtx2->get_size();
     auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
@@ -1126,16 +1122,14 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
 
 TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
 {
-    using Mtx = gko::matrix::Csr<>;
-    using IndexType = int;
-    using ValueType = double;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
     set_up_mat_data();
-    gko::index_set<IndexType> rset{
+    gko::index_set<index_type> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::index_set<IndexType> cset{this->ref,
-                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::index_set<IndexType> drset(this->exec, rset);
-    gko::index_set<IndexType> dcset(this->exec, cset);
+    gko::index_set<index_type> cset{this->ref,
+                                    {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<index_type> drset(this->exec, rset);
+    gko::index_set<index_type> dcset(this->exec, cset);
     auto size = this->mtx2->get_size();
     auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
@@ -1147,13 +1141,13 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
     auto smat1 = Mtx::create(
         this->ref, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::array<ValueType>(this->ref, num_nnz)),
-        std::move(gko::array<IndexType>(this->ref, num_nnz)),
+        std::move(gko::array<value_type>(this->ref, num_nnz)),
+        std::move(gko::array<index_type>(this->ref, num_nnz)),
         std::move(row_nnz));
     auto sdmat1 = Mtx::create(
         this->exec, gko::dim<2>(rset.get_num_elems(), cset.get_num_elems()),
-        std::move(gko::array<ValueType>(this->exec, num_nnz)),
-        std::move(gko::array<IndexType>(this->exec, num_nnz)),
+        std::move(gko::array<value_type>(this->exec, num_nnz)),
+        std::move(gko::array<index_type>(this->exec, num_nnz)),
         std::move(drow_nnz));
 
     gko::kernels::reference::csr::compute_submatrix_from_index_set(
@@ -1167,16 +1161,14 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
 
 TEST_F(Csr, CreateSubMatrixFromIndexSetIsEquivalentToRef)
 {
-    using IndexType = int;
-    using ValueType = double;
     set_up_mat_data();
 
-    gko::index_set<IndexType> rset{
+    gko::index_set<index_type> rset{
         this->ref, {42, 7, 8, 9, 10, 22, 25, 26, 34, 35, 36, 51}};
-    gko::index_set<IndexType> cset{this->ref,
-                                   {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
-    gko::index_set<IndexType> drset(this->exec, rset);
-    gko::index_set<IndexType> dcset(this->exec, cset);
+    gko::index_set<index_type> cset{this->ref,
+                                    {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
+    gko::index_set<index_type> drset(this->exec, rset);
+    gko::index_set<index_type> dcset(this->exec, cset);
     auto smat1 = this->mtx2->create_submatrix(rset, cset);
     auto sdmat1 = this->dmtx2->create_submatrix(drset, dcset);
 
@@ -1189,7 +1181,7 @@ TEST_F(Csr, CreateSubMatrixFromIndexSetIsEquivalentToRef)
 
 TEST_F(Csr, CreateSubMatrixIsEquivalentToRef)
 {
-    using Mtx = gko::matrix::Csr<value_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
     set_up_mat_data();
     gko::span rspan{47, 81};
     gko::span cspan{2, 31};
