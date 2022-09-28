@@ -56,11 +56,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using matrix_value_type = float;
 #else
 using matrix_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_COMMON_SINGLE_MODE
 
 
 template <typename MtxType>
@@ -912,7 +912,7 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
 }
 
 
-#if !(GINKGO_DPCPP_SINGLE_MODE)
+#if !(GINKGO_COMMON_SINGLE_MODE)
 TYPED_TEST(Matrix, MixedSpMVIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;

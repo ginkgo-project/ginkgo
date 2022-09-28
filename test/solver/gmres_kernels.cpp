@@ -55,12 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Gmres : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Gmres<value_type>;
     using norm_type = gko::remove_complex<value_type>;
@@ -317,5 +311,5 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
     ref_solver->apply(b.get(), x.get());
     exec_solver->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 50);
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 100);
 }

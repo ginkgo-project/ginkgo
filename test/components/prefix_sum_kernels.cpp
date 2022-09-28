@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
 
@@ -61,16 +61,6 @@ protected:
             vals.get_data()[i] = dist(rand);
         }
         dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::EXEC_NAMESPACE::components::prefix_sum(
-            exec, dvals.get_data(), size);
-
-        GKO_ASSERT_ARRAY_EQ(vals, dvals);
     }
 
     std::default_random_engine rand;

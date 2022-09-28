@@ -105,6 +105,13 @@ inline std::shared_ptr<gko::DpcppExecutor> init_executor(
 
 class CommonTestFixture : public ::testing::Test {
 public:
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using index_type = int;
+
     CommonTestFixture()
         : ref{gko::ReferenceExecutor::create()},
           exec{init_executor(ref, static_cast<gko::EXEC_TYPE*>(nullptr))}

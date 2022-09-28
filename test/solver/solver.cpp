@@ -62,11 +62,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using solver_value_type = float;
 #else
 using solver_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_COMMON_SINGLE_MODE
 
 
 template <typename SolverType>
@@ -519,7 +519,6 @@ protected:
     using SolverType = typename T::solver_type;
     using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
-    using index_type = gko::int32;
     using value_type = typename Mtx::value_type;
     using mixed_value_type = gko::next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;

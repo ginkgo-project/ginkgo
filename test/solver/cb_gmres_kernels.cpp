@@ -57,13 +57,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class CbGmres : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using storage_type = float;
-    using index_type = int;
     using size_type = gko::size_type;
     using Range3dHelper =
         gko::cb_gmres::Range3dHelper<value_type, storage_type>;

@@ -56,12 +56,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Bicgstab : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Bicgstab<value_type>;
 

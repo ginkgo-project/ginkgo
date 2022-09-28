@@ -52,14 +52,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Hybrid : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using vtype = float;
-#else
-    using vtype = double;
-#endif
-    using Mtx = gko::matrix::Hybrid<vtype>;
-    using Vec = gko::matrix::Dense<vtype>;
-    using ComplexVec = gko::matrix::Dense<std::complex<vtype>>;
+    using Mtx = gko::matrix::Hybrid<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
 
     Hybrid() : rand_engine(42) {}
 
@@ -77,7 +72,7 @@ protected:
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
-            std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1,
@@ -134,7 +129,7 @@ TEST_F(Hybrid, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -145,7 +140,7 @@ TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -156,7 +151,7 @@ TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -167,7 +162,7 @@ TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -182,7 +177,7 @@ TEST_F(Hybrid, ApplyToComplexIsEquivalentToRef)
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
@@ -197,7 +192,7 @@ TEST_F(Hybrid, AdvancedApplyToComplexIsEquivalentToRef)
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
@@ -209,8 +204,8 @@ TEST_F(Hybrid, ConvertEmptyCooToCsrIsEquivalentToRef)
     auto dbalanced_mtx =
         Mtx::create(exec, std::make_shared<Mtx::column_limit>(4));
     dbalanced_mtx->copy_from(balanced_mtx.get());
-    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
     balanced_mtx->convert_to(csr_mtx.get());
     dbalanced_mtx->convert_to(dcsr_mtx.get());
@@ -225,14 +220,15 @@ TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
     auto dense_mtx = gen_mtx(400, 200, 0, 4);
     // set first and last row to zero
     for (gko::size_type col = 0; col < dense_mtx->get_size()[1]; col++) {
-        dense_mtx->at(0, col) = gko::zero<vtype>();
-        dense_mtx->at(dense_mtx->get_size()[0] - 1, col) = gko::zero<vtype>();
+        dense_mtx->at(0, col) = gko::zero<value_type>();
+        dense_mtx->at(dense_mtx->get_size()[0] - 1, col) =
+            gko::zero<value_type>();
     }
     // now convert them to hybrid matrices
     auto balanced_mtx = gko::clone(ref, dense_mtx);
     auto dbalanced_mtx = gko::clone(exec, balanced_mtx);
-    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
     balanced_mtx->convert_to(csr_mtx.get());
     dbalanced_mtx->convert_to(dcsr_mtx.get());
@@ -244,8 +240,8 @@ TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
 TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
-    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
     mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
@@ -257,8 +253,8 @@ TEST_F(Hybrid, ConvertToCsrIsEquivalentToRef)
 TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
 {
     set_up_apply_data(1, std::make_shared<Mtx::column_limit>(2));
-    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
     mtx->move_to(csr_mtx.get());
     dmtx->move_to(dcsr_mtx.get());
@@ -285,7 +281,7 @@ TEST_F(Hybrid, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }
 
 
@@ -300,7 +296,7 @@ TEST_F(Hybrid, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto dabs_strategy =
         gko::as<AbsMtx::column_limit>(dabs_mtx->get_strategy());
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<value_type>::value);
     GKO_ASSERT_EQ(abs_strategy->get_num_columns(),
                   dabs_strategy->get_num_columns());
     GKO_ASSERT_EQ(abs_strategy->get_num_columns(), 2);

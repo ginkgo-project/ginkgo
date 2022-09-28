@@ -53,7 +53,6 @@ template <typename T>
 class Fbcsr : public CommonTestFixture {
 protected:
     using value_type = T;
-    using index_type = int;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
@@ -105,12 +104,12 @@ TYPED_TEST(Fbcsr, CanWriteFromMatrixOnDevice)
     auto mat = sample.generate_fbcsr();
     auto dmat = gko::clone(this->exec, mat);
     MatData refdata;
-    MatData cudadata;
+    MatData devdata;
 
     mat->write(refdata);
-    dmat->write(cudadata);
+    dmat->write(devdata);
 
-    ASSERT_TRUE(refdata.nonzeros == cudadata.nonzeros);
+    ASSERT_TRUE(refdata.nonzeros == devdata.nonzeros);
 }
 
 

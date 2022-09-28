@@ -51,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class LowerTrs : public CommonTestFixture {
 protected:
-    using value_type = double;
-    using index_type = int;
     using mtx_type = gko::matrix::Csr<value_type, index_type>;
     using vec_type = gko::matrix::Dense<>;
     using solver_type = gko::solver::LowerTrs<value_type, index_type>;
