@@ -199,10 +199,7 @@ protected:
         init_executor(ref, exec);
     }
 
-    void SetUp()
-    {
-        ASSERT_EQ(comm.size(), 3);
-    }
+    void SetUp() { ASSERT_EQ(comm.size(), 3); }
 
     void TearDown()
     {
