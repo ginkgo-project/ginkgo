@@ -415,7 +415,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void compute_squared_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType>* x,
-                           matrix::Dense<remove_complex<ValueType>>* result)
+                           matrix::Dense<remove_complex<ValueType>>* result,
+                           array<char>&)
 {
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
         result->at(0, j) = zero<remove_complex<ValueType>>();

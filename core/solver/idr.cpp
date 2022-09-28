@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -90,11 +90,12 @@ std::unique_ptr<LinOp> Idr<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-template <typename SubspaceType>
-void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
-                             matrix::Dense<SubspaceType>* dense_x) const
+template <typename VectorType>
+void Idr<ValueType>::iterate(const VectorType* dense_b,
+                             VectorType* dense_x) const
 {
     using std::swap;
+    using SubspaceType = typename VectorType::value_type;
     using Vector = matrix::Dense<SubspaceType>;
     using AbsType = remove_complex<ValueType>;
     using ws = workspace_traits<Idr>;
@@ -155,8 +156,9 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
 
     // Initialization
     // m = identity
-    exec->run(idr::make_initialize(nrhs, m, subspace_vectors, is_deterministic,
-                                   &stop_status));
+    exec->run(idr::make_initialize(nrhs, gko::detail::get_local(m),
+                                   gko::detail::get_local(subspace_vectors),
+                                   is_deterministic, &stop_status));
 
     // omega = 1
     omega->fill(one<SubspaceType>());
@@ -215,14 +217,19 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         for (size_type k = 0; k < subspace_dim; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
-            exec->run(idr::make_step_1(nrhs, k, m, f, residual, g, c, v,
-                                       &stop_status));
+            exec->run(idr::make_step_1(
+                nrhs, k, gko::detail::get_local(m), gko::detail::get_local(f),
+                gko::detail::get_local(residual), gko::detail::get_local(g),
+                gko::detail::get_local(c), gko::detail::get_local(v),
+                &stop_status));
 
             this->get_preconditioner()->apply(v, helper);
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
-            exec->run(
-                idr::make_step_2(nrhs, k, omega, helper, c, u, &stop_status));
+            exec->run(idr::make_step_2(
+                nrhs, k, gko::detail::get_local(omega),
+                gko::detail::get_local(helper), gko::detail::get_local(c),
+                gko::detail::get_local(u), &stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
@@ -243,9 +250,13 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
             // residual -= beta * g_k
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
-            exec->run(idr::make_step_3(nrhs, k, subspace_vectors, g, helper, u,
-                                       m, f, alpha, residual, dense_x,
-                                       &stop_status));
+            exec->run(idr::make_step_3(
+                nrhs, k, gko::detail::get_local(subspace_vectors),
+                gko::detail::get_local(g), gko::detail::get_local(helper),
+                gko::detail::get_local(u), gko::detail::get_local(m),
+                gko::detail::get_local(f), gko::detail::get_local(alpha),
+                gko::detail::get_local(residual),
+                gko::detail::get_local(dense_x), &stop_status));
         }
 
         this->get_preconditioner()->apply(residual, helper);
@@ -262,8 +273,10 @@ void Idr<ValueType>::iterate(const matrix::Dense<SubspaceType>* dense_b,
         // end if
         // residual -= omega * t
         // dense_x += omega * v
-        exec->run(idr::make_compute_omega(nrhs, kappa, tht, residual_norm,
-                                          omega, &stop_status));
+        exec->run(idr::make_compute_omega(
+            nrhs, kappa, gko::detail::get_local(tht),
+            gko::detail::get_local(residual_norm),
+            gko::detail::get_local(omega), &stop_status));
 
         t->scale(subspace_neg_one_op);
         residual->add_scaled(omega, t);
