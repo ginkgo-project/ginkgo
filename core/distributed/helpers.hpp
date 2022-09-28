@@ -30,68 +30,97 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/identity.hpp>
+#include <memory>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
-namespace matrix {
+namespace detail {
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+std::unique_ptr<matrix::Dense<ValueType>> create_with_config_of(
+    const matrix::Dense<ValueType>* mtx)
 {
-    x->copy_from(b);
+    return matrix::Dense<ValueType>::create(mtx->get_executor(),
+                                            mtx->get_size(), mtx->get_stride());
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                     const LinOp* beta, LinOp* x) const
+const matrix::Dense<ValueType>* get_local(const matrix::Dense<ValueType>* mtx)
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
-        },
-        alpha, b, beta, x);
+    return mtx;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
+matrix::Dense<ValueType>* get_local(matrix::Dense<ValueType>* mtx)
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
-    return Identity<ValueType>::create(this->get_executor(),
-                                       base->get_size()[0]);
+    return mtx;
+}
+
+
+#if GINKGO_BUILD_MPI
+
+
+template <typename ValueType>
+std::unique_ptr<distributed::Vector<ValueType>> create_with_config_of(
+    const distributed::Vector<ValueType>* mtx)
+{
+    return distributed::Vector<ValueType>::create(
+        mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
+        mtx->get_local_vector()->get_size(),
+        mtx->get_local_vector()->get_stride());
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
+matrix::Dense<ValueType>* get_local(distributed::Vector<ValueType>* mtx)
 {
-    return this->clone();
+    return const_cast<matrix::Dense<ValueType>*>(mtx->get_local_vector());
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
+const matrix::Dense<ValueType>* get_local(
+    const distributed::Vector<ValueType>* mtx)
 {
-    return this->clone();
+    return mtx->get_local_vector();
 }
 
 
-#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
-#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
+#endif
 
 
-}  // namespace matrix
+template <typename Arg>
+bool is_distributed(Arg* linop)
+{
+#if GINKGO_BUILD_MPI
+    return dynamic_cast<const distributed::DistributedBase*>(linop);
+#else
+    return false;
+#endif
+}
+
+
+template <typename Arg, typename... Rest>
+bool is_distributed(Arg* linop, Rest*... rest)
+{
+#if GINKGO_BUILD_MPI
+    bool is_distributed_value =
+        dynamic_cast<const distributed::DistributedBase*>(linop);
+    GKO_ASSERT(is_distributed_value == is_distributed(rest...));
+    return is_distributed_value;
+#else
+    return false;
+#endif
+}
+
+
+}  // namespace detail
 }  // namespace gko

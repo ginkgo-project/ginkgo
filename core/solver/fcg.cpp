@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 
 
+#include "core/distributed/helpers.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -92,7 +93,7 @@ void Fcg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->apply_dense_impl(dense_b, dense_x);
         },
@@ -101,11 +102,12 @@ void Fcg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                      matrix::Dense<ValueType>* dense_x) const
+template <typename VectorType>
+void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
+                                      VectorType* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -129,15 +131,17 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     bool one_changed{};
     GKO_SOLVER_STOP_REDUCTION_ARRAYS();
 
-    // TODO: replace this with automatic merged kernel generator
-    exec->run(fcg::make_initialize(dense_b, r, z, p, q, t, prev_rho, rho, rho_t,
-                                   &stop_status));
     // r = dense_b
     // t = r
     // rho = 0.0
     // prev_rho = 1.0
     // rho_t = 1.0
     // z = p = q = 0
+    exec->run(fcg::make_initialize(
+        gko::detail::get_local(dense_b), gko::detail::get_local(r),
+        gko::detail::get_local(z), gko::detail::get_local(p),
+        gko::detail::get_local(q), gko::detail::get_local(t), prev_rho, rho,
+        rho_t, &stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -173,7 +177,9 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
-        exec->run(fcg::make_step_1(p, z, rho_t, prev_rho, &stop_status));
+        exec->run(fcg::make_step_1(
+            gko::detail::get_local(p), gko::detail::get_local(z),
+            gko::detail::get_local(rho_t), prev_rho, &stop_status));
         this->get_system_matrix()->apply(p, q);
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
@@ -181,8 +187,10 @@ void Fcg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(
-            fcg::make_step_2(dense_x, r, t, p, q, beta, rho, &stop_status));
+        exec->run(fcg::make_step_2(
+            gko::detail::get_local(dense_x), gko::detail::get_local(r),
+            gko::detail::get_local(t), gko::detail::get_local(p),
+            gko::detail::get_local(q), beta, rho, &stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -195,7 +203,7 @@ void Fcg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
+    precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
             this->apply_dense_impl(dense_b, x_clone.get());
