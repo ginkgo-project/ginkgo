@@ -335,7 +335,7 @@ TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
     x->apply(complex_b.get(), complex_x.get());
     dx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 2e-7);
 }
 
 
@@ -367,7 +367,7 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
     dx->apply(convert<MixedMtx>(dalpha).get(), dcomplex_b.get(),
               convert<MixedMtx>(dbeta).get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-7);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 2e-7);
 }
 
 
