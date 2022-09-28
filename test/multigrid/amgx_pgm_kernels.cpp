@@ -62,12 +62,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class AmgxPgm : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif  // GINKGO_COMMON_SINGLE_MODE
-    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;

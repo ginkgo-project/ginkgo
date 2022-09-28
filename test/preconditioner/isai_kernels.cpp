@@ -58,12 +58,6 @@ enum struct matrix_type { lower, upper, general, spd };
 
 class Isai : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = gko::int32;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     Isai() : rand_engine(42) {}

@@ -66,10 +66,8 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Dense = gko::matrix::Dense<value_type>;
-    using ComplexDense = gko::matrix::Dense<std::complex<value_type>>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using ComplexCsr = gko::matrix::Csr<std::complex<value_type>, index_type>;
 
     ParIlut()
 #ifdef GINKGO_FAST_TESTS

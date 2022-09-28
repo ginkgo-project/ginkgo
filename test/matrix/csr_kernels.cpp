@@ -54,14 +54,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Csr : public CommonTestFixture {
 protected:
-    using itype = int;
-#if GINKGO_COMMON_SINGLE_MODE
-    using vtype = float;
-#else
-    using vtype = double;
-#endif
-    using Mtx = gko::matrix::Csr<vtype, itype>;
-    using Vec = gko::matrix::Dense<vtype>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Csr() : rand_engine(15) {}
 
@@ -100,7 +94,7 @@ TEST_F(Csr, ScaleIsEquivalentToRef)
     x->scale(alpha.get());
     dx->scale(dalpha.get());
 
-    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
 }
 
 
@@ -111,7 +105,7 @@ TEST_F(Csr, InvScaleIsEquivalentToRef)
     x->inv_scale(alpha.get());
     dx->inv_scale(dalpha.get());
 
-    GKO_ASSERT_MTX_NEAR(dx, x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value);
 }
 
 

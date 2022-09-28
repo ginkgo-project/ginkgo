@@ -55,12 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Cg : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
-    using index_type = int;
     using Mtx = gko::matrix::Dense<value_type>;
 
     Cg() : rand_engine(30) {}

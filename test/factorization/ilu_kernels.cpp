@@ -52,8 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Ilu : public CommonTestFixture {
 protected:
-    using value_type = gko::default_precision;
-    using index_type = gko::int32;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     Ilu() : rand_engine(1337)

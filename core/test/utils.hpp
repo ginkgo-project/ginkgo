@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_HPP_
 
 
+#include <cmath>
 #include <complex>
 #include <initializer_list>
 #include <limits>

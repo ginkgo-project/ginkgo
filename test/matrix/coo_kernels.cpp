@@ -55,14 +55,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Coo : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using vtype = float;
-#else
-    using vtype = double;
-#endif  // GINKGO_COMMON_SINGLE_MODE
-    using Mtx = gko::matrix::Coo<vtype>;
-    using Vec = gko::matrix::Dense<vtype>;
-    using ComplexVec = gko::matrix::Dense<std::complex<vtype>>;
+    using Mtx = gko::matrix::Coo<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
 
     Coo() : rand_engine(42) {}
 
@@ -71,7 +66,7 @@ protected:
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols, std::uniform_int_distribution<>(1, num_cols),
-            std::normal_distribution<vtype>(-1.0, 1.0), rand_engine, ref);
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void set_up_apply_data(int num_vectors = 1)
@@ -117,7 +112,7 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -127,14 +122,14 @@ TEST_F(Coo, SimpleApplyDoesntOverwritePadding)
     auto dresult_padded =
         Vec::create(exec, dresult->get_size(), dresult->get_stride() + 1);
     dresult_padded->copy_from(dresult.get());
-    vtype padding_val{1234.0};
+    value_type padding_val{1234.0};
     exec->copy_from(exec->get_master().get(), 1, &padding_val,
                     dresult_padded->get_values() + 1);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult_padded.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<value_type>::value);
     ASSERT_EQ(exec->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
 }
 
@@ -147,7 +142,7 @@ TEST_F(Coo, SimpleApplyIsEquivalentToRefUnsorted)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -158,7 +153,7 @@ TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -168,14 +163,14 @@ TEST_F(Coo, AdvancedApplyDoesntOverwritePadding)
     auto dresult_padded =
         Vec::create(exec, dresult->get_size(), dresult->get_stride() + 1);
     dresult_padded->copy_from(dresult.get());
-    vtype padding_val{1234.0};
+    value_type padding_val{1234.0};
     exec->copy_from(exec->get_master().get(), 1, &padding_val,
                     dresult_padded->get_values() + 1);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult_padded.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult_padded, expected, r<value_type>::value);
     ASSERT_EQ(exec->copy_val_to_host(dresult_padded->get_values() + 1), 1234.0);
 }
 
@@ -187,7 +182,7 @@ TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -198,7 +193,7 @@ TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
     mtx->apply2(alpha.get(), y.get(), expected.get());
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -209,7 +204,7 @@ TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -220,7 +215,7 @@ TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -231,7 +226,7 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -243,7 +238,7 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -254,7 +249,7 @@ TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -265,7 +260,7 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
     mtx->apply2(alpha.get(), y.get(), expected.get());
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -276,7 +271,7 @@ TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
     mtx->apply2(y.get(), expected.get());
     dmtx->apply2(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
 }
 
 
@@ -291,7 +286,7 @@ TEST_F(Coo, ApplyToComplexIsEquivalentToRef)
     mtx->apply(complex_b.get(), complex_x.get());
     dmtx->apply(dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
@@ -306,7 +301,7 @@ TEST_F(Coo, AdvancedApplyToComplexIsEquivalentToRef)
     mtx->apply(alpha.get(), complex_b.get(), beta.get(), complex_x.get());
     dmtx->apply(dalpha.get(), dcomplex_b.get(), dbeta.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
@@ -321,15 +316,15 @@ TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
     mtx->apply2(alpha.get(), complex_b.get(), complex_x.get());
     dmtx->apply2(dalpha.get(), dcomplex_b.get(), dcomplex_x.get());
 
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
 TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<vtype>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
@@ -341,9 +336,9 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<vtype>::create(ref);
-    auto csr_mtx = gko::matrix::Csr<vtype>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<vtype>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx.get());
     dense_mtx->convert_to(csr_mtx.get());
@@ -371,7 +366,7 @@ TEST_F(Coo, InplaceAbsoluteMatrixIsEquivalentToRef)
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
 
-    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }
 
 
@@ -382,5 +377,5 @@ TEST_F(Coo, OutplaceAbsoluteMatrixIsEquivalentToRef)
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
 
-    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<vtype>::value);
+    GKO_ASSERT_MTX_NEAR(abs_mtx, dabs_mtx, r<value_type>::value);
 }

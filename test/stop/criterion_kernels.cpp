@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 
 
-#include "core/test/utils.hpp"
 #include "test/utils/executor.hpp"
 
 

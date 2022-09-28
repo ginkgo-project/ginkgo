@@ -88,11 +88,11 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace gko
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using value_type = float;
 #else
 using value_type = double;
-#endif
+#endif  // GINKGO_COMMON_SINGLE_MODE
 using Mtx = gko::matrix::Dense<value_type>;
 
 class KernelLaunch : public CommonTestFixture {
