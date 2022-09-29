@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
+#include "core/base/scoped_device_id.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
 

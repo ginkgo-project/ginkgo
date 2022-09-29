@@ -74,53 +74,6 @@ public:
 };
 
 
-/**
- * An implementation of generic_scoped_device_id that does nothing.
- *
- * This is used for OmpExecutor and DpcppExecutor, since they don't require
- * setting a device id.
- */
-class noop_scoped_device_id : public generic_scoped_device_id {};
-
-
-/**
- * A scoped device id for CUDA.
- */
-class cuda_scoped_device_id : public generic_scoped_device_id {
-public:
-    explicit cuda_scoped_device_id(int device_id);
-
-    ~cuda_scoped_device_id() noexcept(false) override;
-
-    cuda_scoped_device_id(cuda_scoped_device_id&& other) noexcept;
-
-    cuda_scoped_device_id& operator=(cuda_scoped_device_id&& other) noexcept;
-
-private:
-    int original_device_id_;
-    bool need_reset_;
-};
-
-
-/**
- * A scoped device id for HIP.
- */
-class hip_scoped_device_id : public generic_scoped_device_id {
-public:
-    explicit hip_scoped_device_id(int device_id);
-
-    ~hip_scoped_device_id() noexcept(false) override;
-
-    hip_scoped_device_id(hip_scoped_device_id&& other) noexcept;
-
-    hip_scoped_device_id& operator=(hip_scoped_device_id&& other) noexcept;
-
-private:
-    int original_device_id_;
-    bool need_reset_;
-};
-
-
 }  // namespace detail
 
 
@@ -155,50 +108,42 @@ public:
     /**
      * Create a scoped device id from an OmpExecutor.
      *
-     * This will pick the noop_scoped_device_id.
+     * The resulting object will be a noop.
      *
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id(const OmpExecutor* exec, int device_id)
-        : scope_(std::make_unique<detail::noop_scoped_device_id>())
-    {}
+    scoped_device_id(const OmpExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an CudaExecutor.
      *
-     * This will pick the cuda_scoped_device_id.
+     * The resulting object will set the cuda device id accordingly.
      *
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id(const CudaExecutor* exec, int device_id)
-        : scope_(std::make_unique<detail::cuda_scoped_device_id>(device_id))
-    {}
+    scoped_device_id(const CudaExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an HipExecutor.
      *
-     * This will pick the hip_scoped_device_id.
+     * The resulting object will set the hip device id accordingly.
      *
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id(const HipExecutor* exec, int device_id)
-        : scope_(std::make_unique<detail::hip_scoped_device_id>(device_id))
-    {}
+    scoped_device_id(const HipExecutor* exec, int device_id);
 
     /**
-     * Create a scoped device id from an OmpExecutor.
+     * Create a scoped device id from an DpcppExecutor.
      *
-     * This will pick the noop_scoped_device_id.
+     * The resulting object will be a noop.
      *
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id(const DpcppExecutor* exec, int device_id)
-        : scope_(std::make_unique<detail::noop_scoped_device_id>())
-    {}
+    scoped_device_id(const DpcppExecutor* exec, int device_id);
 
     scoped_device_id() = default;
 

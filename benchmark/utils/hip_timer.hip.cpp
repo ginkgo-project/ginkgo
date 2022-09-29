@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/timer_impl.hpp"
+#include "core/base/scoped_device_id.hpp"
 
 
 /**
