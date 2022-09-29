@@ -52,25 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Ir : public ::testing::Test {
+class Ir : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
 
     Ir() : rand_engine(30) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride)
@@ -83,9 +69,6 @@ protected:
         result->copy_from(tmp_mtx.get());
         return result;
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 };
@@ -260,6 +243,3 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
     // difference in IR.
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 200);
 }
-
-
-}  // namespace

@@ -368,7 +368,7 @@ TYPED_TEST(ResidualNorm, SelfCalulatesAndWaitsTillResidualGoal)
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
         ASSERT_EQ(one_changed, false);
 
-        solution->at(0) = rhs_val - r<T>::value * T{0.9} * rhs_norm->at(0);
+        solution->at(0) = rhs_val - r<T>::value * T{0.5} * rhs_norm->at(0);
         ASSERT_TRUE(
             rhs_criterion->update()
                 .solution(solution.get())
@@ -398,7 +398,7 @@ TYPED_TEST(ResidualNorm, SelfCalulatesAndWaitsTillResidualGoal)
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
         ASSERT_EQ(one_changed, false);
 
-        solution->at(0) = rhs_val - r<T>::value * T{0.9} * initial_norm;
+        solution->at(0) = rhs_val - r<T>::value * T{0.5} * initial_norm;
         ASSERT_TRUE(
             rel_criterion->update()
                 .solution(solution.get())
@@ -426,7 +426,7 @@ TYPED_TEST(ResidualNorm, SelfCalulatesAndWaitsTillResidualGoal)
         ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
         ASSERT_EQ(one_changed, false);
 
-        solution->at(0) = rhs_val - r<T>::value * T{0.9};
+        solution->at(0) = rhs_val - r<T>::value * T{0.5};
         ASSERT_TRUE(
             abs_criterion->update()
                 .solution(solution.get())
@@ -652,7 +652,7 @@ TYPED_TEST(ResidualNormWithInitialResnorm,
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    x->at(0) = rhs_val - r<T>::value * T{0.9} * initial_res;
+    x->at(0) = rhs_val - r<T>::value * T{0.5} * initial_res;
     ASSERT_TRUE(criterion->update().solution(x.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);

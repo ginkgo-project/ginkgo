@@ -1,1 +1,0 @@
-ginkgo_create_test(prefix_sum_kernels)

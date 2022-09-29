@@ -462,17 +462,16 @@ public:
             v[i] = 0.15 + fbcsr_test_offset;
         }
 
-        using namespace std::complex_literals;
-        v[0] = 1.0 + 1.15i;
-        v[2] = 2.0 + 2.15i;
-        v[1] = 3.0 - 3.15i;
-        v[3] = 0.0 - 0.15i;
+        v[0] = value_type{1.0, 1.15};
+        v[2] = value_type{2.0, 2.15};
+        v[1] = value_type{3.0, -3.15};
+        v[3] = value_type{0.0, -0.15};
         v[9] = 0.0;
         v[11] = 0.0;
-        v[12] = -12.0 + 12.15i;
-        v[14] = -1.0 + 1.15i;
-        v[13] = -2.0 - 2.15i;
-        v[15] = -11.0 - 11.15i;
+        v[12] = -value_type{12.0, 12.15};
+        v[14] = -value_type{1.0, 1.15};
+        v[13] = -value_type{2.0, -2.15};
+        v[15] = -value_type{11.0, -11.15};
 
         return Fbcsr::create(exec,
                              gko::dim<2>{static_cast<size_type>(nrows),
@@ -491,17 +490,16 @@ public:
             v[i] = 0.15 + fbcsr_test_offset;
         }
 
-        using namespace std::complex_literals;
-        v[0] = 1.0 + 1.15i;
-        v[1] = 2.0 + 2.15i;
-        v[2] = 3.0 - 3.15i;
-        v[3] = 0.0 - 0.15i;
+        v[0] = value_type{1.0, 1.15};
+        v[1] = value_type{2.0, 2.15};
+        v[2] = value_type{3.0, -3.15};
+        v[3] = value_type{0.0, -0.15};
         v[10] = 0.0;
         v[11] = 0.0;
-        v[12] = -12.0 + 12.15i;
-        v[13] = -1.0 + 1.15i;
-        v[14] = -2.0 - 2.15i;
-        v[15] = -11.0 - 11.15i;
+        v[12] = -value_type{12.0, 12.15};
+        v[13] = -value_type{1.0, 1.15};
+        v[14] = -value_type{2.0, -2.15};
+        v[15] = -value_type{11.0, -11.15};
 
         return Csr::create(exec,
                            gko::dim<2>{static_cast<size_type>(nrows),

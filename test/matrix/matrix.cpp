@@ -56,11 +56,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using matrix_value_type = float;
 #else
 using matrix_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_COMMON_SINGLE_MODE
 
 
 template <typename MtxType>
@@ -153,8 +153,9 @@ struct CsrWithDefaultStrategy : CsrBase {
     static void assert_empty_state(const matrix_type* mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_EQ(typeid(*mtx->create_default()->get_strategy()),
-                  typeid(*mtx->get_strategy()));
+        auto first_strategy = mtx->create_default()->get_strategy();
+        auto second_strategy = mtx->get_strategy();
+        ASSERT_EQ(typeid(*first_strategy), typeid(*second_strategy));
     }
 };
 
@@ -581,7 +582,7 @@ struct test_pair {
 
 
 template <typename T>
-class Matrix : public ::testing::Test {
+class Matrix : public CommonTestFixture {
 protected:
     using Config = T;
     using Mtx = typename T::matrix_type;
@@ -592,19 +593,6 @@ protected:
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
     Matrix() : rand_engine(15) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     template <typename DistType>
     gko::matrix_data<value_type, index_type> gen_mtx_data(int num_rows,
@@ -865,9 +853,6 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
     std::default_random_engine rand_engine;
 };
 
@@ -927,7 +912,7 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
 }
 
 
-#if !(GINKGO_DPCPP_SINGLE_MODE)
+#if !(GINKGO_COMMON_SINGLE_MODE)
 TYPED_TEST(Matrix, MixedSpMVIsEquivalentToRef)
 {
     using MixedVec = typename TestFixture::MixedVec;

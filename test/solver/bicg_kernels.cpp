@@ -54,41 +54,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
-class Bicg : public ::testing::Test {
+class Bicg : public CommonTestFixture {
 protected:
-#if GINKGO_COMMON_SINGLE_MODE
-    using value_type = float;
-#else
-    using value_type = double;
-#endif
     using Mtx = gko::matrix::Dense<value_type>;
-    using index_type = gko::int32;
 
-    Bicg() : rand_engine(30) {}
-
-    void SetUp()
+    Bicg() : rand_engine(30)
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-
         std::string file_name(gko::matrices::location_ani1_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
         mtx_ani = gko::read<Mtx>(input_file, ref);
         d_mtx_ani = gko::clone(exec, mtx_ani.get());
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
@@ -148,9 +123,6 @@ protected:
         d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
             exec, *stop_status);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 
     std::default_random_engine rand_engine;
 
@@ -321,6 +293,3 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value * 100);
 }
-
-
-}  // namespace

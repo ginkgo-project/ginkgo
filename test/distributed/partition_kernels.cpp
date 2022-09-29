@@ -50,14 +50,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 using comm_index_type = gko::distributed::comm_index_type;
 
 
 template <typename LocalGlobalIndexType>
-class Partition : public ::testing::Test {
+class Partition : public CommonTestFixture {
 protected:
     using local_index_type =
         typename std::tuple_element<0, decltype(LocalGlobalIndexType())>::type;
@@ -67,19 +64,6 @@ protected:
         gko::distributed::Partition<local_index_type, global_index_type>;
 
     Partition() : rand_engine(96457) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     void assert_equal(std::unique_ptr<part_type>& part,
                       std::unique_ptr<part_type>& dpart)
@@ -119,9 +103,6 @@ protected:
     }
 
     std::default_random_engine rand_engine;
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
 };
 
 TYPED_TEST_SUITE(Partition, gko::test::LocalGlobalIndexTypes,
@@ -389,6 +370,3 @@ TYPED_TEST(Partition, IsOrderedRandom)
 
     ASSERT_EQ(part->has_ordered_parts(), dpart->has_ordered_parts());
 }
-
-
-}  // namespace

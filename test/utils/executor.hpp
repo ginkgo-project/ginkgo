@@ -33,56 +33,111 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_TEST_UTILS_EXECUTOR_HPP_
 #define GKO_TEST_UTILS_EXECUTOR_HPP_
 
+
 #include <ginkgo/core/base/executor.hpp>
 
 
 #include <memory>
+#include <stdexcept>
 
 
 #include <gtest/gtest.h>
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::ReferenceExecutor>& exec)
+#if GINKGO_COMMON_SINGLE_MODE
+#define SKIP_IF_SINGLE_MODE GTEST_SKIP() << "Skip due to single mode"
+#else
+#define SKIP_IF_SINGLE_MODE                                                  \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
+
+
+template <typename ExecType>
+std::shared_ptr<ExecType> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor>);
+
+
+template <>
+inline std::shared_ptr<gko::ReferenceExecutor>
+    init_executor<gko::ReferenceExecutor>(
+        std::shared_ptr<gko::ReferenceExecutor>)
 {
-    exec = gko::ReferenceExecutor::create();
+    return gko::ReferenceExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::OmpExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::OmpExecutor> init_executor<gko::OmpExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor>)
 {
-    exec = gko::OmpExecutor::create();
+    return gko::OmpExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::CudaExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::CudaExecutor> init_executor<gko::CudaExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
-    ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    exec = gko::CudaExecutor::create(0, ref);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::HipExecutor>& exec)
-{
-    ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    exec = gko::HipExecutor::create(0, ref);
-}
-
-
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::DpcppExecutor>& exec)
-{
-    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "gpu");
-    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
-        exec = gko::DpcppExecutor::create(0, ref, "cpu");
-    } else {
-        FAIL() << "No suitable DPC++ devices";
+    {
+        if (gko::CudaExecutor::get_num_devices() == 0) {
+            throw std::runtime_error{"No suitable CUDA devices"};
+        }
+        return gko::CudaExecutor::create(0, ref);
     }
 }
+
+
+template <>
+inline std::shared_ptr<gko::HipExecutor> init_executor<gko::HipExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
+{
+    if (gko::HipExecutor::get_num_devices() == 0) {
+        throw std::runtime_error{"No suitable HIP devices"};
+    }
+    return gko::HipExecutor::create(0, ref);
+}
+
+
+template <>
+inline std::shared_ptr<gko::DpcppExecutor> init_executor<gko::DpcppExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
+{
+    if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
+        return gko::DpcppExecutor::create(0, ref, "gpu");
+    } else if (gko::DpcppExecutor::get_num_devices("cpu") > 0) {
+        return gko::DpcppExecutor::create(0, ref, "cpu");
+    } else {
+        throw std::runtime_error{"No suitable DPC++ devices"};
+    }
+}
+
+
+class CommonTestFixture : public ::testing::Test {
+public:
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using index_type = int;
+
+    CommonTestFixture()
+        : ref{gko::ReferenceExecutor::create()},
+          exec{init_executor<gko::EXEC_TYPE>(ref)}
+    {}
+
+    void TearDown() final
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
+};
 
 
 #endif  // GKO_TEST_UTILS_EXECUTOR_HPP_

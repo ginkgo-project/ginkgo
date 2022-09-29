@@ -48,36 +48,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 template <typename T>
-class ReduceArray : public ::testing::Test {
+class ReduceArray : public CommonTestFixture {
 protected:
     using value_type = T;
-    ReduceArray() : total_size(6355) {}
-
-    void SetUp()
+    ReduceArray()
+        : total_size(6355),
+          out{ref, I<T>{2}},
+          dout{exec, out},
+          vals{ref, total_size},
+          dvals{exec}
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-        out = gko::array<value_type>{ref, I<T>{2}};
-        dout = gko::array<value_type>{exec, out};
-        vals = gko::array<value_type>{ref, total_size};
-        dvals = gko::array<value_type>{exec};
         std::fill_n(vals.get_data(), total_size, 3);
         dvals = vals;
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::size_type total_size;
     gko::array<value_type> out;
     gko::array<value_type> dout;
@@ -98,6 +83,3 @@ TYPED_TEST(ReduceArray, EqualsReference)
 
     GKO_ASSERT_ARRAY_EQ(this->out, this->dout);
 }
-
-
-}  // namespace

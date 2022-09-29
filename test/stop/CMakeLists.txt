@@ -1,0 +1,2 @@
+ginkgo_create_common_test(criterion_kernels)
+ginkgo_create_common_test(residual_norm_kernels)

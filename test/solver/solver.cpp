@@ -62,11 +62,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using solver_value_type = float;
 #else
 using solver_value_type = double;
-#endif  // GINKGO_DPCPP_SINGLE_MODE
+#endif  // GINKGO_COMMON_SINGLE_MODE
 
 
 template <typename SolverType>
@@ -513,32 +513,21 @@ public:
 
 
 template <typename T>
-class Solver : public ::testing::Test {
+class Solver : public CommonTestFixture {
 protected:
     using Config = T;
     using SolverType = typename T::solver_type;
     using Precond = typename T::precond_type;
     using Mtx = typename T::matrix_type;
-    using index_type = gko::int32;
     using value_type = typename Mtx::value_type;
     using mixed_value_type = gko::next_precision<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::Dense<mixed_value_type>;
 
-    Solver() { reset_rand(); }
-
-    void SetUp()
+    Solver()
     {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
+        reset_rand();
         logger = std::make_shared<DummyLogger>();
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
     }
 
     void reset_rand() { rand_engine.seed(15); }
@@ -607,23 +596,15 @@ protected:
     template <typename VecType>
     double tol(const test_pair<VecType>& x)
     {
-        return Config::tolerance() *
-               std::sqrt(x.ref->get_size()[1] *
-                         (gko::is_complex<typename VecType::value_type>()
-                              ? 2.0
-                              : 1.0));
+        return Config::tolerance() * std::sqrt(x.ref->get_size()[1]);
     }
 
     template <typename VecType>
     double mixed_tol(const test_pair<VecType>& x)
     {
-        return std::max(
-            r_mixed<value_type, mixed_value_type>() *
-                std::sqrt(x.ref->get_size()[1] *
-                          (gko::is_complex<typename VecType::value_type>()
-                               ? 2.0
-                               : 1.0)),
-            tol(x));
+        return std::max(r_mixed<value_type, mixed_value_type>() *
+                            std::sqrt(x.ref->get_size()[1]),
+                        tol(x));
     }
 
     template <typename TestFunction>
@@ -795,8 +776,6 @@ protected:
         ASSERT_EQ(Config::get_preconditioner(solver), nullptr);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::shared_ptr<DummyLogger> logger;
 
     std::default_random_engine rand_engine;

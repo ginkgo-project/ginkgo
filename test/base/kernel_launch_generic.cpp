@@ -88,29 +88,24 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace gko
 
 
-#if GINKGO_DPCPP_SINGLE_MODE
+#if GINKGO_COMMON_SINGLE_MODE
 using value_type = float;
 #else
 using value_type = double;
-#endif
+#endif  // GINKGO_COMMON_SINGLE_MODE
 using Mtx = gko::matrix::Dense<value_type>;
 
-class KernelLaunch : public ::testing::Test {
+class KernelLaunch : public CommonTestFixture {
 public:
-    void SetUp()
+    KernelLaunch()
+        : zero_array{ref, 16},
+          iota_array{ref, 16},
+          iota_transp_array{ref, 16},
+          iota_dense{Mtx::create(exec, dim<2>{4, 4})},
+          zero_dense{Mtx::create(exec, dim<2>{4, 4}, 6)},
+          zero_dense2{Mtx::create(exec, dim<2>{4, 4}, 5)},
+          vec_dense{Mtx::create(exec, dim<2>{1, 4})}
     {
-        init_executor(gko::ReferenceExecutor::create(), exec);
-
-        zero_array.set_executor(exec->get_master());
-        zero_array.resize_and_reset(16);
-        iota_array.set_executor(exec->get_master());
-        iota_array.resize_and_reset(16);
-        iota_transp_array.set_executor(exec->get_master());
-        iota_transp_array.resize_and_reset(16);
-        iota_dense = Mtx::create(exec, dim<2>{4, 4});
-        zero_dense = Mtx::create(exec, dim<2>{4, 4}, 6);
-        zero_dense2 = Mtx::create(exec, dim<2>{4, 4}, 5);
-        vec_dense = Mtx::create(exec, dim<2>{1, 4});
         auto ref_iota_dense = Mtx::create(exec->get_master(), dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
@@ -126,14 +121,6 @@ public:
         iota_transp_array.set_executor(exec);
     }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::array<int> zero_array;
     gko::array<int> iota_array;
     gko::array<int> iota_transp_array;
