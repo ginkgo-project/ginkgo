@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/config.hpp>
 
 
+#include "core/base/scoped_device_id.hpp"
+
+
 namespace gko {
 namespace detail {
 
@@ -80,4 +83,26 @@ hip_scoped_device_id& hip_scoped_device_id::operator=(
 
 
 }  // namespace detail
+
+
+scoped_device_id::scoped_device_id(const OmpExecutor* exec, int device_id)
+    : scope_(std::make_unique<detail::noop_scoped_device_id>())
+{}
+
+
+scoped_device_id::scoped_device_id(const CudaExecutor* exec, int device_id)
+    : scope_(std::make_unique<detail::cuda_scoped_device_id>(device_id))
+{}
+
+
+scoped_device_id::scoped_device_id(const HipExecutor* exec, int device_id)
+    : scope_(std::make_unique<detail::hip_scoped_device_id>(device_id))
+{}
+
+
+scoped_device_id::scoped_device_id(const DpcppExecutor* exec, int device_id)
+    : scope_(std::make_unique<detail::noop_scoped_device_id>())
+{}
+
+
 }  // namespace gko

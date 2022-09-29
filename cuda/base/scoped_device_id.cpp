@@ -41,7 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/scoped_device_id.hpp>
+
+
+#include "core/base/scoped_device_id.hpp"
 
 
 namespace gko {
