@@ -420,6 +420,7 @@ __global__ void apply_kernel(const int global_gap, const int max_iter,
             // x = x + KrylovBasis(:,0 : restart - 1) * y
             update_x(warp_grp, nrows, restart - 1, restart, H_sh, h_stride,
                      s_sh, V_sh, x_sh, y_sh);
+            __syncthreads();
 
             // r = b
             single_copy(nrows, b_entry_ptr, r_sh);
