@@ -595,7 +595,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
     gko::array<index_type> a1(ref, num_rows + 1);
     auto a2 = a1;
     gko::kernels::reference::isai::generate_general_inverse(
-        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
     auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));

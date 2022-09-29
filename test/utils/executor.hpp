@@ -54,22 +54,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
-inline std::shared_ptr<gko::ReferenceExecutor> init_executor(
-    std::shared_ptr<gko::ReferenceExecutor>, gko::ReferenceExecutor*)
+template <typename ExecType>
+std::shared_ptr<ExecType> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor>);
+
+
+template <>
+inline std::shared_ptr<gko::ReferenceExecutor>
+init_executor<gko::ReferenceExecutor>(std::shared_ptr<gko::ReferenceExecutor>)
 {
     return gko::ReferenceExecutor::create();
 }
 
 
-inline std::shared_ptr<gko::OmpExecutor> init_executor(
-    std::shared_ptr<gko::ReferenceExecutor>, gko::OmpExecutor*)
+template <>
+inline std::shared_ptr<gko::OmpExecutor> init_executor<gko::OmpExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor>)
 {
     return gko::OmpExecutor::create();
 }
 
 
-inline std::shared_ptr<gko::CudaExecutor> init_executor(
-    std::shared_ptr<gko::ReferenceExecutor> ref, gko::CudaExecutor*)
+template <>
+inline std::shared_ptr<gko::CudaExecutor> init_executor<gko::CudaExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
     {
         if (gko::CudaExecutor::get_num_devices() == 0) {
@@ -80,8 +88,9 @@ inline std::shared_ptr<gko::CudaExecutor> init_executor(
 }
 
 
-inline std::shared_ptr<gko::HipExecutor> init_executor(
-    std::shared_ptr<gko::ReferenceExecutor> ref, gko::HipExecutor*)
+template <>
+inline std::shared_ptr<gko::HipExecutor> init_executor<gko::HipExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
     if (gko::HipExecutor::get_num_devices() == 0) {
         throw std::runtime_error{"No suitable HIP devices"};
@@ -90,8 +99,9 @@ inline std::shared_ptr<gko::HipExecutor> init_executor(
 }
 
 
-inline std::shared_ptr<gko::DpcppExecutor> init_executor(
-    std::shared_ptr<gko::ReferenceExecutor> ref, gko::DpcppExecutor*)
+template <>
+inline std::shared_ptr<gko::DpcppExecutor> init_executor<gko::DpcppExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
     if (gko::DpcppExecutor::get_num_devices("gpu") > 0) {
         return gko::DpcppExecutor::create(0, ref, "gpu");
@@ -114,7 +124,7 @@ public:
 
     CommonTestFixture()
         : ref{gko::ReferenceExecutor::create()},
-          exec{init_executor(ref, static_cast<gko::EXEC_TYPE*>(nullptr))}
+          exec{init_executor<gko::EXEC_TYPE>(ref)}
     {}
 
     void TearDown() final
