@@ -537,10 +537,8 @@ TEST_F(Csr, SimpleApplySparseToSparseCsrMatrixIsEquivalentToRef)
     auto mtx1 = gen_mtx<Mtx>(mtx->get_size()[0], mtx->get_size()[1], 0, 10);
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
-    auto dmtx1 = Mtx::create(exec, mtx1->get_size());
-    auto dmtx2 = Mtx::create(exec, mtx2->get_size());
-    dmtx1->copy_from(mtx1.get());
-    dmtx2->copy_from(mtx2.get());
+    auto dmtx1 = gko::clone(exec, mtx1);
+    auto dmtx2 = gko::clone(exec, mtx2);
 
     mtx1->apply(mtx2.get(), square_mtx.get());
     dmtx1->apply(dmtx2.get(), square_dmtx.get());
@@ -1106,7 +1104,6 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
                                     {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
     gko::index_set<index_type> drset(this->exec, rset);
     gko::index_set<index_type> dcset(this->exec, cset);
-    auto size = this->mtx2->get_size();
     auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
@@ -1130,7 +1127,6 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
                                     {42, 22, 24, 26, 28, 30, 81, 82, 83, 88}};
     gko::index_set<index_type> drset(this->exec, rset);
     gko::index_set<index_type> dcset(this->exec, cset);
-    auto size = this->mtx2->get_size();
     auto row_nnz = gko::array<int>(this->ref, rset.get_num_elems() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
