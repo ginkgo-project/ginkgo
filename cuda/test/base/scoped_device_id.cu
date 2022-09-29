@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // force-top: off
 
 
-#include <ginkgo/core/base/scoped_device_id.hpp>
+#include "core/base/scoped_device_id.hpp"
 
 
 #include <gtest/gtest.h>
