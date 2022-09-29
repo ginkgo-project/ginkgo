@@ -393,19 +393,20 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
     CUDA_ARCH: 61
 
-# ROCm 4.0 and friends
-build/amd/nompi/gcc/rocm40/debug/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-rocm40-openmpi-gnu8-llvm50
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    RUN_EXAMPLES: "ON"
-    BUILD_TYPE: "Debug"
-    FAST_TESTS: "ON"
+# Seems to have some weird bug
+# # ROCm 4.0 and friends
+# build/amd/nompi/gcc/rocm40/debug/shared:
+#   extends:
+#     - .build_and_test_template
+#     - .default_variables
+#     - .quick_test_condition
+#     - .use_gko-rocm40-openmpi-gnu8-llvm50
+#   variables:
+#     BUILD_OMP: "ON"
+#     BUILD_HIP: "ON"
+#     RUN_EXAMPLES: "ON"
+#     BUILD_TYPE: "Debug"
+#     FAST_TESTS: "ON"
 
 build/amd/openmpi/clang/rocm40/release/static:
   extends:
