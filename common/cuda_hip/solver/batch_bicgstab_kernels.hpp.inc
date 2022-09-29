@@ -312,6 +312,7 @@ __global__ void apply_kernel(
             // p = r + beta*(p - omega * v)
             update_p(nrows, rho_new_sh[0], rho_old_sh[0], alpha_sh[0],
                      omega_sh[0], r_sh, v_sh, p_sh);
+            __syncthreads();
 
             // p_hat = precond * p
             prec_shared.apply(nrows, p_sh, p_hat_sh);
