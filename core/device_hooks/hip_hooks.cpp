@@ -40,9 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 
-#include "core/base/scoped_device_id.hpp"
-
-
 namespace gko {
 
 
@@ -116,9 +113,7 @@ void HipExecutor::run(const Operation& op) const
 
 
 scoped_device_id HipExecutor::get_scoped_device_id() const
-{
     GKO_NOT_COMPILED(hip);
-}
 
 
 std::string HipError::get_error(int64)
@@ -160,16 +155,8 @@ void HipExecutor::set_gpu_property() {}
 void HipExecutor::init_handles() {}
 
 
-namespace detail {
-
-
-hip_scoped_device_id::hip_scoped_device_id(int device_id) GKO_NOT_IMPLEMENTED;
-
-hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
-    GKO_NOT_IMPLEMENTED;
-
-
-}  // namespace detail
+scoped_device_id::scoped_device_id(const HipExecutor* exec, int device_id)
+    GKO_NOT_COMPILED(hip);
 
 
 }  // namespace gko

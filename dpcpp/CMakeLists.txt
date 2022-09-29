@@ -18,6 +18,7 @@ target_sources(ginkgo_dpcpp
     base/executor.dp.cpp
     base/helper.dp.cpp
     base/index_set_kernels.dp.cpp
+    base/scoped_device_id.dp.cpp
     base/version.dp.cpp
     components/prefix_sum_kernels.dp.cpp
     distributed/matrix_kernels.dp.cpp

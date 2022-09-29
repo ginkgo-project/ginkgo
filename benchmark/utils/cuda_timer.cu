@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/timer_impl.hpp"
-#include "core/base/scoped_device_id.hpp"
 
 
 /**
@@ -61,8 +60,7 @@ public:
     {
         assert(exec != nullptr);
         exec_ = exec;
-        id_ = exec_->get_device_id();
-        gko::detail::cuda_scoped_device_id g{id_};
+        auto guard = exec_->get_scoped_device_id();
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&start_));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventCreate(&stop_));
     }
@@ -71,14 +69,14 @@ protected:
     void tic_impl() override
     {
         exec_->synchronize();
-        gko::detail::cuda_scoped_device_id g{id_};
+        auto guard = exec_->get_scoped_device_id();
         // Currently, gko::CudaExecutor always use default stream.
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(start_));
     }
 
     double toc_impl() override
     {
-        gko::detail::cuda_scoped_device_id g{id_};
+        auto guard = exec_->get_scoped_device_id();
         // Currently, gko::CudaExecutor always use default stream.
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventRecord(stop_));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(stop_));
@@ -95,7 +93,6 @@ private:
     std::shared_ptr<const gko::CudaExecutor> exec_;
     cudaEvent_t start_;
     cudaEvent_t stop_;
-    int id_;
 };
 
 
