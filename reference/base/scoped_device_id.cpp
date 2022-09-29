@@ -30,68 +30,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <exception>
-#include <utility>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 
 
-#include <cuda_runtime.h>
+#include <ginkgo/config.hpp>
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
-#include "cuda/base/scoped_device_id.hpp"
+#include "core/base/noop_scoped_device_id.hpp"
 
 
 namespace gko {
-namespace detail {
-cuda_scoped_device_id::cuda_scoped_device_id(int device_id)
-    : original_device_id_{}, need_reset_{}
-{
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id_));
-    if (original_device_id_ != device_id) {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-        need_reset_ = true;
-    }
-}
 
 
-cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
-{
-    if (need_reset_) {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id_);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id_));
-        }
-    }
-}
-
-
-cuda_scoped_device_id::cuda_scoped_device_id(
-    gko::detail::cuda_scoped_device_id&& other) noexcept
-{
-    *this = std::move(other);
-}
-
-
-cuda_scoped_device_id& cuda_scoped_device_id::operator=(
-    gko::detail::cuda_scoped_device_id&& other) noexcept
-{
-    if (this != &other) {
-        original_device_id_ = std::exchange(other.original_device_id_, 0);
-        need_reset_ = std::exchange(other.need_reset_, false);
-    }
-    return *this;
-}
-
-
-}  // namespace detail
-
-
-scoped_device_id::scoped_device_id(const CudaExecutor* exec, int device_id)
-    : scope_(std::make_unique<detail::cuda_scoped_device_id>(device_id))
+scoped_device_id::scoped_device_id(const ReferenceExecutor* exec, int device_id)
+    : scope_(std::make_unique<detail::noop_scoped_device_id>())
 {}
 
 

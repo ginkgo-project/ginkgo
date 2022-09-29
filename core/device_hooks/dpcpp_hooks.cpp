@@ -121,9 +121,7 @@ void DpcppExecutor::run(const Operation& op) const
 
 
 scoped_device_id DpcppExecutor::get_scoped_device_id() const
-{
     GKO_NOT_COMPILED(dpcpp);
-}
 
 
 int DpcppExecutor::get_num_devices(std::string) { return 0; }
@@ -145,6 +143,10 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
     return dest_exec->get_device_type() == this->get_device_type() &&
            dest_exec->get_device_id() == this->get_device_id();
 }
+
+
+scoped_device_id::scoped_device_id(const DpcppExecutor* exec, int device_id)
+    GKO_NOT_COMPILED(dpcpp);
 
 
 }  // namespace gko

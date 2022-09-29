@@ -1306,6 +1306,8 @@ public:
         this->template log<log::Logger::operation_completed>(this, &op);
     }
 
+    scoped_device_id get_scoped_device_id() const override;
+
 protected:
     ReferenceExecutor()
     {

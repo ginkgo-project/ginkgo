@@ -3,6 +3,7 @@ target_sources(ginkgo_reference
     PRIVATE
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
+    base/scoped_device_id.cpp
     base/version.cpp
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
