@@ -30,6 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/scoped_device_id.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -42,6 +44,10 @@ version version_info::get_omp_version() noexcept
     // placeholder modules.
     return {GKO_VERSION_STR, "not compiled"};
 }
+
+
+scoped_device_id::scoped_device_id(const OmpExecutor* exec, int device_id)
+    GKO_NOT_COMPILED(omp);
 
 
 }  // namespace gko
