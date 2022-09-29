@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/version.hpp>
 
 
+#include "core/base/scoped_device_id.hpp"
+
+
 namespace gko {
 
 
