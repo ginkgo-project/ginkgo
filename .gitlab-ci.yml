@@ -408,22 +408,6 @@ build/cuda114/nompi/gcc/cuda/debug/shared:
 #     BUILD_TYPE: "Debug"
 #     FAST_TESTS: "ON"
 
-build/amd/openmpi/clang/rocm40/release/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-rocm40-openmpi-gnu8-llvm50
-  variables:
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-
 test/amd/openmpi/clang/rocm40/release/static:
   extends:
     - .build_and_test_template
