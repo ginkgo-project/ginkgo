@@ -30,5 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// Remove this file once there is at least one source file in
-// ginkgo_referece_device
+#include <ginkgo/core/base/executor.hpp>
+
+
+namespace gko {
+
+
+scoped_device_id ReferenceExecutor::get_scoped_device_id() const
+{
+    return {this, 0};
+}
+
+
+}  // namespace gko

@@ -41,6 +41,7 @@ namespace gko {
 
 
 class OmpExecutor;
+class ReferenceExecutor;
 class CudaExecutor;
 class HipExecutor;
 class DpcppExecutor;
@@ -105,6 +106,16 @@ public:
  */
 class scoped_device_id {
 public:
+    /**
+     * Create a scoped device id from an Reference.
+     *
+     * The resulting object will be a noop.
+     *
+     * @param exec  Not used.
+     * @param device_id  Not used.
+     */
+    scoped_device_id(const ReferenceExecutor* exec, int device_id);
+
     /**
      * Create a scoped device id from an OmpExecutor.
      *

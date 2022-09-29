@@ -31,17 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <memory>
-#include <string>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
-
-
-#include "core/base/scoped_device_id.hpp"
-#include "core/matrix/csr_kernels.hpp"
 
 
 namespace gko {
@@ -110,9 +105,7 @@ void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
 scoped_device_id CudaExecutor::get_scoped_device_id() const
-{
     GKO_NOT_COMPILED(cuda);
-}
 
 
 void CudaExecutor::run(const Operation& op) const
@@ -161,16 +154,8 @@ void CudaExecutor::set_gpu_property() {}
 void CudaExecutor::init_handles() {}
 
 
-namespace detail {
-
-
-cuda_scoped_device_id::cuda_scoped_device_id(int device_id) GKO_NOT_IMPLEMENTED;
-
-cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
-    GKO_NOT_IMPLEMENTED;
-
-
-}  // namespace detail
+scoped_device_id::scoped_device_id(const CudaExecutor* exec, int device_id)
+    GKO_NOT_COMPILED(cuda);
 
 
 }  // namespace gko
