@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/async_richardson_kernels.hpp"
+#include "core/solver/async_jacobi_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/csr.hpp>
@@ -39,13 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace dpcpp {
 /**
- * @brief The async_richardson solver namespace.
+ * @brief The async_jacobi solver namespace.
  *
- * @ingroup async_richardson
+ * @ingroup async_jacobi
  */
-namespace async_richardson {
+namespace async_jacobi {
 
 
 template <typename ValueType, typename IndexType>
@@ -60,10 +60,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL);
+    GKO_DECLARE_ASYNC_JACOBI_APPLY_KERNEL);
 
 
-}  // namespace async_richardson
-}  // namespace reference
+}  // namespace async_jacobi
+}  // namespace dpcpp
 }  // namespace kernels
 }  // namespace gko

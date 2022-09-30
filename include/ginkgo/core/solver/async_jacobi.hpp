@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_ASYNC_RICHARDSON_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_ASYNC_RICHARDSON_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_ASYNC_JACOBI_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_ASYNC_JACOBI_HPP_
 
 
 #include <string>
@@ -54,10 +54,10 @@ namespace solver {
 
 
 /**
- * Iterative refinement (ASYNC_RICHARDSON) is an iterative method that uses
+ * Iterative refinement (ASYNC_JACOBI) is an iterative method that uses
  * another coarse method to approximate the error of the current solution via
  * the current residual. Moreover, it can be also considered as preconditioned
- * Richardson iteration with relaxation factor = 1.
+ * Jacobi iteration with relaxation factor = 1.
  *
  * For any approximation of the solution `solution` to the system `Ax = b`, the
  * residual is defined as: `residual = b - A solution`. The error in
@@ -67,7 +67,7 @@ namespace solver {
  * computed as `x = relaxation_factor * solution + e`. Instead of accurately
  * solving the residual equation `Ae = residual`, the solution of the system `e`
  * can be approximated to obtain the approximation `error` using a coarse method
- * `solver`, which is used to update `solution`, and the entasync_richardsone
+ * `solver`, which is used to update `solution`, and the entasync_jacobie
  * process is repeated with the updated `solution`.  This yields the iterative
  * refinement method:
  *
@@ -81,7 +81,7 @@ namespace solver {
  *
  * With `relaxation_factor` equal to 1 (default), the solver is Iterative
  * Refinement, with `relaxation_factor` equal to a value other than `1`, the
- * solver is a Richardson iteration, with possibility for additional
+ * solver is a Jacobi iteration, with possibility for additional
  * preconditioning.
  *
  * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
@@ -94,7 +94,7 @@ namespace solver {
  * Unless otherwise specified via the `solver` factory parameter, this
  * implementation uses the identity operator (i.e. the solver that approximates
  * the solution of a system Ax = b by setting x := b) as the default inner
- * solver. Such a setting results in a relaxation method known as the Richardson
+ * solver. Such a setting results in a relaxation method known as the Jacobi
  * iteration with parameter 1, which is guaranteed to converge for matrices
  * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
  * its eigenvalues `lambda` have to satisfy the equation `|relaxation_factor *
@@ -107,18 +107,18 @@ namespace solver {
  */
 template <typename ValueType = default_precision,
           typename IndexType = gko::int32>
-class AsyncRichardson
-    : public EnableLinOp<AsyncRichardson<ValueType, IndexType>>,
-      public EnableSolverBase<AsyncRichardson<ValueType, IndexType>>,
-      public EnableIterativeBase<AsyncRichardson<ValueType, IndexType>>,
+class AsyncJacobi
+    : public EnableLinOp<AsyncJacobi<ValueType, IndexType>>,
+      public EnableSolverBase<AsyncJacobi<ValueType, IndexType>>,
+      public EnableIterativeBase<AsyncJacobi<ValueType, IndexType>>,
       public Transposable {
-    friend class EnableLinOp<AsyncRichardson>;
-    friend class EnablePolymorphicObject<AsyncRichardson, LinOp>;
+    friend class EnableLinOp<AsyncJacobi>;
+    friend class EnablePolymorphicObject<AsyncJacobi, LinOp>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
-    using transposed_type = AsyncRichardson<ValueType, IndexType>;
+    using transposed_type = AsyncJacobi<ValueType, IndexType>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -132,35 +132,35 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
     /**
-     * Copy-assigns an ASYNC_RICHARDSON solver. Preserves the executor,
+     * Copy-assigns an ASYNC_JACOBI solver. Preserves the executor,
      * shallow-copies inner solver, stopping criterion and system matrix. If the
      * executors mismatch, clones inner solver, stopping criterion and system
      * matrix onto this executor.
      */
-    AsyncRichardson& operator=(const AsyncRichardson&);
+    AsyncJacobi& operator=(const AsyncJacobi&);
 
     /**
-     * Move-assigns an ASYNC_RICHARDSON solver. Preserves the executor, moves
+     * Move-assigns an ASYNC_JACOBI solver. Preserves the executor, moves
      * inner solver, stopping criterion and system matrix. If the executors
      * mismatch, clones inner solver, stopping criterion and system matrix onto
      * this executor. The moved-from object is empty (0x0 and nullptr inner
      * solver, stopping criterion and system matrix)
      */
-    AsyncRichardson& operator=(AsyncRichardson&&);
+    AsyncJacobi& operator=(AsyncJacobi&&);
 
     /**
-     * Copy-constructs an ASYNC_RICHARDSON solver. Inherits the executor,
+     * Copy-constructs an ASYNC_JACOBI solver. Inherits the executor,
      * shallow-copies inner solver, stopping criterion and system matrix.
      */
-    AsyncRichardson(const AsyncRichardson&);
+    AsyncJacobi(const AsyncJacobi&);
 
     /**
-     * Move-constructs an ASYNC_RICHARDSON solver. Preserves the executor, moves
+     * Move-constructs an ASYNC_JACOBI solver. Preserves the executor, moves
      * inner solver, stopping criterion and system matrix. The moved-from object
      * is empty (0x0 and nullptr inner solver, stopping criterion and system
      * matrix)
      */
-    AsyncRichardson(AsyncRichardson&&);
+    AsyncJacobi(AsyncJacobi&&);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -171,7 +171,7 @@ public:
             GKO_FACTORY_PARAMETER_VECTOR(criteria, nullptr);
 
         /**
-         * Relaxation factor for Richardson iteration
+         * Relaxation factor for Jacobi iteration
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor,
                                                value_type{1});
@@ -179,7 +179,7 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(max_iters, 100);
 
         /**
-         * Second factor for Richardson iteration
+         * Second factor for Jacobi iteration
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(second_factor, value_type{0});
 
@@ -194,7 +194,7 @@ public:
          */
         std::string GKO_FACTORY_PARAMETER_SCALAR(check, std::string("normal"));
     };
-    GKO_ENABLE_LIN_OP_FACTORY(AsyncRichardson, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(AsyncJacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -209,17 +209,16 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit AsyncRichardson(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AsyncRichardson>(std::move(exec))
+    explicit AsyncJacobi(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<AsyncJacobi>(std::move(exec))
     {}
 
-    explicit AsyncRichardson(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<AsyncRichardson>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<AsyncRichardson>{std::move(system_matrix)},
-          EnableIterativeBase<AsyncRichardson>{
+    explicit AsyncJacobi(const Factory* factory,
+                         std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<AsyncJacobi>(factory->get_executor(),
+                                   gko::transpose(system_matrix->get_size())),
+          EnableSolverBase<AsyncJacobi>{std::move(system_matrix)},
+          EnableIterativeBase<AsyncJacobi>{
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {
@@ -237,8 +236,8 @@ private:
 
 
 template <typename ValueType, typename IndexType>
-struct workspace_traits<AsyncRichardson<ValueType, IndexType>> {
-    using Solver = AsyncRichardson<ValueType, IndexType>;
+struct workspace_traits<AsyncJacobi<ValueType, IndexType>> {
+    using Solver = AsyncJacobi<ValueType, IndexType>;
     // number of vectors used by this workspace
     static int num_vectors(const Solver&);
     // number of arrays used by this workspace
@@ -270,4 +269,4 @@ struct workspace_traits<AsyncRichardson<ValueType, IndexType>> {
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_ASYNC_RICHARDSON_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_ASYNC_JACOBI_HPP_

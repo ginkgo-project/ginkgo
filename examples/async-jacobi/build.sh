@@ -11,6 +11,6 @@ THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 source ${THIS_DIR}/../build-setup.sh
 
 # build
-${CXX} -std=c++14 -o ${THIS_DIR}/simple-solver ${THIS_DIR}/simple-solver.cpp \
+${CXX} -std=c++14 -o ${THIS_DIR}/async-jacobi ${THIS_DIR}/async-jacobi.cpp \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
        -L${THIS_DIR} ${LINK_FLAGS}

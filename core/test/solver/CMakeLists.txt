@@ -1,4 +1,4 @@
-ginkgo_create_test(async_richardson)
+ginkgo_create_test(async_jacobi)
 ginkgo_create_test(batch_bicgstab)
 ginkgo_create_test(bicg)
 ginkgo_create_test(bicgstab)

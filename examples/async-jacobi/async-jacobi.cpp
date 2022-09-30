@@ -194,8 +194,8 @@ int main(int argc, char* argv[])
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using async_solver = gko::solver::AsyncRichardson<ValueType>;
-    using normal_solver = gko::solver::Richardson<ValueType>;
+    using async_solver = gko::solver::AsyncJacobi<ValueType>;
+    using normal_solver = gko::solver::Ir<ValueType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
         folder_string = argv[6];
     }
 
-    std::cout << "Perform " << type_string << " richardson on "
+    std::cout << "Perform " << type_string << " iteration on "
               << executor_string << std::endl;
     if (check_string != "normal_3d") {
         std::cout << "Problem size " << problem_size << " dim "
