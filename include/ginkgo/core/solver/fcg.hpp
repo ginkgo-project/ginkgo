@@ -81,7 +81,7 @@ class Fcg
       public EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Fcg>;
-    friend class polymorphic_object_traits<Fcg>;
+    friend struct polymorphic_object_traits<Fcg>;
 
 public:
     using value_type = ValueType;

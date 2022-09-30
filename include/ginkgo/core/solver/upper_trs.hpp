@@ -86,7 +86,7 @@ class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
                                          matrix::Csr<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableLinOp<UpperTrs>;
-    friend class polymorphic_object_traits<UpperTrs>;
+    friend struct polymorphic_object_traits<UpperTrs>;
     friend class LowerTrs<ValueType, IndexType>;
 
 public:
