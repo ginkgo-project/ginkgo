@@ -115,7 +115,7 @@ class Ilu : public EnableLinOp<
                 Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
             public Transposable {
     friend class EnableLinOp<Ilu>;
-    friend class polymorphic_object_traits<Ilu>;
+    friend struct polymorphic_object_traits<Ilu>;
 
 public:
     static_assert(
