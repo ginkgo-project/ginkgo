@@ -66,6 +66,7 @@ namespace kernels {
 #define GKO_DECLARE_BATCH_ILU_APPLY_KERNEL(ValueType, IndexType)            \
     void apply_ilu(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::BatchCsr<ValueType, IndexType>* sys_mat,              \
         const matrix::BatchCsr<ValueType, IndexType>* factored_matrix,      \
         const IndexType* diag_locs, const matrix::BatchDense<ValueType>* r, \
         matrix::BatchDense<ValueType>* z)

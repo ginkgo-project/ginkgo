@@ -289,8 +289,8 @@ TYPED_TEST(BatchIlu, ExactIluApplyToSingleVectorIsEquivalentToUnbatched)
     const auto factorized_sys_csr = prec->get_const_factorized_matrix();
     const auto diag_locs = prec->get_const_diag_locations();
 
-    gko::kernels::reference::batch_ilu::apply_ilu(exec, factorized_sys_csr,
-                                                  diag_locs, b.get(), x.get());
+    gko::kernels::reference::batch_ilu::apply_ilu(
+        exec, this->mtx.get(), factorized_sys_csr, diag_locs, b.get(), x.get());
 
     auto xs = x->unbatch();
     for (size_t i = 0; i < umtxs.size(); i++) {
@@ -397,8 +397,8 @@ TYPED_TEST(BatchIlu, ParIluApplyToSingleVectorIsEquivalentToUnbatched)
     const auto factorized_sys_csr = prec->get_const_factorized_matrix();
     const auto diag_locs = prec->get_const_diag_locations();
 
-    gko::kernels::reference::batch_ilu::apply_ilu(exec, factorized_sys_csr,
-                                                  diag_locs, b.get(), x.get());
+    gko::kernels::reference::batch_ilu::apply_ilu(
+        exec, this->mtx.get(), factorized_sys_csr, diag_locs, b.get(), x.get());
 
     auto xs = x->unbatch();
     for (size_t i = 0; i < umtxs.size(); i++) {
