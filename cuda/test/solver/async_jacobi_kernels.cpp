@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/async_richardson.hpp>
+#include <ginkgo/core/solver/async_jacobi.hpp>
 
 
 #include <random>
@@ -51,20 +51,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/solver/async_richardson_kernels.hpp"
+#include "core/solver/async_jacobi_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class AsyncRichardson : public ::testing::Test {
+class AsyncJacobi : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::AsyncRichardson<>;
+    using Solver = gko::solver::AsyncJacobi<>;
     using Csr = gko::matrix::Csr<>;
 
-    AsyncRichardson() : rand_engine(77) {}
+    AsyncJacobi() : rand_engine(77) {}
 
     void SetUp()
     {
@@ -193,8 +193,8 @@ protected:
     // std::shared_ptr<Mtx> d_mtx;
     std::shared_ptr<Csr> csr;
     std::shared_ptr<Csr> d_csr;
-    std::unique_ptr<Solver::Factory> cuda_async_richardson_factory;
-    std::unique_ptr<Solver::Factory> ref_async_richardson_factory;
+    std::unique_ptr<Solver::Factory> cuda_async_jacobi_factory;
+    std::unique_ptr<Solver::Factory> ref_async_jacobi_factory;
 
     gko::size_type nrhs;
 
@@ -206,7 +206,7 @@ protected:
 };
 
 
-TEST_F(AsyncRichardson, AsyncRichardsonApplySolve)
+TEST_F(AsyncJacobi, AsyncJacobiApplySolve)
 {
     initialize_data(100, 1);
     auto neg_one = gko::initialize<Mtx>({-1.0}, cuda);
@@ -249,14 +249,14 @@ TEST_F(AsyncRichardson, AsyncRichardsonApplySolve)
                   << " rel: " << norm / initial_norm << std::endl;
     }
 
-    cuda_async_richardson_factory =
+    cuda_async_jacobi_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cuda))
             .with_relaxation_factor(1)
             .with_second_factor(0.9)
             .on(cuda);
-    auto cuda_solver = cuda_async_richardson_factory->generate(d_csr);
+    auto cuda_solver = cuda_async_jacobi_factory->generate(d_csr);
 
     cuda_solver->apply(d_b.get(), d_x.get());
     auto d_clone = gko::clone(cuda, d_b);

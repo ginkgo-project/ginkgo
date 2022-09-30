@@ -61,7 +61,7 @@ target_sources(ginkgo_dpcpp
     preconditioner/jacobi_simple_apply_kernel.dp.cpp
     preconditioner/sor_kernels.dp.cpp
     reorder/rcm_kernels.dp.cpp
-    solver/async_richardson_kernels.dp.cpp
+    solver/async_jacobi_kernels.dp.cpp
     solver/batch_bicgstab_kernels.dp.cpp
     ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.dp.cpp

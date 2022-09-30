@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_ASYNC_RICHARDSON_KERNELS_HPP_
-#define GKO_CORE_SOLVER_ASYNC_RICHARDSON_KERNELS_HPP_
+#ifndef GKO_CORE_SOLVER_ASYNC_JACOBI_KERNELS_HPP_
+#define GKO_CORE_SOLVER_ASYNC_JACOBI_KERNELS_HPP_
 
 
 #include <memory>
@@ -51,27 +51,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace async_richardson {
+namespace async_jacobi {
 
 
-#define GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL(ValueType, IndexType) \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,             \
-               const std::string& check, int max_iters,                 \
-               const matrix::Dense<ValueType>* relaxation_factor,       \
-               const matrix::Dense<ValueType>* second_factor,           \
-               const matrix::Csr<ValueType, IndexType>* a,              \
+#define GKO_DECLARE_ASYNC_JACOBI_APPLY_KERNEL(ValueType, IndexType) \
+    void apply(std::shared_ptr<const DefaultExecutor> exec,         \
+               const std::string& check, int max_iters,             \
+               const matrix::Dense<ValueType>* relaxation_factor,   \
+               const matrix::Dense<ValueType>* second_factor,       \
+               const matrix::Csr<ValueType, IndexType>* a,          \
                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ASYNC_JACOBI_APPLY_KERNEL(ValueType, IndexType)
 
 
-}  // namespace async_richardson
+}  // namespace async_jacobi
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(async_richardson,
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(async_jacobi,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
@@ -82,4 +82,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(async_richardson,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_ASYNC_RICHARDSON_KERNELS_HPP_
+#endif  // GKO_CORE_SOLVER_ASYNC_JACOBI_KERNELS_HPP_

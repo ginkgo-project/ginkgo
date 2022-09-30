@@ -19,7 +19,7 @@ set(GINKGO_HIP_SOURCES
     ${CSR_INSTANTIATE}
     ${FBCSR_INSTANTIATE}
     preconditioner/batch_jacobi_kernels.hip.cpp
-    solver/async_richardson_kernels.hip.cpp
+    solver/async_jacobi_kernels.hip.cpp
     solver/batch_bicgstab_kernels.hip.cpp
     ${BATCH_BICGSTAB_INSTANTIATE}
     solver/batch_cg_kernels.hip.cpp

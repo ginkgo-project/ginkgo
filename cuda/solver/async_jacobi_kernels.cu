@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/async_richardson_kernels.hpp"
+#include "core/solver/async_jacobi_kernels.hpp"
 
 
 #include <ginkgo/core/matrix/csr.hpp>
@@ -48,11 +48,11 @@ namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The async_richardson solver namespace.
+ * @brief The async_jacobi solver namespace.
  *
- * @ingroup async_richardson
+ * @ingroup async_jacobi
  */
-namespace async_richardson {
+namespace async_jacobi {
 
 
 constexpr int default_block_size = 4 * config::warp_size;
@@ -70,10 +70,10 @@ constexpr int default_block_size = 4 * config::warp_size;
 
 #if USE_DYNAMIC
 // This is for dynamic implementation
-#include "common/cuda_hip/solver/async_richardson_kernels.hpp.inc"
+#include "common/cuda_hip/solver/async_jacobi_kernels.hpp.inc"
 #else
 // This is for static implementation
-#include "common/cuda_hip/solver/async_richardson_kernels_static.hpp.inc"
+#include "common/cuda_hip/solver/async_jacobi_kernels_static.hpp.inc"
 #endif
 
 
@@ -131,10 +131,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_RICHARDSON_APPLY_KERNEL);
+    GKO_DECLARE_ASYNC_JACOBI_APPLY_KERNEL);
 
 
-}  // namespace async_richardson
+}  // namespace async_jacobi
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

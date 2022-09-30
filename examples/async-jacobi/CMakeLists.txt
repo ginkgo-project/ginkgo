@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.9)
-project(richardson)
+project(async-jacobi)
 
 # We only need to find Ginkgo if we build this example stand-alone
 if (NOT GINKGO_BUILD_EXAMPLES)
     find_package(Ginkgo 1.5.0 REQUIRED)
 endif()
 
-add_executable(richardson richardson.cpp)
-target_link_libraries(richardson Ginkgo::ginkgo)
+add_executable(async-jacobi async-jacobi.cpp)
+target_link_libraries(async-jacobi Ginkgo::ginkgo)
 

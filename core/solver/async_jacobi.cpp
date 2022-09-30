@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/async_richardson.hpp>
+#include <ginkgo/core/solver/async_jacobi.hpp>
 
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -39,25 +39,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
-#include "core/solver/async_richardson_kernels.hpp"
+#include "core/solver/async_jacobi_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
 namespace gko {
 namespace solver {
-namespace async_richardson {
+namespace async_jacobi {
 namespace {
 
 
-GKO_REGISTER_OPERATION(apply, async_richardson::apply);
+GKO_REGISTER_OPERATION(apply, async_jacobi::apply);
 
 
 }  // anonymous namespace
-}  // namespace async_richardson
+}  // namespace async_jacobi
 
 
 template <typename ValueType, typename IndexType>
-void AsyncRichardson<ValueType, IndexType>::set_relaxation_factor(
+void AsyncJacobi<ValueType, IndexType>::set_relaxation_factor(
     std::shared_ptr<const matrix::Dense<ValueType>> new_factor)
 {
     auto exec = this->get_executor();
@@ -69,13 +69,13 @@ void AsyncRichardson<ValueType, IndexType>::set_relaxation_factor(
 
 
 template <typename ValueType, typename IndexType>
-AsyncRichardson<ValueType, IndexType>&
-AsyncRichardson<ValueType, IndexType>::operator=(const AsyncRichardson& other)
+AsyncJacobi<ValueType, IndexType>& AsyncJacobi<ValueType, IndexType>::operator=(
+    const AsyncJacobi& other)
 {
     if (&other != this) {
-        EnableLinOp<AsyncRichardson>::operator=(other);
-        EnableSolverBase<AsyncRichardson>::operator=(other);
-        EnableIterativeBase<AsyncRichardson>::operator=(other);
+        EnableLinOp<AsyncJacobi>::operator=(other);
+        EnableSolverBase<AsyncJacobi>::operator=(other);
+        EnableIterativeBase<AsyncJacobi>::operator=(other);
         this->set_relaxation_factor(other.relaxation_factor_);
         parameters_ = other.parameters_;
     }
@@ -84,13 +84,13 @@ AsyncRichardson<ValueType, IndexType>::operator=(const AsyncRichardson& other)
 
 
 template <typename ValueType, typename IndexType>
-AsyncRichardson<ValueType, IndexType>&
-AsyncRichardson<ValueType, IndexType>::operator=(AsyncRichardson&& other)
+AsyncJacobi<ValueType, IndexType>& AsyncJacobi<ValueType, IndexType>::operator=(
+    AsyncJacobi&& other)
 {
     if (&other != this) {
-        EnableLinOp<AsyncRichardson>::operator=(std::move(other));
-        EnableSolverBase<AsyncRichardson>::operator=(std::move(other));
-        EnableIterativeBase<AsyncRichardson>::operator=(std::move(other));
+        EnableLinOp<AsyncJacobi>::operator=(std::move(other));
+        EnableSolverBase<AsyncJacobi>::operator=(std::move(other));
+        EnableIterativeBase<AsyncJacobi>::operator=(std::move(other));
         this->set_relaxation_factor(other.relaxation_factor_);
         other.set_relaxation_factor(nullptr);
         parameters_ = other.parameters_;
@@ -100,24 +100,23 @@ AsyncRichardson<ValueType, IndexType>::operator=(AsyncRichardson&& other)
 
 
 template <typename ValueType, typename IndexType>
-AsyncRichardson<ValueType, IndexType>::AsyncRichardson(
-    const AsyncRichardson& other)
-    : AsyncRichardson(other.get_executor())
+AsyncJacobi<ValueType, IndexType>::AsyncJacobi(const AsyncJacobi& other)
+    : AsyncJacobi(other.get_executor())
 {
     *this = other;
 }
 
 
 template <typename ValueType, typename IndexType>
-AsyncRichardson<ValueType, IndexType>::AsyncRichardson(AsyncRichardson&& other)
-    : AsyncRichardson(other.get_executor())
+AsyncJacobi<ValueType, IndexType>::AsyncJacobi(AsyncJacobi&& other)
+    : AsyncJacobi(other.get_executor())
 {
     *this = std::move(other);
 }
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> AsyncRichardson<ValueType, IndexType>::transpose() const
+std::unique_ptr<LinOp> AsyncJacobi<ValueType, IndexType>::transpose() const
 {
     return build()
         .with_criteria(this->get_stop_criterion_factory())
@@ -129,8 +128,7 @@ std::unique_ptr<LinOp> AsyncRichardson<ValueType, IndexType>::transpose() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> AsyncRichardson<ValueType, IndexType>::conj_transpose()
-    const
+std::unique_ptr<LinOp> AsyncJacobi<ValueType, IndexType>::conj_transpose() const
 {
     return build()
         .with_criteria(this->get_stop_criterion_factory())
@@ -142,8 +140,8 @@ std::unique_ptr<LinOp> AsyncRichardson<ValueType, IndexType>::conj_transpose()
 
 
 template <typename ValueType, typename IndexType>
-void AsyncRichardson<ValueType, IndexType>::apply_impl(const LinOp* b,
-                                                       LinOp* x) const
+void AsyncJacobi<ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                   LinOp* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -157,12 +155,12 @@ void AsyncRichardson<ValueType, IndexType>::apply_impl(const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
-void AsyncRichardson<ValueType, IndexType>::apply_dense_impl(
+void AsyncJacobi<ValueType, IndexType>::apply_dense_impl(
     const matrix::Dense<ValueType>* dense_b,
     matrix::Dense<ValueType>* dense_x) const
 {
     using Vector = matrix::Dense<ValueType>;
-    using ws = workspace_traits<AsyncRichardson>;
+    using ws = workspace_traits<AsyncJacobi>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     constexpr uint8 relative_stopping_id{1};
 
@@ -174,7 +172,7 @@ void AsyncRichardson<ValueType, IndexType>::apply_dense_impl(
     GKO_SOLVER_VECTOR(inner_solution, dense_b);
 
     GKO_SOLVER_ONE_MINUS_ONE();
-    exec->run(async_richardson::make_apply(
+    exec->run(async_jacobi::make_apply(
         this->get_parameters().check, this->get_parameters().max_iters,
         relaxation_factor_.get(), second_factor_.get(),
         as<Csr>(this->get_system_matrix().get()), dense_b, dense_x));
@@ -182,10 +180,10 @@ void AsyncRichardson<ValueType, IndexType>::apply_dense_impl(
 
 
 template <typename ValueType, typename IndexType>
-void AsyncRichardson<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                                       const LinOp* b,
-                                                       const LinOp* beta,
-                                                       LinOp* x) const
+void AsyncJacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                   const LinOp* b,
+                                                   const LinOp* beta,
+                                                   LinOp* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -202,7 +200,7 @@ void AsyncRichardson<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 template <typename ValueType, typename IndexType>
-int workspace_traits<AsyncRichardson<ValueType, IndexType>>::num_arrays(
+int workspace_traits<AsyncJacobi<ValueType, IndexType>>::num_arrays(
     const Solver&)
 {
     return 1;
@@ -210,7 +208,7 @@ int workspace_traits<AsyncRichardson<ValueType, IndexType>>::num_arrays(
 
 
 template <typename ValueType, typename IndexType>
-int workspace_traits<AsyncRichardson<ValueType, IndexType>>::num_vectors(
+int workspace_traits<AsyncJacobi<ValueType, IndexType>>::num_vectors(
     const Solver&)
 {
     return 4;
@@ -219,7 +217,7 @@ int workspace_traits<AsyncRichardson<ValueType, IndexType>>::num_vectors(
 
 template <typename ValueType, typename IndexType>
 std::vector<std::string>
-workspace_traits<AsyncRichardson<ValueType, IndexType>>::op_names(const Solver&)
+workspace_traits<AsyncJacobi<ValueType, IndexType>>::op_names(const Solver&)
 {
     return {
         "residual",
@@ -232,36 +230,34 @@ workspace_traits<AsyncRichardson<ValueType, IndexType>>::op_names(const Solver&)
 
 template <typename ValueType, typename IndexType>
 std::vector<std::string>
-workspace_traits<AsyncRichardson<ValueType, IndexType>>::array_names(
-    const Solver&)
+workspace_traits<AsyncJacobi<ValueType, IndexType>>::array_names(const Solver&)
 {
     return {"stop"};
 }
 
 
 template <typename ValueType, typename IndexType>
-std::vector<int>
-workspace_traits<AsyncRichardson<ValueType, IndexType>>::scalars(const Solver&)
+std::vector<int> workspace_traits<AsyncJacobi<ValueType, IndexType>>::scalars(
+    const Solver&)
 {
     return {};
 }
 
 
 template <typename ValueType, typename IndexType>
-std::vector<int>
-workspace_traits<AsyncRichardson<ValueType, IndexType>>::vectors(const Solver&)
+std::vector<int> workspace_traits<AsyncJacobi<ValueType, IndexType>>::vectors(
+    const Solver&)
 {
     return {residual, inner_solution};
 }
 
 
-#define GKO_DECLARE_ASYNC_RICHARDSON(_vtype, _itype) \
-    class AsyncRichardson<_vtype, _itype>
-#define GKO_DECLARE_ASYNC_RICHARDSON_TRAITS(_vtype, _itype) \
-    struct workspace_traits<AsyncRichardson<_vtype, _itype>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_RICHARDSON);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ASYNC_RICHARDSON_TRAITS);
+#define GKO_DECLARE_ASYNC_JACOBI(_vtype, _itype) \
+    class AsyncJacobi<_vtype, _itype>
+#define GKO_DECLARE_ASYNC_JACOBI_TRAITS(_vtype, _itype) \
+    struct workspace_traits<AsyncJacobi<_vtype, _itype>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_JACOBI);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ASYNC_JACOBI_TRAITS);
 
 
 }  // namespace solver

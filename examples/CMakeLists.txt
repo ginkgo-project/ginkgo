@@ -19,6 +19,7 @@ set(EXAMPLES_EXEC_LIST
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
+    async-jacobi
     custom-stopping-criterion
     file-config-solver
     ginkgo-overhead
@@ -32,7 +33,6 @@ set(EXAMPLES_LIST
     performance-debugging
     preconditioner-export
     reordered-preconditioned-solver
-    richardson
     simple-solver-logging)
 
 if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)

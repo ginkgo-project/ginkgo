@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/async_richardson.hpp>
+#include <ginkgo/core/solver/async_jacobi.hpp>
 
 
 #include <typeinfo>
@@ -53,17 +53,17 @@ namespace {
 
 
 template <typename T>
-class AsyncRichardson : public ::testing::Test {
+class AsyncJacobi : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
-    using Solver = gko::solver::AsyncRichardson<value_type>;
+    using Solver = gko::solver::AsyncJacobi<value_type>;
 
-    AsyncRichardson()
+    AsyncJacobi()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          async_richardson_factory(
+          async_jacobi_factory(
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
@@ -71,12 +71,12 @@ protected:
                           .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
-          solver(async_richardson_factory->generate(mtx))
+          solver(async_jacobi_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<typename Solver::Factory> async_richardson_factory;
+    std::shared_ptr<typename Solver::Factory> async_jacobi_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx* m1, const Mtx* m2)
@@ -91,16 +91,16 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(AsyncRichardson, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(AsyncJacobi, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(AsyncRichardson, AsyncRichardsonFactoryKnowsItsExecutor)
+TYPED_TEST(AsyncJacobi, AsyncJacobiFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->async_richardson_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->async_jacobi_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(AsyncRichardson, AsyncRichardsonFactoryCreatesCorrectSolver)
+TYPED_TEST(AsyncJacobi, AsyncJacobiFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
@@ -110,12 +110,11 @@ TYPED_TEST(AsyncRichardson, AsyncRichardsonFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(AsyncRichardson, CanBeCopied)
+TYPED_TEST(AsyncJacobi, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto copy =
-        this->async_richardson_factory->generate(Mtx::create(this->exec));
+    auto copy = this->async_jacobi_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(this->solver.get());
 
@@ -126,12 +125,11 @@ TYPED_TEST(AsyncRichardson, CanBeCopied)
 }
 
 
-TYPED_TEST(AsyncRichardson, CanBeMoved)
+TYPED_TEST(AsyncJacobi, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
-    auto copy =
-        this->async_richardson_factory->generate(Mtx::create(this->exec));
+    auto copy = this->async_jacobi_factory->generate(Mtx::create(this->exec));
 
     copy->copy_from(std::move(this->solver));
 
@@ -142,7 +140,7 @@ TYPED_TEST(AsyncRichardson, CanBeMoved)
 }
 
 
-TYPED_TEST(AsyncRichardson, CanBeCloned)
+TYPED_TEST(AsyncJacobi, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
@@ -155,7 +153,7 @@ TYPED_TEST(AsyncRichardson, CanBeCloned)
 }
 
 
-TYPED_TEST(AsyncRichardson, CanBeCleared)
+TYPED_TEST(AsyncJacobi, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
     this->solver->clear();
@@ -167,24 +165,24 @@ TYPED_TEST(AsyncRichardson, CanBeCleared)
 }
 
 
-TYPED_TEST(AsyncRichardson, ApplyUsesInitialGuessReturnsTrue)
+TYPED_TEST(AsyncJacobi, ApplyUsesInitialGuessReturnsTrue)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
 
 
-TYPED_TEST(AsyncRichardson, CanSetCriteriaAgain)
+TYPED_TEST(AsyncJacobi, CanSetCriteriaAgain)
 {
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<gko::stop::CriterionFactory> init_crit =
         gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
-    auto async_richardson_factory =
+    auto async_jacobi_factory =
         Solver::build().with_criteria(init_crit).on(this->exec);
 
-    ASSERT_EQ((async_richardson_factory->get_parameters().criteria).back(),
+    ASSERT_EQ((async_jacobi_factory->get_parameters().criteria).back(),
               init_crit);
 
-    auto solver = async_richardson_factory->generate(this->mtx);
+    auto solver = async_jacobi_factory->generate(this->mtx);
     std::shared_ptr<gko::stop::CriterionFactory> new_crit =
         gko::stop::Iteration::build().with_max_iters(5u).on(this->exec);
 
@@ -199,25 +197,25 @@ TYPED_TEST(AsyncRichardson, CanSetCriteriaAgain)
 }
 
 
-TYPED_TEST(AsyncRichardson, ThrowsOnRectangularMatrixInFactory)
+TYPED_TEST(AsyncJacobi, ThrowsOnRectangularMatrixInFactory)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
     std::shared_ptr<Mtx> rectangular_mtx =
         Mtx::create(this->exec, gko::dim<2>{1, 2});
 
-    ASSERT_THROW(this->async_richardson_factory->generate(rectangular_mtx),
+    ASSERT_THROW(this->async_jacobi_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
 }
 
 
-TYPED_TEST(AsyncRichardson, DefaultRelaxationFactor)
+TYPED_TEST(AsyncJacobi, DefaultRelaxationFactor)
 {
     using value_type = typename TestFixture::value_type;
     const value_type relaxation_factor{0.5};
 
-    auto richardson =
-        gko::solver::AsyncRichardson<value_type>::build()
+    auto jacobi =
+        gko::solver::AsyncJacobi<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
                 gko::stop::ResidualNorm<value_type>::build()
@@ -226,17 +224,17 @@ TYPED_TEST(AsyncRichardson, DefaultRelaxationFactor)
             .on(this->exec)
             ->generate(this->mtx);
 
-    ASSERT_EQ(richardson->get_parameters().relaxation_factor, value_type{1});
+    ASSERT_EQ(jacobi->get_parameters().relaxation_factor, value_type{1});
 }
 
 
-TYPED_TEST(AsyncRichardson, UseAsRichardson)
+TYPED_TEST(AsyncJacobi, UseAsJacobi)
 {
     using value_type = typename TestFixture::value_type;
     const value_type relaxation_factor{0.5};
 
-    auto richardson =
-        gko::solver::AsyncRichardson<value_type>::build()
+    auto jacobi =
+        gko::solver::AsyncJacobi<value_type>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
                 gko::stop::ResidualNorm<value_type>::build()
@@ -246,7 +244,7 @@ TYPED_TEST(AsyncRichardson, UseAsRichardson)
             .on(this->exec)
             ->generate(this->mtx);
 
-    ASSERT_EQ(richardson->get_parameters().relaxation_factor, value_type{0.5});
+    ASSERT_EQ(jacobi->get_parameters().relaxation_factor, value_type{0.5});
 }
 
 
