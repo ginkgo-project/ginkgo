@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "core/factorization/factorization_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
 
@@ -133,11 +134,12 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto is_lower = IsaiType == isai_type::lower;
     auto is_general = IsaiType == isai_type::general;
     auto is_spd = IsaiType == isai_type::spd;
-    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
+    auto to_invert =
+        gko::share(convert_to_with_sorting<Csr>(exec, input, skip_sorting));
     auto num_rows = to_invert->get_size()[0];
     std::shared_ptr<Csr> inverted;
     if (!is_spd) {
-        inverted = extend_sparsity(exec, to_invert, power);
+        inverted = gko::matrix::extend_sparsity(exec, to_invert, power);
     } else {
         // Extract lower triangular part: compute non-zeros
         array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
@@ -159,9 +161,13 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
                                           false));
 
-        inverted = power == 1
-                       ? std::move(inverted_base)
-                       : extend_sparsity<Csr>(exec, inverted_base, power);
+        std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>>
+            inverted_base_const =
+                inverted_base;  // workaround to deal with argument type
+                                // deduction failure
+        inverted = power == 1 ? std::move(inverted_base)
+                              : gko::matrix::extend_sparsity(
+                                    exec, inverted_base_const, power);
     }
 
     // This stores the beginning of the RHS for the sparse block associated with
@@ -266,8 +272,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-Isai<IsaiType, ValueType, IndexType>&
-Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
+Isai<IsaiType, ValueType, IndexType>& Isai<IsaiType, ValueType, IndexType>::
+operator=(const Isai& other)
 {
     if (&other != this) {
         EnableLinOp<Isai>::operator=(other);
@@ -284,8 +290,8 @@ Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-Isai<IsaiType, ValueType, IndexType>&
-Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
+Isai<IsaiType, ValueType, IndexType>& Isai<IsaiType, ValueType, IndexType>::
+operator=(Isai&& other)
 {
     if (&other != this) {
         EnableLinOp<Isai>::operator=(std::move(other));

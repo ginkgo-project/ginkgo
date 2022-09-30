@@ -1,5 +1,6 @@
+ginkgo_create_test(batch_ilu)
+ginkgo_create_test(batch_isai)
 ginkgo_create_test(ic)
 ginkgo_create_test(ilu)
 ginkgo_create_test(isai)
 ginkgo_create_test(jacobi)
-ginkgo_create_test(batch_ilu)
