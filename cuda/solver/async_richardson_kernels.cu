@@ -57,11 +57,15 @@ namespace async_richardson {
 
 constexpr int default_block_size = 4 * config::warp_size;
 
+#define NOSYNC static_assert(true, "avoid semi-colon warning")
+
 // Choose for different configuration
 #define USE_DYNAMIC 1
 #define DYNAMIC_OSCB 4
-#define STATIC_SUBWARP_SIZE 1
+#define SUBWARP_SIZE 1
 #define USE_THREADFENCE 1
+#define APPLY_SYNC NOSYNC
+// APPLY_SYNC can use __syncwarp(), __syncthreads(), or NOSYNC
 
 
 #if USE_DYNAMIC
@@ -83,7 +87,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 {
 #if USE_DYNAMIC
     int oscb = DYNAMIC_OSCB;
-    constexpr int subwarp_size = 1;
+    constexpr int subwarp_size = SUBWARP_SIZE;
     int v100 = 80 * oscb;  // V100 contains 80 SM
     auto num_subwarp = v100 * default_block_size / subwarp_size;
     int gridx = v100;
@@ -91,7 +95,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         gridx = a->get_size()[0] * subwarp_size / default_block_size;
     }
 #else
-    constexpr int subwarp_size = STATIC_SUBWARP_SIZE;
+    constexpr int subwarp_size = SUBWARP_SIZE;
     int gridx = ceildiv(a->get_size()[0], default_block_size / subwarp_size);
 #endif
     dim3 grid(gridx, b->get_size()[1]);
@@ -124,13 +128,6 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(c->get_values()), c->get_stride());
     }
-    // second_subwarp_apply<subwarp_size><<<grid, default_block_size>>>(
-    //     max_iters, a->get_size()[0], as_cuda_type(a->get_const_values()),
-    //     a->get_const_col_idxs(), a->get_const_row_ptrs(),
-    //     as_cuda_type(relaxation_factor->get_const_values()),
-    //     as_cuda_type(second_factor->get_const_values()),
-    //     as_cuda_type(b->get_const_values()), b->get_stride(),
-    //     as_cuda_type(c->get_values()), c->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
