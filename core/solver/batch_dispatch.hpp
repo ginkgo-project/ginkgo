@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/log/batch_logging.hpp"
+#include "ginkgo/core/matrix/batch_identity.hpp"
 
 
 #if defined GKO_COMPILING_CUDA
@@ -195,7 +196,9 @@ public:
         const gko::batch_dense::UniformBatch<const device_value_type>& b_b,
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
-        if (!precon_) {
+        if (!precon_ ||
+            dynamic_cast<const matrix::BatchIdentity<device_value_type>*>(
+                precon_)) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, device::BatchIdentity<device_value_type>(), b_b,
                 x_b);
