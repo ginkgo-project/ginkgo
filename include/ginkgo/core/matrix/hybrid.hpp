@@ -80,7 +80,7 @@ class Hybrid
       public EnableAbsoluteComputation<
           remove_complex<Hybrid<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Hybrid>;
-    friend class polymorphic_object_traits<Hybrid>;
+    friend struct polymorphic_object_traits<Hybrid>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Hybrid<to_complex<ValueType>, IndexType>;
