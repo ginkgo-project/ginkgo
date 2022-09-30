@@ -117,6 +117,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_matrix,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
     const matrix::BatchDense<ValueType>* const r,
@@ -131,7 +132,10 @@ void apply_ilu(
     prec_type prec(factored_matrix_batch, diag_locs);
 
     batch_ilu_apply<<<nbatch, default_block_size,
-                      prec_type::dynamic_work_size(num_rows, 0) *
+                      prec_type::dynamic_work_size(
+                          num_rows,
+                          static_cast<int>(
+                              sys_matrix->get_num_stored_elements() / nbatch)) *
                           sizeof(ValueType)>>>(
         prec, nbatch, num_rows, as_cuda_type(r->get_const_values()),
         as_cuda_type(z->get_values()));

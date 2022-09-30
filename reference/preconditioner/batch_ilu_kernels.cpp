@@ -104,11 +104,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 template <typename ValueType, typename IndexType>
 void apply_ilu(
     std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::BatchCsr<ValueType, IndexType>* const sys_matrix,
     const matrix::BatchCsr<ValueType, IndexType>* const factored_matrix,
     const IndexType* const diag_locs,
     const matrix::BatchDense<ValueType>* const r,
     matrix::BatchDense<ValueType>* const z)
 {
+    const auto nbatch = sys_matrix->get_num_batch_entries();
+    const auto num_rows = static_cast<int>(sys_matrix->get_size().at(0)[0]);
+
     const batch_csr::UniformBatch<const ValueType> factored_mat_batch =
         gko::kernels::host::get_batch_struct(factored_matrix);
     const auto rub = gko::kernels::host::get_batch_struct(r);
@@ -118,11 +122,11 @@ void apply_ilu(
     prec_type prec(factored_mat_batch, diag_locs);
 
     const auto work_arr_size = prec_type::dynamic_work_size(
-        factored_mat_batch.num_rows, factored_mat_batch.num_nnz);
+        num_rows,
+        static_cast<int>(sys_matrix->get_num_stored_elements() / nbatch));
     std::vector<ValueType> work(work_arr_size);
 
-    for (size_type batch_id = 0;
-         batch_id < factored_matrix->get_num_batch_entries(); batch_id++) {
+    for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
         const auto r_b = gko::batch::batch_entry(rub, batch_id);
         const auto z_b = gko::batch::batch_entry(zub, batch_id);
         prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
