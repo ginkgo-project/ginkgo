@@ -88,9 +88,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 #if USE_DYNAMIC
     int oscb = DYNAMIC_OSCB;
     constexpr int subwarp_size = SUBWARP_SIZE;
-    int v100 = 80 * oscb;  // V100 contains 80 SM
-    auto num_subwarp = v100 * default_block_size / subwarp_size;
-    int gridx = v100;
+    int num_blocks =
+        exec->get_num_multiprocessor() * oscb;  // V100 contains 80 SM
+    auto num_subwarp = num_blocks * default_block_size / subwarp_size;
+    int gridx = num_blocks;
     if (num_subwarp > a->get_size()[0]) {
         gridx = a->get_size()[0] * subwarp_size / default_block_size;
     }
