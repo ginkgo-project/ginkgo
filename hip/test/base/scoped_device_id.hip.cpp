@@ -36,13 +36,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // force-top: off
 
 
-#include "cuda/base/scoped_device_id.hpp"
-
-
 #include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/executor.hpp>
+
+
+#include "cuda/base/scoped_device_id.hpp"
 
 
 namespace {
