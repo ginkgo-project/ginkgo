@@ -30,20 +30,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/scoped_device_id.hpp>
+#include <ginkgo/core/base/scoped_device_id_guard.hpp>
 
 
 #include <ginkgo/config.hpp>
 
 
-#include "core/base/noop_scoped_device_id.hpp"
+#include "core/base/noop_scoped_device_id_guard.hpp"
 
 
 namespace gko {
 
 
-scoped_device_id::scoped_device_id(const OmpExecutor* exec, int device_id)
-    : scope_(std::make_unique<detail::noop_scoped_device_id>())
+scoped_device_id_guard::scoped_device_id_guard(const OmpExecutor* exec,
+                                               int device_id)
+    : scope_(std::make_unique<detail::noop_scoped_device_id_guard>())
 {}
 
 

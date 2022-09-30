@@ -104,7 +104,7 @@ void CudaExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
-scoped_device_id CudaExecutor::get_scoped_device_id() const
+scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(cuda);
 
 
@@ -154,7 +154,8 @@ void CudaExecutor::set_gpu_property() {}
 void CudaExecutor::init_handles() {}
 
 
-scoped_device_id::scoped_device_id(const CudaExecutor* exec, int device_id)
+scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
+                                               int device_id)
     GKO_NOT_COMPILED(cuda);
 
 

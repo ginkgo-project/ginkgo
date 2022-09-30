@@ -102,11 +102,11 @@ protected:
     void initialize_descr()
     {
         auto exec = this->get_gpu_exec();
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
             [exec](cusparseMatDescr_t descr) {
-                auto guard = exec->get_scoped_device_id();
+                auto guard = exec->get_scoped_device_id_guard();
                 gko::kernels::cuda::cusparse::destroy(descr);
             });
     }
@@ -165,7 +165,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -239,7 +239,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -314,7 +314,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -400,7 +400,7 @@ protected:
         ValueType beta = gko::zero<ValueType>();
         gko::size_type buffer_size = 0;
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         auto handle = this->get_gpu_exec()->get_cusparse_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
@@ -487,7 +487,7 @@ public:
         t_csr->read(data);
         this->set_size(t_csr->get_size());
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::csr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -498,7 +498,7 @@ public:
     ~CusparseHybrid() override
     {
         try {
-            auto guard = this->get_gpu_exec()->get_scoped_device_id();
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CusparseHybrid hyb_ matrix: "
@@ -518,7 +518,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -534,7 +534,7 @@ protected:
         : gko::EnableLinOp<CusparseHybrid, CusparseBase>(exec, size),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
-        auto guard = this->get_gpu_exec()->get_scoped_device_id();
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
     }
 
@@ -567,7 +567,7 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
     auto db = dense_b->get_const_values();
     auto dx = dense_x->get_values();
-    auto guard = this->get_gpu_exec()->get_scoped_device_id();
+    auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
     cusparseDnVecDescr_t vecb, vecx;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseCreateDnVec(&vecx, dense_x->get_num_stored_elements(),
@@ -644,7 +644,7 @@ public:
     ~CusparseGenericCsr() override
     {
         try {
-            auto guard = this->get_gpu_exec()->get_scoped_device_id();
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr
@@ -736,7 +736,7 @@ public:
     ~CusparseGenericCoo() override
     {
         try {
-            auto guard = this->get_gpu_exec()->get_scoped_device_id();
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr

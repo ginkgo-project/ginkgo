@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-scoped_device_id ReferenceExecutor::get_scoped_device_id() const
+scoped_device_id_guard ReferenceExecutor::get_scoped_device_id_guard() const
 {
     return {this, 0};
 }

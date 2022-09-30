@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_SCOPED_DEVICE_ID_HPP_
 
 
-#include <ginkgo/core/base/scoped_device_id.hpp>
+#include <ginkgo/core/base/scoped_device_id_guard.hpp>
 
 
 namespace gko {
@@ -44,16 +44,17 @@ namespace detail {
 /**
  * A scoped device id for CUDA.
  */
-class cuda_scoped_device_id : public generic_scoped_device_id {
+class hip_scoped_device_id_guard : public generic_scoped_device_id {
 public:
-    explicit cuda_scoped_device_id(int device_id);
+    explicit hip_scoped_device_id_guard(int device_id);
 
-    ~cuda_scoped_device_id() noexcept(false) override;
+    ~hip_scoped_device_id_guard() noexcept(false) override;
 
-    cuda_scoped_device_id(cuda_scoped_device_id&& other) noexcept;
+    hip_scoped_device_id_guard(hip_scoped_device_id_guard&& other) noexcept;
 
 
-    cuda_scoped_device_id& operator=(cuda_scoped_device_id&& other) noexcept;
+    hip_scoped_device_id_guard& operator=(
+        hip_scoped_device_id_guard&& other) noexcept;
 
 private:
     int original_device_id_;
