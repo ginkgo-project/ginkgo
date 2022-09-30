@@ -567,7 +567,7 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
     auto db = dense_b->get_const_values();
     auto dx = dense_x->get_values();
-    auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
+    auto guard = gpu_exec->get_scoped_device_id_guard();
     cusparseDnVecDescr_t vecb, vecx;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseCreateDnVec(&vecx, dense_x->get_num_stored_elements(),
