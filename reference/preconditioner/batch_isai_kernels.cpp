@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-//#include "reference/preconditioner/batch_isai.hpp"
+#include "reference/preconditioner/batch_isai.hpp"
 
 
 namespace gko {
@@ -51,6 +51,7 @@ namespace reference {
 namespace batch_isai {
 
 
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
 #include "reference/preconditioner/batch_isai_kernels.hpp.inc"
 
 
@@ -116,9 +117,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
                 const matrix::BatchCsr<ValueType, IndexType>* const approx_inv,
                 const matrix::BatchDense<ValueType>* const r,
-                matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;
+                matrix::BatchDense<ValueType>* const z)
+{
+    const auto nbatch = sys_mat->get_num_batch_entries();
+    const batch_csr::UniformBatch<const ValueType> approx_inv_batch =
+        gko::kernels::host::get_batch_struct(approx_inv);
+    const auto rub = gko::kernels::host::get_batch_struct(r);
+    const auto zub = gko::kernels::host::get_batch_struct(z);
+
+    using prec_type = gko::kernels::host::batch_isai<ValueType>;
+    prec_type prec(approx_inv_batch);
+
+    const auto work_arr_size = prec_type::dynamic_work_size(
+        approx_inv_batch.num_rows, sys_mat->get_num_stored_elements() / nbatch);
+    std::vector<ValueType> work(work_arr_size);
+
+    for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
+        const auto r_b = gko::batch::batch_entry(rub, batch_id);
+        const auto z_b = gko::batch::batch_entry(zub, batch_id);
+        prec.generate(batch_id, gko::batch_csr::BatchEntry<const ValueType>(),
+                      work.data());
+        prec.apply(r_b, z_b);
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
     GKO_DECLARE_BATCH_ISAI_APPLY_KERNEL);
