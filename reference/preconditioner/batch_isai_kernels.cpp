@@ -123,6 +123,8 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::BatchDense<ValueType>* const z)
 {
     const auto nbatch = sys_mat->get_num_batch_entries();
+    const auto nrows = static_cast<int>(sys_mat->get_size().at(0)[0]);
+
     const batch_csr::UniformBatch<const ValueType> approx_inv_batch =
         gko::kernels::host::get_batch_struct(approx_inv);
     const auto rub = gko::kernels::host::get_batch_struct(r);
@@ -132,7 +134,7 @@ void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
     prec_type prec(approx_inv_batch);
 
     const auto work_arr_size = prec_type::dynamic_work_size(
-        approx_inv_batch.num_rows, sys_mat->get_num_stored_elements() / nbatch);
+        nrows, static_cast<int>(sys_mat->get_num_stored_elements() / nbatch));
     std::vector<ValueType> work(work_arr_size);
 
     for (size_type batch_id = 0; batch_id < nbatch; batch_id++) {
