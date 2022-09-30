@@ -120,7 +120,7 @@ void DpcppExecutor::run(const Operation& op) const
 }
 
 
-scoped_device_id DpcppExecutor::get_scoped_device_id() const
+scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(dpcpp);
 
 
@@ -145,7 +145,8 @@ bool DpcppExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
 }
 
 
-scoped_device_id::scoped_device_id(const DpcppExecutor* exec, int device_id)
+scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
+                                               int device_id)
     GKO_NOT_COMPILED(dpcpp);
 
 

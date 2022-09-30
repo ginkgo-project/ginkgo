@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/scoped_device_id.hpp>
+#include <ginkgo/core/base/scoped_device_id_guard.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 

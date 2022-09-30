@@ -112,7 +112,7 @@ void HipExecutor::run(const Operation& op) const
 }
 
 
-scoped_device_id HipExecutor::get_scoped_device_id() const
+scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
     GKO_NOT_COMPILED(hip);
 
 
@@ -155,7 +155,8 @@ void HipExecutor::set_gpu_property() {}
 void HipExecutor::init_handles() {}
 
 
-scoped_device_id::scoped_device_id(const HipExecutor* exec, int device_id)
+scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
+                                               int device_id)
     GKO_NOT_COMPILED(hip);
 
 
