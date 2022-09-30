@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/utils.hpp"
 #include "core/factorization/factorization_kernels.hpp"
+#include "core/matrix/csr_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 
 
@@ -75,49 +76,6 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 }  // namespace isai
 
 
-/**
- * @internal
- *
- * Helper function that extends the sparsity pattern of the matrix M to M^n
- * without changing its values.
- *
- * The input matrix must be sorted and on the correct executor for this to work.
- * If `power` is 1, the matrix will be returned unchanged.
- */
-template <typename Csr>
-std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
-                                     std::shared_ptr<const Csr> mtx, int power)
-{
-    GKO_ASSERT_EQ(power >= 1, true);
-    if (power == 1) {
-        // copy the matrix, as it will be used to store the inverse
-        return {std::move(mtx->clone())};
-    }
-    auto id_power = mtx->clone();
-    auto tmp = Csr::create(exec, mtx->get_size());
-    // accumulates mtx * the remainder from odd powers
-    auto acc = mtx->clone();
-    // compute id^(n-1) using square-and-multiply
-    int i = power - 1;
-    while (i > 1) {
-        if (i % 2 != 0) {
-            // store one power in acc:
-            // i^(2n+1) -> i*i^2n
-            id_power->apply(lend(acc), lend(tmp));
-            std::swap(acc, tmp);
-            i--;
-        }
-        // square id_power: i^2n -> (i^2)^n
-        id_power->apply(lend(id_power), lend(tmp));
-        std::swap(id_power, tmp);
-        i /= 2;
-    }
-    // combine acc and id_power again
-    id_power->apply(lend(acc), lend(tmp));
-    return {std::move(tmp)};
-}
-
-
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
@@ -133,11 +91,12 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto is_lower = IsaiType == isai_type::lower;
     auto is_general = IsaiType == isai_type::general;
     auto is_spd = IsaiType == isai_type::spd;
-    auto to_invert = convert_to_with_sorting<Csr>(exec, input, skip_sorting);
+    auto to_invert =
+        gko::share(convert_to_with_sorting<Csr>(exec, input, skip_sorting));
     auto num_rows = to_invert->get_size()[0];
     std::shared_ptr<Csr> inverted;
     if (!is_spd) {
-        inverted = extend_sparsity(exec, to_invert, power);
+        inverted = gko::matrix::extend_sparsity(exec, to_invert, power);
     } else {
         // Extract lower triangular part: compute non-zeros
         array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
@@ -159,9 +118,13 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
                                           false));
 
-        inverted = power == 1
-                       ? std::move(inverted_base)
-                       : extend_sparsity<Csr>(exec, inverted_base, power);
+        std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>>
+            inverted_base_const =
+                inverted_base;  // workaround to deal with argument type
+                                // deduction failure
+        inverted = power == 1 ? std::move(inverted_base)
+                              : gko::matrix::extend_sparsity(
+                                    exec, inverted_base_const, power);
     }
 
     // This stores the beginning of the RHS for the sparse block associated with
