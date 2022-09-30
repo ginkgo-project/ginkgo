@@ -48,9 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class ScopedDeviceId : public ::testing::Test {
+class ScopedDeviceIdGuard : public ::testing::Test {
 protected:
-    ScopedDeviceId()
+    ScopedDeviceIdGuard()
         : ref(gko::ReferenceExecutor::create()),
           cuda(gko::CudaExecutor::create(0, ref))
     {}
@@ -60,23 +60,23 @@ protected:
 };
 
 
-TEST_F(ScopedDeviceId, SetsId)
+TEST_F(ScopedDeviceIdGuard, SetsId)
 {
     auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
 
-    gko::detail::cuda_scoped_device_id g{new_device_id};
+    gko::detail::hip_scoped_device_id_guard g{new_device_id};
 
     ASSERT_EQ(cuda->get_device_id(), new_device_id);
 }
 
 
-TEST_F(ScopedDeviceId, ResetsId)
+TEST_F(ScopedDeviceIdGuard, ResetsId)
 {
     auto old_device_id = cuda->get_device_id();
 
     {
         auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
-        gko::detail::cuda_scoped_device_id g{new_device_id};
+        gko::detail::hip_scoped_device_id_guard g{new_device_id};
     }
 
     ASSERT_EQ(cuda->get_device_id(), old_device_id);

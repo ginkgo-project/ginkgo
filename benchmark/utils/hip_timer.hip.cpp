@@ -59,7 +59,7 @@ public:
     {
         assert(exec != nullptr);
         exec_ = exec;
-        auto guard = exec_->get_scoped_device_id();
+        auto guard = exec_->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&start_));
         GKO_ASSERT_NO_HIP_ERRORS(hipEventCreate(&stop_));
     }
@@ -68,14 +68,14 @@ protected:
     void tic_impl() override
     {
         exec_->synchronize();
-        auto guard = exec_->get_scoped_device_id();
+        auto guard = exec_->get_scoped_device_id_guard();
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(start_));
     }
 
     double toc_impl() override
     {
-        auto guard = exec_->get_scoped_device_id();
+        auto guard = exec_->get_scoped_device_id_guard();
         // Currently, gko::HipExecutor always use default stream.
         GKO_ASSERT_NO_HIP_ERRORS(hipEventRecord(stop_));
         GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(stop_));

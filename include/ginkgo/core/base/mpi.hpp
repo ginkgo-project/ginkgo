@@ -550,7 +550,7 @@ public:
               const int send_count, const int destination_rank,
               const int send_tag) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Send(send_buffer, send_count, type_impl<SendType>::get_type(),
                      destination_rank, send_tag, this->get()));
@@ -577,7 +577,7 @@ public:
                    const SendType* send_buffer, const int send_count,
                    const int destination_rank, const int send_tag) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -605,7 +605,7 @@ public:
                 const int recv_count, const int source_rank,
                 const int recv_tag) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         status st;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -633,7 +633,7 @@ public:
                    const int recv_count, const int source_rank,
                    const int recv_tag) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -657,7 +657,7 @@ public:
     void broadcast(std::shared_ptr<const Executor> exec, BroadcastType* buffer,
                    int count, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Bcast(buffer, count,
                                            type_impl<BroadcastType>::get_type(),
                                            root_rank, this->get()));
@@ -682,7 +682,7 @@ public:
     request i_broadcast(std::shared_ptr<const Executor> exec,
                         BroadcastType* buffer, int count, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Ibcast(buffer, count, type_impl<BroadcastType>::get_type(),
@@ -709,7 +709,7 @@ public:
                 const ReduceType* send_buffer, ReduceType* recv_buffer,
                 int count, MPI_Op operation, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
                                             type_impl<ReduceType>::get_type(),
                                             operation, root_rank, this->get()));
@@ -736,7 +736,7 @@ public:
                      const ReduceType* send_buffer, ReduceType* recv_buffer,
                      int count, MPI_Op operation, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
@@ -761,7 +761,7 @@ public:
     void all_reduce(std::shared_ptr<const Executor> exec,
                     ReduceType* recv_buffer, int count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
             MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
             operation, this->get()));
@@ -787,7 +787,7 @@ public:
                          ReduceType* recv_buffer, int count,
                          MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
             MPI_IN_PLACE, recv_buffer, count, type_impl<ReduceType>::get_type(),
@@ -814,7 +814,7 @@ public:
                     const ReduceType* send_buffer, ReduceType* recv_buffer,
                     int count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allreduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
             operation, this->get()));
@@ -841,7 +841,7 @@ public:
                          const ReduceType* send_buffer, ReduceType* recv_buffer,
                          int count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallreduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
@@ -871,7 +871,7 @@ public:
                 RecvType* recv_buffer, const int recv_count,
                 int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Gather(send_buffer, send_count, type_impl<SendType>::get_type(),
                        recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -903,7 +903,7 @@ public:
                      RecvType* recv_buffer, const int recv_count,
                      int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Igather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -936,7 +936,7 @@ public:
                   RecvType* recv_buffer, const int* recv_counts,
                   const int* displacements, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Gatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_counts, displacements,
@@ -969,7 +969,7 @@ public:
                        RecvType* recv_buffer, const int* recv_counts,
                        const int* displacements, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Igatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -999,7 +999,7 @@ public:
                     const SendType* send_buffer, const int send_count,
                     RecvType* recv_buffer, const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -1029,7 +1029,7 @@ public:
                          const SendType* send_buffer, const int send_count,
                          RecvType* recv_buffer, const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -1059,7 +1059,7 @@ public:
                  RecvType* recv_buffer, const int recv_count,
                  int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
@@ -1090,7 +1090,7 @@ public:
                       RecvType* recv_buffer, const int recv_count,
                       int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -1123,7 +1123,7 @@ public:
                    const int* displacements, RecvType* recv_buffer,
                    const int recv_count, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatterv(
             send_buffer, send_counts, displacements,
             type_impl<SendType>::get_type(), recv_buffer, recv_count,
@@ -1156,7 +1156,7 @@ public:
                         const int* displacements, RecvType* recv_buffer,
                         const int recv_count, int root_rank) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Iscatterv(send_buffer, send_counts, displacements,
@@ -1186,7 +1186,7 @@ public:
     void all_to_all(std::shared_ptr<const Executor> exec, RecvType* recv_buffer,
                     const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -1215,7 +1215,7 @@ public:
     request i_all_to_all(std::shared_ptr<const Executor> exec,
                          RecvType* recv_buffer, const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
@@ -1245,7 +1245,7 @@ public:
                     const SendType* send_buffer, const int send_count,
                     RecvType* recv_buffer, const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
@@ -1275,7 +1275,7 @@ public:
                          const SendType* send_buffer, const int send_count,
                          RecvType* recv_buffer, const int recv_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
@@ -1309,7 +1309,7 @@ public:
                       const int* send_offsets, RecvType* recv_buffer,
                       const int* recv_counts, const int* recv_offsets) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
             send_buffer, send_counts, send_offsets,
             type_impl<SendType>::get_type(), recv_buffer, recv_counts,
@@ -1342,7 +1342,7 @@ public:
                            const int* recv_offsets,
                            MPI_Datatype recv_type) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoallv(
             send_buffer, send_counts, send_offsets, send_type, recv_buffer,
@@ -1401,7 +1401,7 @@ public:
     void scan(std::shared_ptr<const Executor> exec, const ScanType* send_buffer,
               ScanType* recv_buffer, int count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
                                           type_impl<ScanType>::get_type(),
                                           operation, this->get()));
@@ -1428,7 +1428,7 @@ public:
                    const ScanType* send_buffer, ScanType* recv_buffer,
                    int count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscan(send_buffer, recv_buffer, count,
                                            type_impl<ScanType>::get_type(),
@@ -1548,7 +1548,7 @@ public:
            MPI_Info input_info = MPI_INFO_NULL,
            create_type c_type = create_type::create)
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         unsigned size = num_elems * sizeof(ValueType);
         if (c_type == create_type::create) {
             GKO_ASSERT_NO_MPI_ERRORS(MPI_Win_create(
@@ -1706,7 +1706,7 @@ public:
              const int origin_count, const int target_rank,
              const unsigned int target_disp, const int target_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Put(origin_buffer, origin_count, type_impl<PutType>::get_type(),
                     target_rank, target_disp, target_count,
@@ -1731,7 +1731,7 @@ public:
                   const int target_rank, const unsigned int target_disp,
                   const int target_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rput(
             origin_buffer, origin_count, type_impl<PutType>::get_type(),
@@ -1757,7 +1757,7 @@ public:
                     const int target_rank, const unsigned int target_disp,
                     const int target_count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Accumulate(
             origin_buffer, origin_count, type_impl<PutType>::get_type(),
             target_rank, target_disp, target_count,
@@ -1783,7 +1783,7 @@ public:
                          const int target_rank, const unsigned int target_disp,
                          const int target_count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Raccumulate(
             origin_buffer, origin_count, type_impl<PutType>::get_type(),
@@ -1808,7 +1808,7 @@ public:
              const int origin_count, const int target_rank,
              const unsigned int target_disp, const int target_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Get(origin_buffer, origin_count, type_impl<GetType>::get_type(),
                     target_rank, target_disp, target_count,
@@ -1832,7 +1832,7 @@ public:
                   const int origin_count, const int target_rank,
                   const unsigned int target_disp, const int target_count) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget(
             origin_buffer, origin_count, type_impl<GetType>::get_type(),
@@ -1861,7 +1861,7 @@ public:
                         const int target_rank, const unsigned int target_disp,
                         const int target_count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Get_accumulate(
             origin_buffer, origin_count, type_impl<GetType>::get_type(),
             result_buffer, result_count, type_impl<GetType>::get_type(),
@@ -1892,7 +1892,7 @@ public:
                              const unsigned int target_disp,
                              const int target_count, MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         request req;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Rget_accumulate(
             origin_buffer, origin_count, type_impl<GetType>::get_type(),
@@ -1919,7 +1919,7 @@ public:
                       const int target_rank, const unsigned int target_disp,
                       MPI_Op operation) const
     {
-        auto guard = exec->get_scoped_device_id();
+        auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Fetch_and_op(
             origin_buffer, result_buffer, type_impl<GetType>::get_type(),
             target_rank, target_disp, operation, this->get_window()));

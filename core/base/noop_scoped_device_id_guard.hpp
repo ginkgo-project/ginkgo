@@ -30,18 +30,28 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/scoped_device_id.hpp>
+#ifndef GINKGO_CORE_BASE_NOOP_SCOPED_DEVICE_ID_GUARD_HPP
+#define GINKGO_CORE_BASE_NOOP_SCOPED_DEVICE_ID_GUARD_HPP
 
 
-#include <utility>
-
-
-#include <ginkgo/config.hpp>
-
-
-#include "core/base/noop_scoped_device_id.hpp"
+#include <ginkgo/core/base/scoped_device_id_guard.hpp>
 
 
 namespace gko {
-namespace detail {}  // namespace detail
+namespace detail {
+
+
+/**
+ * An implementation of generic_scoped_device_id_guard that does nothing.
+ *
+ * This is used for OmpExecutor and DpcppExecutor, since they don't require
+ * setting a device id.
+ */
+class noop_scoped_device_id_guard : public generic_scoped_device_id_guard {};
+
+
+}  // namespace detail
 }  // namespace gko
+
+
+#endif  // GINKGO_CORE_BASE_NOOP_SCOPED_DEVICE_ID_GUARD_HPP

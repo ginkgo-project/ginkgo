@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace detail {
-cuda_scoped_device_id::cuda_scoped_device_id(int device_id)
+hip_scoped_device_id_guard::hip_scoped_device_id_guard(int device_id)
     : original_device_id_{}, need_reset_{}
 {
     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id_));
@@ -56,7 +56,7 @@ cuda_scoped_device_id::cuda_scoped_device_id(int device_id)
 }
 
 
-cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
+hip_scoped_device_id_guard::~hip_scoped_device_id_guard() noexcept(false)
 {
     if (need_reset_) {
         /* Ignore the error during stack unwinding for this call */
@@ -69,15 +69,15 @@ cuda_scoped_device_id::~cuda_scoped_device_id() noexcept(false)
 }
 
 
-cuda_scoped_device_id::cuda_scoped_device_id(
-    gko::detail::cuda_scoped_device_id&& other) noexcept
+hip_scoped_device_id_guard::hip_scoped_device_id_guard(
+    gko::detail::hip_scoped_device_id_guard&& other) noexcept
 {
     *this = std::move(other);
 }
 
 
-cuda_scoped_device_id& cuda_scoped_device_id::operator=(
-    gko::detail::cuda_scoped_device_id&& other) noexcept
+hip_scoped_device_id_guard& hip_scoped_device_id_guard::operator=(
+    gko::detail::hip_scoped_device_id_guard&& other) noexcept
 {
     if (this != &other) {
         original_device_id_ = std::exchange(other.original_device_id_, 0);
@@ -91,7 +91,7 @@ cuda_scoped_device_id& cuda_scoped_device_id::operator=(
 
 
 scoped_device_id::scoped_device_id(const CudaExecutor* exec, int device_id)
-    : scope_(std::make_unique<detail::cuda_scoped_device_id>(device_id))
+    : scope_(std::make_unique<detail::hip_scoped_device_id_guard>(device_id))
 {}
 
 
