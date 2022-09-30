@@ -104,10 +104,6 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_laplacian(
         exec, std::make_shared<gko::matrix::Csr<>::classical>());
     mtx->read(mtx_data);
 
-    // auto mtx = Csr::create(ref, gko::dim<2>(size, size),
-    //                        grid * grid * 5 - 4 * grid);
-    // this->form_csr(grid, size, mtx->get_row_ptrs(), mtx->get_col_idxs(),
-    //                mtx->get_values());
     return std::move(mtx);
 }
 
@@ -119,13 +115,6 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_mask(
     int y[] = {0, -1, 0, 1, 0};
     int x[] = {-1, 0, 0, 0, 1};
     double coef[] = {4, 3, 2, 1, 0};
-    // int64_t coef_[] = {0xFFF << (4 * 12), 0xFFF << (3 * 12), 0xFFF << (2 *
-    // 12),
-    //                    0xFFF << (1 * 12), 0xFFF};
-    // for (int i = 0; i < 5; i++) {
-    //     std::memcpy(coef_ + i, coef + i, sizeof(double));
-    //     std::cout << coef[i] << std::endl;
-    // }
     gko::matrix_data<> mtx_data{gko::dim<2>(size, size)};
     for (int i = 0; i < grid; i++) {
         for (int j = 0; j < grid; j++) {
@@ -145,10 +134,6 @@ std::unique_ptr<gko::matrix::Csr<double>> gen_mask(
         exec, std::make_shared<gko::matrix::Csr<>::classical>());
     mtx->read(mtx_data);
 
-    // auto mtx = Csr::create(ref, gko::dim<2>(size, size),
-    //                        grid * grid * 5 - 4 * grid);
-    // this->form_csr(grid, size, mtx->get_row_ptrs(), mtx->get_col_idxs(),
-    //                mtx->get_values());
     return std::move(mtx);
 }
 
