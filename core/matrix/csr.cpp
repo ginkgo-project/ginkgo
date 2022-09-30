@@ -119,6 +119,53 @@ GKO_REGISTER_OPERATION(check_diagonal_entries,
 }  // namespace csr
 
 
+/**
+ *
+ * Helper function that extends the sparsity pattern of the matrix M to M^n
+ * without changing its values.
+ *
+ * The input matrix must be sorted and on the correct executor for this to work.
+ * If `power` is 1, the matrix will be returned unchanged.
+ */
+template <typename ValueType, typename IndexType>
+std::shared_ptr<gko::matrix::Csr<ValueType, IndexType>> extend_sparsity(
+    std::shared_ptr<const Executor>& exec,
+    std::shared_ptr<const gko::matrix::Csr<ValueType, IndexType>> mtx,
+    int power)
+{
+    using csr = gko::matrix::Csr<ValueType, IndexType>;
+    GKO_ASSERT_EQ(power >= 1, true);
+    if (power == 1) {
+        // copy the matrix, as it will be used to store the inverse
+        return {std::move(mtx->clone())};
+    }
+    auto id_power = mtx->clone();
+    auto tmp = csr::create(exec, mtx->get_size());
+    // accumulates mtx * the remainder from odd powers
+    auto acc = mtx->clone();
+    // compute id^(n-1) using square-and-multiply
+    int i = power - 1;
+    while (i > 1) {
+        if (i % 2 != 0) {
+            // store one power in acc:
+            // i^(2n+1) -> i*i^2n
+            id_power->apply(lend(acc), lend(tmp));
+            std::swap(acc, tmp);
+            i--;
+        }
+        // square id_power: i^2n -> (i^2)^n
+        id_power->apply(lend(id_power), lend(tmp));
+        std::swap(id_power, tmp);
+        i /= 2;
+    }
+    // combine acc and id_power again
+    id_power->apply(lend(acc), lend(tmp));
+    return {std::move(tmp)};
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTEND_SPARSITY);
+
+
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
     const Csr<ValueType, IndexType>& other)
