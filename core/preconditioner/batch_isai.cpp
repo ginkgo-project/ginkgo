@@ -43,8 +43,6 @@ namespace gko {
 namespace preconditioner {
 namespace batch_isai {
 
-constexpr int row_size_limit = 32;
-
 namespace {
 
 
