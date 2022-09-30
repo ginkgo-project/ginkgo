@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/batch_struct.hpp"
 #include "reference/matrix/batch_struct.hpp"
-//#include "reference/preconditioner/batch_isai.hpp"
+#include "reference/preconditioner/batch_isai.hpp"
 
 
 namespace gko {
@@ -48,7 +48,7 @@ namespace omp {
 namespace batch_isai {
 
 
-//#include "reference/preconditioner/batch_isai_kernels.hpp.inc"
+#include "reference/preconditioner/batch_isai_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -79,6 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
                 const matrix::BatchCsr<ValueType, IndexType>* const approx_inv,
                 const matrix::BatchDense<ValueType>* const r,
                 matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;

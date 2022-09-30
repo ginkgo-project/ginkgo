@@ -80,6 +80,7 @@ namespace kernels {
 
 #define GKO_DECLARE_BATCH_ISAI_APPLY_KERNEL(ValueType, IndexType)             \
     void apply_isai(std::shared_ptr<const DefaultExecutor> exec,              \
+                    const matrix::BatchCsr<ValueType, IndexType>* sys_mat,    \
                     const matrix::BatchCsr<ValueType, IndexType>* approx_inv, \
                     const matrix::BatchDense<ValueType>* r,                   \
                     matrix::BatchDense<ValueType>* z)

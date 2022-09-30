@@ -54,7 +54,7 @@ constexpr size_type default_block_size = 256;
 
 
 //#include "common/cuda_hip/matrix/batch_vector_kernels.hpp.inc"
-//#include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
+#include "common/cuda_hip/preconditioner/batch_isai.hpp.inc"
 
 }  // namespace
 
@@ -87,6 +87,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
 
 template <typename ValueType, typename IndexType>
 void apply_isai(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::BatchCsr<ValueType, IndexType>* const sys_mat,
                 const matrix::BatchCsr<ValueType, IndexType>* const approx_inv,
                 const matrix::BatchDense<ValueType>* const r,
                 matrix::BatchDense<ValueType>* const z) GKO_NOT_IMPLEMENTED;

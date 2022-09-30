@@ -103,6 +103,7 @@ using DeviceValueType = ValueType;
 #include "reference/matrix/batch_struct.hpp"
 #include "reference/preconditioner/batch_identity.hpp"
 #include "reference/preconditioner/batch_ilu.hpp"
+#include "reference/preconditioner/batch_isai.hpp"
 #include "reference/preconditioner/batch_jacobi.hpp"
 #include "reference/stop/batch_criteria.hpp"
 
@@ -208,12 +209,13 @@ public:
                 x_b);
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIsai<value_type>*>(precon_)) {
-            auto approx_inv =
+            const auto approx_inv =
                 device::get_batch_struct(prec->get_const_approximate_inverse());
-            // TODO: Define device preconditioners, add the includes to files
-            //  like cuda/preconditioner/batch_preconditioners.cuh, and add a
-            //  dispatch.
-            GKO_NOT_IMPLEMENTED;
+
+            dispatch_on_stop(logger, amat,
+                             device::batch_isai<device_value_type>(approx_inv),
+                             b_b, x_b);
+
         } else if (auto prec = dynamic_cast<
                        const preconditioner::BatchIlu<value_type>*>(precon_)) {
             const auto factorized_mat =
