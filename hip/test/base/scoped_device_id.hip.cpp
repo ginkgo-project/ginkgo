@@ -42,15 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "cuda/base/scoped_device_id.hpp"
+#include "hip/base/scoped_device_id.hip.hpp"
 
 
 namespace {
 
 
-class ScopedDeviceId : public ::testing::Test {
+class ScopedDeviceIdGuard : public ::testing::Test {
 protected:
-    ScopedDeviceId()
+    ScopedDeviceIdGuard()
         : ref(gko::ReferenceExecutor::create()),
           hip(gko::HipExecutor::create(0, ref))
     {}
@@ -60,23 +60,23 @@ protected:
 };
 
 
-TEST_F(ScopedDeviceId, SetsId)
+TEST_F(ScopedDeviceIdGuard, SetsId)
 {
     auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
 
-    gko::detail::hip_scoped_device_id g{new_device_id};
+    gko::detail::hip_scoped_device_id_guard g{new_device_id};
 
     ASSERT_EQ(hip->get_device_id(), new_device_id);
 }
 
 
-TEST_F(ScopedDeviceId, ResetsId)
+TEST_F(ScopedDeviceIdGuard, ResetsId)
 {
     auto old_device_id = hip->get_device_id();
 
     {
         auto new_device_id = std::max(hip->get_num_devices() - 1, 0);
-        gko::detail::hip_scoped_device_id g{new_device_id};
+        gko::detail::hip_scoped_device_id_guard g{new_device_id};
     }
 
     ASSERT_EQ(hip->get_device_id(), old_device_id);

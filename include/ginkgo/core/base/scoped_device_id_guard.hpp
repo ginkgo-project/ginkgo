@@ -54,9 +54,9 @@ namespace detail {
  * A RAII, move-only base class for the scoped device id used for different
  * executors.
  */
-class generic_scoped_device_id {
+class generic_scoped_device_id_guard {
 public:
-    generic_scoped_device_id() = default;
+    generic_scoped_device_id_guard() = default;
 
     // TODO: this should be a purely virtual funtion, but somehow that leads to
     // linker errors
@@ -64,14 +64,15 @@ public:
     // the derived classes for CUDA and HIP.
     // Also, this can't be defaulted, because the default would use
     // noexcept(true), which leads to the default implementation to be deleted.
-    virtual ~generic_scoped_device_id() noexcept(false){};
+    virtual ~generic_scoped_device_id_guard() noexcept(false){};
 
     // Prohibit copy construction
-    generic_scoped_device_id(const generic_scoped_device_id& other) = delete;
+    generic_scoped_device_id_guard(
+        const generic_scoped_device_id_guard& other) = delete;
 
     // Prohibit copy assignment
-    generic_scoped_device_id& operator=(const generic_scoped_device_id& other) =
-        delete;
+    generic_scoped_device_id_guard& operator=(
+        const generic_scoped_device_id_guard& other) = delete;
 };
 
 
@@ -94,17 +95,17 @@ public:
  * (not plain Executor) and a device id. Only the type of the executor object is
  * relevant, so the pointer will not be accessed, and may even be a nullptr.
  * From the executor type the correct derived class of
- * detail::generic_scoped_device_id is picked. The following illustrates the
- * usage of this class:
+ * detail::generic_scoped_device_id_guard is picked. The following illustrates
+ * the usage of this class:
  * ```
  * {
- *   scoped_device_id g{static_cast<CudaExecutor>(nullptr), 1};
+ *   scoped_device_id_guard g{static_cast<CudaExecutor>(nullptr), 1};
  *   // now the device id is set to 1
  * }
  * // now the device id is reverted again
  * ```
  */
-class scoped_device_id {
+class scoped_device_id_guard {
 public:
     /**
      * Create a scoped device id from an Reference.
@@ -114,7 +115,7 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id(const ReferenceExecutor* exec, int device_id);
+    scoped_device_id_guard(const ReferenceExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an OmpExecutor.
@@ -124,7 +125,7 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id(const OmpExecutor* exec, int device_id);
+    scoped_device_id_guard(const OmpExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an CudaExecutor.
@@ -134,7 +135,7 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id(const CudaExecutor* exec, int device_id);
+    scoped_device_id_guard(const CudaExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an HipExecutor.
@@ -144,7 +145,7 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id(const HipExecutor* exec, int device_id);
+    scoped_device_id_guard(const HipExecutor* exec, int device_id);
 
     /**
      * Create a scoped device id from an DpcppExecutor.
@@ -154,28 +155,28 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id(const DpcppExecutor* exec, int device_id);
+    scoped_device_id_guard(const DpcppExecutor* exec, int device_id);
 
-    scoped_device_id() = default;
+    scoped_device_id_guard() = default;
 
     // Prohibit copy construction.
-    scoped_device_id(const scoped_device_id&) = delete;
+    scoped_device_id_guard(const scoped_device_id_guard&) = delete;
 
     // Allow move construction.
     // These are needed, since C++14 does not guarantee copy elision.
-    scoped_device_id(scoped_device_id&&) = default;
+    scoped_device_id_guard(scoped_device_id_guard&&) = default;
 
     // Prohibit copy assignment.
-    scoped_device_id& operator=(const scoped_device_id&) = delete;
+    scoped_device_id_guard& operator=(const scoped_device_id_guard&) = delete;
 
     // Allow move construction.
     // These are needed, since C++14 does not guarantee copy elision.
-    scoped_device_id& operator=(scoped_device_id&&) = default;
+    scoped_device_id_guard& operator=(scoped_device_id_guard&&) = default;
 
-    ~scoped_device_id() = default;
+    ~scoped_device_id_guard() = default;
 
 private:
-    std::unique_ptr<detail::generic_scoped_device_id> scope_;
+    std::unique_ptr<detail::generic_scoped_device_id_guard> scope_;
 };
 
 

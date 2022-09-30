@@ -47,7 +47,7 @@ namespace gko {
 namespace detail {
 
 
-hip_scoped_device_id::hip_scoped_device_id(int device_id)
+hip_scoped_device_id_guard::hip_scoped_device_id_guard(int device_id)
     : original_device_id_{}, need_reset_{}
 {
     GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id_));
@@ -58,7 +58,7 @@ hip_scoped_device_id::hip_scoped_device_id(int device_id)
 }
 
 
-hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
+hip_scoped_device_id_guard::~hip_scoped_device_id_guard() noexcept(false)
 {
     if (need_reset_) {
         /* Ignore the error during stack unwinding for this call */
@@ -71,15 +71,15 @@ hip_scoped_device_id::~hip_scoped_device_id() noexcept(false)
 }
 
 
-hip_scoped_device_id::hip_scoped_device_id(
-    hip_scoped_device_id&& other) noexcept
+hip_scoped_device_id_guard::hip_scoped_device_id_guard(
+    hip_scoped_device_id_guard&& other) noexcept
 {
     *this = std::move(other);
 }
 
 
-hip_scoped_device_id& hip_scoped_device_id::operator=(
-    gko::detail::hip_scoped_device_id&& other) noexcept
+hip_scoped_device_id_guard& hip_scoped_device_id_guard::operator=(
+    gko::detail::hip_scoped_device_id_guard&& other) noexcept
 {
     if (this != &other) {
         original_device_id_ = std::exchange(other.original_device_id_, 0);
@@ -93,7 +93,7 @@ hip_scoped_device_id& hip_scoped_device_id::operator=(
 
 
 scoped_device_id::scoped_device_id(const HipExecutor* exec, int device_id)
-    : scope_(std::make_unique<detail::hip_scoped_device_id>(device_id))
+    : scope_(std::make_unique<detail::hip_scoped_device_id_guard>(device_id))
 {}
 
 
