@@ -82,7 +82,7 @@ class Bicg
       public EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Bicg>;
-    friend class polymorphic_object_traits<Bicg>;
+    friend struct polymorphic_object_traits<Bicg>;
 
 public:
     using value_type = ValueType;

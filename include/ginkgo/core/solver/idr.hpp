@@ -85,7 +85,7 @@ class Idr
       public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Idr>;
-    friend class polymorphic_object_traits<Idr>;
+    friend struct polymorphic_object_traits<Idr>;
 
 public:
     using value_type = ValueType;

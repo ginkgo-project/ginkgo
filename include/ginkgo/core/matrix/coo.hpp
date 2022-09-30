@@ -86,7 +86,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCreateMethod<Coo>;
-    friend class polymorphic_object_traits<Coo>;
+    friend struct polymorphic_object_traits<Coo>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;

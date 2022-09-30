@@ -81,7 +81,7 @@ class Bicgstab
                                                  Bicgstab<ValueType>>,
       public Transposable {
     friend class EnableLinOp<Bicgstab>;
-    friend class polymorphic_object_traits<Bicgstab>;
+    friend struct polymorphic_object_traits<Bicgstab>;
 
 public:
     using value_type = ValueType;
