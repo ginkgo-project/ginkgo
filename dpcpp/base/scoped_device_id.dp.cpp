@@ -42,8 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-scoped_device_id::scoped_device_id(const DpcppExecutor* exec, int device_id)
-    : scope_(std::make_unique<detail::noop_scoped_device_id>())
+scoped_device_id_guard::scoped_device_id_guard(const DpcppExecutor* exec,
+                                               int device_id)
+    : scope_(std::make_unique<detail::noop_scoped_device_id_guard>())
 {}
 
 
