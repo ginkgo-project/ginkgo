@@ -92,7 +92,8 @@ hip_scoped_device_id_guard& hip_scoped_device_id_guard::operator=(
 }  // namespace detail
 
 
-scoped_device_id::scoped_device_id(const HipExecutor* exec, int device_id)
+scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
+                                               int device_id)
     : scope_(std::make_unique<detail::hip_scoped_device_id_guard>(device_id))
 {}
 
