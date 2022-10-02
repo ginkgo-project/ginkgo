@@ -64,7 +64,7 @@ TEST_F(ScopedDeviceIdGuard, SetsId)
 {
     auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
 
-    gko::detail::hip_scoped_device_id_guard g{new_device_id};
+    gko::detail::cuda_scoped_device_id_guard g{new_device_id};
 
     ASSERT_EQ(cuda->get_device_id(), new_device_id);
 }
@@ -76,7 +76,7 @@ TEST_F(ScopedDeviceIdGuard, ResetsId)
 
     {
         auto new_device_id = std::max(cuda->get_num_devices() - 1, 0);
-        gko::detail::hip_scoped_device_id_guard g{new_device_id};
+        gko::detail::cuda_scoped_device_id_guard g{new_device_id};
     }
 
     ASSERT_EQ(cuda->get_device_id(), old_device_id);

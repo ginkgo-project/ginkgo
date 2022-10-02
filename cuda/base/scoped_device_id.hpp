@@ -44,17 +44,17 @@ namespace detail {
 /**
  * A scoped device id for CUDA.
  */
-class hip_scoped_device_id_guard : public generic_scoped_device_id {
+class cuda_scoped_device_id_guard : public generic_scoped_device_id_guard {
 public:
-    explicit hip_scoped_device_id_guard(int device_id);
+    explicit cuda_scoped_device_id_guard(int device_id);
 
-    ~hip_scoped_device_id_guard() noexcept(false) override;
+    ~cuda_scoped_device_id_guard() noexcept(false) override;
 
-    hip_scoped_device_id_guard(hip_scoped_device_id_guard&& other) noexcept;
+    cuda_scoped_device_id_guard(cuda_scoped_device_id_guard&& other) noexcept;
 
 
-    hip_scoped_device_id_guard& operator=(
-        hip_scoped_device_id_guard&& other) noexcept;
+    cuda_scoped_device_id_guard& operator=(
+        cuda_scoped_device_id_guard&& other) noexcept;
 
 private:
     int original_device_id_;

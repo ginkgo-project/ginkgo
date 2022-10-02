@@ -44,7 +44,7 @@ namespace detail {
 /**
  * A scoped device id for HIP.
  */
-class hip_scoped_device_id_guard : public generic_scoped_device_id {
+class hip_scoped_device_id_guard : public generic_scoped_device_id_guard {
 public:
     explicit hip_scoped_device_id_guard(int device_id);
 
