@@ -186,7 +186,7 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
 
 void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
 
-scoped_device_id DpcppExecutor::get_scoped_device_id_guard() const
+scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
 }

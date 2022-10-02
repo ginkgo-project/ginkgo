@@ -220,7 +220,7 @@ void HipExecutor::run(const Operation& op) const
 }
 
 
-scoped_device_id HipExecutor::get_scoped_device_id_guard() const
+scoped_device_id_guard HipExecutor::get_scoped_device_id_guard() const
 {
     return {this, this->get_device_id()};
 }

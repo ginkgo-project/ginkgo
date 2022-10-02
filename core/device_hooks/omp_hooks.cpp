@@ -46,7 +46,8 @@ version version_info::get_omp_version() noexcept
 }
 
 
-scoped_device_id::scoped_device_id(const OmpExecutor* exec, int device_id)
+scoped_device_id_guard::scoped_device_id_guard(const OmpExecutor* exec,
+                                               int device_id)
     GKO_NOT_COMPILED(omp);
 
 
