@@ -141,6 +141,92 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     this->set_size({});
 }
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
+    const device_matrix_data<value_type, global_index_type>& data,
+    const device_matrix_data<value_type, global_index_type>& non_local_data,
+    const Partition<local_index_type, global_index_type>* row_partition)
+{
+    auto col_partition = row_partition;
+    const auto comm = this->get_communicator();
+    GKO_ASSERT_EQ(data.get_size()[0], row_partition->get_size());
+    GKO_ASSERT_EQ(data.get_size()[1], col_partition->get_size());
+    GKO_ASSERT_EQ(comm.size(), row_partition->get_num_parts());
+    GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
+    auto exec = this->get_executor();
+    auto local_part = comm.rank();
+
+    // set up LinOp sizes
+    auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
+    auto global_num_rows = row_partition->get_size();
+    auto global_num_cols = col_partition->get_size();
+    dim<2> global_dim{global_num_rows, global_num_cols};
+    this->set_size(global_dim);
+
+    // temporary storage for the output
+    array<local_index_type> local_row_idxs{exec};
+    array<local_index_type> local_col_idxs{exec};
+    array<value_type> local_values{exec};
+    array<local_index_type> non_local_row_idxs{exec};
+    array<local_index_type> non_local_col_idxs{exec};
+    array<value_type> non_local_values{exec};
+    array<local_index_type> recv_gather_idxs{exec};
+    array<comm_index_type> recv_sizes_array{exec, num_parts};
+
+    // build local, non-local matrix data and communication structures
+    exec->run(matrix::make_build_local_nonlocal(
+        data, make_temporary_clone(exec, row_partition).get(),
+        make_temporary_clone(exec, col_partition).get(), local_part,
+        local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
+        non_local_col_idxs, non_local_values, recv_gather_idxs,
+        recv_sizes_array, non_local_to_global_));
+
+    // read the local matrix data
+    const auto num_local_rows =
+        static_cast<size_type>(row_partition->get_part_size(local_part));
+    const auto num_local_cols =
+        static_cast<size_type>(col_partition->get_part_size(local_part));
+    const auto num_non_local_cols = non_local_to_global_.get_num_elems();
+    device_matrix_data<value_type, local_index_type> local_data{
+        exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
+        std::move(local_col_idxs), std::move(local_values)};
+    device_matrix_data<value_type, local_index_type> non_local_data_compressed{
+        exec, dim<2>{num_local_rows, num_non_local_cols},
+        std::move(non_local_row_idxs), std::move(non_local_col_idxs),
+        std::move(non_local_values)};
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
+        ->read(std::move(local_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
+        ->read(std::move(non_local_data_compressed));
+
+    // exchange step 1: determine recv_sizes, send_sizes, send_offsets
+    exec->get_master()->copy_from(exec.get(), num_parts,
+                                  recv_sizes_array.get_const_data(),
+                                  recv_sizes_.data());
+    std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
+                     recv_offsets_.begin() + 1);
+    comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
+    std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
+                     send_offsets_.begin() + 1);
+    send_offsets_[0] = 0;
+    recv_offsets_[0] = 0;
+
+    // exchange step 2: exchange gather_idxs from receivers to senders
+    auto use_host_buffer =
+        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+    if (use_host_buffer || comm.force_host_buffer()) {
+        recv_gather_idxs.set_executor(exec->get_master());
+        gather_idxs_.clear();
+        gather_idxs_.set_executor(exec->get_master());
+    }
+    gather_idxs_.resize_and_reset(send_offsets_.back());
+    comm.all_to_all_v(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+                      recv_offsets_.data(), gather_idxs_.get_data(),
+                      send_sizes_.data(), send_offsets_.data());
+    if (use_host_buffer || comm.force_host_buffer()) {
+        gather_idxs_.set_executor(exec);
+    }
+}
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::build_scatter_pattern(

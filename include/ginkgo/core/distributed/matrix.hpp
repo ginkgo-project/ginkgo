@@ -311,6 +311,25 @@ public:
         const Partition<local_index_type, global_index_type>* partition);
 
     /**
+     * Reads a square matrix from local and non_local device_matrix_data
+     * structure and a global partition.
+     *
+     * The global size of the final matrix is inferred from the size of the
+     * partition. Both the number of rows and columns of the device_matrix_data
+     * are ignored.
+     *
+     * @note The matrix data can contain entries for rows other than those owned
+     *        by the process. Entries for those rows are discarded.
+     *
+     * @param data  The device_matrix_data structure.
+     * @param partition  The global row and column partition.
+     */
+    void read_distributed(
+        const device_matrix_data<value_type, global_index_type>& data,
+        const device_matrix_data<value_type, global_index_type>& non_local_data,
+        const Partition<local_index_type, global_index_type>* row_partition);
+
+    /**
      * Reads a square matrix from the matrix_data structure and a global
      * partition.
      *
