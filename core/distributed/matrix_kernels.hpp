@@ -66,6 +66,25 @@ namespace kernels {
         array<comm_index_type>& recv_offsets,                                  \
         array<GlobalIndexType>& non_local_to_global)
 
+#define GKO_DECLARE_BUILD_LOCAL_NONLOCAL2(ValueType, LocalIndexType,           \
+                                          GlobalIndexType)                     \
+    void build_local_nonlocal(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const device_matrix_data<ValueType, GlobalIndexType>& input,           \
+        const device_matrix_data<ValueType, GlobalIndexType>& non_local_input, \
+        const experimental::distributed::Partition<                            \
+            LocalIndexType, GlobalIndexType>* row_partition,                   \
+        const experimental::distributed::Partition<                            \
+            LocalIndexType, GlobalIndexType>* col_partition,                   \
+        comm_index_type local_part, array<LocalIndexType>& local_row_idxs,     \
+        array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values, \
+        array<LocalIndexType>& non_local_row_idxs,                             \
+        array<LocalIndexType>& non_local_col_idxs,                             \
+        array<ValueType>& non_local_values,                                    \
+        array<LocalIndexType>& local_gather_idxs,                              \
+        array<comm_index_type>& recv_offsets,                                  \
+        array<GlobalIndexType>& non_local_to_global)
+
 
 #define GKO_DECLARE_BUILD_LOCAL_NON_LOCAL_SCATTER_PATTERN(LocalIndexType,  \
                                                           GlobalIndexType) \

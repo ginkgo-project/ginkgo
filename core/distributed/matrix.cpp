@@ -62,14 +62,14 @@ GKO_REGISTER_OPERATION(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm)
+    std::shared_ptr<const Executor> exec, experimental::mpi::communicator comm)
     : Matrix(exec, comm, with_matrix_type<gko::matrix::Csr>())
 {}
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const Executor> exec, experimental::mpi::communicator comm,
     const LinOp* local_matrix_type)
     : Matrix(exec, comm, local_matrix_type, local_matrix_type)
 {}
@@ -77,7 +77,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const Executor> exec, experimental::mpi::communicator comm,
     const LinOp* local_matrix_template, const LinOp* non_local_matrix_template)
     : EnableDistributedLinOp<
           Matrix<value_type, local_index_type, global_index_type>>{exec},
@@ -175,7 +175,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
-        data, make_temporary_clone(exec, row_partition).get(),
+        data, non_local_data, make_temporary_clone(exec, row_partition).get(),
         make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, recv_gather_idxs,
@@ -205,7 +205,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                                   recv_sizes_.data());
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
                      recv_offsets_.begin() + 1);
-    comm.all_to_all(recv_sizes_.data(), 1, send_sizes_.data(), 1);
+    comm.all_to_all(exec->get_master(), recv_sizes_.data(), 1,
+                    send_sizes_.data(), 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
                      send_offsets_.begin() + 1);
     send_offsets_[0] = 0;
@@ -213,14 +214,17 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // exchange step 2: exchange gather_idxs from receivers to senders
     auto use_host_buffer =
-        exec->get_master() != exec && !gko::mpi::is_gpu_aware();
+        exec->get_master() != exec && !gko::experimental::mpi::is_gpu_aware();
     if (use_host_buffer || comm.force_host_buffer()) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
         gather_idxs_.set_executor(exec->get_master());
     }
     gather_idxs_.resize_and_reset(send_offsets_.back());
-    comm.all_to_all_v(recv_gather_idxs.get_const_data(), recv_sizes_.data(),
+    comm.all_to_all_v((use_host_buffer || comm.force_host_buffer())
+                          ? exec->get_master()
+                          : exec,
+                      recv_gather_idxs.get_const_data(), recv_sizes_.data(),
                       recv_offsets_.data(), gather_idxs_.get_data(),
                       send_sizes_.data(), send_offsets_.data());
     if (use_host_buffer || comm.force_host_buffer()) {
@@ -323,7 +327,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     recv_offsets_[0] = 0;
 
     // exchange step 2: exchange gather_idxs from receivers to senders
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         recv_gather_idxs.set_executor(exec->get_master());
         gather_idxs_.clear();
@@ -375,7 +379,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
+experimental::mpi::request
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
     const local_vector_type* local_b) const
 {
     auto exec = this->get_executor();
@@ -390,14 +395,15 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
 
     local_b->row_gather(&gather_idxs_, send_buffer_.get());
 
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
     if (use_host_buffer) {
         host_recv_buffer_.init(exec->get_master(), recv_dim);
         host_send_buffer_.init(exec->get_master(), send_dim);
         host_send_buffer_->copy_from(send_buffer_.get());
     }
 
-    mpi::contiguous_type type(num_cols, mpi::type_impl<ValueType>::get_type());
+    experimental::mpi::contiguous_type type(
+        num_cols, experimental::mpi::type_impl<ValueType>::get_type());
     auto send_ptr = use_host_buffer ? host_send_buffer_->get_const_values()
                                     : send_buffer_->get_const_values();
     auto recv_ptr = use_host_buffer ? host_recv_buffer_->get_values()
@@ -439,7 +445,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             req.wait();
 
             auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+            auto use_host_buffer =
+                experimental::mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }
@@ -473,7 +480,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             req.wait();
 
             auto exec = this->get_executor();
-            auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
+            auto use_host_buffer =
+                experimental::mpi::requires_host_buffer(exec, comm);
             if (use_host_buffer) {
                 recv_buffer_->copy_from(host_recv_buffer_.get());
             }

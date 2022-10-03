@@ -80,11 +80,14 @@ void build_local_nonlocal(
     array<ValueType>& non_local_values,
     array<LocalIndexType>& local_gather_idxs,
     array<comm_index_type>& recv_sizes,
-    array<GlobalIndexType>& non_local_to_global) GKO_NOT_IMPLEMENTED;
+    array<GlobalIndexType>& non_local_to_global)
+    array<GlobalIndexType>& non_local_to_global)
+{
+    GKO_NOT_IMPLEMENTED;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_BUILD_LOCAL_NONLOCAL2);
-
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void build_local_nonlocal(
