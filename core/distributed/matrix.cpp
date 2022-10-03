@@ -169,7 +169,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     // build local, non-local matrix data and communication structures
     exec->run(matrix::make_build_local_nonlocal(
-        data, make_temporary_clone(exec, row_partition).get(),
+        data, non_local_data, make_temporary_clone(exec, row_partition).get(),
         make_temporary_clone(exec, col_partition).get(), local_part,
         local_row_idxs, local_col_idxs, local_values, non_local_row_idxs,
         non_local_col_idxs, non_local_values, recv_gather_idxs,
