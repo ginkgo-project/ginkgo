@@ -337,7 +337,11 @@ public:
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
         : SolverBase<MatrixType>{self()->get_executor()}
     {
-        set_system_matrix(std::move(system_matrix));
+        // Use the given matrix to generate the solver.
+        if (system_matrix) {
+            GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+        }
+        this->set_system_matrix_base(system_matrix);
     }
 
     /**
