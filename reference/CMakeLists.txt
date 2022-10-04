@@ -1,6 +1,4 @@
-add_library(ginkgo_reference
-    $<TARGET_OBJECTS:ginkgo_reference_device>
-    $<TARGET_OBJECTS:ginkgo_omp_device> "")
+add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
     base/device_matrix_data_kernels.cpp
