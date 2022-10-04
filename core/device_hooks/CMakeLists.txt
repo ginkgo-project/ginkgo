@@ -45,6 +45,7 @@ if (NOT GINKGO_BUILD_REFERENCE)
     add_library(ginkgo_reference
         $<TARGET_OBJECTS:ginkgo_reference_device>
         reference_hooks.cpp)
+    target_link_libraries(ginkgo_reference PRIVATE ginkgo_omp)
     target_link_libraries(ginkgo_reference PUBLIC ginkgo_device)
     ginkgo_compile_features(ginkgo_reference)
     ginkgo_default_includes(ginkgo_reference)
