@@ -42,6 +42,11 @@ namespace gko {
 namespace kernels {
 namespace host {
 
+namespace {
+
+#include "reference/matrix/batch_csr_kernels.hpp.inc"
+
+}
 
 /**
  * Batch isai preconditioner.
@@ -96,9 +101,8 @@ public:
     void apply(const gko::batch_dense::BatchEntry<const ValueType>& r,
                const gko::batch_dense::BatchEntry<ValueType>& z) const
     {
-        GKO_NOT_IMPLEMENTED;
         // z = approx_inv * r (Spmv)
-        // matvec_kernel(approx_inv_entry_, r, z);
+        matvec_kernel(approx_inv_entry_, r, z);
     }
 
 private:
