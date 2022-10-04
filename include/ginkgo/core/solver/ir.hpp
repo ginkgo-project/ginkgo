@@ -125,7 +125,10 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override
+    {
+        return this->get_apply_hint() == input_hint::given;
+    }
 
     /**
      * Returns the solver operator used as the inner solver.
@@ -197,6 +200,11 @@ public:
          */
         ValueType GKO_FACTORY_PARAMETER_SCALAR(relaxation_factor,
                                                value_type{1});
+
+        /**
+         * Default ApplyHint
+         */
+        input_hint GKO_FACTORY_PARAMETER_SCALAR(apply_hint, input_hint::given);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -240,6 +248,7 @@ protected:
             this->set_solver(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()));
         }
+        this->set_apply_hint(parameters_.apply_hint);
         relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
     }

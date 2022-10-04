@@ -161,7 +161,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_impl(b, x, input_hint::given);
+    this->apply_impl(b, x, this->get_apply_hint());
 }
 
 

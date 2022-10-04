@@ -123,6 +123,8 @@ public:
         return this;
     }
 
+    input_hint get_apply_hint() const { return hint_; }
+
 protected:
     virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
     {
@@ -145,10 +147,15 @@ protected:
         this->apply_impl(b, x);
     }
 
+    void set_apply_hint(input_hint hint) { hint_ = hint; }
+
     // override at the same time when overriden
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
     virtual void apply_impl(const LinOp* alpha, const LinOp* b,
                             const LinOp* beta, LinOp* x) const = 0;
+
+private:
+    input_hint hint_;
 };
 
 template <typename DerivedType>
