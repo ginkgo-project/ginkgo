@@ -31,11 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-void match_and_write(const int size, const int dense_sys_row,
-                     const int aiA_row_st, const int aiA_row_end,
-                     const int* const aiA_col_idxs, const int A_row_st,
-                     const int A_row_end, const int* const A_col_idxs,
-                     int* const dense_mat_pattern_ptr)
+inline void match_and_write(const int size, const int dense_sys_row,
+                            const int aiA_row_st, const int aiA_row_end,
+                            const int* const aiA_col_idxs, const int A_row_st,
+                            const int A_row_end, const int* const A_col_idxs,
+                            int* const dense_mat_pattern_ptr)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
     int* const dense_mat_row_ptr =
@@ -63,7 +63,7 @@ void match_and_write(const int size, const int dense_sys_row,
 }
 
 
-void extract_pattern_for_dense_sys_corr_to_current_row_impl(
+inline void extract_pattern_for_dense_sys_corr_to_current_row_impl(
     const int curr_row_idx, const int num_rows, const int* const A_row_ptrs,
     const int* const A_col_idxs, const int* const aiA_row_ptrs,
     const int* const aiA_col_idxs, int* const dense_mat_pattern,
@@ -101,8 +101,10 @@ void extract_pattern_for_dense_sys_corr_to_current_row_impl(
 }
 
 template <typename ValueType>
-void solve_lower_tri_system(const int size, const ValueType* const dense_mat,
-                            const int rhs_one_loc, ValueType* const sol_arr)
+inline void solve_lower_tri_system(const int size,
+                                   const ValueType* const dense_mat,
+                                   const int rhs_one_loc,
+                                   ValueType* const sol_arr)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
 
@@ -120,8 +122,10 @@ void solve_lower_tri_system(const int size, const ValueType* const dense_mat,
 
 
 template <typename ValueType>
-void solve_upper_tri_system(const int size, const ValueType* const dense_mat,
-                            const int rhs_one_loc, ValueType* const sol_arr)
+inline void solve_upper_tri_system(const int size,
+                                   const ValueType* const dense_mat,
+                                   const int rhs_one_loc,
+                                   ValueType* const sol_arr)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
 
@@ -137,19 +141,103 @@ void solve_upper_tri_system(const int size, const ValueType* const dense_mat,
     }
 }
 
-
 template <typename ValueType>
-void solve_gen_square_system(const int size, const ValueType* const dense_mat,
-                             const int rhs_one_loc, ValueType* const sol_arr)
+inline int choose_pivot_row(const int diag_pos,
+                            const ValueType* const dense_mat, const int size)
 {
     using gko::preconditioner::batch_isai::row_size_limit;
 
-    GKO_NOT_IMPLEMENTED;
+    const int col_idx = diag_pos;
+    int piv_row_idx = diag_pos;
+    ValueType ele = dense_mat[piv_row_idx * row_size_limit + col_idx];
+    for (int row_idx = diag_pos + 1; row_idx < size; row_idx++) {
+        const ValueType curr_ele =
+            dense_mat[row_idx * row_size_limit + col_idx];
+        if (abs(curr_ele) > abs(ele)) {
+            piv_row_idx = row_idx;
+            ele = curr_ele;
+        }
+    }
+    return piv_row_idx;
+}
+
+template <typename ValueType>
+inline void swap_row_and_rhs(const int diag_pos, const int piv_row_idx,
+                             const int size, ValueType* const dense_mat,
+                             ValueType* const rhs_arr)
+{
+    using gko::preconditioner::batch_isai::row_size_limit;
+
+    for (int col = 0; col < size; col++) {
+        const ValueType val = dense_mat[diag_pos * row_size_limit + col];
+        dense_mat[diag_pos * row_size_limit + col] =
+            dense_mat[piv_row_idx * row_size_limit + col];
+        dense_mat[piv_row_idx * row_size_limit + col] = val;
+    }
+
+    const ValueType rhs = rhs_arr[diag_pos];
+    rhs_arr[diag_pos] = rhs_arr[piv_row_idx];
+    rhs_arr[piv_row_idx] = rhs;
+}
+
+template <typename ValueType>
+inline void row_transformation(const int diag_pos, const int row_idx,
+                               const int size, ValueType* const dense_mat,
+                               ValueType* const rhs_arr)
+{
+    using gko::preconditioner::batch_isai::row_size_limit;
+
+    const ValueType diag_ele = dense_mat[diag_pos * row_size_limit + diag_pos];
+    const ValueType multiplier =
+        dense_mat[row_idx * row_size_limit + diag_pos] / diag_ele;
+    const ValueType rhs_key_val = rhs_arr[diag_pos];
+
+    for (int col = 0; col < size; col++) {
+        const ValueType col_key_val = dense_mat[row_idx * row_size_limit + col];
+        dense_mat[row_idx * row_size_limit + col] -= multiplier * col_key_val;
+    }
+
+    rhs_arr[row_idx] -= multiplier * rhs_key_val;
+}
+
+template <typename ValueType>
+inline void solve_gen_square_system(const int size, ValueType* const dense_mat,
+                                    const int rhs_one_loc,
+                                    ValueType* const sol_arr)
+{
+    using gko::preconditioner::batch_isai::row_size_limit;
+
+    std::vector<ValueType> rhs_arr(size, 0);
+    rhs_arr[rhs_one_loc] = one<ValueType>();
+
+    for (int diag_pos = 0; diag_pos < size; diag_pos++) {
+        const int piv_row_idx = choose_pivot_row(diag_pos, dense_mat, size);
+
+        if (diag_pos != piv_row_idx) {
+            swap_row_and_rhs(diag_pos, piv_row_idx, size, dense_mat,
+                             rhs_arr.data());
+        }
+
+        for (int row_idx = 0; row_idx < diag_pos; row_idx++) {
+            row_transformation(diag_pos, row_idx, size, dense_mat,
+                               rhs_arr.data());
+        }
+
+        for (int row_idx = diag_pos + 1; row_idx < size; row_idx++) {
+            row_transformation(diag_pos, row_idx, size, dense_mat,
+                               rhs_arr.data());
+        }
+    }
+    // system in reduced row echelon form (rref)
+
+    for (int i = 0; i < size; i++) {
+        sol_arr[i] = rhs_arr[i] / dense_mat[i * row_size_limit + i];
+    }
 }
 
 
 template <typename ValueType>
-void fill_values_dense_mat_and_solve_batch_entry_impl(
+inline void fill_values_dense_mat_and_solve_batch_entry_impl(
     const batch_csr::BatchEntry<const ValueType>& A_entry,
     const batch_csr::BatchEntry<ValueType>& aiA_entry,
     const int* const dense_mat_pattern, const int* const rhs_one_idxs,
