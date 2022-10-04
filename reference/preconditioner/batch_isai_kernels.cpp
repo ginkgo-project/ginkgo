@@ -109,6 +109,17 @@ void fill_values_dense_mat_and_solve(
             A_entry, aiA_entry, dense_mat_pattern, rhs_one_idxs, sizes,
             input_matrix_type_isai);
     }
+
+    // for (int i = 0; i < aiA_batch.num_rows + 1; i++) {
+    //     std::cout << "row_ptrs[" << i << "]: " << aiA_batch.row_ptrs[i]
+    //               << std::endl;
+    // }
+
+    // for (int i = 0; i < aiA_batch.num_nnz; i++) {
+    //     std::cout << "col_idxs[" << i << "]: " << aiA_batch.col_idxs[i]
+    //               << "   values[" << i << "]: " << aiA_batch.values[i]
+    //               << std::endl;
+    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(

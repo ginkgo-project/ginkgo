@@ -129,11 +129,11 @@ inline void solve_upper_tri_system(const int size,
 {
     using gko::preconditioner::batch_isai::row_size_limit;
 
-    for (int r = size - 1; r >= 0; r++) {
+    for (int r = size - 1; r >= 0; r--) {
         const auto rhs =
             rhs_one_loc == r ? one<ValueType>() : zero<ValueType>();
         ValueType sum = zero<ValueType>();
-        for (int c = size - 1; c > r; c++) {
+        for (int c = size - 1; c > r; c--) {
             const auto val = dense_mat[r * row_size_limit + c];
             sum += val * sol_arr[c];
         }
@@ -188,12 +188,14 @@ inline void row_transformation(const int diag_pos, const int row_idx,
     using gko::preconditioner::batch_isai::row_size_limit;
 
     const ValueType diag_ele = dense_mat[diag_pos * row_size_limit + diag_pos];
+    assert(diag_ele != zero<ValueType>());
     const ValueType multiplier =
         dense_mat[row_idx * row_size_limit + diag_pos] / diag_ele;
     const ValueType rhs_key_val = rhs_arr[diag_pos];
 
     for (int col = 0; col < size; col++) {
-        const ValueType col_key_val = dense_mat[row_idx * row_size_limit + col];
+        const ValueType col_key_val =
+            dense_mat[diag_pos * row_size_limit + col];
         dense_mat[row_idx * row_size_limit + col] -= multiplier * col_key_val;
     }
 
@@ -213,6 +215,9 @@ inline void solve_gen_square_system(const int size, ValueType* const dense_mat,
     for (int diag_pos = 0; diag_pos < size; diag_pos++) {
         const int piv_row_idx = choose_pivot_row(diag_pos, dense_mat, size);
 
+        // std::cout << "diag_pos: " << diag_pos << "  piv_row_idx: " <<
+        // piv_row_idx << std::endl;
+
         if (diag_pos != piv_row_idx) {
             swap_row_and_rhs(diag_pos, piv_row_idx, size, dense_mat,
                              rhs_arr.data());
@@ -227,6 +232,23 @@ inline void solve_gen_square_system(const int size, ValueType* const dense_mat,
             row_transformation(diag_pos, row_idx, size, dense_mat,
                                rhs_arr.data());
         }
+
+        /*
+        std::cout << "dense mat after row transformation: " << std::endl;
+        for(int r = 0; r < size; r++)
+        {
+            for(int c = 0; c < size; c++)
+            {
+                std::cout <<  " dense_mat[" << r << "," << c << "] : " <<
+        dense_mat[r * row_size_limit + c ] << std::endl;
+            }
+        }
+        std::cout << "rhs after row transformation: " << std::endl;
+        for(int i = 0; i < size; i++)
+        {
+            std::cout <<  "rha_arr[" << i << "]: " << rhs_arr[i] << std::endl;
+        }
+        */
     }
     // system in reduced row echelon form (rref)
 
@@ -253,7 +275,8 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
         const int* const dense_mat_pattern_ptr =
             dense_mat_pattern + row_idx * row_size_limit * row_size_limit;
 
-        std::vector<ValueType> dense_mat(row_size_limit * row_size_limit, 0);
+        std::array<ValueType, row_size_limit * row_size_limit> dense_mat;
+        dense_mat.fill(0);
 
         // use the stored pattern to fill the dense matrix
         for (int r = 0; r < size; r++) {
@@ -267,6 +290,30 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
                 }
             }
         }
+
+        /*
+        for(int r = 0; r < size; r++)
+        {
+            for(int c = 0; c < size; c++)
+            {
+                std::cout <<  "row: " <<  row_idx <<   "  dense_pattern[" << r
+        << "," << c << "] : " << dense_mat_pattern_ptr[r * row_size_limit + c ]
+        << std::endl;
+            }
+        }
+
+        for(int r = 0; r < size; r++)
+        {
+            for(int c = 0; c < size; c++)
+            {
+                std::cout << "row: " <<  row_idx <<   " dense_mat[" << r << ","
+        << c << "] : " << dense_mat[r * row_size_limit + c ] << std::endl;
+            }
+        }
+
+        std::cout << "size: " << size << "  rhs one loc: " << rhs_one_loc <<
+        std::endl;
+        */
 
         ValueType* const sol_arr =
             &aiA_entry.values[aiA_entry.row_ptrs[row_idx]];
@@ -287,5 +334,11 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
         } else {
             GKO_NOT_IMPLEMENTED;
         }
+
+        // for(int i = 0; i < size; i++)
+        // {
+        //     std::cout << "row: " <<  row_idx <<  " sol_arr[" << i << "]: " <<
+        //     sol_arr[i] << std::endl;
+        // }
     }
 }
