@@ -120,6 +120,10 @@ void fill_values_dense_mat_and_solve(
     //               << "   values[" << i << "]: " << aiA_batch.values[i]
     //               << std::endl;
     // }
+
+    // auto vec_inv = inv->unbatch();
+    // std::cout << "batch isai:" << std::endl;
+    // gko::write( std::cout, vec_inv[0].get(), gko::layout_type::coordinate);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
