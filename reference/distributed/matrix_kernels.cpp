@@ -93,21 +93,27 @@ void build_local_nonlocal(
         local_values.get_data()[i] = input.get_const_values()[i];
     }
 
+    vector<GlobalIndexType> unique_columns(exec);
+    std::transform(
+        non_local_input.get_const_col_idxs(),
+        non_local_input.get_const_col_idxs() + non_local_input.get_num_elems(),
+        std::back_inserter(unique_columns),
+        [](const auto& entry) { return entry; });
+    unique_columns.erase(
+        std::unique(unique_columns.begin(), unique_columns.end()),
+        unique_columns.end());
+
     // 3. create mapping from unique_columns
     unordered_map<GlobalIndexType, LocalIndexType> non_local_column_map(exec);
-    for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-        non_local_column_map[non_local_input.get_const_col_idxs()[i]] =
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
+        non_local_column_map[unique_columns[i]] =
             static_cast<LocalIndexType>(i);
     }
 
     // 3.5 copy unique_columns to array
-    non_local_to_global.resize_and_reset(non_local_input.get_num_elems());
-    for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-        non_local_to_global.get_data()[i] =
-            non_local_input.get_const_col_idxs()[i];
-    }
+    non_local_to_global = array<GlobalIndexType>{exec, unique_columns.begin(),
+                                                 unique_columns.end()};
 
-    // 4. fill non_local_data
     non_local_row_idxs.resize_and_reset(non_local_input.get_num_elems());
     non_local_col_idxs.resize_and_reset(non_local_input.get_num_elems());
     non_local_values.resize_and_reset(non_local_input.get_num_elems());
