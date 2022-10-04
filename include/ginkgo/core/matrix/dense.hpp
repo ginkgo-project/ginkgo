@@ -1177,6 +1177,44 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 
 
 /**
+ * Creates a view of a given Dense vector.
+ *
+ * @tparam ValueType  the underlying value type of the vector
+ * @param vector  the vector on which to create the view
+ */
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
+    matrix::Dense<ValueType>* vector)
+{
+    auto exec = vector->get_executor();
+    return matrix::Dense<ValueType>::create(
+        exec, vector->get_size(),
+        make_array_view(exec, vector->get_num_stored_elements(),
+                        vector->get_values()),
+        vector->get_stride());
+}
+
+
+/**
+ * Creates a view of a given Dense vector.
+ *
+ * @tparam ValueType  the underlying value type of the vector
+ * @param vector  the vector on which to create the view
+ */
+template <typename ValueType>
+std::unique_ptr<const matrix::Dense<ValueType>> make_dense_view(
+    const matrix::Dense<ValueType>* vector)
+{
+    auto exec = vector->get_executor();
+    return matrix::Dense<ValueType>::create_const(
+        exec, vector->get_size(),
+        make_const_array_view(exec, vector->get_num_stored_elements(),
+                              vector->get_const_values()),
+        vector->get_stride());
+}
+
+
+/**
  * Creates and initializes a column-vector.
  *
  * This function first creates a temporary Dense matrix, fills it with passed in
