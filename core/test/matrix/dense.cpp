@@ -407,4 +407,22 @@ TYPED_TEST(Dense, CanCreateRealView)
 }
 
 
+TYPED_TEST(Dense, CanMakeMutableView)
+{
+    auto view = gko::make_dense_view(this->mtx.get());
+
+    ASSERT_EQ(view->get_values(), this->mtx->get_values());
+}
+
+
+TYPED_TEST(Dense, CanMakeConstView)
+{
+    using value_type = typename TestFixture::value_type;
+    const gko::matrix::Dense<value_type>* const_mtx = this->mtx.get();
+
+    auto view = gko::make_dense_view(const_mtx);
+
+    ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
+}
+
 }  // namespace
