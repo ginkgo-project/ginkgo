@@ -126,7 +126,7 @@ void build_local_nonlocal(
     }
 
     // compute gather idxs and recv_sizes
-    local_gather_idxs.resize_and_reset(non_local_input.get_num_elems());
+    local_gather_idxs.resize_and_reset(unique_columns.size());
     std::fill_n(recv_sizes.get_data(), num_parts, 0);
 
     auto map_to_local = [](GlobalIndexType idx, const partition_type* partition,
@@ -142,14 +142,12 @@ void build_local_nonlocal(
         return col_part_ids[range_id];
     };
     size_type col_range_id = 0;
-    for (size_type i = 0; i < non_local_input.get_num_elems(); ++i) {
-        col_range_id = find_range(non_local_input.get_const_col_idxs()[i],
-                                  col_partition, col_range_id);
+    for (size_type i = 0; i < unique_columns.size(); ++i) {
+        col_range_id =
+            find_range(unique_columns[i], col_partition, col_range_id);
         local_gather_idxs.get_data()[i] =
-            map_to_local(non_local_input.get_const_col_idxs()[i], col_partition,
-                         col_range_id);
-        recv_sizes.get_data()[find_col_part(
-            non_local_input.get_const_col_idxs()[i])]++;
+            map_to_local(unique_columns[i], col_partition, col_range_id);
+        recv_sizes.get_data()[find_col_part(unique_columns[i])]++;
     }
 }
 
