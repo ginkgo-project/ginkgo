@@ -1202,7 +1202,7 @@ std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
  * @param vector  the vector on which to create the view
  */
 template <typename ValueType>
-std::unique_ptr<const matrix::Dense<ValueType>> make_dense_view(
+std::unique_ptr<const matrix::Dense<ValueType>> make_const_dense_view(
     const matrix::Dense<ValueType>* vector)
 {
     auto exec = vector->get_executor();
