@@ -1,6 +1,5 @@
 include(${PROJECT_SOURCE_DIR}/cmake/create_test.cmake)
 
 add_subdirectory(base)
-add_subdirectory(distributed)
 add_subdirectory(matrix)
 add_subdirectory(reorder)
