@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/device_guard.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
 
@@ -102,12 +101,12 @@ protected:
 
     void initialize_descr()
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto exec = this->get_gpu_exec();
+        auto guard = exec->get_scoped_device_id_guard();
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
-            [id](cusparseMatDescr_t descr) {
-                gko::cuda::device_guard g{id};
+            [exec](cusparseMatDescr_t descr) {
+                auto guard = exec->get_scoped_device_id_guard();
                 gko::kernels::cuda::cusparse::destroy(descr);
             });
     }
@@ -130,7 +129,7 @@ class CusparseCsrmp
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CusparseCsrmp<ValueType, IndexType>> {
     friend class gko::EnableCreateMethod<CusparseCsrmp>;
-    friend class gko::EnablePolymorphicObject<CusparseCsrmp, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseCsrmp>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -166,8 +165,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -205,7 +203,7 @@ class CusparseCsr
       public gko::EnableCreateMethod<CusparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsr>;
-    friend class gko::EnablePolymorphicObject<CusparseCsr, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseCsr>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -241,8 +239,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -281,7 +278,7 @@ class CusparseCsrmm
       public gko::EnableCreateMethod<CusparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrmm>;
-    friend class gko::EnablePolymorphicObject<CusparseCsrmm, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseCsrmm>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -317,8 +314,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -361,7 +357,7 @@ class CusparseCsrEx
       public gko::EnableCreateMethod<CusparseCsrEx<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrEx>;
-    friend class gko::EnablePolymorphicObject<CusparseCsrEx, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseCsrEx>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -404,8 +400,7 @@ protected:
         ValueType beta = gko::zero<ValueType>();
         gko::size_type buffer_size = 0;
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         auto handle = this->get_gpu_exec()->get_cusparse_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
@@ -468,7 +463,7 @@ class CusparseHybrid
           CusparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseHybrid>;
-    friend class gko::EnablePolymorphicObject<CusparseHybrid, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseHybrid>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -492,8 +487,7 @@ public:
         t_csr->read(data);
         this->set_size(t_csr->get_size());
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::csr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -503,9 +497,8 @@ public:
 
     ~CusparseHybrid() override
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (const std::exception& e) {
             std::cerr << "Error when unallocating CusparseHybrid hyb_ matrix: "
@@ -525,8 +518,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -542,8 +534,7 @@ protected:
         : gko::EnableLinOp<CusparseHybrid, CusparseBase>(exec, size),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
     }
 
@@ -576,8 +567,7 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
     auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
     auto db = dense_b->get_const_values();
     auto dx = dense_x->get_values();
-    const auto id = gpu_exec->get_device_id();
-    gko::cuda::device_guard g{id};
+    auto guard = gpu_exec->get_scoped_device_id_guard();
     cusparseDnVecDescr_t vecb, vecx;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseCreateDnVec(&vecx, dense_x->get_num_stored_elements(),
@@ -612,7 +602,7 @@ class CusparseGenericCsr
           CusparseGenericCsr<ValueType, IndexType, Alg>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCsr>;
-    friend class gko::EnablePolymorphicObject<CusparseGenericCsr, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseGenericCsr>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -653,9 +643,8 @@ public:
 
     ~CusparseGenericCsr() override
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr
@@ -705,7 +694,7 @@ class CusparseGenericCoo
       public gko::EnableCreateMethod<CusparseGenericCoo<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCoo>;
-    friend class gko::EnablePolymorphicObject<CusparseGenericCoo, CusparseBase>;
+    friend class gko::polymorphic_object_traits<CusparseGenericCoo>;
 
 public:
     using coo = gko::matrix::Coo<ValueType, IndexType>;
@@ -746,9 +735,8 @@ public:
 
     ~CusparseGenericCoo() override
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::cuda::device_guard g{id};
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
         } catch (const std::exception& e) {
             std::cerr

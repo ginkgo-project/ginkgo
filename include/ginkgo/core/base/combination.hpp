@@ -59,7 +59,7 @@ template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,
                     public EnableCreateMethod<Combination<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Combination, LinOp>;
+    friend struct polymorphic_object_traits<Combination>;
     friend class EnableCreateMethod<Combination>;
 
 public:

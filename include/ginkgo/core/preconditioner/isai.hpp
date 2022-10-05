@@ -106,7 +106,7 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
              public Transposable {
     friend class EnableLinOp<Isai>;
-    friend class EnablePolymorphicObject<Isai, LinOp>;
+    friend struct polymorphic_object_traits<Isai>;
     friend class Isai<isai_type::general, ValueType, IndexType>;
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;

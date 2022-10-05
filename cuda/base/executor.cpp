@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_handle.hpp"
-#include "cuda/base/device_guard.hpp"
+#include "cuda/base/scoped_device_id.hpp"
 
 
 namespace gko {
@@ -71,7 +71,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
             auto& num_execs = nvidia_device::get_num_execs(device_id);
             num_execs--;
             if (!num_execs && device_reset) {
-                cuda::device_guard g(device_id);
+                detail::cuda_scoped_device_id_guard g(device_id);
                 cudaDeviceReset();
             }
         });
@@ -82,7 +82,7 @@ void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
-        cuda::device_guard g(this->get_device_id());
+        detail::cuda_scoped_device_id_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaDeviceGetPCIBusId(&(this->get_exec_info().pci_bus_id.front()),
                                   13, this->get_device_id()));
@@ -102,7 +102,7 @@ void OmpExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
                               const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
-        cuda::device_guard g(dest->get_device_id());
+        detail::cuda_scoped_device_id_guard g(dest->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
     }
@@ -111,7 +111,7 @@ void OmpExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 
 void CudaExecutor::raw_free(void* ptr) const noexcept
 {
-    cuda::device_guard g(this->get_device_id());
+    detail::cuda_scoped_device_id_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
@@ -130,7 +130,7 @@ void CudaExecutor::raw_free(void* ptr) const noexcept
 void* CudaExecutor::raw_alloc(size_type num_bytes) const
 {
     void* dev_ptr = nullptr;
-    cuda::device_guard g(this->get_device_id());
+    detail::cuda_scoped_device_id_guard g(this->get_device_id());
     int error_code = 0;
     if (this->alloc_mode_ == allocation_mode::unified_host) {
         error_code = cudaMallocManaged(&dev_ptr, num_bytes, cudaMemAttachHost);
@@ -154,7 +154,7 @@ void CudaExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
                                const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
-        cuda::device_guard g(this->get_device_id());
+        detail::cuda_scoped_device_id_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
     }
@@ -166,7 +166,7 @@ void CudaExecutor::raw_copy_to(const HipExecutor* dest, size_type num_bytes,
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
-        cuda::device_guard g(this->get_device_id());
+        detail::cuda_scoped_device_id_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
                            this->get_device_id(), num_bytes));
@@ -188,7 +188,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
                                const void* src_ptr, void* dest_ptr) const
 {
     if (num_bytes > 0) {
-        cuda::device_guard g(this->get_device_id());
+        detail::cuda_scoped_device_id_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
                            this->get_device_id(), num_bytes));
@@ -198,15 +198,21 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 
 void CudaExecutor::synchronize() const
 {
-    cuda::device_guard g(this->get_device_id());
+    detail::cuda_scoped_device_id_guard g(this->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+}
+
+
+scoped_device_id_guard CudaExecutor::get_scoped_device_id_guard() const
+{
+    return {this, this->get_device_id()};
 }
 
 
 void CudaExecutor::run(const Operation& op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
-    cuda::device_guard g(this->get_device_id());
+    detail::cuda_scoped_device_id_guard g(this->get_device_id());
     op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
     this->template log<log::Logger::operation_completed>(this, &op);
@@ -229,7 +235,7 @@ void CudaExecutor::set_gpu_property()
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
-        cuda::device_guard g(this->get_device_id());
+        detail::cuda_scoped_device_id_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &this->get_exec_info().major, cudaDevAttrComputeCapabilityMajor,
             this->get_device_id()));
@@ -270,15 +276,15 @@ void CudaExecutor::init_handles()
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
         const auto id = this->get_device_id();
-        cuda::device_guard g(id);
+        detail::cuda_scoped_device_id_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(
             kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
-                cuda::device_guard g(id);
+                detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cublas::destroy(handle);
             });
         this->cusparse_handle_ = handle_manager<cusparseContext>(
             kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
-                cuda::device_guard g(id);
+                detail::cuda_scoped_device_id_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
             });
     }

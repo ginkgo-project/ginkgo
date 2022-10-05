@@ -106,7 +106,7 @@ namespace preconditioner {
 template <typename LSolverType = solver::LowerTrs<>, typename IndexType = int32>
 class Ic : public EnableLinOp<Ic<LSolverType, IndexType>>, public Transposable {
     friend class EnableLinOp<Ic>;
-    friend class EnablePolymorphicObject<Ic, LinOp>;
+    friend struct polymorphic_object_traits<Ic>;
 
 public:
     static_assert(
