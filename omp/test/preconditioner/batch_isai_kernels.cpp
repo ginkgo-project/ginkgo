@@ -60,6 +60,7 @@ protected:
     using index_type = int;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type>;
+    using ubatched_mat_type = Mtx::unbatch_type;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
     using prec_type = gko::preconditioner::BatchIsai<value_type>;
@@ -72,9 +73,9 @@ protected:
                   nbatch, nrows, nrows,
                   std::uniform_int_distribution<>(min_nnz_row, nrows),
                   std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
-                  true, ref)))
-    // TODO: Batch of lower and upper triangular matrices //use batch duplicator
-    // etc???, or create const fns???
+                  true, ref))),
+          lower_mtx(get_lower_matrix()),
+          upper_mtx(get_upper_matrix())
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -87,6 +88,30 @@ protected:
     std::shared_ptr<const Mtx> general_mtx;
     std::shared_ptr<const Mtx> lower_mtx;
     std::shared_ptr<const Mtx> upper_mtx;
+
+    std::unique_ptr<Mtx> get_lower_matrix()
+    {
+        auto unbatch_mat =
+            gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
+                nrows, false, true,
+                std::uniform_int_distribution<>(min_nnz_row, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                ref);
+
+        return Mtx::create(ref, nbatch, unbatch_mat.get());
+    }
+
+    std::unique_ptr<Mtx> get_upper_matrix()
+    {
+        auto unbatch_mat =
+            gko::test::generate_random_triangular_matrix<ubatched_mat_type>(
+                nrows, false, false,
+                std::uniform_int_distribution<>(min_nnz_row, nrows),
+                std::normal_distribution<real_type>(0.0, 1.0), rand_engine,
+                ref);
+
+        return Mtx::create(ref, nbatch, unbatch_mat.get());
+    }
 
     void test_generate_eqvt_to_ref(
         gko::preconditioner::batch_isai_input_matrix_type isai_type,
@@ -174,32 +199,36 @@ TEST_F(BatchIsai, GeneralIsaiGenerateIsEquivalentToReferenceSpy2)
 }
 
 
-// TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy1)
-// {
-//     this->test_generate_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::lower_tri,
-//     1, this->lower_mtx);
-// }
+TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy1)
+{
+    this->test_generate_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 1,
+        this->lower_mtx);
+}
 
 
-// TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy2)
-// {
-//     this->test_generate_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::lower_tri,
-//     2, this->lower_mtx);
-// }
+TEST_F(BatchIsai, LowerIsaiGenerateIsEquivalentToReferenceSpy2)
+{
+    this->test_generate_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
+        this->lower_mtx);
+}
 
 
-// TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
-// {
-//     this->test_generate_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::upper_tri,
-//     1, this->upper_mtx);
-// }
+TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy1)
+{
+    this->test_generate_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 1,
+        this->upper_mtx);
+}
 
 
-// TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy2)
-// {
-//     this->test_generate_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::upper_tri,
-//     2, this->upper_mtx);
-// }
+TEST_F(BatchIsai, UpperIsaiGenerateIsEquivalentToReferenceSpy2)
+{
+    this->test_generate_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 2,
+        this->upper_mtx);
+}
 
 
 TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy1)
@@ -218,31 +247,35 @@ TEST_F(BatchIsai, GeneralIsaiApplyIsEquivalentToReferenceSpy2)
 }
 
 
-// TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy1)
-// {
-//     this->test_apply_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::lower_tri,
-//     1, this->lower_mtx);
-// }
+TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy1)
+{
+    this->test_apply_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 1,
+        this->lower_mtx);
+}
 
 
-// TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy2)
-// {
-//     this->test_apply_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::lower_tri,
-//     2, this->lower_mtx);
-// }
+TEST_F(BatchIsai, LowerIsaiApplyIsEquivalentToReferenceSpy2)
+{
+    this->test_apply_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::lower_tri, 2,
+        this->lower_mtx);
+}
 
 
-// TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy1)
-// {
-//     this->test_apply_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::upper_tri,
-//     1, this->upper_mtx);
-// }
+TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy1)
+{
+    this->test_apply_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 1,
+        this->upper_mtx);
+}
 
 
-// TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy2)
-// {
-//     this->test_apply_eqvt_to_ref(gko::preconditioner::batch_isai_input_matrix_type::upper_tri,
-//     2, this->upper_mtx);
-// }
+TEST_F(BatchIsai, UpperIsaiApplyIsEquivalentToReferenceSpy2)
+{
+    this->test_apply_eqvt_to_ref(
+        gko::preconditioner::batch_isai_input_matrix_type::upper_tri, 2,
+        this->upper_mtx);
+}
 
 }  // namespace
