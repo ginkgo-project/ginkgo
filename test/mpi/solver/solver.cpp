@@ -176,7 +176,7 @@ struct Ir : SimpleSolverTest<gko::solver::Ir<solver_value_type>> {
 
 
 template <typename T>
-class Solver : public ::testing::Test {
+class Solver : public CommonMpiTestFixture {
 protected:
     using Config = T;
     using SolverType = typename T::solver_type;
@@ -191,22 +191,10 @@ protected:
     using MixedLocalVec = typename T::mixed_non_dist_vector_type;
     using Part = typename T::partition_type;
 
-    Solver()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
-          rand_engine(15)
-    {
-        init_executor(ref, exec);
-    }
+    Solver() : rand_engine(15) {}
 
     void SetUp() { ASSERT_EQ(comm.size(), 3); }
 
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     std::unique_ptr<Part> gen_part(int size, int num_active_parts)
     {
@@ -491,11 +479,6 @@ protected:
             ASSERT_LE(norm->at(i), tolerance);
         }
     }
-
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-    gko::mpi::communicator comm;
 
     std::default_random_engine rand_engine;
 };
