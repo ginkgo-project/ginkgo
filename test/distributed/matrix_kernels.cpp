@@ -51,40 +51,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/executor.hpp"
 
 
-namespace {
-
-
 using comm_index_type = gko::distributed::comm_index_type;
 
 
 template <typename ValueLocalGlobalIndexType>
-class Matrix : public ::testing::Test {
+class Matrix : public CommonTestFixture {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, local_index_type>;
 
     Matrix() : engine(42) {}
-
-    void SetUp()
-    {
-        ref = gko::ReferenceExecutor::create();
-        init_executor(ref, exec);
-    }
-
-    void TearDown()
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     void validate(
         const gko::distributed::Partition<local_index_type, global_index_type>*
@@ -149,8 +130,6 @@ protected:
         }
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     std::default_random_engine engine;
 };
 
@@ -383,6 +362,3 @@ TYPED_TEST(Matrix, BuildsLocalWithColPartitionIsEquivalentToRef)
     this->validate(row_partition.get(), col_partition.get(),
                    d_row_partition.get(), d_col_partition.get(), input);
 }
-
-
-}  // namespace

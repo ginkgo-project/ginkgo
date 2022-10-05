@@ -55,24 +55,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/mpi/executor.hpp"
 
 
-namespace {
-
-
 #ifndef GKO_COMPILING_DPCPP
 
 
 template <typename ValueLocalGlobalIndexType>
-class MatrixCreation : public ::testing::Test {
+class MatrixCreation : public CommonMpiTestFixture {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using local_index_type =
-        typename std::tuple_element<1, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
-    using global_index_type =
-        typename std::tuple_element<2, decltype(
-                                           ValueLocalGlobalIndexType())>::type;
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
     using dist_mtx_type = gko::distributed::Matrix<value_type, local_index_type,
                                                    global_index_type>;
     using dist_vec_type = gko::distributed::Vector<value_type>;
@@ -83,9 +77,7 @@ protected:
 
 
     MatrixCreation()
-        : ref(gko::ReferenceExecutor::create()),
-          size{5, 5},
-          comm(gko::mpi::communicator(MPI_COMM_WORLD)),
+        : size{5, 5},
           mat_input{size,
                     {{0, 1, 1},
                      {0, 3, 2},
@@ -102,9 +94,6 @@ protected:
                       {size, {{4, 0, 9}, {4, 4, 10}}}}},
           engine(42)
     {
-        init_executor(ref, exec);
-
-
         row_part = Partition::build_from_contiguous(
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 5}));
@@ -120,10 +109,7 @@ protected:
     void SetUp() override { ASSERT_EQ(comm.size(), 3); }
 
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
     gko::dim<2> size;
-    gko::mpi::communicator comm;
     std::shared_ptr<Partition> row_part;
     std::shared_ptr<Partition> col_part;
 
@@ -199,7 +185,7 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 
 
 template <typename ValueType>
-class Matrix : public ::testing::Test {
+class Matrix : public CommonMpiTestFixture {
 public:
     using value_type = ValueType;
     using local_index_type = gko::int32;
@@ -214,14 +200,8 @@ public:
     using dense_vec_type = gko::matrix::Dense<value_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
 
-    Matrix()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
-          size{5, 5},
-          engine()
+    Matrix() : size{5, 5}, engine()
     {
-        init_executor(ref, exec);
-
         row_part = part_type::build_from_contiguous(
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 5}));
@@ -330,11 +310,6 @@ public:
         y->read_distributed(vec_md, row_part_large.get());
         dense_y->read(vec_md);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    gko::mpi::communicator comm;
 
     gko::dim<2> size;
 
@@ -549,9 +524,8 @@ private:
 };
 
 
-class MatrixGpuAwareCheck : public ::testing::Test {
+class MatrixGpuAwareCheck : public CommonMpiTestFixture {
 public:
-    using value_type = double;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using part_type =
@@ -562,12 +536,8 @@ public:
     using dense_vec_type = gko::matrix::Dense<value_type>;
 
     MatrixGpuAwareCheck()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
-          logger(gko::share(HostToDeviceLogger::create())),
-          engine()
+        : logger(gko::share(HostToDeviceLogger::create())), engine()
     {
-        init_executor(ref, exec);
         exec->add_logger(logger);
 
         mat = dist_mtx_type::create(exec, comm);
@@ -578,10 +548,6 @@ public:
         beta = dense_vec_type::create(exec, gko::dim<2>{1, 1});
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    gko::mpi::communicator comm;
 
     std::unique_ptr<dist_mtx_type> mat;
 
@@ -617,6 +583,3 @@ TEST_F(MatrixGpuAwareCheck, AdvancedApplyCopiesToHostOnlyIfNecessary)
     ASSERT_EQ(logger->get_transfer_count() > transfer_count_before,
               needs_transfers(exec));
 }
-
-
-}  // namespace

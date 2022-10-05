@@ -52,9 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "test/utils/mpi/executor.hpp"
 
 
-namespace {
-
-
 bool needs_transfers(std::shared_ptr<const gko::Executor> exec)
 {
     return exec->get_master() != exec && !gko::mpi::is_gpu_aware();
@@ -91,7 +88,7 @@ private:
 
 
 template <typename ValueLocalGlobalIndexType>
-class VectorCreation : public ::testing::Test {
+class VectorCreation : public CommonMpiTestFixture {
 public:
     using value_type =
         typename std::tuple_element<0, decltype(
@@ -110,8 +107,7 @@ public:
     using dense_type = gko::matrix::Dense<value_type>;
 
     VectorCreation()
-        : ref(gko::ReferenceExecutor::create()),
-          comm(MPI_COMM_WORLD),
+        :
           part(gko::share(part_type::build_from_contiguous(
               this->ref, {ref, {0, 2, 4, 6}}))),
           local_size{4, 11},
@@ -119,19 +115,8 @@ public:
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {
-        init_executor(gko::ReferenceExecutor::create(), exec);
     }
 
-    void TearDown() override
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::Executor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-    gko::mpi::communicator comm;
     std::shared_ptr<part_type> part;
 
     gko::dim<2> local_size;
@@ -355,7 +340,7 @@ TYPED_TEST(VectorCreation, CanCreateFromLocalVectorWithoutSize)
 
 
 template <typename ValueType>
-class VectorReductions : public ::testing::Test {
+class VectorReductions : public CommonMpiTestFixture {
 public:
     using value_type = ValueType;
     using local_index_type = gko::int32;
@@ -367,14 +352,10 @@ public:
     using real_dense_type = typename dense_type::real_type;
 
     VectorReductions()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(),
-          comm(MPI_COMM_WORLD),
+        :
           size{53, 11},
           engine(42)
     {
-        init_executor(gko::ReferenceExecutor::create(), exec);
-
         logger = gko::share(HostToDeviceLogger::create());
         exec->add_logger(logger);
 
@@ -425,13 +406,6 @@ public:
 
     void SetUp() override { ASSERT_GT(comm.size(), 0); }
 
-    void TearDown() override
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
-
     void init_result()
     {
         res = dense_type::create(exec, gko::dim<2>{1, size[1]});
@@ -443,11 +417,6 @@ public:
         real_res->fill(0.0);
         dense_real_res->fill(0.0);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    gko::mpi::communicator comm;
 
     gko::dim<2> size;
 
@@ -621,7 +590,7 @@ TYPED_TEST(VectorReductions, ComputeNorm1CopiesToHostOnlyIfNecessary)
 
 
 template <typename ValueType>
-class VectorLocalOps : public ::testing::Test {
+class VectorLocalOps : public CommonMpiTestFixture {
 public:
     using value_type = ValueType;
     using local_index_type = gko::int32;
@@ -634,15 +603,11 @@ public:
     using real_dense_type = typename dense_type ::real_type;
 
     VectorLocalOps()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(),
-          comm(MPI_COMM_WORLD),
+        :
           local_size{4, 11},
           size{local_size[0] * comm.size(), 11},
           engine(42)
     {
-        init_executor(ref, exec);
-
         x = dist_vec_type::create(exec, comm);
         y = dist_vec_type::create(exec, comm);
         alpha = dense_type ::create(exec);
@@ -651,13 +616,6 @@ public:
     }
 
     void SetUp() override { ASSERT_GT(comm.size(), 0); }
-
-    void TearDown() override
-    {
-        if (exec != nullptr) {
-            ASSERT_NO_THROW(exec->synchronize());
-        }
-    }
 
     template <typename LocalVectorType, typename DistVectorType>
     void generate_vector_pair(std::unique_ptr<LocalVectorType>& local,
@@ -691,11 +649,6 @@ public:
         generate_vector_pair(local_real, real);
         generate_vector_pair(local_complex, complex);
     }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::EXEC_TYPE> exec;
-
-    gko::mpi::communicator comm;
 
     gko::dim<2> local_size;
     gko::dim<2> size;
@@ -959,6 +912,3 @@ TYPED_TEST(VectorLocalOps, CreateRealViewSameAsLocal)
     EXPECT_EQ(rv->get_local_vector()->get_stride(), local_rv->get_stride());
     GKO_ASSERT_MTX_NEAR(rv->get_local_vector(), local_rv, 0.0);
 }
-
-
-}  // namespace
