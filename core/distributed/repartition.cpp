@@ -233,9 +233,9 @@ void repartitioner<LocalIndexType, GlobalIndexType>::scatter(
         throw GKO_MPI_ERROR(MPI_ERR_COMM);
     }
 
-    if (!to_partition_->has_ordered_parts()) {
-        GKO_NOT_IMPLEMENTED;
-    }
+    // if (!to_partition_->has_ordered_parts()) {
+    //     GKO_NOT_IMPLEMENTED;
+    // }
 
     std::shared_ptr<std::vector<comm_index_type>> send_sizes;
     std::shared_ptr<std::vector<comm_index_type>> send_offsets;
