@@ -422,4 +422,50 @@ TYPED_TEST(Dense, CanMakeConstView)
     ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
 }
 
+
+class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
+    friend class gko::EnablePolymorphicObject<CustomDense,
+                                              gko::matrix::Dense<>>;
+
+public:
+    static std::unique_ptr<CustomDense> create(
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+    {
+        return std::unique_ptr<CustomDense>(
+            new CustomDense(std::move(exec), size));
+    }
+
+private:
+    explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
+                         gko::dim<2> size = {})
+        : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
+                                                              size)
+    {}
+};
+
+
+TEST(DenseView, MutableViewKeepsRuntimeType)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4});
+
+    auto view = gko::make_dense_view(vector.get());
+
+    ASSERT_EQ(view->get_values(), vector->get_values());
+    ASSERT_TRUE(dynamic_cast<CustomDense*>(view.get()));
+}
+
+
+TEST(DenseView, ConstViewKeepsRuntimeType)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4});
+
+    auto view = gko::make_const_dense_view(vector.get());
+
+    ASSERT_EQ(view->get_const_values(), vector->get_const_values());
+    ASSERT_TRUE(dynamic_cast<const CustomDense*>(view.get()));
+}
+
+
 }  // namespace

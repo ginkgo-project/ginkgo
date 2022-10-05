@@ -207,6 +207,16 @@ public:
         return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
+    static std::unique_ptr<Dense> create_view_of(Dense* other)
+    {
+        return other->create_view_of_impl();
+    }
+
+    static std::unique_ptr<const Dense> create_const_view_of(const Dense* other)
+    {
+        return other->create_const_view_of_impl();
+    }
+
     friend class Dense<next_precision<ValueType>>;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
@@ -990,6 +1000,29 @@ protected:
         return Dense::create(exec, size, stride);
     }
 
+    virtual std::unique_ptr<Dense> create_view_of_impl()
+    {
+        auto exec = this->get_executor();
+        auto view = this->create_default(exec);
+        view->set_size(this->get_size());
+        view->values_ = gko::make_array_view(
+            exec, this->get_num_stored_elements(), this->get_values());
+        view->stride_ = this->get_stride();
+        return view;
+    }
+
+    virtual std::unique_ptr<const Dense> create_const_view_of_impl() const
+    {
+        auto exec = this->get_executor();
+        auto view = this->create_default(exec);
+        view->set_size(this->get_size());
+        view->values_ = gko::make_array_view(
+            exec, this->get_num_stored_elements(),
+            const_cast<value_type*>(this->get_const_values()));
+        view->stride_ = this->get_stride();
+        return view;
+    }
+
     template <typename IndexType>
     void convert_impl(Coo<ValueType, IndexType>* result) const;
 
@@ -1186,12 +1219,7 @@ template <typename ValueType>
 std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
     matrix::Dense<ValueType>* vector)
 {
-    auto exec = vector->get_executor();
-    return matrix::Dense<ValueType>::create(
-        exec, vector->get_size(),
-        make_array_view(exec, vector->get_num_stored_elements(),
-                        vector->get_values()),
-        vector->get_stride());
+    return matrix::Dense<ValueType>::create_view_of(vector);
 }
 
 
@@ -1205,12 +1233,7 @@ template <typename ValueType>
 std::unique_ptr<const matrix::Dense<ValueType>> make_const_dense_view(
     const matrix::Dense<ValueType>* vector)
 {
-    auto exec = vector->get_executor();
-    return matrix::Dense<ValueType>::create_const(
-        exec, vector->get_size(),
-        make_const_array_view(exec, vector->get_num_stored_elements(),
-                              vector->get_const_values()),
-        vector->get_stride());
+    return matrix::Dense<ValueType>::create_const_view_of(vector);
 }
 
 
