@@ -99,6 +99,16 @@ void build_local_nonlocal(
         non_local_input.get_const_col_idxs() + non_local_input.get_num_elems(),
         std::back_inserter(unique_columns),
         [](const auto& entry) { return entry; });
+    auto find_col_part = [&](GlobalIndexType idx) {
+        auto range_id = find_range(idx, col_partition, 0);
+        return col_part_ids[range_id];
+    };
+    std::sort(unique_columns.begin(), unique_columns.end(),
+              [&](const auto& a, const auto& b) {
+                  auto part_a = find_col_part(a);
+                  auto part_b = find_col_part(b);
+                  return std::tie(part_a, a) < std::tie(part_b, b);
+              });
     unique_columns.erase(
         std::unique(unique_columns.begin(), unique_columns.end()),
         unique_columns.end());
@@ -137,10 +147,6 @@ void build_local_nonlocal(
                range_starting_indices[range_id];
     };
 
-    auto find_col_part = [&](GlobalIndexType idx) {
-        auto range_id = find_range(idx, col_partition, 0);
-        return col_part_ids[range_id];
-    };
     size_type col_range_id = 0;
     for (size_type i = 0; i < unique_columns.size(); ++i) {
         col_range_id =
