@@ -46,59 +46,104 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/mpi.hpp>
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::ReferenceExecutor>& exec)
+template <typename ExecType>
+std::shared_ptr<ExecType> init_executor(
+    std::shared_ptr<gko::ReferenceExecutor>);
+
+
+template <>
+inline std::shared_ptr<gko::ReferenceExecutor>
+init_executor<gko::ReferenceExecutor>(std::shared_ptr<gko::ReferenceExecutor>)
 {
-    exec = gko::ReferenceExecutor::create();
+    return gko::ReferenceExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::OmpExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::OmpExecutor> init_executor<gko::OmpExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor>)
 {
-    exec = gko::OmpExecutor::create();
+    return gko::OmpExecutor::create();
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::CudaExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::CudaExecutor> init_executor<gko::CudaExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
-    ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
-    exec = gko::CudaExecutor::create(
-        gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
-                                        gko::CudaExecutor::get_num_devices()),
-        ref);
+    {
+        if (gko::CudaExecutor::get_num_devices() == 0) {
+            throw std::runtime_error{"No suitable CUDA devices"};
+        }
+        return gko::CudaExecutor::create(
+            gko::mpi::map_rank_to_device_id(
+                MPI_COMM_WORLD, gko::CudaExecutor::get_num_devices()),
+            ref);
+    }
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::HipExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::HipExecutor> init_executor<gko::HipExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
-    ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-    exec = gko::HipExecutor::create(
+    if (gko::HipExecutor::get_num_devices() == 0) {
+        throw std::runtime_error{"No suitable HIP devices"};
+    }
+    return gko::HipExecutor::create(
         gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD,
                                         gko::HipExecutor::get_num_devices()),
         ref);
 }
 
 
-void init_executor(std::shared_ptr<gko::ReferenceExecutor> ref,
-                   std::shared_ptr<gko::DpcppExecutor>& exec)
+template <>
+inline std::shared_ptr<gko::DpcppExecutor> init_executor<gko::DpcppExecutor>(
+    std::shared_ptr<gko::ReferenceExecutor> ref)
 {
     auto num_gpu_devices = gko::DpcppExecutor::get_num_devices("gpu");
     auto num_cpu_devices = gko::DpcppExecutor::get_num_devices("cpu");
     if (num_gpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
+        return gko::DpcppExecutor::create(
             gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_gpu_devices),
             ref, "gpu");
     } else if (num_cpu_devices > 0) {
-        exec = gko::DpcppExecutor::create(
+        return gko::DpcppExecutor::create(
             gko::mpi::map_rank_to_device_id(MPI_COMM_WORLD, num_cpu_devices),
             ref, "cpu");
     } else {
-        FAIL() << "No suitable DPC++ devices";
+        throw std::runtime_error{"No suitable DPC++ devices"};
     }
 }
+
+
+class CommonMpiTestFixture : public ::testing::Test {
+public:
+#if GINKGO_COMMON_SINGLE_MODE
+    using value_type = float;
+#else
+    using value_type = double;
+#endif
+    using index_type = int;
+
+    CommonMpiTestFixture()
+        : ref{gko::ReferenceExecutor::create()},
+          exec{init_executor<gko::EXEC_TYPE>(ref)},
+          comm(MPI_COMM_WORLD)
+    {}
+
+    void TearDown() final
+    {
+        if (exec != nullptr) {
+            ASSERT_NO_THROW(exec->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::EXEC_TYPE> exec;
+
+    gko::mpi::communicator comm;
+};
 
 
 #endif  // GKO_TEST_UTILS_MPI_EXECUTOR_HPP_
