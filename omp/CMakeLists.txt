@@ -3,6 +3,7 @@ target_sources(ginkgo_omp
     PRIVATE
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
+    base/scoped_device_id.cpp
     base/version.cpp
     components/prefix_sum_kernels.cpp
     distributed/matrix_kernels.cpp

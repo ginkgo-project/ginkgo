@@ -41,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
-#include "hip/base/device_guard.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
 
@@ -94,13 +93,13 @@ protected:
 
     void initialize_descr()
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto exec = this->get_gpu_exec();
+        auto guard = exec->get_scoped_device_id_guard();
         this->descr_ = handle_manager<hipsparseMatDescr>(
             reinterpret_cast<hipsparseMatDescr*>(
                 gko::kernels::hip::hipsparse::create_mat_descr()),
-            [id](hipsparseMatDescr* descr) {
-                gko::hip::device_guard g{id};
+            [exec](hipsparseMatDescr* descr) {
+                auto guard = exec->get_scoped_device_id_guard();
                 gko::kernels::hip::hipsparse::destroy(descr);
             });
     }
@@ -120,7 +119,7 @@ class HipsparseCsr
       public gko::EnableCreateMethod<HipsparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsr>;
-    friend class gko::EnablePolymorphicObject<HipsparseCsr, HipsparseBase>;
+    friend class gko::polymorphic_object_traits<HipsparseCsr>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -156,8 +155,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -196,7 +194,7 @@ class HipsparseCsrmm
       public gko::EnableCreateMethod<HipsparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsrmm>;
-    friend class gko::EnablePolymorphicObject<HipsparseCsrmm, HipsparseBase>;
+    friend class gko::polymorphic_object_traits<HipsparseCsrmm>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -232,8 +230,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmm(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -277,7 +274,7 @@ class HipsparseHybrid
           HipsparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseHybrid>;
-    friend class gko::EnablePolymorphicObject<HipsparseHybrid, HipsparseBase>;
+    friend class gko::polymorphic_object_traits<HipsparseHybrid>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -301,8 +298,7 @@ public:
         t_csr->read(data);
         this->set_size(t_csr->get_size());
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::csr2hyb(
             this->get_gpu_exec()->get_hipsparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -312,9 +308,8 @@ public:
 
     ~HipsparseHybrid() override
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::hip::device_guard g{id};
+            auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyHybMat(hyb_));
         } catch (const std::exception& e) {
             std::cerr << "Error when unallocating HipsparseHybrid hyb_ matrix: "
@@ -334,8 +329,7 @@ protected:
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
 
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         gko::kernels::hip::hipsparse::spmv(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -351,8 +345,7 @@ protected:
         : gko::EnableLinOp<HipsparseHybrid, HipsparseBase>(exec, size),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
     {
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
+        auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateHybMat(&hyb_));
     }
 

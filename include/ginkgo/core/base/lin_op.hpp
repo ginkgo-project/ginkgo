@@ -1041,8 +1041,7 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
-        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
-                                                    ::gko::LinOpFactory>;    \
+        friend class ::gko::polymorphic_object_traits<_factory_name>;        \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

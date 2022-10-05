@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/test/utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/mpi/executor.hpp"
 
 
 namespace {
@@ -119,10 +119,8 @@ public:
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+        init_executor(gko::ReferenceExecutor::create(), exec);
     }
-
-    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
     void TearDown() override
     {
@@ -375,7 +373,7 @@ public:
           size{53, 11},
           engine(42)
     {
-        init_executor(gko::ReferenceExecutor::create(), exec, comm);
+        init_executor(gko::ReferenceExecutor::create(), exec);
 
         logger = gko::share(HostToDeviceLogger::create());
         exec->add_logger(logger);
@@ -643,7 +641,7 @@ public:
           size{local_size[0] * comm.size(), 11},
           engine(42)
     {
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
 
         x = dist_vec_type::create(exec, comm);
         y = dist_vec_type::create(exec, comm);

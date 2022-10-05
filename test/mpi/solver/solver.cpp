@@ -58,7 +58,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
-#include "test/utils/executor.hpp"
+#include "test/utils/mpi/executor.hpp"
 
 
 #if GINKGO_DPCPP_SINGLE_MODE
@@ -195,13 +195,11 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           comm(MPI_COMM_WORLD),
           rand_engine(15)
-    {}
-
-    void SetUp()
     {
-        ASSERT_EQ(comm.size(), 3);
-        init_executor(ref, exec, comm);
+        init_executor(ref, exec);
     }
+
+    void SetUp() { ASSERT_EQ(comm.size(), 3); }
 
     void TearDown()
     {
