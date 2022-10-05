@@ -54,16 +54,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename T>
+// template <typename T>
 class BatchIsai : public ::testing::Test {
 protected:
-    using value_type = T;
+    using value_type = double;
     using index_type = int;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::BatchCsr<value_type, index_type>;
     using BDense = gko::matrix::BatchDense<value_type>;
     using RBDense = gko::matrix::BatchDense<real_type>;
     using prec_type = gko::preconditioner::BatchIsai<value_type, index_type>;
+    using unbatch_lower_prec_type =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::lower,
+                                  value_type, index_type>;
+    using unbatch_gen_prec_type =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
+                                  value_type, index_type>;
+    using unbatch_upper_prec_type =
+        gko::preconditioner::Isai<gko::preconditioner::isai_type::upper,
+                                  value_type, index_type>;
 
     BatchIsai()
         : exec(gko::ReferenceExecutor::create()),
@@ -95,6 +104,7 @@ protected:
 		vals[6] = -1.5; vals[7] = 0.55; vals[8] = -1.0; vals[9] = 4.0;
 		vals[10] = 2.0; vals[11] = -0.25;
         vals[12] = -1.45; vals[13] = 0.45; vals[14] = -5.0; vals[15] = 8.0;
+
         // clang-format on
         return mat;
     }
@@ -140,41 +150,64 @@ protected:
                                                          std::string type)
     {
         using unbatch_type = typename Mtx::unbatch_type;
-        using unbatch_prec_type =
-            gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
-                                      value_type, index_type>;
+
         auto batch_isai_type =
             gko::preconditioner::batch_isai_input_matrix_type::general;
         auto mtx = general_mtx;
+        auto mtxs = gko::test::share(mtx->unbatch());
+        std::vector<std::shared_ptr<const unbatch_type>> check_isai(
+            this->nbatch);
+
 
         if (type == std::string("lower")) {
-            using unbatch_prec_type =
-                gko::preconditioner::Isai<gko::preconditioner::isai_type::lower,
-                                          value_type, index_type>;
             mtx = lower_tri_mtx;
+            mtxs = gko::test::share(mtx->unbatch());
             batch_isai_type =
                 gko::preconditioner::batch_isai_input_matrix_type::lower_tri;
+            auto unbatch_prec_fact = unbatch_lower_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
+            for (size_t i = 0; i < mtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(mtxs[i]);
+                check_isai[i] = unbatch_prec->get_approximate_inverse();
+            }
+
         } else if (type == std::string("upper")) {
-            using unbatch_prec_type =
-                gko::preconditioner::Isai<gko::preconditioner::isai_type::upper,
-                                          value_type, index_type>;
             mtx = upper_tri_mtx;
+            mtxs = gko::test::share(mtx->unbatch());
             batch_isai_type =
                 gko::preconditioner::batch_isai_input_matrix_type::upper_tri;
+
+            auto unbatch_prec_fact = unbatch_upper_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
+
+            for (size_t i = 0; i < mtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(mtxs[i]);
+                check_isai[i] = unbatch_prec->get_approximate_inverse();
+            }
+
+        } else if (type == std::string("general")) {
+            mtx = general_mtx;
+            mtxs = gko::test::share(mtx->unbatch());
+            batch_isai_type =
+                gko::preconditioner::batch_isai_input_matrix_type::general;
+
+            auto unbatch_prec_fact = unbatch_gen_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
+
+            for (size_t i = 0; i < mtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(mtxs[i]);
+                check_isai[i] = unbatch_prec->get_approximate_inverse();
+            }
+        } else {
+            GKO_NOT_IMPLEMENTED;
         }
 
-        auto mtxs = gko::test::share(mtx->unbatch());
-        auto unbatch_prec_fact = unbatch_prec_type::build()
-                                     .with_skip_sorting(true)
-                                     .with_sparsity_power(spy_power)
-                                     .on(exec);
-        std::vector<std::shared_ptr<const unbatch_type>> check_isai(
-            mtxs.size());
-
-        for (size_t i = 0; i < mtxs.size(); i++) {
-            auto unbatch_prec = unbatch_prec_fact->generate(mtxs[i]);
-            check_isai[i] = unbatch_prec->get_approximate_inverse();
-        }
 
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
@@ -185,7 +218,31 @@ protected:
         auto approx_inv = prec->get_const_approximate_inverse();
         auto approx_inv_vec = approx_inv->unbatch();
 
-        for (size_t i = 0; i < mtxs.size(); i++) {
+        if (type == std::string("general") && spy_power > 1) {
+            std::string mat_file = "given_mat.mtx";
+            write(std::ofstream(mat_file), mtxs[0].get(),
+                  gko::layout_type::coordinate);
+            std::string batched_inv_file =
+                "batched_inv_" + std::to_string(spy_power) + ".mtx";
+            write(std::ofstream(batched_inv_file), approx_inv_vec[0].get(),
+                  gko::layout_type::coordinate);
+            std::string unbatched_inv_file =
+                "unbatched_inv_" + std::to_string(spy_power) + ".mtx";
+            write(std::ofstream(unbatched_inv_file), check_isai[0].get(),
+                  gko::layout_type::coordinate);
+
+            std::cout << "given mat: " << std::endl;
+            gko::write(std::cout, mtxs[0].get(), gko::layout_type::coordinate);
+            std::cout << "batched inv: " << std::endl;
+            gko::write(std::cout, approx_inv_vec[0].get(),
+                       gko::layout_type::coordinate);
+            std::cout << "unbatched inv: " << std::endl;
+            gko::write(std::cout, check_isai[0].get(),
+                       gko::layout_type::coordinate);
+        }
+
+
+        for (size_t i = 0; i < nbatch; i++) {
             GKO_ASSERT_MTX_NEAR(approx_inv_vec[i], check_isai[i],
                                 r<value_type>::value);
         }
@@ -195,29 +252,11 @@ protected:
         const int spy_power, std::string type)
     {
         using unbatch_type = typename Mtx::unbatch_type;
-        using unbatch_prec_type =
-            gko::preconditioner::Isai<gko::preconditioner::isai_type::general,
-                                      value_type, index_type>;
+
         auto batch_isai_type =
             gko::preconditioner::batch_isai_input_matrix_type::general;
         auto mtx = general_mtx;
-
-        if (type == std::string("lower")) {
-            using unbatch_prec_type =
-                gko::preconditioner::Isai<gko::preconditioner::isai_type::lower,
-                                          value_type, index_type>;
-            mtx = lower_tri_mtx;
-            batch_isai_type =
-                gko::preconditioner::batch_isai_input_matrix_type::lower_tri;
-        } else if (type == std::string("upper")) {
-            using unbatch_prec_type =
-                gko::preconditioner::Isai<gko::preconditioner::isai_type::upper,
-                                          value_type, index_type>;
-            mtx = upper_tri_mtx;
-            batch_isai_type =
-                gko::preconditioner::batch_isai_input_matrix_type::upper_tri;
-        }
-
+        auto umtxs = gko::test::share(mtx->unbatch());
         auto b = gko::batch_initialize<BDense>(
             {{-2.0, 9.0, 4.0, 7.0}, {-3.0, 5.0, 3.0, 10.0}}, exec);
         auto x = BDense::create(
@@ -225,17 +264,59 @@ protected:
         auto ub = b->unbatch();
         auto ux = x->unbatch();
 
+        if (type == std::string("lower")) {
+            mtx = lower_tri_mtx;
+            umtxs = gko::test::share(mtx->unbatch());
+            batch_isai_type =
+                gko::preconditioner::batch_isai_input_matrix_type::lower_tri;
 
-        auto umtxs = gko::test::share(mtx->unbatch());
-        auto unbatch_prec_fact = unbatch_prec_type::build()
-                                     .with_skip_sorting(true)
-                                     .with_sparsity_power(spy_power)
-                                     .on(exec);
+            auto unbatch_prec_fact = unbatch_lower_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
 
-        for (size_t i = 0; i < umtxs.size(); i++) {
-            auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
-            unbatch_prec->apply(ub[i].get(), ux[i].get());
+            for (size_t i = 0; i < umtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
+                unbatch_prec->apply(ub[i].get(), ux[i].get());
+            }
+
+        } else if (type == std::string("upper")) {
+            mtx = upper_tri_mtx;
+            umtxs = gko::test::share(mtx->unbatch());
+            batch_isai_type =
+                gko::preconditioner::batch_isai_input_matrix_type::upper_tri;
+
+            auto unbatch_prec_fact = unbatch_upper_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
+
+            for (size_t i = 0; i < umtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
+                unbatch_prec->apply(ub[i].get(), ux[i].get());
+            }
+
+
+        } else if (type == std::string("general")) {
+            mtx = general_mtx;
+            umtxs = gko::test::share(mtx->unbatch());
+            batch_isai_type =
+                gko::preconditioner::batch_isai_input_matrix_type::general;
+
+            auto unbatch_prec_fact = unbatch_gen_prec_type::build()
+                                         .with_skip_sorting(true)
+                                         .with_sparsity_power(spy_power)
+                                         .on(exec);
+
+            for (size_t i = 0; i < umtxs.size(); i++) {
+                auto unbatch_prec = unbatch_prec_fact->generate(umtxs[i]);
+                unbatch_prec->apply(ub[i].get(), ux[i].get());
+            }
+
+        } else {
+            GKO_NOT_IMPLEMENTED;
         }
+
 
         auto prec_fact = prec_type::build()
                              .with_skip_sorting(true)
@@ -255,9 +336,17 @@ protected:
     }
 };
 
-TYPED_TEST_SUITE(BatchIsai, gko::test::ValueTypes);
+// TYPED_TEST_SUITE(BatchIsai, gko::test::ValueTypes);
 
 
+TEST_F(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy3)
+{
+    this->test_batch_isai_generation_is_eqvt_to_unbatched(
+        3, std::string("general"));
+}
+
+
+/*
 TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 {
     this->test_batch_isai_generation_is_eqvt_to_unbatched(
@@ -275,8 +364,9 @@ TYPED_TEST(BatchIsai, GeneralBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
 TYPED_TEST(BatchIsai, LowerBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy1)
 {
     this->test_batch_isai_generation_is_eqvt_to_unbatched(1,
-                                                          std::string("lower"));
+std::string("lower"));
 }
+
 
 
 TYPED_TEST(BatchIsai, LowerBatchIsaiGenerationIsEquivalentToUnbatchedWithSpy2)
@@ -324,6 +414,7 @@ TYPED_TEST(BatchIsai,
 }
 
 
+
 TYPED_TEST(BatchIsai,
            LowerBatchIsaiApplyToSingleVectorIsEquivalentToUnbatchedWithSpy2)
 {
@@ -346,5 +437,5 @@ TYPED_TEST(BatchIsai,
     this->test_batch_isai_apply_to_single_vector_is_eqvt_to_unbatched(
         2, std::string("upper"));
 }
-
+*/
 }  // namespace
