@@ -207,11 +207,25 @@ public:
         return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
+    /**
+     * Creates a Dense matrix, where the underlying array is a view of another
+     * Dense matrix' array.
+     *
+     * @param other  The other matrix on which to create the view
+     * @return  A Dense matrix that is a view of other
+     */
     static std::unique_ptr<Dense> create_view_of(Dense* other)
     {
         return other->create_view_of_impl();
     }
 
+    /**
+     * Creates a immutable Dense matrix, where the underlying array is a view of
+     * another Dense matrix' array.
+     *
+     * @param other  The other matrix on which to create the view
+     * @return  A immutable Dense matrix that is a view of other
+     */
     static std::unique_ptr<const Dense> create_const_view_of(const Dense* other)
     {
         return other->create_const_view_of_impl();
@@ -1000,6 +1014,12 @@ protected:
         return Dense::create(exec, size, stride);
     }
 
+    /**
+     * Creates a Dense matrix where the underlying array is a view of this'
+     * array.
+     *
+     * @return  A Dense matrix that is a view of this.
+     */
     virtual std::unique_ptr<Dense> create_view_of_impl()
     {
         auto exec = this->get_executor();
@@ -1011,6 +1031,12 @@ protected:
         return view;
     }
 
+    /**
+     * Creates a immutable Dense matrix where the underlying array is a view of
+     * this' array.
+     *
+     * @return  A immutable Dense matrix that is a view of this.
+     */
     virtual std::unique_ptr<const Dense> create_const_view_of_impl() const
     {
         auto exec = this->get_executor();
