@@ -52,7 +52,6 @@ endfunction()
 ## - `ADDITIONAL_LIBRARIES lib1 lib2` adds additional target link dependencies
 ## - `ADDITIONAL_INCLUDES path1 path2` adds additional target include paths
 function(ginkgo_add_test test_name test_target_name)
-    message("${test_name} ${test_target_name} ${ARGN}")
     cmake_parse_arguments(PARSE_ARGV 2 add_test "" "${gko_test_single_arg}" "${gko_test_multi_arg}")
     file(RELATIVE_PATH REL_BINARY_DIR ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     set_target_properties(${test_target_name} PROPERTIES OUTPUT_NAME ${test_name})
