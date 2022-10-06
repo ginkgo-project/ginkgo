@@ -54,11 +54,12 @@ int main(int argc, char* argv[])
     using ValueType = double;
     // As vector type we use the following, which implements a subset of @ref
     // gko::matrix::Dense.
-    using dist_vec = gko::distributed::Vector<ValueType>;
+    using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     // As matrix type we simply use the following type, which can read
     // distributed data and be applied to a distributed vector.
     using dist_mtx =
-        gko::distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
+        gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                               GlobalIndexType>;
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations.
     using vec = gko::matrix::Dense<ValueType>;
@@ -160,8 +161,8 @@ int main(int argc, char* argv[])
     // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
     // with a sine value. The distributed matrix supports only constructing an
     // empty matrix of zero size and filling in the values with
-    // gko::distributed::Matrix::read_distributed. Only the data that belongs to
-    // the rows by this rank will be assembled.
+    // gko::experimental::distributed::Matrix::read_distributed. Only the data
+    // that belongs to the rows by this rank will be assembled.
     gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;

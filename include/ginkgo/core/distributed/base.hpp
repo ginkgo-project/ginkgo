@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 
@@ -95,6 +96,7 @@ private:
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 

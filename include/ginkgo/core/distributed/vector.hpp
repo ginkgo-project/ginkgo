@@ -54,6 +54,13 @@ template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
 
 
+}
+
+
+namespace experimental {
+namespace distributed {
+
+
 /**
  * Vector is a format which explicitly stores (multiple) distributed column
  * vectors in a dense storage format.
@@ -136,7 +143,8 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const device_matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition);
+        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>*
+            partition);
 
     /**
      * Reads a vector from the matrix_data structure and a global row
@@ -150,7 +158,8 @@ public:
     template <typename LocalIndexType, typename GlobalIndexType>
     void read_distributed(
         const matrix_data<ValueType, GlobalIndexType>& data,
-        const Partition<LocalIndexType, GlobalIndexType>* partition);
+        const gko::distributed::Partition<LocalIndexType, GlobalIndexType>*
+            partition);
 
     void convert_to(Vector<next_precision<ValueType>>* result) const override;
 
@@ -426,7 +435,6 @@ protected:
      * @param exec  Executor associated with vector
      * @param comm  Communicator associated with vector, the default is
      *              MPI_COMM_WORLD
-     * @param partition  Partition of global rows
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector
      * @param stride  Stride of the local vector.
@@ -440,7 +448,6 @@ protected:
      * @param exec  Executor associated with vector
      * @param comm  Communicator associated with vector, the default is
      *              MPI_COMM_WORLD
-     * @param partition  Partition of global rows
      * @param global_size  Global size of the vector
      * @param local_size  Processor-local size of the vector, uses local_size[1]
      *                    as the stride
@@ -510,11 +517,12 @@ private:
 
 
 }  // namespace distributed
+}  // namespace experimental
 
 
 template <typename ValueType>
-struct polymorphic_object_traits<distributed::Vector<ValueType>> {
-    using Vector = distributed::Vector<ValueType>;
+struct polymorphic_object_traits<experimental::distributed::Vector<ValueType>> {
+    using Vector = experimental::distributed::Vector<ValueType>;
 
     static std::unique_ptr<PolymorphicObject> create_default_impl(
         const Vector* self, std::shared_ptr<const Executor> exec)
@@ -524,7 +532,8 @@ struct polymorphic_object_traits<distributed::Vector<ValueType>> {
     }
 
     static std::unique_ptr<Vector> create_conversion_target_impl(
-        const distributed::Vector<next_precision<ValueType>>* self,
+        const experimental::distributed::Vector<next_precision<ValueType>>*
+            self,
         std::shared_ptr<const Executor> exec)
     {
         return std::unique_ptr<Vector>{
