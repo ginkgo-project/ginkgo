@@ -107,15 +107,13 @@ public:
     using dense_type = gko::matrix::Dense<value_type>;
 
     VectorCreation()
-        :
-          part(gko::share(part_type::build_from_contiguous(
+        : part(gko::share(part_type::build_from_contiguous(
               this->ref, {ref, {0, 2, 4, 6}}))),
           local_size{4, 11},
           size{local_size[1] * comm.size(), 11},
           md{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}},
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
-    {
-    }
+    {}
 
     std::shared_ptr<part_type> part;
 
@@ -351,10 +349,7 @@ public:
     using dense_type = gko::matrix::Dense<value_type>;
     using real_dense_type = typename dense_type::real_type;
 
-    VectorReductions()
-        :
-          size{53, 11},
-          engine(42)
+    VectorReductions() : size{53, 11}, engine(42)
     {
         logger = gko::share(HostToDeviceLogger::create());
         exec->add_logger(logger);
@@ -603,10 +598,7 @@ public:
     using real_dense_type = typename dense_type ::real_type;
 
     VectorLocalOps()
-        :
-          local_size{4, 11},
-          size{local_size[0] * comm.size(), 11},
-          engine(42)
+        : local_size{4, 11}, size{local_size[0] * comm.size(), 11}, engine(42)
     {
         x = dist_vec_type::create(exec, comm);
         y = dist_vec_type::create(exec, comm);
