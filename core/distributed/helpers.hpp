@@ -69,10 +69,10 @@ matrix::Dense<ValueType>* get_local(matrix::Dense<ValueType>* mtx)
 
 
 template <typename ValueType>
-std::unique_ptr<distributed::Vector<ValueType>> create_with_config_of(
-    const distributed::Vector<ValueType>* mtx)
+std::unique_ptr<experimental::distributed::Vector<ValueType>>
+create_with_config_of(const experimental::distributed::Vector<ValueType>* mtx)
 {
-    return distributed::Vector<ValueType>::create(
+    return experimental::distributed::Vector<ValueType>::create(
         mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
         mtx->get_local_vector()->get_size(),
         mtx->get_local_vector()->get_stride());
@@ -80,7 +80,8 @@ std::unique_ptr<distributed::Vector<ValueType>> create_with_config_of(
 
 
 template <typename ValueType>
-matrix::Dense<ValueType>* get_local(distributed::Vector<ValueType>* mtx)
+matrix::Dense<ValueType>* get_local(
+    experimental::distributed::Vector<ValueType>* mtx)
 {
     return const_cast<matrix::Dense<ValueType>*>(mtx->get_local_vector());
 }
@@ -88,7 +89,7 @@ matrix::Dense<ValueType>* get_local(distributed::Vector<ValueType>* mtx)
 
 template <typename ValueType>
 const matrix::Dense<ValueType>* get_local(
-    const distributed::Vector<ValueType>* mtx)
+    const experimental::distributed::Vector<ValueType>* mtx)
 {
     return mtx->get_local_vector();
 }
@@ -101,7 +102,8 @@ template <typename Arg>
 bool is_distributed(Arg* linop)
 {
 #if GINKGO_BUILD_MPI
-    return dynamic_cast<const distributed::DistributedBase*>(linop);
+    return dynamic_cast<const experimental::distributed::DistributedBase*>(
+        linop);
 #else
     return false;
 #endif
@@ -113,7 +115,7 @@ bool is_distributed(Arg* linop, Rest*... rest)
 {
 #if GINKGO_BUILD_MPI
     bool is_distributed_value =
-        dynamic_cast<const distributed::DistributedBase*>(linop);
+        dynamic_cast<const experimental::distributed::DistributedBase*>(linop);
     GKO_ASSERT(is_distributed_value == is_distributed(rest...));
     return is_distributed_value;
 #else
