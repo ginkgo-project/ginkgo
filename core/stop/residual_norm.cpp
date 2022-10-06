@@ -78,8 +78,8 @@ template <typename ValueType, typename LinOp, typename... Rest>
 bool any_is_complex(const LinOp* in, Rest&&... rest)
 {
 #if GINKGO_BUILD_MPI
-    bool is_complex_distributed = dynamic_cast<
-        const ConvertibleTo<distributed::Vector<std::complex<double>>>*>(in);
+    bool is_complex_distributed = dynamic_cast<const ConvertibleTo<
+        experimental::distributed::Vector<std::complex<double>>>*>(in);
 #else
     bool is_complex_distributed = false;
 #endif
@@ -97,10 +97,10 @@ void norm_dispatch(Function&& fn, LinOps*... linops)
 #if GINKGO_BUILD_MPI
     if (gko::detail::is_distributed(linops...)) {
         if (any_is_complex<ValueType>(linops...)) {
-            distributed::precision_dispatch<to_complex<ValueType>>(
-                std::forward<Function>(fn), linops...);
+            experimental::distributed::precision_dispatch<
+                to_complex<ValueType>>(std::forward<Function>(fn), linops...);
         } else {
-            distributed::precision_dispatch<ValueType>(
+            experimental::distributed::precision_dispatch<ValueType>(
                 std::forward<Function>(fn), linops...);
         }
     } else

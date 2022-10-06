@@ -108,7 +108,7 @@ struct MatrixTypeBuilderFromValueAndIndex {
  * ```
  *
  * @note This is mainly a helper function to specify the local matrix type for a
- *       gko::distributed::Matrix more easily.
+ *       gko::experimental::distributed::Matrix more easily.
  *
  * @tparam MatrixType  A template type that accepts two types, the first one
  *                     will be set to the value type, the second one to the
@@ -132,6 +132,13 @@ namespace distributed {
 
 template <typename LocalIndexType, typename GlobalIndexType>
 class Partition;
+
+
+}
+
+
+namespace experimental {
+namespace distributed {
 
 
 template <typename ValueType>
@@ -229,8 +236,8 @@ class Vector;
  *
  * The Matrix LinOp supports the following operations:
  * ```cpp
- * distributed::Matrix *A;       // distributed matrix
- * distributed::Vector *b, *x;   // distributed multi-vectors
+ * experimental::distributed::Matrix *A;       // distributed matrix
+ * experimental::distributed::Vector *b, *x;   // distributed multi-vectors
  * matrix::Dense *alpha, *beta;  // scalars of dimension 1x1
  *
  * // Applying to distributed multi-vectors computes an SpMV/SpMM product
@@ -261,7 +268,8 @@ public:
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
-    using global_vector_type = gko::distributed::Vector<ValueType>;
+    using global_vector_type =
+        gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
     using EnableLinOp<Matrix>::convert_to;
@@ -289,7 +297,8 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            partition);
 
     /**
      * Reads a square matrix from the matrix_data structure and a global
@@ -302,7 +311,8 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* partition);
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            partition);
 
     /**
      * Reads a matrix from the device_matrix_data structure, a global row
@@ -321,8 +331,10 @@ public:
      */
     void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            row_partition,
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            col_partition);
 
     /**
      * Reads a matrix from the matrix_data structure, a global row partition,
@@ -335,8 +347,10 @@ public:
      */
     void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
-        const Partition<local_index_type, global_index_type>* row_partition,
-        const Partition<local_index_type, global_index_type>* col_partition);
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            row_partition,
+        const gko::distributed::Partition<local_index_type, global_index_type>*
+            col_partition);
 
     /**
      * Get read access to the stored local matrix.
@@ -518,10 +532,10 @@ protected:
                     LinOp* x) const override;
 
 private:
-    std::vector<comm_index_type> send_offsets_;
-    std::vector<comm_index_type> send_sizes_;
-    std::vector<comm_index_type> recv_offsets_;
-    std::vector<comm_index_type> recv_sizes_;
+    std::vector<gko::distributed::comm_index_type> send_offsets_;
+    std::vector<gko::distributed::comm_index_type> send_sizes_;
+    std::vector<gko::distributed::comm_index_type> recv_offsets_;
+    std::vector<gko::distributed::comm_index_type> recv_sizes_;
     array<local_index_type> gather_idxs_;
     array<global_index_type> non_local_to_global_;
     gko::detail::DenseCache<value_type> one_scalar_;
@@ -535,13 +549,14 @@ private:
 
 
 }  // namespace distributed
+}  // namespace experimental
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-struct polymorphic_object_traits<
-    distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>> {
-    using Matrix =
-        distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
+struct polymorphic_object_traits<experimental::distributed::Matrix<
+    ValueType, LocalIndexType, GlobalIndexType>> {
+    using Matrix = experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                                     GlobalIndexType>;
 
     static std::unique_ptr<PolymorphicObject> create_default_impl(
         const Matrix* self, std::shared_ptr<const Executor> exec)

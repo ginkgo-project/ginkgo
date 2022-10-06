@@ -103,7 +103,7 @@ public:
         gko::distributed::Partition<local_index_type, global_index_type>;
     using md_type = gko::matrix_data<value_type, global_index_type>;
     using d_md_type = gko::device_matrix_data<value_type, global_index_type>;
-    using dist_vec_type = gko::distributed::Vector<value_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
 
     VectorCreation()
@@ -347,7 +347,7 @@ public:
     using global_index_type = gko::int64;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
-    using dist_vec_type = gko::distributed::Vector<value_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using dense_type = gko::matrix::Dense<value_type>;
     using real_dense_type = typename dense_type::real_type;
 
@@ -595,7 +595,7 @@ public:
     using value_type = ValueType;
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
-    using dist_vec_type = gko::distributed::Vector<value_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using complex_dist_vec_type = typename dist_vec_type::complex_type;
     using real_dist_vec_type = typename dist_vec_type ::real_type;
     using dense_type = gko::matrix::Dense<value_type>;
@@ -706,7 +706,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherVector = typename gko::distributed::Vector<OtherT>;
+    using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
     this->init_vectors();
@@ -722,7 +722,7 @@ TYPED_TEST(VectorLocalOps, MovesToPrecision)
 {
     using T = typename TestFixture::value_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherVector = typename gko::distributed::Vector<OtherT>;
+    using OtherVector = typename gko::experimental::distributed::Vector<OtherT>;
     auto local_tmp = OtherVector::local_vector_type::create(this->exec);
     auto tmp = OtherVector::create(this->exec, this->comm);
     this->init_vectors();

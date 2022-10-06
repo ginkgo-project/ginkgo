@@ -76,12 +76,12 @@ struct SimpleSolverTest {
     using local_index_type = gko::int32;
     using global_index_type = gko::int64;
     using dist_matrix_type =
-        gko::distributed::Matrix<value_type, local_index_type, gko::int64>;
+        gko::experimental::distributed::Matrix<value_type, local_index_type, gko::int64>;
     using non_dist_matrix_type =
         gko::matrix::Csr<value_type, global_index_type>;
-    using dist_vector_type = gko::distributed::Vector<value_type>;
+    using dist_vector_type = gko::experimental::distributed::Vector<value_type>;
     using non_dist_vector_type = gko::matrix::Dense<value_type>;
-    using mixed_dist_vector_type = gko::distributed::Vector<mixed_value_type>;
+    using mixed_dist_vector_type = gko::experimental::distributed::Vector<mixed_value_type>;
     using mixed_non_dist_vector_type = gko::matrix::Dense<mixed_value_type>;
     using partition_type =
         gko::distributed::Partition<local_index_type, global_index_type>;

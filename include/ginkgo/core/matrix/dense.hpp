@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 
@@ -55,6 +56,7 @@ class Vector;
 
 
 }
+}  // namespace experimental
 
 
 namespace matrix {
@@ -147,7 +149,7 @@ class Dense
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
     friend class Dense<to_complex<ValueType>>;
-    friend class distributed::Vector<ValueType>;
+    friend class experimental::distributed::Vector<ValueType>;
 
 public:
     using EnableLinOp<Dense>::convert_to;
