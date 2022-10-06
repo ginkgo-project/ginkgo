@@ -61,14 +61,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <typename ValueLocalGlobalIndexType>
 class MatrixCreation : public CommonMpiTestFixture {
 protected:
-    using value_type = typename std::tuple_element<
-        0, decltype(ValueLocalGlobalIndexType())>::type;
-    using local_index_type = typename std::tuple_element<
-        1, decltype(ValueLocalGlobalIndexType())>::type;
-    using global_index_type = typename std::tuple_element<
-        2, decltype(ValueLocalGlobalIndexType())>::type;
-    using dist_mtx_type = gko::experimental::distributed::Matrix<value_type, local_index_type,
-                                                   global_index_type>;
+    using value_type =
+        typename std::tuple_element<0, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using local_index_type =
+        typename std::tuple_element<1, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using global_index_type =
+        typename std::tuple_element<2, decltype(
+                                           ValueLocalGlobalIndexType())>::type;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using Partition =
@@ -193,8 +197,9 @@ public:
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
     using csr_mtx_type = gko::matrix::Csr<value_type, global_index_type>;
-    using dist_mtx_type = gko::experimental::distributed::Matrix<value_type, local_index_type,
-                                                   global_index_type>;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
     using dense_vec_type = gko::matrix::Dense<value_type>;
@@ -440,9 +445,8 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherDist =
-        typename gko::experimental::distributed::Matrix<OtherT, local_index_type,
-                                          global_index_type>;
+    using OtherDist = typename gko::experimental::distributed::Matrix<
+        OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
     // If OtherT is more precise: 0, otherwise r
@@ -467,9 +471,8 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     using local_index_type = typename TestFixture::local_index_type;
     using global_index_type = typename TestFixture::global_index_type;
     using OtherT = typename gko::next_precision<T>;
-    using OtherDist =
-        typename gko::experimental::distributed::Matrix<OtherT, local_index_type,
-                                          global_index_type>;
+    using OtherDist = typename gko::experimental::distributed::Matrix<
+        OtherT, local_index_type, global_index_type>;
     auto tmp = OtherDist::create(this->ref, this->comm);
     auto res = TestFixture::dist_mtx_type::create(this->ref, this->comm);
     auto clone_dist_mat = gko::clone(this->dist_mat);
@@ -530,8 +533,9 @@ public:
     using global_index_type = gko::int64;
     using part_type =
         gko::distributed::Partition<local_index_type, global_index_type>;
-    using dist_mtx_type = gko::experimental::distributed::Matrix<value_type, local_index_type,
-                                                   global_index_type>;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using dense_vec_type = gko::matrix::Dense<value_type>;
 
