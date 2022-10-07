@@ -115,6 +115,8 @@ public:
           md_localized{{{0, 1}, {2, 3}}, {{4, 5}, {6, 7}}, {{8, 9}, {10, 11}}}
     {}
 
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
     std::shared_ptr<part_type> part;
 
     gko::dim<2> local_size;
