@@ -195,9 +195,6 @@ protected:
 
     Solver() : rand_engine(15) {}
 
-    void SetUp() { ASSERT_EQ(comm.size(), 3); }
-
-
     std::unique_ptr<Part> gen_part(int size, int num_active_parts)
     {
         auto mapping =
