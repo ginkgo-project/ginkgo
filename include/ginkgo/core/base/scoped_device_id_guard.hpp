@@ -64,7 +64,7 @@ public:
     // the derived classes for CUDA and HIP.
     // Also, this can't be defaulted, because the default would use
     // noexcept(true), which leads to the default implementation to be deleted.
-    virtual ~generic_scoped_device_id_guard() noexcept(false){};
+    virtual ~generic_scoped_device_id_guard() = default;
 
     // Prohibit copy construction
     generic_scoped_device_id_guard(

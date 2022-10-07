@@ -46,12 +46,20 @@ namespace detail {
  */
 class cuda_scoped_device_id_guard : public generic_scoped_device_id_guard {
 public:
+    /**
+     * The constructor sets the device id to the passed in value for the
+     * lifetime of the created object.
+     *
+     * @param device_id  Set the device id to this.
+     */
     explicit cuda_scoped_device_id_guard(int device_id);
 
-    ~cuda_scoped_device_id_guard() noexcept(false) override;
+    /**
+     * This resets the device id. If this fails, the program is terminated.
+     */
+    ~cuda_scoped_device_id_guard() override;
 
     cuda_scoped_device_id_guard(cuda_scoped_device_id_guard&& other) noexcept;
-
 
     cuda_scoped_device_id_guard& operator=(
         cuda_scoped_device_id_guard&& other) noexcept;

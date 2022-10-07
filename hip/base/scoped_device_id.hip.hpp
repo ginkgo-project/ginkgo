@@ -46,9 +46,18 @@ namespace detail {
  */
 class hip_scoped_device_id_guard : public generic_scoped_device_id_guard {
 public:
+    /**
+     * The constructor sets the device id to the passed in value for the
+     * lifetime of the created object.
+     *
+     * @param device_id  Set the device id to this.
+     */
     explicit hip_scoped_device_id_guard(int device_id);
 
-    ~hip_scoped_device_id_guard() noexcept(false) override;
+    /**
+     * This resets the device id. If this fails, the program is terminated.
+     */
+    ~hip_scoped_device_id_guard() override;
 
     hip_scoped_device_id_guard(hip_scoped_device_id_guard&& other) noexcept;
 
