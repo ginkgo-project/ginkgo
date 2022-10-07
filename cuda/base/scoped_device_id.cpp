@@ -58,14 +58,11 @@ cuda_scoped_device_id_guard::cuda_scoped_device_id_guard(int device_id)
 }
 
 
-cuda_scoped_device_id_guard::~cuda_scoped_device_id_guard() noexcept(false)
+cuda_scoped_device_id_guard::~cuda_scoped_device_id_guard()
 {
     if (need_reset_) {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id_);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id_));
+        if (cudaSetDevice(original_device_id_) != cudaSuccess) {
+            std::terminate();
         }
     }
 }

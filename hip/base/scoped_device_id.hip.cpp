@@ -58,14 +58,11 @@ hip_scoped_device_id_guard::hip_scoped_device_id_guard(int device_id)
 }
 
 
-hip_scoped_device_id_guard::~hip_scoped_device_id_guard() noexcept(false)
+hip_scoped_device_id_guard::~hip_scoped_device_id_guard()
 {
     if (need_reset_) {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            hipSetDevice(original_device_id_);
-        } else {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id_));
+        if (hipSetDevice(original_device_id_) != hipSuccess) {
+            std::terminate();
         }
     }
 }
