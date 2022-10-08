@@ -58,21 +58,33 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::Dense<ValueType>* rho,
                 array<stopping_status>* stop_status)
 {
-    run_kernel_solver(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
-                      auto q, auto prev_rho, auto rho, auto stop) {
-            if (row == 0) {
+    if (b->get_size()) {
+        run_kernel_solver(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
+                          auto q, auto prev_rho, auto rho, auto stop) {
+                if (row == 0) {
+                    rho[col] = zero(rho[col]);
+                    prev_rho[col] = one(prev_rho[col]);
+                    stop[col].reset();
+                }
+                r(row, col) = b(row, col);
+                z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
+            },
+            b->get_size(), b->get_stride(), b, default_stride(r),
+            default_stride(z), default_stride(p), default_stride(q),
+            row_vector(prev_rho), row_vector(rho), *stop_status);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto col, auto prev_rho, auto rho, auto stop) {
                 rho[col] = zero(rho[col]);
                 prev_rho[col] = one(prev_rho[col]);
                 stop[col].reset();
-            }
-            r(row, col) = b(row, col);
-            z(row, col) = p(row, col) = q(row, col) = zero(z(row, col));
-        },
-        b->get_size(), b->get_stride(), b, default_stride(r), default_stride(z),
-        default_stride(p), default_stride(q), row_vector(prev_rho),
-        row_vector(rho), *stop_status);
+            },
+            b->get_size()[1], row_vector(prev_rho), row_vector(rho),
+            *stop_status);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
