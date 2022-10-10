@@ -99,4 +99,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // clang-format on
 
 
+/* Do we need to use blocking communication in our SpMV? */
+// clang-format off
+#cmakedefine GINKGO_FORCE_SPMV_BLOCKING_COMM
+// clang-format on
+
+
 #endif  // GKO_INCLUDE_CONFIG_H
