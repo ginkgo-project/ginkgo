@@ -207,12 +207,27 @@ else()
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
+set(GINKGO_FORCE_SPMV_BLOCKING_COMM OFF)
 if(GINKGO_BUILD_MPI)
     find_package(MPI REQUIRED)
     if(GINKGO_FORCE_GPU_AWARE_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI ON)
     else()
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
+    endif()
+
+    execute_process(COMMAND ${MPIEXEC_EXECUTABLE} --version
+      OUTPUT_VARIABLE mpiexec_output RESULT_VARIABLE mpiexec_result)
+    string(REGEX MATCH "[oO][pP][eE][nN].?[mM][pP][iI]" openmpi_match "${mpiexec_output}")
+    if(openmpi_match)
+        string(REGEX MATCH "([0-9]+\.?)+" openmpi_version "${mpiexec_output}")
+        if(openmpi_version VERSION_LESS "4.1")
+            message(WARNING
+              "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
+              "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
+              "switch to a different vendor.")
+            set(GINKGO_FORCE_SPMV_BLOCKING_COMM ON)
+        endif()
     endif()
 endif()
 
