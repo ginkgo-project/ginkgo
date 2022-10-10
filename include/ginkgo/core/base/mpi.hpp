@@ -1309,11 +1309,37 @@ public:
                       const int* send_offsets, RecvType* recv_buffer,
                       const int* recv_counts, const int* recv_offsets) const
     {
+        this->all_to_all_v(std::move(exec), send_buffer, send_counts,
+                           send_offsets, type_impl<SendType>::get_type(),
+                           recv_buffer, recv_counts, recv_offsets,
+                           type_impl<RecvType>::get_type());
+    }
+
+    /**
+     * Communicate data from all ranks to all other ranks with
+     * offsets (MPI_Alltoallv). See MPI documentation for more details.
+     *
+     * @param exec  The executor, on which the message buffers are located.
+     * @param send_buffer  the buffer to send
+     * @param send_count  the number of elements to send
+     * @param send_offsets  the offsets for the send buffer
+     * @param send_type  the MPI_Datatype for the send buffer
+     * @param recv_buffer  the buffer to gather into
+     * @param recv_count  the number of elements to receive
+     * @param recv_offsets  the offsets for the recv buffer
+     * @param recv_type  the MPI_Datatype for the recv buffer
+     * @param comm  the communicator
+     */
+    void all_to_all_v(std::shared_ptr<const Executor> exec,
+                      const void* send_buffer, const int* send_counts,
+                      const int* send_offsets, MPI_Datatype send_type,
+                      void* recv_buffer, const int* recv_counts,
+                      const int* recv_offsets, MPI_Datatype recv_type) const
+    {
         auto guard = exec->get_scoped_device_id_guard();
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoallv(
-            send_buffer, send_counts, send_offsets,
-            type_impl<SendType>::get_type(), recv_buffer, recv_counts,
-            recv_offsets, type_impl<RecvType>::get_type(), this->get()));
+            send_buffer, send_counts, send_offsets, send_type, recv_buffer,
+            recv_counts, recv_offsets, recv_type, this->get()));
     }
 
     /**
