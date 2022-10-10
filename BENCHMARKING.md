@@ -302,7 +302,7 @@ The supported environment variables are described in the following list:
     solvers.
 * `SOLVERS_PRECISION=<precision>` - the minimal residual reduction before which
     the solver should stop. The default is `1e-6`.
-* `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
+* `SOLVERS_MAX_ITERATIONS=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
 * `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
     random values or b = A * (s / |s|)$ with s(idx) = sin(idx) (for complex
