@@ -301,14 +301,14 @@ build_part_from_local_rows(
 
     auto local_size = global_rows.size();
     auto global_size = local_size;
-    comm.all_reduce(&global_size, 1, MPI_SUM);
+    comm.all_reduce(exec, &global_size, 1, MPI_SUM);
 
     std::vector<GlobalIndexType> local_mapping(global_rows.begin(),
                                                global_rows.end());
     std::vector<GlobalIndexType> all_global_rows(global_size);
 
-    comm.all_gather(local_mapping.data(), local_size, all_global_rows.data(),
-                    local_size);
+    comm.all_gather(exec, local_mapping.data(), local_size,
+                    all_global_rows.data(), local_size);
 
     gko::array<gko::distributed::comm_index_type> mapping{exec->get_master(),
                                                           global_size};
@@ -354,10 +354,10 @@ int main(int argc, char* argv[])
     std::string format = "";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     if (rank == 0) {
         print_general_information("");

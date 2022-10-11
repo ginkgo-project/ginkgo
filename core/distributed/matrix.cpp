@@ -380,8 +380,9 @@ mpi::request Matrix<ValueType, LocalIndexType, GlobalIndexType>::communicate(
 #else
     if (uses_neighbor_comm_) {
         return neighbor_comm_.i_neighor_all_to_all_v(
-            send_ptr, send_sizes_.data(), send_offsets_.data(), type.get(),
-            recv_ptr, recv_sizes_.data(), recv_offsets_.data(), type.get());
+            use_host_buffer ? exec->get_master() : exec, send_ptr,
+            send_sizes_.data(), send_offsets_.data(), type.get(), recv_ptr,
+            recv_sizes_.data(), recv_offsets_.data(), type.get());
     } else {
         return comm.i_all_to_all_v(
             use_host_buffer ? exec->get_master() : exec, send_ptr,

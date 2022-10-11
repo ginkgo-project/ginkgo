@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_runtime.h>
 
 
-#include <ginkgo/core/base/scoped_device_id.hpp>
-
-
 #include "benchmark/utils/timer_impl.hpp"
 
 

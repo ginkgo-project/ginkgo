@@ -52,8 +52,12 @@ DEFINE_uint64(warmup_max_iters, 100,
 DEFINE_int32(dim, 2, "Dimension of stencil, either 2D or 3D");
 DEFINE_bool(restrict, false,
             "If true creates 5/7pt stencil, if false creates 9/27pt stencil.");
-DEFINE_bool(graph_comm, false,
-            "If true, the matrix will use neighborhood communication.");
+DEFINE_string(comm_pattern, "stencil",
+              "Choose the communication pattern for the matrix, "
+              "possible values are: stencil, optimal, neighborhood");
+DEFINE_bool(
+    strong_scaling, false,
+    "If set to true will treat target_rows as the total number of rows.");
 
 
 template <typename T>
@@ -200,14 +204,14 @@ build_part_from_local_rows(
 
     auto local_size = global_rows.size();
     auto global_size = local_size;
-    comm.all_reduce(&global_size, 1, MPI_SUM);
+    comm.all_reduce(exec, &global_size, 1, MPI_SUM);
 
     std::vector<GlobalIndexType> local_mapping(global_rows.begin(),
                                                global_rows.end());
     std::vector<GlobalIndexType> all_global_rows(global_size);
 
-    comm.all_gather(local_mapping.data(), local_size, all_global_rows.data(),
-                    local_size);
+    comm.all_gather(exec, local_mapping.data(), local_size,
+                    all_global_rows.data(), local_size);
 
     gko::array<gko::distributed::comm_index_type> mapping{exec->get_master(),
                                                           global_size};
@@ -221,6 +225,108 @@ build_part_from_local_rows(
     return gko::distributed::Partition<
         LocalIndexType, GlobalIndexType>::build_from_mapping(exec, mapping,
                                                              comm.size());
+}
+
+
+/**
+ * Generates matrix data for a 2D stencil matrix. If restricted is set to true,
+ * creates a 5-pt stencil, if it is false creates a 9-pt stencil. If
+ * strong_scaling is set to true, creates the same problemsize independent of
+ * the number of ranks, if it false the problem size grows with the number of
+ * ranks.
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_2d_stencil_with_optimal_comm(
+    const IndexType target_local_size, gko::mpi::communicator comm,
+    bool restricted, bool strong_scaling)
+{
+    const auto dp =
+        static_cast<IndexType>(closest_nth_root(target_local_size, 2));
+    const auto mat_size = strong_scaling ? dp * dp : dp * dp * comm.size();
+    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
+    const auto start = rows_per_rank * comm.rank();
+    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
+
+    auto A_data =
+        gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
+
+    for (IndexType row = start; row < end; row++) {
+        auto i = row / dp;
+        auto j = row % dp;
+        for (IndexType d_i = -1; d_i <= 1; d_i++) {
+            for (IndexType d_j = -1; d_j <= 1; d_j++) {
+                if (!restricted || (d_i == 0 || d_j == 0)) {
+                    auto col = j + d_j + (i + d_i) * dp;
+                    if (col >= 0 && col < mat_size) {
+                        A_data.nonzeros.emplace_back(row, col,
+                                                     gko::one<ValueType>());
+                    }
+                }
+            }
+        }
+    }
+
+    return A_data;
+}
+
+
+/**
+ * Generates matrix data for a 3D stencil matrix. If restricted is set to true,
+ * creates a 7-pt stencil, if it is false creates a 27-pt stencil. If
+ * strong_scaling is set to true, creates the same problemsize independent of
+ * the number of ranks, if it false the problem size grows with the number of
+ * ranks.
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_3d_stencil_with_optimal_comm(
+    const IndexType target_local_size, gko::mpi::communicator comm,
+    bool restricted, bool strong_scaling)
+{
+    const auto dp =
+        static_cast<IndexType>(closest_nth_root(target_local_size, 3));
+    const auto mat_size =
+        strong_scaling ? dp * dp * dp : dp * dp * dp * comm.size();
+    const auto rows_per_rank = gko::ceildiv(mat_size, comm.size());
+    const auto start = rows_per_rank * comm.rank();
+    const auto end = gko::min(rows_per_rank * (comm.rank() + 1), mat_size);
+
+    auto A_data =
+        gko::matrix_data<ValueType, IndexType>(gko::dim<2>{mat_size, mat_size});
+
+    for (IndexType row = start; row < end; row++) {
+        auto i = row / (dp * dp);
+        auto j = (row % (dp * dp)) / dp;
+        auto k = row % dp;
+        for (IndexType d_i = -1; d_i <= 1; d_i++) {
+            for (IndexType d_j = -1; d_j <= 1; d_j++) {
+                for (IndexType d_k = -1; d_k <= 1; d_k++) {
+                    if (!restricted ||
+                        ((d_i == 0 && d_j == 0) || (d_i == 0 && d_k == 0) ||
+                         (d_j == 0 && d_k == 0))) {
+                        auto col =
+                            k + d_k + (j + d_j) * dp + (i + d_i) * dp * dp;
+                        if (col >= 0 && col < mat_size) {
+                            A_data.nonzeros.emplace_back(row, col,
+                                                         gko::one<ValueType>());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return A_data;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType, typename ValueType>
+std::unique_ptr<gko::distributed::Partition<LocalIndexType, GlobalIndexType>>
+build_part_from_local_size(
+    std::shared_ptr<const gko::Executor> exec, gko::mpi::communicator comm,
+    const gko::matrix_data<ValueType, GlobalIndexType>& data)
+{
+    return gko::distributed::Partition<LocalIndexType, GlobalIndexType>::
+        build_from_global_size_uniform(exec, comm.size(), data.size[0]);
 }
 
 
@@ -240,10 +346,10 @@ int main(int argc, char* argv[])
     using dist_vec = gko::distributed::Vector<ValueType>;
     using vec = gko::matrix::Dense<ValueType>;
 
-    auto exec = executor_factory_mpi.at(FLAGS_executor)(MPI_COMM_WORLD);
-
-    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD, exec);
+    const auto comm = gko::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
+
+    auto exec = executor_factory_mpi.at(FLAGS_executor)(comm.get());
 
     std::string header =
         "A benchmark for measuring the strong or weak scaling of Ginkgo's "
@@ -272,24 +378,56 @@ int main(int argc, char* argv[])
     if (rank == 0) {
         std::cout << "Generating stencil matrix..." << std::endl;
     }
-    auto A_data = dim == 2 ? generate_2d_stencil<ValueType, GlobalIndexType>(
-                                 comm, num_target_rows, restricted)
-                           : generate_3d_stencil<ValueType, GlobalIndexType>(
-                                 comm, num_target_rows, restricted);
-    auto part = build_part_from_local_rows<LocalIndexType, GlobalIndexType>(
-        exec, comm, A_data);
-    auto global_size = part->get_size();
-
-    // Build global matrix from local matrix data.
     auto h_A = dist_mtx::create(exec->get_master(), comm);
+    auto part =
+        gko::distributed::Partition<LocalIndexType, GlobalIndexType>::create(
+            exec->get_master());
+    if (FLAGS_comm_pattern == "stencil" ||
+        FLAGS_comm_pattern == "neighborhood") {
+        if (rank == 0) {
+            std::cout << "using stencil communication pattern..." << std::endl;
+        }
+        auto A_data = dim == 2
+                          ? generate_2d_stencil<ValueType, GlobalIndexType>(
+                                comm, num_target_rows, restricted)
+                          : generate_3d_stencil<ValueType, GlobalIndexType>(
+                                comm, num_target_rows, restricted);
+        part = build_part_from_local_rows<LocalIndexType, GlobalIndexType>(
+            exec, comm, A_data);
+
+        h_A->read_distributed(A_data, part.get(), part.get());
+    } else if (FLAGS_comm_pattern == "optimal") {
+        if (rank == 0) {
+            std::cout << "using optimal communication pattern..." << std::endl;
+        }
+        auto A_data =
+            dim == 2 ? generate_2d_stencil_with_optimal_comm<ValueType,
+                                                             GlobalIndexType>(
+                           num_target_rows, comm, FLAGS_restrict,
+                           FLAGS_strong_scaling)
+                     : generate_3d_stencil_with_optimal_comm<ValueType,
+                                                             GlobalIndexType>(
+                           num_target_rows, comm, FLAGS_restrict,
+                           FLAGS_strong_scaling);
+        part = build_part_from_local_size<LocalIndexType, GlobalIndexType>(
+            exec, comm, A_data);
+
+        h_A->read_distributed(A_data, part.get(), part.get());
+    } else {
+        throw std::runtime_error("Communication pattern " + FLAGS_comm_pattern +
+                                 " not implemented");
+    }
     auto A = gko::share(dist_mtx::create(exec, comm));
-    h_A->read_distributed(A_data, part.get(), part.get());
     A->copy_from(h_A.get());
+    if (FLAGS_comm_pattern == "neighborhood") {
+        A->use_neighbor_comm();
+    }
 
     // Set up global vectors for the distributed SpMV
     if (rank == 0) {
         std::cout << "Setting up vectors..." << std::endl;
     }
+    const auto global_size = part->get_size();
     const auto local_size =
         static_cast<gko::size_type>(part->get_part_size(comm.rank()));
     auto x = dist_vec::create(exec, comm, gko::dim<2>{global_size, 1},
@@ -339,8 +477,8 @@ int main(int argc, char* argv[])
 
     if (rank == 0) {
         std::cout << "SIZE: " << part->get_size() << std::endl;
-        std::cout << "DURATION: " << ic.compute_average_time() << "s"
-                  << std::endl;
+        std::cout << "DURATION: " << ic.compute_average_time() / FLAGS_max_iters
+                  << "s" << std::endl;
         std::cout << "ITERATIONS: "
                   << ic.get_num_repetitions() * FLAGS_max_iters << std::endl;
     }
