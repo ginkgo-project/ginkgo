@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_BATCH_DISPATCH_HPP_
 
 
+#include <ginkgo/core/matrix/batch_identity.hpp>
 #include <ginkgo/core/preconditioner/batch_ilu.hpp>
 #include <ginkgo/core/preconditioner/batch_isai.hpp>
 #include <ginkgo/core/preconditioner/batch_jacobi.hpp>
 
 
 #include "core/log/batch_logging.hpp"
-#include "ginkgo/core/matrix/batch_identity.hpp"
 
 
 #if defined GKO_COMPILING_CUDA
@@ -197,8 +197,7 @@ public:
         const gko::batch_dense::UniformBatch<device_value_type>& x_b)
     {
         if (!precon_ ||
-            dynamic_cast<const matrix::BatchIdentity<device_value_type>*>(
-                precon_)) {
+            dynamic_cast<const matrix::BatchIdentity<value_type>*>(precon_)) {
             dispatch_on_stop<device::BatchIdentity<device_value_type>>(
                 logger, amat, device::BatchIdentity<device_value_type>(), b_b,
                 x_b);
