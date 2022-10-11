@@ -123,6 +123,11 @@ public:
                                                    strategy_type::selection);
 
         /**
+         * The strategy to generate the coarse matrix
+         */
+        size_type GKO_FACTORY_PARAMETER_SCALAR(spacing, 2);
+
+        /**
          * If the system matrix is Hermitian, then optimizations allow for easy
          * generation of the weight matrix.
          */
@@ -189,12 +194,7 @@ protected:
                                  system_matrix->get_size()),
           multigrid::EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          coarse_indices_map_(factory->get_executor(),
-                              as<distributed::Matrix<ValueType, IndexType>>(
-                                  system_matrix_.get())
-                                  ->get_local_matrix()
-                                  ->get_size()[0])
+          system_matrix_{system_matrix}
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
@@ -213,7 +213,8 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    array<IndexType> coarse_indices_map_;
+    gko::array<IndexType> coarse_indices_map_{};
+    std::shared_ptr<gko::multigrid::MultigridLevel> coarse_level_{};
 };
 
 

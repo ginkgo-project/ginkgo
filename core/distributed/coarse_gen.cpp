@@ -65,6 +65,7 @@ GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        coarse_gen::find_strongest_neighbor);
+// GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, coarse_gen::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
@@ -94,6 +95,10 @@ void CoarseGen<ValueType, IndexType>::generate_with_selection()
 
     const auto global_num_rows = dist_mat->get_size()[0];
     const auto local_num_rows = dist_mat->get_local_matrix()->get_size()[0];
+
+    const auto mat_data = dist_mat->get_matrix_data();
+
+    // exec->run(coarse_gen::)
 }
 
 

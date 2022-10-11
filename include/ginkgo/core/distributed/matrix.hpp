@@ -365,6 +365,17 @@ public:
     std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
 
     /**
+     * Get read access to the matrix data object. Only local rank data.
+     *
+     * @return  matrix_data object
+     */
+    const device_matrix_data<value_type, global_index_type>& get_matrix_data()
+        const
+    {
+        return matrix_data_;
+    }
+
+    /**
      * Get read access to the stored non-local matrix.
      *
      * @return  Shared pointer to the stored non-local matrix
@@ -553,6 +564,7 @@ private:
     gko::detail::DenseCache<value_type> host_recv_buffer_;
     gko::detail::DenseCache<value_type> send_buffer_;
     gko::detail::DenseCache<value_type> recv_buffer_;
+    device_matrix_data<value_type, global_index_type> matrix_data_;
     std::shared_ptr<LinOp> local_mtx_;
     std::shared_ptr<LinOp> non_local_mtx_;
 };

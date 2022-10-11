@@ -85,6 +85,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       gather_idxs_{exec},
       non_local_to_global_{exec},
       one_scalar_{},
+      matrix_data_{exec},
       local_mtx_{local_matrix_template->clone(exec)},
       non_local_mtx_{non_local_matrix_template->clone(exec)}
 {
@@ -113,6 +114,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->recv_offsets_ = this->recv_offsets_;
     result->recv_sizes_ = this->recv_sizes_;
     result->send_sizes_ = this->send_sizes_;
+    // FIXME Add mixed prec copies to device_matrix_data
+    // result->matrix_data_ = this->matrix_data_;
     result->non_local_to_global_ = this->non_local_to_global_;
     result->set_size(this->get_size());
 }
@@ -132,6 +135,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->recv_offsets_ = std::move(this->recv_offsets_);
     result->recv_sizes_ = std::move(this->recv_sizes_);
     result->send_sizes_ = std::move(this->send_sizes_);
+    // FIXME Add mixed prec copies to device_matrix_data
+    // result->matrix_data_ = std::move(this->matrix_data_);
     result->non_local_to_global_ = std::move(this->non_local_to_global_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -151,6 +156,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
+    this->matrix_data_ = data;
 
     // set up LinOp sizes
     auto num_parts = static_cast<size_type>(row_partition->get_num_parts());
@@ -373,7 +379,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      matrix_data_{other.get_executor()}
 {
     *this = other;
 }
@@ -384,7 +391,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
     : EnableDistributedLinOp<Matrix<value_type, local_index_type,
                                     global_index_type>>{other.get_executor()},
-      DistributedBase{other.get_communicator()}
+      DistributedBase{other.get_communicator()},
+      matrix_data_{other.get_executor()}
 {
     *this = std::move(other);
 }
