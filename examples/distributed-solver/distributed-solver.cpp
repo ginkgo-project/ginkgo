@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
     comm.synchronize();
     ValueType t_read_setup_end = gko::mpi::get_walltime();
 
-    const gko::remove_complex<ValueType> reduction_factor{1e-14};
+    const gko::remove_complex<ValueType> reduction_factor{1e-16};
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
         gko::log::Convergence<ValueType>::create();
     auto iter_stop = gko::share(
@@ -232,8 +232,8 @@ int main(int argc, char* argv[])
         gko::share(ic::build().on(exec));
     auto Ainv =
         solver::build()
-            // .with_preconditioner(
-            //     schwarz::build().with_local_solver(local_solver).on(exec))
+            .with_preconditioner(
+                schwarz::build().with_local_solver(local_solver).on(exec))
             .with_criteria(iter_stop, tol_stop)
             .on(exec)
             ->generate(A);
