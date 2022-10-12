@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
         std::string() + "The formats are " + FLAGS_formats + "\n";
     print_general_information(extra_information);
 
-    auto exec = executor_factory.at(FLAGS_executor)();
+    auto exec = executor_factory.at(FLAGS_executor)(FLAGS_gpu_timer);
     auto formats = split(FLAGS_formats, ',');
 
     rapidjson::IStreamWrapper jcin(std::cin);
