@@ -412,6 +412,8 @@ TYPED_TEST(Dense, CanMakeMutableView)
     auto view = gko::make_dense_view(this->mtx.get());
 
     ASSERT_EQ(view->get_values(), this->mtx->get_values());
+    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
+    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
 }
 
 
@@ -420,6 +422,8 @@ TYPED_TEST(Dense, CanMakeConstView)
     auto view = gko::make_const_dense_view(this->mtx.get());
 
     ASSERT_EQ(view->get_const_values(), this->mtx->get_const_values());
+    ASSERT_EQ(view->get_executor(), this->mtx->get_executor());
+    GKO_ASSERT_MTX_NEAR(view, this->mtx, 0.0);
 }
 
 
@@ -448,8 +452,7 @@ private:
     std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
     {
         auto view = create(this->get_executor(), {}, this->get_data());
-        (*static_cast<gko::matrix::Dense<>*>(view.get())) =
-            std::move(*gko::matrix::Dense<>::create_view_of_impl());
+        gko::matrix::Dense<>::create_view_of_impl()->move_to(this);
         return view;
     }
 
