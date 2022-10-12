@@ -113,11 +113,12 @@ class queue;
 
 
 /**
- * The enum class for the dpcpp queue property.
+ * The enum class is for the dpcpp queue property. It's legal to use a binary
+ * or(|) operation to combine several properties.
  */
 enum class dpcpp_queue_property {
     /**
-     * queue executed in order
+     * queue executes in order
      */
     in_order = 1,
 
