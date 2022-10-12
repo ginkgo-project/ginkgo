@@ -239,11 +239,12 @@ void delete_queue(sycl::queue* queue)
 {
     if (property == dpcpp_queue_property::in_order) {
         return {sycl::property::queue::in_order{}};
-    } else if (property == dpcpp_queue_property::enable_profiling) {
-        GKO_NOT_SUPPORTED(property);
-    } else {
+    } else if (property == (dpcpp_queue_property::in_order |
+                            dpcpp_queue_property::enable_profiling)) {
         return {sycl::property::queue::in_order{},
                 sycl::property::queue::enable_profiling{}};
+    } else {
+        GKO_NOT_SUPPORTED(property);
     }
 }
 
