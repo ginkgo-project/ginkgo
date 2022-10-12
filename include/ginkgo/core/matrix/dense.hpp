@@ -1023,12 +1023,11 @@ protected:
     virtual std::unique_ptr<Dense> create_view_of_impl()
     {
         auto exec = this->get_executor();
-        auto view = this->create_default(exec);
-        view->set_size(this->get_size());
-        view->values_ = gko::make_array_view(
-            exec, this->get_num_stored_elements(), this->get_values());
-        view->stride_ = this->get_stride();
-        return view;
+        return Dense::create(
+            exec, this->get_size(),
+            gko::make_array_view(exec, this->get_num_stored_elements(),
+                                 this->get_values()),
+            this->get_stride());
     }
 
     /**
@@ -1040,13 +1039,11 @@ protected:
     virtual std::unique_ptr<const Dense> create_const_view_of_impl() const
     {
         auto exec = this->get_executor();
-        auto view = this->create_default(exec);
-        view->set_size(this->get_size());
-        view->values_ = gko::make_array_view(
-            exec, this->get_num_stored_elements(),
-            const_cast<value_type*>(this->get_const_values()));
-        view->stride_ = this->get_stride();
-        return view;
+        return Dense::create_const(
+            exec, this->get_size(),
+            gko::make_const_array_view(exec, this->get_num_stored_elements(),
+                                       this->get_const_values()),
+            this->get_stride());
     }
 
     template <typename IndexType>

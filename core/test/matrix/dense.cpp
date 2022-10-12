@@ -429,42 +429,44 @@ class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
 
 public:
     static std::unique_ptr<CustomDense> create(
-        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+        std::shared_ptr<const gko::Executor> exec, gko::dim<2> size, int data)
     {
         return std::unique_ptr<CustomDense>(
-            new CustomDense(std::move(exec), size));
+            new CustomDense(std::move(exec), size, data));
     }
+
+    int get_data() const { return data_; }
 
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
-                         gko::dim<2> size = {})
+                         gko::dim<2> size = {}, int data = 0)
         : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
-                                                              size)
+                                                              size),
+          data_(data)
     {}
+
+    std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
+    {
+        auto view = create(this->get_executor(), {}, this->get_data());
+        (*static_cast<gko::matrix::Dense<>*>(view.get())) =
+            std::move(*gko::matrix::Dense<>::create_view_of_impl());
+        return view;
+    }
+
+    int data_;
 };
 
 
-TEST(DenseView, MutableViewKeepsRuntimeType)
+TEST(DenseView, CustomViewKeepsRuntimeType)
 {
     auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4});
+                                      gko::dim<2>{3, 4}, 2);
 
     auto view = gko::make_dense_view(vector.get());
 
     ASSERT_EQ(view->get_values(), vector->get_values());
-    ASSERT_TRUE(dynamic_cast<CustomDense*>(view.get()));
-}
-
-
-TEST(DenseView, ConstViewKeepsRuntimeType)
-{
-    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4});
-
-    auto view = gko::make_const_dense_view(vector.get());
-
-    ASSERT_EQ(view->get_const_values(), vector->get_const_values());
-    ASSERT_TRUE(dynamic_cast<const CustomDense*>(view.get()));
+    EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
+    ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
 }
 
 
