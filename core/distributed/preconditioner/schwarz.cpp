@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 namespace preconditioner {
 
@@ -123,4 +124,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCHWARZ);
 
 }  // namespace preconditioner
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko

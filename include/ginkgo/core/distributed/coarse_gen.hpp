@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 
 
@@ -65,6 +66,7 @@ namespace distributed {
  * @ingroup MultigridLevel
  * @ingroup Multigrid
  * @ingroup LinOp
+ * TODO: GlobalIndexType ?
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class CoarseGen : public EnableLinOp<CoarseGen<ValueType, IndexType>>,
@@ -194,7 +196,9 @@ protected:
                                  system_matrix->get_size()),
           multigrid::EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          system_matrix_{system_matrix},
+          coarse_indices_map_(factory->get_executor(),
+                              system_matrix_->get_size()[0])
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
@@ -213,12 +217,12 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    gko::array<IndexType> coarse_indices_map_{};
-    std::shared_ptr<gko::multigrid::MultigridLevel> coarse_level_{};
+    array<IndexType> coarse_indices_map_{};
 };
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
