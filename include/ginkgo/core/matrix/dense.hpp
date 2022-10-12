@@ -1236,6 +1236,7 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
  * Creates a view of a given Dense vector.
  *
  * @tparam ValueType  the underlying value type of the vector
+ *
  * @param vector  the vector on which to create the view
  */
 template <typename ValueType>
@@ -1250,6 +1251,7 @@ std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
  * Creates a view of a given Dense vector.
  *
  * @tparam ValueType  the underlying value type of the vector
+ *
  * @param vector  the vector on which to create the view
  */
 template <typename ValueType>
