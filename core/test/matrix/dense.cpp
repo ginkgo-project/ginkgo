@@ -452,7 +452,7 @@ private:
     std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
     {
         auto view = create(this->get_executor(), {}, this->get_data());
-        gko::matrix::Dense<>::create_view_of_impl()->move_to(this);
+        gko::matrix::Dense<>::create_view_of_impl()->move_to(view.get());
         return view;
     }
 
