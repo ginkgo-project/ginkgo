@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_matrix_data.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 
@@ -66,12 +67,21 @@ namespace coarse_gen {
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,  \
         array<IndexType>& intermediate_agg)
 
+#define GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, IndexType)          \
+    void fill_coarse(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const device_matrix_data<ValueType, IndexType>& fine_matrix_data, \
+        device_matrix_data<ValueType, IndexType>& coarse_data,            \
+        array<IndexType>& coarse_indices)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_COARSE_GEN_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)
+    GKO_DECLARE_COARSE_GEN_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_COARSE_GEN_FILL_COARSE(ValueType, IndexType)
 
 
 }  // namespace coarse_gen

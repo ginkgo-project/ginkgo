@@ -55,6 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace experimental {
 namespace distributed {
 namespace coarse_gen {
 namespace {
@@ -65,7 +66,7 @@ GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        coarse_gen::find_strongest_neighbor);
-// GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
+GKO_REGISTER_OPERATION(fill_coarse, coarse_gen::fill_coarse);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, coarse_gen::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
@@ -85,7 +86,7 @@ void CoarseGen<ValueType, IndexType>::generate_with_aggregation()
 template <typename ValueType, typename IndexType>
 void CoarseGen<ValueType, IndexType>::generate_with_selection()
 {
-    using matrix_type = distributed::Matrix<ValueType, IndexType>;
+    using matrix_type = experimental::distributed::Matrix<ValueType, IndexType>;
     using csr = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
     using weight_matrix_type = remove_complex<matrix_type>;
@@ -93,12 +94,15 @@ void CoarseGen<ValueType, IndexType>::generate_with_selection()
     const matrix_type* dist_mat =
         dynamic_cast<const matrix_type*>(system_matrix_.get());
 
-    const auto global_num_rows = dist_mat->get_size()[0];
+    const auto global_size = dist_mat->get_size();
     const auto local_num_rows = dist_mat->get_local_matrix()->get_size()[0];
 
     const auto mat_data = dist_mat->get_matrix_data();
 
-    // exec->run(coarse_gen::)
+    device_matrix_data<ValueType, IndexType> coarse_data{
+        exec, dim<2>{local_num_rows, global_size[1]}};
+
+    exec->run(coarse_gen::make_fill_coarse());
 }
 
 
@@ -107,4 +111,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COARSE_GEN);
 
 
 }  // namespace distributed
+}  // namespace experimental
 }  // namespace gko

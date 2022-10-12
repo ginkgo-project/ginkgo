@@ -72,7 +72,8 @@ int main(int argc, char* argv[])
     // distributed systems at the moment.
     using solver = gko::solver::Cg<ValueType>;
     using schwarz =
-        gko::distributed::preconditioner::Schwarz<ValueType, LocalIndexType>;
+        gko::experimental::distributed::preconditioner::Schwarz<ValueType,
+                                                                LocalIndexType>;
     using bj = gko::preconditioner::Jacobi<ValueType, LocalIndexType>;
     using ic = gko::preconditioner::Ic<>;
 
