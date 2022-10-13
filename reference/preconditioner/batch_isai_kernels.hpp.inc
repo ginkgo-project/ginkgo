@@ -291,29 +291,33 @@ inline void fill_values_dense_mat_and_solve_batch_entry_impl(
             }
         }
 
-        /*
-        for(int r = 0; r < size; r++)
-        {
-            for(int c = 0; c < size; c++)
-            {
-                std::cout <<  "row: " <<  row_idx <<   "  dense_pattern[" << r
-        << "," << c << "] : " << dense_mat_pattern_ptr[r * row_size_limit + c ]
-        << std::endl;
-            }
-        }
 
-        for(int r = 0; r < size; r++)
-        {
-            for(int c = 0; c < size; c++)
-            {
-                std::cout << "row: " <<  row_idx <<   " dense_mat[" << r << ","
-        << c << "] : " << dense_mat[r * row_size_limit + c ] << std::endl;
-            }
-        }
+        // for(int r = 0; r < size; r++)
+        // {
+        //     for(int c = 0; c < size; c++)
+        //     {
+        //         std::cout <<  "row: " <<  row_idx <<   "  dense_pattern[" <<
+        //         r
+        // << "," << c << "] : " << dense_mat_pattern_ptr[r * row_size_limit + c
+        // ]
+        // << std::endl;
+        //     }
+        // }
 
-        std::cout << "size: " << size << "  rhs one loc: " << rhs_one_loc <<
-        std::endl;
-        */
+        // std::cout << "ref version" << std::endl;
+        // for(int r = 0; r < size; r++)
+        // {
+        //     for(int c = 0; c < size; c++)
+        //     {
+        //         std::cout << "row: " <<  row_idx <<   " dense_mat[" << r <<
+        //         ","
+        // << c << "] : " << dense_mat[r * row_size_limit + c ] << std::endl;
+        //     }
+        // }
+
+        // std::cout << "size: " << size << "  rhs one loc: " << rhs_one_loc <<
+        // std::endl;
+
 
         ValueType* const sol_arr =
             &aiA_entry.values[aiA_entry.row_ptrs[row_idx]];
