@@ -212,6 +212,7 @@ public:
      * Dense matrix' array.
      *
      * @param other  The other matrix on which to create the view
+     *
      * @return  A Dense matrix that is a view of other
      */
     static std::unique_ptr<Dense> create_view_of(Dense* other)
