@@ -57,3 +57,5 @@ jobs:
         cd build
         cmake --install . --config ${{ matrix.config.build_type }}
         cmake --build . --target test_install --config ${{ matrix.config.build_type }}
+        cmake --build . --target genexdebug --config ${{ matrix.config.build_type }}
+        cmake --build . --target test_exportbuild_pkgconfig ${{ matrix.config.build_type }}

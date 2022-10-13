@@ -1,3 +1,5 @@
+# TODO: we may use file(GENERATE ... TARGET ...) to generate config file based on the target property
+#       when we bump the CMake minimum version to 3.15/3.19
 function(filter_generator_expressions INPUT OUTPUT)
     # See https://gitlab.kitware.com/cmake/cmake/-/blob/v3.22.2/Modules/FindMPI.cmake#L1218
     # and other versions of this file for what we are removing here.
@@ -18,10 +20,12 @@ function(filter_generator_expressions INPUT OUTPUT)
 endfunction()
 
 macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
+    message("INTERFACE_LIBS ${INTERFACE_LIBS}")
     foreach(_libs ${INTERFACE_LIBS})
         if (NOT "${_libs}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND
                 AND NOT "-l${_libs}" IN_LIST GINKGO_INTERFACE_LIBS_FOUND)
             if (TARGET ${_libs})
+                message("${_libs} is TARGET")
                 if (upper_CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND "${_libs}" MATCHES "ginkgo.*")
                     set(GINKGO_INTERFACE_LIB_NAME "-l${_libs}${CMAKE_DEBUG_POSTFIX}")
                 elseif("${_libs}" MATCHES "ginkgo.*") # Ginkgo libs are appended in the form -l
@@ -68,10 +72,12 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     INTERFACE_LINK_LIBRARIES)
                 ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
             elseif(EXISTS "${_libs}")
+                message("${_libs} is EXISTED")
                 if ("${_libs}" MATCHES "${PROJECT_BINARY_DIR}.*hwloc.so")
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_LIBRARY_DIR}/libhwloc.so")
                 else()
                     list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_libs}")
+                    message("GINKGO_INTERFACE_LIBS_FOUND ${GINKGO_INTERFACE_LIBS_FOUND}")
                 endif()
             endif()
         else()
