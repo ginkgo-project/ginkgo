@@ -62,3 +62,5 @@ jobs:
         cd build
         make install
         make test_install
+        make genexdebug
+        LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH make test_exportbuild_pkgconfig
