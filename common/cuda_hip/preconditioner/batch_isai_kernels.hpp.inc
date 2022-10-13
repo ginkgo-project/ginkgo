@@ -78,18 +78,23 @@ __global__
 
     for (int aiA_row = 0; aiA_row < nrows; aiA_row++) {
         int* const dense_mat_ptr =
-            dense_mat_pattern + row_size_limit * row_size_limit;
+            dense_mat_pattern + row_size_limit * row_size_limit * aiA_row;
         const int aiA_row_st = aiA_row_ptrs[aiA_row];
         const int aiA_row_end = aiA_row_ptrs[aiA_row + 1];
+
         for (int aiA_nz_id = aiA_row_st; aiA_nz_id < aiA_row_end; aiA_nz_id++) {
-            if (subgrpwarp_id_in_grid < aiA_nz_id ||
-                subgrpwarp_id_in_grid > aiA_nz_id) {
+            if (ele_id_assigned_to_subwarpgrp != aiA_nz_id) {
                 continue;
             }
 
             const int i_size = aiA_row_end - aiA_row_st;
 
-            if (aiA_nz_id = aiA_row_st && subwarpgrp.thread_rank() == 0) {
+            if (aiA_nz_id == aiA_row_st && subwarpgrp.thread_rank() == 0) {
+                // printf("\n writing size: %d for row: %d,
+                // ele_id_assigned_to_subwarp: %d, aiA_nz_id: %d, aiA_row_st:
+                // %d",
+                //  i_size, aiA_row,  ele_id_assigned_to_subwarpgrp, aiA_nz_id,
+                //  aiA_row_st);
                 sizes[aiA_row] = i_size;
             }
 
@@ -110,33 +115,32 @@ __global__
                 dense_mat_ptr + dense_sys_row * row_size_limit;
 
 
-            // auto do_this_on_match_1 = [dense_ptr_for_this_row, aiA_row_st](
-            //                             int idx_match_arr1,
-            //                             int idx_match_arr2) {
-            //     dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
-            //     idx_match_arr2;
-            // };
-
-            // group_match_1<subwarp_size>(aiA_col_idxs, aiA_row_st,
-            // aiA_row_end,
-            //                               A_col_idxs, A_row_st, A_row_end,
-            //                               subwarpgrp, do_this_on_match_1);
-
-            auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st](
-                                        int, int idx_match_arr1,
-                                        int idx_match_arr2,
-                                        config::lane_mask_type, bool valid) {
-                if (valid) {
-                    dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
-                        idx_match_arr2;
-                }
+            auto do_this_on_match_1 = [dense_ptr_for_this_row, aiA_row_st](
+                                          int idx_match_arr1,
+                                          int idx_match_arr2) {
+                dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
+                    idx_match_arr2;
             };
 
-            // warp-parallel match algorithm
-            group_match<subwarp_size>(
-                aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
-                A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
-                do_this_on_match);
+            group_match_1<subwarp_size>(aiA_col_idxs, aiA_row_st, aiA_row_end,
+                                        A_col_idxs, A_row_st, A_row_end,
+                                        subwarpgrp, do_this_on_match_1);
+
+            // auto do_this_on_match = [dense_ptr_for_this_row, aiA_row_st](
+            //                             int, int idx_match_arr1,
+            //                             int idx_match_arr2,
+            //                             config::lane_mask_type, bool valid) {
+            //     if (valid) {
+            //         dense_ptr_for_this_row[idx_match_arr1 - aiA_row_st] =
+            //             idx_match_arr2;
+            //     }
+            // };
+
+            // // warp-parallel match algorithm
+            // group_match<subwarp_size>(
+            //     aiA_col_idxs + aiA_row_st, aiA_row_end - aiA_row_st,
+            //     A_col_idxs + A_row_st, A_row_end - A_row_st, subwarpgrp,
+            //     do_this_on_match);
 
             subwarpgrp.sync();
             ele_id_assigned_to_subwarpgrp += total_num_subwarp_grps_in_grid;
@@ -229,9 +233,10 @@ __device__ __forceinline__ int choose_pivot_row(
     const int local_id = subwarpgrp.thread_rank();
     ValueType my_ele = local_row[diag_pos];
     int my_idx = local_id;
+    const ValueType my_ele_1 = subwarpgrp.shfl(local_row[diag_pos], diag_pos);
 
     if (local_id < diag_pos || local_id >= size) {
-        my_ele = subwarpgrp.shfl(local_row[diag_pos], diag_pos);
+        my_ele = my_ele_1;
         my_idx = diag_pos;
     }
 
@@ -308,7 +313,7 @@ __device__ __forceinline__ void row_transformation(Group subwarpgrp,
 
     const ValueType rhs_key_val = subwarpgrp.shfl(rhs, diag_pos);
     if (local_id != diag_pos) {
-        rhs -= multiplier * rhs;
+        rhs -= multiplier * rhs_key_val;
     }
 }
 
@@ -393,6 +398,16 @@ __global__
         }
         // Now the 0th thread of the subwarp contains the 0th row of the dense
         // system, the 1st thread, the 1st row and so on...
+
+        // for(int col = 0; col < size; col++)
+        // {
+        //     if(local_id < size)
+        //     {
+        //         printf("\n row: %d, dense_sys[%d, %d]: %g   rhs_one_idx: %d
+        //         size: %d\n", row, local_id, col, local_row[col], rhs_one_idx,
+        //         size);
+        //     }
+        // }
 
         subwarpgrp.sync();
         ValueType sol;

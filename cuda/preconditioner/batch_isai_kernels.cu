@@ -70,6 +70,8 @@ void extract_dense_linear_sys_pattern(
     IndexType* const dense_mat_pattern, IndexType* const rhs_one_idxs,
     IndexType* const sizes)
 {
+    // std::cout << "Extract dense linear sys pattern - start" << std::endl;
+
     const auto nrows = first_approx_inv->get_size()[0];
     const auto nnz_aiA = first_approx_inv->get_num_stored_elements();
     dim3 block(default_block_size);
@@ -82,7 +84,35 @@ void extract_dense_linear_sys_pattern(
                           first_approx_inv->get_const_col_idxs(),
                           dense_mat_pattern, rhs_one_idxs, sizes);
 
+
     GKO_CUDA_LAST_IF_ERROR_THROW;
+
+    // exec->synchronize();
+    // std::cout << "Extract dense linear sys pattern - done" << std::endl;
+
+    // using gko::preconditioner::batch_isai::row_size_limit;
+    // gko::array<IndexType> dense_pattern_ref(exec->get_master(), nrows *
+    // row_size_limit * row_size_limit);
+    // exec->get_master()->copy_from(exec.get(), nrows * row_size_limit *
+    // row_size_limit, dense_mat_pattern, dense_pattern_ref.get_data());
+
+    // gko::array<IndexType> sizes_ref(exec->get_master(), nrows );
+    // exec->get_master()->copy_from(exec.get(), nrows , sizes,
+    // sizes_ref.get_data());
+
+    // std::cout << "cuda dense pattern is: " << std::endl;
+    // for(int row = 0; row < 3; row++)
+    // {   std::cout << "corr to row: " << row << std::endl;
+    //     for(int r = 0; r < sizes_ref.get_data()[row]; r++)
+    //     {   std::cout << std::endl;
+    //         for(int c = 0; c < sizes_ref.get_data()[row] ;c++)
+    //         {
+    //             std::cout << "dense(" << r << "," << c << ") : " <<
+    //             dense_pattern_ref.get_const_data()[row* row_size_limit*
+    //             row_size_limit  + r * row_size_limit + c] << "\n";
+    //         }
+    //     }
+    // }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_AND_INT32_INDEX(
