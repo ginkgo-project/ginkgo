@@ -1,8 +1,3 @@
-if (NOT GKO_CAN_COMPILE_DPCPP)
-    message(FATAL_ERROR "The CMAKE_CXX_COMPILER compiler, which is "
-        "${CMAKE_CXX_COMPILER} cannot compile DPC++ code!")
-endif()
-
 ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION)
 set(GINKGO_DPCPP_VERSION ${GINKGO_DPCPP_VERSION} PARENT_SCOPE)
 
