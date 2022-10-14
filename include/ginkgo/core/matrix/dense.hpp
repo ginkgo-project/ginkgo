@@ -207,6 +207,31 @@ public:
         return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
+    /**
+     * Creates a Dense matrix, where the underlying array is a view of another
+     * Dense matrix' array.
+     *
+     * @param other  The other matrix on which to create the view
+     *
+     * @return  A Dense matrix that is a view of other
+     */
+    static std::unique_ptr<Dense> create_view_of(Dense* other)
+    {
+        return other->create_view_of_impl();
+    }
+
+    /**
+     * Creates a immutable Dense matrix, where the underlying array is a view of
+     * another Dense matrix' array.
+     *
+     * @param other  The other matrix on which to create the view
+     * @return  A immutable Dense matrix that is a view of other
+     */
+    static std::unique_ptr<const Dense> create_const_view_of(const Dense* other)
+    {
+        return other->create_const_view_of_impl();
+    }
+
     friend class Dense<next_precision<ValueType>>;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
@@ -990,6 +1015,38 @@ protected:
         return Dense::create(exec, size, stride);
     }
 
+    /**
+     * Creates a Dense matrix where the underlying array is a view of this'
+     * array.
+     *
+     * @return  A Dense matrix that is a view of this.
+     */
+    virtual std::unique_ptr<Dense> create_view_of_impl()
+    {
+        auto exec = this->get_executor();
+        return Dense::create(
+            exec, this->get_size(),
+            gko::make_array_view(exec, this->get_num_stored_elements(),
+                                 this->get_values()),
+            this->get_stride());
+    }
+
+    /**
+     * Creates a immutable Dense matrix where the underlying array is a view of
+     * this' array.
+     *
+     * @return  A immutable Dense matrix that is a view of this.
+     */
+    virtual std::unique_ptr<const Dense> create_const_view_of_impl() const
+    {
+        auto exec = this->get_executor();
+        return Dense::create_const(
+            exec, this->get_size(),
+            gko::make_const_array_view(exec, this->get_num_stored_elements(),
+                                       this->get_const_values()),
+            this->get_stride());
+    }
+
     template <typename IndexType>
     void convert_impl(Coo<ValueType, IndexType>* result) const;
 
@@ -1174,6 +1231,36 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 
 
 }  // namespace detail
+
+
+/**
+ * Creates a view of a given Dense vector.
+ *
+ * @tparam ValueType  the underlying value type of the vector
+ *
+ * @param vector  the vector on which to create the view
+ */
+template <typename ValueType>
+std::unique_ptr<matrix::Dense<ValueType>> make_dense_view(
+    matrix::Dense<ValueType>* vector)
+{
+    return matrix::Dense<ValueType>::create_view_of(vector);
+}
+
+
+/**
+ * Creates a view of a given Dense vector.
+ *
+ * @tparam ValueType  the underlying value type of the vector
+ *
+ * @param vector  the vector on which to create the view
+ */
+template <typename ValueType>
+std::unique_ptr<const matrix::Dense<ValueType>> make_const_dense_view(
+    const matrix::Dense<ValueType>* vector)
+{
+    return matrix::Dense<ValueType>::create_const_view_of(vector);
+}
 
 
 /**
