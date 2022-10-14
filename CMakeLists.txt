@@ -109,10 +109,10 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
-if (MSVC)
+if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 endif()
-if (MINGW OR CYGWIN)
+if(MINGW OR CYGWIN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
 
@@ -216,16 +216,18 @@ if(GINKGO_BUILD_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
     endif()
 
-    execute_process(COMMAND ${MPIEXEC_EXECUTABLE} --version
-      OUTPUT_VARIABLE mpiexec_output RESULT_VARIABLE mpiexec_result)
-    string(REGEX MATCH "[oO][pP][eE][nN].?[mM][pP][iI]" openmpi_match "${mpiexec_output}")
-    if(openmpi_match)
-        string(REGEX MATCH "([0-9]+\.?)+" openmpi_version "${mpiexec_output}")
+    try_run(uses_openmpi gko_result_unused
+        ${PROJECT_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}/cmake/openmpi_test.cpp
+        LINK_LIBRARIES MPI::MPI_CXX
+        RUN_OUTPUT_VARIABLE openmpi_version
+        )
+    if(uses_openmpi)
         if(openmpi_version VERSION_LESS "4.1")
             message(WARNING
-              "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
-              "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
-              "switch to a different vendor.")
+                "OpenMPI v4.0.x has a bug that forces us to use blocking communication in our distributed "
+                "matrix class. To enable faster, non-blocking communication, consider updating your OpenMPI version or "
+                "switch to a different vendor.")
             set(GINKGO_FORCE_SPMV_BLOCKING_COMM ON)
         endif()
     endif()
@@ -264,21 +266,21 @@ add_subdirectory(common)         # Import list of unified kernel source files
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
-if (GINKGO_BUILD_REFERENCE)
+if(GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
 if(GINKGO_BUILD_HIP)
     add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
-if (GINKGO_BUILD_DPCPP)
+if(GINKGO_BUILD_DPCPP)
     add_subdirectory(dpcpp)        # High-performance DPC++ kernels
 endif()
-if (GINKGO_BUILD_OMP)
+if(GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 add_subdirectory(include)        # Public API self-contained check
-if (GINKGO_BUILD_TESTS)
+if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)       # Tests running on all executors
 endif()
 
@@ -346,7 +348,7 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
     ${Ginkgo_BINARY_DIR}/ginkgo.pc.in @ONLY)
 file(GENERATE OUTPUT ${Ginkgo_BINARY_DIR}/ginkgo_$<CONFIG>.pc
-     INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
+    INPUT ${Ginkgo_BINARY_DIR}/ginkgo.pc.in)
 
 # WINDOWS NVCC has " inside the string, add escape character
 # to avoid config problem.
@@ -379,7 +381,7 @@ endif()
 file(MAKE_DIRECTORY "${GINKGO_TEST_INSTALL_BIN_DIR}")
 file(MAKE_DIRECTORY "${GINKGO_TEST_EXPORTBUILD_BIN_DIR}")
 set(TOOLSET "")
-if (NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
+if(NOT "${CMAKE_GENERATOR_TOOLSET}" STREQUAL "")
     set(TOOLSET "-T${CMAKE_GENERATOR_TOOLSET}")
 endif()
 add_custom_target(test_install
