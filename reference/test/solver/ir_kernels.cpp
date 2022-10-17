@@ -450,4 +450,43 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
 }
 
 
+TYPED_TEST(Ir, ApplyWithGivenHintIsEquivalentToRef)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using input_hint = gko::solver::input_hint;
+    auto ref_solver =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    for (auto hint : {input_hint::given, input_hint::rhs, input_hint::zero}) {
+        // SCOPED_TRACE?
+        auto solver =
+            gko::solver::Ir<value_type>::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(
+                        this->exec))
+                .with_apply_hint(hint)
+                .on(this->exec)
+                ->generate(this->mtx);
+        auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
+        std::shared_ptr<Mtx> ref_x = nullptr;
+        if (hint == input_hint::given) {
+            ref_x = x->clone();
+        } else if (hint == input_hint::rhs) {
+            ref_x = b->clone();
+        } else {
+            ref_x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+        }
+        solver->apply(lend(b), lend(x));
+        ref_solver->apply(lend(b), lend(ref_x));
+
+        GKO_ASSERT_MTX_NEAR(x, ref_x, 0.0);
+    }
+}
+
+
 }  // namespace

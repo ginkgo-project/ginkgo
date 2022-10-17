@@ -162,7 +162,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    this->apply_impl(b, x, input_hint::given);
+    this->apply_impl(b, x, this->get_apply_hint());
 }
 
 
@@ -203,6 +203,8 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
     exec->run(ir::make_initialize(&stop_status));
     if (hint == input_hint::rhs) {
         dense_x->copy_from(dense_b);
+    } else if (hint == input_hint::zero) {
+        dense_x->fill(zero<ValueType>());
     }
 
     if (hint != input_hint::zero) {
