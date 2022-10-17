@@ -165,8 +165,11 @@ TYPED_TEST(Ir, CanBeCleared)
 }
 
 
-TYPED_TEST(Ir, ApplyUsesInitialGuessReturnsTrue)
+TYPED_TEST(Ir, DefaultApplyUsesInitialGuess)
 {
+    using Solver = typename TestFixture::Solver;
+    ASSERT_TRUE(static_cast<Solver*>(this->solver.get())->get_apply_hint() ==
+                gko::solver::input_hint::given);
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
 
@@ -292,6 +295,29 @@ TYPED_TEST(Ir, CanSetInnerSolver)
 
     ASSERT_NE(inner_solver.get(), nullptr);
     ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TYPED_TEST(Ir, CanSetApplyHint)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using input_hint = gko::solver::input_hint;
+    for (auto hint : {input_hint::given, input_hint::rhs, input_hint::zero}) {
+        // SCOPED_TRACE?
+        auto ir_factory =
+            Solver::build()
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(3u).on(
+                        this->exec))
+                .with_apply_hint(hint)
+                .on(this->exec);
+        auto solver = ir_factory->generate(this->mtx);
+
+        ASSERT_EQ(solver->get_apply_hint(), hint);
+        ASSERT_EQ(solver->apply_uses_initial_guess(),
+                  hint == gko::solver::input_hint::given);
+    }
 }
 
 

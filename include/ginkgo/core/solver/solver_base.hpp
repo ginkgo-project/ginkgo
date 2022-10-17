@@ -96,18 +96,45 @@ inline void fill_zero(LinOp* input)
 
 class ApplyHint {
 public:
+    /**
+     * Applies a linear operator to a vector (or a sequence of vectors) with
+     * a hint.
+     *
+     * Performs the operation x = op(b) with a hint, where op is this linear
+     * operator.
+     *
+     * @param b  the input vector(s) on which the operator is applied
+     * @param x  the output vector(s) where the result is stored
+     * @param hint  the input hint to handle the input vector(s)
+     *
+     * @return this
+     */
     ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint)
     {
         this->apply_impl(b, x, hint);
         return this;
     }
 
+    /**
+     * @copydoc apply_hint(const LinOp *, LinOp *, input_hint)
+     */
     const ApplyHint* apply_hint(const LinOp* b, LinOp* x, input_hint hint) const
     {
         this->apply_impl(b, x, hint);
         return this;
     }
 
+    /**
+     * Performs the operation x = alpha * op(b) + beta * x with a hint
+     *
+     * @param alpha  scaling of the result of op(b)
+     * @param b  vector(s) on which the operator is applied
+     * @param beta  scaling of the input x
+     * @param x  output vector(s)
+     * @param hint  the input hint
+     *
+     * @return this
+     */
     ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                           LinOp* x, input_hint hint)
     {
@@ -115,6 +142,10 @@ public:
         return this;
     }
 
+    /**
+     * @copydoc apply_hint(const LinOp *, const LinOp *, const LinOp *, LinOp *,
+     *          input_hint)
+     */
     const ApplyHint* apply_hint(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x,
                                 input_hint hint) const
@@ -123,7 +154,21 @@ public:
         return this;
     }
 
+    /**
+     * Get the input hint
+     *
+     * @return input_hint
+     */
+    input_hint get_apply_hint() const { return hint_; }
+
 protected:
+    /**
+     * ApplyHint constructor.
+     *
+     * @param hint  the input hint whose default is input_hint::given
+     */
+    ApplyHint(input_hint hint = input_hint::given) : hint_(hint) {}
+
     virtual void apply_impl(const LinOp* b, LinOp* x, input_hint hint) const
     {
         if (hint == input_hint::zero) {
@@ -145,10 +190,22 @@ protected:
         this->apply_impl(b, x);
     }
 
-    // override at the same time when overriden
+    /**
+     * set the input hint
+     *
+     * @param hint  the input hint
+     */
+    void set_apply_hint(input_hint hint) { hint_ = hint; }
+
+    // override this at the same time when overridden
     virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
+
+    // override this at the same time when overridden
     virtual void apply_impl(const LinOp* alpha, const LinOp* b,
                             const LinOp* beta, LinOp* x) const = 0;
+
+private:
+    input_hint hint_;
 };
 
 template <typename DerivedType>
