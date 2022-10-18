@@ -66,17 +66,20 @@ namespace distributed {
  * @ingroup MultigridLevel
  * @ingroup Multigrid
  * @ingroup LinOp
- * TODO: GlobalIndexType ?
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class CoarseGen : public EnableLinOp<CoarseGen<ValueType, IndexType>>,
-                  public multigrid::EnableMultigridLevel<ValueType> {
+template <typename ValueType = default_precision,
+          typename LocalIndexType = int32, typename GlobalIndexType = int64>
+class CoarseGen
+    : public EnableLinOp<CoarseGen<ValueType, LocalIndexType, GlobalIndexType>>,
+      public multigrid::EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<CoarseGen>;
     friend class polymorphic_object_traits<CoarseGen>;
 
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
+    using index_type = GlobalIndexType;
+    using local_index_type = LocalIndexType;
+    using global_index_type = GlobalIndexType;
 
     /**
      * Returns the system operator (matrix) of the linear system.
@@ -97,7 +100,7 @@ public:
      *
      * @return the aggregate group.
      */
-    IndexType* get_coarse_indices_map() noexcept
+    index_type* get_coarse_indices_map() noexcept
     {
         return coarse_indices_map_.get_data();
     }
@@ -109,7 +112,7 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const IndexType* get_const_coarse_indices_map() const noexcept
+    const index_type* get_const_coarse_indices_map() const noexcept
     {
         return coarse_indices_map_.get_const_data();
     }
@@ -217,7 +220,7 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    array<IndexType> coarse_indices_map_{};
+    array<GlobalIndexType> coarse_indices_map_{};
 };
 
 
